@@ -236,7 +236,7 @@ static void period_tune(app_t *a)
     want = clampi(want, FRAME_MS, FRAME_MAX);
 
     if (want != a->period) {
-        aos_hal_log("cjump", "cuadro real %d ms: periodo %d -> %d ms (%d.%d fps, %u%% de pantalla en %u rectangulos)",
+        aos_hal_log("cjump", "real frame %d ms: period %d -> %d ms (%d.%d fps, %u%% of the screen in %u rectangles)",
                     a->real_ms, a->period, want, a->g.fps10 / 10, a->g.fps10 % 10,
                     (unsigned)a->g.last_area, (unsigned)a->g.last_rects);
         a->period = (int16_t)want;

@@ -262,9 +262,9 @@ void aos_hal_display_set_state(aos_display_state_t state)
     case AOS_DISPLAY_OFF:    bsp_display_brightness_set(0);                break;
     }
 
-    ESP_LOGI(TAG, "pantalla -> %s",
-             state == AOS_DISPLAY_ACTIVE ? "activa" :
-             state == AOS_DISPLAY_AOD    ? "atenuada" : "apagada");
+    ESP_LOGI(TAG, "display -> %s",
+             state == AOS_DISPLAY_ACTIVE ? "active" :
+             state == AOS_DISPLAY_AOD    ? "dimmed" : "off");
 
     if (s_display_cb) {
         s_display_cb(state);
@@ -1728,7 +1728,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t base,
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)data;
         snprintf(s_net_ip, sizeof(s_net_ip), IPSTR, IP2STR(&event->ip_info.ip));
         s_net_state = AOS_NET_CONNECTED;
-        ESP_LOGI(TAG, "wifi conectado, ip %s", s_net_ip);
+        ESP_LOGI(TAG, "wifi connected, ip %s", s_net_ip);
         mdns_up();
     }
 }
@@ -1787,7 +1787,7 @@ static void wifi_stack_stop(void)
     s_wifi_started = false;
     s_ap_active   = false;
     strcpy(s_net_ip, "0.0.0.0");
-    ESP_LOGI(TAG, "wifi apagada, memoria devuelta");
+    ESP_LOGI(TAG, "wifi off, memory returned");
 }
 
 void aos_hal_net_enable(bool on)
@@ -1846,7 +1846,7 @@ bool aos_hal_net_set_credentials(const char *ssid, const char *pass)
     }
     aos_hal_pref_set_str("wifi_ssid", ssid);
     aos_hal_pref_set_str("wifi_pass", pass ? pass : "");
-    ESP_LOGI(TAG, "red guardada: %s", ssid);
+    ESP_LOGI(TAG, "network saved: %s", ssid);
 
     /* Reconnect with the new network. The AP, if it was up, is switched off by
      * the caller: the page had better manage to answer before it is cut. Saving
@@ -1997,7 +1997,7 @@ bool aos_hal_net_ap_set_config(const char *ssid, const char *pass,
                          (mode == AOS_AP_PASS_FIXED && pass) ? pass : "");
     s_ap_pass[0] = 0;       /* so ap_config_resolver() re-reads it from NVS */
 
-    ESP_LOGI(TAG, "AP configurado: %s / clave %s",
+    ESP_LOGI(TAG, "AP configured: %s / key %s",
              (ssid && ssid[0]) ? ssid : "(automatico)",
              mode == AOS_AP_PASS_ROTATING ? "rotativa" : "fija");
 
@@ -2265,7 +2265,7 @@ static void touch_disable_autosleep(void)
     const uint8_t dis_auto_sleep[2] = { 0xFE, 0xFF };
     esp_err_t ret = i2c_master_transmit(s_touch_dev, dis_auto_sleep,
                                         sizeof(dis_auto_sleep), 100);
-    ESP_LOGI(TAG, "tactil CST820: auto-sleep desactivado (%s)", esp_err_to_name(ret));
+    ESP_LOGI(TAG, "CST820 touch: auto-sleep disabled (%s)", esp_err_to_name(ret));
 }
 
 /* The CST820 puts itself back to sleep (after its own internal reset it
@@ -2981,7 +2981,7 @@ bool aos_hal_init(void)
         s_speaker = bsp_audio_codec_speaker_init();
         s_mic     = bsp_audio_codec_microphone_init();
     }
-    ESP_LOGI(TAG, "audio: init=%s parlante=%p micro=%p volumen=%d",
+    ESP_LOGI(TAG, "audio: init=%s speaker=%p mic=%p volume=%d",
              esp_err_to_name(audio_ret), s_speaker, s_mic, s_volume);
 
     /* The recordings folder has to exist before anybody records: fopen() does

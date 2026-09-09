@@ -616,7 +616,7 @@ static void load_profile(rc_app_t *a)
     aos_hal_pref_get_i32(RC_KEY_GEN, &a->gen);
 
     if (!a->prof) {
-        aos_hal_log("remoto", "sin perfil: %s", a->err);
+        aos_hal_log("remoto", "no profile: %s", a->err);
         return;
     }
     a->tpl = rc_build_template(a->prof);

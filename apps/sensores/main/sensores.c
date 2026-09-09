@@ -329,7 +329,7 @@ static void mirar_respuesta(void)
         if (buenos > 0) {
             s_sn.hubo = true;
         }
-        aos_hal_log("sensores", "%d bytes, %d de %d con numero", len, buenos, s_sn.n);
+        aos_hal_log("sensores", "%d bytes, %d of %d with a number", len, buenos, s_sn.n);
     } else {
         s_sn.ultimo_error = estado;
         aos_hal_log("sensores", "failure: %d", estado);
@@ -357,7 +357,7 @@ static void mirar_pref(void)
     if (gen == s_sn.gen) {
         return;
     }
-    aos_hal_log("sensores", "la lista cambio (gen %ld -> %ld)",
+    aos_hal_log("sensores", "the list changed (gen %ld -> %ld)",
                 (long)s_sn.gen, (long)gen);
     s_sn.gen = gen;
     /* Changing the list THROWS AWAY the rings, and that is right: the samples

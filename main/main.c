@@ -51,15 +51,15 @@ void app_main(void)
     {
         const char *causa;
         switch (esp_reset_reason()) {
-        case ESP_RST_POWERON:  causa = "encendido normal";            break;
-        case ESP_RST_SW:       causa = "reinicio por software";       break;
-        case ESP_RST_PANIC:    causa = "PANIC (excepcion)";           break;
-        case ESP_RST_TASK_WDT: causa = "WATCHDOG de tarea colgada";   break;
-        case ESP_RST_INT_WDT:  causa = "WATCHDOG de interrupciones";  break;
-        case ESP_RST_WDT:      causa = "watchdog del chip";           break;
-        case ESP_RST_BROWNOUT: causa = "BROWNOUT (cayo la tension)";  break;
-        case ESP_RST_USB:      causa = "reinicio por USB";            break;
-        default:               causa = "otro";                        break;
+        case ESP_RST_POWERON:  causa = "normal power-on";            break;
+        case ESP_RST_SW:       causa = "software restart";       break;
+        case ESP_RST_PANIC:    causa = "PANIC (exception)";           break;
+        case ESP_RST_TASK_WDT: causa = "WATCHDOG, task hung";   break;
+        case ESP_RST_INT_WDT:  causa = "WATCHDOG, interrupts";  break;
+        case ESP_RST_WDT:      causa = "chip watchdog";           break;
+        case ESP_RST_BROWNOUT: causa = "BROWNOUT (voltage dropped)";  break;
+        case ESP_RST_USB:      causa = "USB restart";            break;
+        default:               causa = "other";                        break;
         }
         ESP_LOGI(TAG, "boot reason: %s", causa);
     }
@@ -68,7 +68,7 @@ void app_main(void)
         ESP_LOGE(TAG, "hardware initialisation failed");
         return;
     }
-    ESP_LOGI(TAG, "placa: %s", aos_hal_board_name());
+    ESP_LOGI(TAG, "board: %s", aos_hal_board_name());
 
     aos_hal_set_button_cb(button_cb);
 

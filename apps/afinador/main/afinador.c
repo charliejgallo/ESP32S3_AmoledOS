@@ -261,7 +261,7 @@ static void mic_confirmar(void)
              * day. */
             if (!s_af.reintento_16k && s_af.rate_pedida != RATE_AFINADOR) {
                 s_af.reintento_16k = true;
-                aos_hal_log("afinador", "32 kHz no salio, voy a 16 kHz");
+                aos_hal_log("afinador", "32 kHz did not work out, going to 16 kHz");
                 mic_pedir(RATE_AFINADOR);
             } else {
                 s_af.estado = MIC_FALLO;

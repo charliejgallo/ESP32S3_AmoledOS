@@ -190,7 +190,7 @@ static bool cargar(ch_t *g)
     fclose(f);
 
     if (n < sizeof(sv) - sizeof(ch_save_t) || sv.magic != SAVE_MAGIC) {
-        aos_hal_log("chatarra", "guardado ilegible, se descarta");
+        aos_hal_log("chatarra", "unreadable save, discarding it");
         return false;
     }
 
@@ -214,7 +214,7 @@ static bool cargar(ch_t *g)
         memcpy(g->s.piezas,  v->piezas,  V2_MOCHILA);
         memcpy(g->s.bandera, v->bandera, sizeof(v->bandera));
         memcpy(g->s.visto,   v->visto,   sizeof(v->visto));
-        aos_hal_log("chatarra", "guardado v2 convertido a v3");
+        aos_hal_log("chatarra", "v2 save converted to v3");
     } else {
         aos_hal_log("chatarra", "save v%u of %u B: no known conversion",
                     (unsigned)sv.ver, (unsigned)sv.largo);

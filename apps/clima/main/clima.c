@@ -671,7 +671,7 @@ static void start_fetch(bool force)
     ctx->req_wx      = wx_fetch_start(ctx->lat10k, ctx->lon10k);
     ctx->req_started = (uint32_t)aos_hal_uptime_ms();
     ctx->retry_ms    = 0;
-    aos_hal_log("clima", "pidiendo el tiempo de %s (%ld, %ld) -> id %d", ctx->city,
+    aos_hal_log("clima", "asking for the weather in %s (%ld, %ld) -> id %d", ctx->city,
                 (long)ctx->lat10k, (long)ctx->lon10k, ctx->req_wx);
 }
 
@@ -710,7 +710,7 @@ static void poll_weather(void)
         }
     } else {
         int motivo = aos_hal_http_status(ctx->req_wx);
-        aos_hal_log("clima", "la peticion fallo: estado %d, motivo %d, %u ms",
+        aos_hal_log("clima", "the request failed: status %d, reason %d, %u ms",
                     (int)st, motivo, (unsigned)took);
 
         /* Since the queries go over https there is a failure that fixes ITSELF,
@@ -723,7 +723,7 @@ static void poll_weather(void)
          * data—. */
         if (motivo == AOS_HTTP_ERR_SIN_HORA) {
             ctx->retry_ms = (uint32_t)aos_hal_uptime_ms() + 3000;
-            aos_hal_log("clima", "todavia sin hora; reintento en 3 s");
+            aos_hal_log("clima", "still no clock; retrying in 3 s");
         } else {
             aos_ui_toast(_("No se pudo actualizar"), 1500);
         }
@@ -1028,7 +1028,7 @@ static void watch_prefs(void)
     memset(&ctx->data, 0, sizeof(ctx->data));
     ctx->from_cache = false;
 
-    aos_hal_log("clima", "el portal cambio el lugar a '%s' (%ld, %ld)",
+    aos_hal_log("clima", "the portal changed the place to '%s' (%ld, %ld)",
                 ctx->city, (long)lat, (long)lon);
     if (ctx->view == VIEW_SEARCH) {
         show_view(VIEW_MAIN);

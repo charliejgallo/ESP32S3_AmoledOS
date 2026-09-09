@@ -185,7 +185,7 @@ static void period_tune(app_t *a)
     want = clampi(want, AK_FRAME_MS, AK_FRAME_MAX);
 
     if (want != a->period) {
-        aos_hal_log("arkanos", "cuadro real %d ms: periodo %d -> %d ms (%d.%d fps, %u%% de pantalla)",
+        aos_hal_log("arkanos", "real frame %d ms: period %d -> %d ms (%d.%d fps, %u%% of the screen)",
                     a->real_ms, a->period, want, a->g.fps10 / 10, a->g.fps10 % 10,
                     (unsigned)a->g.last_area);
         a->period = (int16_t)want;

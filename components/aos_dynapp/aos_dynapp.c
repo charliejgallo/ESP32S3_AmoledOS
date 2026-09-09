@@ -326,7 +326,7 @@ static bool module_open(const char *filename, void **out_handle, aos_app_t *out_
             char cuando[24] = "?";
             localtime_r(&st.st_mtime, &tm_buf);
             strftime(cuando, sizeof(cuando), "%Y-%m-%d %H:%M", &tm_buf);
-            ESP_LOGI(TAG, "  %s: %u bytes, modificado %s",
+            ESP_LOGI(TAG, "  %s: %u bytes, modified %s",
                      filename, (unsigned)st.st_size, cuando);
         } else {
             ESP_LOGW(TAG, "  %s: could not read the size (%s)", filename, full);
@@ -457,7 +457,7 @@ static void module_close(dynapp_t *app)
     dlclose(app->handle);
     app->handle = NULL;
     memset(&app->loaded, 0, sizeof(app->loaded));
-    ESP_LOGI(TAG, "%s descargada (ejecutable libre: %u B)", app->file,
+    ESP_LOGI(TAG, "%s unloaded (executable free: %u B)", app->file,
              (unsigned)heap_caps_get_free_size(MALLOC_CAP_EXEC));
 }
 
@@ -594,7 +594,7 @@ static bool register_stub(const char *filename)
         return false;
     }
 
-    ESP_LOGI(TAG, "registrada %s -> %s (%s)", filename, slot->id, slot->name);
+    ESP_LOGI(TAG, "registered %s -> %s (%s)", filename, slot->id, slot->name);
     return true;
 }
 
@@ -677,7 +677,7 @@ int aos_dynapp_scan(void)
 
     elf_set_symbol_resolver(resolver);
 
-    ESP_LOGI(TAG, "memoria ejecutable: %u B libres, mayor bloque %u B",
+    ESP_LOGI(TAG, "executable memory: %u B free, largest block %u B",
              (unsigned)heap_caps_get_free_size(MALLOC_CAP_EXEC),
              (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_EXEC));
 

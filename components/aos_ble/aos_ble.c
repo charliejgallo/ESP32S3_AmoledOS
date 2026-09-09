@@ -505,7 +505,7 @@ static int on_chr(uint16_t conn, const struct ble_gatt_error *error,
     (void)conn; (void)arg;
 
     if (error->status == BLE_HS_EDONE) {
-        ESP_LOGI(TAG, "ANCS: notif=%u datos=%u control=%u",
+        ESP_LOGI(TAG, "ANCS: notif=%u data=%u control=%u",
                  s_h_notification_source, s_h_data_source, s_h_control_point);
         if (!s_h_control_point || !s_h_data_source || !s_h_notification_source) {
             ESP_LOGE(TAG, "ANCS incompleto: faltan caracteristicas");
@@ -581,9 +581,9 @@ static const char *servicio_conocido(const ble_uuid_t *u)
         switch (((const ble_uuid16_t *)u)->value) {
         case 0x1800: return "Generic Access";
         case 0x1801: return "Generic Attribute";
-        case 0x1805: return "Current Time  <-- la hora del telefono";
+        case 0x1805: return "Current Time  <-- the phone's clock";
         case 0x180A: return "Device Information";
-        case 0x180F: return "Battery  <-- bateria";
+        case 0x180F: return "Battery  <-- battery level";
         case 0x1811: return "Alert Notification";
         case 0x1812: return "HID";
         case 0x181C: return "User Data";
@@ -704,7 +704,7 @@ static int on_name(uint16_t conn, const struct ble_gatt_error *error,
             }
         }
         snprintf(s_peer, sizeof(s_peer), "%s", tmp);
-        ESP_LOGI(TAG, "telefono: %s", s_peer);
+        ESP_LOGI(TAG, "phone: %s", s_peer);
         diag_gatt(conn);
     }
     return 0;
@@ -1079,7 +1079,7 @@ static int gap_event(struct ble_gap_event *event, void *arg)
         }
         s_conn      = event->connect.conn_handle;
         s_conectado = true;
-        ESP_LOGI(TAG, "telefono conectado");
+        ESP_LOGI(TAG, "phone connected");
         /* We ask for encryption ourselves. Without an encrypted and
          * authenticated connection the iPhone does not expose ANCS: its three
          * characteristics require authorisation. If there are stored keys
@@ -1090,7 +1090,7 @@ static int gap_event(struct ble_gap_event *event, void *arg)
         return 0;
 
     case BLE_GAP_EVENT_DISCONNECT:
-        ESP_LOGI(TAG, "telefono desconectado (razon %d)",
+        ESP_LOGI(TAG, "phone disconnected (reason %d)",
                  event->disconnect.reason);
         limpiar_conexion();
         advertise();
@@ -1280,7 +1280,7 @@ bool aos_ble_start(void)
     limpiar_conexion();
     s_running = true;
     nimble_port_freertos_init(host_task);
-    ESP_LOGI(TAG, "pila BLE levantada");
+    ESP_LOGI(TAG, "BLE stack up");
     return true;
 }
 
@@ -1303,7 +1303,7 @@ void aos_ble_stop(void)
     limpiar_conexion();
     s_pair_wanted = false;
     s_pair_code   = 0;
-    ESP_LOGI(TAG, "pila BLE apagada");
+    ESP_LOGI(TAG, "BLE stack down");
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1505,7 +1505,7 @@ void aos_ble_forget(void)
     ble_store_clear();
     limpiar_conexion();
     advertise();
-    ESP_LOGI(TAG, "claves borradas");
+    ESP_LOGI(TAG, "keys erased");
 }
 
 void aos_ble_pair_begin(void)

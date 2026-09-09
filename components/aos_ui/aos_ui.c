@@ -527,7 +527,7 @@ bool aos_ui_open(const char *id)
 {
     aos_app_t *app = aos_ui_app_find(id);
     if (!app) {
-        aos_hal_log("ui", "no existe la app %s", id ? id : "(null)");
+        aos_hal_log("ui", "there is no app %s", id ? id : "(null)");
         return false;
     }
     if (s_current == app) {
@@ -836,7 +836,7 @@ static void snapshot_tick(void)
      * lands in PSRAM on its own. */
     s_snap_buf = lv_snapshot_take(lv_screen_active(), LV_COLOR_FORMAT_RGB565);
     if (!s_snap_buf) {
-        aos_hal_log("ui", "captura: no pude tomarla (memoria?)");
+        aos_hal_log("ui", "capture: could not take it (memory?)");
         s_snap_state = SNAP_FAILED;
         return;
     }
@@ -860,7 +860,7 @@ static void snapshot_tick(void)
             /* With no memory for the top layer what is underneath is delivered
              * anyway: an incomplete capture is more use than a 503, and the
              * warning stays in the log. */
-            aos_hal_log("ui", "captura: no entro la capa de arriba");
+            aos_hal_log("ui", "capture: the top layer did not fit");
         }
     }
 
@@ -1097,7 +1097,7 @@ void aos_ui_touch_calibration_save(float ax, float bx, float ay, float by)
     aos_hal_pref_set_i32("cal_bx", (int32_t)(bx * 100.0f));
     aos_hal_pref_set_i32("cal_ay", (int32_t)(ay * 10000.0f));
     aos_hal_pref_set_i32("cal_by", (int32_t)(by * 100.0f));
-    aos_hal_log("touch", "calibracion guardada: x = %d/10000*c + %d/100, "
+    aos_hal_log("touch", "calibration saved: x = %d/10000*c + %d/100, "
                          "y = %d/10000*c + %d/100",
                 (int)(ax * 10000), (int)(bx * 100),
                 (int)(ay * 10000), (int)(by * 100));
@@ -1156,7 +1156,7 @@ static void press_cb(lv_event_t *event)
     lv_indev_get_point(indev, &s_press_point);
 
     if (aos_hal_display_state() != AOS_DISPLAY_ACTIVE) {
-        aos_hal_log("touch", "APOYA en %d,%d -> pantalla dormida, solo despierta",
+        aos_hal_log("touch", "PRESS at %d,%d -> screen asleep, it only wakes",
                     (int)s_press_point.x, (int)s_press_point.y);
         aos_hal_activity();
         lv_indev_wait_release(indev);
@@ -1199,7 +1199,7 @@ static void notif_tick(void)
      * closes itself: the user has already dealt with it on the other side. */
     uint32_t uid;
     while (aos_hal_notif_pop_removed(&uid)) {
-        aos_hal_log("notif", "el telefono retiro la #%u", (unsigned)uid);
+        aos_hal_log("notif", "the phone withdrew #%u", (unsigned)uid);
         if (aos_notif_ui_uid() == uid) {
             aos_notif_ui_close();
         }
@@ -1208,8 +1208,8 @@ static void notif_tick(void)
     aos_notif_t n;
     while (aos_hal_notif_pop(&n)) {
         aos_hal_log("notif", "#%u %s / %s%s%s", (unsigned)n.uid, n.app, n.title,
-                    n.alert ? "  [avisa]" : "  [solo al historial]",
-                    n.sound ? "  [suena]" : "");
+                    n.alert ? "  [alerts]" : "  [history only]",
+                    n.sound ? "  [sounds]" : "");
         if (!n.alert) {
             continue;
         }
@@ -1254,7 +1254,7 @@ void aos_ui_tick(void)
      * If this line shows up in the log there is a new path that breaks the
      * invariant: do not ignore it. */
     if (!s_launcher && s_launcher_visible) {
-        aos_hal_log("ui", "menu inconsistente (visible sin objeto): reparado");
+        aos_hal_log("ui", "inconsistent menu (visible with no object): repaired");
         s_launcher_visible = false;
     }
 

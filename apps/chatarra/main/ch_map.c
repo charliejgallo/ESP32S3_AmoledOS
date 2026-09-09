@@ -869,7 +869,7 @@ int ch_map_check(void)
                 int w = e->premio ? e->premio : 1;
 
                 if (e->p1 >= ch_nsalas) {
-                    aos_hal_log("chatarra", "sala %d: puerta a una sala que no existe", si);
+                    aos_hal_log("chatarra", "room %d: door to a room that does not exist", si);
                     malos++;
                     continue;
                 }
@@ -881,7 +881,7 @@ int ch_map_check(void)
                 /* every cell of the opening has to be walkable */
                 for (int k = 0; k < w; k++) {
                     if (bloqueado(&tmp, r, e->x + k, e->y)) {
-                        aos_hal_log("chatarra", "%s: el vano %d,%d esta tapado",
+                        aos_hal_log("chatarra", "%s: the doorway at %d,%d is blocked",
                                     r->nombre, e->x + k, e->y);
                         malos++;
                     }
@@ -894,7 +894,7 @@ int ch_map_check(void)
                 }
                 /* ...and CANNOT be another door, or the first step sends you back */
                 if (puerta_en(d, e->p2, e->p3) >= 0) {
-                    aos_hal_log("chatarra", "%s -> %s: caes ENCIMA de una puerta en %d,%d",
+                    aos_hal_log("chatarra", "%s -> %s: you land ON TOP of a door at %d,%d",
                                 r->nombre, d->nombre, e->p2, e->p3);
                     malos++;
                 }
@@ -903,7 +903,7 @@ int ch_map_check(void)
             /* a decoration on top of an entity is drawn twice */
             if (e->tipo != E_PUERTA && ch_prop_solido(r, e->x, e->y) &&
                 e->tipo != E_TALLER) {
-                aos_hal_log("chatarra", "%s: adorno encima de la entidad %d,%d",
+                aos_hal_log("chatarra", "%s: prop on top of the entity at %d,%d",
                             r->nombre, e->x, e->y);
                 malos++;
             }
@@ -915,7 +915,7 @@ int ch_map_check(void)
      * symptom only appears when the player picks that item up. */
     for (int i = 1; i < ITEMS; i++) {
         if (!ch_items[i].nombre || !ch_items[i].nombre[0]) {
-            aos_hal_log("chatarra", "el objeto %d no tiene fila en ch_items", i);
+            aos_hal_log("chatarra", "item %d has no row in ch_items", i);
             malos++;
         }
     }
@@ -932,7 +932,7 @@ int ch_map_check(void)
         }
     }
 
-    aos_hal_log("chatarra", "comprobacion del mundo: %d problemas", malos);
+    aos_hal_log("chatarra", "world check: %d problems", malos);
     return malos;
 }
 #endif

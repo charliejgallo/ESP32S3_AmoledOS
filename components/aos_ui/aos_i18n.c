@@ -363,7 +363,7 @@ static bool catalog_parse(catalog_t *cat, char *blob, const char *what)
     cat->count = n;
 
     if (malformed) {
-        aos_hal_log("i18n", "%s: %d lineas sin tabulacion, ignoradas", what, malformed);
+        aos_hal_log("i18n", "%s: %d lines with no tab, ignored", what, malformed);
     }
     return true;
 }
@@ -465,7 +465,7 @@ void aos_i18n_app_load(const char *app_id)
     char file[AOS_LANG_CODE_MAX + 64];
     snprintf(file, sizeof(file), "%s.lang", app_id);
     if (catalog_load(&s_app, s_code, file)) {
-        aos_hal_log("i18n", "catalogo de %s: %d cadenas", app_id, s_app.count);
+        aos_hal_log("i18n", "catalogue for %s: %d strings", app_id, s_app.count);
     }
 }
 
@@ -485,7 +485,7 @@ bool aos_i18n_set(const char *code)
         catalog_free(&s_system);
         snprintf(s_code, sizeof(s_code), "%s", BASE_CODE);
         aos_hal_pref_set_str(PREF_KEY, BASE_CODE);
-        aos_hal_log("i18n", "idioma: es (fuente, sin pack)");
+        aos_hal_log("i18n", "language: es (source, no pack)");
         return true;
     }
 
@@ -499,7 +499,7 @@ bool aos_i18n_set(const char *code)
         blob = embedded_dup(code, SYSTEM_CATALOG);
     }
     if (!blob || !catalog_parse(&fresh, blob, SYSTEM_CATALOG)) {
-        aos_hal_log("i18n", "no pude leer %s ni el embebido; sigo en %s",
+        aos_hal_log("i18n", "could not read %s nor the embedded one; staying on %s",
                     path, s_code);
         return false;
     }
@@ -511,8 +511,8 @@ bool aos_i18n_set(const char *code)
     s_system = fresh;
     snprintf(s_code, sizeof(s_code), "%s", code);
     aos_hal_pref_set_str(PREF_KEY, s_code);
-    aos_hal_log("i18n", "idioma: %s, %d cadenas (%s)", s_code, s_system.count,
-                desde_tarjeta ? "tarjeta" : "firmware");
+    aos_hal_log("i18n", "language: %s, %d strings (%s)", s_code, s_system.count,
+                desde_tarjeta ? "card" : "firmware");
     return true;
 }
 
@@ -529,7 +529,7 @@ void aos_i18n_init(void)
         /* The card with the pack on it may simply not be in the slot. Keep the
          * preference so the language comes back when it is, and run in Spanish
          * meanwhile - which is exactly what the source already says. */
-        aos_hal_log("i18n", "pack '%s' no disponible, arranco en es", saved);
+        aos_hal_log("i18n", "pack '%s' not available, starting in es", saved);
     }
 }
 

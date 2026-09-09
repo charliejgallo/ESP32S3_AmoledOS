@@ -388,7 +388,7 @@ static esp_err_t download_handler(httpd_req_t *req)
     if (ret != ESP_OK) {
         return ret;
     }
-    ESP_LOGI(TAG, "descargado %s (%ld bytes)", path, (long)info.st_size);
+    ESP_LOGI(TAG, "downloaded %s (%ld bytes)", path, (long)info.st_size);
     return httpd_resp_send_chunk(req, NULL, 0);
 }
 
@@ -404,7 +404,7 @@ static esp_err_t delete_handler(httpd_req_t *req)
     char path[256];
     snprintf(path, sizeof(path), "%s/%s", dir_path, name);
     if (remove(path) == 0) {
-        ESP_LOGI(TAG, "borrado %s", path);
+        ESP_LOGI(TAG, "deleted %s", path);
     }
 
     httpd_resp_set_type(req, "application/json");
@@ -1364,7 +1364,7 @@ static esp_err_t remoto_profile_post(httpd_req_t *req)
         return ESP_FAIL;
     }
     rc_bump_gen();
-    ESP_LOGI(TAG, "remoto: perfil guardado, %d bytes", req->content_len);
+    ESP_LOGI(TAG, "remoto: profile saved, %d bytes", req->content_len);
 
     httpd_resp_set_type(req, "application/json");
     return httpd_resp_send(req, "{\"ok\":true}", HTTPD_RESP_USE_STRLEN);

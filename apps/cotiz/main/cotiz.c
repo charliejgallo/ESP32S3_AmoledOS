@@ -396,7 +396,7 @@ static void mirar_pref(void)
     /* Saved from the portal with the app open. Here the objects ARE rebuilt,
      * and that is right: it happens once per save and not ten times a
      * second. */
-    aos_hal_log("cotiz", "la lista cambio (gen %ld -> %ld)",
+    aos_hal_log("cotiz", "the list changed (gen %ld -> %ld)",
                 (long)s_cz.gen, (long)gen);
     s_cz.gen = gen;
     leer_lista();
