@@ -18,7 +18,7 @@ static bool            s_present;
 bool aos_rtc_start(i2c_master_bus_handle_t bus)
 {
     if (pcf85063a_init(&s_rtc, bus, PCF85063A_ADDRESS) != ESP_OK) {
-        ESP_LOGW(TAG, "PCF85063A no responde en 0x%02X", PCF85063A_ADDRESS);
+        ESP_LOGW(TAG, "PCF85063A does not answer at 0x%02X", PCF85063A_ADDRESS);
         s_present = false;
         return false;
     }

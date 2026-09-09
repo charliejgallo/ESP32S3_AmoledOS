@@ -30,15 +30,15 @@ int main(void)
     printf("\n=== 1. leer la configuracion del portal ===\n");
     {
         int n = sn_parse_config(
-            "sensor.taller|Consumo taller|W;"
-            "sensor.bed|Cama impresora|C;"
-            "sensor.pres|Presion|hPa", s, SN_MAX);
+            "sensor.power|Workshop power|W;"
+            "sensor.bed|Printer bed|C;"
+            "sensor.pressure|Pressure|hPa", s, SN_MAX);
         snprintf(d, sizeof(d), "%d sensores", n);
         ok("tres registros", n == 3, d);
-        ok("entidad", strcmp(s[0].entity, "sensor.taller") == 0, s[0].entity);
-        ok("nombre", strcmp(s[0].nombre, "Consumo taller") == 0, s[0].nombre);
+        ok("entidad", strcmp(s[0].entity, "sensor.power") == 0, s[0].entity);
+        ok("nombre", strcmp(s[0].nombre, "Workshop power") == 0, s[0].nombre);
         ok("unidad", strcmp(s[0].unidad, "W") == 0, s[0].unidad);
-        ok("el ultimo sin ';' al final", strcmp(s[2].entity, "sensor.pres") == 0, s[2].entity);
+        ok("el ultimo sin ';' al final", strcmp(s[2].entity, "sensor.pressure") == 0, s[2].entity);
     }
     {
         int n = sn_parse_config("", s, SN_MAX);

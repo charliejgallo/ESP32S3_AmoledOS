@@ -45,7 +45,7 @@ bool aos_imu_start(i2c_master_bus_handle_t bus)
         }
     }
     if (address == 0) {
-        ESP_LOGW(TAG, "QMI8658 no encontrado");
+        ESP_LOGW(TAG, "QMI8658 not found");
         return false;
     }
 
@@ -62,7 +62,7 @@ bool aos_imu_start(i2c_master_bus_handle_t bus)
     qmi8658_enable_sensors(&s_imu, QMI8658_ENABLE_ACCEL | QMI8658_ENABLE_GYRO);
 
     s_present = true;
-    ESP_LOGI(TAG, "QMI8658 listo en 0x%02X", address);
+    ESP_LOGI(TAG, "QMI8658 ready at 0x%02X", address);
     return true;
 }
 

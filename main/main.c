@@ -44,7 +44,7 @@ static void button_cb(aos_button_t button, aos_button_action_t action)
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "AmoledOS %s arrancando", aos_hal_firmware_version());
+    ESP_LOGI(TAG, "AmoledOS %s starting up", aos_hal_firmware_version());
 
     /* If the board restarted by itself, this says why. Without that fact, a
      * spontaneous restart is indistinguishable from a power cut. */
@@ -61,11 +61,11 @@ void app_main(void)
         case ESP_RST_USB:      causa = "reinicio por USB";            break;
         default:               causa = "otro";                        break;
         }
-        ESP_LOGI(TAG, "motivo del arranque: %s", causa);
+        ESP_LOGI(TAG, "boot reason: %s", causa);
     }
 
     if (!aos_hal_init()) {
-        ESP_LOGE(TAG, "fallo la inicializacion del hardware");
+        ESP_LOGE(TAG, "hardware initialisation failed");
         return;
     }
     ESP_LOGI(TAG, "placa: %s", aos_hal_board_name());
@@ -105,13 +105,13 @@ void app_main(void)
         if (aos_web_running() &&
             aos_hal_net_state() != AOS_NET_CONNECTED && !aos_hal_net_ap_active()) {
             aos_web_stop();
-            ESP_LOGI(TAG, "portal web apagado: no hay red");
+            ESP_LOGI(TAG, "web portal off: there is no network");
         }
 
         if (!aos_web_running() &&
             (aos_hal_net_state() == AOS_NET_CONNECTED || aos_hal_net_ap_active())) {
             if (aos_web_start() == ESP_OK) {
-                ESP_LOGI(TAG, "portal web en http://%s/", aos_hal_net_ip());
+                ESP_LOGI(TAG, "web portal at http://%s/", aos_hal_net_ip());
             }
         }
 
@@ -132,14 +132,14 @@ void app_main(void)
             aos_display_state_t st = aos_hal_display_state();
             aos_ble_tick();
             aos_bt_state_t bt = aos_hal_bt_state();
-            ESP_LOGI(TAG, "latido: pantalla=%s tactil lecturas=%lu dedos=%lu "
-                          "bt=%s heap_int=%u psram=%u ejec=%u",
-                     st == AOS_DISPLAY_ACTIVE ? "activa" :
-                     st == AOS_DISPLAY_AOD    ? "atenuada" : "apagada",
+            ESP_LOGI(TAG, "heartbeat: display=%s touch reads=%lu fingers=%lu "
+                          "bt=%s heap_int=%u psram=%u exec=%u",
+                     st == AOS_DISPLAY_ACTIVE ? "active" :
+                     st == AOS_DISPLAY_AOD    ? "dimmed" : "off",
                      (unsigned long)reads, (unsigned long)presses,
-                     bt == AOS_BT_CONNECTED   ? "conectado" :
-                     bt == AOS_BT_PAIRING     ? "emparejando" :
-                     bt == AOS_BT_ADVERTISING ? "publicando" : "apagado",
+                     bt == AOS_BT_CONNECTED   ? "connected" :
+                     bt == AOS_BT_PAIRING     ? "pairing" :
+                     bt == AOS_BT_ADVERTISING ? "advertising" : "off",
                      (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
                      (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
                      (unsigned)heap_caps_get_free_size(MALLOC_CAP_EXEC));

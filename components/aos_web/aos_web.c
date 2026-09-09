@@ -256,7 +256,7 @@ static esp_err_t upload_handler(httpd_req_t *req)
 
     FILE *file = fopen(path, "wb");
     if (!file) {
-        ESP_LOGE(TAG, "no se pudo crear %s", path);
+        ESP_LOGE(TAG, "could not create %s", path);
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "no se pudo escribir");
         return ESP_FAIL;
     }
@@ -280,7 +280,7 @@ static esp_err_t upload_handler(httpd_req_t *req)
             free(buffer);
             fclose(file);
             remove(path);       /* better no file than half a one */
-            ESP_LOGE(TAG, "subida cortada de %s", name);
+            ESP_LOGE(TAG, "upload of %s cut short", name);
             return ESP_FAIL;
         }
         if (fwrite(buffer, 1, (size_t)chunk, file) != (size_t)chunk) {
@@ -513,7 +513,7 @@ static esp_err_t wifi_set_handler(httpd_req_t *req)
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, "{\"ok\":true}");
 
-    ESP_LOGI(TAG, "guardando red '%s' desde el portal", ssid);
+    ESP_LOGI(TAG, "saving network '%s' from the portal", ssid);
     aos_hal_net_set_credentials(ssid, pass);
     return ESP_OK;
 }
@@ -647,8 +647,8 @@ static esp_err_t ap_set_handler(httpd_req_t *req)
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, "{\"ok\":true}");
 
-    ESP_LOGI(TAG, "AP desde el portal: '%s', clave %s",
-             ssid[0] ? ssid : "(automatico)", modo[0] ? modo : "fija");
+    ESP_LOGI(TAG, "AP from the portal: '%s', key %s",
+             ssid[0] ? ssid : "(automatic)", modo[0] ? modo : "fixed");
     aos_hal_net_ap_set_config(ssid, pass, mode);
     return ESP_OK;
 }
@@ -690,7 +690,7 @@ static esp_err_t ap_estado_handler(httpd_req_t *req)
 
     if (!prender) {
         httpd_resp_sendstr(req, "{\"ok\":true,\"activo\":false}");
-        ESP_LOGI(TAG, "apagando el AP desde el portal");
+        ESP_LOGI(TAG, "switching the AP off from the portal");
         aos_hal_net_ap_stop();
         return ESP_OK;
     }
@@ -698,7 +698,7 @@ static esp_err_t ap_estado_handler(httpd_req_t *req)
     /* Switching on can answer afterwards, and it should: bringing the AP up can
      * fail and whoever asked wants to know. */
     bool ok = aos_hal_net_ap_start();
-    ESP_LOGI(TAG, "AP pedido desde el portal: %s", ok ? "levantado" : "fallo");
+    ESP_LOGI(TAG, "AP requested from the portal: %s", ok ? "up" : "failed");
     return httpd_resp_sendstr(req, ok ? "{\"ok\":true,\"activo\":true}"
                                       : "{\"ok\":false,\"error\":\"levantar\"}");
 }
@@ -981,7 +981,7 @@ static esp_err_t lang_set_handler(httpd_req_t *req)
      * for aos_ui_tick() to apply, which is the same path the Settings dropdown
      * uses. */
     aos_ui_request_language(code);
-    ESP_LOGI(TAG, "idioma pedido desde el portal: %s", code);
+    ESP_LOGI(TAG, "language requested from the portal: %s", code);
 
     httpd_resp_set_type(req, "application/json");
     return httpd_resp_sendstr(req, "{\"ok\":true}");
@@ -1051,7 +1051,7 @@ static esp_err_t clima_set_handler(httpd_req_t *req)
     aos_hal_pref_set_str(CLIMA_KEY_CITY, clean);
     aos_hal_pref_set_i32(CLIMA_KEY_LAT, (int32_t)lat);
     aos_hal_pref_set_i32(CLIMA_KEY_LON, (int32_t)lon);
-    ESP_LOGI(TAG, "clima: lugar '%s' (%ld, %ld) desde el portal", clean, lat, lon);
+    ESP_LOGI(TAG, "weather: place '%s' (%ld, %ld) from the portal", clean, lat, lon);
 
     char json[96];
     snprintf(json, sizeof(json), "{\"ok\":true,\"ciudad\":\"%s\"}", clean);
@@ -1268,7 +1268,7 @@ static esp_err_t remoto_config_post(httpd_req_t *req)
         aos_hal_pref_set_str(RC_KEY_TOKEN, token);
     }
     rc_bump_gen();
-    ESP_LOGI(TAG, "remoto: %s, token %s", url, token[0] ? "nuevo" : "sin cambios");
+    ESP_LOGI(TAG, "remoto: %s, token %s", url, token[0] ? "new" : "unchanged");
 
     httpd_resp_set_type(req, "application/json");
     return httpd_resp_send(req, "{\"ok\":true}", HTTPD_RESP_USE_STRLEN);
@@ -1724,7 +1724,7 @@ esp_err_t aos_web_start(void)
 
     esp_err_t ret = httpd_start(&s_server, &config);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "no arranco el servidor: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "the server did not start: %s", esp_err_to_name(ret));
         return ret;
     }
 
@@ -1733,12 +1733,12 @@ esp_err_t aos_web_start(void)
         if (r != ESP_OK) {
             /* Should never happen, because max_uri_handlers comes from the
              * size of the table. If it does, let it be seen. */
-            ESP_LOGE(TAG, "no se pudo registrar %s: %s",
+            ESP_LOGE(TAG, "could not register %s: %s",
                      ROUTES[i].uri, esp_err_to_name(r));
         }
     }
 
-    ESP_LOGI(TAG, "portal en http://%s/  (wifi, clima, cotiz, sensores, remoto, red)",
+    ESP_LOGI(TAG, "portal at http://%s/  (wifi, clima, cotiz, sensores, remoto, red)",
              aos_hal_net_ap_active() ? aos_hal_net_ap_ip() : aos_hal_net_ip());
     return ESP_OK;
 }

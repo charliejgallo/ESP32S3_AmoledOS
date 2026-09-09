@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
 """
-Un Home Assistant de mentira, para probar Remoto sin tocar el de casa.
+A make-believe Home Assistant, for testing Remoto without touching the one at
+home.
 
     python3 apps/remoto/tools/fake_ha.py &
     cd sim && AOS_SIM_VIEW=aos.remoto ./build/amoledos_sim
 
-Habla los dos unicos endpoints que usa el mando y se comporta como el de
-verdad en lo que importa: exige el token, contesta 200 al servicio, cambia el
-estado que corresponda y resuelve la plantilla. Imprime todo lo que recibe, que
-es para lo que sirve: se aprieta un boton en el simulador y se ve aca si salio
-la llamada bien formada.
+It speaks the only two endpoints the remote uses and behaves like the real one
+in what matters: it demands the token, answers 200 to the service call, changes
+whatever state corresponds and resolves the template. It prints everything it
+receives, which is what it is for: you press a button in the simulator and you
+see here whether the call came out well formed.
 
-Tambien sirve para verificar dos cosas que en el Home Assistant de verdad son
-incomodas de forzar:
+It also serves to verify two things that are awkward to force against the real
+Home Assistant:
 
-    --sin-token     contesta 401, para ver el mensaje de token rechazado
-    --lento N       tarda N segundos, para ver que la pantalla no se congela
+    --sin-token     answers 401, to see the rejected-token message
+    --lento N       takes N seconds, to see that the screen does not freeze
 """
 import argparse
 import json
@@ -25,13 +26,16 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ESTADO = {
-    "light.salon":        {"state": "off", "attrs": {"brightness": 0}},
-    "light.velador":      {"state": "on",  "attrs": {"brightness": 180}},
-    "light.pie":          {"state": "off", "attrs": {"brightness": 0}},
-    "cover.living":       {"state": "closed", "attrs": {}},
-    "media_player.tv":    {"state": "playing", "attrs": {"volume_level": 0.4}},
-    "sensor.living_temp": {"state": "21.4", "attrs": {}},
-    "scene.cine":         {"state": "unknown", "attrs": {}},
+    "light.ceiling":     {"state": "off", "attrs": {"brightness": 0}},
+    "light.lamp":        {"state": "on",  "attrs": {"brightness": 180}},
+    "light.floor":       {"state": "off", "attrs": {"brightness": 0}},
+    "cover.blinds":      {"state": "closed", "attrs": {}},
+    "media_player.tv":   {"state": "playing", "attrs": {"volume_level": 0.4}},
+    "sensor.room_temp":  {"state": "21.4", "attrs": {}},
+    "sensor.power":      {"state": "412", "attrs": {}},
+    "sensor.pressure":   {"state": "1014", "attrs": {}},
+    "sensor.humidity":   {"state": "58", "attrs": {}},
+    "scene.movie":       {"state": "unknown", "attrs": {}},
 }
 
 ENCENDIDO = {"on", "open", "playing", "home"}
@@ -41,7 +45,7 @@ opciones = None
 
 
 def aplicar(dominio, servicio, datos):
-    """Lo minimo para que la pantalla del mando reaccione de verdad."""
+    """The minimum for the remote's screen to really react."""
     ids = datos.get("entity_id", "")
     if isinstance(ids, str):
         ids = [ids] if ids else []
@@ -71,8 +75,8 @@ def aplicar(dominio, servicio, datos):
             e["attrs"]["volume_level"] = datos["volume_level"]
 
 
-# La pagina del portal pide la lista de entidades con esta expresion; se
-# reconoce entera porque no vale la pena traer Jinja para una linea.
+# The portal page asks for the entity list with this expression; it is
+# recognised whole, because it is not worth pulling in Jinja for one line.
 PAT_LISTA = re.compile(
     r"\{\{\s*states\s*\|\s*map\(attribute='entity_id'\)\s*\|\s*"
     r"join\(','\)\s*\}\}")
@@ -98,11 +102,11 @@ def render(plantilla):
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
-        pass                                    # el log lo hacemos nosotros
+        pass                                    # we do the logging ourselves
 
     @staticmethod
     def di(texto):
-        print(texto, flush=True)         # sin esto el log no se ve hasta salir
+        print(texto, flush=True)     # without this the log only shows on exit
 
     def responder(self, code, body, tipo="application/json"):
         raw = body.encode()
@@ -121,18 +125,18 @@ class Handler(BaseHTTPRequestHandler):
             time.sleep(opciones.lento)
 
         if opciones.sin_token or not auth.startswith("Bearer "):
-            self.di(f"  401  {self.path}   (Authorization: {auth[:24] or 'no vino'})")
+            self.di(f"  401  {self.path}   (Authorization: {auth[:24] or 'none sent'})")
             return self.responder(401, '{"message":"Unauthorized"}')
 
         try:
             datos = json.loads(cuerpo) if cuerpo else {}
         except json.JSONDecodeError as exc:
-            self.di(f"  400  {self.path}   cuerpo ilegible: {exc}\n       {cuerpo!r}")
+            self.di(f"  400  {self.path}   unreadable body: {exc}\n       {cuerpo!r}")
             return self.responder(400, '{"message":"Bad Request"}')
 
         if self.path == "/api/template":
             salida = render(datos.get("template", ""))
-            self.di(f"  200  plantilla -> {salida}")
+            self.di(f"  200  template -> {salida}")
             return self.responder(200, salida, "text/plain; charset=utf-8")
 
         m = re.fullmatch(r"/api/services/([a-z_]+)/([a-z_]+)", self.path)
@@ -147,7 +151,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/api/":
-            # Lo que contesta Home Assistant de verdad; es lo que mira "probar".
+            # What the real Home Assistant answers; it is what "test" looks at.
             if opciones.sin_token or not self.headers.get(
                     "Authorization", "").startswith("Bearer "):
                 return self.responder(401, '{"message":"Unauthorized"}')
@@ -164,14 +168,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--puerto", type=int, default=8123)
     ap.add_argument("--sin-token", action="store_true",
-                    help="contesta 401 siempre, para ver el mensaje de error")
+                    help="always answer 401, to see the error message")
     ap.add_argument("--lento", type=float, default=0,
-                    help="segundos de demora, para ver que la pantalla no se traba")
+                    help="seconds of delay, to see that the screen does not jam")
     opciones = ap.parse_args()
 
     srv = ThreadingHTTPServer(("127.0.0.1", opciones.puerto), Handler)
-    print(f"Home Assistant de mentira en http://127.0.0.1:{opciones.puerto}")
-    print("  GET / muestra los estados actuales")
+    print(f"make-believe Home Assistant at http://127.0.0.1:{opciones.puerto}")
+    print("  GET / shows the current states")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

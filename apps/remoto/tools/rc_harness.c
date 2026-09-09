@@ -1,7 +1,8 @@
 /*
  * Remoto's test bench, without LVGL, without the HAL and without the board.
  *
- *   cc -O1 -Wall -Wextra -I../main -o /tmp/rc_harness rc_harness.c \
+ *   cc -O1 -Wall -Wextra -I../main -I../../../components/aos_ui/include \
+ *      -I../../../components/aos_hal/include -o /tmp/rc_harness rc_harness.c \
  *      ../main/rc_model.c ../main/rc_tilt.c -lm && /tmp/rc_harness
  *
  * It checks three things that on the board would be discovered late and badly:
@@ -25,6 +26,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
+/* rc_model.c wraps its error messages in _(), which is aos_tr(). Nothing here
+ * translates anything, and pulling in the runtime just for that would drag
+ * LVGL along; the identity is what aos_tr() itself returns with no pack
+ * loaded, so the bench sees exactly what the board sees in Spanish. */
+const char *aos_tr(const char *es)                  { return es; }
+const char *aos_trc(const char *ctx, const char *es) { (void)ctx; return es; }
 
 static int fallos;
 
@@ -397,23 +405,23 @@ static const char *PERFIL =
 "{\"v\":1,\"poll\":6,"
 " \"gcfg\":{\"on\":1,\"shake\":1800,\"tilt\":35,\"hold\":600,\"cool\":1200},"
 " \"gestures\":{"
-"   \"shake\":{\"t\":\"svc\",\"s\":\"light.toggle\",\"e\":\"light.velador\"},"
+"   \"shake\":{\"t\":\"svc\",\"s\":\"light.toggle\",\"e\":\"light.lamp\"},"
 "   \"flip\":{\"t\":\"svc\",\"s\":\"media_player.media_pause\",\"e\":\"media_player.tv\"},"
 "   \"tiltr\":{\"t\":\"page\",\"p\":1}},"
 " \"pages\":["
-"  {\"n\":\"Salon\",\"k\":\"grid\",\"c\":3,\"r\":2,\"b\":["
-"    {\"l\":\"Techo\",\"c\":16766474,\"st\":\"light.salon\",\"sm\":1,"
-"     \"a\":{\"t\":\"svc\",\"s\":\"light.toggle\",\"e\":\"light.salon\"},"
-"     \"h\":{\"t\":\"svc\",\"s\":\"light.turn_on\",\"e\":\"light.salon\","
+"  {\"n\":\"Living room\",\"k\":\"grid\",\"c\":3,\"r\":2,\"b\":["
+"    {\"l\":\"Ceiling\",\"c\":16766474,\"st\":\"light.ceiling\",\"sm\":1,"
+"     \"a\":{\"t\":\"svc\",\"s\":\"light.toggle\",\"e\":\"light.ceiling\"},"
+"     \"h\":{\"t\":\"svc\",\"s\":\"light.turn_on\",\"e\":\"light.ceiling\","
 "           \"d\":\"\\\"brightness_pct\\\":100\"}},"
-"    {\"l\":\"Temp\",\"sm\":2,\"st\":\"sensor.living\",\"u\":\"C\"},"
-"    {\"l\":\"Brillo\",\"sm\":3,\"st\":\"light.salon\",\"sa\":\"brightness\"},"
-"    {\"l\":\"Mas\",\"a\":{\"t\":\"page\",\"p\":1}},"
-"    {\"l\":\"Fuera\",\"a\":{\"t\":\"page\",\"p\":9}},"
-"    {\"l\":\"Nada\"}]},"
+"    {\"l\":\"Temp\",\"sm\":2,\"st\":\"sensor.room_temp\",\"u\":\"C\"},"
+"    {\"l\":\"Dimmer\",\"sm\":3,\"st\":\"light.ceiling\",\"sa\":\"brightness\"},"
+"    {\"l\":\"More\",\"a\":{\"t\":\"page\",\"p\":1}},"
+"    {\"l\":\"Away\",\"a\":{\"t\":\"page\",\"p\":9}},"
+"    {\"l\":\"None\"}]},"
 "  {\"n\":\"Dimmer\",\"k\":\"dial\",\"dl\":{\"s\":\"light.turn_on\","
-"    \"e\":\"light.salon\",\"f\":\"brightness_pct\",\"mn\":1,\"mx\":100,"
-"    \"sp\":140,\"st\":\"light.salon\",\"sa\":\"brightness\",\"sf\":255}}"
+"    \"e\":\"light.ceiling\",\"f\":\"brightness_pct\",\"mn\":1,\"mx\":100,"
+"    \"sp\":140,\"st\":\"light.ceiling\",\"sa\":\"brightness\",\"sf\":255}}"
 " ]}";
 
 static void test_perfil(void)
@@ -432,12 +440,12 @@ static void test_perfil(void)
     ok("pagina 0 es grilla 3x2", p->pages[0].kind == RC_PAGE_GRID &&
                                  p->pages[0].cols == 3 && p->pages[0].rows == 2);
     ok("seis botones", p->pages[0].count == 6);
-    ok("etiqueta del primero", strcmp(p->pages[0].btn[0].label, "Techo") == 0);
+    ok("etiqueta del primero", strcmp(p->pages[0].btn[0].label, "Ceiling") == 0);
     ok("color del primero", p->pages[0].btn[0].color == 0xFFD60Au);
-    ok("toque = light.toggle sobre light.salon",
+    ok("toque = light.toggle sobre light.ceiling",
        p->pages[0].btn[0].tap.type == RC_ACT_SERVICE &&
        strcmp(p->pages[0].btn[0].tap.service, "light.toggle") == 0 &&
-       strcmp(p->pages[0].btn[0].tap.entity, "light.salon") == 0);
+       strcmp(p->pages[0].btn[0].tap.entity, "light.ceiling") == 0);
     ok("mantenido lleva datos extra",
        strcmp(p->pages[0].btn[0].hold.data, "\"brightness_pct\":100") == 0);
     ok("un boton sin accion queda en NONE",
@@ -450,7 +458,7 @@ static void test_perfil(void)
 
     ok("gesto de sacudida cargado",
        p->gest[RC_G_SHAKE].type == RC_ACT_SERVICE &&
-       strcmp(p->gest[RC_G_SHAKE].entity, "light.velador") == 0);
+       strcmp(p->gest[RC_G_SHAKE].entity, "light.lamp") == 0);
     ok("gesto de giro a la derecha navega",
        p->gest[RC_G_TILT_R].type == RC_ACT_PAGE);
     ok("un gesto sin configurar queda en NONE",
@@ -462,15 +470,15 @@ static void test_perfil(void)
        strcmp(p->pages[1].dial.field, "brightness_pct") == 0 &&
        p->pages[1].dial.span_deg == 140 && p->pages[1].dial.st_full == 255);
 
-    /* The state table merges duplicates: light.salon appears in button 0
+    /* The state table merges duplicates: light.ceiling appears in button 0
      * (state), in button 2 (attribute) and in the dial (attribute). That is
-     * two entries, not three, plus sensor.living. */
+     * two entries, not three, plus sensor.room_temp. */
     printf("  tabla de estados: %d entradas\n", p->n_states);
     for (int i = 0; i < p->n_states; i++) {
         printf("     %d  %s%s%s\n", i, p->st_entity[i],
                p->st_attr[i][0] ? " . " : "", p->st_attr[i]);
     }
-    ok("tres entradas, sin repetir light.salon", p->n_states == 3);
+    ok("tres entradas, sin repetir light.ceiling", p->n_states == 3);
     ok("el dial comparte lugar con el boton de brillo",
        p->pages[1].dial.slot == p->pages[0].btn[2].slot);
 
@@ -478,9 +486,9 @@ static void test_perfil(void)
     ok("plantilla armada", tpl != NULL);
     if (tpl) {
         printf("  plantilla: %s\n", tpl);
-        ok("consulta el estado con states()", strstr(tpl, "{{states('light.salon')}}") != NULL);
+        ok("consulta el estado con states()", strstr(tpl, "{{states('light.ceiling')}}") != NULL);
         ok("y el atributo con state_attr()",
-           strstr(tpl, "{{state_attr('light.salon','brightness')}}") != NULL);
+           strstr(tpl, "{{state_attr('light.ceiling','brightness')}}") != NULL);
         free(tpl);
     }
 
@@ -493,10 +501,10 @@ static void test_perfil(void)
 
     char body[160];
     rc_action_body(&p->pages[0].btn[0].tap, body, sizeof(body));
-    ok("cuerpo simple", strcmp(body, "{\"entity_id\":\"light.salon\"}") == 0);
+    ok("cuerpo simple", strcmp(body, "{\"entity_id\":\"light.ceiling\"}") == 0);
     rc_action_body(&p->pages[0].btn[0].hold, body, sizeof(body));
     ok("cuerpo con datos extra",
-       strcmp(body, "{\"entity_id\":\"light.salon\",\"brightness_pct\":100}") == 0);
+       strcmp(body, "{\"entity_id\":\"light.ceiling\",\"brightness_pct\":100}") == 0);
 
     char dom[16], name[32];
     ok("light.toggle se parte bien",

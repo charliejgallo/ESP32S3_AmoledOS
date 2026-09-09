@@ -139,10 +139,10 @@ static void pool_init(void)
     }
     s_pool = heap_caps_malloc(POOL_BYTES, MALLOC_CAP_EXEC);
     if (!s_pool) {
-        ESP_LOGW(TAG, "sin reserva contigua: se usa el heap general");
+        ESP_LOGW(TAG, "no contiguous reservation: the general heap is used");
         return;
     }
-    ESP_LOGI(TAG, "reserva de codigo: %u KB contiguos en %p",
+    ESP_LOGI(TAG, "code reservation: %u KB contiguous at %p",
              (unsigned)(POOL_BYTES / 1024), s_pool);
 }
 
@@ -197,7 +197,7 @@ static bool pool_free(void *p)
             return true;
         }
     }
-    ESP_LOGE(TAG, "liberacion de %p que no figura en la reserva", p);
+    ESP_LOGE(TAG, "free of %p, which is not in the reservation", p);
     return true;                        /* ours all the same: it does not go to the heap */
 }
 
@@ -261,9 +261,9 @@ void *__wrap_esp_elf_malloc(uint32_t n, bool exec)
          * the scenario the reservation came to solve, and there a large app
          * fits or does not depending on how the fragmentation turned out. Let
          * it show in the log. */
-        ESP_LOGW(TAG, "%u B de codigo NO entraron en la reserva: van al heap "
-                      "general (libre %u B, mayor bloque %u B). Si esto sale "
-                      "seguido, la reserva quedo chica.",
+        ESP_LOGW(TAG, "%u B of code did NOT fit in the reservation: going to the "
+                      "general heap (free %u B, largest block %u B). If this "
+                      "comes up often, the reservation is too small.",
                  (unsigned)n,
                  (unsigned)heap_caps_get_free_size(MALLOC_CAP_EXEC),
                  (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_EXEC));
@@ -329,12 +329,12 @@ static bool module_open(const char *filename, void **out_handle, aos_app_t *out_
             ESP_LOGI(TAG, "  %s: %u bytes, modificado %s",
                      filename, (unsigned)st.st_size, cuando);
         } else {
-            ESP_LOGW(TAG, "  %s: no pude leer el tamano (%s)", filename, full);
+            ESP_LOGW(TAG, "  %s: could not read the size (%s)", filename, full);
         }
     }
 
-    ESP_LOGI(TAG, "abriendo %s | ejecutable: libre %u B, mayor bloque %u B | "
-                  "interna: libre %u B, mayor bloque %u B",
+    ESP_LOGI(TAG, "opening %s | executable: free %u B, largest block %u B | "
+                  "internal: free %u B, largest block %u B",
              filename,
              (unsigned)heap_caps_get_free_size(MALLOC_CAP_EXEC),
              (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_EXEC),
@@ -348,7 +348,7 @@ static bool module_open(const char *filename, void **out_handle, aos_app_t *out_
          * memory" from "there is, but in pieces". With 54 KB free and the
          * largest hole at 36 KB, a 45 KB app does not fit even though the
          * total is there. */
-        ESP_LOGW(TAG, "--- bloques del heap ejecutable ---");
+        ESP_LOGW(TAG, "--- blocks of the executable heap ---");
         heap_caps_dump(MALLOC_CAP_EXEC);
         return false;
     }
@@ -359,14 +359,14 @@ static bool module_open(const char *filename, void **out_handle, aos_app_t *out_
     bool     (*init_fn)(aos_app_t *app) = dlsym(handle, "aos_app_init");
 
     if (!abi_fn || !init_fn) {
-        ESP_LOGE(TAG, "%s no exporta aos_app_abi/aos_app_init", filename);
+        ESP_LOGE(TAG, "%s does not export aos_app_abi/aos_app_init", filename);
         dlclose(handle);
         return false;
     }
 
     uint32_t abi = abi_fn();
     if (abi != AOS_ABI_VERSION) {
-        ESP_LOGE(TAG, "%s usa ABI %u y el firmware espera %u: recompilala",
+        ESP_LOGE(TAG, "%s uses ABI %u and the firmware expects %u: rebuild it",
                  filename, (unsigned)abi, (unsigned)AOS_ABI_VERSION);
         dlclose(handle);
         return false;
@@ -374,7 +374,7 @@ static bool module_open(const char *filename, void **out_handle, aos_app_t *out_
 
     memset(out_app, 0, sizeof(*out_app));
     if (!init_fn(out_app)) {
-        ESP_LOGE(TAG, "%s fallo al inicializar", filename);
+        ESP_LOGE(TAG, "%s failed to initialise", filename);
         dlclose(handle);
         return false;
     }
@@ -408,7 +408,7 @@ static bool liberar_ejecutable(const dynapp_t *excepto)
             continue;
         }
         if (a->pending_close) {
-            ESP_LOGW(TAG, "sin memoria: adelantando el cierre de %s", a->file);
+            ESP_LOGW(TAG, "out of memory: closing %s early", a->file);
             a->pending_close = false;
             module_close(a);
             libero = true;
@@ -442,7 +442,7 @@ static bool module_ensure_open(dynapp_t *app)
      * anything. */
     if (liberar_ejecutable(app) &&
         module_open(app->file, &app->handle, &app->loaded)) {
-        ESP_LOGI(TAG, "%s cargo en el segundo intento", app->file);
+        ESP_LOGI(TAG, "%s loaded on the second attempt", app->file);
         return true;
     }
     return false;
@@ -451,7 +451,7 @@ static bool module_ensure_open(dynapp_t *app)
 static void module_close(dynapp_t *app)
 {
     if (!app->handle) {
-        ESP_LOGW(TAG, "cierre de %s sin handle: ya estaba descargada?", app->file);
+        ESP_LOGW(TAG, "closing %s with no handle: was it already unloaded?", app->file);
         return;
     }
     dlclose(app->handle);
@@ -490,8 +490,8 @@ static void dyn_destroy(aos_app_t *self, void *inst)
 {
     dynapp_t *app = find_by_id(self->desc.id);
     if (!app) {
-        ESP_LOGE(TAG, "destroy de '%s' pero no esta en la tabla",
-                 self->desc.id ? self->desc.id : "(sin id)");
+        ESP_LOGE(TAG, "destroy of '%s' but it is not in the table",
+                 self->desc.id ? self->desc.id : "(no id)");
         return;
     }
     if (app->loaded.destroy) {
@@ -544,8 +544,8 @@ static void dyn_tick(aos_app_t *self, void *inst)
 static bool register_stub(const char *filename)
 {
     if (s_count >= MAX_DYNAPPS) {
-        ESP_LOGE(TAG, "no entra %s: el tope son %d apps dinamicas y ya hay %d. "
-                      "Subi MAX_DYNAPPS o sacale un .so a la tarjeta",
+        ESP_LOGE(TAG, "%s does not fit: the limit is %d dynamic apps and there are "
+                      "already %d. Raise MAX_DYNAPPS or take a .so off the card",
                  filename, MAX_DYNAPPS, s_count);
         return false;
     }
@@ -683,7 +683,7 @@ int aos_dynapp_scan(void)
 
     DIR *dir = opendir(AOS_DYNAPP_DIR);
     if (!dir) {
-        ESP_LOGI(TAG, "no hay carpeta %s, sin apps dinamicas", AOS_DYNAPP_DIR);
+        ESP_LOGI(TAG, "there is no %s folder, no dynamic apps", AOS_DYNAPP_DIR);
         return 0;
     }
 

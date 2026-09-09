@@ -152,8 +152,8 @@ static uint16_t s_ds_len;
 
 void aos_ble_measure_report(const char *etiqueta)
 {
-    ESP_LOGW(TAG, "[MEDICION %-14s] interna=%7u  ejec=%7u  ejec_mayor=%7u  "
-                  "psram=%8u  minima_interna=%7u",
+    ESP_LOGW(TAG, "[MEASURE %-14s] internal=%7u  exec=%7u  exec_largest=%7u  "
+                  "psram=%8u  internal_low=%7u",
              etiqueta ? etiqueta : "?",
              (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
              (unsigned)heap_caps_get_free_size(MALLOC_CAP_EXEC),
@@ -254,7 +254,7 @@ static void advertise(void)
     for (int k = 0; k < i; k++) {
         snprintf(&hex[k * 3], 4, "%02X ", adv[k]);
     }
-    ESP_LOGI(TAG, "publicando como '%s' (%d bytes): %s", NOMBRE, i, hex);
+    ESP_LOGI(TAG, "advertising as '%s' (%d bytes): %s", NOMBRE, i, hex);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -298,7 +298,7 @@ static int on_subscribe(uint16_t conn, const struct ble_gatt_error *error,
 {
     (void)conn; (void)attr; (void)arg;
     if (error->status != 0) {
-        ESP_LOGE(TAG, "no se pudo suscribir: %d", error->status);
+        ESP_LOGE(TAG, "could not subscribe: %d", error->status);
     }
     return 0;
 }
@@ -425,7 +425,7 @@ static int on_hora(uint16_t conn, const struct ble_gatt_error *error,
      * setting the clock from that is worse than not setting it. */
     if (ano < 2020 || ano > 2100 || b[2] < 1 || b[2] > 12 ||
         b[3] < 1 || b[3] > 31 || b[4] > 23 || b[5] > 59 || b[6] > 60) {
-        ESP_LOGW(TAG, "la hora del telefono no tiene sentido, se descarta");
+        ESP_LOGW(TAG, "the phone's time makes no sense, discarding it");
         return 0;
     }
 
@@ -494,7 +494,7 @@ static int on_bateria(uint16_t conn, const struct ble_gatt_error *error,
     if (ble_hs_mbuf_to_flat(attr->om, &pct, 1, NULL) == 0 && pct <= 100) {
         s_h_bateria = attr->handle;
         s_bateria   = pct;
-        ESP_LOGI(TAG, "bateria del telefono: %u%%", pct);
+        ESP_LOGI(TAG, "phone battery: %u%%", pct);
     }
     return 0;
 }
@@ -539,18 +539,18 @@ static int on_svc(uint16_t conn, const struct ble_gatt_error *error,
     (void)arg;
     if (error->status == BLE_HS_EDONE) {
         if (!s_h_svc_end) {
-            ESP_LOGW(TAG, "no aparecio el servicio ANCS");
+            ESP_LOGW(TAG, "the ANCS service did not show up");
         }
         return 0;
     }
     if (error->status != 0 || !svc) {
-        ESP_LOGW(TAG, "buscando ANCS: %d", error->status);
+        ESP_LOGW(TAG, "looking for ANCS: %d", error->status);
         return 0;
     }
     s_svc_start = svc->start_handle;
     s_h_svc_end = svc->end_handle;
     s_chr_count = 0;
-    ESP_LOGI(TAG, "ANCS en %u..%u", svc->start_handle, svc->end_handle);
+    ESP_LOGI(TAG, "ANCS at %u..%u", svc->start_handle, svc->end_handle);
     ble_gattc_disc_all_chrs(conn, svc->start_handle, svc->end_handle,
                             on_chr, NULL);
     return 0;
@@ -611,13 +611,13 @@ static int diag_hora(uint16_t conn, const struct ble_gatt_error *error,
         return 0;
     }
     if (error->status != 0 || !attr || !attr->om) {
-        ESP_LOGW(TAG, "[GATT] la hora no se pudo leer (%d)", error->status);
+        ESP_LOGW(TAG, "[GATT] the time could not be read (%d)", error->status);
     } else {
         uint8_t b[10] = {0};
         uint16_t n = OS_MBUF_PKTLEN(attr->om);
         if (n > sizeof(b)) n = sizeof(b);
         if (ble_hs_mbuf_to_flat(attr->om, b, n, NULL) == 0 && n >= 7) {
-            ESP_LOGW(TAG, "[GATT] hora del telefono: %04u-%02u-%02u %02u:%02u:%02u",
+            ESP_LOGW(TAG, "[GATT] phone time: %04u-%02u-%02u %02u:%02u:%02u",
                      (unsigned)(b[0] | (b[1] << 8)), b[2], b[3], b[4], b[5], b[6]);
         }
     }
@@ -629,16 +629,16 @@ static int diag_bateria(uint16_t conn, const struct ble_gatt_error *error,
 {
     (void)conn; (void)arg;
     if (error->status == BLE_HS_EDONE) {
-        ESP_LOGW(TAG, "[GATT] fin de las lecturas");
+        ESP_LOGW(TAG, "[GATT] end of the reads");
         return 0;
     }
     if (error->status != 0 || !attr || !attr->om) {
-        ESP_LOGW(TAG, "[GATT] la bateria no se pudo leer (0x%X)", error->status);
+        ESP_LOGW(TAG, "[GATT] the battery could not be read (0x%X)", error->status);
         return 0;
     }
     uint8_t pct = 0;
     if (ble_hs_mbuf_to_flat(attr->om, &pct, 1, NULL) == 0) {
-        ESP_LOGW(TAG, "[GATT] bateria del telefono: %u%%", pct);
+        ESP_LOGW(TAG, "[GATT] phone battery: %u%%", pct);
     }
     return 0;
 }
@@ -648,7 +648,7 @@ static int diag_svc(uint16_t conn, const struct ble_gatt_error *error,
 {
     (void)conn; (void)arg;
     if (error->status == BLE_HS_EDONE) {
-        ESP_LOGW(TAG, "[GATT] fin del recorrido, ahora a leer");
+        ESP_LOGW(TAG, "[GATT] end of the walk, now to read");
         ble_gattc_read_by_uuid(conn, 1, 0xFFFF, BLE_UUID16_DECLARE(0x2A2B),
                                diag_hora, NULL);
         return 0;
@@ -670,7 +670,7 @@ static void diag_gatt(uint16_t conn)
         return;
     }
     hecho = true;
-    ESP_LOGW(TAG, "[GATT] recorriendo lo que expone el telefono...");
+    ESP_LOGW(TAG, "[GATT] walking what the phone exposes...");
     ble_gattc_disc_all_svcs(conn, diag_svc, NULL);
 }
 
@@ -730,12 +730,12 @@ static int on_ams_sub2(uint16_t conn, const struct ble_gatt_error *error,
 {
     (void)conn; (void)attr; (void)arg;
     if (error->status != 0) {
-        ESP_LOGW(TAG, "AMS: no se pudo pedir el estado del reproductor (%d)",
+        ESP_LOGW(TAG, "AMS: could not ask for the player state (%d)",
                  error->status);
         return 0;
     }
     s_ams_listo = true;
-    ESP_LOGI(TAG, "AMS listo: titulo, artista, album, duracion y estado");
+    ESP_LOGI(TAG, "AMS ready: title, artist, album, duration and state");
     return 0;
 }
 
@@ -746,7 +746,7 @@ static int on_ams_sub1(uint16_t conn, const struct ble_gatt_error *error,
 {
     (void)attr; (void)arg;
     if (error->status != 0) {
-        ESP_LOGW(TAG, "AMS: no se pudo pedir la pista (%d)", error->status);
+        ESP_LOGW(TAG, "AMS: could not ask for the track (%d)", error->status);
         return 0;
     }
     uint8_t cmd[8];
@@ -766,7 +766,7 @@ static int on_ams_dsc(uint16_t conn, const struct ble_gatt_error *error,
 
     if (error->status == BLE_HS_EDONE) {
         if (!s_h_ams_cccd) {
-            ESP_LOGW(TAG, "AMS: sin CCCD, no se puede escuchar");
+            ESP_LOGW(TAG, "AMS: no CCCD, cannot listen");
             return 0;
         }
         uint8_t cmd[8];
@@ -822,7 +822,7 @@ static int on_ams_svc(uint16_t conn, const struct ble_gatt_error *error,
     (void)arg;
     if (error->status == BLE_HS_EDONE) {
         if (!s_h_ams_end) {
-            ESP_LOGW(TAG, "el telefono no publica AMS");
+            ESP_LOGW(TAG, "the phone does not publish AMS");
         }
         return 0;
     }
@@ -830,7 +830,7 @@ static int on_ams_svc(uint16_t conn, const struct ble_gatt_error *error,
         return 0;
     }
     s_h_ams_end = svc->end_handle;
-    ESP_LOGI(TAG, "AMS en %u..%u", svc->start_handle, svc->end_handle);
+    ESP_LOGI(TAG, "AMS at %u..%u", svc->start_handle, svc->end_handle);
     ble_gattc_disc_all_chrs(conn, svc->start_handle, svc->end_handle,
                             on_ams_chr, NULL);
     return 0;
@@ -854,7 +854,7 @@ static void ams_stop(void)
         uint8_t cccd[2] = { 0x00, 0x00 };
         ble_gattc_write_flat(s_conn, s_h_ams_cccd, cccd, sizeof(cccd),
                              NULL, NULL);
-        ESP_LOGI(TAG, "AMS apagado: el telefono deja de mandar musica");
+        ESP_LOGI(TAG, "AMS off: the phone stops sending music");
     }
     s_ams_listo = false;
     memset(&s_ams, 0, sizeof(s_ams));
@@ -934,7 +934,7 @@ static void pedir_siguiente(void)
     if (rc != 0) {
         /* No slot right now: it is left in the queue and the heartbeat retries
          * it. Losing the notification by not retrying would be worse. */
-        ESP_LOGW(TAG, "el pedido no salio (%d), se reintenta", rc);
+        ESP_LOGW(TAG, "the request did not go out (%d), retrying", rc);
         return;
     }
     s_cola_r++;
@@ -1009,7 +1009,7 @@ static void notify_rx(struct ble_gap_event *event)
      * attributes it asked for, so there is no need here for the timer with
      * which Espressif's example guesses the end. */
     if ((uint32_t)s_ds_len + len > DS_MAX) {
-        ESP_LOGW(TAG, "el Data Source no entra en %d bytes, se descarta", DS_MAX);
+        ESP_LOGW(TAG, "the Data Source does not fit in %d bytes, discarding it", DS_MAX);
         s_ds_len = 0;
         return;
     }
@@ -1023,9 +1023,9 @@ static void notify_rx(struct ble_gap_event *event)
     if (aos_ancs_data_source(s_ds, s_ds_len, s_en_vuelo.uid, s_en_vuelo.cat,
                              s_en_vuelo.flags, &n)) {
         bool paso = aos_notif_push(&n);
-        ESP_LOGI(TAG, "notificacion #%u %s: %s / %s  [cat=%d flags=0x%02X "
+        ESP_LOGI(TAG, "notification #%u %s: %s / %s  [cat=%d flags=0x%02X "
                       "pos=%d neg=%d prev=%d sil=%d]",
-                 (unsigned)n.uid, paso ? "aceptada" : "descartada por el filtro",
+                 (unsigned)n.uid, paso ? "accepted" : "dropped by the filter",
                  n.app, n.title, (int)n.category, s_en_vuelo.flags,
                  (int)n.can_positive, (int)n.can_negative,
                  (int)n.pre_existing, (int)n.silent);
@@ -1085,7 +1085,7 @@ static int gap_event(struct ble_gap_event *event, void *arg)
          * characteristics require authorisation. If there are stored keys
          * already this asks the user nothing. */
         if (ble_gap_security_initiate(s_conn) != 0) {
-            ESP_LOGW(TAG, "no se pudo iniciar el cifrado");
+            ESP_LOGW(TAG, "could not start encryption");
         }
         return 0;
 
@@ -1097,21 +1097,21 @@ static int gap_event(struct ble_gap_event *event, void *arg)
         return 0;
 
     case BLE_GAP_EVENT_ADV_COMPLETE:
-        ESP_LOGW(TAG, "la publicidad termino (razon %d), se reanuda",
+        ESP_LOGW(TAG, "advertising ended (reason %d), resuming",
                  event->adv_complete.reason);
         advertise();
         return 0;
 
     case BLE_GAP_EVENT_ENC_CHANGE:
         if (event->enc_change.status != 0) {
-            ESP_LOGW(TAG, "fallo el cifrado (%d)", event->enc_change.status);
+            ESP_LOGW(TAG, "encryption failed (%d)", event->enc_change.status);
             return 0;
         }
         s_cifrado     = true;
         s_pair_wanted = false;
         s_pair_code   = 0;
         if (ble_gap_conn_find(event->enc_change.conn_handle, &desc) == 0) {
-            ESP_LOGI(TAG, "enlace cifrado (autenticado=%d, con claves=%d)",
+            ESP_LOGI(TAG, "link encrypted (authenticated=%d, bonded=%d)",
                      desc.sec_state.authenticated, desc.sec_state.bonded);
         }
         /* Only now does looking for ANCS make sense. */
@@ -1127,13 +1127,13 @@ static int gap_event(struct ble_gap_event *event, void *arg)
              * through aos_ble_pair_confirm(). */
             s_pair_code   = event->passkey.params.numcmp;
             s_pair_wanted = true;
-            ESP_LOGI(TAG, "emparejando, codigo %06u", (unsigned)s_pair_code);
+            ESP_LOGI(TAG, "pairing, code %06u", (unsigned)s_pair_code);
         } else {
             /* With io_cap DISPLAY_YESNO nothing else should arrive. If it
              * does, the phone does not support secure connections and
              * negotiated legacy pairing: better to cut than to accept
              * blindly. */
-            ESP_LOGW(TAG, "el telefono pidio el metodo %d, no lo hacemos",
+            ESP_LOGW(TAG, "the phone asked for method %d, we do not do it",
                      event->passkey.params.action);
             ble_gap_terminate(event->passkey.conn_handle,
                               BLE_ERR_AUTH_FAIL);
@@ -1199,7 +1199,7 @@ static int diag_disc(struct ble_gap_event *event, void *arg)
                  event->disc.addr.val[1], event->disc.addr.val[0],
                  event->disc.rssi, nombre);
     } else if (event->type == BLE_GAP_EVENT_DISC_COMPLETE) {
-        ESP_LOGW(TAG, "[OIGO] fin del barrido");
+        ESP_LOGW(TAG, "[LISTEN] end of the scan");
     }
     return 0;
 }
@@ -1211,7 +1211,7 @@ static void diag_scan(void)
     p.passive = 0;              /* active: asks for the scan response as well */
     p.filter_duplicates = 1;
     int rc = ble_gap_disc(s_addr_type, 12000, &p, diag_disc, NULL);
-    ESP_LOGW(TAG, "[OIGO] barrido de 12 s arrancado, rc=%d", rc);
+    ESP_LOGW(TAG, "[LISTEN] 12 s scan started, rc=%d", rc);
 }
 
 #else
@@ -1220,7 +1220,7 @@ static void diag_scan(void) { }
 
 static void on_reset(int reason)
 {
-    ESP_LOGE(TAG, "el host se reinicio (%d)", reason);
+    ESP_LOGE(TAG, "the host restarted (%d)", reason);
     limpiar_conexion();
 }
 
@@ -1228,7 +1228,7 @@ static void on_sync(void)
 {
     if (ble_hs_util_ensure_addr(0) != 0 ||
         ble_hs_id_infer_auto(0, &s_addr_type) != 0) {
-        ESP_LOGE(TAG, "no hay direccion propia");
+        ESP_LOGE(TAG, "there is no address of our own");
         return;
     }
     advertise();
@@ -1335,14 +1335,14 @@ void aos_ble_tick(void)
         double dif = difftime(del_telefono, propia);
         if (dif > 2.0 || dif < -2.0) {
             aos_hal_time_set(&s_hora);
-            ESP_LOGI(TAG, "reloj puesto en hora por el telefono "
-                          "(%04d-%02d-%02d %02d:%02d:%02d, iba %+d s)",
+            ESP_LOGI(TAG, "clock set by the phone "
+                          "(%04d-%02d-%02d %02d:%02d:%02d, it was %+d s out)",
                      s_hora.tm_year + 1900, s_hora.tm_mon + 1, s_hora.tm_mday,
                      s_hora.tm_hour, s_hora.tm_min, s_hora.tm_sec, (int)-dif);
         } else {
             /* Also when NO correction is needed: otherwise the only proof the
              * reading arrived is that some day the clock runs slow. */
-            ESP_LOGI(TAG, "el telefono dice la misma hora (%+d s)", (int)-dif);
+            ESP_LOGI(TAG, "the phone says the same time (%+d s)", (int)-dif);
         }
     }
 
@@ -1350,7 +1350,7 @@ void aos_ble_tick(void)
      * last fragment may have been lost, or the notification may have
      * disappeared from the phone between the notice and the request. */
     if (s_pidiendo && esp_timer_get_time() - s_pidiendo_us > PEDIDO_TOPE_US) {
-        ESP_LOGW(TAG, "un pedido de atributos quedo sin respuesta, se sigue");
+        ESP_LOGW(TAG, "an attribute request went unanswered, carrying on");
         s_pidiendo = false;
         s_ds_len   = 0;
     }
@@ -1359,7 +1359,7 @@ void aos_ble_tick(void)
     if (s_conectado || ble_gap_adv_active()) {
         return;
     }
-    ESP_LOGW(TAG, "no estaba publicando: se reanuda");
+    ESP_LOGW(TAG, "it was not advertising: resuming");
     advertise();
 }
 
@@ -1565,9 +1565,9 @@ static int on_accion(uint16_t conn, const struct ble_gatt_error *error,
 {
     (void)conn; (void)attr; (void)arg;
     if (error->status == 0) {
-        ESP_LOGI(TAG, "el telefono acepto la accion");
+        ESP_LOGI(TAG, "the phone accepted the action");
     } else {
-        ESP_LOGW(TAG, "el telefono rechazo la accion: status=0x%X %s",
+        ESP_LOGW(TAG, "the phone rejected the action: status=0x%X %s",
                  error->status, ancs_error(error->status));
         aos_notif_action_failed();
     }
@@ -1577,7 +1577,7 @@ static int on_accion(uint16_t conn, const struct ble_gatt_error *error,
 bool aos_ble_notif_action(uint32_t uid, bool positive)
 {
     if (s_conn == SIN_CONN || !s_h_control_point) {
-        ESP_LOGW(TAG, "accion sin conexion o sin Control Point");
+        ESP_LOGW(TAG, "action with no connection or no Control Point");
         return false;
     }
     uint8_t cmd[8];
@@ -1587,8 +1587,8 @@ bool aos_ble_notif_action(uint32_t uid, bool positive)
     }
     int rc = ble_gattc_write_flat(s_conn, s_h_control_point, cmd, (uint16_t)n,
                                   on_accion, NULL);
-    ESP_LOGI(TAG, "accion %s sobre #%u -> rc=%d",
-             positive ? "positiva" : "negativa", (unsigned)uid, rc);
+    ESP_LOGI(TAG, "%s action on #%u -> rc=%d",
+             positive ? "positive" : "negative", (unsigned)uid, rc);
     return rc == 0;
 }
 /* --------------------------------------------------------------------------
@@ -1622,7 +1622,7 @@ static void guion(void *arg)
         break;
 
     case 12:
-        ESP_LOGW(TAG, "--- apagando la wifi ---");
+        ESP_LOGW(TAG, "--- switching the wifi off ---");
         aos_hal_net_enable(false);
         break;
     case 17:
@@ -1630,7 +1630,7 @@ static void guion(void *arg)
         break;
 
     case 19:
-        ESP_LOGW(TAG, "--- apagando NimBLE (stop + deinit) ---");
+        ESP_LOGW(TAG, "--- switching NimBLE off (stop + deinit) ---");
         if (s_ble_arriba) {
             aos_ble_stop();
             s_ble_arriba = false;
@@ -1641,7 +1641,7 @@ static void guion(void *arg)
         break;
 
     case 26:
-        ESP_LOGW(TAG, "--- prendiendo la wifi de vuelta ---");
+        ESP_LOGW(TAG, "--- switching the wifi back on ---");
         aos_hal_net_enable(true);
         break;
     case 34:
@@ -1651,7 +1651,7 @@ static void guion(void *arg)
     /* The switch has to be able to come back: switching off and not being able
      * to switch on again without a restart would be a single-use switch. */
     case 36:
-        ESP_LOGW(TAG, "--- prendiendo NimBLE de vuelta ---");
+        ESP_LOGW(TAG, "--- switching NimBLE back on ---");
         if (!s_ble_arriba) {
             s_ble_arriba = aos_ble_start();
             ESP_LOGW(TAG, "aos_ble_start (2da vez) -> %d", (int)s_ble_arriba);
@@ -1659,7 +1659,7 @@ static void guion(void *arg)
         break;
     case 44:
         aos_ble_measure_report("5_ble_on_otra_vez");
-        ESP_LOGW(TAG, "=== fin del guion de medicion ===");
+        ESP_LOGW(TAG, "=== end of the measurement script ===");
         break;
 
     default:

@@ -120,7 +120,7 @@ esp_err_t __wrap_esp_lcd_new_panel_io_spi(esp_lcd_spi_bus_handle_t bus,
                        (int)(cfg.pclk_hz / 1000000));
         return __real_esp_lcd_new_panel_io_spi(bus, &cfg, ret_io);
     }
-    ESP_EARLY_LOGW("aos_hal", "panel qspi sin tocar: %d MHz",
+    ESP_EARLY_LOGW("aos_hal", "qspi panel left alone: %d MHz",
                    io_config ? (int)(io_config->pclk_hz / 1000000) : -1);
     return __real_esp_lcd_new_panel_io_spi(bus, io_config, ret_io);
 }
@@ -329,7 +329,7 @@ void aos_hal_sleep(void)
 
 void aos_hal_shutdown(void)
 {
-    ESP_LOGI(TAG, "apagando por PMU");
+    ESP_LOGI(TAG, "powering off through the PMU");
     aos_board_pmu_shutdown();
 }
 
@@ -797,7 +797,7 @@ static void player_task(void *arg)
 
     FILE *file = fopen(s_player_path, "rb");
     if (!file) {
-        ESP_LOGE(TAG, "no se pudo abrir %s", s_player_path);
+        ESP_LOGE(TAG, "could not open %s", s_player_path);
         s_player_state = AOS_PLAYER_STOPPED;
         s_player_task = NULL;
         vTaskDelete(NULL);
@@ -807,7 +807,7 @@ static void player_task(void *arg)
     wav_fmt_t fmt = {0};
     uint32_t data_bytes = 0;
     if (!wav_open(file, &fmt, &data_bytes)) {
-        ESP_LOGW(TAG, "%s no es WAV PCM 16 bits", s_player_path);
+        ESP_LOGW(TAG, "%s is not 16-bit PCM WAV", s_player_path);
         fclose(file);
         s_player_state = AOS_PLAYER_STOPPED;
         s_player_task = NULL;
@@ -826,7 +826,7 @@ static void player_task(void *arg)
     };
 
     if (!s_speaker || esp_codec_dev_open(s_speaker, &info) != ESP_OK) {
-        ESP_LOGE(TAG, "el codec no acepto %lu Hz", (unsigned long)fmt.sample_rate);
+        ESP_LOGE(TAG, "the codec did not accept %lu Hz", (unsigned long)fmt.sample_rate);
         fclose(file);
         s_player_state = AOS_PLAYER_STOPPED;
         s_player_task = NULL;
@@ -872,7 +872,7 @@ bool aos_hal_player_play(const char *path)
     /* Same reason as in tone_task: opening the speaker while recording tears
      * down the microphone's input channel. */
     if (s_mic_holds_codec) {
-        ESP_LOGW(TAG, "no se reproduce mientras se graba");
+        ESP_LOGW(TAG, "no playback while recording");
         return false;
     }
 
@@ -1128,8 +1128,8 @@ static void rec_finish(FILE **file, rec_stats_t *st)
      * ceiling. The proportion of saturated blocks tells "a loud noise" apart
      * from "the gain is wrong", and the mean level says how much headroom went
      * unused. */
-    ESP_LOGI(TAG, "grabacion terminada: %u ms, pico %ld de 32768 (%d%%), "
-                  "saturados %u%% de %u bloques, nivel medio %u/100",
+    ESP_LOGI(TAG, "recording finished: %u ms, peak %ld of 32768 (%d%%), "
+                  "%u%% of %u blocks clipped, average level %u/100",
              (unsigned)(s_rec_rate ? (uint32_t)((uint64_t)s_rec_bytes * 500 / s_rec_rate) : 0),
              (long)st->max_raw, (int)(st->max_raw * 100 / 32768),
              (unsigned)(st->blocks ? st->clipped * 100 / st->blocks : 0),
@@ -1139,7 +1139,7 @@ static void rec_finish(FILE **file, rec_stats_t *st)
     /* If not even a fifth of a second made it in, the capture failed: delete
      * the file instead of leaving a zero-second WAV on the card. */
     if (s_rec_bytes < s_rec_rate / 5 * 2) {
-        ESP_LOGW(TAG, "grabacion vacia, se borra %s", s_rec_path);
+        ESP_LOGW(TAG, "empty recording, deleting %s", s_rec_path);
         remove(s_rec_path);
         s_rec_bytes = 0;
     }
@@ -1166,7 +1166,7 @@ static void mic_task(void *arg)
     };
     int open_ret = s_mic ? esp_codec_dev_open(s_mic, &fs) : ESP_CODEC_DEV_NOT_FOUND;
     if (open_ret != ESP_CODEC_DEV_OK) {
-        ESP_LOGE(TAG, "el microfono no acepto %lu Hz (%d)",
+        ESP_LOGE(TAG, "the microphone did not accept %lu Hz (%d)",
                  (unsigned long)s_mic_rate, open_ret);
         s_rec_state       = AOS_REC_IDLE;
         s_mic_users       = 0;
@@ -1197,7 +1197,7 @@ static void mic_task(void *arg)
             !s_rec_abort && s_rec_state != AOS_REC_IDLE) {
             file = fopen(s_rec_path, "wb");
             if (!file) {
-                ESP_LOGE(TAG, "no se pudo crear %s", s_rec_path);
+                ESP_LOGE(TAG, "could not create %s", s_rec_path);
                 s_rec_state  = AOS_REC_IDLE;
                 s_mic_users &= ~(uint32_t)MIC_USER_REC;
                 continue;
@@ -1216,7 +1216,7 @@ static void mic_task(void *arg)
         if (read_ret != ESP_CODEC_DEV_OK) {
             /* A single error must not cost the whole capture: it is retried a
              * fair few times before giving up. */
-            ESP_LOGE(TAG, "lectura del microfono: %d (fallo %d)", read_ret, errors + 1);
+            ESP_LOGE(TAG, "microphone read: %d (failure %d)", read_ret, errors + 1);
             if (++errors >= 8) {
                 break;
             }
@@ -1258,7 +1258,7 @@ static void mic_task(void *arg)
         st.level_sum += (uint32_t)s_mic_level;
 
         if (fwrite(buffer, 1, (size_t)block * sizeof(int16_t), file) == 0) {
-            ESP_LOGE(TAG, "no entra mas audio en la tarjeta");
+            ESP_LOGE(TAG, "no more audio fits on the card");
             s_rec_abort = true;
             continue;
         }
@@ -1443,7 +1443,7 @@ bool aos_hal_mic_open(uint32_t sample_rate)
         int16_t *ring = heap_caps_malloc((size_t)rate * sizeof(int16_t),
                                          MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
         if (!ring) {
-            ESP_LOGE(TAG, "sin PSRAM para el anillo del microfono");
+            ESP_LOGE(TAG, "no PSRAM for the microphone ring");
             return false;
         }
         free(s_pcm_ring);
@@ -1634,7 +1634,7 @@ void aos_hal_bt_enable(bool on)
     aos_hal_pref_set_i32("bt_on", on ? 1 : 0);
     if (on) {
         if (!aos_ble_start()) {
-            ESP_LOGE(TAG, "no se pudo levantar la pila BLE");
+            ESP_LOGE(TAG, "could not bring up the BLE stack");
         }
     } else {
         aos_ble_stop();
@@ -1703,14 +1703,14 @@ static void mdns_up(void)
         return;
     }
     if (mdns_init() != ESP_OK) {
-        ESP_LOGW(TAG, "no arranco mdns");
+        ESP_LOGW(TAG, "mdns did not start");
         return;
     }
     mdns_hostname_set("amoledos");
     mdns_instance_name_set("AmoledOS");
     mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0);
     arrancado = true;
-    ESP_LOGI(TAG, "portal tambien en http://amoledos.local/");
+    ESP_LOGI(TAG, "portal also at http://amoledos.local/");
 }
 
 static void wifi_event_handler(void *arg, esp_event_base_t base,
@@ -1766,7 +1766,7 @@ static bool wifi_stack_start(void)
 
     wifi_init_config_t wifi_cfg = WIFI_INIT_CONFIG_DEFAULT();
     if (esp_wifi_init(&wifi_cfg) != ESP_OK) {
-        ESP_LOGE(TAG, "no se pudo inicializar el wifi");
+        ESP_LOGE(TAG, "could not initialise the wifi");
         return false;
     }
 
@@ -1803,7 +1803,7 @@ void aos_hal_net_enable(bool on)
     char ssid[33] = {0};
     char pass[65] = {0};
     if (!aos_hal_pref_get_str("wifi_ssid", ssid, sizeof(ssid))) {
-        ESP_LOGW(TAG, "no hay credenciales wifi guardadas");
+        ESP_LOGW(TAG, "no wifi credentials stored");
         s_net_state = AOS_NET_OFF;
         return;
     }
@@ -2063,7 +2063,7 @@ bool aos_hal_net_ap_start(void)
     wifi_ap_record_t asociado;
     if (esp_wifi_sta_get_ap_info(&asociado) == ESP_OK && asociado.primary) {
         ap.ap.channel = asociado.primary;
-        ESP_LOGI(TAG, "el AP va al canal %d, que es donde esta el STA",
+        ESP_LOGI(TAG, "the AP goes to channel %d, which is where the STA is",
                  asociado.primary);
     }
 
@@ -2081,7 +2081,7 @@ bool aos_hal_net_ap_start(void)
     }
 
     s_ap_active = true;
-    ESP_LOGI(TAG, "punto de acceso levantado: %s / %s -> http://%s/",
+    ESP_LOGI(TAG, "access point up: %s / %s -> http://%s/",
              s_ap_ssid, s_ap_pass, s_ap_ip);
     return true;
 }
@@ -2100,7 +2100,7 @@ void aos_hal_net_ap_stop(void)
         esp_wifi_stop();
         s_net_state = AOS_NET_OFF;
     }
-    ESP_LOGI(TAG, "punto de acceso apagado");
+    ESP_LOGI(TAG, "access point down");
 }
 
 int aos_hal_net_scan(aos_wifi_ap_t *out, int max)
@@ -2321,7 +2321,7 @@ static void touch_poll_gesture(void)
         default: break;
         }
         if (s_pending_gesture != AOS_TOUCH_GESTURE_NONE) {
-            ESP_LOGD(TAG, "gesto del tactil: 0x%02X", gesture);
+            ESP_LOGD(TAG, "touch gesture: 0x%02X", gesture);
         }
     }
     prev_fingers = fingers;
@@ -2364,7 +2364,7 @@ static void housekeeping_task(void *arg)
                 snprintf(extra + strlen(extra), sizeof(extra) - strlen(extra),
                          " mic=%u", (unsigned)uxTaskGetStackHighWaterMark(s_mic_task));
             }
-            ESP_LOGI(TAG, "pilas libres: hk=%u (de %d)%s",
+            ESP_LOGI(TAG, "free stacks: hk=%u (of %d)%s",
                      (unsigned)uxTaskGetStackHighWaterMark(NULL), HK_STACK, extra);
         }
 
@@ -2569,8 +2569,8 @@ static void bench_screen_copy(void)
     }
     int64_t per_row_lv = esp_timer_get_time() - t0;
 
-    ESP_LOGI(TAG, "copia de pantalla (%u KB): tirada %lld us (%.1f MB/s) | "
-                  "por fila %lld us (%.1f MB/s) | lv_memcpy %lld us (%.1f MB/s)",
+    ESP_LOGI(TAG, "screen copy (%u KB): in one go %lld us (%.1f MB/s) | "
+                  "row by row %lld us (%.1f MB/s) | lv_memcpy %lld us (%.1f MB/s)",
              (unsigned)(total / 1024),
              bulk, total / (double)bulk,
              per_row, total / (double)per_row,
@@ -2688,15 +2688,15 @@ static void bench_full_refresh(void)
     lv_refr_now(s_display);
     aos_hal_unlock();
 
-    ESP_LOGI(TAG, "canvas de %d filas: en psram %.1f ms | en ram interna %.1f ms",
+    ESP_LOGI(TAG, "canvas of %d rows: in psram %.1f ms | in internal ram %.1f ms",
              qh, quarter_psram / 1000.0, quarter_int / 1000.0);
 
-    ESP_LOGI(TAG, "refresco completo: rectangulo %.1f ms | canvas %.1f ms | "
-                  "canvas radio 0: %.1f ms (el tema le pone radio %d) | "
-                  "buffer %d filas %s en psram | qspi %d MHz",
+    ESP_LOGI(TAG, "full refresh: rectangle %.1f ms | canvas %.1f ms | "
+                  "canvas radius 0: %.1f ms (the theme gives it radius %d) | "
+                  "buffer %d rows %s in psram | qspi %d MHz",
              rect_us / 1000.0, canvas_us / 1000.0, canvas_r0_us / 1000.0,
              (int)radius, AOS_DRAW_ROWS,
-             AOS_DRAW_DOUBLE ? "doble" : "simple",
+             AOS_DRAW_DOUBLE ? "double" : "single",
              (int)(AOS_LCD_PCLK_HZ / 1000000));
 }
 
@@ -2869,8 +2869,8 @@ static lv_display_t *display_start(void)
 
     int int_used = (int)int_before - (int)heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
     int ext_used = (int)ext_before - (int)heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
-    ESP_LOGW(TAG, "buffer de dibujo: %d filas x %d px = %d KB pedidos; "
-             "gasto %d KB de RAM interna y %d KB de PSRAM",
+    ESP_LOGW(TAG, "drawing buffer: %d rows x %d px = %d KB asked for; "
+             "spent %d KB of internal RAM and %d KB of PSRAM",
              AOS_DRAW_ROWS, BSP_LCD_H_RES,
              (int)(BSP_LCD_H_RES * AOS_DRAW_ROWS * 2 * (AOS_DRAW_DOUBLE ? 2 : 1)) / 1024,
              int_used / 1024, ext_used / 1024);
@@ -2890,8 +2890,8 @@ static lv_display_t *display_start(void)
     }
 
     bsp_display_brightness_init();
-    ESP_LOGI(TAG, "pantalla: %d filas de buffer, %s, volcado por DMA con aviso real",
-             AOS_DRAW_ROWS, AOS_DRAW_DOUBLE ? "doble" : "simple");
+    ESP_LOGI(TAG, "display: %d buffer rows, %s, DMA flush with a real completion signal",
+             AOS_DRAW_ROWS, AOS_DRAW_DOUBLE ? "double" : "single");
     return disp;
 }
 
@@ -2911,7 +2911,7 @@ bool aos_hal_init(void)
 
     bsp_spiffs_mount();
     s_sd_mounted = (bsp_sdcard_mount() == ESP_OK);
-    ESP_LOGI(TAG, "microSD %s", s_sd_mounted ? "montada" : "no disponible");
+    ESP_LOGI(TAG, "microSD %s", s_sd_mounted ? "mounted" : "not available");
 
     /* Time: the RTC's rules until somebody synchronises over NTP. */
     aos_hal_timezone_set(aos_hal_timezone_get());
@@ -2967,7 +2967,7 @@ bool aos_hal_init(void)
     s_display = display_start();
 
     if (!s_display) {
-        ESP_LOGE(TAG, "no se pudo iniciar la pantalla");
+        ESP_LOGE(TAG, "could not start the display");
         return false;
     }
     bsp_display_brightness_set(s_brightness);
@@ -3003,7 +3003,7 @@ bool aos_hal_init(void)
     if (aos_hal_net_enabled()) {
         aos_hal_net_enable(true);
     } else {
-        ESP_LOGI(TAG, "wifi apagada por preferencia; no se levanta la pila");
+        ESP_LOGI(TAG, "wifi off by preference; the stack is not brought up");
         s_net_state = AOS_NET_OFF;
     }
 
@@ -3014,10 +3014,10 @@ bool aos_hal_init(void)
      * It is switched on from Settings, which is also where pairing happens. */
     if (aos_hal_bt_enabled()) {
         if (!aos_ble_start()) {
-            ESP_LOGE(TAG, "no se pudo levantar la pila BLE");
+            ESP_LOGE(TAG, "could not bring up the BLE stack");
         }
     } else {
-        ESP_LOGI(TAG, "bluetooth apagado por preferencia");
+        ESP_LOGI(TAG, "bluetooth off by preference");
     }
     return true;
 }

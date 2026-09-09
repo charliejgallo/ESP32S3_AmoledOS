@@ -353,7 +353,7 @@ static void fase_wifi(FILE *f)
 
     wifi_mode_t modo;
     if (esp_wifi_get_mode(&modo) != ESP_OK || modo == WIFI_MODE_NULL) {
-        ESP_LOGW(TAG, "el wifi no esta arriba, no hay barrido de redes");
+        ESP_LOGW(TAG, "the wifi is not up, there is no network scan");
         return;
     }
 
@@ -362,7 +362,7 @@ static void fase_wifi(FILE *f)
      * the interesting part. */
     wifi_scan_config_t cfg = { .show_hidden = true };
     if (esp_wifi_scan_start(&cfg, true) != ESP_OK) {
-        ESP_LOGW(TAG, "no arranco el barrido de redes");
+        ESP_LOGW(TAG, "the network scan did not start");
         return;
     }
 
@@ -458,7 +458,7 @@ static void fase_hosts(FILE *f)
 
     int sock = socket(AF_INET, SOCK_RAW, IP_PROTO_ICMP);
     if (sock < 0) {
-        ESP_LOGE(TAG, "no se pudo abrir el socket ICMP (%d)", errno);
+        ESP_LOGE(TAG, "could not open the ICMP socket (%d)", errno);
     } else {
         struct timeval tv = { .tv_sec = 0, .tv_usec = 1000 };
         setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
@@ -545,8 +545,8 @@ static void fase_hosts(FILE *f)
         close(sock);
     }
 
-    ESP_LOGI(TAG, "barrido de la LAN (%d pasadas): %d enviados (%d fallaron), "
-                  "%d respuestas ICMP, %d entradas ARP vistas, %d equipos",
+    ESP_LOGI(TAG, "LAN sweep (%d passes): %d sent (%d failed), "
+                  "%d ICMP replies, %d ARP entries seen, %d hosts",
              PASADAS,
              s_enviados, s_envios_fallidos, s_respuestas, s_arp_vistos,
              s_n_hosts);
@@ -760,7 +760,7 @@ static void fase_mdns(FILE *f)
         s_done = i + 1;
     }
 
-    ESP_LOGI(TAG, "mDNS: %d anuncios con nombre", nombres);
+    ESP_LOGI(TAG, "mDNS: %d announcements with a name", nombres);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -773,7 +773,7 @@ static void scan_task(void *arg)
 
     FILE *f = fopen(s_path, "w");
     if (!f) {
-        ESP_LOGE(TAG, "no se pudo crear %s", s_path);
+        ESP_LOGE(TAG, "could not create %s", s_path);
         s_phase = AOS_SCAN_FAILED;
         s_task  = NULL;
         vTaskDeleteWithCaps(NULL);
@@ -812,7 +812,7 @@ static void scan_task(void *arg)
           s_abort ? "true" : "false");
     fclose(f);
 
-    ESP_LOGI(TAG, "barrido terminado: %d redes, %d equipos, %d puertos en %u ms -> %s",
+    ESP_LOGI(TAG, "scan finished: %d networks, %d hosts, %d ports in %u ms -> %s",
              s_wifi_found, s_hosts_found, s_ports_found, (unsigned)ms, s_path);
 
     s_phase = s_abort ? AOS_SCAN_FAILED : AOS_SCAN_DONE;
@@ -856,7 +856,7 @@ bool aos_hal_scan_start(uint32_t flags)
         /* Range guard: only /24 or smaller. With a /16 this would stop being a
          * scanner of your house, so the surrounding /24 is what gets swept. */
         if (hosts > 255) {
-            ESP_LOGW(TAG, "prefijo mas ancho que /24: se barre solo el /24 propio");
+            ESP_LOGW(TAG, "prefix wider than /24: only our own /24 is swept");
             s_red  = s_mi_ip & 0xFFFFFF00u;
             hosts  = 255;
         }
@@ -871,7 +871,7 @@ bool aos_hal_scan_start(uint32_t flags)
         s_hosts = heap_caps_malloc(sizeof(scan_host_t) * SCAN_MAX_HOSTS,
                                    MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
         if (!s_hosts) {
-            ESP_LOGE(TAG, "sin PSRAM para la tabla de equipos");
+            ESP_LOGE(TAG, "no PSRAM for the host table");
             return false;
         }
     }

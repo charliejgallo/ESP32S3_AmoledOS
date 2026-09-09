@@ -147,12 +147,17 @@ they have no business floating around in a file readable from any card reader.
 
 Ceilings: 8 pages, 9 buttons per page, 40 entities with state.
 
+`example-profile.json` in this folder is a working one to start from: three
+pages, a dial, the four gestures, and the entities `fake_ha.py` serves.
+
 To look at a profile without the board:
 
 ```bash
-cc -O1 -Iapps/remoto/main -o /tmp/rc_harness apps/remoto/tools/rc_harness.c \
+cc -O1 -Iapps/remoto/main -Icomponents/aos_ui/include \
+   -Icomponents/aos_hal/include -o /tmp/rc_harness \
+   apps/remoto/tools/rc_harness.c \
    apps/remoto/main/rc_model.c apps/remoto/main/rc_tilt.c -lm
-/tmp/rc_harness sim/sim_fs/data/remoto.json
+/tmp/rc_harness apps/remoto/example-profile.json
 ```
 
 ## Trying it without the board
@@ -215,7 +220,7 @@ app's only use-after-free showed up. The folder is 125 MB, delete it afterwards.
 
 | | |
 | --- | --- |
-| `REMOTO_PERFIL=<path>` | read the profile from somewhere else (or from nowhere, to see the help screen) |
+| `REMOTO_PERFIL=<path>` | read the profile from somewhere else (or from nowhere, to see the help screen). `apps/remoto/example-profile.json` is the one the screenshots use |
 
 ## Building and installing
 

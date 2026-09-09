@@ -40,7 +40,7 @@ esp_err_t aos_board_init(void)
 {
     i2c_master_bus_handle_t bus = bsp_i2c_get_handle();
     if (!bus) {
-        ESP_LOGE(TAG, "el bus I2C del BSP no esta inicializado");
+        ESP_LOGE(TAG, "the BSP I2C bus is not initialised");
         return ESP_ERR_INVALID_STATE;
     }
 
@@ -48,7 +48,7 @@ esp_err_t aos_board_init(void)
 
     s_pmu_ready = (axp2101_init(&s_pmu, bus) == ESP_OK);
     if (!s_pmu_ready) {
-        ESP_LOGW(TAG, "AXP2101 no responde: la bateria se reporta desconocida");
+        ESP_LOGW(TAG, "AXP2101 does not answer: the battery is reported as unknown");
     }
 
     aos_rtc_start(bus);
