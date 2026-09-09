@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Conectar</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  ul.lista li { cursor: pointer; }
+  ul.lista li:hover { background: var(--card2); }
+  ul.lista li.sel { outline: 2px solid var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Conectar a una red</h1></div>
+  <p class="sub" data-t="bajada">Elegí tu red WiFi y escribí la clave. El reloj
+     se va a reconectar solo.</p>
+
+  <nav class="paginas"></nav>
+
+  <button id="btn-buscar" class="sec" data-t="btn_buscar">Buscar redes</button>
+  <ul class="lista" id="lista"></ul>
+
+  <div id="form" hidden>
+    <label class="campo" for="pass">
+      <span data-t="lbl_clave_de">Clave de</span> <b id="elegida"></b>
+    </label>
+    <input id="pass" type="password" autocomplete="off"
+           data-t-ph="ph_clave" placeholder="Clave de la red">
+    <p><button id="btn-guardar" data-t="btn_guardar">Guardar y conectar</button></p>
+  </div>
+
+  <div class="aviso" id="aviso" hidden></div>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "Connect to a network",
+    bajada: "Pick your WiFi network and type its password. The watch reconnects on its own.",
+    btn_buscar: "Scan for networks",
+    btn_buscar_ando: "Scanning...",
+    btn_buscar_otra: "Scan again",
+    lbl_clave_de: "Password for",
+    btn_guardar: "Save and connect",
+    ph_clave: "Network password",
+    ph_abierta: "Open network, no password",
+    sin_redes: "No network showed up. Try again.",
+    fallo: "Could not scan: ",
+    ok: "Network saved. The watch is connecting to <b>%s</b>.<br><br>" +
+        "If you were using the setup network, it shuts itself down: go back to " +
+        "your usual WiFi and check the watch screen for the address it got.",
+    ok_corte: "Network sent. The watch is reconnecting and this network went down."
+  },
+  de: {
+    titulo: "Mit einem Netz verbinden",
+    bajada: "Waehle dein WLAN und tippe das Passwort ein. Die Uhr verbindet sich von selbst neu.",
+    btn_buscar: "Netze suchen",
+    btn_buscar_ando: "Wird gesucht...",
+    btn_buscar_otra: "Erneut suchen",
+    lbl_clave_de: "Passwort fuer",
+    btn_guardar: "Speichern und verbinden",
+    ph_clave: "Netzpasswort",
+    ph_abierta: "Offenes Netz, kein Passwort",
+    sin_redes: "Es ist kein Netz aufgetaucht. Versuch es noch einmal.",
+    fallo: "Suche fehlgeschlagen: ",
+    ok: "Netz gespeichert. Die Uhr verbindet sich mit <b>%s</b>.<br><br>" +
+        "Wenn du das Einrichtungsnetz benutzt hast: es schaltet sich von selbst " +
+        "ab. Geh zurueck in dein uebliches WLAN und schau am Bildschirm der Uhr " +
+        "nach, welche Adresse sie bekommen hat.",
+    ok_corte: "Netz gesendet. Die Uhr verbindet sich neu und dieses Netz ist abgeschaltet."
+  }
+};
+
+const ES = {
+  btn_buscar_ando: "Buscando...",
+  btn_buscar_otra: "Buscar de nuevo",
+  ph_clave: "Clave de la red",
+  ph_abierta: "Red abierta, sin clave",
+  sin_redes: "No apareció ninguna red. Probá de nuevo.",
+  fallo: "No se pudo escanear: ",
+  ok: "Red guardada. El reloj se está conectando a <b>%s</b>.<br><br>" +
+      "Si estabas usando la red de configuración, se apaga sola: volvé a tu " +
+      "WiFi de siempre y mirá en la pantalla del reloj qué dirección quedó.",
+  ok_corte: "Red enviada. El reloj se está reconectando y esta red se apagó."
+};
+
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? ES[k] : v; }
+
+let elegida = null;
+
+function aviso(html, clase) {
+  const a = $("aviso");
+  a.hidden = false;
+  a.className = "aviso" + (clase ? " " + clase : "");
+  a.innerHTML = html;
+}
+
+async function buscar() {
+  $("btn-buscar").disabled = true;
+  $("btn-buscar").textContent = t("btn_buscar_ando");
+  $("lista").innerHTML = "";
+  try {
+    const r = await fetch("/api/scan");
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    if (!d.redes.length) { aviso(t("sin_redes")); return; }
+    d.redes.sort((a, b) => b.rssi - a.rssi);
+    for (const red of d.redes) {
+      const li = document.createElement("li");
+      /* El nombre de la red lo elige el vecino: va por textContent, nunca por
+         innerHTML. Un SSID con etiquetas se ejecutaba en esta pagina. */
+      li.innerHTML = '<span class="nombre"></span>' +
+                     '<span class="detalle">' + (red.segura ? "🔒 " : "") +
+                     red.rssi + " dBm</span>";
+      li.querySelector(".nombre").textContent = red.ssid;
+      li.onclick = () => {
+        document.querySelectorAll("#lista li").forEach(x => x.classList.remove("sel"));
+        li.classList.add("sel");
+        elegida = red.ssid;
+        $("elegida").textContent = red.ssid;
+        $("form").hidden = false;
+        $("pass").disabled = !red.segura;
+        $("pass").placeholder = red.segura ? t("ph_clave") : t("ph_abierta");
+        $("pass").focus();
+      };
+      $("lista").appendChild(li);
+    }
+  } catch (e) {
+    aviso(aos.esc(t("fallo") + e.message), "mal");
+  } finally {
+    $("btn-buscar").disabled = false;
+    $("btn-buscar").textContent = t("btn_buscar_otra");
+  }
+}
+
+async function guardar() {
+  if (!elegida) return;
+  $("btn-guardar").disabled = true;
+  const cuerpo = "ssid=" + encodeURIComponent(elegida) +
+                 "&pass=" + encodeURIComponent($("pass").value);
+  try {
+    await fetch("/api/wifi", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: cuerpo
+    });
+    aviso(t("ok").replace("%s", aos.esc(elegida)), "bien");
+  } catch (e) {
+    /* Esperable: al reconectar se corta el punto de acceso desde el que se
+       estaba usando esta pagina. */
+    aviso(t("ok_corte"), "bien");
+  }
+}
+
+$("btn-buscar").onclick = buscar;
+$("btn-guardar").onclick = guardar;
+aos.init(TR).then(buscar);
+</script>
+</body>
+</html>

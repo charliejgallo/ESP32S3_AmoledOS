@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Punto de acceso</title>
+<link rel="stylesheet" href="/aos.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Punto de acceso</h1></div>
+  <p class="sub" data-t="bajada">Es la red que levanta el reloj para configurarlo
+     cuando no tiene ninguna otra. Podes cambiarle el nombre y la clave.</p>
+
+  <nav class="paginas"></nav>
+
+  <h2 data-t="ahora">Ahora mismo</h2>
+  <div class="tarjeta">
+    <dl class="datos">
+      <dt data-t="lbl_nombre">Nombre</dt><dd id="e-ssid">-</dd>
+      <dt data-t="lbl_clave">Clave</dt><dd class="destacado" id="e-clave">-</dd>
+      <dt data-t="lbl_modo">Modo</dt><dd id="e-modo">-</dd>
+      <dt data-t="lbl_estado">Estado</dt><dd id="e-activo">-</dd>
+    </dl>
+    <p style="margin:16px 0 0">
+      <button id="interruptor" class="sec">-</button>
+    </p>
+  </div>
+  <p class="sub" style="margin:10px 2px 0" data-t="ayuda_estado">Apagarlo libera
+     memoria y saca la red del aire. Encenderlo no te desconecta: el reloj
+     levanta su red en el mismo canal en el que ya esta.</p>
+
+  <h2 data-t="cambiar">Cambiar</h2>
+  <label class="campo" for="ssid" data-t="lbl_nombre_red">Nombre de la red</label>
+  <input id="ssid" type="text" maxlength="32" autocomplete="off"
+         data-t-ph="ph_ssid" placeholder="automatico">
+
+  <label class="campo" data-t="lbl_tipo_clave">Clave</label>
+  <label class="opcion">
+    <input type="radio" name="modo" value="fija" checked>
+    <span><b data-t="modo_fija">Fija</b>
+      <span class="pie" data-t="modo_fija_desc">La misma siempre. Comoda si vas
+        a entrar seguido desde la misma casa.</span></span>
+  </label>
+  <label class="opcion">
+    <input type="radio" name="modo" value="rotativa">
+    <span><b data-t="modo_rot">Nueva en cada encendido</b>
+      <span class="pie" data-t="modo_rot_desc">El reloj genera una clave distinta
+        cada vez que levanta esta red. La lees en la pantalla, o escaneas el
+        QR.</span></span>
+  </label>
+
+  <label class="campo" for="pass" data-t="lbl_clave_nueva">Clave nueva</label>
+  <input id="pass" type="password" maxlength="63" autocomplete="new-password">
+  <p class="sub" style="margin:6px 0 0" data-t="ayuda_clave">Entre 8 y 63
+     caracteres. Vacia vuelve a la clave de fabrica.</p>
+
+  <p><button id="guardar" data-t="btn_guardar">Guardar</button></p>
+  <div class="aviso" id="aviso" hidden></div>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "Access point",
+    bajada: "This is the network the watch brings up so you can set it up when " +
+            "it has no other one. You can change its name and password.",
+    ahora: "Right now",
+    lbl_nombre: "Name", lbl_clave: "Password", lbl_modo: "Mode",
+    lbl_estado: "State",
+    ayuda_estado: "Turning it off frees memory and takes the network off the " +
+                  "air. Turning it on will not disconnect you: the watch brings " +
+                  "its network up on the channel it is already using.",
+    cambiar: "Change",
+    lbl_nombre_red: "Network name",
+    lbl_tipo_clave: "Password",
+    modo_fija: "Fixed",
+    modo_fija_desc: "Always the same. Handy if you connect often from the same place.",
+    modo_rot: "New every time it comes up",
+    modo_rot_desc: "The watch makes a different password each time it brings this " +
+                   "network up. Read it on the screen, or scan the QR code.",
+    lbl_clave_nueva: "New password",
+    ayuda_clave: "Between 8 and 63 characters. Leave it empty to go back to the " +
+                 "factory password.",
+    btn_guardar: "Save",
+    ph_ssid: "automatic",
+    v_fija: "fixed", v_rot: "new every time it comes up",
+    v_activo: "up", v_inactivo: "off",
+    btn_prender: "Turn on", btn_apagar: "Turn off",
+    prendiendo: "Turning on...", apagando: "Turning off...",
+    ok_prendido: "The network is up. Its password is on the watch screen, with a " +
+                 "QR code you can scan.",
+    ok_apagado: "The network is off.",
+    err_prender: "The network could not be brought up.",
+    guardando: "Saving...",
+    ok_nombre: "Saved. The network is now called <b>%s</b>.",
+    ok_corte: "Saved. This network just restarted with the new settings: " +
+              "reconnect using the password shown on the watch.",
+    err_clave: "The password has to be between 8 and 63 characters, or empty.",
+    err_ssid: "The name cannot be longer than 32 characters.",
+    err: "Could not save: "
+  },
+  de: {
+    titulo: "Zugangspunkt",
+    bajada: "Das ist das Netz, das die Uhr aufbaut, damit du sie einrichten " +
+            "kannst, wenn sie kein anderes hat. Name und Passwort sind aenderbar.",
+    ahora: "Gerade jetzt",
+    lbl_nombre: "Name", lbl_clave: "Passwort", lbl_modo: "Modus",
+    lbl_estado: "Zustand",
+    ayuda_estado: "Ausschalten gibt Speicher frei und nimmt das Netz aus der " +
+                  "Luft. Einschalten trennt dich nicht: die Uhr baut ihr Netz " +
+                  "auf dem Kanal auf, den sie schon benutzt.",
+    cambiar: "Aendern",
+    lbl_nombre_red: "Netzname",
+    lbl_tipo_clave: "Passwort",
+    modo_fija: "Fest",
+    modo_fija_desc: "Immer dasselbe. Praktisch, wenn du dich oft vom selben Ort " +
+                    "aus verbindest.",
+    modo_rot: "Neu bei jedem Start",
+    modo_rot_desc: "Die Uhr erzeugt jedes Mal ein anderes Passwort, wenn sie " +
+                   "dieses Netz aufbaut. Du liest es am Bildschirm ab oder " +
+                   "scannst den QR-Code.",
+    lbl_clave_nueva: "Neues Passwort",
+    ayuda_clave: "Zwischen 8 und 63 Zeichen. Leer setzt das Werkspasswort zurueck.",
+    btn_guardar: "Speichern",
+    ph_ssid: "automatisch",
+    v_fija: "fest", v_rot: "neu bei jedem Start",
+    v_activo: "aktiv", v_inactivo: "aus",
+    btn_prender: "Einschalten", btn_apagar: "Ausschalten",
+    prendiendo: "Wird eingeschaltet...", apagando: "Wird ausgeschaltet...",
+    ok_prendido: "Das Netz ist aktiv. Das Passwort steht am Bildschirm der Uhr, " +
+                 "mit einem QR-Code zum Scannen.",
+    ok_apagado: "Das Netz ist aus.",
+    err_prender: "Das Netz konnte nicht aufgebaut werden.",
+    guardando: "Wird gespeichert...",
+    ok_nombre: "Gespeichert. Das Netz heisst jetzt <b>%s</b>.",
+    ok_corte: "Gespeichert. Dieses Netz wurde gerade mit den neuen Einstellungen " +
+              "neu gestartet: verbinde dich mit dem Passwort, das die Uhr anzeigt.",
+    err_clave: "Das Passwort muss 8 bis 63 Zeichen haben oder leer sein.",
+    err_ssid: "Der Name darf hoechstens 32 Zeichen lang sein.",
+    err: "Konnte nicht gespeichert werden: "
+  }
+};
+
+/* El espanol vive en el HTML; aca solo lo que arma el JavaScript. */
+const ES = {
+  v_fija: "fija", v_rot: "nueva en cada encendido",
+  v_activo: "levantada", v_inactivo: "apagada",
+  btn_prender: "Encender", btn_apagar: "Apagar",
+  prendiendo: "Encendiendo...", apagando: "Apagando...",
+  ok_prendido: "La red esta levantada. La clave se ve en la pantalla del reloj, " +
+               "con un QR para escanear.",
+  ok_apagado: "La red esta apagada.",
+  err_prender: "No se pudo levantar la red.",
+  guardando: "Guardando...",
+  ok_nombre: "Guardado. La red ahora se llama <b>%s</b>.",
+  ok_corte: "Guardado. Esta red se acaba de reiniciar con los datos nuevos: " +
+            "volve a conectarte con la clave que muestra el reloj.",
+  err_clave: "La clave tiene que tener entre 8 y 63 caracteres, o estar vacia.",
+  err_ssid: "El nombre no puede pasar de 32 caracteres.",
+  err: "No se pudo guardar: "
+};
+
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? ES[k] : v; }
+
+let activo = false;
+
+function aviso(html, clase) {
+  const a = $("aviso");
+  a.hidden = false;
+  a.className = "aviso" + (clase ? " " + clase : "");
+  a.innerHTML = html;
+}
+
+function modoElegido() {
+  return document.querySelector("input[name=modo]:checked").value;
+}
+
+/* En rotativa no hay nada que escribir: la clave la genera el reloj. */
+function sincronizarFormulario() {
+  $("pass").disabled = modoElegido() === "rotativa";
+}
+
+async function cargar() {
+  const d = await (await fetch("/api/ap")).json();
+  activo = d.activo;
+  $("e-ssid").textContent   = d.ssid;
+  $("e-clave").textContent  = d.clave;
+  $("e-modo").textContent   = d.modo === "rotativa" ? t("v_rot") : t("v_fija");
+  $("e-activo").textContent = d.activo ? t("v_activo") : t("v_inactivo");
+  $("interruptor").textContent = d.activo ? t("btn_apagar") : t("btn_prender");
+  $("interruptor").className = d.activo ? "mala" : "";
+
+  /* El campo del nombre arranca vacio cuando el nombre es el automatico: asi
+     "no toque nada" y "quiero el automatico" son la misma accion, y el
+     placeholder dice cual es. */
+  $("ssid").value = (d.ssid === d.ssid_auto) ? "" : d.ssid;
+  document.querySelector(`input[name=modo][value="${d.modo}"]`).checked = true;
+  sincronizarFormulario();
+}
+
+async function interruptor() {
+  const prender = !activo;
+  $("interruptor").disabled = true;
+  aviso(t(prender ? "prendiendo" : "apagando"));
+  try {
+    const r = await fetch("/api/ap/estado", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "on=" + (prender ? "1" : "0")
+    });
+    const d = r.ok ? await r.json() : { ok: false };
+    if (d.ok === false) { aviso(t("err_prender"), "mal"); }
+    else {
+      await cargar();
+      aviso(t(prender ? "ok_prendido" : "ok_apagado"), "bien");
+    }
+  } catch (e) {
+    /* Apagar el AP desde un navegador conectado A ese AP corta esta misma
+       conexion, asi que la respuesta no llega. No es un error. */
+    aviso(t("ok_apagado"), "bien");
+  }
+  $("interruptor").disabled = false;
+}
+
+async function guardar() {
+  const ssid = $("ssid").value.trim();
+  const modo = modoElegido();
+  const pass = modo === "rotativa" ? "" : $("pass").value;
+
+  if (modo === "fija" && pass && (pass.length < 8 || pass.length > 63)) {
+    aviso(t("err_clave"), "mal");
+    return;
+  }
+
+  $("guardar").disabled = true;
+  aviso(t("guardando"));
+  const cuerpo = "ssid=" + encodeURIComponent(ssid) +
+                 "&pass=" + encodeURIComponent(pass) +
+                 "&modo=" + encodeURIComponent(modo);
+  try {
+    const r = await fetch("/api/ap", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: cuerpo
+    });
+    /* Hay que mirar el ESTADO ademas del cuerpo. Un 400 del servidor no trae
+       "ok":false sino el error de esp_http_server, y quedarse solo con
+       d.ok === false hacia que la pagina dijera "Guardado" cuando el firmware
+       habia rechazado el pedido. */
+    if (!r.ok) {
+      aviso(t("err") + r.status, "mal");
+      $("guardar").disabled = false;
+      return;
+    }
+    const d = await r.json();
+    if (d.ok === false) {
+      aviso(t(d.error === "ssid" ? "err_ssid" : "err_clave"), "mal");
+      $("guardar").disabled = false;
+      return;
+    }
+    $("pass").value = "";
+    await cargar();
+    aviso(t("ok_nombre").replace("%s", aos.esc($("e-ssid").textContent)), "bien");
+  } catch (e) {
+    /* Esperable si estabas conectado a este mismo AP: el rebote con la clave
+       nueva corta la conexion antes de que la respuesta termine de llegar. */
+    aviso(t("ok_corte"), "bien");
+  }
+  $("guardar").disabled = false;
+}
+
+for (const r of document.querySelectorAll("input[name=modo]")) {
+  r.onchange = sincronizarFormulario;
+}
+$("guardar").onclick = guardar;
+$("interruptor").onclick = interruptor;
+aos.init(TR).then(cargar);
+</script>
+</body>
+</html>

@@ -1,0 +1,1155 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Remoto</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  /* Lo propio de esta pagina. Los colores salen todos de los tokens de
+     aos.css: antes esta pagina tenia su propia paleta y el fondo de las
+     tarjetas no coincidia con el de ninguna otra. */
+  body { padding-bottom: 64px; }
+  .wrap { max-width: 760px; }
+  a { color: var(--accent); }
+  h2 { font-size: 17px; color: var(--text); text-transform: none;
+       letter-spacing: 0; font-weight: 600; margin: 28px 0 10px; }
+  section { background: var(--card); border-radius: 14px; padding: 14px 16px;
+            margin-bottom: 16px; }
+  label { display: block; font-size: 13px; color: var(--dim); margin: 10px 0 4px; }
+  input, select, textarea { padding: 9px 11px; border-radius: 10px;
+                            background: var(--bg); }
+  input[type=color] { padding: 2px; height: 38px; }
+  button { padding: 9px 16px; border-radius: 10px; }
+  .fila { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .fila > div { flex: 1 1 160px; }
+  .fila > div.chico { flex: 0 0 92px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tabs button { background: var(--card2); color: var(--dim); padding: 7px 13px; }
+  .tabs button.on { background: var(--accent); color: #fff; }
+  .rejilla { display: grid; gap: 10px; margin-top: 12px; }
+  .btncfg { background: var(--bg); border: 1px solid var(--line);
+            border-radius: 12px; padding: 10px 12px; }
+  .btncfg h3 { margin: 0 0 2px; font-size: 14px; display: flex; gap: 8px;
+               align-items: center; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; flex: 0 0 auto; }
+  .btncfg summary { cursor: pointer; color: var(--dim); font-size: 13px; }
+  /* Un boton abierto ocupa el ancho entero: en una columna de un tercio de
+     pantalla, los campos del editor quedan de treinta pixeles y no se puede
+     escribir un entity_id adentro. */
+  .btncfg.abierto { grid-column: 1 / -1; }
+  .acc { border-left: 2px solid var(--line); padding-left: 10px; margin: 8px 0; }
+  .gesto { border-top: 1px solid var(--card2); padding-top: 10px; margin-top: 10px; }
+  .gesto:first-of-type { border-top: 0; }
+  .aviso { padding: 12px 14px; border-radius: 10px; background: var(--bg);
+           font-size: 13px; margin-top: 12px; }
+  .barra { position: fixed; left: 0; right: 0; bottom: 0;
+           background: #1c1c1ee6; backdrop-filter: blur(8px);
+           border-top: 1px solid var(--card2);
+           padding: 10px 16px; display: flex; gap: 10px; align-items: center;
+           justify-content: center; }
+  .barra span { color: var(--dim); font-size: 13px; }
+  .barra .bien { color: var(--green); }
+  .barra .mal-txt { color: var(--red); }
+  .ok { color: var(--green); } .mal-txt { color: var(--red); }
+  footer { margin-top: 28px; font-size: 13px; color: var(--dim); }
+  code { background: var(--bg); padding: 1px 5px; border-radius: 5px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Remoto</h1></div>
+  <p class="sub" data-t="bajada">Lo que hace cada botón, cada gesto y el dial
+     del mando. Se guarda en la microSD; la app lo relee sola, sin reiniciar nada.</p>
+
+  <nav class="paginas"></nav>
+
+  <h2>Home Assistant</h2>
+  <section>
+    <div class="fila">
+      <div>
+        <label for="url" data-t="lbl_url">Dirección</label>
+        <input id="url" placeholder="http://192.168.1.10:8123" maxlength="78">
+      </div>
+      <div>
+        <label for="token" data-t="lbl_token">Token de larga duración</label>
+        <input id="token" type="password" maxlength="278"
+               data-t-ph="ph_token" placeholder="pegalo acá" autocomplete="off">
+      </div>
+    </div>
+    <div class="fila" style="margin-top:12px">
+      <button id="guardarConf" data-t="btn_conf">Guardar conexión</button>
+      <button class="sec" id="probar" data-t="btn_probar">Probar</button>
+      <span id="estadoConf" style="color:#8e8e93;font-size:13px"></span>
+    </div>
+    <div class="aviso" id="ayudaToken">
+      <span data-t="ay_token">El token sale de tu perfil de Home Assistant,
+      abajo de todo, en Tokens de acceso de larga duración.</span>
+      <br><br>
+      <b data-t="ay_esquema">El esquema lo elegís vos, y no da igual.</b>
+      <br><br>
+      <span data-t="ay_http">http:// para el Home Assistant de tu red: es lo
+      normal, porque casi ninguno tiene un certificado que se pueda verificar.
+      El token viaja en claro, y en tu propia red contra tu propio servidor eso
+      es aceptable.</span>
+      <br><br>
+      <span data-t="ay_https">https:// si tu instalación está expuesta a
+      internet (Nabu Casa, o un proxy con certificado de verdad). Ahí no es
+      opcional: un token de larga duración de Home Assistant no caduca y da
+      control de toda la casa.</span>
+      <br><br>
+      <span data-t="ay_autofirmado">Si ponés https:// contra un certificado
+      autofirmado, no va a conectar: el firmware verifica de verdad, y un TLS
+      que acepta cualquier certificado no sirve de nada. En ese caso, dirección
+      interna con http://.</span>
+    </div>
+  </section>
+
+  <h2 data-t="h_paginas">Páginas</h2>
+  <section>
+    <div class="tabs" id="tabs"></div>
+    <div class="fila">
+      <button class="sec" id="addGrid" data-t="btn_add_grid">+ Página de botones</button>
+      <button class="sec" id="addDial" data-t="btn_add_dial">+ Página de dial</button>
+      <button class="mala" id="delPage" data-t="btn_del_page">Borrar esta página</button>
+    </div>
+    <div id="editorPagina"></div>
+  </section>
+
+  <h2 data-t="h_gestos">Gestos</h2>
+  <section>
+    <p class="sub" style="margin:0 0 8px" data-t="ay_gestos">El mando reconoce
+      el gesto respecto de cómo lo venías sosteniendo, no de la vertical:
+      sostenerlo inclinado no dispara nada. Los gestos sólo funcionan con la app
+      abierta.</p>
+    <div id="gestos"></div>
+    <div class="fila" style="margin-top:14px">
+      <div class="chico">
+        <label for="gTilt" data-t="lbl_tilt">Inclinación (°)</label>
+        <input id="gTilt" type="number" min="15" max="80">
+      </div>
+      <div class="chico">
+        <label for="gShake" data-t="lbl_shake">Sacudida</label>
+        <input id="gShake" type="number" min="200" max="9000" step="100">
+      </div>
+      <div class="chico">
+        <label for="gHold" data-t="lbl_hold">Boca abajo (ms)</label>
+        <input id="gHold" type="number" min="200" max="5000" step="100">
+      </div>
+      <div class="chico">
+        <label for="gCool" data-t="lbl_cool">Espera (ms)</label>
+        <input id="gCool" type="number" min="300" max="9000" step="100">
+      </div>
+      <div class="chico">
+        <label for="gOn" data-t="lbl_on">Activos</label>
+        <select id="gOn"><option value="1" data-t="si">sí</option><option value="0" data-t="no">no</option></select>
+      </div>
+    </div>
+    <div class="aviso">
+      <span data-t="ay_umbral">Para elegir los números, abrí la app en la placa
+      y mantené apretado el título: aparece una pantalla con las tres lecturas
+      del acelerómetro, los dos ángulos y el valor de sacudida en vivo. Se
+      sacude, se mira el pico y se pone el umbral un poco por debajo.</span>
+      <br><br>
+      <span data-t="ay_cabeceo">Inclinar hacia adelante y dar vuelta la placa
+      son el mismo movimiento a distinta profundidad. Si configurás los dos,
+      gana el cabeceo y el boca abajo no llega a dispararse nunca.</span>
+      <br><br>
+      <span data-t="ay_pantalla">Con algún gesto configurado, la app mantiene la
+      pantalla encendida mientras está abierta: el runtime cierra la app al
+      atenuarse, y una app cerrada no escucha nada. Consume, así que si no vas a
+      usar gestos poné Activos: no y la pantalla se apaga como en cualquier otra
+      app.</span>
+    </div>
+  </section>
+
+  <h2 data-t="h_refresco">Refresco</h2>
+  <section>
+    <div class="fila">
+      <div class="chico">
+        <label for="poll" data-t="lbl_poll">Cada (s)</label>
+        <input id="poll" type="number" min="0" max="600">
+      </div>
+      <div style="align-self:center;color:var(--dim);font-size:13px"
+           data-t="ay_poll">Cada cuánto el mando le pregunta a Home Assistant el
+        estado de todo lo que muestra. Es una sola consulta para todas las
+        páginas, con una plantilla. Con 0 no pregunta nunca y los botones no se
+        encienden.</div>
+    </div>
+  </section>
+
+  <footer>
+    <a href="/api/remoto/perfil" download="remoto.json"
+       data-t="bajar_perfil">Descargar el perfil</a>
+  </footer>
+</div>
+
+<div class="barra">
+  <button id="guardar" data-t="btn_guardar">Guardar el perfil</button>
+  <button class="sec" id="ejemplo" data-t="btn_ejemplo">Cargar el ejemplo</button>
+  <span id="estado"></span>
+</div>
+
+<datalist id="entidades"></datalist>
+<datalist id="servicios">
+  <option value="light.toggle"><option value="light.turn_on">
+  <option value="light.turn_off"><option value="switch.toggle">
+  <option value="switch.turn_on"><option value="switch.turn_off">
+  <option value="scene.turn_on"><option value="script.turn_on">
+  <option value="cover.toggle"><option value="cover.open_cover">
+  <option value="cover.close_cover"><option value="cover.stop_cover">
+  <option value="climate.set_temperature"><option value="fan.toggle">
+  <option value="media_player.media_play_pause">
+  <option value="media_player.media_next_track">
+  <option value="media_player.media_previous_track">
+  <option value="media_player.volume_up"><option value="media_player.volume_down">
+  <option value="media_player.volume_mute"><option value="media_player.volume_set">
+  <option value="vacuum.start"><option value="vacuum.return_to_base">
+  <option value="lock.lock"><option value="lock.unlock">
+  <option value="automation.trigger"><option value="homeassistant.turn_off">
+</datalist>
+
+<script src="/aos.js"></script>
+<script>
+"use strict";
+
+const TR = {
+  en: {
+    titulo: "Remote",
+    bajada: "What every button, every gesture and the dial do. It is saved on " +
+            "the microSD; the app rereads it on its own, no restart needed.",
+    lbl_url: "Address", lbl_token: "Long-lived access token",
+    ph_token: "paste it here",
+    btn_conf: "Save connection", btn_probar: "Test",
+    ay_token: "The token comes from your Home Assistant profile, at the very " +
+              "bottom, under Long-lived access tokens.",
+    ay_esquema: "You choose the scheme, and it matters.",
+    ay_http: "http:// for the Home Assistant on your own network: that is the " +
+             "normal case, because almost none of them have a certificate that " +
+             "can be verified. The token travels in the clear, and on your own " +
+             "network against your own server that is acceptable.",
+    ay_https: "https:// if your install is exposed to the internet (Nabu Casa, " +
+              "or a proxy with a real certificate). There it is not optional: a " +
+              "Home Assistant long-lived token does not expire and gives " +
+              "control of the whole house.",
+    ay_autofirmado: "If you use https:// against a self-signed certificate it " +
+                    "will not connect: the firmware really verifies, and a TLS " +
+                    "that accepts any certificate is worth nothing. In that " +
+                    "case, internal address with http://.",
+    h_paginas: "Pages",
+    btn_add_grid: "+ Button page", btn_add_dial: "+ Dial page",
+    btn_del_page: "Delete this page",
+    h_gestos: "Gestures",
+    ay_gestos: "The remote reads the gesture against how you were already " +
+               "holding it, not against vertical: holding it tilted triggers " +
+               "nothing. Gestures only work with the app open.",
+    lbl_tilt: "Tilt (°)", lbl_shake: "Shake", lbl_hold: "Face down (ms)",
+    lbl_cool: "Cooldown (ms)", lbl_on: "Active", si: "yes", no: "no",
+    ay_umbral: "To pick the numbers, open the app on the board and press and " +
+               "hold the title: a screen appears with the three accelerometer " +
+               "readings, the two angles and the live shake value. Shake it, " +
+               "watch the peak and set the threshold a little below.",
+    ay_cabeceo: "Tilting forward and flipping the board over are the same " +
+                "movement at different depths. If you set both, the pitch wins " +
+                "and face-down never gets to fire.",
+    ay_pantalla: "With any gesture set, the app keeps the screen on while it is " +
+                 "open: the runtime closes the app when it dims, and a closed " +
+                 "app listens to nothing. It costs battery, so if you are not " +
+                 "going to use gestures set Active: no and the screen turns off " +
+                 "like in any other app.",
+    h_refresco: "Refresh", lbl_poll: "Every (s)",
+    ay_poll: "How often the remote asks Home Assistant for the state of " +
+             "everything it shows. It is a single query for all the pages, with " +
+             "a template. With 0 it never asks and the buttons do not light up.",
+    bajar_perfil: "Download the profile",
+    btn_guardar: "Save the profile", btn_ejemplo: "Load the example",
+    g_shake: "Shake it", g_tiltl: "Tilt left", g_tiltr: "Tilt right",
+    g_tiltf: "Tilt forward", g_tiltb: "Tilt back",
+    g_flip: "Flip it over (face down)",
+    a_nada: "does nothing", a_svc: "call a service", a_page: "go to a page",
+    lbl_destino: "Target page", lbl_servicio: "Service", lbl_entidad: "Entity",
+    lbl_extra: "Extra data (JSON without braces)",
+    lbl_nombre_pag: "Page name", lbl_columnas: "Columns", lbl_filas: "Rows",
+    lbl_etiqueta: "Label", lbl_color: "Color",
+    ac_tocar: "On tap", ac_mantener: "On press and hold",
+    est_titulo: "Show the state of",
+    est_nada: "nothing", est_onoff: "on / off",
+    est_texto: "the state, as text", est_atributo: "an attribute, as text",
+    lbl_atributo: "Attribute", lbl_unidad: "Unit",
+    r_page: "go to another page", r_sin: "no action",
+    r_mantenido: "+ held", r_estado: "+ state",
+    lbl_campo: "Field", lbl_minimo: "Minimum", lbl_maximo: "Maximum",
+    lbl_muneca: "Wrist degrees", lbl_enviar: "Send every (ms)",
+    lbl_invertido: "Inverted", lbl_leer: "Read the value from",
+    lbl_fondo: "Full scale",
+    ay_dial: "You press the middle circle and <b>turn your wrist</b>; it stays " +
+             "put when you let go. <b>Wrist degrees</b> is how far you have to " +
+             "turn to go all the way, from minimum to maximum: 140 is " +
+             "comfortable, less makes it twitchy.<br><br><b>Full scale</b> is " +
+             "what the attribute is worth at maximum, so the real value can be " +
+             "shown when the page opens: the <code>brightness</code> of a light " +
+             "goes from 0 to <b>255</b>, even if you send it " +
+             "<code>brightness_pct</code> from 0 to 100.",
+    sin_nombre: "(no name)", pagina_n: "Page", boton_n: "Button",
+    sin_guardar: "unsaved changes",
+    hay_token: "there is a token saved (...%s)", sin_token: "no token yet",
+    err_conf: "could not read the configuration",
+    preguntando: "asking Home Assistant...",
+    guardando: "saving...", guardado: "saved (%n bytes)",
+    err_guardar: "could not save", conf_guardada: "connection saved",
+    n_entidades: "  %n entities to autocomplete",
+    max_paginas: "8 pages is the maximum.",
+    conf_borrar: "Delete the page \u00ab%s\u00bb?",
+    conf_ejemplo: "Unsaved changes will be lost. Continue?"
+  },
+  de: {
+    titulo: "Fernbedienung",
+    bajada: "Was jede Taste, jede Geste und das Rad tun. Es wird auf der " +
+            "microSD gespeichert; die App liest es von selbst neu, ohne Neustart.",
+    lbl_url: "Adresse", lbl_token: "Langlebiger Zugriffstoken",
+    ph_token: "hier einfuegen",
+    btn_conf: "Verbindung speichern", btn_probar: "Testen",
+    ay_token: "Der Token kommt aus deinem Home-Assistant-Profil, ganz unten, " +
+              "unter Langlebige Zugriffstoken.",
+    ay_esquema: "Das Schema waehlst du, und es ist nicht egal.",
+    ay_http: "http:// fuer das Home Assistant in deinem eigenen Netz: das ist " +
+             "der Normalfall, weil fast keines ein pruefbares Zertifikat hat. " +
+             "Der Token laeuft im Klartext, und im eigenen Netz gegen den " +
+             "eigenen Server ist das vertretbar.",
+    ay_https: "https:// wenn deine Installation im Internet steht (Nabu Casa " +
+              "oder ein Proxy mit echtem Zertifikat). Dort ist es nicht " +
+              "optional: ein langlebiger Home-Assistant-Token laeuft nie ab und " +
+              "gibt Kontrolle ueber das ganze Haus.",
+    ay_autofirmado: "Mit https:// gegen ein selbstsigniertes Zertifikat kommt " +
+                    "keine Verbindung zustande: die Firmware prueft wirklich, " +
+                    "und ein TLS, das jedes Zertifikat annimmt, ist nichts wert. " +
+                    "In dem Fall interne Adresse mit http://.",
+    h_paginas: "Seiten",
+    btn_add_grid: "+ Tastenseite", btn_add_dial: "+ Radseite",
+    btn_del_page: "Diese Seite loeschen",
+    h_gestos: "Gesten",
+    ay_gestos: "Die Fernbedienung erkennt die Geste relativ dazu, wie du sie " +
+               "vorher gehalten hast, nicht zur Senkrechten: schraeg halten " +
+               "loest nichts aus. Gesten funktionieren nur bei geoeffneter App.",
+    lbl_tilt: "Neigung (°)", lbl_shake: "Schuetteln",
+    lbl_hold: "Umgedreht (ms)", lbl_cool: "Wartezeit (ms)",
+    lbl_on: "Aktiv", si: "ja", no: "nein",
+    ay_umbral: "Um die Zahlen zu waehlen, oeffne die App auf der Platine und " +
+               "halte den Titel gedrueckt: es erscheint ein Bildschirm mit den " +
+               "drei Werten des Beschleunigungssensors, den zwei Winkeln und " +
+               "dem Schuettelwert live. Schuetteln, den Ausschlag ansehen und " +
+               "die Schwelle etwas darunter setzen.",
+    ay_cabeceo: "Nach vorne neigen und die Platine umdrehen sind dieselbe " +
+                "Bewegung in unterschiedlicher Tiefe. Wenn du beides " +
+                "einstellst, gewinnt das Neigen und Umgedreht kommt nie dran.",
+    ay_pantalla: "Mit eingestellter Geste haelt die App den Bildschirm an, " +
+                 "solange sie offen ist: die Laufzeit schliesst die App beim " +
+                 "Abdunkeln, und eine geschlossene App hoert nichts. Das " +
+                 "kostet Strom, also setze Aktiv: nein, wenn du keine Gesten " +
+                 "benutzt, dann geht der Bildschirm aus wie in jeder anderen App.",
+    h_refresco: "Aktualisierung", lbl_poll: "Alle (s)",
+    ay_poll: "Wie oft die Fernbedienung Home Assistant nach dem Zustand von " +
+             "allem fragt, was sie zeigt. Es ist eine einzige Abfrage fuer alle " +
+             "Seiten, mit einer Vorlage. Mit 0 fragt sie nie und die Tasten " +
+             "leuchten nicht.",
+    bajar_perfil: "Profil herunterladen",
+    btn_guardar: "Profil speichern", btn_ejemplo: "Beispiel laden",
+    g_shake: "Schuetteln", g_tiltl: "Nach links neigen",
+    g_tiltr: "Nach rechts neigen", g_tiltf: "Nach vorne neigen",
+    g_tiltb: "Nach hinten neigen", g_flip: "Umdrehen (nach unten)",
+    a_nada: "tut nichts", a_svc: "einen Dienst aufrufen",
+    a_page: "zu einer Seite gehen",
+    lbl_destino: "Zielseite", lbl_servicio: "Dienst", lbl_entidad: "Entitaet",
+    lbl_extra: "Zusatzdaten (JSON ohne Klammern)",
+    lbl_nombre_pag: "Seitenname", lbl_columnas: "Spalten", lbl_filas: "Zeilen",
+    lbl_etiqueta: "Beschriftung", lbl_color: "Farbe",
+    ac_tocar: "Beim Antippen", ac_mantener: "Beim Gedruecktalten",
+    est_titulo: "Zustand anzeigen von",
+    est_nada: "nichts", est_onoff: "an / aus",
+    est_texto: "der Zustand, als Text", est_atributo: "ein Attribut, als Text",
+    lbl_atributo: "Attribut", lbl_unidad: "Einheit",
+    r_page: "zu einer anderen Seite", r_sin: "keine Aktion",
+    r_mantenido: "+ gehalten", r_estado: "+ Zustand",
+    lbl_campo: "Feld", lbl_minimo: "Minimum", lbl_maximo: "Maximum",
+    lbl_muneca: "Handgelenkgrad", lbl_enviar: "Senden alle (ms)",
+    lbl_invertido: "Invertiert", lbl_leer: "Wert lesen von",
+    lbl_fondo: "Skalenendwert",
+    ay_dial: "Man drueckt den mittleren Kreis und <b>dreht das Handgelenk</b>; " +
+             "beim Loslassen bleibt es stehen. <b>Handgelenkgrad</b> ist, wie " +
+             "weit man drehen muss, um alles zu durchlaufen, von Minimum bis " +
+             "Maximum: 140 ist bequem, weniger macht es nervoes.<br><br>" +
+             "<b>Skalenendwert</b> ist, was das Attribut am Maximum wert ist, " +
+             "damit beim Oeffnen der Seite der echte Wert gezeigt werden kann: " +
+             "die <code>brightness</code> einer Lampe geht von 0 bis <b>255</b>, " +
+             "auch wenn du ihr <code>brightness_pct</code> von 0 bis 100 schickst.",
+    sin_nombre: "(ohne Namen)", pagina_n: "Seite", boton_n: "Taste",
+    sin_guardar: "ungespeicherte Aenderungen",
+    hay_token: "ein Token ist gespeichert (...%s)", sin_token: "noch kein Token",
+    err_conf: "konnte die Konfiguration nicht lesen",
+    preguntando: "frage Home Assistant...",
+    guardando: "wird gespeichert...", guardado: "gespeichert (%n Bytes)",
+    err_guardar: "konnte nicht gespeichert werden",
+    conf_guardada: "Verbindung gespeichert",
+    n_entidades: "  %n Entitaeten zum Autovervollstaendigen",
+    max_paginas: "8 Seiten sind das Maximum.",
+    conf_borrar: "Die Seite \u00ab%s\u00bb loeschen?",
+    conf_ejemplo: "Ungespeicherte Aenderungen gehen verloren. Weiter?"
+  }
+};
+
+/* El espanol vive en el HTML; aca solo lo que arma el JavaScript. */
+const ES = {
+  si: "sí", no: "no",
+  g_shake: "Sacudirlo", g_tiltl: "Inclinar a la izquierda",
+  g_tiltr: "Inclinar a la derecha", g_tiltf: "Inclinar hacia adelante",
+  g_tiltb: "Inclinar hacia atrás", g_flip: "Darlo vuelta (boca abajo)",
+  a_nada: "no hace nada", a_svc: "llamar un servicio", a_page: "ir a una página",
+  lbl_destino: "Página destino", lbl_servicio: "Servicio", lbl_entidad: "Entidad",
+  lbl_extra: "Datos extra (JSON sin llaves)",
+  lbl_nombre_pag: "Nombre de la página", lbl_columnas: "Columnas", lbl_filas: "Filas",
+  lbl_etiqueta: "Etiqueta", lbl_color: "Color",
+  ac_tocar: "Al tocarlo", ac_mantener: "Al mantenerlo apretado",
+  est_titulo: "Mostrar el estado de",
+  est_nada: "nada", est_onoff: "encendido / apagado",
+  est_texto: "el estado, como texto", est_atributo: "un atributo, como texto",
+  lbl_atributo: "Atributo", lbl_unidad: "Unidad",
+  r_page: "ir a otra página", r_sin: "sin acción",
+  r_mantenido: "+ mantenido", r_estado: "+ estado",
+  lbl_campo: "Campo", lbl_minimo: "Mínimo", lbl_maximo: "Máximo",
+  lbl_muneca: "Grados de muñeca", lbl_enviar: "Enviar cada (ms)",
+  lbl_invertido: "Invertido", lbl_leer: "Leer el valor de",
+  lbl_fondo: "Fondo de escala",
+  ay_dial: "Se aprieta el circulo del medio y se <b>gira la muñeca</b>; al " +
+           "soltar queda fijo. <b>Grados de muñeca</b> es cuánto hay que girar " +
+           "para recorrer todo, de mínimo a máximo: 140 es cómodo, menos lo " +
+           "hace nervioso.<br><br><b>Fondo de escala</b> es cuánto vale el " +
+           "atributo cuando está al máximo, para poder mostrar el valor real al " +
+           "abrir la página: el <code>brightness</code> de una luz va de 0 a " +
+           "<b>255</b>, aunque vos le mandes <code>brightness_pct</code> de 0 a 100.",
+  sin_nombre: "(sin nombre)", pagina_n: "Página", boton_n: "Botón",
+  sin_guardar: "hay cambios sin guardar",
+  hay_token: "hay un token guardado (...%s)", sin_token: "todavía no hay token",
+  err_conf: "no pude leer la configuración",
+  preguntando: "preguntándole a Home Assistant...",
+  guardando: "guardando...", guardado: "guardado (%n bytes)",
+  err_guardar: "no se pudo guardar", conf_guardada: "conexión guardada",
+  n_entidades: "  %n entidades para autocompletar",
+  max_paginas: "El máximo son 8 páginas.",
+  conf_borrar: "¿Borrar la página «%s»?",
+  conf_ejemplo: "Se pierden los cambios sin guardar. ¿Seguir?"
+};
+
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? ES[k] : v; }
+
+/* La fuente compilada en el firmware es Montserrat con ASCII, asi que un
+ * acento se dibujaria como un cuadrado. Se sacan aca y no alla porque el
+ * navegador ya sabe normalizar Unicode y el firmware no. */
+const sinAcentos = (s) =>
+  (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+           .replace(/[^\x20-\x7e]/g, "");
+
+/* El segundo campo es una CLAVE, no el texto: se traduce al pintar. */
+const GESTOS = [
+  ["shake", "g_shake"],
+  ["tiltl", "g_tiltl"],
+  ["tiltr", "g_tiltr"],
+  ["tiltf", "g_tiltf"],
+  ["tiltb", "g_tiltb"],
+  ["flip",  "g_flip"]
+];
+
+const COLORES = [0xFFD60A, 0xBF5AF2, 0xFF9F0A, 0x40A8FF, 0xFF375F, 0xFF453A,
+                 0x40C8E0, 0x30D158, 0x5E5CE6];
+
+let perfil = null;
+let pagina = 0;
+let sucio  = false;
+
+/* -------------------------------------------------------------------------- */
+/* Modelo                                                                      */
+/* -------------------------------------------------------------------------- */
+
+const accionVacia = () => ({ t: "", s: "", e: "", d: "", p: 0 });
+
+function botonVacio(i) {
+  return { l: "", c: COLORES[i % COLORES.length], sm: 0, st: "", sa: "", u: "",
+           a: accionVacia(), h: accionVacia() };
+}
+
+function paginaGrilla(nombre) {
+  const p = { n: nombre, k: "grid", c: 3, r: 3, b: [] };
+  for (let i = 0; i < 9; i++) p.b.push(botonVacio(i));
+  return p;
+}
+
+function paginaDial(nombre) {
+  return { n: nombre, k: "dial",
+           dl: { s: "light.turn_on", e: "", f: "brightness_pct",
+                 mn: 1, mx: 100, sp: 140, inv: 0, live: 400,
+                 st: "", sa: "brightness", sf: 255 } };
+}
+
+function perfilVacio() {
+  return {
+    v: 1, poll: 5,
+    gcfg: { on: 1, shake: 2000, tilt: 40, hold: 700, cool: 1500 },
+    gestures: {},
+    pages: [paginaGrilla("Casa")],
+  };
+}
+
+/* Al guardar se recorta todo a lo que entra en las estructuras del firmware y
+ * se tiran los campos que no significan nada: un perfil mas chico es menos
+ * PSRAM en la placa y menos tiempo de parseo al abrir la app. */
+function limpiarAccion(a) {
+  if (!a || !a.t) return null;
+  if (a.t === "page") return { t: "page", p: Number(a.p) || 0 };
+  const s = sinAcentos(a.s).slice(0, 39);
+  if (!s) return null;
+  const o = { t: "svc", s };
+  const e = sinAcentos(a.e).slice(0, 63);
+  const d = sinAcentos(a.d).slice(0, 95);
+  if (e) o.e = e;
+  if (d) o.d = d;
+  return o;
+}
+
+function paraGuardar() {
+  const out = {
+    v: 1,
+    poll: Math.max(0, Math.min(600, Number($("poll").value) || 0)),
+    gcfg: {
+      on:    Number($("gOn").value) ? 1 : 0,
+      shake: Number($("gShake").value) || 2000,
+      tilt:  Number($("gTilt").value) || 40,
+      hold:  Number($("gHold").value) || 700,
+      cool:  Number($("gCool").value) || 1500,
+    },
+    gestures: {},
+    pages: [],
+  };
+  for (const [clave] of GESTOS) {
+    const a = limpiarAccion(perfil.gestures[clave]);
+    if (a) out.gestures[clave] = a;
+  }
+  for (const pg of perfil.pages) {
+    if (pg.k === "dial") {
+      const d = pg.dl;
+      out.pages.push({
+        n: sinAcentos(pg.n).slice(0, 19), k: "dial",
+        dl: {
+          s: sinAcentos(d.s).slice(0, 39), e: sinAcentos(d.e).slice(0, 63),
+          f: sinAcentos(d.f).slice(0, 23),
+          mn: Number(d.mn) || 0, mx: Number(d.mx) || 100,
+          sp: Number(d.sp) || 140, inv: d.inv ? 1 : 0,
+          live: Number(d.live) || 0,
+          st: sinAcentos(d.st).slice(0, 63), sa: sinAcentos(d.sa).slice(0, 23),
+          sf: Number(d.sf) || 100,
+        },
+      });
+      continue;
+    }
+    const usados = pg.c * pg.r;
+    const b = [];
+    for (let i = 0; i < usados; i++) {
+      const s = pg.b[i] || botonVacio(i);
+      const o = { l: sinAcentos(s.l).slice(0, 19), c: Number(s.c) || 0 };
+      const a = limpiarAccion(s.a);
+      const h = limpiarAccion(s.h);
+      if (a) o.a = a;
+      if (h) o.h = h;
+      if (Number(s.sm) && s.st) {
+        o.sm = Number(s.sm);
+        o.st = sinAcentos(s.st).slice(0, 63);
+        if (Number(s.sm) === 3) o.sa = sinAcentos(s.sa).slice(0, 23);
+        if (s.u) o.u = sinAcentos(s.u).slice(0, 7);
+      }
+      b.push(o);
+    }
+    out.pages.push({ n: sinAcentos(pg.n).slice(0, 19), k: "grid",
+                     c: pg.c, r: pg.r, b });
+  }
+  return out;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Editor de una accion                                                        */
+/* -------------------------------------------------------------------------- */
+
+function editorAccion(a, titulo) {
+  const caja = document.createElement("div");
+  caja.className = "acc";
+
+  const tipo = document.createElement("select");
+  for (const [v, k] of [["", "a_nada"], ["svc", "a_svc"], ["page", "a_page"]]) {
+    tipo.add(new Option(t(k), v));
+  }
+  tipo.value = a.t || "";
+
+  const lab = document.createElement("label");
+  lab.textContent = titulo;
+  caja.append(lab, tipo);
+
+  const cuerpo = document.createElement("div");
+  caja.append(cuerpo);
+
+  function pintar() {
+    cuerpo.textContent = "";
+    if (tipo.value === "page") {
+      const sel = document.createElement("select");
+      perfil.pages.forEach((p, i) =>
+        sel.add(new Option(`${i + 1}. ${p.n || t("sin_nombre")}`, i)));
+      sel.value = a.p || 0;
+      sel.onchange = () => { a.p = Number(sel.value); marcar(); };
+      const l = document.createElement("label");
+      l.textContent = t("lbl_destino");
+      cuerpo.append(l, sel);
+      return;
+    }
+    if (tipo.value !== "svc") return;
+
+    const fila = document.createElement("div");
+    fila.className = "fila";
+    fila.append(
+      campo(t("lbl_servicio"), a, "s", { lista: "servicios", max: 39,
+                                         ph: "light.toggle" }),
+      campo(t("lbl_entidad"), a, "e", { lista: "entidades", max: 63,
+                                        ph: "light.cocina" }));
+    const extra = campo(t("lbl_extra"), a, "d",
+                        { max: 95, ph: '"brightness_pct":60' });
+    cuerpo.append(fila, extra);
+  }
+
+  tipo.onchange = () => { a.t = tipo.value; pintar(); marcar(); };
+  pintar();
+  return caja;
+}
+
+function campo(titulo, obj, clave, op) {
+  op = op || {};
+  const caja = document.createElement("div");
+  const l = document.createElement("label");
+  l.textContent = titulo;
+  const i = document.createElement("input");
+  i.value = obj[clave] != null ? obj[clave] : "";
+  if (op.lista) i.setAttribute("list", op.lista);
+  if (op.max) i.maxLength = op.max;
+  if (op.ph) i.placeholder = op.ph;
+  if (op.tipo) i.type = op.tipo;
+  if (op.min != null) i.min = op.min;
+  if (op.max_n != null) i.max = op.max_n;
+  if (op.chico) caja.className = "chico";
+  i.oninput = () => {
+    obj[clave] = op.tipo === "number" ? Number(i.value) : i.value;
+    marcar();
+    if (op.repintar) pintarPagina();
+  };
+  caja.append(l, i);
+  return caja;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Editor de pagina                                                            */
+/* -------------------------------------------------------------------------- */
+
+function pintarTabs() {
+  const t = $("tabs");
+  t.textContent = "";
+  perfil.pages.forEach((p, i) => {
+    const b = document.createElement("button");
+    b.textContent = `${i + 1}. ${p.n || t("sin_nombre")}`;
+    if (i === pagina) b.className = "on";
+    b.onclick = () => { pagina = i; pintar(); };
+    t.append(b);
+  });
+  $("delPage").disabled = perfil.pages.length <= 1;
+}
+
+function pintarPagina() {
+  const cont = $("editorPagina");
+  cont.textContent = "";
+  const pg = perfil.pages[pagina];
+  if (!pg) return;
+
+  const cab = document.createElement("div");
+  cab.className = "fila";
+  cab.style.marginTop = "12px";
+  cab.append(campo(t("lbl_nombre_pag"), pg, "n",
+                   { max: 19, ph: "Salon", repintar: false }));
+  cab.lastChild.querySelector("input").oninput = (ev) => {
+    pg.n = ev.target.value;
+    marcar();
+    pintarTabs();
+  };
+
+  if (pg.k === "grid") {
+    for (const [clave, rotulo, max] of [["c", "lbl_columnas", 3],
+                                        ["r", "lbl_filas", 3]]) {
+      const d = document.createElement("div");
+      d.className = "chico";
+      const l = document.createElement("label");
+      l.textContent = t(rotulo);
+      const s = document.createElement("select");
+      for (let i = 1; i <= max; i++) s.add(new Option(i, i));
+      s.value = pg[clave];
+      s.onchange = () => { pg[clave] = Number(s.value); marcar(); pintarPagina(); };
+      d.append(l, s);
+      cab.append(d);
+    }
+  }
+  cont.append(cab);
+
+  if (pg.k === "dial") {
+    cont.append(editorDial(pg.dl));
+    return;
+  }
+
+  const rejilla = document.createElement("div");
+  rejilla.className = "rejilla";
+  rejilla.style.gridTemplateColumns = `repeat(${Math.min(pg.c, 3)}, 1fr)`;
+
+  const usados = pg.c * pg.r;
+  while (pg.b.length < usados) pg.b.push(botonVacio(pg.b.length));
+
+  for (let i = 0; i < usados; i++) {
+    rejilla.append(editorBoton(pg.b[i], i));
+  }
+  cont.append(rejilla);
+}
+
+function editorBoton(b, i) {
+  const caja = document.createElement("div");
+  caja.className = "btncfg";
+
+  const h = document.createElement("h3");
+  const sw = document.createElement("span");
+  sw.className = "swatch";
+  sw.style.background = "#" + (Number(b.c) || 0).toString(16).padStart(6, "0");
+  h.append(sw, document.createTextNode(b.l || `${t("boton_n")} ${i + 1}`));
+  caja.append(h);
+
+  const det = document.createElement("details");
+  const sum = document.createElement("summary");
+  sum.textContent = resumen(b);
+  det.append(sum);
+  det.ontoggle = () => {
+    caja.classList.toggle("abierto", det.open);
+    if (!det.open) sum.textContent = resumen(b);
+  };
+
+  const fila = document.createElement("div");
+  fila.className = "fila";
+  const et = campo(t("lbl_etiqueta"), b, "l", { max: 19, ph: "Techo" });
+  et.querySelector("input").oninput = (ev) => {
+    b.l = ev.target.value;
+    h.lastChild.textContent = b.l || `${t("boton_n")} ${i + 1}`;
+    marcar();
+  };
+  fila.append(et);
+
+  const dc = document.createElement("div");
+  dc.className = "chico";
+  const lc = document.createElement("label");
+  lc.textContent = t("lbl_color");
+  const ic = document.createElement("input");
+  ic.type = "color";
+  ic.value = "#" + (Number(b.c) || 0).toString(16).padStart(6, "0");
+  ic.oninput = () => {
+    b.c = parseInt(ic.value.slice(1), 16);
+    sw.style.background = ic.value;
+    marcar();
+  };
+  dc.append(lc, ic);
+  fila.append(dc);
+  det.append(fila);
+
+  det.append(editorAccion(b.a, t("ac_tocar")));
+  det.append(editorAccion(b.h, t("ac_mantener")));
+
+  /* Estado: lo que hace que el boton sepa si la luz esta prendida. */
+  const le = document.createElement("label");
+  le.textContent = t("est_titulo");
+  const se = document.createElement("select");
+  for (const [v, k] of [[0, "est_nada"], [1, "est_onoff"],
+                        [2, "est_texto"], [3, "est_atributo"]]) {
+    se.add(new Option(t(k), v));
+  }
+  se.value = Number(b.sm) || 0;
+  det.append(le, se);
+
+  const detalle = document.createElement("div");
+  det.append(detalle);
+
+  function pintarEstado() {
+    detalle.textContent = "";
+    if (!Number(b.sm)) return;
+    const f = document.createElement("div");
+    f.className = "fila";
+    f.append(campo(t("lbl_entidad"), b, "st", { lista: "entidades", max: 63,
+                                                ph: "light.salon" }));
+    if (Number(b.sm) === 3) {
+      f.append(campo(t("lbl_atributo"), b, "sa", { max: 23, ph: "brightness" }));
+    }
+    if (Number(b.sm) >= 2) {
+      const u = campo(t("lbl_unidad"), b, "u", { max: 7, ph: " C" });
+      u.className = "chico";
+      f.append(u);
+    }
+    detalle.append(f);
+  }
+  se.onchange = () => { b.sm = Number(se.value); pintarEstado(); marcar(); };
+  pintarEstado();
+
+  caja.append(det);
+  return caja;
+}
+
+function resumen(b) {
+  const p = [];
+  if (b.a && b.a.t === "svc" && b.a.s) p.push(b.a.s);
+  else if (b.a && b.a.t === "page") p.push(t("r_page"));
+  else p.push(t("r_sin"));
+  if (b.h && b.h.t) p.push(t("r_mantenido"));
+  if (Number(b.sm)) p.push(t("r_estado"));
+  return p.join("  ");
+}
+
+function editorDial(d) {
+  const cont = document.createElement("div");
+
+  const f1 = document.createElement("div");
+  f1.className = "fila";
+  f1.append(campo(t("lbl_servicio"), d, "s", { lista: "servicios", max: 39,
+                                               ph: "light.turn_on" }),
+            campo(t("lbl_entidad"), d, "e", { lista: "entidades", max: 63,
+                                              ph: "light.salon" }),
+            campo(t("lbl_campo"), d, "f", { max: 23, ph: "brightness_pct" }));
+  cont.append(f1);
+
+  const f2 = document.createElement("div");
+  f2.className = "fila";
+  for (const [clave, rotulo, ph] of [["mn", "lbl_minimo", "1"],
+                                     ["mx", "lbl_maximo", "100"],
+                                     ["sp", "lbl_muneca", "140"],
+                                     ["live", "lbl_enviar", "400"]]) {
+    const c = campo(t(rotulo), d, clave, { tipo: "number", ph });
+    c.className = "chico";
+    f2.append(c);
+  }
+  const di = document.createElement("div");
+  di.className = "chico";
+  const li = document.createElement("label");
+  li.textContent = t("lbl_invertido");
+  const si = document.createElement("select");
+  si.add(new Option(t("no"), 0));
+  si.add(new Option(t("si"), 1));
+  si.value = d.inv ? 1 : 0;
+  si.onchange = () => { d.inv = Number(si.value); marcar(); };
+  di.append(li, si);
+  f2.append(di);
+  cont.append(f2);
+
+  const f3 = document.createElement("div");
+  f3.className = "fila";
+  f3.append(campo(t("lbl_leer"), d, "st", { lista: "entidades", max: 63,
+                                            ph: "light.salon" }),
+            campo(t("lbl_atributo"), d, "sa", { max: 23, ph: "brightness" }));
+  const sf = campo(t("lbl_fondo"), d, "sf", { tipo: "number", ph: "255" });
+  sf.className = "chico";
+  f3.append(sf);
+  cont.append(f3);
+
+  const nota = document.createElement("div");
+  nota.className = "aviso";
+  nota.innerHTML = t("ay_dial");
+  cont.append(nota);
+  return cont;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Gestos                                                                      */
+/* -------------------------------------------------------------------------- */
+
+function pintarGestos() {
+  const cont = $("gestos");
+  cont.textContent = "";
+  for (const [clave, titulo] of GESTOS) {
+    if (!perfil.gestures[clave]) perfil.gestures[clave] = accionVacia();
+    const d = document.createElement("div");
+    d.className = "gesto";
+    d.append(editorAccion(perfil.gestures[clave], t(titulo)));
+    cont.append(d);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Guardar y cargar                                                            */
+/* -------------------------------------------------------------------------- */
+
+function marcar() {
+  sucio = true;
+  $("estado").textContent = t("sin_guardar");
+  $("estado").className = "";
+}
+
+function pintar() {
+  pintarTabs();
+  pintarPagina();
+  pintarGestos();
+}
+
+async function cargar() {
+  try {
+    const c = await (await fetch("/api/remoto/config")).json();
+    $("url").value = c.url || "";
+    $("estadoConf").textContent = c.token
+      ? t("hay_token").replace("%s", c.cola)
+      : t("sin_token");
+  } catch (e) {
+    $("estadoConf").textContent = t("err_conf");
+  }
+
+  try {
+    const r = await fetch("/api/remoto/perfil");
+    const p = await r.json();
+    perfil = (p && Array.isArray(p.pages) && p.pages.length) ? p : perfilVacio();
+  } catch (e) {
+    perfil = perfilVacio();
+  }
+  normalizar();
+  $("poll").value   = perfil.poll;
+  $("gOn").value    = perfil.gcfg.on ? 1 : 0;
+  $("gShake").value = perfil.gcfg.shake;
+  $("gTilt").value  = perfil.gcfg.tilt;
+  $("gHold").value  = perfil.gcfg.hold;
+  $("gCool").value  = perfil.gcfg.cool;
+  pagina = 0;
+  pintar();
+  $("estado").textContent = "";
+  sucio = false;
+  cargarEntidades();
+}
+
+/* Lo que llega puede venir del archivo escrito a mano, o de una version vieja:
+ * se completa todo lo que falte para que el editor no tenga que preguntarse en
+ * cada linea si el campo existe. */
+function normalizar() {
+  perfil.poll = perfil.poll != null ? perfil.poll : 5;
+  perfil.gcfg = Object.assign({ on: 1, shake: 2000, tilt: 40, hold: 700,
+                                cool: 1500 }, perfil.gcfg || {});
+  perfil.gestures = perfil.gestures || {};
+  for (const [clave] of GESTOS) {
+    perfil.gestures[clave] = Object.assign(accionVacia(),
+                                           perfil.gestures[clave] || {});
+  }
+  perfil.pages = (perfil.pages || []).slice(0, 8);
+  if (!perfil.pages.length) perfil.pages.push(paginaGrilla("Casa"));
+
+  perfil.pages.forEach((pg, i) => {
+    pg.n = pg.n || `${t("pagina_n")} ${i + 1}`;
+    if (pg.k === "dial") {
+      pg.dl = Object.assign(paginaDial("").dl, pg.dl || {});
+      return;
+    }
+    pg.k = "grid";
+    pg.c = Math.min(3, Math.max(1, pg.c || 3));
+    pg.r = Math.min(3, Math.max(1, pg.r || 3));
+    pg.b = (pg.b || []).slice(0, 9);
+    while (pg.b.length < pg.c * pg.r) pg.b.push(botonVacio(pg.b.length));
+    pg.b.forEach((b, j) => {
+      b.l = b.l || "";
+      b.c = b.c != null ? b.c : COLORES[j % COLORES.length];
+      b.a = Object.assign(accionVacia(), b.a || {});
+      b.h = Object.assign(accionVacia(), b.h || {});
+      b.sm = Number(b.sm) || 0;
+      b.st = b.st || "";
+      b.sa = b.sa || "";
+      b.u  = b.u  || "";
+    });
+  });
+}
+
+async function cargarEntidades() {
+  try {
+    const r = await fetch("/api/remoto/entidades");
+    if (!r.ok) return;
+    const txt = (await r.text()).trim();
+    if (!txt) return;
+    const dl = $("entidades");
+    dl.textContent = "";
+    for (const e of txt.split(",")) {
+      if (e) dl.add ? dl.add(new Option(e)) : dl.append(new Option(e));
+    }
+    $("estadoConf").textContent +=
+      t("n_entidades").replace("%n", txt.split(",").length);
+  } catch (e) { /* sin Home Assistant no hay autocompletado, y ya esta */ }
+}
+
+$("guardar").onclick = async () => {
+  const cuerpo = JSON.stringify(paraGuardar());
+  $("estado").textContent = t("guardando");
+  try {
+    const r = await fetch("/api/remoto/perfil", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: cuerpo,
+    });
+    const j = await r.json();
+    if (j.ok) {
+      sucio = false;
+      $("estado").innerHTML = '<span class="ok">' +
+        aos.esc(t("guardado").replace("%n", cuerpo.length)) + "</span>";
+    } else {
+      $("estado").innerHTML = '<span class="mal-txt">' +
+        aos.esc(t("err_guardar")) + "</span>";
+    }
+  } catch (e) {
+    $("estado").innerHTML = '<span class="mal-txt">' + aos.esc(e) + "</span>";
+  }
+};
+
+$("guardarConf").onclick = async () => {
+  const cuerpo = "url=" + encodeURIComponent($("url").value.trim()) +
+                 "&token=" + encodeURIComponent($("token").value.trim());
+  $("estadoConf").textContent = t("guardando");
+  const j = await (await fetch("/api/remoto/config",
+                               { method: "POST", body: cuerpo })).json();
+  if (j.ok) {
+    $("token").value = "";
+    $("estadoConf").innerHTML = '<span class="ok">' +
+      aos.esc(t("conf_guardada")) + "</span>";
+    cargarEntidades();
+  } else {
+    /* j.error lo escribe el firmware, pero pasa por esc() igual: es la unica
+       regla que no admite excepciones para no tener que revisarla nunca. */
+    $("estadoConf").innerHTML = '<span class="mal-txt">' +
+      aos.esc(j.error) + "</span>";
+  }
+};
+
+$("probar").onclick = async () => {
+  $("probar").disabled = true;
+  $("estadoConf").textContent = t("preguntando");
+  try {
+    const j = await (await fetch("/api/remoto/probar")).json();
+    $("estadoConf").innerHTML = `<span class="${j.ok ? "ok" : "mal-txt"}">` +
+      aos.esc(j.msg) + "</span>";
+    if (j.ok) cargarEntidades();
+  } catch (e) {
+    $("estadoConf").innerHTML = '<span class="mal-txt">' + aos.esc(e) + "</span>";
+  }
+  $("probar").disabled = false;
+};
+
+$("addGrid").onclick = () => {
+  if (perfil.pages.length >= 8) return alert(t("max_paginas"));
+  perfil.pages.push(paginaGrilla(t("pagina_n") + " " + (perfil.pages.length + 1)));
+  pagina = perfil.pages.length - 1;
+  marcar();
+  pintar();
+};
+
+$("addDial").onclick = () => {
+  if (perfil.pages.length >= 8) return alert(t("max_paginas"));
+  perfil.pages.push(paginaDial("Dial"));
+  pagina = perfil.pages.length - 1;
+  marcar();
+  pintar();
+};
+
+$("delPage").onclick = () => {
+  if (perfil.pages.length <= 1) return;
+  if (!confirm(t("conf_borrar").replace("%s", perfil.pages[pagina].n))) return;
+  perfil.pages.splice(pagina, 1);
+  /* Las acciones que apuntaban a paginas de mas atras quedarian corridas. */
+  for (const pg of perfil.pages) {
+    for (const b of (pg.b || [])) {
+      for (const a of [b.a, b.h]) {
+        if (a && a.t === "page" && a.p > pagina) a.p--;
+      }
+    }
+  }
+  pagina = Math.max(0, pagina - 1);
+  marcar();
+  pintar();
+};
+
+$("ejemplo").onclick = () => {
+  if (sucio && !confirm(t("conf_ejemplo"))) return;
+  perfil = EJEMPLO();
+  normalizar();
+  $("poll").value = perfil.poll;
+  pagina = 0;
+  marcar();
+  pintar();
+};
+
+for (const id of ["poll", "gOn", "gShake", "gTilt", "gHold", "gCool"]) {
+  $(id).oninput = marcar;
+}
+
+window.addEventListener("beforeunload", (e) => {
+  if (sucio) { e.preventDefault(); e.returnValue = ""; }
+});
+
+function EJEMPLO() {
+  return {
+    v: 1, poll: 5,
+    gcfg: { on: 1, shake: 2000, tilt: 40, hold: 700, cool: 1500 },
+    gestures: {
+      shake: { t: "svc", s: "light.toggle", e: "light.velador" },
+      tiltl: { t: "svc", s: "media_player.media_previous_track", e: "media_player.tv" },
+      tiltr: { t: "svc", s: "media_player.media_next_track", e: "media_player.tv" },
+      flip:  { t: "svc", s: "media_player.media_pause", e: "media_player.tv" },
+    },
+    pages: [
+      { n: "Salon", k: "grid", c: 3, r: 3, b: [
+        { l: "Techo", c: 0xFFD60A, sm: 1, st: "light.salon",
+          a: { t: "svc", s: "light.toggle", e: "light.salon" },
+          h: { t: "svc", s: "light.turn_on", e: "light.salon",
+               d: '"brightness_pct":100' } },
+        { l: "Velador", c: 0xBF5AF2, sm: 1, st: "light.velador",
+          a: { t: "svc", s: "light.toggle", e: "light.velador" } },
+        { l: "Pie", c: 0xFF9F0A, sm: 1, st: "light.pie",
+          a: { t: "svc", s: "light.toggle", e: "light.pie" } },
+        { l: "Cortina", c: 0x40A8FF, sm: 1, st: "cover.living",
+          a: { t: "svc", s: "cover.toggle", e: "cover.living" } },
+        { l: "Cine", c: 0xFF375F,
+          a: { t: "svc", s: "scene.turn_on", e: "scene.cine" } },
+        { l: "Todo off", c: 0xFF453A,
+          a: { t: "svc", s: "light.turn_off", e: "all" } },
+        { l: "Living", c: 0x40C8E0, sm: 2, st: "sensor.living_temp", u: " C" },
+        { l: "Brillo", c: 0x30D158, a: { t: "page", p: 1 } },
+        { l: "TV", c: 0x5E5CE6, a: { t: "page", p: 2 } },
+      ] },
+      { n: "Brillo", k: "dial",
+        dl: { s: "light.turn_on", e: "light.salon", f: "brightness_pct",
+              mn: 1, mx: 100, sp: 140, inv: 0, live: 400,
+              st: "light.salon", sa: "brightness", sf: 255 } },
+      { n: "TV", k: "grid", c: 3, r: 2, b: [
+        { l: "Anterior", c: 0x5E5CE6,
+          a: { t: "svc", s: "media_player.media_previous_track",
+               e: "media_player.tv" } },
+        { l: "Play", c: 0x30D158, sm: 1, st: "media_player.tv",
+          a: { t: "svc", s: "media_player.media_play_pause",
+               e: "media_player.tv" } },
+        { l: "Siguiente", c: 0x5E5CE6,
+          a: { t: "svc", s: "media_player.media_next_track",
+               e: "media_player.tv" } },
+        { l: "Vol -", c: 0x8F8AF2,
+          a: { t: "svc", s: "media_player.volume_down", e: "media_player.tv" } },
+        { l: "Silencio", c: 0xFF453A,
+          a: { t: "svc", s: "media_player.volume_mute", e: "media_player.tv",
+               d: '"is_volume_muted":true' } },
+        { l: "Vol +", c: 0x8F8AF2,
+          a: { t: "svc", s: "media_player.volume_up", e: "media_player.tv" } },
+      ] },
+    ],
+  };
+}
+
+aos.init(TR).then(cargar);
+</script>
+</body>
+</html>

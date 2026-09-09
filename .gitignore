@@ -1,0 +1,40 @@
+# ---- ESP-IDF build output -------------------------------------------------
+build/
+apps/*/build/
+sim/build/
+
+# Pulled by the component manager, not by us.
+managed_components/
+apps/*/managed_components/
+dependencies.lock
+apps/*/dependencies.lock
+
+# Generated from sdkconfig.defaults on the first build. The defaults are
+# tracked; the expanded config is not.
+sdkconfig
+sdkconfig.old
+apps/*/sdkconfig
+apps/*/sdkconfig.old
+
+# ---- Simulator ------------------------------------------------------------
+# Vendored LVGL checkout and the fake SD card the simulator writes into.
+sim/lvgl/
+sim/sim_fs/
+sim_fs/prefs.txt
+sim_fs/recordings/*
+sim_fs/photos/*
+!sim_fs/**/.gitkeep
+
+# ---- Local scratch --------------------------------------------------------
+*.zip
+*.tar.gz
+*.bak
+*.old
+__pycache__/
+*.pyc
+.DS_Store
+compile_commands.json
+
+# Handoff notes written for the next coding session, not for readers of the
+# repository. Kept on disk, out of git.
+docs/internal/

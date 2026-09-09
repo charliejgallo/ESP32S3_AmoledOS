@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Sensores</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  a { color: var(--accent); }
+  ul.lista li.elegible { cursor: pointer; }
+  ul.lista li.elegible:hover { background: var(--card2); }
+  ul.lista li .nombre .ent { display: block; color: var(--dim); font-size: 12px; }
+  ul.lista li .val { color: var(--dim); font-size: 13px;
+                     font-variant-numeric: tabular-nums; white-space: nowrap; }
+  ul.lista li .orden { display: flex; gap: 6px; }
+  ul.lista li .orden button { padding: 5px 10px; font-size: 13px; border-radius: 9px;
+                              background: var(--card2); color: var(--text); }
+  ul.lista li .orden button.quitar { color: var(--red); }
+  .fila { display: flex; gap: 10px; align-items: center; margin-top: 20px;
+          flex-wrap: wrap; }
+  .fila #estado { font-size: 13.5px; color: var(--dim); }
+  .fila #estado.bien { color: var(--green); }
+  .fila #estado.mal  { color: var(--red); }
+  .vacio { color: var(--dim); font-size: 13.5px; padding: 8px 2px; }
+  .vacio.mal { color: var(--red); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Sensores</h1></div>
+  <p class="sub" data-t="bajada">Hasta cuatro sensores de Home Assistant, con su
+     gráfico. Se guardan en la placa y la app se actualiza sola.</p>
+
+  <nav class="paginas"></nav>
+
+  <h2 data-t="h_elegidos">Elegidos</h2>
+  <ul class="lista" id="elegidos"></ul>
+  <div class="vacio" id="vacio" data-t="ninguno">Todavía no elegiste ninguno.</div>
+
+  <h2 data-t="h_buscar">Buscar</h2>
+  <input id="q" type="search" autocomplete="off" spellcheck="false"
+         data-t-ph="ph_buscar" placeholder="temperatura, consumo, bateria..." autofocus>
+  <ul class="lista" id="resultados"></ul>
+  <div class="vacio" id="estadoLista" data-t="cargando">cargando los sensores...</div>
+
+  <div class="fila">
+    <button id="guardar" data-t="btn_guardar">Guardar</button>
+    <span id="estado"></span>
+  </div>
+
+  <div class="aviso">
+    <span data-t="nota_1">Sólo aparecen los sensores numéricos: son los únicos
+      que se pueden graficar. El filtro lo hace Home Assistant, que es el que
+      tiene los datos.</span>
+    <br><br>
+    <span data-t="nota_2">El gráfico lo arma el reloj mientras la app está
+      abierta, tomando una muestra cada 20 segundos, hasta una hora. No baja el
+      historial de Home Assistant a propósito: son 67 bytes por punto y un
+      sensor de consumo devuelve 900 puntos en una hora, 60 KB para dibujar una
+      línea de 170 px.</span>
+    <br><br>
+    <span data-t="nota_3">Usa la misma dirección y token que</span>
+    <a href="/remoto" data-t="nav_remoto">Remoto</a>.
+    <span data-t="nota_4">Si eso no está configurado, la app te lo va a decir.</span>
+  </div>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "Sensors",
+    bajada: "Up to four Home Assistant sensors, each with its chart. They are " +
+            "saved on the board and the app updates on its own.",
+    h_elegidos: "Picked", h_buscar: "Search",
+    ninguno: "You have not picked any yet.",
+    ph_buscar: "temperature, power, battery...",
+    cargando: "loading the sensors...",
+    btn_guardar: "Save",
+    nota_1: "Only numeric sensors show up: they are the only ones that can be " +
+            "charted. Home Assistant does the filtering, since it has the data.",
+    nota_2: "The watch builds the chart while the app is open, taking a sample " +
+            "every 20 seconds, up to an hour. It deliberately does not download " +
+            "Home Assistant's history: that is 67 bytes per point and a power " +
+            "sensor returns 900 points in an hour, 60 KB to draw a 170 px line.",
+    nota_3: "It uses the same address and token as",
+    nota_4: "If that is not set up, the app will tell you.",
+    quitar: "remove",
+    n_sensores: "%n numeric sensors. Type to filter.",
+    err_lista: "could not ask Home Assistant for the sensors. Is it set up in /remoto?",
+    ya_cuatro: "You already picked four, which is the maximum. Remove one to add another.",
+    coinciden: "%n match.",
+    coinciden_tope: "%n match; showing the first 40.",
+    guardando: "saving...", guardado: "saved",
+    err_guardar: "could not save", err_placa: "could not reach the board"
+  },
+  de: {
+    titulo: "Sensoren",
+    bajada: "Bis zu vier Home-Assistant-Sensoren, jeder mit seinem Diagramm. Sie " +
+            "werden auf der Platine gespeichert und die App aktualisiert sich selbst.",
+    h_elegidos: "Ausgewaehlt", h_buscar: "Suchen",
+    ninguno: "Du hast noch keinen ausgewaehlt.",
+    ph_buscar: "Temperatur, Verbrauch, Akku...",
+    cargando: "Sensoren werden geladen...",
+    btn_guardar: "Speichern",
+    nota_1: "Es erscheinen nur numerische Sensoren: nur die lassen sich " +
+            "darstellen. Home Assistant filtert, weil es die Daten hat.",
+    nota_2: "Die Uhr baut das Diagramm, solange die App offen ist, mit einer " +
+            "Messung alle 20 Sekunden, bis zu einer Stunde. Sie laedt den " +
+            "Verlauf von Home Assistant absichtlich nicht: das sind 67 Byte pro " +
+            "Punkt und ein Verbrauchssensor liefert 900 Punkte pro Stunde, " +
+            "60 KB fuer eine Linie von 170 px.",
+    nota_3: "Es benutzt dieselbe Adresse und denselben Token wie",
+    nota_4: "Wenn das nicht eingerichtet ist, sagt es die App.",
+    quitar: "entfernen",
+    n_sensores: "%n numerische Sensoren. Tippe zum Filtern.",
+    err_lista: "konnte Home Assistant nicht nach den Sensoren fragen. Ist es unter /remoto eingerichtet?",
+    ya_cuatro: "Du hast schon vier, das ist das Maximum. Entferne einen, um einen anderen hinzuzufuegen.",
+    coinciden: "%n treffen zu.",
+    coinciden_tope: "%n treffen zu; die ersten 40 werden gezeigt.",
+    guardando: "wird gespeichert...", guardado: "gespeichert",
+    err_guardar: "konnte nicht gespeichert werden",
+    err_placa: "keine Verbindung zur Platine"
+  }
+};
+
+const ES = {
+  quitar: "quitar",
+  n_sensores: "%n sensores numéricos. Escribí para filtrar.",
+  err_lista: "no pude pedirle los sensores a Home Assistant. ¿Está configurado en /remoto?",
+  ya_cuatro: "Ya elegiste cuatro, que es el máximo. Quitá uno para agregar otro.",
+  coinciden: "%n coinciden.",
+  coinciden_tope: "%n coinciden; se muestran los primeros 40.",
+  guardando: "guardando...", guardado: "guardado",
+  err_guardar: "no se pudo guardar", err_placa: "no se pudo hablar con la placa"
+};
+
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? ES[k] : v; }
+function tn(k, n) { return t(k).replace("%n", n); }
+
+let todos = [];       /* {entity, nombre, unidad, valor} */
+let elegidos = [];    /* {entity, nombre, unidad} en orden */
+
+/* Los acentos se sacan ACA, antes de guardar, por lo mismo que en /clima: el
+   endpoint tambien se llama a mano y un nombre a medias se lee peor.
+
+   El GRADO se deja pasar: sin el, la mitad de los sensores de una casa quedan
+   en "22,9 C" en vez de "22,9 °C". */
+const aAscii = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                     .replace(/[^\x20-\x7E\u00B0]/g, "");
+
+async function cargar() {
+  try {
+    const r = await fetch("/api/sensores");
+    /* Sin este chequeo, un cuerpo de error se parsea como si fueran sensores y
+       la lista muestra el JSON del error como si fuera un nombre. */
+    if (!r.ok) throw new Error(r.status);
+    const txt = await r.text();
+    todos = txt.split("\n").filter(Boolean).map(l => {
+      const [entity, nombre, unidad, valor] = l.split("|");
+      return { entity, nombre: nombre || entity, unidad: unidad || "", valor };
+    });
+    $("estadoLista").textContent = tn("n_sensores", todos.length);
+    $("estadoLista").className = "vacio";
+  } catch (e) {
+    $("estadoLista").textContent = t("err_lista");
+    $("estadoLista").className = "vacio mal";
+  }
+  try {
+    const rc = await fetch("/api/sensoresconf");
+    const c = rc.ok ? await rc.json() : {};
+    elegidos = (c.lista || "").split(";").filter(Boolean).map(r => {
+      const [entity, nombre, unidad] = r.split("|");
+      return { entity, nombre, unidad: unidad || "" };
+    });
+  } catch (e) {}
+  pintarElegidos();
+  buscar();
+}
+
+/* Nombre + entity, los dos por textContent: salen de Home Assistant, o sea de
+   afuera, y un nombre de entidad lo escribe cualquiera. */
+function celdaNombre(li, nombre, entity) {
+  const n = li.querySelector(".nombre");
+  n.textContent = nombre;
+  const ent = document.createElement("span");
+  ent.className = "ent";
+  ent.textContent = entity;
+  n.appendChild(ent);
+}
+
+function pintarElegidos() {
+  const ul = $("elegidos");
+  ul.innerHTML = "";
+  $("vacio").hidden = elegidos.length > 0;
+  elegidos.forEach((s, i) => {
+    const li = document.createElement("li");
+    const vivo = todos.find(x => x.entity === s.entity);
+    li.innerHTML = '<span class="nombre"></span><span class="val"></span>' +
+                   '<span class="orden"></span>';
+    celdaNombre(li, s.nombre, s.entity);
+    li.querySelector(".val").textContent = vivo ? vivo.valor + " " + s.unidad : "";
+
+    const ord = li.querySelector(".orden");
+    if (i > 0) {
+      const up = document.createElement("button");
+      up.textContent = "↑";
+      up.onclick = () => { [elegidos[i-1], elegidos[i]] = [elegidos[i], elegidos[i-1]];
+                           pintarElegidos(); };
+      ord.appendChild(up);
+    }
+    const q = document.createElement("button");
+    q.className = "quitar";
+    q.textContent = t("quitar");
+    q.onclick = () => { elegidos.splice(i, 1); pintarElegidos(); buscar(); };
+    ord.appendChild(q);
+    ul.appendChild(li);
+  });
+}
+
+function buscar() {
+  const q = $("q").value.trim().toLowerCase();
+  const ul = $("resultados");
+  ul.innerHTML = "";
+  if (elegidos.length >= 4) {
+    $("estadoLista").textContent = t("ya_cuatro");
+    return;
+  }
+  const yaEsta = e => elegidos.some(s => s.entity === e);
+  const hit = todos.filter(s => !yaEsta(s.entity) &&
+      (q === "" || s.nombre.toLowerCase().includes(q) ||
+                   s.entity.toLowerCase().includes(q)));
+  /* Un tope de 40 en la lista: con 250 sensores y el campo vacio, pintarlos
+     todos hace que la pagina salte cada vez que escribis una letra. */
+  $("estadoLista").textContent = hit.length > 40
+      ? tn("coinciden_tope", hit.length)
+      : tn("coinciden", hit.length);
+  hit.slice(0, 40).forEach(s => {
+    const li = document.createElement("li");
+    li.className = "elegible";
+    li.innerHTML = '<span class="nombre"></span><span class="val"></span>';
+    celdaNombre(li, s.nombre, s.entity);
+    li.querySelector(".val").textContent = s.valor + " " + s.unidad;
+    li.onclick = () => {
+      elegidos.push({ entity: s.entity, nombre: aAscii(s.nombre).slice(0, 25),
+                      unidad: aAscii(s.unidad).slice(0, 9) });
+      pintarElegidos(); buscar();
+    };
+    ul.appendChild(li);
+  });
+}
+
+$("q").oninput = buscar;
+
+$("guardar").onclick = async () => {
+  const est = $("estado");
+  const lista = elegidos.map(s => [s.entity, s.nombre, s.unidad].join("|")).join(";");
+  $("guardar").disabled = true;
+  est.textContent = t("guardando");
+  est.className = "";
+  try {
+    const r = await fetch("/api/sensoresconf", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "lista=" + encodeURIComponent(lista)
+    });
+    const j = r.ok ? await r.json() : { ok: false };
+    est.textContent = j.ok ? t("guardado") : t("err_guardar");
+    est.className = j.ok ? "bien" : "mal";
+  } catch (e) {
+    est.textContent = t("err_placa");
+    est.className = "mal";
+  }
+  $("guardar").disabled = false;
+};
+
+aos.init(TR).then(cargar);
+</script>
+</body>
+</html>

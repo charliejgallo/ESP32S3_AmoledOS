@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Escaneos</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  .wrap { max-width: 760px; }
+  a { color: var(--accent); }
+  h2 { font-size: 16px; color: var(--text); text-transform: none;
+       letter-spacing: 0; font-weight: 600; }
+  select { width: auto; }
+  .fila { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; color: var(--dim); font-weight: 500; padding: 6px 8px;
+       border-bottom: 1px solid var(--card2); font-size: 13px; }
+  td { padding: 8px; border-bottom: 1px solid var(--card); vertical-align: top; }
+  td.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .chip { display: inline-block; padding: 1px 7px; border-radius: 8px;
+          background: var(--card2); font-size: 12px; margin: 0 4px 4px 0;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .bien { color: var(--green); } .dim { color: var(--dim); }
+  .naranja { color: var(--amber); }
+  .barra { display: inline-block; height: 6px; border-radius: 3px;
+           background: var(--accent); vertical-align: middle; }
+  .resumen { padding: 14px 16px; border-radius: 12px; background: var(--card);
+             margin: 16px 0; font-size: 14px; color: var(--dim); }
+  .resumen b { color: var(--text); font-size: 18px; }
+  footer { margin-top: 28px; font-size: 13px; color: var(--dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Relevamientos de red</h1></div>
+  <p class="sub" data-t="bajada">Lo que el reloj encontró. Los barridos se
+     arrancan desde la app Escáner; acá se lee el detalle, que en 368 px no entra.</p>
+
+  <nav class="paginas"></nav>
+
+  <div class="fila">
+    <select id="archivos"></select>
+    <button id="ver" class="sec" data-t="btn_ver">Ver</button>
+    <button id="bajar" class="sec" data-t="btn_bajar">Descargar</button>
+    <button id="borrar" class="mala" data-t="btn_borrar">Borrar</button>
+  </div>
+
+  <div class="resumen" id="resumen" data-t="elegi">elegí un relevamiento</div>
+  <div id="salida"></div>
+
+  <footer data-t="pie">El archivo es NDJSON: un objeto JSON por línea. Se puede
+    abrir con cualquier cosa; el reloj no lo interpreta, solo lo escribe.</footer>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "Network scans",
+    bajada: "What the watch found. Scans are started from the Scanner app; the " +
+            "detail is read here, since it does not fit in 368 px.",
+    btn_ver: "View", btn_bajar: "Download", btn_borrar: "Delete",
+    elegi: "pick a scan",
+    pie: "The file is NDJSON: one JSON object per line. Anything can open it; " +
+         "the watch does not interpret it, it only writes it.",
+    sin_ninguno: "none yet",
+    sin_relevamientos: "No scans yet. Open the Scanner app on the watch and tap SEARCH.",
+    r_redes: "networks", r_equipos: "devices", r_puertos: "open ports",
+    r_con_nombre: "named",
+    desde: "from", cortado: "(stopped by hand)",
+    incompleto: "(incomplete: the scan never closed)",
+    h_wifi: "WiFi networks around",
+    c_red: "Network", c_senal: "Signal", c_canal: "Channel", c_cifrado: "Encryption",
+    c_bssid: "BSSID", oculta: "(hidden)",
+    h_equipos: "Devices on the local network",
+    c_ip: "IP", c_nombre: "Name", c_mac: "MAC", c_fab: "Vendor",
+    c_como: "How it showed up", c_puertos: "Open ports",
+    solo_arp: "ARP only", ninguno: "none",
+    nota_arp: "\u00abARP only\u00bb is a device that did not answer the ping but did " +
+              "answer who has that address: it exists all the same, just with " +
+              "its firewall on.",
+    nada: "That scan found nothing.",
+    mac_aleatoria: "random MAC",
+    confirmar: "Delete %s?"
+  },
+  de: {
+    titulo: "Netzwerk-Scans",
+    bajada: "Was die Uhr gefunden hat. Scans werden in der Scanner-App " +
+            "gestartet; hier liest man das Detail, das auf 368 px nicht passt.",
+    btn_ver: "Ansehen", btn_bajar: "Herunterladen", btn_borrar: "Loeschen",
+    elegi: "einen Scan waehlen",
+    pie: "Die Datei ist NDJSON: ein JSON-Objekt pro Zeile. Alles kann sie " +
+         "oeffnen; die Uhr interpretiert sie nicht, sie schreibt sie nur.",
+    sin_ninguno: "noch keine",
+    sin_relevamientos: "Noch keine Scans. Oeffne die Scanner-App auf der Uhr und tippe SUCHEN.",
+    r_redes: "Netze", r_equipos: "Geraete", r_puertos: "offene Ports",
+    r_con_nombre: "mit Namen",
+    desde: "von", cortado: "(von Hand gestoppt)",
+    incompleto: "(unvollstaendig: der Scan wurde nie abgeschlossen)",
+    h_wifi: "WLANs in der Umgebung",
+    c_red: "Netz", c_senal: "Signal", c_canal: "Kanal", c_cifrado: "Verschluesselung",
+    c_bssid: "BSSID", oculta: "(versteckt)",
+    h_equipos: "Geraete im lokalen Netz",
+    c_ip: "IP", c_nombre: "Name", c_mac: "MAC", c_fab: "Hersteller",
+    c_como: "Wie gefunden", c_puertos: "Offene Ports",
+    solo_arp: "nur ARP", ninguno: "keine",
+    nota_arp: "\u00abnur ARP\u00bb ist ein Geraet, das den Ping nicht beantwortet hat, " +
+              "aber sehr wohl, wem diese Adresse gehoert: es existiert " +
+              "trotzdem, nur mit eingeschalteter Firewall.",
+    nada: "Dieser Scan hat nichts gefunden.",
+    mac_aleatoria: "zufaellige MAC",
+    confirmar: "%s loeschen?"
+  }
+};
+
+const ES = {
+  sin_ninguno: "todavía no hay ninguno",
+  sin_relevamientos: "Todavía no hay relevamientos. Abrí la app Escáner en el reloj y tocá BUSCAR.",
+  r_redes: "redes", r_equipos: "equipos", r_puertos: "puertos abiertos",
+  r_con_nombre: "con nombre",
+  desde: "desde", cortado: "(cortado a mano)",
+  incompleto: "(incompleto: el barrido no llegó a cerrar)",
+  h_wifi: "Redes wifi alrededor",
+  c_red: "Red", c_senal: "Señal", c_canal: "Canal", c_cifrado: "Cifrado",
+  c_bssid: "BSSID", oculta: "(oculta)",
+  h_equipos: "Equipos en la red local",
+  c_ip: "IP", c_nombre: "Nombre", c_mac: "MAC", c_fab: "Fabricante",
+  c_como: "Cómo apareció", c_puertos: "Puertos abiertos",
+  solo_arp: "solo ARP", ninguno: "ninguno",
+  nota_arp: "«solo ARP» es un equipo que no contestó el ping pero sí contestó " +
+            "quién tiene esa dirección: existe igual, nada más que con el " +
+            "firewall puesto.",
+  nada: "Ese relevamiento no encontró nada.",
+  mac_aleatoria: "MAC aleatoria",
+  confirmar: "¿Borrar %s?"
+};
+
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? ES[k] : v; }
+const esc = aos.esc;
+// Fabricantes por OUI (los tres primeros bytes de la MAC). La tabla vive ACA y
+// no en el firmware: el reloj no tiene por que aprender quien fabrica que, y en
+// el navegador la lista se amplia sin reflashear nada.
+const OUI = {
+  "a4:2b:8c":"Netgear", "b8:27:eb":"Raspberry Pi", "dc:a6:32":"Raspberry Pi",
+  "e4:5f:01":"Raspberry Pi", "00:11:32":"Synology", "3c:2e:ff":"HP",
+  "f0:18:98":"Apple", "8c:85:90":"Apple", "a4:83:e7":"Apple", "ac:bc:32":"Apple",
+  "00:1a:11":"Google", "f4:f5:d8":"Google", "18:b4:30":"Nest",
+  "d8:3a:dd":"Raspberry Pi", "50:c7:bf":"TP-Link", "c4:e9:84":"TP-Link",
+  "ec:08:6b":"TP-Link", "34:60:f9":"Tuya", "68:57:2d":"Espressif",
+  "24:0a:c4":"Espressif", "7c:df:a1":"Espressif", "84:cc:a8":"Espressif",
+  "2c:f4:32":"Espressif", "b4:e6:2d":"Espressif", "00:17:88":"Philips Hue",
+  "00:50:56":"VMware", "52:54:00":"QEMU/KVM", "00:1b:63":"Apple",
+  "5c:cf:7f":"Espressif", "cc:50:e3":"Espressif", "94:b9:7e":"Espressif",
+  "a4:cf:12":"Espressif", "dc:4f:22":"Espressif", "00:e0:4c":"Realtek",
+  "30:ed:a0":"LG", "b8:27:eb":"Raspberry Pi", "e4:5f:01":"Raspberry Pi",
+};
+const PUERTO_NOMBRE = {
+  21:"ftp", 22:"ssh", 23:"telnet", 53:"dns", 80:"http", 139:"netbios",
+  443:"https", 445:"smb", 554:"rtsp", 631:"impresora", 1883:"mqtt",
+  3000:"http-alt", 3389:"rdp", 5000:"upnp/http", 8080:"http-alt",
+  8123:"home assistant", 8443:"https-alt", 9000:"http-alt", 9100:"impresora",
+};
+
+// Una MAC con el bit de administracion local puesto (segundo dígito 2, 6, A o
+// E) no la asignó ningún fabricante: es una MAC aleatoria de privacidad, la que
+// usan los teléfonos modernos por defecto. Decirlo es mucho mejor que dejar la
+// celda vacía, porque explica por qué no hay fabricante y de paso avisa que esa
+// dirección puede cambiar sola en el próximo barrido.
+function fabricante(mac) {
+  if (!mac) return "";
+  const conocido = OUI[mac.slice(0, 8).toLowerCase()];
+  if (conocido) return conocido;
+  const segundo = parseInt(mac[1], 16);
+  if (!isNaN(segundo) && (segundo & 0x2)) return t("mac_aleatoria");
+  return "";
+}
+
+// Las IP se ordenan por su ultimo numero, no como texto: si no, .10 va antes
+// que .9 y la lista se lee como si faltaran equipos.
+function ipNum(ip) {
+  return ip.split(".").reduce((a, b) => a * 256 + parseInt(b, 10), 0);
+}
+
+async function cargarLista() {
+  const r = await fetch("/api/list?dir=redes");
+  const d = await r.json();
+  const sel = $("archivos");
+  sel.innerHTML = "";
+  const files = (d.files || []).sort((a, b) => b.name.localeCompare(a.name));
+  if (!files.length) {
+    sel.innerHTML = "<option value=''></option>";
+    sel.firstChild.textContent = t("sin_ninguno");
+    $("resumen").textContent = t("sin_relevamientos");
+    return;
+  }
+  for (const f of files) {
+    const o = document.createElement("option");
+    o.value = f.name;
+    o.textContent = f.name + "  (" + f.size + " B)";
+    sel.appendChild(o);
+  }
+  ver();
+}
+
+async function ver() {
+  const nombre = $("archivos").value;
+  if (!nombre) return;
+  const r = await fetch("/api/download?dir=redes&name=" + encodeURIComponent(nombre));
+  const txt = await r.text();
+
+  const lineas = txt.split("\n").filter(l => l.trim());
+  const registros = [];
+  for (const l of lineas) {
+    // Una linea a medio escribir -se corto la energia en la mitad del barrido-
+    // no tiene que tirar abajo el informe entero.
+    try { registros.push(JSON.parse(l)); } catch (e) { /* se ignora */ }
+  }
+
+  const inicio = registros.find(x => x.t === "inicio") || {};
+  const fin    = registros.find(x => x.t === "fin");
+  const wifi   = registros.filter(x => x.t === "wifi");
+  const hosts  = registros.filter(x => x.t === "host");
+  const ptos   = registros.filter(x => x.t === "puertos");
+  const noms   = registros.filter(x => x.t === "nombre");
+
+  const puertosDe = {};
+  for (const p of ptos) puertosDe[p.ip] = p.abiertos || [];
+
+  // Los nombres vienen en lineas aparte -el barrido los encuentra despues- y se
+  // juntan por IP aca. Un equipo puede anunciar varios servicios: se queda el
+  // primero como nombre y el resto se lista como servicios.
+  const nombreDe = {}, serviciosDe = {};
+  for (const n of noms) {
+    if (!nombreDe[n.ip]) nombreDe[n.ip] = n.nombre || n.host || "";
+    (serviciosDe[n.ip] = serviciosDe[n.ip] || []).push(n.servicio);
+  }
+
+  $("resumen").innerHTML =
+    "<b>" + wifi.length + "</b> " + esc(t("r_redes")) + " &nbsp; <b>" + hosts.length +
+    "</b> " + esc(t("r_equipos")) + " &nbsp; <b>" +
+    Object.values(puertosDe).reduce((a, b) => a + b.length, 0) +
+    "</b> " + esc(t("r_puertos")) +
+    (noms.length ? " &nbsp; <b>" + Object.keys(nombreDe).length +
+                   "</b> " + esc(t("r_con_nombre")) : "") + "<br>" +
+    esc(inicio.fecha || "") + " &middot; " + esc(t("desde")) + " " + esc(inicio.ssid || "?") +
+    " (" + esc(inicio.ip || "?") + "/" + esc(inicio.mascara || "?") + ")" +
+    (fin ? " &middot; " + (fin.ms / 1000).toFixed(1) + " s" +
+           (fin.cortado ? " <span class='naranja'>" + esc(t("cortado")) + "</span>" : "")
+         : " <span class='naranja'>" + esc(t("incompleto")) + "</span>");
+
+  let html = "";
+
+  if (wifi.length) {
+    wifi.sort((a, b) => b.rssi - a.rssi);
+    html += "<h2>" + esc(t("h_wifi")) + "</h2><table><tr><th>" + esc(t("c_red")) +
+            "</th><th>" + esc(t("c_senal")) + "</th><th>" + esc(t("c_canal")) +
+            "</th><th>" + esc(t("c_cifrado")) + "</th><th>" + esc(t("c_bssid")) +
+            "</th></tr>";
+    for (const w of wifi) {
+      // El RSSI en dBm no le dice nada a nadie: una barra proporcional si.
+      const pct = Math.max(0, Math.min(100, 2 * (w.rssi + 100)));
+      html += "<tr><td>" + (w.oculta
+                 ? "<span class='dim'>" + esc(t("oculta")) + "</span>"
+                 : "<b>" + esc(w.ssid) + "</b>") + "</td>" +
+              "<td><span class='barra' style='width:" + (pct * 0.6) +
+              "px'></span> <span class='dim'>" + w.rssi + "</span></td>" +
+              "<td>" + w.canal + "</td>" +
+              "<td class='" + (w.cifrado === "abierta" ? "naranja" : "dim") + "'>" +
+              esc(w.cifrado) + "</td>" +
+              "<td class='mono dim'>" + esc(w.bssid) + "</td></tr>";
+    }
+    html += "</table>";
+  }
+
+  if (hosts.length) {
+    hosts.sort((a, b) => ipNum(a.ip) - ipNum(b.ip));
+    html += "<h2>" + esc(t("h_equipos")) + "</h2><table><tr><th>" + esc(t("c_ip")) +
+            "</th><th>" + esc(t("c_nombre")) + "</th><th>" + esc(t("c_mac")) +
+            "</th><th>" + esc(t("c_fab")) + "</th><th>" + esc(t("c_como")) +
+            "</th><th>" + esc(t("c_puertos")) + "</th></tr>";
+    for (const h of hosts) {
+      const abiertos = (puertosDe[h.ip] || []).map(p =>
+        "<span class='chip'>" + p +
+        (PUERTO_NOMBRE[p] ? " " + PUERTO_NOMBRE[p] : "") + "</span>").join("");
+      const nom = nombreDe[h.ip];
+      const srv = (serviciosDe[h.ip] || []).join(" ");
+      html += "<tr><td class='mono'><b>" + esc(h.ip) + "</b></td>" +
+              "<td>" + (nom ? "<b>" + esc(nom) + "</b>" : "<span class='dim'>-</span>") +
+              (srv ? "<span class='dim' style='display:block;font-size:12px'>" +
+                     esc(srv) + "</span>" : "") + "</td>" +
+              "<td class='mono dim'>" + esc(h.mac || "-") + "</td>" +
+              "<td>" + esc(fabricante(h.mac)) + "</td>" +
+              "<td class='dim'>" + (h.ping ? "<span class='bien'>ping</span>"
+                                           : esc(t("solo_arp"))) + "</td>" +
+              "<td>" + (abiertos || "<span class='dim'>" + esc(t("ninguno")) +
+                                    "</span>") +
+              "</td></tr>";
+    }
+    html += "</table><p class='sub' style='margin-top:10px'>" +
+            esc(t("nota_arp")) + "</p>";
+  }
+
+  if (!wifi.length && !hosts.length) {
+    html = "<p class='sub'>" + esc(t("nada")) + "</p>";
+  }
+  $("salida").innerHTML = html;
+}
+
+$("ver").onclick = ver;
+$("archivos").onchange = ver;
+$("bajar").onclick = () => {
+  const n = $("archivos").value;
+  if (n) location.href = "/api/download?dir=redes&dl=1&name=" + encodeURIComponent(n);
+};
+$("borrar").onclick = async () => {
+  const n = $("archivos").value;
+  if (!n || !confirm(t("confirmar").replace("%s", n))) return;
+  await fetch("/api/delete?dir=redes&name=" + encodeURIComponent(n), { method: "POST" });
+  cargarLista();
+};
+
+aos.init(TR).then(cargarLista);
+</script>
+</body>
+</html>

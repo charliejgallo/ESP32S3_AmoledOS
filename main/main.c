@@ -1,0 +1,157 @@
+/*
+ * AmoledOS - startup on the Waveshare ESP32-S3-Touch-AMOLED-1.8 board.
+ *
+ * app_main() brings the hardware up through the HAL, builds the UI and then
+ * settles into a slow loop handing out ticks. All the drawing is done by the
+ * LVGL task esp_lvgl_port creates; that is why every access to LVGL objects
+ * from here goes between aos_hal_lock()/aos_hal_unlock().
+ */
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_log.h"
+#include "esp_heap_caps.h"
+#include "esp_system.h"
+
+#include "aos_hal.h"
+#include "aos_ui.h"
+#include "aos_apps.h"
+#include "aos_dynapp.h"
+#include "aos_web.h"
+#include "aos_ble.h"   /* F0: measurement, see docs/HANDOFF-BLE-ANCS.md */
+
+static const char *TAG = "amoledos";
+
+/* The BOOT button acts as "back"; holding it down goes back to the clock. It
+ * is offered to the front app first, which may want it for something else (in
+ * a game it is the trigger). It runs in the HAL's background task, so it takes
+ * the LVGL lock. */
+static void button_cb(aos_button_t button, aos_button_action_t action)
+{
+    if (button != AOS_BUTTON_BOOT) {
+        return;
+    }
+    if (aos_hal_lock(200)) {
+        if (!aos_ui_button((int)action)) {
+            if (action == AOS_BUTTON_LONG) {
+                aos_ui_home();
+            } else if (action == AOS_BUTTON_CLICK) {
+                aos_ui_back();
+            }
+        }
+        aos_hal_unlock();
+    }
+}
+
+void app_main(void)
+{
+    ESP_LOGI(TAG, "AmoledOS %s arrancando", aos_hal_firmware_version());
+
+    /* If the board restarted by itself, this says why. Without that fact, a
+     * spontaneous restart is indistinguishable from a power cut. */
+    {
+        const char *causa;
+        switch (esp_reset_reason()) {
+        case ESP_RST_POWERON:  causa = "encendido normal";            break;
+        case ESP_RST_SW:       causa = "reinicio por software";       break;
+        case ESP_RST_PANIC:    causa = "PANIC (excepcion)";           break;
+        case ESP_RST_TASK_WDT: causa = "WATCHDOG de tarea colgada";   break;
+        case ESP_RST_INT_WDT:  causa = "WATCHDOG de interrupciones";  break;
+        case ESP_RST_WDT:      causa = "watchdog del chip";           break;
+        case ESP_RST_BROWNOUT: causa = "BROWNOUT (cayo la tension)";  break;
+        case ESP_RST_USB:      causa = "reinicio por USB";            break;
+        default:               causa = "otro";                        break;
+        }
+        ESP_LOGI(TAG, "motivo del arranque: %s", causa);
+    }
+
+    if (!aos_hal_init()) {
+        ESP_LOGE(TAG, "fallo la inicializacion del hardware");
+        return;
+    }
+    ESP_LOGI(TAG, "placa: %s", aos_hal_board_name());
+
+    aos_hal_set_button_cb(button_cb);
+
+    if (aos_hal_lock(portMAX_DELAY)) {
+        aos_ui_init();
+        aos_apps_register_builtin();
+        aos_hal_unlock();
+    }
+
+    /* Dynamic apps: every .so in /sdcard/apps is loaded and registered in the
+     * menu as one more app. */
+    int loaded = aos_dynapp_scan();
+    ESP_LOGI(TAG, "apps dinamicas cargadas: %d", loaded);
+
+    /* This is where the BLE stack will start in phase F5. The F0 measurement
+     * script -aos_ble_measure_start()- was left in components/aos_ble/ with
+     * nobody calling it: it switches WiFi and the radio off and on to take the
+     * figures, which is exactly what you do not want in an everyday watch. It
+     * gets plugged back in here when measuring is needed again. See
+     * docs/HANDOFF-BLE-ANCS.md section 2.4.
+     *
+     * With nobody calling it, the linker drops NimBLE's ~217 KB and the
+     * firmware weighs what it always did. */
+
+    uint32_t ticks = 0;
+
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(200));
+
+        /* The portal starts with the network ready, and also with the setup
+         * access point up: that is precisely where it is needed. */
+        /* With no network there is no point leaving the server taking up
+         * memory. */
+        if (aos_web_running() &&
+            aos_hal_net_state() != AOS_NET_CONNECTED && !aos_hal_net_ap_active()) {
+            aos_web_stop();
+            ESP_LOGI(TAG, "portal web apagado: no hay red");
+        }
+
+        if (!aos_web_running() &&
+            (aos_hal_net_state() == AOS_NET_CONNECTED || aos_hal_net_ap_active())) {
+            if (aos_web_start() == ESP_OK) {
+                ESP_LOGI(TAG, "portal web en http://%s/", aos_hal_net_ip());
+            }
+        }
+
+        if (aos_hal_lock(100)) {
+            aos_ui_tick();
+            aos_alarm_service_tick();
+            aos_hal_unlock();
+
+            aos_dynapp_tick();      /* closes the .so files that were left unused */
+        }
+
+        /* Diagnostic heartbeat. If the screen stops responding, this line says
+         * whether the system is still alive, what state the display is in and
+         * whether the touch panel is still reading and detecting fingers. */
+        if (++ticks % 15 == 0) {
+            uint32_t reads = 0, presses = 0;
+            aos_ui_touch_stats(&reads, &presses);
+            aos_display_state_t st = aos_hal_display_state();
+            aos_ble_tick();
+            aos_bt_state_t bt = aos_hal_bt_state();
+            ESP_LOGI(TAG, "latido: pantalla=%s tactil lecturas=%lu dedos=%lu "
+                          "bt=%s heap_int=%u psram=%u ejec=%u",
+                     st == AOS_DISPLAY_ACTIVE ? "activa" :
+                     st == AOS_DISPLAY_AOD    ? "atenuada" : "apagada",
+                     (unsigned long)reads, (unsigned long)presses,
+                     bt == AOS_BT_CONNECTED   ? "conectado" :
+                     bt == AOS_BT_PAIRING     ? "emparejando" :
+                     bt == AOS_BT_ADVERTISING ? "publicando" : "apagado",
+                     (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+                     (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+                     (unsigned)heap_caps_get_free_size(MALLOC_CAP_EXEC));
+
+            char cargadas[160];
+            int n = aos_dynapp_loaded_list(cargadas, sizeof(cargadas));
+            if (n > 0) {
+                ESP_LOGI(TAG, "  %d .so siguen cargados (%u K ejecutable "
+                              "libre): %s", n,
+                         (unsigned)(heap_caps_get_free_size(MALLOC_CAP_EXEC) / 1024),
+                         cargadas);
+            }
+        }
+    }
+}

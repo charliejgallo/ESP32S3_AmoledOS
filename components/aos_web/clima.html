@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Clima</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  a { color: var(--accent); }
+  ul.lista li { cursor: pointer; display: block; }
+  ul.lista li:hover { background: var(--card2); }
+  ul.lista li b { font-weight: 600; }
+  ul.lista li span { display: block; color: var(--dim); font-size: 13px; }
+  .tarjeta b { font-size: 18px; }
+  .tarjeta span { color: var(--dim); font-size: 13px; display: block; }
+  footer { margin-top: 28px; font-size: 13px; color: var(--dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Lugar del clima</h1></div>
+  <p class="sub" data-t="bajada">Escribí el nombre de la ciudad y elegila de la
+     lista. El reloj se queda con el lugar aunque lo apagues.</p>
+
+  <nav class="paginas"></nav>
+
+  <div class="tarjeta" id="actual">
+    <b data-t="cargando">cargando...</b>
+    <span></span>
+  </div>
+
+  <label class="campo" for="q" data-t="lbl_buscar">Buscar una ciudad</label>
+  <input id="q" type="search" autocomplete="off" spellcheck="false"
+         data-t-ph="ph_buscar" placeholder="Buscar una ciudad" autofocus>
+  <ul class="lista" id="lista"></ul>
+
+  <div class="aviso" id="aviso" hidden></div>
+
+  <footer>
+    <span data-t="pie_1">La búsqueda la hace este navegador contra</span>
+    <a href="https://open-meteo.com" target="_blank" rel="noreferrer">open-meteo.com</a>;
+    <span data-t="pie_2">al reloj sólo le llegan el nombre y las coordenadas.</span>
+  </footer>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "Weather location",
+    bajada: "Type the name of the city and pick it from the list. The watch " +
+            "keeps the place even when you turn it off.",
+    cargando: "loading...",
+    lbl_buscar: "Search for a city",
+    ph_buscar: "Search for a city",
+    pie_1: "The search runs in this browser against",
+    pie_2: "the watch only gets the name and the coordinates.",
+    sin_lugar: "No place picked",
+    busca_aca: "search for your city below and tap it",
+    sin_conexion: "no connection to the watch",
+    lat: "latitude", lon: "longitude",
+    sin_ciudad: "No city by that name",
+    err_buscar: "Could not search: ",
+    err_guardar: "Could not save: ",
+    ok: "Done: the watch will show the weather for <b>%s</b>."
+  },
+  de: {
+    titulo: "Ort fuer das Wetter",
+    bajada: "Tippe den Namen der Stadt ein und waehle sie aus der Liste. Die " +
+            "Uhr behaelt den Ort auch nach dem Ausschalten.",
+    cargando: "wird geladen...",
+    lbl_buscar: "Stadt suchen",
+    ph_buscar: "Stadt suchen",
+    pie_1: "Die Suche laeuft in diesem Browser gegen",
+    pie_2: "die Uhr bekommt nur den Namen und die Koordinaten.",
+    sin_lugar: "Kein Ort gewaehlt",
+    busca_aca: "such deine Stadt hier unten und tippe sie an",
+    sin_conexion: "keine Verbindung zur Uhr",
+    lat: "Breite", lon: "Laenge",
+    sin_ciudad: "Keine Stadt mit diesem Namen",
+    err_buscar: "Suche fehlgeschlagen: ",
+    err_guardar: "Konnte nicht gespeichert werden: ",
+    ok: "Fertig: die Uhr zeigt das Wetter fuer <b>%s</b>."
+  }
+};
+
+const ES = {
+  sin_lugar: "Sin lugar elegido",
+  busca_aca: "buscá tu ciudad acá abajo y tocala",
+  sin_conexion: "sin conexión con el reloj",
+  lat: "latitud", lon: "longitud",
+  sin_ciudad: "No hay ninguna ciudad así",
+  err_buscar: "No se pudo buscar: ",
+  err_guardar: "No se pudo guardar: ",
+  ok: "Listo: el reloj va a mostrar el clima de <b>%s</b>."
+};
+
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? ES[k] : v; }
+
+function aviso(html, clase) {
+  const a = $("aviso");
+  a.hidden = false;
+  a.className = "aviso" + (clase ? " " + clase : "");
+  a.innerHTML = html;
+}
+
+/* El reloj guarda los grados como enteros multiplicados por 10000: asi no
+   tiene que parsear ni imprimir un solo numero con coma. */
+const g = (v) => (v / 10000).toFixed(4);
+
+async function estado() {
+  try {
+    const s = await (await fetch("/api/clima")).json();
+    const caja = $("actual");
+    if (s.ciudad) {
+      caja.querySelector("b").textContent = s.ciudad;
+      caja.querySelector("span").textContent =
+        `${t("lat")} ${g(s.lat10k)}, ${t("lon")} ${g(s.lon10k)}`;
+    } else {
+      caja.querySelector("b").textContent = t("sin_lugar");
+      caja.querySelector("span").textContent = t("busca_aca");
+    }
+  } catch (e) {
+    $("actual").querySelector("b").textContent = t("sin_conexion");
+  }
+}
+
+let ultima = 0;
+
+async function buscar(texto) {
+  const lista = $("lista");
+  if (texto.trim().length < 2) {
+    lista.innerHTML = "";
+    return;
+  }
+
+  /* Cada tecla dispara una busqueda y las respuestas pueden llegar
+     desordenadas: se descarta todo lo que no sea de la ultima. */
+  const mia = ++ultima;
+  let datos;
+  try {
+    /* El idioma de los resultados sigue al del reloj, igual que la pagina: en
+       aleman "Wien" y no "Viena". */
+    const url = "https://geocoding-api.open-meteo.com/v1/search?count=8" +
+                "&language=" + encodeURIComponent(aos.idioma()) +
+                "&format=json&name=" + encodeURIComponent(texto.trim());
+    datos = await (await fetch(url)).json();
+  } catch (e) {
+    if (mia === ultima) aviso(aos.esc(t("err_buscar") + e.message), "mal");
+    return;
+  }
+  if (mia !== ultima) return;
+
+  lista.innerHTML = "";
+  const res = datos.results || [];
+  if (!res.length) {
+    const li = document.createElement("li");
+    const b = document.createElement("b");
+    b.textContent = t("sin_ciudad");
+    li.appendChild(b);
+    lista.appendChild(li);
+    return;
+  }
+
+  for (const p of res) {
+    const li = document.createElement("li");
+    li.innerHTML = "<b></b><span></span>";
+    /* Nombres que vienen de un servicio de afuera: textContent, no innerHTML. */
+    li.querySelector("b").textContent = p.name;
+    li.querySelector("span").textContent =
+      [p.admin1, p.country].filter(Boolean).join(", ");
+    li.onclick = () => guardar(p);
+    lista.appendChild(li);
+  }
+}
+
+async function guardar(p) {
+  /* Los acentos se quitan ACA: la fuente que el reloj tiene compilada cubre
+     Latin-1, pero el endpoint tambien se usa a mano y "Cordoba" se lee mejor
+     que un nombre a medias. NFD separa la letra de su tilde y el rango
+     U+0300-U+036F son las tildes. */
+  const limpio = p.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const cuerpo = "name=" + encodeURIComponent(limpio) +
+                 "&lat=" + Math.round(p.latitude  * 10000) +
+                 "&lon=" + Math.round(p.longitude * 10000);
+  try {
+    const r = await fetch("/api/clima", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: cuerpo
+    });
+    if (!r.ok) throw new Error(r.status);
+    const s = await r.json();
+    if (!s.ok) throw new Error(s.error || r.status);
+    aviso(t("ok").replace("%s", aos.esc(s.ciudad)), "bien");
+    $("q").value = "";
+    $("lista").innerHTML = "";
+    estado();
+  } catch (e) {
+    aviso(aos.esc(t("err_guardar") + e.message), "mal");
+  }
+}
+
+let temporizador = null;
+$("q").addEventListener("input", (e) => {
+  clearTimeout(temporizador);
+  const texto = e.target.value;
+  temporizador = setTimeout(() => buscar(texto), 250);
+});
+
+aos.init(TR).then(estado);
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+dependencies:
+  idf: ">=5.5,<6.1"
+  waveshare/esp32_s3_touch_amoled_1_8:
+    version: "^2.0.3"
+    public: true
+  waveshare/qmi8658:
+    version: "^2.0.0"
+    public: true
+  waveshare/pcf85063a:
+    version: "^2.0.0"
+    public: true
+  espressif/elf_loader:
+    version: "^1.3.3"
+    public: true
+    # Copia local en components/elf_loader con un arreglo de alineamiento de
+    # secciones que el upstream no tiene (ver el comentario en esp_elf.c).
+    # Sin override_path el gestor de dependencias restaura la version original.
+    override_path: "../components/elf_loader"
+  espressif/mdns:
+    version: "^1.8.0"
+    public: true

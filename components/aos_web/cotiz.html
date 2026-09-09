@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Cotizaciones</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  a { color: var(--accent); }
+  ul.lista li { cursor: pointer; }
+  ul.lista li:hover { background: var(--card2); }
+  ul.lista li.on { outline: 1px solid var(--accent); }
+  ul.lista li input { accent-color: var(--accent); flex: none; margin: 0; width: auto; }
+  ul.lista li .val { color: var(--dim); font-size: 13px;
+                     font-variant-numeric: tabular-nums; }
+  .fila { display: flex; gap: 10px; align-items: center; margin-top: 18px; }
+  .fila #estado { font-size: 13.5px; color: var(--dim); }
+  .fila #estado.bien { color: var(--green); }
+  .fila #estado.mal  { color: var(--red); }
+  footer { margin-top: 28px; font-size: 13px; color: var(--dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Cotizaciones</h1></div>
+  <p class="sub" data-t="bajada">Elegí qué se ve en el reloj. Se guarda en la
+     placa y la app se actualiza sola, sin reiniciar nada.</p>
+
+  <nav class="paginas"></nav>
+
+  <h2 data-t="h_dolar">Dólar</h2>
+  <ul class="lista" id="dolares"></ul>
+
+  <h2 data-t="h_otras">Otras monedas</h2>
+  <ul class="lista" id="monedas"></ul>
+
+  <div class="fila">
+    <button id="guardar" data-t="btn_guardar">Guardar</button>
+    <button class="sec" id="ninguna" data-t="btn_ninguna">Destildar todo</button>
+    <span id="estado"></span>
+  </div>
+
+  <div class="aviso">
+    <span data-t="nota_1">Los valores de esta página los pide</span>
+    <b data-t="nota_navegador">tu navegador</b>
+    <span data-t="nota_2">a</span>
+    <a href="https://dolarapi.com" target="_blank" rel="noreferrer">dolarapi.com</a>,
+    <span data-t="nota_3">no la placa: son sólo para que sepas qué estás
+      tildando. El reloj los consulta por su cuenta cada 5 minutos, y tocando la
+      pantalla los pide en el momento.</span>
+    <br><br>
+    <span data-t="nota_4">El reloj muestra la venta en grande, que es lo que
+      paga el que compra, y la compra abajo en chico.</span>
+  </div>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+/* La lista vive ACA y tambien en apps/cotiz/main/cz_api.c, y estan duplicadas a
+   proposito. Es la misma decision que la tabla de fabricantes por MAC de
+   /red: el firmware NO entiende el formato, solo guarda una cadena opaca de
+   keys. Asi, agregar una especie es tocar la app y esta pagina, y el firmware
+   queda igual. Las keys son el contrato entre las dos.
+
+   Los NOMBRES de las especies del dolar no se traducen: "Blue", "Contado con
+   liquidacion" y "Mayorista" son nombres propios del mercado argentino y en
+   ingles o aleman no significan nada. Las monedas si, que son sustantivos
+   comunes. */
+const DOLARES = [
+  ["oficial",         "Oficial"],
+  ["blue",            "Blue"],
+  ["bolsa",           "Bolsa (MEP)"],
+  ["contadoconliqui", "Contado con liquidación"],
+  ["mayorista",       "Mayorista"],
+  ["cripto",          "Cripto"],
+  ["tarjeta",         "Tarjeta"]
+];
+const MONEDAS = [
+  ["eur", "m_eur"],
+  ["brl", "m_brl"],
+  ["clp", "m_clp"],
+  ["uyu", "m_uyu"]
+];
+
+const TR = {
+  en: {
+    titulo: "Exchange rates",
+    bajada: "Pick what shows on the watch. It is saved on the board and the app " +
+            "updates on its own, no restart needed.",
+    h_dolar: "US dollar", h_otras: "Other currencies",
+    btn_guardar: "Save", btn_ninguna: "Clear all",
+    nota_1: "The values on this page are fetched by", nota_navegador: "your browser",
+    nota_2: "from",
+    nota_3: "not by the board: they are only so you know what you are ticking. " +
+            "The watch asks for them on its own every 5 minutes, and tapping the " +
+            "screen asks right away.",
+    nota_4: "The watch shows the selling rate big, which is what a buyer pays, " +
+            "and the buying rate small underneath.",
+    m_eur: "Euro", m_brl: "Brazilian real", m_clp: "Chilean peso",
+    m_uyu: "Uruguayan peso",
+    guardando: "saving...", guardado: "saved",
+    guardado_vacio: "saved (the watch shows the blue rate)",
+    err_guardar: "could not save", err_placa: "could not reach the board"
+  },
+  de: {
+    titulo: "Wechselkurse",
+    bajada: "Waehle, was auf der Uhr erscheint. Es wird auf der Platine " +
+            "gespeichert und die App aktualisiert sich von selbst, ohne Neustart.",
+    h_dolar: "US-Dollar", h_otras: "Andere Waehrungen",
+    btn_guardar: "Speichern", btn_ninguna: "Alle abwaehlen",
+    nota_1: "Die Werte auf dieser Seite holt", nota_navegador: "dein Browser",
+    nota_2: "von",
+    nota_3: "nicht die Platine: sie sind nur da, damit du weisst, was du " +
+            "anhakst. Die Uhr fragt sie alle 5 Minuten selbst ab, und ein Tippen " +
+            "auf den Bildschirm fragt sofort.",
+    nota_4: "Die Uhr zeigt den Verkaufskurs gross, also was ein Kaeufer zahlt, " +
+            "und den Ankaufskurs klein darunter.",
+    m_eur: "Euro", m_brl: "Brasilianischer Real", m_clp: "Chilenischer Peso",
+    m_uyu: "Uruguayischer Peso",
+    guardando: "wird gespeichert...", guardado: "gespeichert",
+    guardado_vacio: "gespeichert (die Uhr zeigt den Blue-Kurs)",
+    err_guardar: "konnte nicht gespeichert werden",
+    err_placa: "keine Verbindung zur Platine"
+  }
+};
+
+const ES = {
+  m_eur: "Euro", m_brl: "Real brasileño", m_clp: "Peso chileno",
+  m_uyu: "Peso uruguayo",
+  guardando: "guardando...", guardado: "guardado",
+  guardado_vacio: "guardado (el reloj muestra el blue)",
+  err_guardar: "no se pudo guardar", err_placa: "no se pudo hablar con la placa"
+};
+
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? (ES[k] !== undefined ? ES[k] : k) : v; }
+
+let elegidas = new Set();
+
+function pintarLista(ul, filas, traducir) {
+  ul.innerHTML = "";
+  for (const [key, nombre] of filas) {
+    const li = document.createElement("li");
+    li.dataset.key = key;
+    li.innerHTML = '<input type="checkbox">' +
+                   '<span class="nombre"></span><span class="val"></span>';
+    li.querySelector(".nombre").textContent = traducir ? t(nombre) : nombre;
+    li.onclick = () => {
+      if (elegidas.has(key)) elegidas.delete(key); else elegidas.add(key);
+      refrescarTildes();
+    };
+    ul.appendChild(li);
+  }
+}
+
+function refrescarTildes() {
+  document.querySelectorAll("li[data-key]").forEach(li => {
+    const on = elegidas.has(li.dataset.key);
+    li.classList.toggle("on", on);
+    li.querySelector("input").checked = on;
+  });
+}
+
+/* El formato de los numeros sigue al idioma del reloj: en aleman el separador
+   de miles es el punto y el decimal la coma, al reves que en ingles. */
+function plata(n) {
+  if (n == null) return "";
+  const locales = { es: "es-AR", en: "en-US", de: "de-DE" };
+  return n.toLocaleString(locales[aos.idioma()] || "es-AR",
+                          { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function ponerValor(key, d) {
+  const li = document.querySelector(`li[data-key="${key}"]`);
+  if (li && d) li.querySelector(".val").textContent = "$ " + plata(d.venta);
+}
+
+/* dolarapi manda 'access-control-allow-origin: *' (medido), asi que la pagina
+   puede consultarla directo aunque este servida desde la placa por http://.
+   Es lo mismo que hace /clima con la geocodificacion de Open-Meteo. */
+async function traerValores() {
+  try {
+    const r = await fetch("https://dolarapi.com/v1/dolares");
+    for (const d of await r.json()) ponerValor(d.casa, d);
+  } catch (e) { /* sin internet en la compu: la pagina sirve igual */ }
+  try {
+    const r = await fetch("https://dolarapi.com/v1/cotizaciones");
+    for (const d of await r.json()) ponerValor(d.moneda.toLowerCase(), d);
+  } catch (e) {}
+}
+
+async function cargar() {
+  pintarLista($("dolares"), DOLARES, false);
+  pintarLista($("monedas"), MONEDAS, true);
+  try {
+    const c = await (await fetch("/api/cotiz")).json();
+    elegidas = new Set((c.lista || "").split(",").filter(Boolean));
+  } catch (e) {}
+  refrescarTildes();
+  traerValores();
+}
+
+$("ninguna").onclick = () => { elegidas.clear(); refrescarTildes(); };
+
+$("guardar").onclick = async () => {
+  const est = $("estado");
+  /* El orden en que se manda no importa: la app dibuja en su propio orden fijo
+     para que agregar una especie no le reordene la pantalla al usuario. */
+  const lista = [...DOLARES, ...MONEDAS].map(x => x[0])
+                  .filter(k => elegidas.has(k)).join(",");
+  $("guardar").disabled = true;
+  est.textContent = t("guardando");
+  est.className = "";
+  try {
+    const r = await fetch("/api/cotiz", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "lista=" + encodeURIComponent(lista)
+    });
+    const j = r.ok ? await r.json() : { ok: false };
+    if (j.ok) {
+      est.textContent = lista ? t("guardado") : t("guardado_vacio");
+      est.className = "bien";
+    } else {
+      est.textContent = t("err_guardar");
+      est.className = "mal";
+    }
+  } catch (e) {
+    est.textContent = t("err_placa");
+    est.className = "mal";
+  }
+  $("guardar").disabled = false;
+};
+
+aos.init(TR).then(cargar);
+</script>
+</body>
+</html>

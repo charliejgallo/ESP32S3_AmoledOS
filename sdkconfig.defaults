@@ -1,0 +1,273 @@
+# ---------------------------------------------------------------------------
+# AmoledOS - Waveshare ESP32-S3-Touch-AMOLED-1.8 (v1 y v2)
+# ---------------------------------------------------------------------------
+CONFIG_IDF_TARGET="esp32s3"
+
+# Flash 16 MB en QIO
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# PSRAM octal a 80 MHz. Ejecutar instrucciones y rodata desde PSRAM nos deja
+# mucha mas RAM interna libre para LVGL y para las apps dinamicas.
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+# NO ejecutar desde PSRAM. Copiar el codigo y la rodata a PSRAM parece buena
+# idea, pero pone las instrucciones y el buffer de dibujo de LVGL a pelear por
+# el mismo bus octal: cada pixel escrito frena la busqueda de instrucciones.
+# Ejecutando desde flash por cache (QIO 80 MHz) la PSRAM queda entera para los
+# datos, que es lo que mas la necesita.
+CONFIG_SPIRAM_FETCH_INSTRUCTIONS=n
+CONFIG_SPIRAM_RODATA=n
+CONFIG_SPIRAM_USE_MALLOC=y
+# Equilibrio: lo chico se queda adentro (rapido), lo grande va a PSRAM. Con
+# 1024 hasta los buffers de trabajo de LVGL caian en PSRAM y el dibujo sufria.
+# Se probo subirlo a 65536 para llevar los canvas de las apps a RAM interna: no
+# cambio el FPS en nada, asi que vuelve al valor conocido.
+# Umbral por debajo del cual malloc() usa siempre RAM interna. Bajarlo empuja
+# mas reservas a PSRAM y libera interna, que es el recurso escaso: de ahi sale
+# el .text de las apps dinamicas. Lo que necesita DMA lo pide explicito y no se
+# ve afectado.
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=1024
+CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y
+
+# --- Proteccion de memoria: APAGADA a proposito ------------------------------
+# Viene activada por defecto y parte la SRAM en un tramo de instrucciones
+# (lectura+ejecucion) y otro de datos (lectura+escritura). Con eso el heap NO es
+# ejecutable y heap_caps_malloc(MALLOC_CAP_EXEC) devuelve cero siempre: medido,
+# "ejecutable 0 B". Es incompatible de raiz con cargar codigo en tiempo de
+# ejecucion, que es el punto de este firmware.
+# Lo que se pierde: el panic automatico cuando algo ejecuta datos o escribe
+# sobre el codigo. Lo que se gana: que las apps dinamicas existan.
+CONFIG_ESP_SYSTEM_MEMPROT_FEATURE=n
+
+# LVGL cede su IRAM (25 KB) al codigo de las apps. Con el firmware ejecutando
+# desde flash por cache esto ya casi no se nota: antes importaba mucho porque
+# lo que quedaba fuera de IRAM caia en PSRAM, que si es lenta para instrucciones.
+CONFIG_LV_ATTRIBUTE_FAST_MEM_USE_IRAM=n
+
+# Medidor de cuadros por segundo y uso de CPU. PERF_MONITOR depende de SYSMON:
+# sin este, la opcion se ignora en silencio.
+CONFIG_LV_USE_SYSMON=y
+# CONFIG_LV_USE_PERF_MONITOR is not set
+# Arriba a la izquierda lo comia la esquina redondeada del panel.
+CONFIG_LV_PERF_MONITOR_ALIGN_TOP_MID=y
+
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y
+CONFIG_FREERTOS_HZ=1000
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+
+# Consola por el USB-Serial/JTAG del Type-C
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+
+# --- LVGL ---------------------------------------------------------------
+CONFIG_LV_USE_STDLIB_MALLOC_LV_STDLIB_CLIB=y
+# Las Montserrat de LVGL estan APAGADAS: son solo ASCII y las reemplazan
+# las aos_montserrat_* de components/aos_fonts, que llegan hasta Latin-1.
+# La fuente por defecto del tema tiene que apuntar a algo que no sea una
+# Montserrat, porque cada opcion de esa lista hace 'select' de la suya y la
+# vuelve a prender. Quien manda de verdad es el -DLV_FONT_DEFAULT de
+# components/aos_fonts/aos_fonts.cmake, asi que la unscii nunca se referencia
+# y no llega a linkearse.
+CONFIG_LV_FONT_DEFAULT_UNSCII_8=y
+# CONFIG_LV_FONT_MONTSERRAT_14 is not set
+# CONFIG_LV_FONT_MONTSERRAT_16 is not set
+# CONFIG_LV_FONT_MONTSERRAT_20 is not set
+# CONFIG_LV_FONT_MONTSERRAT_28 is not set
+# CONFIG_LV_FONT_MONTSERRAT_36 is not set
+# CONFIG_LV_FONT_MONTSERRAT_48 is not set
+# Captura de pantalla por /api/captura: la unica forma de ver desde afuera lo
+# que el log no cuenta -un glifo que falta, texto que se sale, dos cosas
+# encimadas-. Solo agrega su propio modulo; no toca ninguna estructura
+# compartida con las apps.
+CONFIG_LV_USE_SNAPSHOT=y
+# Filesystem 'A:' para el visor de fotos y para cargar recursos de las apps
+CONFIG_LV_USE_FS_POSIX=y
+CONFIG_LV_FS_POSIX_LETTER=65
+CONFIG_LV_USE_TJPGD=y
+CONFIG_LV_USE_LODEPNG=y
+CONFIG_LV_USE_BMP=y
+# QR de la pantalla del punto de acceso: el telefono se conecta escaneandolo en
+# lugar de tipear la clave. Es qrcodegen, que ya viene en el arbol de LVGL, con
+# su propio widget; no toca ninguna estructura compartida con las apps.
+CONFIG_LV_USE_QRCODE=y
+# Los demos y ejemplos de LVGL arrastran cientos de KB de imagenes y, al
+# exportar sus simbolos a las apps dinamicas, terminan linkeados si o si.
+CONFIG_LV_BUILD_EXAMPLES=n
+CONFIG_LV_BUILD_DEMOS=n
+
+# --- Cargador de apps dinamicas ----------------------------------------
+CONFIG_ELF_LOADER=y
+CONFIG_ELF_DYNAMIC_LOAD_SHARED_OBJECT=y
+CONFIG_ELF_FILE_SYSTEM_BASE_PATH="/sdcard"
+# NO cargar el ELF en PSRAM. En el S3, con BUS_ADDRESS_MIRROR (el default del
+# chip), el cargador reserva el .text con MALLOC_CAP_SPIRAM -> direccion del bus
+# de datos, y las entradas de su tabla de simbolos no pasan por
+# elf_remap_text(): dlsym devuelve punteros no ejecutables y saltar ahi es un
+# InstructionFetchError. Ademas el mapeo de instrucciones a PSRAM lo arma el
+# arranque para el codigo del firmware, no para memoria del heap.
+# Sin esta opcion el .text va a RAM interna ejecutable (MALLOC_CAP_EXEC).
+CONFIG_ELF_LOADER_LOAD_PSRAM=n
+CONFIG_ELF_LOADER_LIBC_SYMBOLS=y
+CONFIG_ELF_LOADER_ESPIDF_SYMBOLS=y
+CONFIG_ELF_LOADER_CUSTOMER_SYMBOLS=y
+# OJO CON EL NOMBRE: no es "cuantos simbolos", es cuantas TABLAS de simbolos se
+# pueden registrar (g_symbol_tables en esp_elf.c es un array de PUNTEROS a
+# tabla). Estaba en 4096 -el tope del rango-, seguramente leyendolo como "los
+# 2373 simbolos de aos_symbols.c entran holgados": eran 16 KB de RAM INTERNA
+# llenos de punteros nulos que nadie usa nunca, porque el firmware exporta su
+# tabla por ESP_ELFSYM_EXPORT y no llama a esp_elf_register_symbol ni una vez.
+CONFIG_ELF_LOADER_NUMBER_SYMBOLS=4
+
+# --- BSP ----------------------------------------------------------------
+# El BSP pide el buffer de LVGL sin marcarlo apto para DMA, asi que cae en
+# PSRAM y el driver SPI se arma una copia interna del tamano de la transferencia.
+# Con 120 lineas eso son 88 KB de RAM interna que no existen. Con 24 son 17 KB.
+CONFIG_BSP_DISPLAY_LVGL_BUF_HEIGHT=24
+CONFIG_BSP_SD_FORMAT_ON_MOUNT_FAIL=n
+CONFIG_BSP_SPIFFS_FORMAT_ON_MOUNT_FAIL=y
+
+# --- microSD: nombres de archivo largos --------------------------------------
+# Por defecto FATFS viene en 8.3, y con eso "hello_app.so" (9 caracteres antes
+# del punto) directamente no se ve, ni una foto con nombre normal. El buffer de
+# nombre largo va al heap, que con SPIRAM_USE_MALLOC cae en PSRAM.
+CONFIG_FATFS_LFN_HEAP=y
+CONFIG_FATFS_MAX_LFN=255
+CONFIG_FATFS_API_ENCODING_UTF_8=y
+CONFIG_FATFS_CODEPAGE_850=y
+
+# --- Recuperar IRAM para el codigo de las apps -------------------------------
+# LVGL necesita su IRAM para dibujar rapido, asi que la sacamos de otro lado.
+# El wifi ubica parte de su pila en IRAM para exprimir el rendimiento de radio;
+# en un reloj que solo la usa para el portal web, eso es IRAM regalada.
+# FreeRTOS tambien puede vivir en flash: cuesta unos ciclos por llamada.
+CONFIG_ESP_WIFI_IRAM_OPT=n
+CONFIG_ESP_WIFI_RX_IRAM_OPT=n
+CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y
+CONFIG_FREERTOS_PLACE_SNAPSHOT_FUNS_INTO_FLASH=y
+
+# Los buferes de CAPA salen del heap de LVGL. Con el pool propio de 64 KB, una
+# capa que no entra hace que lv_draw_layer_alloc_buf devuelva NULL, dispatch
+# conteste LV_DRAW_UNIT_IDLE y LVGL REINTENTE PARA SIEMPRE: 100% de CPU,
+# watchdog cada 5 s y pantalla congelada. No aborta nunca. Pasando LVGL al
+# malloc del sistema el techo pasa a ser la PSRAM (6,4 MB) en vez de 64 KB.
+# Con SPIRAM_MALLOC_ALWAYSINTERNAL=4096 lo chico sigue cayendo en RAM interna
+# (rapida) y solo los buferes grandes van a PSRAM.
+CONFIG_LV_USE_CLIB_MALLOC=y
+
+# Pendiente: CONFIG_LV_DRAW_SW_DRAW_UNIT_CNT=2 repartiria el dibujo entre los dos
+# nucleos, pero exige LV_USE_OS, que agrega un campo a lv_global_t. Eso cambia el
+# layout compartido con las apps dinamicas: habria que recompilarlas TODAS y
+# volver a copiarlas a la SD, y ademas puede chocar con el mutex de esp_lvgl_port.
+
+# La cache de imagenes venia APAGADA (LV_CACHE_DEF_SIZE=0 y header cache en 0),
+# asi que cada dibujo de un canvas reabria el decodificador y recorria todos los
+# decodificadores registrados. Es el mismo camino que aparecio en el backtrace
+# del cuelgue (lv_image_decoder_open -> decoder_info de tjpgd). Claudito y 2043
+# redibujan un canvas a pantalla completa cada cuadro, o sea que lo pagaban 7
+# veces por segundo... y por eso iban a 7 fps.
+# Verificado en lv_global.h: img_cache e img_header_cache son punteros sin #if,
+# asi que esto NO cambia el layout y NO obliga a recompilar las apps.
+# OJO: esto NO es solo una cache de rendimiento. Si una imagen decodificada no
+# entra, lv_lodepng.c la DESTRUYE y devuelve LV_RESULT_INVALID: la foto no se ve.
+# Y con 0 es peor todavia, porque lv_cache_add() devuelve NULL de entrada.
+# Una foto a pantalla completa decodificada son 368*448*2 = 330 KB, asi que el
+# presupuesto tiene que dar para varias. Es un presupuesto, no una reserva: la
+# memoria sale de lv_malloc cuando hace falta, y con este tamano va a PSRAM.
+CONFIG_LV_CACHE_DEF_SIZE=4194304
+CONFIG_LV_IMAGE_HEADER_CACHE_DEF_CNT=32
+
+# El watchdog venia en modo "solo avisar": ante un cuelgue imprimia cada 5 s y
+# la placa quedaba muerta hasta cortarle la alimentacion con el boton 10 s.
+# Con PANIC reinicia sola y vuelve en unos segundos. No tapa el bug de fondo,
+# pero un reloj que se reinicia es muchisimo mejor que uno que hay que resucitar.
+CONFIG_ESP_TASK_WDT_PANIC=y
+
+# --- Memoria de WiFi ---------------------------------------------------------
+# El .text de las apps dinamicas sale de RAM interna (MALLOC_CAP_EXEC), la misma
+# de la que come la pila de WiFi. Con la red levantada, la memoria ejecutable
+# caia de 184 KB a 93 KB y las apps grandes (2043, gemas) ya no entraban.
+# Los buffers de transmision dinamicos no se pueden usar: el choice de ESP-IDF
+# los deshabilita cuando esta SPIRAM_TRY_ALLOCATE_WIFI_LWIP. Se bajan cantidades.
+CONFIG_ESP_WIFI_STATIC_TX_BUFFER_NUM=8
+CONFIG_ESP_WIFI_CACHE_TX_BUFFER_NUM=16
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=8
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=16
+CONFIG_ESP_WIFI_RX_BA_WIN=8
+CONFIG_ESP_WIFI_MGMT_SBUF_NUM=16
+
+# Mueve el .bss de lwip, net80211, pp y wpa_supplicant a PSRAM. No son reservas
+# de malloc (para eso ya esta SPIRAM_TRY_ALLOCATE_WIFI_LWIP) sino variables
+# globales que se ubican AL ENLAZAR: cada componente trae el esquema
+# 'extram_bss' en su linker.lf y esta opcion lo activa.
+#
+# Ojo: una variable en PSRAM no se puede tocar con la cache deshabilitada
+# (escrituras a flash). ESP-IDF lo contempla para estas bibliotecas, pero es el
+# mismo motivo por el que NO movemos pilas de tareas.
+#
+# No arregla fragmentacion; sube el total. Se activa DESPUES de resolver la
+# fragmentacion con la reserva de codigo, para que la mejora sea atribuible.
+CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
+
+# --- TLS ---------------------------------------------------------------------
+# Los cuatro ajustes salen de medir en la placa, no de suponer: los numeros
+# estan en docs/HANDOFF-HAL-RED-MIC.md seccion 3.1. Ninguno es un CONFIG_LV_*,
+# asi que NO obligan a recompilar las apps de la microSD; solo a reflashear.
+#
+# El decisivo. Sin el, un handshake se lleva 34,6 KB de RAM INTERNA sostenidos
+# y 42,5 de pico, y —medido con MALLOC_CAP_EXEC aparte— sale del MISMO pool del
+# que se reserva el .text de los .so: con un tunel abierto quedaban 12,6 KB
+# ejecutables de 47,3, o sea que la reserva de 48 KB de las apps desaparecia
+# mientras hubiera una consulta. Peor: dos peticiones a la vez hundian la
+# interna a 22 KB, por debajo de los ~26 KB donde el incidente de la esfera de
+# palabras midio que empiezan a fallar los buffers de DMA del volcado.
+# Con esto prendido: 3,5 KB internos, y dos a la vez dejan 93 KB libres sin
+# fragmentar el bloque grande. Por eso HTTP_SLOTS puede quedarse en 3.
+CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC=y
+
+# Ya no decide nada —con lo de arriba todo vive en PSRAM, que sobra— pero baja
+# el consumo de PSRAM por conexion de 31,6 KB a 10,3 por 3 KB de flash.
+# OJO: MBEDTLS_DYNAMIC_FREE_PEER_CERT NO EXISTE en IDF 5.5 y Kconfig lo ignora
+# en silencio. Se llama MBEDTLS_DYNAMIC_FREE_CA_CERT y lo selecciona este solo.
+CONFIG_MBEDTLS_DYNAMIC_BUFFER=y
+CONFIG_MBEDTLS_DYNAMIC_FREE_CONFIG_DATA=y
+
+# El bundle CMN son 48 KB menos de flash que el FULL de 200 certificados, y
+# medido valida los mismos servidores (api.open-meteo.com, www.howsmyssl.com).
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_DEFAULT_FULL=n
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_DEFAULT_CMN=y
+
+# Viene APAGADO de fabrica en ESP-IDF, y con eso mbedtls ignora las fechas
+# 'valid from' y 'valid to' de TODOS los certificados: medido moviendo el reloj
+# de la placa a 2015, el handshake salia igual y contestaba HTTP 200. O sea que
+# la creencia de que "una placa sin hora no puede hacer HTTPS" era al reves.
+# Prenderlo cuesta 580 bytes de flash y nada de RAM, y a cambio la placa deja
+# de aceptar certificados vencidos. El precio es que ahora SI hay un orden en
+# el arranque en frio (hora primero), y por eso existe AOS_HTTP_ERR_SIN_HORA.
+CONFIG_MBEDTLS_HAVE_TIME_DATE=y
+
+#
+# BLE (fase F0: medicion). Ver docs/HANDOFF-BLE-ANCS.md
+#
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+CONFIG_BT_BLUEDROID_ENABLED=n
+CONFIG_BT_NIMBLE_NVS_PERSIST=y
+CONFIG_BT_NIMBLE_ROLE_BROADCASTER=n
+CONFIG_BT_NIMBLE_ROLE_OBSERVER=n
+CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1
+# CONFIG_BT_CTRL_BLE_MAX_ACT: se dejo en el valor por defecto (6). Puesto en 2
+# -para ahorrar 3,3 KB- el controlador contestaba 0x207, 'Memory Capacity
+# Exceeded'. Ver docs/HANDOFF-BLE-ANCS.md.
+CONFIG_BT_NIMBLE_MEM_ALLOC_MODE_INTERNAL=n
+CONFIG_BT_NIMBLE_MEM_ALLOC_MODE_EXTERNAL=y
+CONFIG_BT_CTRL_RUN_IN_FLASH_ONLY=y
+
+# Cuatro es el valor de fabrica y alcanza justo. Ocho da aire para que un
+# reintento no se pise con una suscripcion. Ver docs/HANDOFF-BLE-ANCS.md.
+CONFIG_BT_NIMBLE_GATT_MAX_PROCS=8

@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  /* Pestanas del explorador de archivos. No son las paginas del portal -esas
+     las dibuja aos.js en .paginas- sino carpetas de esta misma pagina. */
+  .carpetas { display: flex; gap: 8px; margin-bottom: 16px; }
+  .carpetas button {
+    flex: 1; padding: 10px; border-radius: 12px;
+    background: var(--card); color: var(--dim); font-weight: 500;
+  }
+  .carpetas button.on { background: var(--accent); color: #fff; }
+
+  #soltar {
+    border: 2px dashed var(--card2); border-radius: 18px; padding: 28px 16px;
+    text-align: center; color: var(--dim); margin-bottom: 18px;
+    transition: border-color .15s, background .15s;
+  }
+  #soltar.caliente { border-color: var(--accent); background: rgba(10,132,255,.08); }
+  #soltar b { color: var(--text); }
+  #elegir { color: var(--accent); text-decoration: underline; cursor: pointer; }
+
+  ul.lista li a.act {
+    background: var(--card2); color: var(--accent); text-decoration: none;
+    border-radius: 9px; padding: 6px 12px; font-size: 13px; white-space: nowrap;
+  }
+  ul.lista li button { padding: 6px 12px; font-size: 13px; border-radius: 9px;
+                       background: var(--card2); color: var(--red); }
+  .vacio { color: var(--dim); text-align: center; padding: 26px; }
+
+  #barra { height: 4px; background: var(--card2); border-radius: 2px;
+           overflow: hidden; margin-bottom: 14px; display: none; }
+  #barra i { display: block; height: 100%; width: 0; background: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>AmoledOS</h1>
+    <span class="ver" id="ver"></span>
+  </div>
+  <p class="sub" id="estado" data-t="conectando">conectando...</p>
+
+  <nav class="paginas"></nav>
+
+  <div class="carpetas">
+    <button data-dir="apps" class="on" data-t="car_apps">Apps</button>
+    <button data-dir="photos" data-t="car_fotos">Fotos</button>
+    <button data-dir="music" data-t="car_musica">Musica</button>
+    <button data-dir="recordings" data-t="car_grab">Grabaciones</button>
+  </div>
+
+  <div id="soltar">
+    <span data-t="soltar_aca">Arrastra archivos aca o</span>
+    <span id="elegir" data-t="elegilos">elegilos</span><br>
+    <b id="pista-soltar"></b>
+  </div>
+  <input type="file" id="archivo" multiple hidden>
+
+  <div id="barra"><i></i></div>
+  <ul class="lista" id="lista"></ul>
+  <p class="sub" id="pista"></p>
+</div>
+<div id="brindis"></div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    conectando: "connecting...",
+    car_apps: "Apps", car_fotos: "Photos", car_musica: "Music",
+    car_grab: "Recordings",
+    soltar_aca: "Drop files here or",
+    elegilos: "pick them",
+    sin_conexion: "no connection to the watch",
+    vacio: "no files yet",
+    act_escuchar: "listen", act_bajar: "download", act_borrar: "delete",
+    confirmar: "Delete %s?",
+    borrado: "deleted", listo: "done", fallo: "failed ",
+    est_bateria: "battery", est_micro: "microSD", est_si: "yes", est_no: "no",
+    d_apps: ".so built for ESP32-S3",
+    h_apps: "Apps load at boot. After uploading one, restart the watch.",
+    d_fotos: ".jpg, .png or .bmp",
+    h_fotos: "They look best at 368x448. Bigger ones are rescaled on the fly.",
+    d_musica: ".wav or .mp3",
+    h_musica: "16-bit PCM WAV is the one that costs the least CPU.",
+    d_grab: ".wav you want to keep on the watch",
+    h_grab: "What the Recorder app makes: 16-bit mono PCM WAV at 16 kHz. " +
+            "Listening opens them in the browser player; to seek, download it."
+  },
+  de: {
+    conectando: "wird verbunden...",
+    car_apps: "Apps", car_fotos: "Fotos", car_musica: "Musik",
+    car_grab: "Aufnahmen",
+    soltar_aca: "Dateien hierher ziehen oder",
+    elegilos: "auswaehlen",
+    sin_conexion: "keine Verbindung zur Uhr",
+    vacio: "noch keine Dateien",
+    act_escuchar: "anhoeren", act_bajar: "laden", act_borrar: "loeschen",
+    confirmar: "%s loeschen?",
+    borrado: "geloescht", listo: "fertig", fallo: "fehlgeschlagen ",
+    est_bateria: "Akku", est_micro: "microSD", est_si: "ja", est_no: "nein",
+    d_apps: ".so fuer den ESP32-S3 gebaut",
+    h_apps: "Apps werden beim Start geladen. Nach dem Hochladen die Uhr neu starten.",
+    d_fotos: ".jpg, .png oder .bmp",
+    h_fotos: "Am besten in 368x448. Groessere werden im Flug skaliert.",
+    d_musica: ".wav oder .mp3",
+    h_musica: "16-Bit-PCM-WAV braucht am wenigsten CPU.",
+    d_grab: ".wav, die du auf der Uhr behalten willst",
+    h_grab: "Was die Recorder-App aufnimmt: 16-Bit-PCM-WAV mono mit 16 kHz. " +
+            "Anhoeren oeffnet sie im Browser-Player; zum Spulen herunterladen."
+  }
+};
+
+/* El espanol vive en el HTML; aca solo lo que arma el JavaScript. */
+const ES = {
+  sin_conexion: "sin conexión con el reloj",
+  vacio: "no hay archivos todavía",
+  act_escuchar: "escuchar", act_bajar: "bajar", act_borrar: "borrar",
+  confirmar: "¿Borrar %s?",
+  borrado: "borrado", listo: "listo", fallo: "falló ",
+  est_bateria: "batería", est_micro: "microSD", est_si: "sí", est_no: "no",
+  d_apps: ".so compilados para ESP32-S3",
+  h_apps: "Las apps se cargan al arrancar. Después de subir una, reiniciá el reloj.",
+  d_fotos: ".jpg, .png o .bmp",
+  h_fotos: "Se ven mejor a 368x448. Las más grandes se reescalan al vuelo.",
+  d_musica: ".wav o .mp3",
+  h_musica: "WAV PCM 16 bits es lo que menos CPU consume.",
+  d_grab: ".wav que quieras dejar en el reloj",
+  h_grab: "Lo que graba la app Grabadora: WAV PCM 16 bits mono a 16 kHz. " +
+          "Escucharlas las abre en el reproductor del navegador; para adelantar, bajala."
+};
+
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? ES[k] : v; }
+
+/* Cada carpeta con su pista: que se puede subir, y que conviene saber. */
+const PISTAS = {
+  apps:       { soltar: "d_apps",   pie: "h_apps"   },
+  photos:     { soltar: "d_fotos",  pie: "h_fotos"  },
+  music:      { soltar: "d_musica", pie: "h_musica" },
+  recordings: { soltar: "d_grab",   pie: "h_grab"   }
+};
+
+let dir = "apps";
+const listaEl = $("lista"), barraEl = $("barra"), rellenoEl = barraEl.firstElementChild;
+
+function humano(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / 1024 / 1024).toFixed(1) + " MB";
+}
+
+function pintarPistas() {
+  $("pista-soltar").textContent = t(PISTAS[dir].soltar);
+  $("pista").textContent = t(PISTAS[dir].pie);
+}
+
+async function refrescar() {
+  listaEl.innerHTML = "";
+  let datos;
+  try {
+    datos = await (await fetch(`/api/list?dir=${dir}`)).json();
+  } catch (e) {
+    listaEl.innerHTML = '<div class="vacio">' + aos.esc(t("sin_conexion")) + "</div>";
+    return;
+  }
+  if (!datos.files || !datos.files.length) {
+    listaEl.innerHTML = '<div class="vacio">' + aos.esc(t("vacio")) + "</div>";
+    return;
+  }
+  for (const f of datos.files) {
+    const li = document.createElement("li");
+    const nombre = document.createElement("span");
+    nombre.className = "nombre";
+    /* El nombre sale de la tarjeta, o sea de afuera: textContent siempre. */
+    nombre.textContent = f.name;
+    const tam = document.createElement("span");
+    tam.className = "detalle";
+    tam.textContent = humano(f.size);
+    const url = `/api/download?dir=${dir}&name=${encodeURIComponent(f.name)}`;
+
+    /* Escuchar solo donde tiene sentido. El enlace va sin "dl", asi que el
+       reloj lo manda inline y lo abre el reproductor del navegador. */
+    let sonar = null;
+    if (/\.(wav|mp3)$/i.test(f.name)) {
+      sonar = document.createElement("a");
+      sonar.className = "act";
+      sonar.textContent = t("act_escuchar");
+      sonar.href = url;
+      sonar.target = "_blank";
+      sonar.rel = "noopener";
+    }
+
+    const bajar = document.createElement("a");
+    bajar.className = "act";
+    bajar.textContent = t("act_bajar");
+    bajar.href = url + "&dl=1";
+
+    const borrar = document.createElement("button");
+    borrar.textContent = t("act_borrar");
+    borrar.onclick = async () => {
+      if (!confirm(t("confirmar").replace("%s", f.name))) return;
+      await fetch(`/api/delete?dir=${dir}&name=${encodeURIComponent(f.name)}`,
+                  { method: "POST" });
+      aos.brindis(t("borrado"));
+      refrescar();
+    };
+    li.append(nombre, tam);
+    if (sonar) li.append(sonar);
+    li.append(bajar, borrar);
+    listaEl.append(li);
+  }
+}
+
+async function subir(archivos) {
+  barraEl.style.display = "block";
+  for (let i = 0; i < archivos.length; i++) {
+    const f = archivos[i];
+    rellenoEl.style.width = (i / archivos.length * 100) + "%";
+    try {
+      const res = await fetch(
+        `/api/upload?dir=${dir}&name=${encodeURIComponent(f.name)}`,
+        { method: "POST", body: f });
+      if (!res.ok) throw new Error(await res.text());
+    } catch (e) {
+      aos.brindis(t("fallo") + f.name);
+      break;
+    }
+  }
+  rellenoEl.style.width = "100%";
+  setTimeout(() => { barraEl.style.display = "none"; rellenoEl.style.width = "0"; }, 400);
+  aos.brindis(t("listo"));
+  refrescar();
+}
+
+async function estado() {
+  try {
+    const s = await (await fetch("/api/status")).json();
+    $("ver").textContent = s.version || "";
+    $("estado").innerHTML =
+      `${aos.esc(t("est_bateria"))} <b>${s.battery}%</b> &nbsp; ` +
+      `RAM <b>${Math.round(s.heap / 1024)} KB</b> &nbsp; ` +
+      `PSRAM <b>${Math.round(s.psram / 1024)} KB</b> &nbsp; ` +
+      `${aos.esc(t("est_micro"))} <b>${s.sd ? aos.esc(t("est_si")) : aos.esc(t("est_no"))}</b>`;
+  } catch (e) {
+    $("estado").textContent = t("sin_conexion");
+  }
+}
+
+document.querySelectorAll(".carpetas button").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll(".carpetas button").forEach(x => x.classList.remove("on"));
+    b.classList.add("on");
+    dir = b.dataset.dir;
+    pintarPistas();
+    refrescar();
+  };
+});
+
+const zona = $("soltar"), entrada = $("archivo");
+$("elegir").onclick = () => entrada.click();
+entrada.onchange = () => subir(entrada.files);
+zona.ondragover = e => { e.preventDefault(); zona.classList.add("caliente"); };
+zona.ondragleave = () => zona.classList.remove("caliente");
+zona.ondrop = e => {
+  e.preventDefault();
+  zona.classList.remove("caliente");
+  subir(e.dataTransfer.files);
+};
+
+aos.init(TR).then(() => {
+  pintarPistas();
+  estado();
+  refrescar();
+  setInterval(estado, 10000);
+});
+</script>
+</body>
+</html>
