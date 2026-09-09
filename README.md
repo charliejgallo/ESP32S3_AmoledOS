@@ -16,6 +16,17 @@ code so you can build the whole thing without the board.
 Everything else below comes from the simulator, which draws the same
 pixels.</em></p>
 
+<p align="center">
+  <img src="docs/img/photo-claudito.jpg" width="220" alt="Claudito running on the board, in a printed case">
+  <img src="docs/img/photo-arkanos.jpg" width="220" alt="Arkanos running on the board">
+  <img src="docs/img/photo-case.jpg" width="220" alt="The analog watchface, in the TPU case">
+</p>
+
+<p align="center"><em>And the thing itself. The grey case is printed in TPU —
+the STLs are on
+<a href="https://www.printables.com/model/1837479-waveshare-esp32-s3-touch-amoled-18-tpu-case">Printables</a>,
+in a plain and a keychain version.</em></p>
+
 ---
 
 ## What it does
@@ -92,15 +103,29 @@ plot, and the whole remote-control profile.
 
 ## The apps
 
-Eighteen are built into the firmware: activity, stopwatch, timer, pomodoro,
-world clock, alarms, calendar, music, BT control, photos, flashlight, spirit
-level, calculator, unit converter, Game of Life, battery, notifications and
-settings.
+Thirty-nine of them, in two families that differ in where the code lives, not
+in what they are allowed to do.
 
-Twenty-one more live in [`apps/`](apps/) and are loaded from
-`/sdcard/apps` as `.so` files at startup. The same source builds into the
-simulator, so they are designed on a laptop and copied to the card without
-changing a line.
+### Built into the firmware
+
+Eighteen ship inside the binary. They are the ones the watch cannot be without
+— if the microSD is out, these still work.
+
+| | | |
+|---|---|---|
+| <img src="docs/img/int-activity.png" width="200"><br>**Actividad** — steps and movement from the QMI8658, with the day's history. | <img src="docs/img/int-stopwatch.png" width="200"><br>**Cronómetro** — laps, and it keeps counting with the screen off. | <img src="docs/img/int-timer.png" width="200"><br>**Temporizador** — countdown with presets, and it rings through the speaker. |
+| <img src="docs/img/int-pomodoro.png" width="200"><br>**Pomodoro** — work and break cycles, with the day's tally kept across restarts. | <img src="docs/img/int-worldclock.png" width="200"><br>**Reloj mundial** — several cities at once, each with its own offset. | <img src="docs/img/int-alarm.png" width="200"><br>**Alarmas** — repeating alarms per weekday, checked by a service that runs whatever app is open. |
+| <img src="docs/img/int-calendar.png" width="200"><br>**Calendario** — the month, drawn with the week starting on Monday. | <img src="docs/img/int-notifs.png" width="200"><br>**Notificaciones** — the iPhone's, over ANCS: history, per-category filter and actions. | <img src="docs/img/int-btremote.png" width="200"><br>**Control BT** — the phone's music over AMS: title, artist, album and transport. |
+| <img src="docs/img/int-music.png" width="200"><br>**Música** — plays WAV from the card through the ES8311 codec. | <img src="docs/img/int-photos.png" width="200"><br>**Fotos** — JPEG, PNG and BMP from the card, decoded and scaled to the screen. | <img src="docs/img/int-flashlight.png" width="200"><br>**Linterna** — the panel at full white, which on an AMOLED is the only way to make light. |
+| <img src="docs/img/int-level.png" width="200"><br>**Nivel** — a spirit level off the accelerometer, with the bubble and the angle in degrees. | <img src="docs/img/int-calc.png" width="200"><br>**Calculadora** — four operations, sized for a thumb rather than for density. | <img src="docs/img/int-convert.png" width="200"><br>**Conversor** — units across several families, with the keypad shared with the calculator. |
+| <img src="docs/img/int-battery.png" width="200"><br>**Batería** — what the AXP2101 reports: charge, voltage and whether it is charging. | <img src="docs/img/app-life.png" width="200"><br>**Vida** — Conway's Game of Life and Langton's ant on a 92x92 grid. | <img src="docs/img/settings-en.png" width="200"><br>**Ajustes** — brightness, always-on, language, wifi, bluetooth, watchface and the touch calibration. |
+
+### Loaded from the microSD
+
+Twenty-one more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
+`.so` files at startup. The same source builds into the simulator, so they are
+designed on a laptop and copied to the card without changing a line — and a new
+one needs no firmware rebuild.
 
 | | | |
 |---|---|---|
@@ -109,10 +134,9 @@ changing a line.
 | <img src="docs/img/app-claudito.png" width="200"><br>**Claudito** — a virtual pet, entirely hand-drawn pixel art on a 92x112 grid. | <img src="docs/img/app-truco.png" width="200"><br>**Truco** — Argentine truco against the machine, with cards drawn in code and a matchstick scoreboard. | <img src="docs/img/app-atasco.png" width="200"><br>**Atasco** — a sliding block puzzle. 25 levels, each with a BFS-verified minimum move count. |
 | <img src="docs/img/app-clima.png" width="200"><br>**Clima** — weather from Open-Meteo over HTTPS, with the icons drawn from shape descriptions at any size. | <img src="docs/img/app-remoto.png" width="200"><br>**Remoto** — a programmable Home Assistant remote: button pages, accelerometer gestures and a dial you turn with your wrist. | <img src="docs/img/app-sensores.png" width="200"><br>**Sensores** — up to four Home Assistant sensors with three hours of chart, sampled by the watch itself. |
 | <img src="docs/img/app-tuner.png" width="200"><br>**Afinador** — a chromatic tuner (NSDF pitch detection) and a sound level meter with A weighting. | <img src="docs/img/app-recorder.png" width="200"><br>**Recorder** — voice memos to WAV on the card, with a live waveform. | <img src="docs/img/app-mines.png" width="200"><br>**Buscaminas** — minesweeper on a single canvas, because 250 LVGL objects do not fit in internal RAM. |
-| <img src="docs/img/app-maze.png" width="200"><br>**Laberinto** — a ball rolling through a generated maze, driven by tilting the board. | <img src="docs/img/app-cotiz.png" width="200"><br>**Cotizaciones** — exchange rates, configured from the portal. | <img src="docs/img/app-life.png" width="200"><br>**Vida** — Conway's Game of Life and Langton's ant on a 92x92 grid. |
-
-Plus Flappy, Simon, Dados, Escáner (a WiFi/LAN survey) and `hello_app`, the
-30-line template.
+| <img src="docs/img/app-maze.png" width="200"><br>**Laberinto** — a ball rolling through a generated maze, driven by tilting the board. | <img src="docs/img/app-cotiz.png" width="200"><br>**Cotizaciones** — exchange rates, configured from the portal. | <img src="docs/img/app-scanner.png" width="200"><br>**Escáner** — a WiFi and LAN survey: networks around you, hosts and open ports, written to the card as NDJSON. |
+| <img src="docs/img/app-flappy.png" width="200"><br>**Flappy** — one button, one bird, the usual pipes. | <img src="docs/img/app-simon.png" width="200"><br>**Simon** — the colour-and-sound memory game, each pad with its own tone. | <img src="docs/img/app-dice.png" width="200"><br>**Dados** — dice of any number of sides, rolled by shaking the watch. |
+| <img src="docs/img/app-hello.png" width="200"><br>**hello_app** — the 30-line template. It is what you copy to start one of your own; see [docs/APP-API.md](docs/APP-API.md). | | |
 
 ## Flash it without building
 
