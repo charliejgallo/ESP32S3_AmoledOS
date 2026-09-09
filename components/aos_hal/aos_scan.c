@@ -710,7 +710,7 @@ static void fase_mdns(FILE *f)
     }
 
     s_total = n_tipos ? n_tipos : 1;
-    ESP_LOGI(TAG, "mDNS: %d tipos a consultar", n_tipos);
+    ESP_LOGI(TAG, "mDNS: %d types to query", n_tipos);
 
     int nombres = 0;
     char ip_s[20], nombre[80], serv[48];

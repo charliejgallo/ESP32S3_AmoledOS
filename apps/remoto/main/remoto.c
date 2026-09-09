@@ -622,7 +622,7 @@ static void load_profile(rc_app_t *a)
     a->tpl = rc_build_template(a->prof);
     rc_tilt_reset(&a->tilt, &a->prof->gcfg, gesture_mask(a->prof));
     a->page = 0;
-    aos_hal_log("remoto", "perfil: %d paginas, %d estados",
+    aos_hal_log("remoto", "profile: %d pages, %d states",
                 a->prof->n_pages, a->prof->n_states);
 }
 

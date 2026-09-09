@@ -343,7 +343,7 @@ static bool module_open(const char *filename, void **out_handle, aos_app_t *out_
 
     void *handle = dlopen(relative, RTLD_NOW);
     if (!handle) {
-        ESP_LOGE(TAG, "dlopen(%s) fallo: %s", relative, dlerror());
+        ESP_LOGE(TAG, "dlopen(%s) failed: %s", relative, dlerror());
         /* The map of the executable heap: it distinguishes "there is no
          * memory" from "there is, but in pieces". With 54 KB free and the
          * largest hole at 36 KB, a 45 KB app does not fit even though the

@@ -33,7 +33,7 @@ static void detect_variant(i2c_master_bus_handle_t bus)
     } else {
         s_variant = AOS_BOARD_UNKNOWN;
     }
-    ESP_LOGI(TAG, "variante detectada: %s", aos_board_variant_name());
+    ESP_LOGI(TAG, "variant detected: %s", aos_board_variant_name());
 }
 
 esp_err_t aos_board_init(void)

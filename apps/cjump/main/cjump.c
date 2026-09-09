@@ -1188,7 +1188,7 @@ static void *cjump_create(aos_app_t *self, lv_obj_t *root)
 
     uint32_t heap_int = 0, heap_psram = 0;
     aos_hal_heap_info(&heap_int, &heap_psram);
-    aos_hal_log("cjump", "abriendo | interna %u B, psram %u B",
+    aos_hal_log("cjump", "opening | internal %u B, psram %u B",
                 (unsigned)heap_int, (unsigned)heap_psram);
 
     /* Five buffers, all through malloc() and not lv_malloc(): with
@@ -1371,7 +1371,7 @@ static void *cjump_create(aos_app_t *self, lv_obj_t *root)
 #endif
 
     aos_hal_heap_info(&heap_int, &heap_psram);
-    aos_hal_log("cjump", "listo | interna %u B, psram %u B | campo %dx%d x%d",
+    aos_hal_log("cjump", "ready | internal %u B, psram %u B | field %dx%d x%d",
                 (unsigned)heap_int, (unsigned)heap_psram, CJ_W, CJ_H, CJ_SCALE);
 
     a->period = FRAME_MS;
@@ -1414,7 +1414,7 @@ static void cjump_destroy(aos_app_t *self, void *inst)
     prefs_save_all(a);
     prefs_save_opts(a);
 
-    aos_hal_log("cjump", "cerrando | record %u m, %u monedas, disfraz %d",
+    aos_hal_log("cjump", "closing | best %u m, %u coins, costume %d",
                 (unsigned)a->g.hiscore, (unsigned)a->coins_total, a->g.skin);
 
     free(a->fbmem);

@@ -585,7 +585,7 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
 
     uint32_t hint = 0, hpsram = 0;
     aos_hal_heap_info(&hint, &hpsram);
-    aos_hal_log("chatarra", "abriendo | interna %u B, psram %u B",
+    aos_hal_log("chatarra", "opening | internal %u B, psram %u B",
                 (unsigned)hint, (unsigned)hpsram);
 
     a->fbmem = (uint16_t *)malloc(chico);

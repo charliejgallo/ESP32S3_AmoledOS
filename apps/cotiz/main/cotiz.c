@@ -304,7 +304,7 @@ static void pedir(bool monedas)
     s_cz.pidiendo_monedas = monedas;
     s_cz.req = aos_hal_http_get(monedas ? cz_url_monedas() : cz_url_dolares(),
                                 CZ_BUF_BYTES);
-    aos_hal_log("cotiz", "pidiendo %s -> id %d", monedas ? "monedas" : "dolares",
+    aos_hal_log("cotiz", "requesting %s -> id %d", monedas ? "cotizaciones" : "dolares",
                 s_cz.req);
 }
 
@@ -348,8 +348,8 @@ static void mirar_respuesta(void)
         const char *cuerpo = aos_hal_http_body(s_cz.req);
         int len = aos_hal_http_len(s_cz.req);
         int n = cuerpo ? cz_parse(cuerpo, len, &s_cz.datos) : 0;
-        aos_hal_log("cotiz", "%s: %d bytes, %d especies",
-                    era_monedas ? "monedas" : "dolares", len, n);
+        aos_hal_log("cotiz", "%s: %d bytes, %d instruments",
+                    era_monedas ? "cotizaciones" : "dolares", len, n);
         if (n > 0) {
             s_cz.hubo_datos  = true;
             s_cz.fetched_ms  = (uint32_t)aos_hal_uptime_ms();
@@ -358,8 +358,8 @@ static void mirar_respuesta(void)
     } else {
         int motivo = aos_hal_http_status(s_cz.req);
         s_cz.ultimo_error = motivo;
-        aos_hal_log("cotiz", "%s fallo: motivo %d",
-                    era_monedas ? "monedas" : "dolares", motivo);
+        aos_hal_log("cotiz", "%s failed: reason %d",
+                    era_monedas ? "cotizaciones" : "dolares", motivo);
         /* With no time a certificate cannot be verified, and that fixes itself
          * as soon as SNTP lands. It retries instead of leaving the screen
          * empty until somebody opens the app again. */

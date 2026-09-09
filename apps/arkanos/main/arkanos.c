@@ -814,7 +814,7 @@ static void *arkanos_create(aos_app_t *self, lv_obj_t *root)
      * line says which stage it was in. */
     uint32_t heap_int = 0, heap_psram = 0;
     aos_hal_heap_info(&heap_int, &heap_psram);
-    aos_hal_log("arkanos", "abriendo | interna %u B, psram %u B",
+    aos_hal_log("arkanos", "opening | internal %u B, psram %u B",
                 (unsigned)heap_int, (unsigned)heap_psram);
 
     /* Three buffers, all through malloc() and not lv_malloc(): with
@@ -931,7 +931,7 @@ static void *arkanos_create(aos_app_t *self, lv_obj_t *root)
 #endif
 
     aos_hal_heap_info(&heap_int, &heap_psram);
-    aos_hal_log("arkanos", "listo | interna %u B, psram %u B | campo %dx%d x%d",
+    aos_hal_log("arkanos", "ready | internal %u B, psram %u B | field %dx%d x%d",
                 (unsigned)heap_int, (unsigned)heap_psram, AK_W, AK_H, AK_SCALE);
 
     a->period = AK_FRAME_START;

@@ -81,7 +81,7 @@ void app_main(void)
     /* Dynamic apps: every .so in /sdcard/apps is loaded and registered in the
      * menu as one more app. */
     int loaded = aos_dynapp_scan();
-    ESP_LOGI(TAG, "apps dinamicas cargadas: %d", loaded);
+    ESP_LOGI(TAG, "dynamic apps loaded: %d", loaded);
 
     /* This is where the BLE stack will start in phase F5. The F0 measurement
      * script -aos_ble_measure_start()- was left in components/aos_ble/ with
@@ -147,8 +147,8 @@ void app_main(void)
             char cargadas[160];
             int n = aos_dynapp_loaded_list(cargadas, sizeof(cargadas));
             if (n > 0) {
-                ESP_LOGI(TAG, "  %d .so siguen cargados (%u K ejecutable "
-                              "libre): %s", n,
+                ESP_LOGI(TAG, "  %d .so still loaded (%u K executable "
+                              "free): %s", n,
                          (unsigned)(heap_caps_get_free_size(MALLOC_CAP_EXEC) / 1024),
                          cargadas);
             }

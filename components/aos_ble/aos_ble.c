@@ -329,7 +329,7 @@ static int on_dsc(uint16_t conn, const struct ble_gatt_error *error,
         return 0;
     }
     if (error->status != 0 || !dsc) {
-        ESP_LOGW(TAG, "descriptores: %d", error->status);
+        ESP_LOGW(TAG, "descriptors: %d", error->status);
         suscribir(paso + 1);
         return 0;
     }
@@ -508,7 +508,7 @@ static int on_chr(uint16_t conn, const struct ble_gatt_error *error,
         ESP_LOGI(TAG, "ANCS: notif=%u data=%u control=%u",
                  s_h_notification_source, s_h_data_source, s_h_control_point);
         if (!s_h_control_point || !s_h_data_source || !s_h_notification_source) {
-            ESP_LOGE(TAG, "ANCS incompleto: faltan caracteristicas");
+            ESP_LOGE(TAG, "ANCS incomplete: characteristics missing");
         }
         suscribir(0);
         return 0;
@@ -796,7 +796,7 @@ static int on_ams_chr(uint16_t conn, const struct ble_gatt_error *error,
     (void)arg;
     if (error->status == BLE_HS_EDONE) {
         if (!s_h_ams_entity || !s_h_ams_remote) {
-            ESP_LOGW(TAG, "AMS incompleto: entidad=%u remoto=%u",
+            ESP_LOGW(TAG, "AMS incomplete: entity=%u remote=%u",
                      s_h_ams_entity, s_h_ams_remote);
             return 0;
         }
@@ -1073,7 +1073,7 @@ static int gap_event(struct ble_gap_event *event, void *arg)
     switch (event->type) {
     case BLE_GAP_EVENT_CONNECT:
         if (event->connect.status != 0) {
-            ESP_LOGW(TAG, "conexion fallida (%d)", event->connect.status);
+            ESP_LOGW(TAG, "connection failed (%d)", event->connect.status);
             advertise();
             return 0;
         }
@@ -1654,7 +1654,7 @@ static void guion(void *arg)
         ESP_LOGW(TAG, "--- switching NimBLE back on ---");
         if (!s_ble_arriba) {
             s_ble_arriba = aos_ble_start();
-            ESP_LOGW(TAG, "aos_ble_start (2da vez) -> %d", (int)s_ble_arriba);
+            ESP_LOGW(TAG, "aos_ble_start (2nd time) -> %d", (int)s_ble_arriba);
         }
         break;
     case 44:

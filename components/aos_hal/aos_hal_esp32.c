@@ -1998,8 +1998,8 @@ bool aos_hal_net_ap_set_config(const char *ssid, const char *pass,
     s_ap_pass[0] = 0;       /* so ap_config_resolver() re-reads it from NVS */
 
     ESP_LOGI(TAG, "AP configured: %s / key %s",
-             (ssid && ssid[0]) ? ssid : "(automatico)",
-             mode == AOS_AP_PASS_ROTATING ? "rotativa" : "fija");
+             (ssid && ssid[0]) ? ssid : "(automatic)",
+             mode == AOS_AP_PASS_ROTATING ? "rotating" : "fixed");
 
     /* With the AP up it is bounced so the change takes effect. That drops
      * whoever is connected, which is unavoidable if the password has just been
@@ -2499,7 +2499,7 @@ static void perf_hook(lv_event_t *e)
             int n = s_perf.n;
             /* the four terms make up the total: if it does not add up, the measurement is wrong */
             ESP_LOGI(TAG,
-                     "cuadro %.1f ms = dibujo %.1f + volcado %.2f + resto %.1f + hueco %.1f  (%.1f fps)",
+                     "frame %.1f ms = draw %.1f + flush %.2f + rest %.1f + gap %.1f  (%.1f fps)",
                      (double)s_perf.acc_total  / n / 1000.0,
                      (double)s_perf.acc_render / n / 1000.0,
                      (double)s_perf.acc_flush  / n / 1000.0,
@@ -2777,7 +2777,7 @@ static lv_display_t *display_start(void)
     lvgl_port_cfg_t port_cfg = ESP_LVGL_PORT_INIT_CONFIG();
     port_cfg.task_stack = 20 * 1024;
     if (lvgl_port_init(&port_cfg) != ESP_OK) {
-        ESP_LOGE(TAG, "lvgl_port_init fallo");
+        ESP_LOGE(TAG, "lvgl_port_init failed");
         return NULL;
     }
 
@@ -2785,7 +2785,7 @@ static lv_display_t *display_start(void)
     esp_lcd_panel_io_handle_t io    = NULL;
     bsp_display_config_t      hw    = {0};
     if (bsp_display_new(&hw, &panel, &io) != ESP_OK) {
-        ESP_LOGE(TAG, "bsp_display_new fallo");
+        ESP_LOGE(TAG, "bsp_display_new failed");
         return NULL;
     }
 
@@ -2863,7 +2863,7 @@ static lv_display_t *display_start(void)
 
     lv_display_t *disp = lvgl_port_add_disp(&disp_cfg);
     if (!disp) {
-        ESP_LOGE(TAG, "lvgl_port_add_disp fallo");
+        ESP_LOGE(TAG, "lvgl_port_add_disp failed");
         return NULL;
     }
 
@@ -2883,10 +2883,10 @@ static lv_display_t *display_start(void)
             .handle = tp,
         };
         if (!lvgl_port_add_touch(&touch_cfg)) {
-            ESP_LOGE(TAG, "lvgl_port_add_touch fallo");
+            ESP_LOGE(TAG, "lvgl_port_add_touch failed");
         }
     } else {
-        ESP_LOGE(TAG, "bsp_touch_new fallo");
+        ESP_LOGE(TAG, "bsp_touch_new failed");
     }
 
     bsp_display_brightness_init();

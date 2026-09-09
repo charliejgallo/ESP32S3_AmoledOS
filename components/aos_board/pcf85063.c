@@ -23,7 +23,7 @@ bool aos_rtc_start(i2c_master_bus_handle_t bus)
         return false;
     }
     s_present = true;
-    ESP_LOGI(TAG, "PCF85063A listo");
+    ESP_LOGI(TAG, "PCF85063A ready");
     return true;
 }
 

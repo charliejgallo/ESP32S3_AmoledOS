@@ -275,7 +275,7 @@ static void mic_confirmar(void)
     af_aweight_init(&s_af.aweight, s_af.rate_real);
     s_af.aweight_lista = true;
     s_af.estado        = MIC_ANDANDO;
-    aos_hal_log("afinador", "captura a %u Hz (pedi %u), PGA %d dB",
+    aos_hal_log("afinador", "capture at %u Hz (asked for %u), PGA %d dB",
                 (unsigned)s_af.rate_real, (unsigned)s_af.rate_pedida, st.gain_db);
 }
 

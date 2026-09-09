@@ -147,7 +147,7 @@ static void set_big_icon(wx_icon_t icon, bool night)
     if (wx_art_make(&s_ctx->big, icon, night, BIG_ICON)) {
         lv_image_set_src(s_ctx->big_img, &s_ctx->big.dsc);
     }
-    aos_hal_log("clima", "icono %d (noche=%d) de %d px: %u ms", (int)icon,
+    aos_hal_log("clima", "icon %d (night=%d) of %d px: %u ms", (int)icon,
                 night ? 1 : 0, BIG_ICON, (unsigned)((uint32_t)aos_hal_uptime_ms() - t0));
 }
 
@@ -693,20 +693,20 @@ static void poll_weather(void)
         int len = aos_hal_http_len(ctx->req_wx);
         wx_data_t fresh;
         bool ok = body && wx_parse(body, len, &fresh);
-        aos_hal_log("clima", "respuesta HTTP %d, %d bytes en %u ms, parseo %s",
+        aos_hal_log("clima", "HTTP response %d, %d bytes in %u ms, parse %s",
                     aos_hal_http_status(ctx->req_wx), len, (unsigned)took,
-                    ok ? "ok" : "FALLIDO");
+                    ok ? "ok" : "FAILED");
         if (ok) {
             ctx->data       = fresh;
             ctx->fetched_ms = aos_hal_uptime_ms();
             ctx->from_cache = false;
             wx_cache_save(body, len, ctx->lat10k, ctx->lon10k);
-            aos_hal_log("clima", "%d dias, %d horas, ahora %d.%d C codigo %d",
+            aos_hal_log("clima", "%d days, %d hours, now %d.%d C code %d",
                         fresh.days, fresh.hours, fresh.temp10 / 10,
                         abs(fresh.temp10 % 10), fresh.code);
         } else if (body) {
             /* The first few bytes are usually enough to see that it really answered */
-            aos_hal_log("clima", "cuerpo: %.80s", body);
+            aos_hal_log("clima", "body: %.80s", body);
         }
     } else {
         int motivo = aos_hal_http_status(ctx->req_wx);
@@ -849,7 +849,7 @@ static void poll_search(void)
         }
     }
     /* The length is read before the release: afterwards the identifier is no longer valid */
-    aos_hal_log("clima", "busqueda: estado %d, %d bytes, %d resultados",
+    aos_hal_log("clima", "search: status %d, %d bytes, %d results",
                 (int)st, len, ctx->place_count);
     aos_hal_http_release(ctx->req_geo);
     ctx->req_geo = 0;

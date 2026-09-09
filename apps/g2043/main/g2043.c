@@ -1525,11 +1525,11 @@ static void period_tune(app_t *a)
     uint8_t detail = (want <= G_FRAME_MS + 6) ? 1 : 0;
     if (detail != a->g.detail) {
         a->g.detail = detail;
-        aos_hal_log("2043", "adornos %s", detail ? "completos" : "livianos");
+        aos_hal_log("2043", "scenery %s", detail ? "full" : "light");
     }
 
     if (want != a->period) {
-        aos_hal_log("2043", "cuadro real %d ms: periodo %d -> %d ms (%d.%d fps)",
+        aos_hal_log("2043", "real frame %d ms: period %d -> %d ms (%d.%d fps)",
                     a->real_ms, a->period, want, a->g.fps10 / 10, a->g.fps10 % 10);
         a->period = (int16_t)want;
         lv_timer_set_period(a->timer, (uint32_t)want);
@@ -2164,7 +2164,7 @@ static void *g2043_create(aos_app_t *self, lv_obj_t *root)
      * line says which stage it was in: without this you have to guess. */
     uint32_t heap_int = 0, heap_psram = 0;
     aos_hal_heap_info(&heap_int, &heap_psram);
-    aos_hal_log("2043", "abriendo | interna %u B, psram %u B",
+    aos_hal_log("2043", "opening | internal %u B, psram %u B",
                 (unsigned)heap_int, (unsigned)heap_psram);
 
     a->mem = (uint16_t *)malloc((size_t)GX_W * GX_H * sizeof(uint16_t));
@@ -2271,7 +2271,7 @@ static void *g2043_create(aos_app_t *self, lv_obj_t *root)
     overlay_show(a, a->title);
 
     aos_hal_heap_info(&heap_int, &heap_psram);
-    aos_hal_log("2043", "listo | interna %u B, psram %u B | canvas %dx%d x%d",
+    aos_hal_log("2043", "ready | internal %u B, psram %u B | canvas %dx%d x%d",
                 (unsigned)heap_int, (unsigned)heap_psram, GX_W, GX_H, GX_SCALE);
 
     a->period = G_FRAME_MS;

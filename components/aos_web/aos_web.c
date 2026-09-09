@@ -295,7 +295,7 @@ static esp_err_t upload_handler(httpd_req_t *req)
 
     free(buffer);
     fclose(file);
-    ESP_LOGI(TAG, "subido %s (%d bytes)", path, req->content_len);
+    ESP_LOGI(TAG, "uploaded %s (%d bytes)", path, req->content_len);
 
     char json[96];
     snprintf(json, sizeof(json), "{\"ok\":true,\"size\":%d}", req->content_len);
@@ -1624,7 +1624,7 @@ static esp_err_t sensores_conf_post(httpd_req_t *req)
     aos_hal_pref_get_i32(SN_KEY_GEN, &gen);
     aos_hal_pref_set_i32(SN_KEY_GEN, gen + 1);
 
-    ESP_LOGI(TAG, "sensores: %d elegidos [%s]", registros, limpio);
+    ESP_LOGI(TAG, "sensores: %d chosen [%s]", registros, limpio);
     httpd_resp_set_type(req, "application/json");
     return httpd_resp_send(req, "{\"ok\":true}", HTTPD_RESP_USE_STRLEN);
 }

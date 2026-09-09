@@ -888,7 +888,7 @@ int ch_map_check(void)
                 }
                 /* the destination has to be walkable... */
                 if (bloqueado(&td, d, e->p2, e->p3)) {
-                    aos_hal_log("chatarra", "%s -> %s: destino %d,%d tapado",
+                    aos_hal_log("chatarra", "%s -> %s: destination %d,%d is blocked",
                                 r->nombre, d->nombre, e->p2, e->p3);
                     malos++;
                 }

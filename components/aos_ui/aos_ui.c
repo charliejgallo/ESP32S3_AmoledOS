@@ -319,7 +319,7 @@ bool aos_ui_register_app(const aos_app_t *app)
         return false;
     }
     if (app_index(app->desc.id) >= 0) {
-        aos_hal_log("ui", "app duplicada: %s", app->desc.id);
+        aos_hal_log("ui", "duplicate app: %s", app->desc.id);
         return false;
     }
 
@@ -553,7 +553,7 @@ bool aos_ui_open(const char *id)
         s_current = NULL;
     }
 
-    aos_hal_log("ui", "abriendo app %s", app->desc.id);
+    aos_hal_log("ui", "opening app %s", app->desc.id);
 
     bool fullscreen = (app->desc.flags & AOS_APP_FLAG_FULLSCREEN) != 0;
 
@@ -578,7 +578,7 @@ bool aos_ui_open(const char *id)
         lv_obj_remove_flag(app->root, LV_OBJ_FLAG_HIDDEN);
     }
 
-    aos_hal_log("ui", "  %s creada (inst=%p)", app->desc.id, app->inst);
+    aos_hal_log("ui", "  %s created (inst=%p)", app->desc.id, app->inst);
 
     lv_obj_move_foreground(app->root);
     slide(app->root, false, AOS_SCREEN_W, 0, watchface_hide_if_covered);
@@ -965,8 +965,8 @@ int aos_ui_take_gesture(void)
 
 static void handle_gesture(lv_dir_t dir)
 {
-    aos_hal_log("touch", "  -> accion: app=%s launcher=%d",
-                s_current ? s_current->desc.id : "(ninguna)", (int)s_launcher_visible);
+    aos_hal_log("touch", "  -> action: app=%s launcher=%d",
+                s_current ? s_current->desc.id : "(none)", (int)s_launcher_visible);
     aos_hal_activity();
 
     /* The pairing request takes the gesture before anybody else: it is the
@@ -1020,8 +1020,8 @@ static void gesture_cb(lv_event_t *event)
     lv_indev_t *indev = lv_indev_active();
     lv_dir_t dir = lv_indev_get_gesture_dir(indev);
 
-    aos_hal_log("touch", "GESTO dir=%d (1=izq 2=der 4=arriba 8=abajo) app=%s", (int)dir,
-                s_current ? s_current->desc.id : "(launcher/reloj)");
+    aos_hal_log("touch", "GESTURE dir=%d (1=left 2=right 4=up 8=down) app=%s", (int)dir,
+                s_current ? s_current->desc.id : "(launcher/watch)");
 
     /* On release, LVGL sends LV_EVENT_CLICKED to the object that was under the
      * finger even if it has travelled half the screen: without this, swiping
@@ -1162,7 +1162,7 @@ static void press_cb(lv_event_t *event)
         lv_indev_wait_release(indev);
         return;
     }
-    aos_hal_log("touch", "APOYA en %d,%d", (int)s_press_point.x, (int)s_press_point.y);
+    aos_hal_log("touch", "PRESS at %d,%d", (int)s_press_point.x, (int)s_press_point.y);
     aos_hal_activity();
 }
 
@@ -1171,7 +1171,7 @@ static void release_cb(lv_event_t *event)
     (void)event;
     lv_point_t p;
     lv_indev_get_point(lv_indev_active(), &p);
-    aos_hal_log("touch", "SUELTA en %d,%d  (recorrio %d,%d)",
+    aos_hal_log("touch", "RELEASE at %d,%d  (travelled %d,%d)",
                 (int)p.x, (int)p.y,
                 (int)(p.x - s_press_point.x), (int)(p.y - s_press_point.y));
 }
