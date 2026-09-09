@@ -32,8 +32,21 @@ BIN=${2:-$ROOT/build/amoledos.bin}
 size=$(wc -c < $BIN | tr -d ' ')
 echo "== $(basename $BIN), $size B -> $HOST =="
 
+# Resolve the host to an IP and poll THAT afterwards, not the name.
+#
+# mDNS goes quiet while the board reboots and macOS caches the failure, so
+# "amoledos.local" can stay unresolvable for over a minute after the portal is
+# already answering. The first run of this script reported a timeout for a
+# board that had been up for 5 seconds. The address does not change across a
+# reboot -it is the same DHCP lease- so asking curl what it connected to is
+# enough.
 before=$(curl -sS --max-time 10 "http://$HOST/api/status" || true)
+[[ -n $before ]] || { echo "   $HOST does not answer - is it on the network?"; exit 1; }
+IP=$(curl -sS -o /dev/null -w '%{remote_ip}' --max-time 10 "http://$HOST/api/status" || true)
+[[ -n $IP ]] || IP=$HOST
+slot_before=$(print -r -- $before | sed -n 's/.*"slot":"\([^"]*\)".*/\1/p')
 echo "   before: $before"
+echo "   polling $IP after the restart (mDNS is unreliable right after a reboot)"
 
 code=$(curl -sS -o /tmp/aos_ota_out.$$ -w '%{http_code}' --max-time 300 \
     -X POST "http://$HOST/api/ota" \
@@ -56,13 +69,23 @@ curl -sS --max-time 10 -X POST "http://$HOST/api/ota/restart" > /dev/null || tru
 # very different things.
 for i in {1..30}; do
     sleep 2
-    after=$(curl -sS --max-time 4 "http://$HOST/api/status" 2>/dev/null || true)
+    after=$(curl -sS --max-time 4 "http://$IP/api/status" 2>/dev/null || true)
     if [[ -n $after ]]; then
         echo "   back after $((i * 2)) s: $after"
+        slot_after=$(print -r -- $after | sed -n 's/.*"slot":"\([^"]*\)".*/\1/p')
         echo
-        echo "The image boots on trial and confirms itself at 30 s of uptime."
-        echo "If it does not survive, the next restart goes back to the previous"
-        echo "one on its own - check with 'idf.py monitor' if in doubt."
+        if [[ -n $slot_before && -n $slot_after ]]; then
+            if [[ $slot_before == $slot_after ]]; then
+                echo "IT DID NOT TAKE: still running from $slot_after."
+                echo "The trial image must have failed and the bootloader went back."
+                echo "Look at 'idf.py monitor' for the reason."
+                exit 1
+            fi
+            echo "Running from $slot_after (it was on $slot_before): the update took."
+        fi
+        echo "The image boots on trial and confirms itself at 30 s of uptime; until"
+        echo "then /api/status says \"trial\":true. If it does not survive, the next"
+        echo "restart goes back to the previous one on its own."
         exit 0
     fi
 done

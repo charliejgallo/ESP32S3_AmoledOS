@@ -2335,6 +2335,12 @@ void aos_hal_ota_mark_valid(void)
     }
 }
 
+const char *aos_hal_ota_running_slot(void)
+{
+    const esp_partition_t *run = esp_ota_get_running_partition();
+    return run ? run->label : "?";
+}
+
 /* The format is built separately and only then passed through ESP_LOGI.
  *
  * This used to call esp_log_writev() directly, which adds NEITHER the

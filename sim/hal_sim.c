@@ -1976,6 +1976,7 @@ const char *aos_hal_ota_error(void)
 
 bool aos_hal_ota_pending_verify(void) { return false; }
 void aos_hal_ota_mark_valid(void)     { }
+const char *aos_hal_ota_running_slot(void) { return "sim"; }
 const char *aos_hal_firmware_version(void) { return "0.1.0-dev"; }
 
 void aos_hal_log(const char *tag, const char *fmt, ...)

@@ -176,14 +176,18 @@ static esp_err_t status_handler(httpd_req_t *req)
     uint32_t internal = 0, psram = 0;
     aos_hal_heap_info(&internal, &psram);
 
-    char json[224];
+    /* The slot and the trial flag are what make an update verifiable from
+     * outside: two builds of the same version look identical otherwise. */
+    char json[288];
     snprintf(json, sizeof(json),
              "{\"version\":\"%s\",\"battery\":%d,\"heap\":%u,\"psram\":%u,"
-             "\"sd\":%s,\"board\":\"%s\"}",
+             "\"sd\":%s,\"board\":\"%s\",\"slot\":\"%s\",\"trial\":%s}",
              aos_hal_firmware_version(), percent,
              (unsigned)internal, (unsigned)psram,
              aos_hal_sd_present() ? "true" : "false",
-             aos_hal_board_name());
+             aos_hal_board_name(),
+             aos_hal_ota_running_slot(),
+             aos_hal_ota_pending_verify() ? "true" : "false");
 
     httpd_resp_set_type(req, "application/json");
     return httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);

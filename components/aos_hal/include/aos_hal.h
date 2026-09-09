@@ -939,6 +939,12 @@ const char *aos_hal_ota_error(void);
 bool aos_hal_ota_pending_verify(void);
 void aos_hal_ota_mark_valid(void);
 
+/* Which of the two slots is running ("ota_0" / "ota_1"). It is the only way to
+ * tell from outside whether an update actually took: the version string does
+ * not change between two builds of the same version, but the slot alternates
+ * on every install. tools/install_fw.sh compares it before and after. */
+const char *aos_hal_ota_running_slot(void);
+
 /* -------------------------------------------------------------------------- */
 /* Miscellaneous                                                               */
 /* -------------------------------------------------------------------------- */
