@@ -95,7 +95,9 @@ There is also a pseudolocalisation pack for stress-testing layouts.
 recordings to the card from any browser — and for configuring the things that
 are miserable to type on a 368 px screen: WiFi, the Home Assistant address and
 token, the weather location, which exchange rates to watch, which sensors to
-plot, and the whole remote-control profile.
+plot, and the whole remote-control profile. It also carries every switch of the
+Settings app, a live view of the screen with the controls to drive it from the
+browser, and the log tailed over wifi. See [docs/PORTAL.md](docs/PORTAL.md).
 
 | Notification | Setup AP |
 |---|---|

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AmoledOS</title>
+<title>AmoledOS - Archivos</title>
 <link rel="stylesheet" href="/aos.css">
 <style>
   /* Pestanas del explorador de archivos. No son las paginas del portal -esas
@@ -30,17 +30,10 @@
   }
   ul.lista li button { padding: 6px 12px; font-size: 13px; border-radius: 9px;
                        background: var(--card2); color: var(--red); }
-  .vacio { color: var(--dim); text-align: center; padding: 26px; }
+  #previa { margin: 0 0 14px; text-align: center; }
+  #previa img { max-width: 100%; max-height: 448px; border-radius: 14px; background: #000; }
+  #previa .pie { color: var(--dim); font-size: 12.5px; margin-top: 6px; }
 
-  #fw { margin-top: 34px; padding-top: 22px; border-top: 1px solid var(--card2); }
-  #fw h2 { font-size: 15px; color: var(--text); margin: 0 0 6px; }
-  #fw button { background: var(--card2); color: var(--text); border: 0;
-               border-radius: 12px; padding: 10px 16px; font: inherit;
-               cursor: pointer; }
-  #fw-barra { height: 4px; background: var(--card2); border-radius: 2px;
-              margin: 14px 0 6px; overflow: hidden; display: none; }
-  #fw-barra i { display: block; height: 100%; width: 0;
-                background: var(--accent); transition: width .15s; }
   #barra { height: 4px; background: var(--card2); border-radius: 2px;
            overflow: hidden; margin-bottom: 14px; display: none; }
   #barra i { display: block; height: 100%; width: 0; background: var(--accent); }
@@ -48,11 +41,9 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="top">
-    <h1>AmoledOS</h1>
-    <span class="ver" id="ver"></span>
-  </div>
-  <p class="sub" id="estado" data-t="conectando">conectando...</p>
+  <div class="top"><h1 data-t="titulo">Archivos</h1></div>
+  <p class="sub" data-t="bajada">Lo que hay en la microSD, por carpeta. Arrastrá
+     para subir; tocá una foto para verla.</p>
 
   <nav class="paginas"></nav>
 
@@ -71,19 +62,11 @@
   <input type="file" id="archivo" multiple hidden>
 
   <div id="barra"><i></i></div>
+  <div id="previa" hidden><img id="previa-img" alt=""><div class="pie" id="previa-pie"></div></div>
   <ul class="lista" id="lista"></ul>
   <p class="sub" id="pista"></p>
 
-  <div id="fw">
-    <h2 data-t="fw_titulo">Firmware</h2>
-    <p class="sub" data-t="fw_ayuda">El .bin va a la ranura que no se esta
-      usando y arranca a prueba: si no levanta, el arranque siguiente vuelve
-      solo al anterior. No toca la wifi, el idioma ni los datos de las apps.</p>
-    <input type="file" id="fw-archivo" accept=".bin" hidden>
-    <button id="fw-elegir" data-t="fw_elegir">Elegir amoledos.bin</button>
-    <div id="fw-barra"><i></i></div>
-    <p class="sub" id="fw-estado"></p>
-  </div>
+  <p class="sub" id="tarjeta-libre"></p>
 </div>
 <div id="brindis"></div>
 
@@ -91,12 +74,9 @@
 <script>
 const TR = {
   en: {
-    conectando: "connecting...",
-    fw_titulo: "Firmware",
-    fw_elegir: "Choose amoledos.bin",
-    fw_ayuda: "The .bin goes into the slot that is not in use and boots on trial: if it does not come up, the next boot goes back to the previous one by itself. It does not touch the wifi, the language or the apps' data.",
-    fw_subiendo: "sending %s...", fw_ok: "installed, restarting...",
-    fw_error: "it failed: ", fw_grande: "that is not a firmware image",
+    titulo: "Files",
+    bajada: "What is on the microSD, by folder. Drag to upload; tap a photo to see it.",
+    act_ver: "view", tarjeta_libre: "%f free of %t", cerrar: "close",
     car_apps: "Apps", car_fotos: "Photos", car_musica: "Music",
     car_grab: "Recordings",
     soltar_aca: "Drop files here or",
@@ -106,7 +86,6 @@ const TR = {
     act_escuchar: "listen", act_bajar: "download", act_borrar: "delete",
     confirmar: "Delete %s?",
     borrado: "deleted", listo: "done", fallo: "failed ",
-    est_bateria: "battery", est_micro: "microSD", est_si: "yes", est_no: "no",
     d_apps: ".so built for ESP32-S3",
     h_apps: "Apps load at boot. After uploading one, restart the watch.",
     d_fotos: ".jpg, .png or .bmp",
@@ -118,12 +97,9 @@ const TR = {
             "Listening opens them in the browser player; to seek, download it."
   },
   de: {
-    conectando: "wird verbunden...",
-    fw_titulo: "Firmware",
-    fw_elegir: "amoledos.bin waehlen",
-    fw_ayuda: "Die .bin geht in den ungenutzten Slot und startet auf Probe: kommt sie nicht hoch, kehrt der naechste Start von selbst zur vorherigen zurueck. WLAN, Sprache und App-Daten bleiben unberuehrt.",
-    fw_subiendo: "sende %s...", fw_ok: "installiert, Neustart...",
-    fw_error: "fehlgeschlagen: ", fw_grande: "das ist kein Firmware-Abbild",
+    titulo: "Dateien",
+    bajada: "Was auf der microSD ist, nach Ordner. Ziehen zum Hochladen; ein Foto antippen, um es zu sehen.",
+    act_ver: "ansehen", tarjeta_libre: "%f frei von %t", cerrar: "schliessen",
     car_apps: "Apps", car_fotos: "Fotos", car_musica: "Musik",
     car_grab: "Aufnahmen",
     soltar_aca: "Dateien hierher ziehen oder",
@@ -133,7 +109,6 @@ const TR = {
     act_escuchar: "anhoeren", act_bajar: "laden", act_borrar: "loeschen",
     confirmar: "%s loeschen?",
     borrado: "geloescht", listo: "fertig", fallo: "fehlgeschlagen ",
-    est_bateria: "Akku", est_micro: "microSD", est_si: "ja", est_no: "nein",
     d_apps: ".so fuer den ESP32-S3 gebaut",
     h_apps: "Apps werden beim Start geladen. Nach dem Hochladen die Uhr neu starten.",
     d_fotos: ".jpg, .png oder .bmp",
@@ -153,11 +128,7 @@ const ES = {
   act_escuchar: "escuchar", act_bajar: "bajar", act_borrar: "borrar",
   confirmar: "¿Borrar %s?",
   borrado: "borrado", listo: "listo", fallo: "falló ",
-  est_bateria: "batería", est_micro: "microSD", est_si: "sí", est_no: "no",
-  fw_titulo: "Firmware",
-  fw_elegir: "Elegir amoledos.bin",
-  fw_subiendo: "enviando %s...", fw_ok: "instalado, reiniciando...",
-  fw_error: "fallo: ", fw_grande: "eso no es una imagen de firmware",
+  act_ver: "ver", tarjeta_libre: "%f libres de %t", cerrar: "cerrar",
   d_apps: ".so compilados para ESP32-S3",
   h_apps: "Las apps se cargan al arrancar. Después de subir una, reiniciá el reloj.",
   d_fotos: ".jpg, .png o .bmp",
@@ -183,11 +154,18 @@ const PISTAS = {
 let dir = "apps";
 const listaEl = $("lista"), barraEl = $("barra"), rellenoEl = barraEl.firstElementChild;
 
-function humano(bytes) {
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-  return (bytes / 1024 / 1024).toFixed(1) + " MB";
+const humano = aos.humano;
+
+function verFoto(nombre, url) {
+  const p = $("previa");
+  if (!p.hidden && $("previa-img").dataset.nombre === nombre) { p.hidden = true; return; }
+  $("previa-img").src = url;
+  $("previa-img").dataset.nombre = nombre;
+  $("previa-pie").textContent = nombre;
+  p.hidden = false;
+  p.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
+$("previa").onclick = () => { $("previa").hidden = true; };
 
 function pintarPistas() {
   $("pista-soltar").textContent = t(PISTAS[dir].soltar);
@@ -219,7 +197,8 @@ async function refrescar() {
     const url = `/api/download?dir=${dir}&name=${encodeURIComponent(f.name)}`;
 
     /* Escuchar solo donde tiene sentido. El enlace va sin "dl", asi que el
-       reloj lo manda inline y lo abre el reproductor del navegador. */
+       reloj lo manda inline y lo abre el reproductor del navegador. Las fotos
+       se ven aca mismo, arriba de la lista. */
     let sonar = null;
     if (/\.(wav|mp3)$/i.test(f.name)) {
       sonar = document.createElement("a");
@@ -228,6 +207,12 @@ async function refrescar() {
       sonar.href = url;
       sonar.target = "_blank";
       sonar.rel = "noopener";
+    } else if (/\.(jpe?g|png|bmp)$/i.test(f.name)) {
+      sonar = document.createElement("a");
+      sonar.className = "act";
+      sonar.textContent = t("act_ver");
+      sonar.href = url;
+      sonar.onclick = e => { e.preventDefault(); verFoto(f.name, url); };
     }
 
     const bajar = document.createElement("a");
@@ -272,68 +257,19 @@ async function subir(archivos) {
   refrescar();
 }
 
-/* Firmware.
- *
- * XMLHttpRequest and not fetch() because this is the one upload where the
- * progress matters: it is 3 MB over wifi and it takes a while, and a page that
- * looks frozen invites pulling the cable out in the middle. fetch() has no
- * upload progress event.
- *
- * The restart is a second call, and the answer to it never arrives -the board
- * goes down while replying-, so its failure is the expected outcome and is
- * ignored on purpose. */
-function subirFirmware(f) {
-  if (!f) return;
-  if (!/\.bin$/i.test(f.name)) { aos.brindis(t("fw_grande")); return; }
 
-  const barra = $("fw-barra"), relleno = barra.querySelector("i");
-  const est = $("fw-estado");
-  barra.style.display = "block";
-  est.textContent = t("fw_subiendo").replace("%s", f.name);
-
-  const xhr = new XMLHttpRequest();
-  xhr.open("POST", "/api/ota");
-  xhr.upload.onprogress = e => {
-    if (e.lengthComputable) relleno.style.width = (e.loaded / e.total * 100) + "%";
-  };
-  xhr.onload = () => {
-    if (xhr.status >= 200 && xhr.status < 300) {
-      est.textContent = t("fw_ok");
-      fetch("/api/ota/restart", { method: "POST" }).catch(() => {});
-    } else {
-      est.textContent = t("fw_error") + (xhr.responseText || xhr.status);
-      barra.style.display = "none";
-    }
-  };
-  xhr.onerror = () => {
-    est.textContent = t("fw_error") + "red";
-    barra.style.display = "none";
-  };
-  xhr.send(f);
-}
-
-$("fw-elegir").onclick = () => $("fw-archivo").click();
-$("fw-archivo").onchange = e => subirFirmware(e.target.files[0]);
-
-async function estado() {
-  try {
-    const s = await (await fetch("/api/status")).json();
-    $("ver").textContent = s.version || "";
-    $("estado").innerHTML =
-      `${aos.esc(t("est_bateria"))} <b>${s.battery}%</b> &nbsp; ` +
-      `RAM <b>${Math.round(s.heap / 1024)} KB</b> &nbsp; ` +
-      `PSRAM <b>${Math.round(s.psram / 1024)} KB</b> &nbsp; ` +
-      `${aos.esc(t("est_micro"))} <b>${s.sd ? aos.esc(t("est_si")) : aos.esc(t("est_no"))}</b>`;
-  } catch (e) {
-    $("estado").textContent = t("sin_conexion");
-  }
-}
+aos.alEstado(s => {
+  $("tarjeta-libre").textContent = s.sd && s.sd_total
+    ? t("tarjeta_libre").replace("%f", humano(s.sd_free)).replace("%t", humano(s.sd_total))
+    : "";
+});
 
 document.querySelectorAll(".carpetas button").forEach(b => {
   b.onclick = () => {
     document.querySelectorAll(".carpetas button").forEach(x => x.classList.remove("on"));
     b.classList.add("on");
     dir = b.dataset.dir;
+    $("previa").hidden = true;
     pintarPistas();
     refrescar();
   };
@@ -352,9 +288,7 @@ zona.ondrop = e => {
 
 aos.init(TR).then(() => {
   pintarPistas();
-  estado();
   refrescar();
-  setInterval(estado, 10000);
 });
 </script>
 </body>

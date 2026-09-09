@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Registro</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  .barra-reg { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .barra-reg input[type=search] { flex: 1; min-width: 160px; padding: 8px 12px; }
+  .barra-reg label { display: flex; gap: 6px; align-items: center; color: var(--dim); font-size: 13.5px; }
+  .barra-reg .estado { color: var(--dim); font-size: 12.5px; margin-left: auto; font-variant-numeric: tabular-nums; }
+  pre.consola { max-height: 72vh; min-height: 200px; }
+  pre.consola.detenido { outline: 2px solid var(--amber); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Registro</h1></div>
+  <p class="sub" data-t="bajada">Lo mismo que sale por la consola USB, guardado
+     en un anillo de 16 KB en PSRAM. Sirve cuando el cable no está o cuando el
+     chip duerme y la consola USB se cae.</p>
+
+  <nav class="paginas"></nav>
+
+  <div class="barra-reg">
+    <input type="search" id="filtro" data-t-ph="ph_filtro" placeholder="filtrar por texto o tag" autocomplete="off">
+    <label><input type="checkbox" id="pausa"> <span data-t="pausar">Pausar</span></label>
+    <label><input type="checkbox" id="seguir" checked> <span data-t="seguir">Seguir al final</span></label>
+    <button class="sec chica" id="b-vaciar" data-t="b_vaciar">Vaciar</button>
+    <button class="sec chica" id="b-bajar" data-t="b_bajar">Guardar .txt</button>
+    <span class="estado" id="estado"></span>
+  </div>
+
+  <pre class="consola" id="consola"></pre>
+
+  <footer data-t="pie">Se pide cada 2 segundos lo que se agregó desde la última
+    vez; si el anillo dio la vuelta entre medio, se muestra desde lo más viejo
+    que quedó. Las 16 KB alcanzan para unos tres minutos de arranque o varias
+    horas de reloj quieto.</footer>
+</div>
+<div id="brindis"></div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "Log",
+    bajada: "The same as the USB console, kept in a 16 KB ring in PSRAM. For when the cable is not there, or when the chip sleeps and the USB console drops.",
+    ph_filtro: "filter by text or tag", pausar: "Pause", seguir: "Follow the end",
+    b_vaciar: "Clear", b_bajar: "Save .txt",
+    pie: "It asks every 2 seconds for what was added since last time; if the ring wrapped in between, it shows from the oldest that remains. 16 KB is about three minutes of boot or several hours of an idle watch.",
+    lineas: "%n lines", perdido: "(gap: the ring wrapped)", sin_conexion: "no connection to the watch"
+  },
+  de: {
+    titulo: "Protokoll",
+    bajada: "Dasselbe wie die USB-Konsole, in einem 16-KB-Ring im PSRAM. Fuer wenn kein Kabel da ist oder der Chip schlaeft und die USB-Konsole wegfaellt.",
+    ph_filtro: "nach Text oder Tag filtern", pausar: "Pause", seguir: "Am Ende bleiben",
+    b_vaciar: "Leeren", b_bajar: ".txt speichern",
+    pie: "Alle 2 Sekunden wird geholt, was seit dem letzten Mal dazukam; ist der Ring dazwischen uebergelaufen, geht es beim aeltesten Rest los. 16 KB sind etwa drei Minuten Start oder mehrere Stunden ruhige Uhr.",
+    lineas: "%n Zeilen", perdido: "(Luecke: der Ring ist uebergelaufen)", sin_conexion: "keine Verbindung zur Uhr"
+  }
+};
+const ES = {
+  lineas: "%n líneas", perdido: "(hueco: el anillo dio la vuelta)", sin_conexion: "sin conexión con el reloj"
+};
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? (ES[k] !== undefined ? ES[k] : k) : v; }
+
+const consola = $("consola");
+let hasta = 0;             /* offset del anillo hasta donde ya tenemos */
+let lineas = [];           /* todo lo recibido, sin colores, para filtrar y bajar */
+let resto = "";            /* media linea que quedo cortada entre dos pedidos */
+
+/* Los colores ANSI del log de IDF se sacan y el nivel se lee de la letra
+   inicial: "W (1234) tag: ..." */
+function limpiar(s) { return s.replace(/\x1b\[[0-9;]*m/g, ""); }
+function claseDe(l) {
+  const c = l.charAt(0);
+  return c === "E" ? "e" : c === "W" ? "w" : (c === "D" || c === "V") ? "d" : "";
+}
+
+function pintar() {
+  const q = $("filtro").value.trim().toLowerCase();
+  const seguir = $("seguir").checked;
+  const partes = [];
+  let n = 0;
+  for (const l of lineas) {
+    if (q && l.toLowerCase().indexOf(q) < 0) continue;
+    n++;
+    const c = claseDe(l);
+    partes.push(c ? '<span class="' + c + '">' + aos.esc(l) + "</span>" : aos.esc(l));
+  }
+  consola.innerHTML = partes.join("\n");
+  $("estado").textContent = t("lineas").replace("%n", n);
+  if (seguir) consola.scrollTop = consola.scrollHeight;
+}
+
+async function traer() {
+  if ($("pausa").checked) return;
+  let r;
+  try {
+    r = await fetch("/api/log?desde=" + hasta);
+    if (!r.ok) throw new Error(r.status);
+  } catch (e) {
+    $("estado").textContent = t("sin_conexion");
+    return;
+  }
+  const desde = parseInt(r.headers.get("X-Desde") || "0", 10);
+  const nuevoHasta = parseInt(r.headers.get("X-Hasta") || "0", 10);
+  const texto = await r.text();
+  if (nuevoHasta < hasta) {
+    /* El reloj se reinicio: el contador volvio a cero. */
+    lineas.push("---- " + t("perdido") + " ----");
+    resto = "";
+  } else if (desde > hasta && hasta > 0) {
+    lineas.push("---- " + t("perdido") + " ----");
+    resto = "";
+  }
+  hasta = nuevoHasta;
+  if (texto) {
+    const todo = resto + limpiar(texto);
+    const trozos = todo.split("\n");
+    resto = trozos.pop();
+    for (const l of trozos) if (l.length) lineas.push(l);
+    if (lineas.length > 4000) lineas = lineas.slice(-3000);
+    pintar();
+  }
+}
+
+$("filtro").oninput = pintar;
+$("seguir").onchange = pintar;
+$("pausa").onchange = e => consola.classList.toggle("detenido", e.target.checked);
+$("b-vaciar").onclick = () => { lineas = []; resto = ""; pintar(); };
+$("b-bajar").onclick = () => {
+  const blob = new Blob([lineas.join("\n") + "\n"], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "amoledos-" + new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19) + ".txt";
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+
+aos.init(TR).then(() => { traer(); setInterval(traer, 2000); });
+</script>
+</body>
+</html>

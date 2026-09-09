@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Ajustes</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  #tz-libre { margin-top: 8px; }
+  .nota { color: var(--dim); font-size: 13px; margin: 4px 2px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Ajustes</h1></div>
+  <p class="sub" data-t="bajada">Lo mismo que la app Ajustes del reloj, sin tener
+     que acertarle a un interruptor de 30 píxeles. Cada cambio se aplica al
+     soltar el control y queda guardado.</p>
+
+  <nav class="paginas"></nav>
+
+  <h2 data-t="h_pantalla">Pantalla</h2>
+  <div class="ajuste columna">
+    <div class="cabeza">
+      <div class="texto"><b data-t="brillo">Brillo</b></div>
+      <span class="valor" id="v-brillo">-</span>
+    </div>
+    <input type="range" id="brillo" min="1" max="100" step="1">
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="esfera">Esfera</b>
+      <span data-t="esfera_pie">Cambia en el momento, sin pasar por el selector.</span></div>
+    <select id="esfera"></select>
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="menu">Menú de apps</b></div>
+    <select id="menu">
+      <option value="0" data-t="menu_lista">Lista</option>
+      <option value="1" data-t="menu_grilla">Grilla</option>
+      <option value="2" data-t="menu_panal">Panal</option>
+    </select>
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="aod">Siempre encendido</b>
+      <span data-t="aod_pie">La hora se queda a la vista, atenuada, en vez de apagarse.</span></div>
+    <label class="interruptor"><input type="checkbox" id="aod"><i></i></label>
+  </div>
+  <div class="ajuste columna" id="fila-aod-brillo">
+    <div class="cabeza">
+      <div class="texto"><b data-t="aod_brillo">Brillo atenuado</b></div>
+      <span class="valor" id="v-aod_brillo">-</span>
+    </div>
+    <input type="range" id="aod_brillo" min="1" max="40" step="1">
+  </div>
+
+  <h2 data-t="h_sonido">Sonido</h2>
+  <div class="ajuste columna">
+    <div class="cabeza">
+      <div class="texto"><b data-t="volumen">Volumen</b></div>
+      <span class="valor" id="v-volumen">-</span>
+    </div>
+    <input type="range" id="volumen" min="0" max="100" step="1">
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="probar">Probar el parlante</b></div>
+    <button class="sec chica" id="b-beep" data-t="b_beep">Pitido</button>
+  </div>
+
+  <h2 data-t="h_energia">Energía</h2>
+  <div class="ajuste">
+    <div class="texto"><b data-t="ahorro">Ahorro de energía</b>
+      <span data-t="ahorro_pie">Baja la CPU y el wifi a modem-sleep con la pantalla apagada.</span></div>
+    <label class="interruptor"><input type="checkbox" id="ahorro"><i></i></label>
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="cuidar">Cuidar la batería</b>
+      <span data-t="cuidar_pie">Carga a 150 mA hasta 4,1 V en vez de 300 mA hasta 4,2 V. Dura menos por carga, dura más la celda.</span></div>
+    <label class="interruptor"><input type="checkbox" id="cuidar"><i></i></label>
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="panel_slp">Dormir el panel apagado</b>
+      <span data-t="panel_slp_pie">Manda el AMOLED a sleep-in. Parpadea al despertar en algunas placas; por eso viene apagado.</span></div>
+    <label class="interruptor"><input type="checkbox" id="panel_slp"><i></i></label>
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="chip_slp">Dormir el chip apagado</b>
+      <span data-t="chip_slp_pie">Light sleep a batería con la pantalla apagada. La consola USB se cae; el portal sigue.</span></div>
+    <label class="interruptor"><input type="checkbox" id="chip_slp"><i></i></label>
+  </div>
+
+  <h2 data-t="h_hora">Hora</h2>
+  <div class="ajuste">
+    <div class="texto"><b data-t="tz">Zona horaria</b>
+      <span id="tz-actual"></span></div>
+    <select id="tz"></select>
+  </div>
+  <div class="ajuste columna" id="fila-tz-libre" hidden>
+    <div class="cabeza"><div class="texto"><b data-t="tz_libre">Zona en formato POSIX</b>
+      <span data-t="tz_libre_pie">Por ejemplo CET-1CEST,M3.5.0,M10.5.0/3. El signo va al revés de lo que uno espera.</span></div></div>
+    <div class="fila" style="margin-top:6px">
+      <input type="text" id="tz-libre" style="flex:1" placeholder="ART3">
+      <button class="sec chica" id="b-tz" data-t="b_aplicar">Aplicar</button>
+    </div>
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="poner_hora">Poner la hora</b>
+      <span id="hora-pie" data-t="poner_hora_pie">Por internet si hay, o la de este aparato.</span></div>
+    <button class="sec chica" id="b-sync" data-t="b_sync">Por internet</button>
+    <button class="sec chica" id="b-hora" data-t="b_hora">La de acá</button>
+  </div>
+
+  <h2 data-t="h_idioma">Idioma</h2>
+  <div class="ajuste">
+    <div class="texto"><b data-t="idioma">Idioma del reloj</b>
+      <span data-t="idioma_pie">Cambia la pantalla y también este portal.</span></div>
+    <select id="idioma"></select>
+  </div>
+
+  <h2 data-t="h_conexiones">Conexiones</h2>
+  <div class="ajuste">
+    <div class="texto"><b>WiFi</b>
+      <span data-t="wifi_pie">Apagarla corta esta misma página. Se vuelve a encender desde el reloj.</span></div>
+    <label class="interruptor"><input type="checkbox" id="wifi"><i></i></label>
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b>Bluetooth</b>
+      <span data-t="bt_pie">Para las notificaciones y la música del iPhone. El emparejado se hace desde el reloj.</span></div>
+    <label class="interruptor"><input type="checkbox" id="bt"><i></i></label>
+  </div>
+
+  <h2 data-t="h_notif">Notificaciones</h2>
+  <div class="ajuste">
+    <div class="texto"><b data-t="notif">Notificaciones</b></div>
+    <label class="interruptor"><input type="checkbox" id="notif"><i></i></label>
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="notif_sonido">Sonido</b></div>
+    <label class="interruptor"><input type="checkbox" id="notif_sonido"><i></i></label>
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="llamadas">Llamadas siempre</b>
+      <span data-t="llamadas_pie">Aunque el resto esté silenciado.</span></div>
+    <label class="interruptor"><input type="checkbox" id="llamadas"><i></i></label>
+  </div>
+
+  <div class="aviso" id="aviso" hidden></div>
+</div>
+<div id="brindis"></div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "Settings",
+    bajada: "The same as the watch's Settings app, without having to hit a 30-pixel switch. Each change applies when you release the control and is saved.",
+    h_pantalla: "Screen", brillo: "Brightness", esfera: "Watchface",
+    esfera_pie: "Changes right away, without going through the picker.",
+    menu: "App menu", menu_lista: "List", menu_grilla: "Grid", menu_panal: "Honeycomb",
+    aod: "Always on", aod_pie: "The time stays visible, dimmed, instead of switching off.",
+    aod_brillo: "Dimmed brightness",
+    h_sonido: "Sound", volumen: "Volume", probar: "Test the speaker", b_beep: "Beep",
+    h_energia: "Power",
+    ahorro: "Power saving", ahorro_pie: "Lowers the CPU and puts the wifi in modem-sleep with the screen off.",
+    cuidar: "Battery care", cuidar_pie: "Charges at 150 mA up to 4.1 V instead of 300 mA up to 4.2 V. Less per charge, longer cell life.",
+    panel_slp: "Sleep the panel when off", panel_slp_pie: "Sends the AMOLED to sleep-in. It flickers on wake on some boards; that is why it ships off.",
+    chip_slp: "Sleep the chip when off", chip_slp_pie: "Light sleep on battery with the screen off. The USB console drops; the portal stays.",
+    h_hora: "Time", tz: "Time zone", tz_libre: "Zone in POSIX format",
+    tz_libre_pie: "For example CET-1CEST,M3.5.0,M10.5.0/3. The sign is the opposite of what you expect.",
+    b_aplicar: "Apply",
+    poner_hora: "Set the time", poner_hora_pie: "From the internet if there is one, or from this device.",
+    b_sync: "From the internet", b_hora: "From here",
+    h_idioma: "Language", idioma: "Watch language", idioma_pie: "Changes the screen and this portal too.",
+    h_conexiones: "Connections",
+    wifi_pie: "Turning it off cuts this very page. It is turned back on from the watch.",
+    bt_pie: "For the iPhone's notifications and music. Pairing is done from the watch.",
+    h_notif: "Notifications", notif: "Notifications", notif_sonido: "Sound",
+    llamadas: "Calls always", llamadas_pie: "Even when everything else is silenced.",
+    tz_otra: "Other (POSIX)...", guardado: "saved", fallo: "failed: ",
+    confirmar_wifi: "Turn the wifi off? This page will stop responding.",
+    hora_puesta: "time set", sincronizando: "asking the time server...",
+    sin_conexion: "no connection to the watch"
+  },
+  de: {
+    titulo: "Einstellungen",
+    bajada: "Dasselbe wie die Einstellungen-App der Uhr, ohne einen 30-Pixel-Schalter treffen zu muessen. Jede Aenderung gilt beim Loslassen und wird gespeichert.",
+    h_pantalla: "Bildschirm", brillo: "Helligkeit", esfera: "Zifferblatt",
+    esfera_pie: "Wechselt sofort, ohne die Auswahl.",
+    menu: "App-Menue", menu_lista: "Liste", menu_grilla: "Raster", menu_panal: "Wabe",
+    aod: "Immer an", aod_pie: "Die Zeit bleibt gedimmt sichtbar, statt auszugehen.",
+    aod_brillo: "Gedimmte Helligkeit",
+    h_sonido: "Ton", volumen: "Lautstaerke", probar: "Lautsprecher testen", b_beep: "Piep",
+    h_energia: "Energie",
+    ahorro: "Energiesparen", ahorro_pie: "Senkt die CPU und setzt das WLAN bei ausgeschaltetem Bildschirm in Modem-Sleep.",
+    cuidar: "Akku schonen", cuidar_pie: "Laedt mit 150 mA bis 4,1 V statt 300 mA bis 4,2 V. Weniger pro Ladung, laengeres Zellenleben.",
+    panel_slp: "Panel im Aus schlafen lassen", panel_slp_pie: "Schickt das AMOLED in Sleep-in. Flackert auf manchen Platinen beim Wecken; deshalb standardmaessig aus.",
+    chip_slp: "Chip im Aus schlafen lassen", chip_slp_pie: "Light Sleep auf Akku bei ausgeschaltetem Bildschirm. Die USB-Konsole faellt weg; das Portal bleibt.",
+    h_hora: "Zeit", tz: "Zeitzone", tz_libre: "Zone im POSIX-Format",
+    tz_libre_pie: "Zum Beispiel CET-1CEST,M3.5.0,M10.5.0/3. Das Vorzeichen ist umgekehrt als erwartet.",
+    b_aplicar: "Anwenden",
+    poner_hora: "Zeit stellen", poner_hora_pie: "Aus dem Internet, wenn vorhanden, oder von diesem Geraet.",
+    b_sync: "Aus dem Internet", b_hora: "Von hier",
+    h_idioma: "Sprache", idioma: "Sprache der Uhr", idioma_pie: "Aendert den Bildschirm und auch dieses Portal.",
+    h_conexiones: "Verbindungen",
+    wifi_pie: "Ausschalten trennt genau diese Seite. Wieder einschalten geht von der Uhr aus.",
+    bt_pie: "Fuer Benachrichtigungen und Musik des iPhones. Gekoppelt wird von der Uhr aus.",
+    h_notif: "Benachrichtigungen", notif: "Benachrichtigungen", notif_sonido: "Ton",
+    llamadas: "Anrufe immer", llamadas_pie: "Auch wenn alles andere stumm ist.",
+    tz_otra: "Andere (POSIX)...", guardado: "gespeichert", fallo: "fehlgeschlagen: ",
+    confirmar_wifi: "WLAN ausschalten? Diese Seite antwortet dann nicht mehr.",
+    hora_puesta: "Zeit gestellt", sincronizando: "frage den Zeitserver...",
+    sin_conexion: "keine Verbindung zur Uhr"
+  }
+};
+const ES = {
+  tz_otra: "Otra (POSIX)...", guardado: "guardado", fallo: "falló: ",
+  confirmar_wifi: "¿Apagar la wifi? Esta página va a dejar de responder.",
+  hora_puesta: "hora puesta", sincronizando: "pidiendo la hora por internet...",
+  sin_conexion: "sin conexión con el reloj"
+};
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? (ES[k] !== undefined ? ES[k] : k) : v; }
+
+/* Zonas en formato POSIX, que es lo que entiende la libc del reloj. El signo
+   va al reves: ART3 es UTC-3. */
+const ZONAS = [
+  ["ART3", "Argentina / Uruguay / Brasil (UTC-3)"],
+  ["<-04>4<-03>,M9.1.6/24,M4.1.6/24", "Chile (UTC-4, con verano)"],
+  ["<-05>5", "Colombia / Perú / Ecuador (UTC-5)"],
+  ["<-04>4", "Bolivia / Venezuela / Paraguay inv. (UTC-4)"],
+  ["CST6CDT,M4.1.0,M10.5.0", "México, Ciudad de México (UTC-6)"],
+  ["EST5EDT,M3.2.0,M11.1.0", "EE.UU. Este (UTC-5, con verano)"],
+  ["CST6CDT,M3.2.0,M11.1.0", "EE.UU. Centro (UTC-6, con verano)"],
+  ["MST7MDT,M3.2.0,M11.1.0", "EE.UU. Montaña (UTC-7, con verano)"],
+  ["PST8PDT,M3.2.0,M11.1.0", "EE.UU. Pacífico (UTC-8, con verano)"],
+  ["UTC0", "UTC"],
+  ["GMT0BST,M3.5.0/1,M10.5.0", "Reino Unido / Portugal (UTC+0, con verano)"],
+  ["CET-1CEST,M3.5.0,M10.5.0/3", "España / Alemania / Italia / Francia (UTC+1, con verano)"],
+  ["EET-2EEST,M3.5.0/3,M10.5.0/4", "Grecia / Finlandia / Ucrania (UTC+2, con verano)"],
+  ["MSK-3", "Moscú / Turquía (UTC+3)"],
+  ["IST-5:30", "India (UTC+5:30)"],
+  ["CST-8", "China / Singapur (UTC+8)"],
+  ["JST-9", "Japón / Corea (UTC+9)"],
+  ["AEST-10AEDT,M10.1.0,M4.1.0/3", "Australia, Sídney (UTC+10, con verano)"],
+  ["NZST-12NZDT,M9.5.0,M4.1.0/3", "Nueva Zelanda (UTC+12, con verano)"]
+];
+
+let estado = null;
+
+async function guardar(campos) {
+  try {
+    await aos.post("/api/ajustes", campos);
+    aos.brindis(t("guardado"));
+  } catch (e) {
+    aos.brindis(t("fallo") + e.message);
+  }
+}
+
+function pintarDeslizador(id, v) {
+  $(id).value = v;
+  $("v-" + id).textContent = v + "%";
+}
+
+function pintar(s) {
+  estado = s;
+  pintarDeslizador("brillo", s.brillo);
+  pintarDeslizador("aod_brillo", s.aod_brillo);
+  pintarDeslizador("volumen", s.volumen);
+  for (const k of ["aod", "ahorro", "cuidar", "panel_slp", "chip_slp", "wifi", "bt", "notif", "notif_sonido", "llamadas"]) {
+    $(k).checked = !!s[k];
+  }
+  $("fila-aod-brillo").style.opacity = s.aod ? 1 : .5;
+
+  const sel = $("esfera");
+  sel.innerHTML = "";
+  for (const f of s.esferas || []) {
+    const o = document.createElement("option");
+    o.value = f.id; o.textContent = f.nombre;
+    if (f.id === s.esfera) o.selected = true;
+    sel.append(o);
+  }
+  $("menu").value = String(s.menu || 0);
+
+  const tz = $("tz");
+  tz.innerHTML = "";
+  let conocida = false;
+  for (const [valor, nombre] of ZONAS) {
+    const o = document.createElement("option");
+    o.value = valor; o.textContent = nombre;
+    if (valor === s.tz) { o.selected = true; conocida = true; }
+    tz.append(o);
+  }
+  const otra = document.createElement("option");
+  otra.value = "__otra"; otra.textContent = t("tz_otra");
+  if (!conocida) { otra.selected = true; }
+  tz.append(otra);
+  $("fila-tz-libre").hidden = conocida;
+  $("tz-libre").value = s.tz || "";
+  $("tz-actual").textContent = s.tz || "";
+}
+
+async function cargar() {
+  try {
+    pintar(await (await fetch("/api/ajustes")).json());
+  } catch (e) {
+    $("aviso").hidden = false;
+    $("aviso").className = "aviso mal";
+    $("aviso").textContent = t("sin_conexion");
+    return;
+  }
+  try {
+    const d = await (await fetch("/api/lang")).json();
+    const sel = $("idioma");
+    sel.innerHTML = "";
+    for (const l of d.idiomas || []) {
+      const o = document.createElement("option");
+      o.value = l.codigo; o.textContent = l.nombre + " (" + l.codigo + ")";
+      if (l.codigo === d.actual) o.selected = true;
+      sel.append(o);
+    }
+  } catch (e) {}
+}
+
+/* Deslizadores: el brillo se manda mientras se arrastra -es la gracia de
+   probarlo desde afuera-, pero no mas de una vez cada 150 ms para no encolar
+   cincuenta pedidos en el servidor del reloj. Los otros dos, al soltar. */
+let brilloT = null, brilloPend = null;
+$("brillo").oninput = e => {
+  $("v-brillo").textContent = e.target.value + "%";
+  brilloPend = e.target.value;
+  if (!brilloT) {
+    brilloT = setTimeout(() => {
+      brilloT = null;
+      aos.post("/api/ajustes", { brillo: brilloPend }).catch(() => {});
+    }, 150);
+  }
+};
+$("brillo").onchange = e => guardar({ brillo: e.target.value });
+for (const id of ["aod_brillo", "volumen"]) {
+  $(id).oninput = e => { $("v-" + id).textContent = e.target.value + "%"; };
+  $(id).onchange = e => guardar({ [id]: e.target.value });
+}
+
+for (const k of ["aod", "ahorro", "cuidar", "panel_slp", "chip_slp", "bt", "notif", "notif_sonido", "llamadas"]) {
+  $(k).onchange = e => {
+    if (k === "aod") $("fila-aod-brillo").style.opacity = e.target.checked ? 1 : .5;
+    guardar({ [k]: e.target.checked ? 1 : 0 });
+  };
+}
+$("wifi").onchange = e => {
+  if (!e.target.checked && !confirm(t("confirmar_wifi"))) { e.target.checked = true; return; }
+  guardar({ wifi: e.target.checked ? 1 : 0 });
+};
+
+$("esfera").onchange = e => guardar({ esfera: e.target.value });
+$("menu").onchange = e => guardar({ menu: e.target.value });
+$("idioma").onchange = e => {
+  aos.post("/api/lang", { code: e.target.value })
+    .then(() => { aos.brindis(t("guardado")); setTimeout(() => location.reload(), 900); })
+    .catch(err => aos.brindis(t("fallo") + err.message));
+};
+
+$("tz").onchange = e => {
+  if (e.target.value === "__otra") { $("fila-tz-libre").hidden = false; $("tz-libre").focus(); return; }
+  $("fila-tz-libre").hidden = true;
+  $("tz-actual").textContent = e.target.value;
+  guardar({ tz: e.target.value });
+};
+$("b-tz").onclick = () => {
+  const v = $("tz-libre").value.trim();
+  if (!v) return;
+  $("tz-actual").textContent = v;
+  guardar({ tz: v });
+};
+
+$("b-sync").onclick = async () => {
+  aos.brindis(t("sincronizando"));
+  try { await aos.post("/api/accion", { que: "sync_hora" }); } catch (e) { aos.brindis(t("fallo") + e.message); }
+};
+$("b-hora").onclick = async () => {
+  try {
+    await aos.post("/api/accion", { que: "hora", epoch: Math.round(Date.now() / 1000) });
+    aos.brindis(t("hora_puesta"));
+  } catch (e) { aos.brindis(t("fallo") + e.message); }
+};
+$("b-beep").onclick = () => aos.post("/api/accion", { que: "beep" }).catch(() => {});
+
+aos.init(TR).then(cargar);
+</script>
+</body>
+</html>

@@ -17,6 +17,7 @@
 #include "aos_apps.h"
 #include "aos_dynapp.h"
 #include "aos_web.h"
+#include "aos_log.h"   /* the log ring the portal serves */
 #include "aos_ble.h"   /* F0: measurement, see docs/HANDOFF-BLE-ANCS.md */
 #include "aos_i18n.h"
 
@@ -97,6 +98,9 @@ static void button_cb(aos_button_t button, aos_button_action_t action)
 
 void app_main(void)
 {
+    /* First thing: from here on the log is also kept for /registro. */
+    aos_log_init();
+
     ESP_LOGI(TAG, "AmoledOS %s starting up", aos_hal_firmware_version());
 
     /* If the board restarted by itself, this says why. Without that fact, a

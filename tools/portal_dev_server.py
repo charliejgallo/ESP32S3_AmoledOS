@@ -24,6 +24,11 @@ from urllib.error import HTTPError, URLError
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAGE = os.path.join(ROOT, "components", "aos_web", "portal.html")
+INICIO_PAGE = os.path.join(ROOT, "components", "aos_web", "inicio.html")
+AJUSTES_PAGE = os.path.join(ROOT, "components", "aos_web", "ajustes.html")
+PANTALLA_PAGE = os.path.join(ROOT, "components", "aos_web", "pantalla.html")
+REGISTRO_PAGE = os.path.join(ROOT, "components", "aos_web", "registro.html")
+CAPTURA_FAKE = os.path.join(ROOT, "docs", "img", "launcher-list.png")
 REMOTO_PAGE = os.path.join(ROOT, "components", "aos_web", "remoto.html")
 RED_PAGE    = os.path.join(ROOT, "components", "aos_web", "red.html")
 WIFI_PAGE   = os.path.join(ROOT, "components", "aos_web", "wifi.html")
@@ -121,6 +126,31 @@ def ha_pedir(base, camino, cuerpo=None):
 
 class Handler(BaseHTTPRequestHandler):
     base = ""
+    app_abierta = ""
+    log_buf = ""
+    log_total = 0
+    log_ms = 0
+
+    @classmethod
+    def log_linea(cls, nivel, tag, msg):
+        color = {"I": "32", "W": "33", "E": "31"}.get(nivel, "0")
+        cls.log_ms += 137
+        linea = f"\x1b[0;{color}m{nivel} ({cls.log_ms}) {tag}: {msg}\x1b[0m\n"
+        cls.log_buf = (cls.log_buf + linea)[-16384:]
+        cls.log_total += len(linea)
+
+    @classmethod
+    def log_alimentar(cls):
+        import random
+        if cls.log_total == 0:
+            cls.log_linea("I", "main", "AmoledOS v0.2.0-dev starting up")
+            cls.log_linea("I", "main", "boot reason: normal power-on")
+            cls.log_linea("W", "aos_hal", "touch controller went quiet, re-arming")
+        for _ in range(random.randint(0, 2)):
+            cls.log_linea(random.choice("IIIIWE"), random.choice(["main", "aos_hal", "aos_ui", "aos_ble"]),
+                          random.choice(["heartbeat: display=active touch reads=812 fingers=3 heap_int=41919",
+                                         "light sleep armed", "notification 42 from Mensajes",
+                                         "sntp: time synced", "portal request /api/status"]))
 
     def _perfil(self):
         return os.path.join(self.base, "data", "remoto.json")
@@ -322,15 +352,117 @@ class Handler(BaseHTTPRequestHandler):
             ]}))
 
         elif url.path in ("/", "/index.html"):
+            with open(INICIO_PAGE, "rb") as page:
+                self._send(200, page.read(), "text/html; charset=utf-8")
+
+        elif url.path == "/archivos":
             with open(PAGE, "rb") as page:
                 self._send(200, page.read(), "text/html; charset=utf-8")
 
+        elif url.path == "/ajustes":
+            with open(AJUSTES_PAGE, "rb") as page:
+                self._send(200, page.read(), "text/html; charset=utf-8")
+
+        elif url.path == "/pantalla":
+            with open(PANTALLA_PAGE, "rb") as page:
+                self._send(200, page.read(), "text/html; charset=utf-8")
+
+        elif url.path == "/registro":
+            with open(REGISTRO_PAGE, "rb") as page:
+                self._send(200, page.read(), "text/html; charset=utf-8")
+
         elif url.path == "/api/status":
+            # The same fields the board sends, with invented values. The heap
+            # is deliberately the real order of magnitude (40 KB), so the
+            # colour thresholds of the status strip can be seen here.
+            import time
+            d = prefs_leer(self.base)
             self._send(200, json.dumps({
-                "version": "0.1.0-dev (servidor de prueba)",
-                "battery": 76, "heap": 240 * 1024, "psram": 6 * 1024 * 1024,
-                "sd": True,
+                "version": "0.2.0-dev (servidor de prueba)",
+                "battery": 76, "heap": 41 * 1024, "psram": 7860 * 1024,
+                "exec": 121 * 1024,
+                "sd": True, "sd_total": 31914983424, "sd_free": 29817110528,
+                "board": "v2 (CO5300 + CST816)", "slot": "ota_1", "trial": False,
+                "vbat": 3.987, "vbus": 5.16, "charging": True, "usb": True,
+                "charge_state": "cc", "charge_ma": 150, "charge_target_mv": 4100,
+                "board_temp": 27.4, "drain_pct_h": 3.2, "hours_left": 21.5,
+                "on_battery_s": 0, "battery_minutes": 812, "cycles": 3,
+                "cpu_mhz": 240, "saving": True, "panel_asleep": False,
+                "light_sleep": False, "power_on": "power key",
+                "last_power_off": "power key held", "boot_reason": "power-on",
+                "uptime_s": int(time.time()) % 100000, "display": 1,
+                "ssid": "casa", "rssi": -52, "ip": "127.0.0.1",
+                "wifi_on": str(d.get("wifi_on", "1")) == "1",
+                "ap": str(d.get("ap_activo", "0")) == "1", "ap_ip": "192.168.4.1",
+                "bt": "connected" if str(d.get("bt_on", "1")) == "1" else "off",
+                "bt_peer": "iPhone de prueba", "phone_batt": 63,
+                "app": Handler.app_abierta, "time_ok": True,
+                "tz": d.get("tz", "ART3"), "now": int(time.time()),
             }))
+
+        elif url.path == "/api/ajustes":
+            d = prefs_leer(self.base)
+            def i(k, por):
+                try:
+                    return int(d.get(k, por))
+                except ValueError:
+                    return por
+            self._send(200, json.dumps({
+                "brillo": i("bright", 80), "volumen": i("volume", 50),
+                "aod": i("aod", 0), "aod_brillo": i("aod_bright", 10),
+                "esfera": d.get("face", "digital"),
+                "esferas": [{"id": "digital", "nombre": "Digital"},
+                            {"id": "analog", "nombre": "Analogica"},
+                            {"id": "nixie", "nombre": "Nixie"},
+                            {"id": "rings", "nombre": "Anillos"},
+                            {"id": "flip", "nombre": "Flip"},
+                            {"id": "binary", "nombre": "Binaria"},
+                            {"id": "minimal", "nombre": "Minima"}],
+                "menu": i("launcher", 0),
+                "ahorro": i("pwr_save", 1), "cuidar": i("batt_care", 1),
+                "panel_slp": i("panel_slp", 0), "chip_slp": i("light_slp", 0),
+                "tz": d.get("tz", "ART3"), "hora_ok": True,
+                "wifi": i("wifi_on", 1), "bt": i("bt_on", 1),
+                "notif": i("notif_on", 1), "notif_sonido": i("notif_snd", 1),
+                "llamadas": i("notif_calls", 1),
+            }))
+
+        elif url.path == "/api/apps":
+            self._send(200, json.dumps({"abierta": Handler.app_abierta, "apps": [
+                {"id": "aos.settings", "nombre": "Ajustes", "dinamica": False},
+                {"id": "aos.timer", "nombre": "Temporizador", "dinamica": False},
+                {"id": "aos.stopwatch", "nombre": "Cronometro", "dinamica": False},
+                {"id": "aos.alarm", "nombre": "Alarmas", "dinamica": False},
+                {"id": "aos.calendar", "nombre": "Calendario", "dinamica": False},
+                {"id": "app.claudito", "nombre": "Claudito", "dinamica": True},
+                {"id": "app.gemas", "nombre": "Gemas", "dinamica": True},
+                {"id": "app.clima", "nombre": "Clima", "dinamica": True},
+            ]}))
+
+        elif url.path == "/api/log":
+            # A log that grows by itself, in the board's format and with its
+            # colours, so the page has to strip them here too.
+            import time
+            desde = int((parse_qs(url.query).get("desde") or ["0"])[0])
+            Handler.log_alimentar()
+            total = Handler.log_total
+            buf = Handler.log_buf
+            inicio = max(desde, total - len(buf))
+            trozo = buf[len(buf) - (total - inicio):] if total > inicio else ""
+            data = trozo.encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("X-Desde", str(inicio))
+            self.send_header("X-Hasta", str(total))
+            self.end_headers()
+            self.wfile.write(data)
+
+        elif url.path == "/api/captura":
+            import time
+            time.sleep(0.3)
+            with open(CAPTURA_FAKE, "rb") as f:
+                self._send(200, f.read(), "image/png")
 
         elif url.path == "/api/list":
             folder = self._safe_dir(url.query)
@@ -393,6 +525,37 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, json.dumps({"ok": True, "ciudad": nombre}))
             clave = "cz_list" if url.path == "/api/cotiz" else "sn_list"
             prefs_escribir(self.base, {clave: (campos.get("lista") or [""])[0]})
+            return self._send(200, '{"ok":true}')
+
+        if url.path == "/api/ajustes":
+            largo = int(self.headers.get("Content-Length") or 0)
+            campos = parse_qs(self.rfile.read(largo).decode())
+            claves = {"brillo": "bright", "volumen": "volume", "aod": "aod",
+                      "aod_brillo": "aod_bright", "esfera": "face", "menu": "launcher",
+                      "ahorro": "pwr_save", "cuidar": "batt_care",
+                      "panel_slp": "panel_slp", "chip_slp": "light_slp", "tz": "tz",
+                      "wifi": "wifi_on", "bt": "bt_on", "notif": "notif_on",
+                      "notif_sonido": "notif_snd", "llamadas": "notif_calls"}
+            cambios = {}
+            for k, v in campos.items():
+                if k in claves:
+                    cambios[claves[k]] = v[0]
+            prefs_escribir(self.base, cambios)
+            print(f"  ajustes: {cambios}")
+            return self._send(200, '{"ok":true}')
+
+        if url.path == "/api/accion":
+            largo = int(self.headers.get("Content-Length") or 0)
+            campos = parse_qs(self.rfile.read(largo).decode())
+            que = (campos.get("que") or [""])[0]
+            if que == "abrir":
+                Handler.app_abierta = (campos.get("id") or [""])[0]
+            elif que in ("volver", "inicio", "menu"):
+                Handler.app_abierta = ""
+            elif que not in ("despertar", "apagar", "sync_hora", "hora", "beep", "toast"):
+                return self._send(400, "accion desconocida", "text/plain; charset=utf-8")
+            print(f"  accion: {que} {campos}")
+            Handler.log_linea("I", "aos_web", f"accion desde el portal: {que}")
             return self._send(200, '{"ok":true}')
 
         if url.path == "/api/ap/estado":

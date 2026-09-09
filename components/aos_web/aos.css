@@ -9,6 +9,10 @@
  * Va embebido en el binario como el resto y se sirve en /aos.css. Es un pedido
  * HTTP mas por pagina, que en una LAN -o contra el AP del propio reloj, que es
  * el otro caso- no se siente, y a cambio el navegador lo cachea entre paginas.
+ *
+ * Hay tema claro y oscuro: sigue al del sistema del que abre la pagina. Los
+ * tokens son los mismos, cambian los valores, asi que las paginas no tienen
+ * que saber nada.
  */
 
 :root {
@@ -20,22 +24,42 @@
   --text:   #f2f2f7;
   --dim:    #8e8e93;
   --accent: #0a84ff;
+  --accent-soft: rgba(10,132,255,.14);
   --green:  #30d158;
   --red:    #ff453a;
   --amber:  #ff9f0a;
+  --pill:   #16161a;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg:     #f2f2f7;
+    --card:   #ffffff;
+    --card2:  #e9e9ee;
+    --line:   #d9d9df;
+    --text:   #1c1c1e;
+    --dim:    #6e6e73;
+    --accent: #007aff;
+    --accent-soft: rgba(0,122,255,.12);
+    --green:  #1f9e45;
+    --red:    #d93025;
+    --amber:  #c77700;
+    --pill:   #e9e9ee;
+  }
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  padding: 22px 16px 60px;
+  padding: 18px 16px 60px;
   background: var(--bg);
   color: var(--text);
   font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 
-.wrap { max-width: 720px; margin: 0 auto; }
+.wrap { max-width: 760px; margin: 0 auto; }
 
 /* --- cabecera y navegacion ------------------------------------------------ */
 
@@ -48,39 +72,106 @@ h2 {
 .ver { color: var(--dim); font-size: 13px; }
 p.sub { color: var(--dim); font-size: 13.5px; margin: 0 0 20px; }
 
-/* La cinta de paginas la dibuja aos.js, asi que es igual en todas: antes cada
-   una tenia su propia lista y ninguna coincidia con las demas. */
+/* La cinta la dibuja aos.js, asi que es igual en todas: la marca y la franja
+   de estado arriba, las paginas en tres grupos abajo. */
 .paginas {
-  display: flex; flex-wrap: wrap; gap: 6px;
-  margin: 0 0 22px; padding: 0 0 14px;
+  margin: 0 0 22px; padding: 0 0 12px;
   border-bottom: 1px solid var(--line);
 }
+.paginas .marca {
+  display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.paginas .logo {
+  font-weight: 700; font-size: 15px; letter-spacing: -0.01em;
+  color: var(--text); text-decoration: none;
+}
+.viva { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.chip {
+  font-size: 12px; padding: 3px 9px; border-radius: 999px;
+  background: var(--pill); color: var(--text);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.chip.bien { color: var(--green); }
+.chip.ojo  { color: var(--amber); }
+.chip.mal  { color: var(--red); }
+.chip.dim, .chip .dim { color: var(--dim); }
+
+.paginas .pills {
+  display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center;
+}
+.paginas .grupo { display: flex; gap: 6px; align-items: center; flex: none; }
+.paginas .rotulo {
+  font-size: 11px; color: var(--dim); text-transform: uppercase;
+  letter-spacing: .06em; margin-right: 2px;
+}
 .paginas a {
-  padding: 7px 12px; border-radius: 10px; text-decoration: none;
-  background: var(--card); color: var(--dim); font-size: 13.5px;
+  padding: 6px 11px; border-radius: 10px; text-decoration: none;
+  background: var(--pill); color: var(--dim); font-size: 13.5px;
   white-space: nowrap;
 }
 .paginas a:hover { background: var(--card2); color: var(--text); }
 .paginas a.aca { background: var(--accent); color: #fff; }
 
+/* En angosto, una sola fila que se desplaza de costado: tres renglones de
+   pastillas se comian media pantalla del telefono. */
+@media (max-width: 640px) {
+  .paginas .pills {
+    flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; margin: 0 -16px; padding: 2px 16px;
+  }
+  .paginas .pills::-webkit-scrollbar { display: none; }
+  .paginas .rotulo { display: none; }
+  .paginas .grupo + .grupo { border-left: 1px solid var(--line); padding-left: 10px; }
+}
+
 /* --- bloques -------------------------------------------------------------- */
 
 .tarjeta { background: var(--card); border-radius: 14px; padding: 16px 18px; }
+.tarjeta h3 {
+  margin: 0 0 10px; font-size: 13px; color: var(--dim); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+
+/* Tarjetas en rejilla: dos columnas cuando entran, una cuando no. */
+.rejilla { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 
 .datos { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; }
 .datos dt { color: var(--dim); font-size: 13.5px; }
 .datos dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .datos dd.destacado { color: var(--green); font-weight: 600; }
+.datos dd.ojo { color: var(--amber); }
+.datos dd.mal { color: var(--red); }
+
+/* Numero grande con su rotulo, para lo que se mira de un vistazo. */
+.cifra { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1;
+         font-variant-numeric: tabular-nums; }
+.cifra small { font-size: 14px; color: var(--dim); font-weight: 400; margin-left: 4px; }
+
+/* Barra de proporcion (bateria, tarjeta llena). */
+.medidor { height: 6px; background: var(--card2); border-radius: 3px; overflow: hidden; margin: 8px 0 4px; }
+.medidor i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+.medidor i.bien { background: var(--green); }
+.medidor i.ojo  { background: var(--amber); }
+.medidor i.mal  { background: var(--red); }
+
+.fila { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 18px; }
+.fila #estado, .fila .estado { font-size: 13.5px; color: var(--dim); }
+.fila .estado.bien, .fila #estado.bien { color: var(--green); }
+.fila .estado.mal,  .fila #estado.mal  { color: var(--red); }
 
 /* --- controles ------------------------------------------------------------ */
 
 label.campo { display: block; font-size: 13.5px; color: var(--dim); margin: 16px 0 5px; }
 
-input[type=text], input[type=password], input[type=number], select, textarea {
+input[type=text], input[type=password], input[type=number], input[type=search],
+input[type=url], input[type=time], select, textarea {
   width: 100%; font: inherit; padding: 11px 13px;
   border-radius: 12px; border: 1px solid var(--line);
   background: var(--card); color: var(--text);
+  -webkit-appearance: none; appearance: none;
 }
+input[type=search]::-webkit-search-decoration { -webkit-appearance: none; }
 input:disabled, select:disabled, textarea:disabled { opacity: .45; }
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
 
@@ -90,7 +181,60 @@ button {
 }
 button.sec  { background: var(--card2); color: var(--text); }
 button.mala { background: var(--red); color: #fff; }
+button.chica { padding: 7px 12px; font-size: 13px; border-radius: 9px; }
 button:disabled { opacity: .5; cursor: default; }
+
+/* Deslizador: la pista fina y el pomo redondo del sistema, en el color de
+   acento. */
+input[type=range] {
+  width: 100%; margin: 8px 0; height: 28px; background: transparent;
+  -webkit-appearance: none; appearance: none;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 2px; background: var(--card2);
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); margin-top: -9px; border: 0;
+}
+input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--card2); }
+input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%;
+                                      background: var(--accent); border: 0; }
+
+/* Interruptor: un checkbox disfrazado. La fila entera es la etiqueta, asi que
+   se puede tocar en cualquier lado. */
+.ajuste {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+}
+.ajuste .texto { flex: 1; min-width: 0; }
+.ajuste .texto b { display: block; font-weight: 500; }
+.ajuste .texto span { display: block; color: var(--dim); font-size: 13px; }
+.ajuste .valor { color: var(--dim); font-size: 13.5px; font-variant-numeric: tabular-nums; min-width: 3.5em; text-align: right; }
+.ajuste select { width: auto; max-width: 55%; padding: 8px 32px 8px 12px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--dim) 50%),
+                    linear-gradient(135deg, var(--dim) 50%, transparent 50%);
+  background-position: right 16px center, right 11px center;
+  background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
+.ajuste input[type=range] { flex: 1; width: auto; }
+.ajuste.columna { flex-direction: column; align-items: stretch; gap: 4px; }
+.ajuste.columna .cabeza { display: flex; align-items: center; gap: 12px; }
+.ajuste.columna .cabeza .texto { flex: 1; }
+
+.interruptor { position: relative; width: 50px; height: 30px; flex: none; cursor: pointer; }
+.interruptor input { position: absolute; opacity: 0; width: 0; height: 0; }
+.interruptor i {
+  position: absolute; inset: 0; border-radius: 15px; background: var(--card2);
+  transition: background .15s;
+}
+.interruptor i::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px;
+  border-radius: 50%; background: #fff; transition: transform .15s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.35);
+}
+.interruptor input:checked + i { background: var(--green); }
+.interruptor input:checked + i::after { transform: translateX(20px); }
+.interruptor input:disabled + i { opacity: .4; }
 
 /* Opcion con radio o checkbox y su explicacion debajo. */
 .opcion {
@@ -111,6 +255,7 @@ ul.lista li {
 }
 ul.lista li .nombre { flex: 1; overflow-wrap: anywhere; }
 ul.lista li .detalle { color: var(--dim); font-size: 13px; font-variant-numeric: tabular-nums; }
+.vacio { color: var(--dim); text-align: center; padding: 26px; }
 
 /* --- avisos --------------------------------------------------------------- */
 
@@ -122,10 +267,25 @@ ul.lista li .detalle { color: var(--dim); font-size: 13px; font-variant-numeric:
 .aviso.mal  { color: var(--red); }
 .aviso.ojo  { color: var(--amber); }
 
+footer { color: var(--dim); font-size: 13px; margin-top: 28px; }
+footer a, .aviso a { color: var(--accent); }
+
 /* Un aviso que aparece y se va solo, abajo del todo. */
 #brindis {
   position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
-  background: var(--card2); padding: 10px 18px; border-radius: 12px;
+  background: var(--card2); color: var(--text); padding: 10px 18px; border-radius: 12px;
   opacity: 0; transition: opacity .2s; pointer-events: none;
+  box-shadow: 0 4px 18px rgba(0,0,0,.3);
 }
 #brindis.on { opacity: 1; }
+
+/* Texto monoespaciado para el registro y los volcados. */
+pre.consola {
+  background: var(--card); border-radius: 12px; padding: 12px 14px; margin: 0;
+  font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text);
+  max-height: 70vh; overflow: auto;
+}
+pre.consola .w { color: var(--amber); }
+pre.consola .e { color: var(--red); }
+pre.consola .d { color: var(--dim); }

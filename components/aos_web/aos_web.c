@@ -4,7 +4,10 @@
 #include <stdlib.h>
 #include "aos_hal.h"
 #include "aos_i18n.h"   /* AOS_LANG_CODE_MAX */
-#include "aos_ui.h"     /* aos_ui_request_language */
+#include "aos_ui.h"     /* aos_ui_request_language and the rest of the notes */
+#include "aos_watchface.h"
+#include "aos_log.h"
+#include <time.h>
 
 #include "esp_http_server.h"
 #include "esp_log.h"
@@ -42,6 +45,18 @@ extern const uint8_t aos_css_start[]     asm("_binary_aos_css_start");
 extern const uint8_t aos_css_end[]       asm("_binary_aos_css_end");
 extern const uint8_t aos_js_start[]      asm("_binary_aos_js_start");
 extern const uint8_t aos_js_end[]        asm("_binary_aos_js_end");
+extern const uint8_t inicio_html_start[]   asm("_binary_inicio_html_start");
+extern const uint8_t inicio_html_end[]     asm("_binary_inicio_html_end");
+extern const uint8_t ajustes_html_start[]  asm("_binary_ajustes_html_start");
+extern const uint8_t ajustes_html_end[]    asm("_binary_ajustes_html_end");
+extern const uint8_t pantalla_html_start[] asm("_binary_pantalla_html_start");
+extern const uint8_t pantalla_html_end[]   asm("_binary_pantalla_html_end");
+extern const uint8_t registro_html_start[] asm("_binary_registro_html_start");
+extern const uint8_t registro_html_end[]   asm("_binary_registro_html_end");
+
+/* Defined further down, used by the status handler above them. */
+static void json_escape(char *dst, size_t dst_len, const char *src);
+static void url_decode(char *s);
 
 #define UPLOAD_CHUNK        4096
 #define MAX_UPLOAD_BYTES    (8 * 1024 * 1024)
@@ -193,10 +208,18 @@ static esp_err_t pmu_handler(httpd_req_t *req)
         if (atoi(value)) aos_hal_activity(); else aos_hal_display_on(false);
         snprintf(note, sizeof(note), "\"display\":%d,", atoi(value) ? 1 : 0);
     } else if (httpd_query_key_value(query, "locks", value, sizeof(value)) == ESP_OK) {
-        static char dump[2048];
-        aos_hal_pm_dump_text(dump, sizeof(dump));
+        /* 2 KB, and in PSRAM: it used to be a static in internal RAM, sitting
+         * there for the one time a day somebody looks at the PM locks. */
+        char *dump = heap_caps_malloc(2048, MALLOC_CAP_SPIRAM);
+        if (!dump) {
+            httpd_resp_set_status(req, "503 Service Unavailable");
+            return httpd_resp_sendstr(req, "sin memoria");
+        }
+        aos_hal_pm_dump_text(dump, 2048);
         httpd_resp_set_type(req, "text/plain");
-        return httpd_resp_send(req, dump, HTTPD_RESP_USE_STRLEN);
+        esp_err_t r = httpd_resp_send(req, dump, HTTPD_RESP_USE_STRLEN);
+        free(dump);
+        return r;
     } else if (httpd_query_key_value(query, "probe", value, sizeof(value)) == ESP_OK) {
         char probe[320];
         aos_hal_probe_devices(probe, sizeof(probe));
@@ -311,8 +334,56 @@ static esp_err_t status_handler(httpd_req_t *req)
         json[n]   = '\0';
     }
 
+    /* What the portal's status strip and the home page show on top of the
+     * above: the network, the phone, the card and what is on screen. Sent as
+     * a second piece so the first buffer keeps its size. The closing brace of
+     * the first piece is taken back and the fields are appended. */
+    if (n > 1 && json[n - 1] == '}') {
+        json[--n] = '\0';
+    }
+    char extra[420];
+    char ssid[68] = "", peer[68] = "";
+    if (aos_hal_net_state() == AOS_NET_CONNECTED) {
+        json_escape(ssid, sizeof(ssid), aos_hal_net_ssid());
+    }
+    aos_bt_state_t bt = aos_hal_bt_state();
+    if (bt == AOS_BT_CONNECTED) {
+        json_escape(peer, sizeof(peer), aos_hal_bt_peer());
+    }
+    int phone = -1;
+    if (bt == AOS_BT_CONNECTED && !aos_hal_bt_phone_battery(&phone)) {
+        phone = -1;
+    }
+    uint64_t sd_total = 0, sd_free = 0;
+    if (aos_hal_sd_present()) {
+        aos_hal_sd_usage(&sd_total, &sd_free);
+    }
+    const char *app = aos_ui_current_app();
+    char tz[48];
+    json_escape(tz, sizeof(tz), aos_hal_timezone_get());
+    snprintf(extra, sizeof(extra),
+             ",\"ssid\":\"%s\",\"rssi\":%d,\"ip\":\"%s\",\"wifi_on\":%s,"
+             "\"ap\":%s,\"ap_ip\":\"%s\",\"bt\":\"%s\",\"bt_peer\":\"%s\","
+             "\"phone_batt\":%d,\"exec\":%u,\"sd_total\":%llu,\"sd_free\":%llu,"
+             "\"app\":\"%s\",\"time_ok\":%s,\"tz\":\"%s\",\"now\":%lld}",
+             ssid, ssid[0] ? aos_hal_net_rssi() : 0,
+             ssid[0] ? aos_hal_net_ip() : "",
+             aos_hal_net_enabled() ? "true" : "false",
+             aos_hal_net_ap_active() ? "true" : "false",
+             aos_hal_net_ap_active() ? aos_hal_net_ap_ip() : "",
+             bt == AOS_BT_CONNECTED ? "connected" : bt == AOS_BT_PAIRING ? "pairing" :
+             bt == AOS_BT_ADVERTISING ? "advertising" : "off",
+             peer, phone,
+             (unsigned)heap_caps_get_free_size(MALLOC_CAP_EXEC),
+             (unsigned long long)sd_total, (unsigned long long)sd_free,
+             app ? app : "",
+             aos_hal_time_is_valid() ? "true" : "false", tz,
+             (long long)time(NULL));
+
     httpd_resp_set_type(req, "application/json");
-    return httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);
+    httpd_resp_send_chunk(req, json, n);
+    httpd_resp_send_chunk(req, extra, HTTPD_RESP_USE_STRLEN);
+    return httpd_resp_send_chunk(req, NULL, 0);
 }
 
 static esp_err_t list_handler(httpd_req_t *req)
@@ -1883,8 +1954,360 @@ static esp_err_t remoto_entities_handler(httpd_req_t *req)
  * in the log. Now the ceiling comes from the table and adding a route cannot
  * fail silently.                                                              */
 /* -------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------
+ * The portal's own pages: home, files, settings, screen, log.
+ *
+ * Everything below is what the browser needs to do the work the watch's
+ * Settings app does, plus what makes the board testable from outside: a live
+ * view of the screen with the controls to drive it, and the log over wifi.
+ *
+ * On RAM: none of this adds a task or a static buffer in internal RAM. The
+ * pages are in flash, the JSON is built on the server's stack in pieces of a
+ * few hundred bytes, and the only allocation -the log ring- is in PSRAM.
+ * -------------------------------------------------------------------------- */
+
+static esp_err_t inicio_page_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    return httpd_resp_send(req, (const char *)inicio_html_start,
+                           inicio_html_end - inicio_html_start - 1);
+}
+
+static esp_err_t ajustes_page_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    return httpd_resp_send(req, (const char *)ajustes_html_start,
+                           ajustes_html_end - ajustes_html_start - 1);
+}
+
+static esp_err_t pantalla_page_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    return httpd_resp_send(req, (const char *)pantalla_html_start,
+                           pantalla_html_end - pantalla_html_start - 1);
+}
+
+static esp_err_t registro_page_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    return httpd_resp_send(req, (const char *)registro_html_start,
+                           registro_html_end - registro_html_start - 1);
+}
+
+/* Reads a small form body into 'body'. Returns false having already sent the
+ * error. Shared by the three POST handlers below. */
+static bool leer_cuerpo(httpd_req_t *req, char *body, size_t body_len)
+{
+    int want = req->content_len;
+    if (want <= 0 || want >= (int)body_len) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "cuerpo invalido");
+        return false;
+    }
+    int got = httpd_req_recv(req, body, want);
+    if (got <= 0) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "no llego el cuerpo");
+        return false;
+    }
+    body[got] = 0;
+    return true;
+}
+
+/* GET /api/ajustes: everything the Settings page shows, in one JSON. Sent in
+ * chunks so no single buffer has to hold the list of watchfaces. */
+static esp_err_t ajustes_get_handler(httpd_req_t *req)
+{
+    char item[200];
+    char tz[48];
+    json_escape(tz, sizeof(tz), aos_hal_timezone_get());
+
+    httpd_resp_set_type(req, "application/json");
+    snprintf(item, sizeof(item),
+             "{\"brillo\":%d,\"volumen\":%d,\"aod\":%d,\"aod_brillo\":%d,"
+             "\"menu\":%d,\"ahorro\":%d,\"cuidar\":%d,\"panel_slp\":%d,\"chip_slp\":%d,",
+             aos_hal_brightness_get(), aos_hal_volume_get(),
+             aos_hal_aod_enabled() ? 1 : 0, aos_hal_aod_brightness_get(),
+             (int)aos_ui_launcher_get_style(),
+             aos_hal_power_saving_enabled() ? 1 : 0,
+             aos_hal_battery_care_enabled() ? 1 : 0,
+             aos_hal_panel_sleep_enabled() ? 1 : 0,
+             aos_hal_light_sleep_enabled() ? 1 : 0);
+    httpd_resp_sendstr_chunk(req, item);
+
+    snprintf(item, sizeof(item),
+             "\"tz\":\"%s\",\"hora_ok\":%s,\"wifi\":%d,\"bt\":%d,"
+             "\"notif\":%d,\"notif_sonido\":%d,\"llamadas\":%d,",
+             tz, aos_hal_time_is_valid() ? "true" : "false",
+             aos_hal_net_enabled() ? 1 : 0, aos_hal_bt_enabled() ? 1 : 0,
+             aos_hal_notif_enabled() ? 1 : 0, aos_hal_notif_sound() ? 1 : 0,
+             aos_hal_notif_calls_always() ? 1 : 0);
+    httpd_resp_sendstr_chunk(req, item);
+
+    const char *actual = aos_watchface_current();
+    snprintf(item, sizeof(item), "\"esfera\":\"%s\",\"esferas\":[", actual ? actual : "");
+    httpd_resp_sendstr_chunk(req, item);
+    int n = aos_watchface_count();
+    for (int i = 0; i < n; i++) {
+        const aos_watchface_t *f = aos_watchface_at(i);
+        if (!f) continue;
+        char nombre[64];
+        json_escape(nombre, sizeof(nombre), f->name ? f->name : f->id);
+        snprintf(item, sizeof(item), "%s{\"id\":\"%s\",\"nombre\":\"%s\"}",
+                 i ? "," : "", f->id, nombre);
+        httpd_resp_sendstr_chunk(req, item);
+    }
+    httpd_resp_sendstr_chunk(req, "]}");
+    httpd_resp_sendstr_chunk(req, NULL);
+    return ESP_OK;
+}
+
+/* POST /api/ajustes: any subset of the keys above. Whatever touches the panel
+ * or the UI is done with the display lock held -brightness is a command on
+ * the same QSPI bus the flush uses- or handed to aos_ui_tick() through the
+ * request functions, which is the same path the language change takes. */
+static esp_err_t ajustes_post_handler(httpd_req_t *req)
+{
+    char body[320];
+    if (!leer_cuerpo(req, body, sizeof(body))) {
+        return ESP_FAIL;
+    }
+
+    char v[64];
+    int aplicados = 0;
+
+    if (!aos_hal_lock(500)) {
+        httpd_resp_set_status(req, "503 Service Unavailable");
+        return httpd_resp_sendstr(req, "la interfaz esta ocupada");
+    }
+
+    if (httpd_query_key_value(body, "brillo", v, sizeof(v)) == ESP_OK) {
+        aos_hal_brightness_set(atoi(v));
+        aos_hal_activity();
+        aplicados++;
+    }
+    if (httpd_query_key_value(body, "volumen", v, sizeof(v)) == ESP_OK) {
+        aos_hal_volume_set(atoi(v));
+        aplicados++;
+    }
+    if (httpd_query_key_value(body, "aod", v, sizeof(v)) == ESP_OK) {
+        aos_hal_aod_enable(atoi(v) != 0);
+        aplicados++;
+    }
+    if (httpd_query_key_value(body, "aod_brillo", v, sizeof(v)) == ESP_OK) {
+        aos_hal_aod_brightness_set(atoi(v));
+        aplicados++;
+    }
+    if (httpd_query_key_value(body, "ahorro", v, sizeof(v)) == ESP_OK) {
+        aos_hal_power_saving_enable(atoi(v) != 0);
+        aplicados++;
+    }
+    if (httpd_query_key_value(body, "cuidar", v, sizeof(v)) == ESP_OK) {
+        aos_hal_battery_care_enable(atoi(v) != 0);
+        aplicados++;
+    }
+    if (httpd_query_key_value(body, "panel_slp", v, sizeof(v)) == ESP_OK) {
+        aos_hal_panel_sleep_enable(atoi(v) != 0);
+        aplicados++;
+    }
+    if (httpd_query_key_value(body, "chip_slp", v, sizeof(v)) == ESP_OK) {
+        aos_hal_light_sleep_enable(atoi(v) != 0);
+        aplicados++;
+    }
+    if (httpd_query_key_value(body, "bt", v, sizeof(v)) == ESP_OK) {
+        aos_hal_bt_enable(atoi(v) != 0);
+        aplicados++;
+    }
+    if (httpd_query_key_value(body, "notif", v, sizeof(v)) == ESP_OK) {
+        aos_hal_notif_enable(atoi(v) != 0);
+        aplicados++;
+    }
+    if (httpd_query_key_value(body, "notif_sonido", v, sizeof(v)) == ESP_OK) {
+        aos_hal_notif_sound_set(atoi(v) != 0);
+        aplicados++;
+    }
+    if (httpd_query_key_value(body, "llamadas", v, sizeof(v)) == ESP_OK) {
+        aos_hal_notif_calls_always_set(atoi(v) != 0);
+        aplicados++;
+    }
+    if (httpd_query_key_value(body, "tz", v, sizeof(v)) == ESP_OK) {
+        url_decode(v);
+        if (v[0]) {
+            aos_hal_timezone_set(v);
+            aplicados++;
+        }
+    }
+    aos_hal_unlock();
+
+    /* Deferred: these rebuild LVGL objects and must run on the UI tick. */
+    if (httpd_query_key_value(body, "esfera", v, sizeof(v)) == ESP_OK) {
+        url_decode(v);
+        aos_ui_request_watchface(v);
+        aplicados++;
+    }
+    if (httpd_query_key_value(body, "menu", v, sizeof(v)) == ESP_OK) {
+        aos_ui_request_launcher_style(atoi(v));
+        aplicados++;
+    }
+
+    /* Last, and after answering: it takes this very connection down. */
+    bool apagar_wifi = false;
+    if (httpd_query_key_value(body, "wifi", v, sizeof(v)) == ESP_OK) {
+        if (atoi(v) != 0) {
+            aos_hal_net_enable(true);
+        } else {
+            apagar_wifi = true;
+        }
+        aplicados++;
+    }
+
+    char json[48];
+    snprintf(json, sizeof(json), "{\"ok\":true,\"aplicados\":%d}", aplicados);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, json);
+
+    if (apagar_wifi) {
+        ESP_LOGW(TAG, "wifi switched off from the portal");
+        aos_hal_net_enable(false);
+    }
+    return ESP_OK;
+}
+
+/* POST /api/accion: que=despertar|apagar|volver|inicio|menu|abrir|toast|
+ *                   sync_hora|hora|beep
+ * Navigation and the toast go through aos_ui's request notes; the rest is
+ * HAL and safe from here with the lock. */
+static esp_err_t accion_handler(httpd_req_t *req)
+{
+    char body[200];
+    if (!leer_cuerpo(req, body, sizeof(body))) {
+        return ESP_FAIL;
+    }
+    char que[24] = "", arg[96] = "";
+    httpd_query_key_value(body, "que", que, sizeof(que));
+
+    bool ok = true;
+    if (strcmp(que, "despertar") == 0) {
+        aos_hal_activity();
+    } else if (strcmp(que, "apagar") == 0) {
+        aos_hal_display_on(false);
+    } else if (strcmp(que, "volver") == 0) {
+        aos_ui_request_nav(AOS_UI_NAV_BACK);
+    } else if (strcmp(que, "inicio") == 0) {
+        aos_ui_request_nav(AOS_UI_NAV_HOME);
+    } else if (strcmp(que, "menu") == 0) {
+        aos_ui_request_nav(AOS_UI_NAV_LAUNCHER);
+    } else if (strcmp(que, "abrir") == 0) {
+        httpd_query_key_value(body, "id", arg, sizeof(arg));
+        url_decode(arg);
+        ok = arg[0] && aos_ui_app_find(arg) != NULL;
+        if (ok) aos_ui_request_open(arg);
+    } else if (strcmp(que, "toast") == 0) {
+        httpd_query_key_value(body, "texto", arg, sizeof(arg));
+        url_decode(arg);
+        ok = arg[0] != 0;
+        if (ok) aos_ui_request_toast(arg);
+    } else if (strcmp(que, "sync_hora") == 0) {
+        ok = aos_hal_net_sync_time();
+    } else if (strcmp(que, "hora") == 0) {
+        /* The browser's clock, as an epoch; the watch wants local time. */
+        httpd_query_key_value(body, "epoch", arg, sizeof(arg));
+        time_t epoch = (time_t)strtoll(arg, NULL, 10);
+        struct tm local;
+        ok = epoch > 1600000000 && localtime_r(&epoch, &local) != NULL;
+        if (ok && aos_hal_lock(500)) {
+            ok = aos_hal_time_set(&local);
+            aos_hal_unlock();
+        }
+    } else if (strcmp(que, "beep") == 0) {
+        aos_hal_beep(880, 120);
+    } else {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "accion desconocida");
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "action from the portal: %s %s -> %s", que, arg, ok ? "ok" : "failed");
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_sendstr(req, ok ? "{\"ok\":true}" : "{\"ok\":false}");
+}
+
+/* GET /api/apps: what the launcher shows, so the Screen page can open any of
+ * them. Built-in ids start with "aos."; the rest came from the card. */
+static esp_err_t apps_handler(httpd_req_t *req)
+{
+    char item[160];
+    const char *abierta = aos_ui_current_app();
+
+    httpd_resp_set_type(req, "application/json");
+    snprintf(item, sizeof(item), "{\"abierta\":\"%s\",\"apps\":[", abierta ? abierta : "");
+    httpd_resp_sendstr_chunk(req, item);
+
+    int n = aos_ui_app_count();
+    for (int i = 0; i < n; i++) {
+        const aos_app_t *a = aos_ui_app_at(i);
+        if (!a || !a->desc.id) continue;
+        char nombre[64];
+        json_escape(nombre, sizeof(nombre), a->desc.name ? a->desc.name : a->desc.id);
+        snprintf(item, sizeof(item), "%s{\"id\":\"%s\",\"nombre\":\"%s\",\"dinamica\":%s}",
+                 i ? "," : "", a->desc.id, nombre,
+                 strncmp(a->desc.id, "aos.", 4) == 0 ? "false" : "true");
+        httpd_resp_sendstr_chunk(req, item);
+    }
+    httpd_resp_sendstr_chunk(req, "]}");
+    httpd_resp_sendstr_chunk(req, NULL);
+    return ESP_OK;
+}
+
+/* GET /api/log?desde=N: the ring from offset N to the end, as text. The
+ * offsets travel in two headers so the page can ask only for what is new. The
+ * end is fixed before sending: the log keeps growing meanwhile and a chunked
+ * stream with a moving end never finishes. */
+static esp_err_t log_handler(httpd_req_t *req)
+{
+    char query[48] = "", v[24];
+    size_t desde = 0;
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) == ESP_OK &&
+        httpd_query_key_value(query, "desde", v, sizeof(v)) == ESP_OK) {
+        desde = (size_t)strtoul(v, NULL, 10);
+    }
+
+    size_t hasta = aos_log_total();
+    char trozo[512];
+    size_t inicio = desde;
+    size_t n = aos_log_read(desde, hasta, trozo, sizeof(trozo), &inicio);
+
+    char h[24];
+    snprintf(h, sizeof(h), "%u", (unsigned)inicio);
+    httpd_resp_set_hdr(req, "X-Desde", h);
+    char h2[24];
+    snprintf(h2, sizeof(h2), "%u", (unsigned)hasta);
+    httpd_resp_set_hdr(req, "X-Hasta", h2);
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    httpd_resp_set_type(req, "text/plain; charset=utf-8");
+
+    esp_err_t r = ESP_OK;
+    size_t pos = inicio;
+    while (n > 0 && r == ESP_OK) {
+        r = httpd_resp_send_chunk(req, trozo, n);
+        pos += n;
+        if (pos >= hasta) break;
+        n = aos_log_read(pos, hasta, trozo, sizeof(trozo), NULL);
+    }
+    if (r != ESP_OK) {
+        return r;
+    }
+    return httpd_resp_send_chunk(req, NULL, 0);
+}
+
 static const httpd_uri_t ROUTES[] = {
-        { .uri = "/",            .method = HTTP_GET,  .handler = page_handler },
+        { .uri = "/",            .method = HTTP_GET,  .handler = inicio_page_handler },
+        { .uri = "/archivos",    .method = HTTP_GET,  .handler = page_handler },
+        { .uri = "/ajustes",     .method = HTTP_GET,  .handler = ajustes_page_handler },
+        { .uri = "/api/ajustes", .method = HTTP_GET,  .handler = ajustes_get_handler },
+        { .uri = "/api/ajustes", .method = HTTP_POST, .handler = ajustes_post_handler },
+        { .uri = "/api/accion",  .method = HTTP_POST, .handler = accion_handler },
+        { .uri = "/api/apps",    .method = HTTP_GET,  .handler = apps_handler },
+        { .uri = "/pantalla",    .method = HTTP_GET,  .handler = pantalla_page_handler },
+        { .uri = "/registro",    .method = HTTP_GET,  .handler = registro_page_handler },
+        { .uri = "/api/log",     .method = HTTP_GET,  .handler = log_handler },
         { .uri = "/api/status",  .method = HTTP_GET,  .handler = status_handler },
         { .uri = "/api/pmu",     .method = HTTP_GET,  .handler = pmu_handler },
         { .uri = "/api/list",    .method = HTTP_GET,  .handler = list_handler },
@@ -1964,7 +2387,7 @@ esp_err_t aos_web_start(void)
         }
     }
 
-    ESP_LOGI(TAG, "portal at http://%s/  (wifi, clima, cotiz, sensores, remoto, red)",
+    ESP_LOGI(TAG, "portal at http://%s/  (ajustes, pantalla, registro, archivos, wifi, ap, red, clima, cotiz, sensores, remoto)",
              aos_hal_net_ap_active() ? aos_hal_net_ap_ip() : aos_hal_net_ip());
     return ESP_OK;
 }

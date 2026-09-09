@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Pantalla</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  .escena { display: grid; gap: 18px; grid-template-columns: auto 1fr; align-items: start; }
+  @media (max-width: 640px) { .escena { grid-template-columns: 1fr; } }
+  .marco {
+    width: 276px; height: 336px; border-radius: 34px; background: #000;
+    overflow: hidden; box-shadow: 0 0 0 6px #1a1a1e, 0 10px 30px rgba(0,0,0,.4);
+    position: relative; margin: 6px auto 0;
+  }
+  .marco img { width: 100%; height: 100%; display: block; image-rendering: auto; }
+  .marco .velo {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: var(--dim); font-size: 13px; background: rgba(0,0,0,.55); opacity: 0; transition: opacity .2s;
+    pointer-events: none;
+  }
+  .marco.ocupado .velo { opacity: 1; }
+  .pie-cap { text-align: center; color: var(--dim); font-size: 12.5px; margin-top: 10px; }
+  .botones { display: flex; gap: 8px; flex-wrap: wrap; }
+  .apps { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .apps button { background: var(--card); color: var(--text); padding: 7px 12px; font-size: 13px; border-radius: 10px; }
+  .apps button.din { color: var(--accent); }
+  .apps button.abierta { background: var(--accent); color: #fff; }
+  .toast-fila { display: flex; gap: 8px; margin-top: 8px; }
+  .toast-fila input { flex: 1; }
+  select.chica { width: auto; padding: 7px 30px 7px 12px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Pantalla</h1></div>
+  <p class="sub" data-t="bajada">Lo que el reloj está dibujando, y los mandos para
+     moverlo desde acá: abrir una app, volver, apagar. Para probar sin tenerlo
+     en la muñeca.</p>
+
+  <nav class="paginas"></nav>
+
+  <div class="escena">
+    <div>
+      <div class="marco" id="marco">
+        <img id="cap" alt="">
+        <div class="velo" data-t="capturando">capturando...</div>
+      </div>
+      <div class="pie-cap" id="pie-cap"></div>
+    </div>
+
+    <div>
+      <h2 style="margin-top:0" data-t="h_captura">Captura</h2>
+      <div class="botones">
+        <button id="b-cap" data-t="b_cap">Capturar</button>
+        <select class="chica" id="auto">
+          <option value="0" data-t="auto_no">Sin refresco</option>
+          <option value="2000" data-t="auto_2">Cada 2 s</option>
+          <option value="5000" data-t="auto_5">Cada 5 s</option>
+          <option value="15000" data-t="auto_15">Cada 15 s</option>
+        </select>
+        <a id="bajar" class="sec" href="/api/captura?sin_despertar=1" download="amoledos.bmp"
+           style="padding:11px 18px;border-radius:12px;background:var(--card2);color:var(--text);text-decoration:none"
+           data-t="b_bajar">Bajar BMP</a>
+      </div>
+      <label class="opcion" style="margin-top:10px">
+        <input type="checkbox" id="sin-despertar">
+        <span><b data-t="sin_desp">Sin despertar</b>
+          <span class="pie" data-t="sin_desp_pie">Captura tal cual está, aunque la pantalla esté atenuada o apagada.</span></span>
+      </label>
+
+      <h2 data-t="h_mandos">Mandos</h2>
+      <div class="botones">
+        <button class="sec" id="b-despertar" data-t="b_despertar">Despertar</button>
+        <button class="sec" id="b-apagar" data-t="b_apagar">Apagar</button>
+        <button class="sec" id="b-volver" data-t="b_volver">Volver</button>
+        <button class="sec" id="b-inicio" data-t="b_inicio">Esfera</button>
+        <button class="sec" id="b-menu" data-t="b_menu">Menú</button>
+      </div>
+      <div class="toast-fila">
+        <input type="text" id="toast" maxlength="60" data-t-ph="ph_toast" placeholder="mensaje en pantalla">
+        <button class="sec" id="b-toast" data-t="b_toast">Mostrar</button>
+      </div>
+
+      <h2 data-t="h_apps">Abrir una app</h2>
+      <div class="apps" id="apps"><span class="vacio" data-t="cargando">cargando...</span></div>
+    </div>
+  </div>
+
+  <footer data-t="pie">Cada captura son 483 KB de BMP que cruzan la wifi: en la
+    red de casa es medio segundo. El refresco automático conviene cortarlo
+    cuando no se mira.</footer>
+</div>
+<div id="brindis"></div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "Screen",
+    bajada: "What the watch is drawing, and the controls to drive it from here: open an app, go back, switch off. For testing without it on your wrist.",
+    capturando: "capturing...", h_captura: "Capture", b_cap: "Capture",
+    auto_no: "No refresh", auto_2: "Every 2 s", auto_5: "Every 5 s", auto_15: "Every 15 s",
+    b_bajar: "Download BMP",
+    sin_desp: "Do not wake", sin_desp_pie: "Captures it as it is, even if the screen is dimmed or off.",
+    h_mandos: "Controls", b_despertar: "Wake", b_apagar: "Off", b_volver: "Back", b_inicio: "Watchface", b_menu: "Menu",
+    ph_toast: "message on the screen", b_toast: "Show",
+    h_apps: "Open an app", cargando: "loading...",
+    pie: "Each capture is 483 KB of BMP across the wifi: on a home network that is half a second. Cut the automatic refresh when you are not looking.",
+    tomada: "taken at %s", fallo: "failed: ", hecho: "done", abierta: "opened %s",
+    sin_conexion: "no connection to the watch"
+  },
+  de: {
+    titulo: "Bildschirm",
+    bajada: "Was die Uhr gerade zeichnet, und die Bedienung von hier aus: App oeffnen, zurueck, ausschalten. Zum Testen ohne die Uhr am Handgelenk.",
+    capturando: "nehme auf...", h_captura: "Aufnahme", b_cap: "Aufnehmen",
+    auto_no: "Kein Refresh", auto_2: "Alle 2 s", auto_5: "Alle 5 s", auto_15: "Alle 15 s",
+    b_bajar: "BMP laden",
+    sin_desp: "Nicht wecken", sin_desp_pie: "Nimmt es so auf, wie es ist, auch gedimmt oder aus.",
+    h_mandos: "Bedienung", b_despertar: "Wecken", b_apagar: "Aus", b_volver: "Zurueck", b_inicio: "Zifferblatt", b_menu: "Menue",
+    ph_toast: "Meldung auf dem Bildschirm", b_toast: "Zeigen",
+    h_apps: "App oeffnen", cargando: "laedt...",
+    pie: "Jede Aufnahme sind 483 KB BMP ueber das WLAN: im Heimnetz eine halbe Sekunde. Den automatischen Refresh abschalten, wenn niemand hinschaut.",
+    tomada: "aufgenommen um %s", fallo: "fehlgeschlagen: ", hecho: "fertig", abierta: "%s geoeffnet",
+    sin_conexion: "keine Verbindung zur Uhr"
+  }
+};
+const ES = {
+  tomada: "tomada a las %s", fallo: "falló: ", hecho: "listo", abierta: "abierta %s",
+  sin_conexion: "sin conexión con el reloj"
+};
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? (ES[k] !== undefined ? ES[k] : k) : v; }
+
+let timer = null, ocupado = false;
+
+function capturar() {
+  if (ocupado) return;
+  ocupado = true;
+  $("marco").classList.add("ocupado");
+  const img = $("cap");
+  const url = "/api/captura?" + ($("sin-despertar").checked ? "sin_despertar=1&" : "") + "t=" + Date.now();
+  const nueva = new Image();
+  nueva.onload = () => {
+    img.src = nueva.src;
+    $("pie-cap").textContent = t("tomada").replace("%s", new Date().toLocaleTimeString());
+    listo();
+  };
+  nueva.onerror = () => { $("pie-cap").textContent = t("fallo") + "captura"; listo(); };
+  nueva.src = url;
+  function listo() { ocupado = false; $("marco").classList.remove("ocupado"); }
+}
+
+$("b-cap").onclick = capturar;
+$("auto").onchange = e => {
+  clearInterval(timer); timer = null;
+  const ms = parseInt(e.target.value, 10);
+  if (ms) timer = setInterval(capturar, ms);
+};
+$("sin-despertar").onchange = e => {
+  $("bajar").href = "/api/captura?" + (e.target.checked ? "sin_despertar=1" : "");
+};
+
+async function accion(campos, luego) {
+  try {
+    await aos.post("/api/accion", campos);
+    if (luego !== false) setTimeout(() => { capturar(); aos.estado(); cargarApps(); }, 700);
+  } catch (e) {
+    aos.brindis(t("fallo") + e.message);
+  }
+}
+$("b-despertar").onclick = () => accion({ que: "despertar" });
+$("b-apagar").onclick = () => accion({ que: "apagar" });
+$("b-volver").onclick = () => accion({ que: "volver" });
+$("b-inicio").onclick = () => accion({ que: "inicio" });
+$("b-menu").onclick = () => accion({ que: "menu" });
+$("b-toast").onclick = () => {
+  const texto = $("toast").value.trim();
+  if (texto) accion({ que: "toast", texto: texto });
+};
+$("toast").onkeydown = e => { if (e.key === "Enter") $("b-toast").onclick(); };
+
+async function cargarApps() {
+  let datos;
+  try {
+    datos = await (await fetch("/api/apps")).json();
+  } catch (e) {
+    $("apps").innerHTML = '<span class="vacio">' + aos.esc(t("sin_conexion")) + "</span>";
+    return;
+  }
+  const cont = $("apps");
+  cont.innerHTML = "";
+  for (const a of datos.apps || []) {
+    const b = document.createElement("button");
+    b.textContent = a.nombre;
+    b.title = a.id;
+    if (a.dinamica) b.classList.add("din");
+    if (datos.abierta === a.id) b.classList.add("abierta");
+    b.onclick = () => accion({ que: "abrir", id: a.id });
+    cont.append(b);
+  }
+}
+
+aos.init(TR).then(() => { cargarApps(); capturar(); });
+</script>
+</body>
+</html>

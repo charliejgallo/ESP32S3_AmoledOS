@@ -59,6 +59,14 @@ static volatile bool s_display_state_dirty;
 static bool s_picker_requested;
 static char s_lang_requested[AOS_LANG_CODE_MAX];
 
+/* What the portal asked for and has not been applied yet. Small fixed
+ * buffers, copied on request: the server's strings live on its stack. */
+static char s_open_requested[48];
+static char s_face_requested[24];
+static char s_toast_requested[64];
+static volatile int  s_nav_requested;          /* aos_ui_nav_t */
+static volatile int  s_launcher_requested = -1;
+
 
 static lv_obj_t *s_watchface;
 
@@ -696,6 +704,76 @@ void aos_ui_request_language(const char *code)
     snprintf(s_lang_requested, sizeof(s_lang_requested), "%s", code ? code : "");
 }
 
+void aos_ui_request_open(const char *id)
+{
+    snprintf(s_open_requested, sizeof(s_open_requested), "%s", id ? id : "");
+}
+
+void aos_ui_request_nav(aos_ui_nav_t nav)
+{
+    s_nav_requested = (int)nav;
+}
+
+void aos_ui_request_watchface(const char *id)
+{
+    snprintf(s_face_requested, sizeof(s_face_requested), "%s", id ? id : "");
+}
+
+void aos_ui_request_launcher_style(int style)
+{
+    s_launcher_requested = style;
+}
+
+void aos_ui_request_toast(const char *text)
+{
+    snprintf(s_toast_requested, sizeof(s_toast_requested), "%s", text ? text : "");
+}
+
+/* Applies the portal's notes, on the tick. Order: navigation first, then
+ * what opens something, then the decorations. */
+static void portal_requests_tick(void)
+{
+    int nav = s_nav_requested;
+    if (nav != AOS_UI_NAV_NONE) {
+        s_nav_requested = AOS_UI_NAV_NONE;
+        aos_hal_activity();
+        if (nav == AOS_UI_NAV_BACK)          aos_ui_back();
+        else if (nav == AOS_UI_NAV_HOME)     aos_ui_home();
+        else if (nav == AOS_UI_NAV_LAUNCHER) { aos_ui_home(); aos_ui_show_launcher(); }
+    }
+
+    if (s_open_requested[0]) {
+        char id[sizeof(s_open_requested)];
+        snprintf(id, sizeof(id), "%s", s_open_requested);
+        s_open_requested[0] = '\0';
+        aos_hal_activity();
+        if (!aos_ui_open(id)) {
+            LV_LOG_WARN("portal asked for an app that does not exist: %s", id);
+        }
+    }
+
+    if (s_face_requested[0]) {
+        char id[sizeof(s_face_requested)];
+        snprintf(id, sizeof(id), "%s", s_face_requested);
+        s_face_requested[0] = '\0';
+        aos_watchface_select(id);
+    }
+
+    int style = s_launcher_requested;
+    if (style >= 0) {
+        s_launcher_requested = -1;
+        aos_ui_launcher_set_style((aos_launcher_style_t)style);
+    }
+
+    if (s_toast_requested[0]) {
+        char text[sizeof(s_toast_requested)];
+        snprintf(text, sizeof(text), "%s", s_toast_requested);
+        s_toast_requested[0] = '\0';
+        aos_hal_activity();
+        aos_ui_toast(text, 2000);
+    }
+}
+
 /* --- Screen capture ------------------------------------------------------
  *
  * One slot, one capture at a time. The states run IDLE -> WANTED -> READY (or
@@ -1331,6 +1409,8 @@ void aos_ui_tick(void)
         s_lang_requested[0] = '\0';
         apply_language(code);
     }
+
+    portal_requests_tick();
 
     /* Before the notifications: if both arrive at once, what needs an answer
      * goes first. */

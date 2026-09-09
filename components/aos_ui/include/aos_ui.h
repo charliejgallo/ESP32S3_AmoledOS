@@ -70,6 +70,24 @@ void aos_ui_request_watchface_picker(void);
  * whose callback asked for it. Same reason as the watchface picker. */
 void aos_ui_request_language(const char *code);
 
+/* The rest of what the web portal asks for, deferred for the same reason: the
+ * server runs in its own task and none of this may touch LVGL from there.
+ * Each one is a note that aos_ui_tick() reads and applies with the lock held.
+ *
+ *   open            opens an app by id (as if tapped in the launcher)
+ *   nav             back / home / launcher
+ *   watchface       selects a face by id, without the picker
+ *   launcher_style  list / grid / honeycomb
+ *   toast           a short message on the screen, for testing from outside
+ */
+typedef enum { AOS_UI_NAV_NONE = 0, AOS_UI_NAV_BACK, AOS_UI_NAV_HOME, AOS_UI_NAV_LAUNCHER } aos_ui_nav_t;
+
+void aos_ui_request_open(const char *id);
+void aos_ui_request_nav(aos_ui_nav_t nav);
+void aos_ui_request_watchface(const char *id);
+void aos_ui_request_launcher_style(int style);
+void aos_ui_request_toast(const char *text);
+
 /* Screen capture, for looking at the board from outside.
  *
  * The point is the things a log cannot show: whether a glyph is missing, text
