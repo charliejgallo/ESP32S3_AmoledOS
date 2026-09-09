@@ -100,6 +100,31 @@ changing a line.
 Plus Flappy, Simon, Dados, Escáner (a WiFi/LAN survey) and `hello_app`, the
 30-line template.
 
+## Flash it without building
+
+The [latest release](https://github.com/charliejgallo/ESP32S3_AmoledOS/releases/latest)
+carries the firmware and the twenty-one dynamic apps already built, for the
+Waveshare ESP32-S3-Touch-AMOLED-1.8.
+
+```bash
+# 1. the firmware: one file, written at 0x0
+esptool --chip esp32s3 -p <PORT> -b 460800 write_flash 0x0 amoledos-full.bin
+
+# 2. the apps: unzip onto the microSD, in a folder called apps/
+unzip apps.zip -d /Volumes/<sd>/apps/
+```
+
+> `amoledos-full.bin` is a **factory image**: it spans the flash from 0x0, so it
+> overwrites the NVS partition and the watch comes up with no wifi credentials,
+> no language, no watchface and no app data. That is what you want on a fresh
+> board. To update a watch already in use, take
+> `amoledos-firmware-files.zip` instead — the same build as four separate files
+> that leave NVS alone.
+
+The apps are loaded once at startup, so restart the board after copying them.
+Then set the wifi up from the watch: Settings → the network screen raises an
+access point and shows a QR code.
+
 ## Quick start
 
 ```bash
