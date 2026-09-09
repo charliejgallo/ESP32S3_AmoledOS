@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts
  * Mas 86 funciones de libc/libm agregadas a mano.
- * Total: 2552 simbolos.
+ * Total: 2576 simbolos.
  */
 
 #include <stddef.h>
@@ -57,6 +57,7 @@ extern int aos_board_imu_steps;
 extern int aos_board_imu_steps_reset;
 extern int aos_board_imu_wrist_raised;
 extern int aos_board_init;
+extern int aos_board_panel_hw_reset;
 extern int aos_board_pmu_charge_current_set;
 extern int aos_board_pmu_charge_target_set;
 extern int aos_board_pmu_charger_get;
@@ -65,8 +66,15 @@ extern int aos_board_pmu_dump;
 extern int aos_board_pmu_poll_irq;
 extern int aos_board_pmu_power_off_reason;
 extern int aos_board_pmu_power_on_reason;
+extern int aos_board_pmu_rail_count;
+extern int aos_board_pmu_rail_find;
+extern int aos_board_pmu_rail_get;
+extern int aos_board_pmu_rail_set;
 extern int aos_board_pmu_read;
+extern int aos_board_pmu_register_read;
+extern int aos_board_pmu_register_write;
 extern int aos_board_pmu_shutdown;
+extern int aos_board_pmu_ts_voltage;
 extern int aos_board_power_key_down;
 extern int aos_board_rtc_alarm_clear;
 extern int aos_board_rtc_alarm_set;
@@ -100,6 +108,7 @@ extern int aos_hal_battery_care_enabled;
 extern int aos_hal_battery_read;
 extern int aos_hal_beep;
 extern int aos_hal_board_name;
+extern int aos_hal_boot_reason;
 extern int aos_hal_brightness_get;
 extern int aos_hal_brightness_set;
 extern int aos_hal_bt_bonded;
@@ -132,6 +141,8 @@ extern int aos_hal_imu_read;
 extern int aos_hal_imu_steps;
 extern int aos_hal_imu_steps_reset;
 extern int aos_hal_init;
+extern int aos_hal_light_sleep_enable;
+extern int aos_hal_light_sleep_enabled;
 extern int aos_hal_lock;
 extern int aos_hal_log;
 extern int aos_hal_media_command;
@@ -193,6 +204,7 @@ extern int aos_hal_ota_mark_valid;
 extern int aos_hal_ota_pending_verify;
 extern int aos_hal_ota_running_slot;
 extern int aos_hal_ota_write;
+extern int aos_hal_panel_hw_reset;
 extern int aos_hal_panel_sleep_enable;
 extern int aos_hal_panel_sleep_enabled;
 extern int aos_hal_path_apps;
@@ -208,6 +220,15 @@ extern int aos_hal_player_play;
 extern int aos_hal_player_resume;
 extern int aos_hal_player_status;
 extern int aos_hal_player_stop;
+extern int aos_hal_pm_dump_locks;
+extern int aos_hal_pm_dump_text;
+extern int aos_hal_pmu_rail_count;
+extern int aos_hal_pmu_rail_find;
+extern int aos_hal_pmu_rail_get;
+extern int aos_hal_pmu_rail_set;
+extern int aos_hal_pmu_register_read;
+extern int aos_hal_pmu_register_write;
+extern int aos_hal_pmu_ts_voltage;
 extern int aos_hal_power_info;
 extern int aos_hal_power_saving_enable;
 extern int aos_hal_power_saving_enabled;
@@ -216,6 +237,7 @@ extern int aos_hal_pref_get_i32;
 extern int aos_hal_pref_get_str;
 extern int aos_hal_pref_set_i32;
 extern int aos_hal_pref_set_str;
+extern int aos_hal_probe_devices;
 extern int aos_hal_reboot;
 extern int aos_hal_rec_pause;
 extern int aos_hal_rec_peaks;
@@ -369,6 +391,8 @@ extern int axp2101_rail_enable;
 extern int axp2101_rail_is_enabled;
 extern int axp2101_rail_name;
 extern int axp2101_rail_voltage_mv;
+extern int axp2101_register_read;
+extern int axp2101_register_write;
 extern int axp2101_shutdown;
 extern int axp2101_system_voltage;
 extern int axp2101_termination_current_ma;
@@ -2612,6 +2636,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_board_imu_steps_reset),
     ESP_ELFSYM_EXPORT(aos_board_imu_wrist_raised),
     ESP_ELFSYM_EXPORT(aos_board_init),
+    ESP_ELFSYM_EXPORT(aos_board_panel_hw_reset),
     ESP_ELFSYM_EXPORT(aos_board_pmu_charge_current_set),
     ESP_ELFSYM_EXPORT(aos_board_pmu_charge_target_set),
     ESP_ELFSYM_EXPORT(aos_board_pmu_charger_get),
@@ -2620,8 +2645,15 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_board_pmu_poll_irq),
     ESP_ELFSYM_EXPORT(aos_board_pmu_power_off_reason),
     ESP_ELFSYM_EXPORT(aos_board_pmu_power_on_reason),
+    ESP_ELFSYM_EXPORT(aos_board_pmu_rail_count),
+    ESP_ELFSYM_EXPORT(aos_board_pmu_rail_find),
+    ESP_ELFSYM_EXPORT(aos_board_pmu_rail_get),
+    ESP_ELFSYM_EXPORT(aos_board_pmu_rail_set),
     ESP_ELFSYM_EXPORT(aos_board_pmu_read),
+    ESP_ELFSYM_EXPORT(aos_board_pmu_register_read),
+    ESP_ELFSYM_EXPORT(aos_board_pmu_register_write),
     ESP_ELFSYM_EXPORT(aos_board_pmu_shutdown),
+    ESP_ELFSYM_EXPORT(aos_board_pmu_ts_voltage),
     ESP_ELFSYM_EXPORT(aos_board_power_key_down),
     ESP_ELFSYM_EXPORT(aos_board_rtc_alarm_clear),
     ESP_ELFSYM_EXPORT(aos_board_rtc_alarm_set),
@@ -2655,6 +2687,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_battery_read),
     ESP_ELFSYM_EXPORT(aos_hal_beep),
     ESP_ELFSYM_EXPORT(aos_hal_board_name),
+    ESP_ELFSYM_EXPORT(aos_hal_boot_reason),
     ESP_ELFSYM_EXPORT(aos_hal_brightness_get),
     ESP_ELFSYM_EXPORT(aos_hal_brightness_set),
     ESP_ELFSYM_EXPORT(aos_hal_bt_bonded),
@@ -2687,6 +2720,8 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_imu_steps),
     ESP_ELFSYM_EXPORT(aos_hal_imu_steps_reset),
     ESP_ELFSYM_EXPORT(aos_hal_init),
+    ESP_ELFSYM_EXPORT(aos_hal_light_sleep_enable),
+    ESP_ELFSYM_EXPORT(aos_hal_light_sleep_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_lock),
     ESP_ELFSYM_EXPORT(aos_hal_log),
     ESP_ELFSYM_EXPORT(aos_hal_media_command),
@@ -2748,6 +2783,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_ota_pending_verify),
     ESP_ELFSYM_EXPORT(aos_hal_ota_running_slot),
     ESP_ELFSYM_EXPORT(aos_hal_ota_write),
+    ESP_ELFSYM_EXPORT(aos_hal_panel_hw_reset),
     ESP_ELFSYM_EXPORT(aos_hal_panel_sleep_enable),
     ESP_ELFSYM_EXPORT(aos_hal_panel_sleep_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_path_apps),
@@ -2763,6 +2799,15 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_player_resume),
     ESP_ELFSYM_EXPORT(aos_hal_player_status),
     ESP_ELFSYM_EXPORT(aos_hal_player_stop),
+    ESP_ELFSYM_EXPORT(aos_hal_pm_dump_locks),
+    ESP_ELFSYM_EXPORT(aos_hal_pm_dump_text),
+    ESP_ELFSYM_EXPORT(aos_hal_pmu_rail_count),
+    ESP_ELFSYM_EXPORT(aos_hal_pmu_rail_find),
+    ESP_ELFSYM_EXPORT(aos_hal_pmu_rail_get),
+    ESP_ELFSYM_EXPORT(aos_hal_pmu_rail_set),
+    ESP_ELFSYM_EXPORT(aos_hal_pmu_register_read),
+    ESP_ELFSYM_EXPORT(aos_hal_pmu_register_write),
+    ESP_ELFSYM_EXPORT(aos_hal_pmu_ts_voltage),
     ESP_ELFSYM_EXPORT(aos_hal_power_info),
     ESP_ELFSYM_EXPORT(aos_hal_power_saving_enable),
     ESP_ELFSYM_EXPORT(aos_hal_power_saving_enabled),
@@ -2771,6 +2816,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_pref_get_str),
     ESP_ELFSYM_EXPORT(aos_hal_pref_set_i32),
     ESP_ELFSYM_EXPORT(aos_hal_pref_set_str),
+    ESP_ELFSYM_EXPORT(aos_hal_probe_devices),
     ESP_ELFSYM_EXPORT(aos_hal_reboot),
     ESP_ELFSYM_EXPORT(aos_hal_rec_pause),
     ESP_ELFSYM_EXPORT(aos_hal_rec_peaks),
@@ -2924,6 +2970,8 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(axp2101_rail_is_enabled),
     ESP_ELFSYM_EXPORT(axp2101_rail_name),
     ESP_ELFSYM_EXPORT(axp2101_rail_voltage_mv),
+    ESP_ELFSYM_EXPORT(axp2101_register_read),
+    ESP_ELFSYM_EXPORT(axp2101_register_write),
     ESP_ELFSYM_EXPORT(axp2101_shutdown),
     ESP_ELFSYM_EXPORT(axp2101_system_voltage),
     ESP_ELFSYM_EXPORT(axp2101_termination_current_ma),
