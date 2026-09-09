@@ -37,7 +37,7 @@ IDS+=(aos.remoto launcher grid honeycomb)
 
 OUT=${TMPDIR:-/tmp}/aos_audit.txt
 : > $OUT
-echo "auditing ${#IDS[@]} screens x ${#LANGS[@]} languages..."
+echo "auditing $(( ${#IDS[@]} + 5 )) screens x ${#LANGS[@]} languages..."
 for lang in $LANGS; do
     grep -v "^lang" $SIM/sim_fs/prefs.txt > /tmp/aos_prefs.$$ 2>/dev/null || true
     mv /tmp/aos_prefs.$$ $SIM/sim_fs/prefs.txt 2>/dev/null || true
@@ -63,6 +63,15 @@ for lang in $LANGS; do
             AOS_SIM_VIEW="aos.settings" $BIN 2>/dev/null) \
             | grep "^AUDIT" >> $OUT || true
     done
+    # The watchface picker only exists after a long press on the watch, so
+    # AOS_SIM_VIEW cannot reach it and for a long time nobody audited it. That
+    # is where the buttons below the touch limit lived -see
+    # docs/internal/HANDOFF-PUBLICACION.md, section 3-. The script opens it with
+    # a hold and waits for the audit at 3 s, because the default 2 s falls
+    # inside the 400 ms of the long press plus the drawing.
+    (cd $SIM && AOS_SIM_AUDIT="$lang/watchface.picker" AOS_SIM_AUDIT_MS=3000 \
+        AOS_SIM_KEYS="ms:1200,hold:184x200:1500,ms:3000" $BIN 2>/dev/null) \
+        | grep "^AUDIT" >> $OUT || true
 done
 python3 - $OUT $LANGS <<'PY'
 import sys, re, collections

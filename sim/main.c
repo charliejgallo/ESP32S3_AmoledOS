@@ -759,14 +759,40 @@ static void audit_obj(lv_obj_t *obj, const char *tag)
             }
         }
 
-        /* A large object crossing the limit is not a problem: you touch it at
-         * the top and that is that, which is what happens with claudito's bar
-         * or with hello_app's whole screen. What is reported is the one not
-         * leaving enough of a strip for a finger. */
-        if (!scrollea && a.y2 > AOS_TOUCH_Y_MAX && vivos < 20) {
-            printf("AUDIT UNTOUCHABLE %s | %s | y %ld..%ld | %s\n", tag,
-                   audit_nombre(obj), (long)a.y1, (long)a.y2,
-                   vivos <= 0 ? "DEAD" : "only a few px left");
+        /* Two ways of being unreachable, and for a while only the first was
+         * checked.
+         *
+         *   1. Almost nothing is left. Under 20 px of live strip there is no
+         *      target at all, whatever the object's size.
+         *
+         *   2. THE CENTRE IS DEAD. A finger goes to the middle of a control,
+         *      not to its top edge, so a button whose centre falls below the
+         *      limit does not work in the hand even if a sliver of it is
+         *      technically live.
+         *
+         * The second one was missing and it cost a real bug: the watchface
+         * picker's buttons span y 369..415, which leaves vivos = 22 and passed
+         * the "< 20" test by two pixels, while their centre sat at 392 -below
+         * the limit-. On the board the picker opened and then would not
+         * respond. See docs/internal/HANDOFF-PUBLICACION.md, section 3.
+         *
+         * The exemption that has to survive is for the genuinely large object,
+         * where the top part IS a target in its own right: hello_app's whole
+         * screen (y 0..448, centre 224) or any panel that reaches well above
+         * the limit. Hence the second condition asks for BOTH a dead centre
+         * and no comfortable alternative -under 40 px, about a fingertip- so a
+         * tall object with a usable top is still left alone. */
+        int32_t centro = (a.y1 + a.y2) / 2;
+        bool sin_franja    = vivos < 20;
+        bool centro_muerto = centro > AOS_TOUCH_Y_MAX && vivos < 40;
+
+        if (!scrollea && a.y2 > AOS_TOUCH_Y_MAX && (sin_franja || centro_muerto)) {
+            const char *por_que = vivos <= 0    ? "DEAD"
+                                : sin_franja    ? "only a few px left"
+                                                : "its centre is below the limit";
+            printf("AUDIT UNTOUCHABLE %s | %s | y %ld..%ld (centre %ld, %ld px live) | %s\n",
+                   tag, audit_nombre(obj), (long)a.y1, (long)a.y2,
+                   (long)centro, (long)vivos, por_que);
             s_audit_hits++;
         }
     }
