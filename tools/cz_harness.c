@@ -23,7 +23,7 @@ static int pruebas, fallos;
 static void ok(const char *que, int cond, const char *detalle)
 {
     pruebas++;
-    printf("  %s  %-44s %s\n", cond ? "OK " : "MAL", que, detalle ? detalle : "");
+    printf("  %s  %-44s %s\n", cond ? "OK " : "BAD", que, detalle ? detalle : "");
     if (!cond) fallos++;
 }
 
@@ -54,13 +54,13 @@ int main(void)
 {
     char d[64], e[160];
 
-    printf("\n=== 1. la tabla de especies ===\n");
+    printf("\n=== 1. the table of instruments ===\n");
     {
         ok("blue existe", cz_indice("blue") == 1, NULL);
         ok("eur existe", cz_indice("eur") == 7, NULL);
-        ok("una key inventada no", cz_indice("dogecoin") < 0, NULL);
-        ok("cadena vacia no", cz_indice("") < 0, NULL);
-        ok("NULL no revienta", cz_indice(NULL) < 0, NULL);
+        ok("a made-up key does not", cz_indice("dogecoin") < 0, NULL);
+        ok("an empty string does not", cz_indice("") < 0, NULL);
+        ok("NULL does not blow up", cz_indice(NULL) < 0, NULL);
 
         /* The keys cannot repeat, not even between houses and currencies: the
          * preference is a flat list of keys and does not distinguish the two
@@ -76,45 +76,45 @@ int main(void)
         for (int i = 0; i < CZ_MAX; i++)
             for (const unsigned char *p = (const unsigned char *)CZ_ESPECIES[i].nombre; *p; p++)
                 if (*p < 0x20 || *p > 0x7E) no_ascii++;
-        ok("todos los nombres son ASCII", no_ascii == 0, "(Montserrat no tiene acentos)");
+        ok("every name is ASCII", no_ascii == 0, "(Montserrat has no accents)");
     }
 
-    printf("\n=== 2. leer /v1/dolares ===\n");
+    printf("\n=== 2. reading /v1/dolares ===\n");
     cz_datos_t datos;
     memset(&datos, 0, sizeof(datos));
     {
         int n = cz_parse(MUESTRA_DOLARES, (int)strlen(MUESTRA_DOLARES), &datos);
-        snprintf(e, sizeof(e), "llenó %d", n);
-        ok("cinco casas", n == 5, e);
+        snprintf(e, sizeof(e), "filled %d", n);
+        ok("five houses", n == 5, e);
 
         int i = cz_indice("blue");
         snprintf(e, sizeof(e), "venta=%ld compra=%ld",
                  (long)datos.v[i].venta_cent, (long)datos.v[i].compra_cent);
-        ok("blue: enteros sin decimales", datos.v[i].venta_cent == 154500 &&
+        ok("blue: integers with no decimals", datos.v[i].venta_cent == 154500 &&
                                           datos.v[i].compra_cent == 152500, e);
 
         i = cz_indice("bolsa");
         snprintf(e, sizeof(e), "venta=%ld (1531.9 -> 153190)", (long)datos.v[i].venta_cent);
-        ok("bolsa: un decimal se completa", datos.v[i].venta_cent == 153190, e);
+        ok("bolsa: one decimal is padded out", datos.v[i].venta_cent == 153190, e);
 
         i = cz_indice("tarjeta");
         snprintf(e, sizeof(e), "venta=%ld", (long)datos.v[i].venta_cent);
-        ok("tarjeta: el valor mas grande", datos.v[i].venta_cent == 198900, e);
+        ok("tarjeta: the largest value", datos.v[i].venta_cent == 198900, e);
 
         i = cz_indice("mayorista");
-        ok("una casa que no vino queda en NO ok", !datos.v[i].ok, NULL);
+        ok("a house that did not arrive stays NOT ok", !datos.v[i].ok, NULL);
     }
 
-    printf("\n=== 3. leer /v1/cotizaciones sin pisar lo anterior ===\n");
+    printf("\n=== 3. reading /v1/cotizaciones without trampling the previous data ===\n");
     {
         int n = cz_parse(MUESTRA_MONEDAS, (int)strlen(MUESTRA_MONEDAS), &datos);
-        snprintf(e, sizeof(e), "llenó %d (el USD del arreglo cae en 'oficial')", n);
-        ok("dos monedas + el dolar", n == 3, e);
+        snprintf(e, sizeof(e), "filled %d (the array's USD lands in 'oficial')", n);
+        ok("two currencies + the dollar", n == 3, e);
 
         int i = cz_indice("brl");
-        snprintf(e, sizeof(e), "venta=%ld (296.9052 -> 29690, se trunca)",
+        snprintf(e, sizeof(e), "venta=%ld (296.9052 -> 29690, truncated)",
                  (long)datos.v[i].venta_cent);
-        ok("real: cuatro decimales se truncan", datos.v[i].venta_cent == 29690, e);
+        ok("real: four decimals are truncated", datos.v[i].venta_cent == 29690, e);
 
         i = cz_indice("eur");
         snprintf(e, sizeof(e), "venta=%ld", (long)datos.v[i].venta_cent);
@@ -122,25 +122,25 @@ int main(void)
 
         /* What really matters: the second query does NOT wipe the first. */
         i = cz_indice("blue");
-        ok("blue sigue estando de la pasada anterior", datos.v[i].ok &&
+        ok("blue is still there from the previous pass", datos.v[i].ok &&
                                                        datos.v[i].venta_cent == 154500, NULL);
         i = cz_indice("clp");
-        ok("una moneda que no vino sigue en NO ok", !datos.v[i].ok, NULL);
+        ok("a currency that did not arrive stays NOT ok", !datos.v[i].ok, NULL);
     }
 
-    printf("\n=== 4. formato del precio ===\n");
+    printf("\n=== 4. price formatting ===\n");
     {
         ok("coma decimal", strcmp(cz_precio(152440, d, sizeof(d)), "1524,40") == 0,
            cz_precio(152440, d, sizeof(d)));
-        ok("centavos con cero adelante", strcmp(cz_precio(29605, d, sizeof(d)), "296,05") == 0,
+        ok("cents with a leading zero", strcmp(cz_precio(29605, d, sizeof(d)), "296,05") == 0,
            cz_precio(29605, d, sizeof(d)));
         ok("redondo", strcmp(cz_precio(148000, d, sizeof(d)), "1480,00") == 0,
            cz_precio(148000, d, sizeof(d)));
-        ok("menos de un peso", strcmp(cz_precio(7, d, sizeof(d)), "0,07") == 0,
+        ok("less than one peso", strcmp(cz_precio(7, d, sizeof(d)), "0,07") == 0,
            cz_precio(7, d, sizeof(d)));
     }
 
-    printf("\n=== 5. la fecha viene en UTC, no en la hora de la placa ===\n");
+    printf("\n=== 5. the date comes in UTC, not in the board's time ===\n");
     {
         /* 2026-09-03T20:01:00Z is 1788465660 epoch. If the reader used
          * mktime() this would come out differently depending on the time zone
@@ -159,12 +159,12 @@ int main(void)
         cz_antiguedad(1788465660LL, 1788465660LL + 7200, d, sizeof(d));
         ok("2 h", strcmp(d, "hace 2 h") == 0, d);
         cz_antiguedad(1788465660LL, 1788465660LL - 300, d, sizeof(d));
-        ok("placa atrasada: no dice nada", d[0] == 0, "(en vez de 'hace -5 min')");
+        ok("board running behind: it says nothing", d[0] == 0, "(instead of 'hace -5 min')");
         cz_antiguedad(0, 1788465660LL, d, sizeof(d));
-        ok("sin fecha: no dice nada", d[0] == 0, NULL);
+        ok("no date: it says nothing", d[0] == 0, NULL);
     }
 
-    printf("\n=== 6. basura sin reventar ===\n");
+    printf("\n=== 6. rubbish without blowing up ===\n");
     {
         cz_datos_t z; memset(&z, 0, sizeof(z));
         /* The lengths ALWAYS come from strlen and never by hand. The first
@@ -176,24 +176,24 @@ int main(void)
          * advantage at all and this is the price. */
         #define PARSE(lit) cz_parse((lit), (int)strlen(lit), &z)
         ok("NULL", cz_parse(NULL, 100, &z) == 0, NULL);
-        ok("vacio", PARSE("") == 0, NULL);
-        ok("no es JSON", PARSE("hola que tal") == 0, NULL);
-        ok("arreglo vacio", PARSE("[]") == 0, NULL);
-        ok("objeto sin cerrar", PARSE("[{\"casa\":\"blue\"") == 0, NULL);
-        ok("casa conocida sin venta",
+        ok("empty", PARSE("") == 0, NULL);
+        ok("not JSON", PARSE("hello there") == 0, NULL);
+        ok("empty array", PARSE("[]") == 0, NULL);
+        ok("unclosed object", PARSE("[{\"casa\":\"blue\"") == 0, NULL);
+        ok("known house with no venta",
            PARSE("[{\"moneda\":\"USD\",\"casa\":\"blue\",\"compra\":1}]") == 0,
-           "(sin venta no hay nada que mostrar)");
-        ok("casa que esta app no conoce",
+           "(with no venta there is nothing to show)");
+        ok("a house this app does not know",
            PARSE("[{\"moneda\":\"USD\",\"casa\":\"futuro\",\"venta\":1}]") == 0,
-           "(se ignora, no se rompe)");
+           "(it is ignored, nothing breaks)");
         /* A brace inside a string cannot cut the object short. */
         int n = PARSE("[{\"moneda\":\"USD\",\"casa\":\"blue\",\"nombre\":\"a}b\","
                       "\"venta\":10}]");
-        ok("una llave adentro de una cadena", n == 1 && z.v[1].venta_cent == 1000, NULL);
+        ok("a brace inside a string", n == 1 && z.v[1].venta_cent == 1000, NULL);
         #undef PARSE
     }
 
-    printf("\n=== 7. contra la API de verdad (necesita internet) ===\n");
+    printf("\n=== 7. against the real API (needs internet) ===\n");
     {
         char cmd[256], *buf = malloc(CZ_BUF_BYTES);
         int total = 0;
@@ -205,13 +205,13 @@ int main(void)
         }
         buf[total > 0 ? total : 0] = 0;
 
-        snprintf(e, sizeof(e), "%d bytes (el techo es %d)", total, CZ_BUF_BYTES);
-        ok("la respuesta entra en el buffer", total > 100 && total < CZ_BUF_BYTES - 512, e);
+        snprintf(e, sizeof(e), "%d bytes (the ceiling is %d)", total, CZ_BUF_BYTES);
+        ok("the answer fits in the buffer", total > 100 && total < CZ_BUF_BYTES - 512, e);
 
         cz_datos_t viva; memset(&viva, 0, sizeof(viva));
         int n = cz_parse(buf, total, &viva);
         snprintf(e, sizeof(e), "%d especies", n);
-        ok("se leen las siete casas del dolar", n == 7, e);
+        ok("the dollar's seven houses are read", n == 7, e);
 
         int i = cz_indice("blue");
         if (viva.v[i].ok) {
@@ -221,15 +221,15 @@ int main(void)
             snprintf(e, sizeof(e), "blue vende a %s, %s", p, a);
             /* A deliberately wide range: the test is that the number is
              * plausible, not what the dollar is worth today. */
-            ok("el blue tiene un valor creible", viva.v[i].venta_cent > 10000 &&
+            ok("blue has a believable value", viva.v[i].venta_cent > 10000 &&
                                                  viva.v[i].venta_cent < 100000000, e);
         } else {
-            ok("el blue vino", 0, "no se leyo");
+            ok("blue arrived", 0, "it was not read");
         }
         free(buf);
     }
 
     printf("\n---------------------------------------------\n");
-    printf("%d pruebas, %d fallos\n\n", pruebas, fallos);
+    printf("%d tests, %d failures\n\n", pruebas, fallos);
     return fallos ? 1 : 0;
 }

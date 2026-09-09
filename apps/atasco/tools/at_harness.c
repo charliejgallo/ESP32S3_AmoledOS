@@ -126,20 +126,20 @@ int main(void)
         const at_level_t *lvl = at_level_get(i);
         at_board_t board;
         if (!at_parse_level(lvl->rows, &board)) {
-            printf("nivel %2d: MAPA INVALIDO\n", i + 1);
+            printf("level %2d: INVALID MAP\n", i + 1);
             fail = true;
             continue;
         }
 
         int moves = solve(&board);
         if (moves < 0) {
-            printf("nivel %2d: NO RESOLUBLE (o se paso del limite de estados)\n", i + 1);
+            printf("level %2d: NOT SOLVABLE (or it went past the state limit)\n", i + 1);
             fail = true;
             continue;
         }
 
-        const char *trend = (moves < last_moves) ? "  <-- baja respecto del anterior" : "";
-        printf("nivel %2d: %2d autos, minimo %3d movimientos%s\n",
+        const char *trend = (moves < last_moves) ? "  <-- lower than the previous one" : "";
+        printf("level %2d: %2d cars, minimum %3d moves%s\n",
                i + 1, board.count, moves, trend);
         last_moves = moves;
     }
@@ -148,6 +148,6 @@ int main(void)
         printf("\nHay niveles rotos.\n");
         return 1;
     }
-    printf("\nTodos los niveles son resolubles.\n");
+    printf("\nEvery level is solvable.\n");
     return 0;
 }

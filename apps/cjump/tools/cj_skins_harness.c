@@ -75,7 +75,7 @@ int main(int argc, char **argv)
                     continue;
                 }
                 if (x < box.x0 || x >= box.x1 || y < box.y0 || y >= box.y1) {
-                    printf("skin %2d (%s): pixel fuera de la caja en %d,%d "
+                    printf("skin %2d (%s): pixel outside the box at %d,%d "
                            "(caja %d,%d..%d,%d)\n",
                            s, cj_skins[s].name, x, y,
                            box.x0, box.y0, box.x1, box.y1);
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
     fclose(f);
     free(img);
 
-    printf("%d disfraces -> %s (%dx%d), %d fuera de la caja\n",
+    printf("%d costumes -> %s (%dx%d), %d outside the box\n",
            CJ_SKINS, out, W, H, fallos);
     return fallos ? 1 : 0;
 }

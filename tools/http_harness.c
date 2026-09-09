@@ -40,7 +40,7 @@ static void ok(const char *que, bool cond, const char *detalle)
     if (cond) {
         printf("  OK   %-42s %s\n", que, detalle ? detalle : "");
     } else {
-        printf("  MAL  %-42s %s\n", que, detalle ? detalle : "");
+        printf("  BAD  %-42s %s\n", que, detalle ? detalle : "");
         fallos++;
     }
 }
@@ -84,7 +84,7 @@ int main(void)
 {
     char det[160];
 
-    printf("\n=== 1. http:// sigue andando igual que antes ===\n");
+    printf("\n=== 1. http:// still works exactly as before ===\n");
     {
         int ms = 0, len = 0;
         int st = pedir("http://api.open-meteo.com/v1/forecast?latitude=-34.61"
@@ -94,7 +94,7 @@ int main(void)
         ok("GET plano", st == 200 && len > 50, det);
     }
 
-    printf("\n=== 2. https:// contra el mismo servidor ===\n");
+    printf("\n=== 2. https:// against the same server ===\n");
     int ms_frio = 0;
     {
         int len = 0;
@@ -111,7 +111,7 @@ int main(void)
      * cold and 617 resuming. What is verified here is that a second query to
      * the same host over the stored session still brings the body back
      * correctly. */
-    printf("\n=== 3. segunda consulta al mismo host, sobre la sesion guardada ===\n");
+    printf("\n=== 3. second request to the same host, over the stored session ===\n");
     {
         int ms = 0, len = 0;
         int st = pedir("https://api.open-meteo.com/v1/forecast?latitude=-34.61"
@@ -122,15 +122,15 @@ int main(void)
         ok("segunda consulta al mismo host", st == 200, det);
     }
 
-    printf("\n=== 4. el puerto por defecto sale del esquema ===\n");
+    printf("\n=== 4. the default port comes from the scheme ===\n");
     {
         int ms = 0, len = 0;
         int st = pedir("https://www.howsmyssl.com/a/check", &ms, &len);
-        snprintf(det, sizeof(det), "status=%d  %d bytes (sin :443 en la URL)", st, len);
-        ok("https sin puerto explicito", st == 200 && len > 100, det);
+        snprintf(det, sizeof(det), "status=%d  %d bytes (no :443 in the URL)", st, len);
+        ok("https with no explicit port", st == 200 && len > 100, det);
     }
 
-    printf("\n=== 5. lo que TIENE que fallar, y con que codigo ===\n");
+    printf("\n=== 5. what MUST fail, and with which code ===\n");
     {
         int st = pedir("https://expired.badssl.com/", NULL, NULL);
         snprintf(det, sizeof(det), "status=%d (se esperaba %d)", st, AOS_HTTP_ERR_TLS);
@@ -138,7 +138,7 @@ int main(void)
 
         st = pedir("https://wrong.host.badssl.com/", NULL, NULL);
         snprintf(det, sizeof(det), "status=%d", st);
-        ok("el nombre no coincide", st == AOS_HTTP_ERR_TLS, det);
+        ok("the name does not match", st == AOS_HTTP_ERR_TLS, det);
 
         st = pedir("https://self-signed.badssl.com/", NULL, NULL);
         snprintf(det, sizeof(det), "status=%d", st);
@@ -149,7 +149,7 @@ int main(void)
         ok("raiz desconocida", st == AOS_HTTP_ERR_TLS, det);
     }
 
-    printf("\n=== 6. sin hora no se gasta un handshake ===\n");
+    printf("\n=== 6. with no clock, no handshake is spent ===\n");
     {
         g_hora_valida = false;
         int ms = 0;
@@ -167,10 +167,10 @@ int main(void)
         st = pedir("https://api.open-meteo.com/v1/forecast?latitude=0&longitude=0"
                    "&current=temperature_2m", NULL, NULL);
         snprintf(det, sizeof(det), "status=%d", st);
-        ok("y se recupera cuando entra la hora", st == 200, det);
+        ok("and it recovers once the time comes in", st == 200, det);
     }
 
-    printf("\n=== 7. esquemas que no son ninguno de los dos ===\n");
+    printf("\n=== 7. schemes that are neither of the two ===\n");
     {
         ok("ftp:// se rechaza",   aos_hal_http_get("ftp://example.com/x", 512) < 0, NULL);
         ok("sin esquema",         aos_hal_http_get("example.com/x", 512) < 0, NULL);
@@ -184,10 +184,10 @@ int main(void)
          * handshake. The slot is marked and the task itself cleans it up. */
         int id = aos_hal_http_get("https://api.open-meteo.com/v1/forecast?latitude=10"
                                   "&longitude=10&current=temperature_2m", 8192);
-        ok("arranco", id > 0, NULL);
+        ok("started", id > 0, NULL);
         usleep(120000);                    /* right in the middle */
         aos_hal_http_release(id);
-        ok("release en pleno handshake no revienta", true, "(lo dice AddressSanitizer)");
+        ok("a release mid-handshake does not blow up", true, "(AddressSanitizer says so)");
         sleep(3);                          /* let the task finish and clean up */
 
         /* And after that all three slots have to be free again. */
@@ -209,7 +209,7 @@ int main(void)
                      "&longitude=%d&current=temperature_2m&timeformat=unixtime", i + 1, i + 1);
             id[i] = aos_hal_http_get(url, 8192);
         }
-        ok("tres a la vez arrancan", id[0] > 0 && id[1] > 0 && id[2] > 0, NULL);
+        ok("three at once do start", id[0] > 0 && id[1] > 0 && id[2] > 0, NULL);
         int cuarto = aos_hal_http_get("https://api.open-meteo.com/v1/forecast?latitude=9&longitude=9&current=temperature_2m", 4096);
         snprintf(det, sizeof(det), "devolvio %d (se esperaba -2, todos ocupados)", cuarto);
         ok("el cuarto rebota", cuarto == -2, det);
@@ -222,11 +222,11 @@ int main(void)
             }
             aos_hal_http_release(id[i]);
         }
-        snprintf(det, sizeof(det), "%d de 3 terminaron con 200", buenos);
+        snprintf(det, sizeof(det), "%d of 3 finished with 200", buenos);
         ok("las tres traen el cuerpo", buenos == 3, det);
     }
 
     printf("\n---------------------------------------------\n");
-    printf("%d pruebas, %d fallos\n\n", pruebas, fallos);
+    printf("%d tests, %d failures\n\n", pruebas, fallos);
     return fallos ? 1 : 0;
 }

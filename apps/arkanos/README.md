@@ -106,6 +106,7 @@ not come out identical, something moved without noting itself down.
 
 ```bash
 cc -O2 -I apps/arkanos/main -I components/aos_hal/include \
+   -I components/aos_ui/include \
    apps/arkanos/tools/ak_harness.c apps/arkanos/main/ak_*.c -o /tmp/akh
 
 /tmp/akh 60000            # 60 thousand frames, the twelve screens and lap 2
@@ -117,10 +118,10 @@ It starts by printing the **accelerometer mapping table**, which doubles as
 proof that the axis chip does what it says:
 
 ```
-  EJE X+ :  ax +0.2g -> derecha     ay +0.2g -> quieta
-  EJE X- :  ax +0.2g -> izquierda   ay +0.2g -> quieta
-  EJE Y+ :  ax +0.2g -> quieta      ay +0.2g -> derecha
-  EJE Y- :  ax +0.2g -> quieta      ay +0.2g -> izquierda
+  EJE X+ :  ax +0.2g -> right       ay +0.2g -> still
+  EJE X- :  ax +0.2g -> left        ay +0.2g -> still
+  EJE Y+ :  ax +0.2g -> still       ay +0.2g -> right
+  EJE Y- :  ax +0.2g -> still       ay +0.2g -> left
 ```
 
 It also prints how much gets pushed per frame, which is the number that

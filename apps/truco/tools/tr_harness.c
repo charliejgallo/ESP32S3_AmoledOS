@@ -49,7 +49,7 @@ int main(int argc, char **argv)
         int guard_game = 0;
         while (st.phase != TR_P_GAME_END) {
             if (++guard_game > 400) {
-                printf("PARTIDA %d COLGADA en %d-%d\n", g, st.score[0], st.score[1]);
+                printf("GAME %d HUNG at %d-%d\n", g, st.score[0], st.score[1]);
                 return 1;
             }
 
@@ -87,14 +87,14 @@ int main(int argc, char **argv)
                             if (!st.spent[TR_YO][i]) { arg = i; break; }
                         }
                         if (arg < 0) {
-                            printf("SIN CARTAS pero en turno (partida %d)\n", g);
+                            printf("NO CARDS but on turn (game %d)\n", g);
                             return 1;
                         }
                     }
                 }
 
                 if (c == TR_C_NONE) {
-                    printf("EL RIVAL NO DECIDIO NADA (partida %d, fase %d)\n", g, st.phase);
+                    printf("THE RIVAL DECIDED NOTHING (game %d, phase %d)\n", g, st.phase);
                     return 1;
                 }
                 if (c == TR_C_ENVIDO || c == TR_C_REAL || c == TR_C_FALTA) env_called++;
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
                 if (c == TR_C_MAZO) mazo++;
 
                 if (!tr_apply(&st, st.turn, c, arg)) {
-                    printf("ACCION ILEGAL %d (partida %d, fase %d, turno %d)\n",
+                    printf("ILLEGAL ACTION %d (game %d, phase %d, turn %d)\n",
                            c, g, st.phase, st.turn);
                     return 1;
                 }
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 
             int gained = (st.score[0] - before0) + (st.score[1] - before1);
             if (gained <= 0) {
-                printf("MANO SIN PUNTOS (partida %d)\n", g);
+                printf("HAND WITH NO POINTS (game %d)\n", g);
                 return 1;
             }
             hand_pts += gained;
@@ -143,14 +143,14 @@ int main(int argc, char **argv)
     }
 
     printf("partidas      %d\n", games);
-    printf("manos         %ld  (%.1f por partida)\n", hands, (double)hands / games);
+    printf("hands         %ld  (%.1f per game)\n", hands, (double)hands / games);
     printf("gano YO       %d  (%.1f %%)\n", wins[0], 100.0 * wins[0] / games);
-    printf("gano EL       %d  (%.1f %%)\n", wins[1], 100.0 * wins[1] / games);
-    printf("cantos envido %ld  (%.2f por mano)\n", env_called, (double)env_called / hands);
-    printf("cantos truco  %ld  (%.2f por mano)\n", truco_called, (double)truco_called / hands);
-    printf("al mazo       %ld  (%.1f %% de las manos)\n", mazo, 100.0 * mazo / hands);
-    printf("puntos/mano   %.2f  (envido %.2f)\n",
+    printf("HE won        %d  (%.1f %%)\n", wins[1], 100.0 * wins[1] / games);
+    printf("envido calls  %ld  (%.2f per hand)\n", env_called, (double)env_called / hands);
+    printf("truco calls   %ld  (%.2f per hand)\n", truco_called, (double)truco_called / hands);
+    printf("folded        %ld  (%.1f %% of the hands)\n", mazo, 100.0 * mazo / hands);
+    printf("points/hand   %.2f  (envido %.2f)\n",
            (double)hand_pts / hands, (double)env_pts / hands);
-    printf("acciones max  %ld en una mano\n", longest);
+    printf("max actions   %ld in one hand\n", longest);
     return 0;
 }

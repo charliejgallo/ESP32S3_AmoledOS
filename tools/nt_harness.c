@@ -59,7 +59,7 @@ static int pruebas, fallos;
 static void ok(const char *que, int cond)
 {
     pruebas++;
-    printf("  %s  %s\n", cond ? "OK " : "MAL", que);
+    printf("  %s  %s\n", cond ? "OK " : "BAD", que);
     if (!cond) fallos++;
 }
 
@@ -98,55 +98,55 @@ static void limpiar(void)
 
 int main(void)
 {
-    printf("\n== politica de notificaciones ==\n");
+    printf("\n== notification policy ==\n");
 
     printf("\ntodo encendido\n");
     limpiar();
-    ok("una social normal avisa y suena",
+    ok("an ordinary social one alerts and sounds",
        empujar(AOS_NOTIF_SOCIAL, false, false) == 3);
-    ok("si el telefono la mando silenciosa, avisa sin ruido",
+    ok("if the phone sent it silent, it alerts without noise",
        empujar(AOS_NOTIF_SOCIAL, true, false) == 2);
-    ok("las que ya estaban al conectar NO avisan",
+    ok("the ones already there on connecting do NOT alert",
        empujar(AOS_NOTIF_SOCIAL, false, true) == 1);
 
     printf("\nsonido apagado\n");
     limpiar();
     aos_hal_notif_sound_set(false);
-    ok("una social avisa sin ruido",
+    ok("a social one alerts without noise",
        empujar(AOS_NOTIF_SOCIAL, false, false) == 2);
-    ok("una llamada suena igual: 'llamadas siempre' pisa el sonido",
+    ok("a call sounds anyway: 'calls always' overrides the sound",
        empujar(AOS_NOTIF_CALL_INCOMING, false, false) == 3);
 
-    printf("\nno molestar (el enlace sigue vivo)\n");
+    printf("\ndo not disturb (the link is still alive)\n");
     limpiar();
     aos_hal_notif_enable(false);
-    ok("una social no avisa pero se guarda",
+    ok("a social one does not alert but is stored",
        empujar(AOS_NOTIF_SOCIAL, false, false) == 1);
-    ok("una llamada entrante pasa igual",
+    ok("an incoming call gets through anyway",
        empujar(AOS_NOTIF_CALL_INCOMING, false, false) == 3);
     aos_hal_notif_calls_always_set(false);
-    ok("sin 'llamadas siempre', la llamada tampoco avisa",
+    ok("without 'calls always', the call does not alert either",
        empujar(AOS_NOTIF_CALL_INCOMING, false, false) == 1);
 
-    printf("\nfiltro por categoria\n");
+    printf("\nfilter by category\n");
     limpiar();
     aos_hal_notif_categories_set(~(1u << AOS_NOTIF_NEWS));
-    ok("las de noticias se descartan enteras",
+    ok("the news ones are dropped entirely",
        empujar(AOS_NOTIF_NEWS, false, false) == 0);
-    ok("y no quedan en el historial",
+    ok("and they do not stay in the history",
        aos_hal_notif_count() == 0);
-    ok("el resto sigue pasando",
+    ok("the rest still gets through",
        empujar(AOS_NOTIF_SOCIAL, false, false) == 3);
 
     limpiar();
     aos_hal_notif_categories_set(0);
-    ok("con todo filtrado, una llamada pasa igual por 'llamadas siempre'",
+    ok("with everything filtered, a call still gets through by 'calls always'",
        empujar(AOS_NOTIF_CALL_INCOMING, false, false) == 3);
     aos_hal_notif_calls_always_set(false);
-    ok("y sin esa excepcion, tampoco pasa",
+    ok("and without that exception, it does not get through either",
        empujar(AOS_NOTIF_CALL_INCOMING, false, false) == 0);
 
-    printf("\nagrupado de rafagas\n");
+    printf("\nburst grouping\n");
     limpiar();
     {
         /* Five messages in a row from the same person: WhatsApp sends one per
@@ -164,11 +164,11 @@ int main(void)
             aos_notif_push(&n2);
             aos_hal_notif_pop(&leidas[k]);
         }
-        ok("las cinco avisan: se ve siempre la ultima",
+        ok("all five alert: the last one is always the one shown",
            leidas[0].alert && leidas[4].alert);
-        ok("solo suena la primera",
+        ok("only the first one sounds",
            leidas[0].sound && !leidas[1].sound && !leidas[4].sound);
-        ok("y cada una sabe cuantas van",
+        ok("and each one knows how many there are",
            leidas[0].repeticiones == 1 && leidas[4].repeticiones == 5);
 
         /* Another person breaks the burst. */
@@ -177,11 +177,11 @@ int main(void)
         n3.uid = 600;
         n3.category = AOS_NOTIF_SOCIAL;
         snprintf(n3.app, sizeof(n3.app), "WhatsApp");
-        snprintf(n3.title, sizeof(n3.title), "Otro");
+        snprintf(n3.title, sizeof(n3.title), "Other");
         aos_notif_push(&n3);
         aos_notif_t n4;
         aos_hal_notif_pop(&n4);
-        ok("otro remitente arranca de cero y vuelve a sonar",
+        ok("another sender starts from zero and sounds again",
            n4.repeticiones == 1 && n4.sound);
 
         /* And once the minute has passed, the same sender counts from one
@@ -193,11 +193,11 @@ int main(void)
         n5.uid = 601;
         n5.category = AOS_NOTIF_SOCIAL;
         snprintf(n5.app, sizeof(n5.app), "WhatsApp");
-        snprintf(n5.title, sizeof(n5.title), "Otro");
+        snprintf(n5.title, sizeof(n5.title), "Other");
         aos_notif_push(&n5);
         aos_notif_t n6;
         aos_hal_notif_pop(&n6);
-        ok("pasado el minuto la rafaga se corta sola",
+        ok("past the minute the burst breaks by itself",
            n6.repeticiones == 1 && n6.sound);
     }
 
@@ -206,8 +206,8 @@ int main(void)
      * every notification shares both, an incoming call behind a message was
      * left without a sound. The one thing that cannot be lost. */
     limpiar();
-    ok("un mensaje suena", empujar(AOS_NOTIF_SOCIAL, false, false) == 3);
-    ok("y la llamada que viene atras tambien, aunque se le parezca",
+    ok("a message sounds", empujar(AOS_NOTIF_SOCIAL, false, false) == 3);
+    ok("and the call behind it does too, even though it looks alike",
        empujar(AOS_NOTIF_CALL_INCOMING, false, false) == 3);
 
     printf("\nhistorial\n");
@@ -215,15 +215,15 @@ int main(void)
     for (int i = 0; i < 20; i++) {
         empujar(AOS_NOTIF_SOCIAL, false, false);
     }
-    ok("el anillo se queda en 16", aos_hal_notif_count() == 16);
+    ok("the ring stays at 16", aos_hal_notif_count() == 16);
     aos_notif_t n;
-    ok("el indice 0 es la mas nueva",
+    ok("index 0 is the newest",
        aos_hal_notif_at(0, &n) && n.uid == s_uid);
-    ok("el 15 es la mas vieja que sobrevivio",
+    ok("15 is the oldest that survived",
        aos_hal_notif_at(15, &n) && n.uid == s_uid - 15);
-    ok("el 16 no existe", !aos_hal_notif_at(16, &n));
+    ok("16 does not exist", !aos_hal_notif_at(16, &n));
 
-    printf("\nborrar de a una\n");
+    printf("\ndeleting one at a time\n");
     limpiar();
     for (int k = 0; k < 5; k++) {
         aos_notif_t n7;
@@ -233,9 +233,9 @@ int main(void)
         snprintf(n7.app, sizeof(n7.app), "app%d", k);
         aos_notif_push(&n7);
     }
-    ok("cinco guardadas", aos_hal_notif_count() == 5);
-    ok("se borra una del medio", aos_hal_notif_remove(702));
-    ok("quedan cuatro", aos_hal_notif_count() == 4);
+    ok("five stored", aos_hal_notif_count() == 5);
+    ok("one from the middle is deleted", aos_hal_notif_remove(702));
+    ok("four are left", aos_hal_notif_count() == 4);
     {
         /* What matters: those remaining stay in order and none is duplicated
          * or skipped when walking the list. */
@@ -247,30 +247,30 @@ int main(void)
                 bien = false;
             }
         }
-        ok("y el recorrido saltea el hueco sin correr las demas", bien);
-        ok("el indice 4 ya no existe", !aos_hal_notif_at(4, &v));
+        ok("and the walk skips the hole without shifting the rest", bien);
+        ok("index 4 no longer exists", !aos_hal_notif_at(4, &v));
     }
-    ok("borrar una que no esta devuelve false", !aos_hal_notif_remove(999));
+    ok("deleting one that is not there returns false", !aos_hal_notif_remove(999));
 
     /* And what the user asked for: that the phone dismissing it takes it off
      * the list too, and does not merely close the screen. */
     aos_notif_push_removed(703);
-    ok("cuando el telefono la retira, se va de la lista",
+    ok("when the phone withdraws it, it leaves the list",
        aos_hal_notif_count() == 3);
 
     printf("\nretiradas\n");
     limpiar();
     aos_notif_push_removed(4242);
     uint32_t uid = 0;
-    ok("se lee la que el telefono retiro",
+    ok("the one the phone withdrew is read",
        aos_hal_notif_pop_removed(&uid) && uid == 4242);
-    ok("y no se lee dos veces", !aos_hal_notif_pop_removed(&uid));
+    ok("and it is not read twice", !aos_hal_notif_pop_removed(&uid));
 
     printf("\ncategoria invalida\n");
     limpiar();
-    ok("una categoria fuera de rango cae en 'otras' y no rompe nada",
+    ok("a category out of range falls into 'other' and breaks nothing",
        empujar((aos_notif_category_t)99, false, false) == 3);
 
-    printf("\n%d pruebas, %d fallos\n\n", pruebas, fallos);
+    printf("\n%d tests, %d failures\n\n", pruebas, fallos);
     return fallos ? 1 : 0;
 }

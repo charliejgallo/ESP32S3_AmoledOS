@@ -15,7 +15,8 @@
  *  2. MEASURING how much is saved: what percentage of the screen is upscaled
  *     and invalidated per frame.
  *
- *   cc -O2 -I <main> -I <aos_hal/include> ak_harness.c ../main/ak_*.c -o /tmp/akh
+ *   cc -O2 -I <main> -I <aos_hal/include> -I <aos_ui/include> \
+ *      ak_harness.c ../main/ak_*.c -o /tmp/akh
  *   /tmp/akh [frames] [level] [capture_prefix]
  */
 #include "arkanos.h"
@@ -24,6 +25,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* The game wraps its visible text in _(), which is aos_tr(). Nothing is
+ * translated here and the runtime would drag LVGL along, so the identity
+ * stands in - which is what aos_tr() returns with no pack loaded. */
+const char *aos_tr(const char *es) { return es; }
 
 /* --- the little of the system the game uses ------------------------------- */
 
@@ -120,7 +126,7 @@ static void probe_axes(void)
     static ak_t gg;
     static uint16_t f2[AK_W * AK_H], b2[AK_W * AK_H];
 
-    printf("mapeo del acelerometro (que hace cada opcion del chip EJE):\n");
+    printf("accelerometer mapping (what each option of the EJE chip does):\n");
     for (int axis = 0; axis < 4; axis++) {
         memset(&gg, 0, sizeof(gg));
         ak_buf_init(&gg.fb, f2, AK_W, AK_H);
@@ -131,7 +137,7 @@ static void probe_axes(void)
 
         int rx = probe(&gg, axis, 0);
         int ry = probe(&gg, axis, 1);
-        static const char *const dir[3] = { "izquierda", "quieta   ", "derecha  " };
+        static const char *const dir[3] = { "left     ", "still    ", "right    " };
         printf("  %s :  ax +0.2g -> %s   ay +0.2g -> %s\n",
                eje_txt[axis], dir[rx + 1], dir[ry + 1]);
     }
@@ -256,7 +262,7 @@ int main(int argc, char **argv)
                 }
             }
             if (fallos < 8) {
-                printf("CUADRO %d: %d pixeles sin anotar, el primero en "
+                printf("FRAME %d: %d pixels not noted down, the first at "
                        "(%d,%d) estado=%d rects=%d\n",
                        f, cuantos, primero % AK_W, primero / AK_W,
                        g.state, g.d_push.n);
@@ -280,24 +286,24 @@ int main(int argc, char **argv)
         }
     }
 
-    printf("\n%d cuadros | %d niveles superados | %d partidas perdidas | "
-           "%d pitidos\n", cuadros, niveles, muertes, s_beeps);
+    printf("\n%d frames | %d levels cleared | %d games lost | "
+           "%d beeps\n", cuadros, niveles, muertes, s_beeps);
     /* with one decimal: truncating to an integer, 2.9% and 3.0% show as "2"
        and "3" and look like a regression where there is none */
     long prom10 = area_total * 1000 / cuadros / (AK_W * AK_H);
-    printf("area empujada: %ld.%ld%% en promedio, %ld%% el peor cuadro "
-           "(la pantalla entera son %d pixeles)\n",
+    printf("area pushed: %ld.%ld%% on average, %ld%% in the worst frame "
+           "(the whole screen is %d pixels)\n",
            prom10 / 10, prom10 % 10,
            area_max * 100 / (AK_W * AK_H), AK_W * AK_H);
-    printf("puntaje %lu | record %lu | nivel %d | vidas %d\n",
+    printf("score %lu | best %lu | level %d | lives %d\n",
            (unsigned long)g.score, (unsigned long)g.hiscore, g.level + 1, g.lives);
 
     if (fallos) {
-        printf("\nFALLARON %d cuadros: hay algo que se mueve sin anotar su "
+        printf("\n%d frames FAILED: something moves without noting down its "
                "rectangulo\n", fallos);
         return 1;
     }
-    printf("\nla lista de sucios coincide con el redibujado completo en los "
-           "%d cuadros\n", cuadros);
+    printf("\nthe dirty list matches the full redraw across all "
+           "%d frames\n", cuadros);
     return 0;
 }

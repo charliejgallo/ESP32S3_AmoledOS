@@ -27,7 +27,7 @@ static int fallos;
 
 static void check(const char *que, int ok)
 {
-    printf("%-52s %s\n", que, ok ? "ok" : "FALLA");
+    printf("%-52s %s\n", que, ok ? "ok" : "FAIL");
     if (!ok) {
         fallos++;
     }
@@ -106,22 +106,22 @@ static void probar_grabadora_sola(void)
 {
     aos_rec_status_t rst;
 
-    check("graba sin el microfono crudo abierto",
+    check("it records without the raw microphone open",
           aos_hal_rec_start("/tmp/aos_rec_solo.wav", 0));
     usleep(600 * 1000);
-    check("el nivel del microfono vive durante la grabacion",
+    check("the microphone level is alive during the recording",
           aos_hal_mic_level() > 0);
-    check("la grabacion avanza sola", aos_hal_rec_status(&rst) && rst.bytes > 0);
+    check("the recording advances by itself", aos_hal_rec_status(&rst) && rst.bytes > 0);
 
     uint8_t picos[64];
     int n = aos_hal_rec_peaks(picos, 64);
-    printf("   envolvente: %d muestras en ~600 ms (esperado ~12)\n", n);
-    check("la envolvente sigue saliendo", n >= 8 && n <= 20);
+    printf("   envelope: %d samples in ~600 ms (~12 expected)\n", n);
+    check("the envelope keeps coming out", n >= 8 && n <= 20);
 
-    check("cierra y hay audio", aos_hal_rec_stop());
+    check("it closes and there is audio", aos_hal_rec_stop());
 
     FILE *f = fopen("/tmp/aos_rec_solo.wav", "rb");
-    check("el wav quedo en disco", f != NULL);
+    check("the wav is on disk", f != NULL);
     if (f) {
         unsigned char h[44];
         size_t leidos = fread(h, 1, sizeof(h), f);
@@ -130,15 +130,15 @@ static void probar_grabadora_sola(void)
         fclose(f);
         uint32_t data = (uint32_t)h[40] | ((uint32_t)h[41] << 8) |
                         ((uint32_t)h[42] << 16) | ((uint32_t)h[43] << 24);
-        printf("   wav: %ld bytes, la cabecera declara %u de audio\n", tam, data);
+        printf("   wav: %ld bytes, the header declares %u of audio\n", tam, data);
         check("cabecera RIFF/WAVE", leidos == 44 && !memcmp(h, "RIFF", 4) &&
                                     !memcmp(h + 8, "WAVE", 4));
-        check("la cabecera declara el audio que hay", data == (uint32_t)(tam - 44));
-        check("entro cerca de medio segundo de audio", data > 12000 && data < 26000);
+        check("the header declares the audio that is there", data == (uint32_t)(tam - 44));
+        check("about half a second of audio went in", data > 12000 && data < 26000);
     }
 
     aos_mic_status_t st;
-    check("tras parar, la captura se apago",
+    check("after stopping, the capture went off",
           aos_hal_mic_status(&st) && !st.open);
 }
 
@@ -148,27 +148,27 @@ int main(void)
 
     probar_grabadora_sola();
 
-    check("cerrado: no hay muestras", aos_hal_mic_available() == 0);
+    check("closed: there are no samples", aos_hal_mic_available() == 0);
     check("cerrado: read devuelve 0", aos_hal_mic_read((int16_t[8]){0}, 8) == 0);
 
     check("abre a 16 kHz", aos_hal_mic_open(16000));
-    check("status dice abierto", aos_hal_mic_status(&st) && st.open);
+    check("status says open", aos_hal_mic_status(&st) && st.open);
     check("frecuencia real 16000", st.sample_rate == 16000);
 
     /* A quarter of a second of capture */
     usleep(250 * 1000);
     int avail = aos_hal_mic_available();
-    printf("   esperando ~4000 muestras, hay %d\n", avail);
-    check("junto entre 3 y 5 mil muestras", avail > 3000 && avail < 5000);
+    printf("   expecting ~4000 samples, there are %d\n", avail);
+    check("it gathered between 3 and 5 thousand samples", avail > 3000 && avail < 5000);
 
     static int16_t buf[8192];
     int got = aos_hal_mic_read(buf, 2048);
-    check("drena de a 2048", got == 2048);
-    check("despues de drenar quedan menos", aos_hal_mic_available() < avail);
+    check("it drains 2048 at a time", got == 2048);
+    check("after draining there are fewer left", aos_hal_mic_available() < avail);
 
     int no_cero = 0;
     for (int i = 0; i < got; i++) if (buf[i]) no_cero++;
-    check("las muestras no son todas cero", no_cero > got / 2);
+    check("the samples are not all zero", no_cero > got / 2);
 
     /* Overflowing the ring on purpose: one second without draining */
     aos_hal_mic_status(&st);
@@ -176,27 +176,27 @@ int main(void)
     usleep(1400 * 1000);
     aos_hal_mic_read(buf, 8192);
     aos_hal_mic_status(&st);
-    printf("   perdidas tras 1,4 s sin drenar: %u\n", (unsigned)st.dropped);
-    check("el anillo cuenta lo que se perdio", st.dropped > antes);
-    check("el anillo no entrega mas de un segundo",
+    printf("   lost after 1.4 s without draining: %u\n", (unsigned)st.dropped);
+    check("the ring counts what was lost", st.dropped > antes);
+    check("the ring hands over no more than a second",
           aos_hal_mic_available() <= 16000);
 
     /* Gain: steps of 6 dB */
     aos_hal_mic_gain_set(31);
-    check("la ganancia se redondea al escalon de 6", aos_hal_mic_gain_get() == 30);
+    check("the gain is rounded to the step of 6", aos_hal_mic_gain_get() == 30);
     aos_hal_mic_gain_set(99);
-    check("la ganancia se limita a 42", aos_hal_mic_gain_get() == 42);
+    check("the gain is capped at 42", aos_hal_mic_gain_get() == 42);
 
     /* Recording while listening: both at once */
-    check("arranca a grabar con el microfono abierto",
+    check("it starts recording with the microphone open",
           aos_hal_rec_start("/tmp/aos_mic_harness.wav", 0));
     usleep(300 * 1000);
     aos_rec_status_t rst;
-    check("la grabacion avanza", aos_hal_rec_status(&rst) && rst.bytes > 0);
-    check("la grabacion usa la frecuencia de la captura", rst.sample_rate == 16000);
-    check("el microfono crudo sigue dando muestras", aos_hal_mic_available() > 0);
+    check("the recording advances", aos_hal_rec_status(&rst) && rst.bytes > 0);
+    check("the recording uses the capture rate", rst.sample_rate == 16000);
+    check("the raw microphone keeps giving samples", aos_hal_mic_available() > 0);
     aos_hal_rec_stop();
-    check("tras parar, la captura sigue viva",
+    check("after stopping, the capture is still alive",
           aos_hal_mic_status(&st) && st.open);
 
     /* Pitch detection, if it was asked for */
@@ -208,14 +208,14 @@ int main(void)
         float esperado = (float)atof(tono);
         printf("   tono pedido %.1f Hz, estimado %.1f Hz (%d muestras)\n",
                esperado, hz, n);
-        check("la autocorrelacion acierta el tono",
+        check("the autocorrelation gets the pitch right",
               fabsf(hz - esperado) < esperado * 0.03f);
     }
 
     aos_hal_mic_close();
-    check("cerrado: status dice cerrado",
+    check("closed: status says closed",
           aos_hal_mic_status(&st) && !st.open);
 
-    printf("\n%s\n", fallos ? "HAY FALLAS" : "todo bien");
+    printf("\n%s\n", fallos ? "THERE ARE FAILURES" : "all good");
     return fallos ? 1 : 0;
 }

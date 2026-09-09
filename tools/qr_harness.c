@@ -23,7 +23,7 @@ static int pruebas, fallos;
 static void ok(const char *que, int cond, const char *detalle)
 {
     pruebas++;
-    printf("  %s  %-46s %s\n", cond ? "OK " : "MAL", que, detalle ? detalle : "");
+    printf("  %s  %-46s %s\n", cond ? "OK " : "BAD", que, detalle ? detalle : "");
     if (!cond) fallos++;
 }
 
@@ -33,7 +33,7 @@ static void esperar(const char *que, const char *ssid, const char *pass,
     char buf[160];
     bool r = aos_wifi_qr_text(buf, sizeof(buf), ssid, pass);
     int bien = r && strcmp(buf, esperado) == 0;
-    ok(que, bien, bien ? buf : (r ? buf : "(fallo)"));
+    ok(que, bien, bien ? buf : (r ? buf : "(failed)"));
     if (!bien && r) {
         printf("       esperaba: %s\n", esperado);
     }
@@ -41,32 +41,32 @@ static void esperar(const char *que, const char *ssid, const char *pass,
 
 int main(void)
 {
-    printf("\nTexto del QR de WiFi\n\n");
+    printf("\nWiFi QR text\n\n");
 
     esperar("caso normal", "AmoledOS-5IM", "amoledos",
             "WIFI:T:WPA;S:AmoledOS-5IM;P:amoledos;;");
 
-    esperar("clave generada", "AmoledOS-5IM", "h3jLL2syVF",
+    esperar("generated key", "AmoledOS-5IM", "h3jLL2syVF",
             "WIFI:T:WPA;S:AmoledOS-5IM;P:h3jLL2syVF;;");
 
-    esperar("espacios en el nombre", "Reloj de Charlie", "amoledos",
-            "WIFI:T:WPA;S:Reloj de Charlie;P:amoledos;;");
+    esperar("spaces in the name", "My Watch", "amoledos",
+            "WIFI:T:WPA;S:My Watch;P:amoledos;;");
 
     /* The five that give the format its structure, one by one and all
      * together. */
-    esperar("punto y coma en el nombre", "A;B", "amoledos",
+    esperar("semicolon in the name", "A;B", "amoledos",
             "WIFI:T:WPA;S:A\\;B;P:amoledos;;");
-    esperar("dos puntos en el nombre", "A:B", "amoledos",
+    esperar("colon in the name", "A:B", "amoledos",
             "WIFI:T:WPA;S:A\\:B;P:amoledos;;");
-    esperar("barra invertida en el nombre", "A\\B", "amoledos",
+    esperar("backslash in the name", "A\\B", "amoledos",
             "WIFI:T:WPA;S:A\\\\B;P:amoledos;;");
-    esperar("coma en el nombre", "A,B", "amoledos",
+    esperar("comma in the name", "A,B", "amoledos",
             "WIFI:T:WPA;S:A\\,B;P:amoledos;;");
-    esperar("comillas en el nombre", "A\"B", "amoledos",
+    esperar("quotes in the name", "A\"B", "amoledos",
             "WIFI:T:WPA;S:A\\\"B;P:amoledos;;");
-    esperar("los cinco juntos", "A;B:C\\D,E\"F", "amoledos",
+    esperar("all five together", "A;B:C\\D,E\"F", "amoledos",
             "WIFI:T:WPA;S:A\\;B\\:C\\\\D\\,E\\\"F;P:amoledos;;");
-    esperar("clave con separadores", "casa", "cla;ve:rara",
+    esperar("key with separators", "casa", "cla;ve:rara",
             "WIFI:T:WPA;S:casa;P:cla\\;ve\\:rara;;");
 
     /* With no password the type changes: with T:WPA and an empty P there are
@@ -75,16 +75,16 @@ int main(void)
             "WIFI:T:nopass;S:abierta;P:;;");
 
     char buf[160];
-    ok("sin nombre no hay QR",
+    ok("no name, no QR",
        !aos_wifi_qr_text(buf, sizeof(buf), "", "amoledos") && buf[0] == 0, NULL);
-    ok("nombre NULL no hay QR",
+    ok("NULL name, no QR",
        !aos_wifi_qr_text(buf, sizeof(buf), NULL, "amoledos") && buf[0] == 0, NULL);
 
     /* A half QR is a VALID QR leading to another network: cutting silently is
      * worse than drawing nothing. */
     char chico[20];
-    ok("si no entra, no devuelve nada a medias",
-       !aos_wifi_qr_text(chico, sizeof(chico), "un-nombre-larguisimo", "clave") &&
+    ok("if it does not fit, it returns nothing half-done",
+       !aos_wifi_qr_text(chico, sizeof(chico), "a-very-long-name", "secret") &&
        chico[0] == 0, NULL);
 
     /* The exact limit: 33 of SSID + 63 of password, both with every character
@@ -94,9 +94,9 @@ int main(void)
     memset(pass_max, ';', sizeof(pass_max) - 1); pass_max[63] = 0;
     char grande[256];
     bool cabe = aos_wifi_qr_text(grande, sizeof(grande), ssid_max, pass_max);
-    ok("el peor caso entra en 256 bytes", cabe && strlen(grande) == 13 + 64 + 3 + 126 + 2,
-       cabe ? NULL : "no entro");
+    ok("the worst case fits in 256 bytes", cabe && strlen(grande) == 13 + 64 + 3 + 126 + 2,
+       cabe ? NULL : "did not fit");
 
-    printf("\n%d pruebas, %d fallos\n\n", pruebas, fallos);
+    printf("\n%d tests, %d failures\n\n", pruebas, fallos);
     return fallos ? 1 : 0;
 }

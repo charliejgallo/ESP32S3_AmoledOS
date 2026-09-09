@@ -19,7 +19,7 @@ static int pruebas, fallos;
 static void ok(const char *que, int cond)
 {
     pruebas++;
-    printf("  %s  %s\n", cond ? "OK " : "MAL", que);
+    printf("  %s  %s\n", cond ? "OK " : "BAD", que);
     if (!cond) fallos++;
 }
 
@@ -27,7 +27,7 @@ static void oks(const char *que, const char *dio, const char *esperaba)
 {
     pruebas++;
     int bien = strcmp(dio, esperaba) == 0;
-    printf("  %s  %-44s [%s]\n", bien ? "OK " : "MAL", que, dio);
+    printf("  %s  %-44s [%s]\n", bien ? "OK " : "BAD", que, dio);
     if (!bien) { printf("       esperaba [%s]\n", esperaba); fallos++; }
 }
 
@@ -49,43 +49,43 @@ int main(void)
     printf("\n== Apple Media Service ==\n");
 
     printf("\nla pista\n");
-    ok("el titulo se guarda",
-       aos_ams_entity_update(b, eu(b, AOS_AMS_TRACK, 2, "Cancion de cuna"), &st));
-    oks("titulo", st.title, "Cancion de cuna");
-    ok("y con el titulo ya hay datos que mostrar", st.hay_datos);
+    ok("the title is stored",
+       aos_ams_entity_update(b, eu(b, AOS_AMS_TRACK, 2, "Lullaby"), &st));
+    oks("titulo", st.title, "Lullaby");
+    ok("and with the title there is already something to show", st.hay_datos);
 
-    aos_ams_entity_update(b, eu(b, AOS_AMS_TRACK, 0, "Los Simulados"), &st);
-    aos_ams_entity_update(b, eu(b, AOS_AMS_TRACK, 1, "Pruebas"), &st);
-    oks("artista", st.artist, "Los Simulados");
-    oks("album", st.album, "Pruebas");
+    aos_ams_entity_update(b, eu(b, AOS_AMS_TRACK, 0, "The Simulated"), &st);
+    aos_ams_entity_update(b, eu(b, AOS_AMS_TRACK, 1, "Test Runs"), &st);
+    oks("artista", st.artist, "The Simulated");
+    oks("album", st.album, "Test Runs");
 
     aos_ams_entity_update(b, eu(b, AOS_AMS_TRACK, 3, "214.000"), &st);
-    ok("la duracion viene como texto decimal", st.duration_s == 214);
+    ok("the duration comes as decimal text", st.duration_s == 214);
 
     printf("\nel reproductor\n");
     aos_ams_entity_update(b, eu(b, AOS_AMS_PLAYER, 1, "1,1.000,12.345"), &st);
-    ok("estado reproduciendo", st.playing);
-    ok("y la posicion sale del mismo aviso",
+    ok("state playing", st.playing);
+    ok("and the position comes from the same notification",
        st.elapsed_s == 12 && st.elapsed_nuevo);
 
     aos_ams_entity_update(b, eu(b, AOS_AMS_PLAYER, 1, "0,0.000,45.900"), &st);
-    ok("estado en pausa", !st.playing && st.elapsed_s == 45);
+    ok("state paused", !st.playing && st.elapsed_s == 45);
 
     /* A track notice carries no position: the caller must not restart its
      * count because of it. */
-    aos_ams_entity_update(b, eu(b, AOS_AMS_TRACK, 2, "Otro tema"), &st);
-    ok("un aviso de la pista no dice que haya posicion nueva",
+    aos_ams_entity_update(b, eu(b, AOS_AMS_TRACK, 2, "Another Track"), &st);
+    ok("a track notification does not say there is a new position",
        !st.elapsed_nuevo);
 
     aos_ams_entity_update(b, eu(b, AOS_AMS_PLAYER, 0, "Musica"), &st);
-    oks("el nombre del reproductor", st.player, "Musica");
+    oks("the player name", st.player, "Musica");
 
-    printf("\nlo que puede venir mal\n");
+    printf("\nwhat can arrive malformed\n");
     aos_ams_entity_update(b, eu(b, AOS_AMS_PLAYER, 1, "1"), &st);
-    ok("un estado sin comas no rompe nada", true);
+    ok("a state with no commas breaks nothing", true);
     aos_ams_entity_update(b, eu(b, AOS_AMS_TRACK, 3, "hola"), &st);
-    ok("una duracion que no es un numero queda en cero", st.duration_s == 0);
-    ok("un aviso corto se descarta", !aos_ams_entity_update(b, 2, &st));
+    ok("a duration that is not a number ends up zero", st.duration_s == 0);
+    ok("a short notification is discarded", !aos_ams_entity_update(b, 2, &st));
     ok("NULL tampoco rompe", !aos_ams_entity_update(NULL, 10, &st));
     {
         /* A title longer than the box: it is clipped and ends in a zero. */
@@ -93,17 +93,17 @@ int main(void)
         memset(largo, 'a', sizeof(largo) - 1);
         largo[sizeof(largo) - 1] = '\0';
         aos_ams_entity_update(b, eu(b, AOS_AMS_TRACK, 2, largo), &st);
-        ok("un titulo larguisimo entra recortado y terminado",
+        ok("a very long title comes in clipped and terminated",
            strlen(st.title) == sizeof(st.title) - 1);
     }
     aos_ams_entity_update(b, eu(b, AOS_AMS_QUEUE, 0, "3"), &st);
-    ok("una entidad que no pedimos se ignora", true);
+    ok("an entity we did not ask for is ignored", true);
 
-    printf("\nlo que se le escribe al telefono\n");
+    printf("\nwhat gets written to the phone\n");
     {
         uint8_t c[8];
         int n = aos_ams_cmd_subscribe(c, sizeof(c), AOS_AMS_TRACK);
-        ok("la suscripcion a la pista pide los cuatro atributos",
+        ok("the track subscription asks for the four attributes",
            n == 5 && c[0] == AOS_AMS_TRACK && c[1] == 0 && c[2] == 1 &&
            c[3] == 2 && c[4] == 3);
 
@@ -113,20 +113,20 @@ int main(void)
          * side of the phone, and every change would be one notice competing
          * for the air with the notifications. This test exists so nobody adds
          * it without noticing. */
-        ok("la del reproductor pide el nombre y el estado, sin el volumen",
+        ok("the player one asks for the name and the state, without the volume",
            n == 3 && c[0] == AOS_AMS_PLAYER && c[1] == 0 && c[2] == 1);
 
-        ok("no escribe si no entra", aos_ams_cmd_subscribe(c, 1, AOS_AMS_TRACK) == 0);
+        ok("it does not write if it does not fit", aos_ams_cmd_subscribe(c, 1, AOS_AMS_TRACK) == 0);
 
-        ok("play/pausa es el comando 2 de AMS", aos_ams_comando(0) == 2);
-        ok("siguiente es el 3", aos_ams_comando(1) == 3);
-        ok("anterior es el 4", aos_ams_comando(2) == 4);
-        ok("un comando que AMS no tiene devuelve -1", aos_ams_comando(99) == -1);
+        ok("play/pause is AMS command 2", aos_ams_comando(0) == 2);
+        ok("next is 3", aos_ams_comando(1) == 3);
+        ok("previous is 4", aos_ams_comando(2) == 4);
+        ok("a command AMS does not have returns -1", aos_ams_comando(99) == -1);
 
         n = aos_ams_cmd_remote(c, sizeof(c), aos_ams_comando(1));
-        ok("el comando es un solo byte", n == 1 && c[0] == 3);
+        ok("the command is a single byte", n == 1 && c[0] == 3);
     }
 
-    printf("\n%d pruebas, %d fallos\n\n", pruebas, fallos);
+    printf("\n%d tests, %d failures\n\n", pruebas, fallos);
     return fallos ? 1 : 0;
 }

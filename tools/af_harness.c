@@ -21,7 +21,7 @@ static int fallos;
 
 static void check(const char *que, int ok)
 {
-    printf("%-56s %s\n", que, ok ? "ok" : "FALLA");
+    printf("%-56s %s\n", que, ok ? "ok" : "FAIL");
     if (!ok) fallos++;
 }
 
@@ -54,7 +54,7 @@ static void probar_tono(void)
         41.20f, 55.00f, 82.41f, 110.00f, 146.83f, 196.00f,
         246.94f, 329.63f, 440.00f, 587.33f, 880.00f, 1046.50f
     };
-    printf("\n-- deteccion de tono (ventana de %d a %d Hz) --\n", N, RATE);
+    printf("\n-- pitch detection (window from %d to %d Hz) --\n", N, RATE);
     float peor = 0.0f;
     for (unsigned i = 0; i < sizeof(casos) / sizeof(casos[0]); i++) {
         sintetizar(x, N, casos[i], 8000.0f, 1234 + i);
@@ -64,7 +64,7 @@ static void probar_tono(void)
         printf("   %8.2f Hz -> %8.2f Hz  (%+6.2f cents, claridad %.2f)\n",
                casos[i], p.hz, cents, p.clarity);
         char nombre[64];
-        snprintf(nombre, sizeof(nombre), "acierta %.2f Hz dentro de 5 cents", casos[i]);
+        snprintf(nombre, sizeof(nombre), "gets %.2f Hz right within 5 cents", casos[i]);
         check(nombre, fabsf(cents) < 5.0f);
     }
     printf("   peor error: %.2f cents\n", peor);
@@ -72,45 +72,45 @@ static void probar_tono(void)
     /* Silence and noise must not invent a note */
     memset(x, 0, sizeof(x));
     af_pitch_t p = af_pitch(x, N, RATE, scratch, (int)(sizeof(scratch) / sizeof(scratch[0])));
-    check("el silencio no da nota", p.hz == 0.0f);
+    check("silence gives no note", p.hz == 0.0f);
 
     srand(7);
     for (int i = 0; i < N; i++) x[i] = (int16_t)((rand() % 16000) - 8000);
     p = af_pitch(x, N, RATE, scratch, (int)(sizeof(scratch) / sizeof(scratch[0])));
     printf("   ruido blanco -> %.1f Hz (claridad %.2f)\n", p.hz, p.clarity);
-    check("el ruido blanco no da una nota clara", p.clarity < 0.7f);
+    check("white noise gives no clear note", p.clarity < 0.7f);
 }
 
 static void probar_nota(void)
 {
     af_note_t n;
-    printf("\n-- nota mas cercana (A4 = 440) --\n");
+    printf("\n-- nearest note (A4 = 440) --\n");
 
     af_note_from_hz(440.0f, 440.0f, &n);
     printf("   440,00 Hz -> %s%d %+.1f cents\n", n.name, n.octave, n.cents);
-    check("440 Hz es A4 justo", !strcmp(n.name, "A") && n.octave == 4 &&
+    check("440 Hz is A4 exactly", !strcmp(n.name, "A") && n.octave == 4 &&
                                 fabsf(n.cents) < 0.01f);
 
     af_note_from_hz(82.41f, 440.0f, &n);
     printf("   82,41 Hz -> %s%d %+.1f cents\n", n.name, n.octave, n.cents);
-    check("82,41 Hz es E2 (la sexta al aire)", !strcmp(n.name, "E") && n.octave == 2);
+    check("82.41 Hz is E2 (the open sixth string)", !strcmp(n.name, "E") && n.octave == 2);
 
     af_note_from_hz(261.63f, 440.0f, &n);
-    check("261,63 Hz es C4", !strcmp(n.name, "C") && n.octave == 4);
+    check("261.63 Hz is C4", !strcmp(n.name, "C") && n.octave == 4);
 
     af_note_from_hz(440.0f * powf(2.0f, 25.0f / 1200.0f), 440.0f, &n);
     printf("   A4 +25 cents -> %s%d %+.1f cents\n", n.name, n.octave, n.cents);
-    check("25 cents arriba sigue siendo A4", !strcmp(n.name, "A") &&
+    check("25 cents up is still A4", !strcmp(n.name, "A") &&
                                              fabsf(n.cents - 25.0f) < 0.1f);
 
     af_note_from_hz(440.0f * powf(2.0f, 60.0f / 1200.0f), 440.0f, &n);
     printf("   A4 +60 cents -> %s%d %+.1f cents\n", n.name, n.octave, n.cents);
-    check("60 cents arriba ya es A#4 por debajo", !strcmp(n.name, "A#") &&
+    check("60 cents up is already A#4 from below", !strcmp(n.name, "A#") &&
                                                   n.cents < 0.0f);
 
     /* A configurable A4, which is what an orchestra at 442 asks for */
     af_note_from_hz(442.0f, 442.0f, &n);
-    check("con A4=442, 442 Hz da justo", !strcmp(n.name, "A") &&
+    check("with A4=442, 442 Hz lands exactly", !strcmp(n.name, "A") &&
                                          fabsf(n.cents) < 0.01f);
 }
 
@@ -160,7 +160,7 @@ static void probar_ponderacion(void)
      * before reaching the end of the band. It is not a bug in the code: it is
      * what happens to any A weighting sampled that low. */
     const uint32_t rates[] = { 16000, 32000, 48000 };
-    printf("\n-- ponderacion A: error contra la norma, por frecuencia de captura --\n");
+    printf("\n-- A-weighting: error against the standard, by sample rate --\n");
     printf("%9s", "Hz");
     for (unsigned r = 0; r < 3; r++) printf(" %10u", rates[r]);
     printf("\n");
@@ -175,29 +175,29 @@ static void probar_ponderacion(void)
 
     /* At 16 kHz the standard is required up to 4 kHz, which is as far as it
      * holds. Above that the app has to say the reading is approximate. */
-    printf("\n   a 16 kHz (la del afinador):\n");
+    printf("\n   at 16 kHz (the tuner's):\n");
     for (int i = 0; i < N_NORMA && NORMA[i].hz <= 4000.0f; i++) {
         float err = respuesta(16000, NORMA[i].hz) - NORMA[i].db;
         char nombre[72];
-        snprintf(nombre, sizeof(nombre), "16 kHz: %.1f Hz dentro de 1 dB", NORMA[i].hz);
+        snprintf(nombre, sizeof(nombre), "16 kHz: %.1f Hz within 1 dB", NORMA[i].hz);
         check(nombre, fabsf(err) < 1.0f);
     }
-    check("16 kHz: arriba de 6 kHz la curva ya no vale (esperado)",
+    check("16 kHz: above 6 kHz the curve no longer holds (expected)",
           fabsf(respuesta(16000, 6300.0f) - (-0.1f)) > 2.0f);
 
     /* At 32 kHz the whole band is required, which is why the noise meter opens
      * the microphone there and not at 16. */
-    printf("   a 32 kHz (la del medidor de ruido):\n");
+    printf("   at 32 kHz (the noise meter's):\n");
     for (int i = 0; i < N_NORMA; i++) {
         float err = respuesta(32000, NORMA[i].hz) - NORMA[i].db;
         char nombre[72];
-        snprintf(nombre, sizeof(nombre), "32 kHz: %.1f Hz dentro de 1,6 dB", NORMA[i].hz);
+        snprintf(nombre, sizeof(nombre), "32 kHz: %.1f Hz within 1.6 dB", NORMA[i].hz);
         check(nombre, fabsf(err) < 1.6f);
     }
 
     af_aweight_t w32;
     af_aweight_init(&w32, 32000);
-    check("se arma tambien a 32 kHz", w32.rate == 32000 && w32.gain > 0.0f);
+    check("it builds at 32 kHz too", w32.rate == 32000 && w32.gain > 0.0f);
 }
 
 int main(void)
@@ -205,6 +205,6 @@ int main(void)
     probar_tono();
     probar_nota();
     probar_ponderacion();
-    printf("\n%s\n", fallos ? "HAY FALLAS" : "todo bien");
+    printf("\n%s\n", fallos ? "THERE ARE FAILURES" : "all good");
     return fallos ? 1 : 0;
 }
