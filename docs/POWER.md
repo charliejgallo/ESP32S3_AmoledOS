@@ -323,7 +323,63 @@ Two things to know when working on the board with light sleep on:
   housekeeping and touch cadences with the screen off could be stretched
   further at the cost of wrist-raise and touch latency.
 
-## 7. Register cheat-sheet (the ones the firmware touches)
+## 7. The night on battery: protocol
+
+The one measurement still missing is a whole night, and it has to be done
+the same way every time so nights compare. `tools/battery_night.py` records
+and reports; this is the procedure around it.
+
+**Before bed**
+
+1. Charge to "full" over USB. With battery care on, full is 4.10 V and the
+   gauge will say somewhere in the 90s: that is expected, the gauge's model
+   ends at 4.2 V. Note the starting percent and volts from `/api/status`.
+2. Leave the watch where it will spend the night: on the table, face up, not
+   moving (wrist-raise is accelerometer-driven; a watch on a table never
+   raises). The phone within BLE range if a normal night has it there.
+3. Settings as they will be used: power saving on, battery care on, panel
+   sleep off, chip sleep on, always-on as you normally have it. Write down
+   what they were.
+4. Start the recorder on the Mac, under `caffeinate` so the Mac stays up:
+
+       cd ESP32S3_AmoledOS_power
+       caffeinate -i python3 tools/battery_night.py 192.168.1.125
+
+5. **Unplug USB.** The recorder notices (`bat` instead of `USB`) and the
+   report starts counting from that sample.
+
+**In the morning**
+
+6. Ctrl-C the recorder, then:
+
+       python3 tools/battery_night.py --report night-<date>.csv
+
+   It prints percent and millivolts per hour, the share of time in light
+   sleep, how often the screen was found on, whether the board rebooted and
+   how many polls it missed.
+
+**What the numbers mean.** The AXP2101 cannot measure current, so the report
+divides the percent drop over the nominal 300 mAh and calls the result a
+yardstick. Volts per hour is the finer signal but the discharge curve is not
+linear: compare nights on the same stretch of the curve (start full every
+time). A night is one point; two nights of the same firmware say how
+repeatable the point is; then the other firmware.
+
+**What to compare, in order**
+
+| Night | Firmware / setting                      | Question it answers                |
+|-------|-----------------------------------------|------------------------------------|
+| 1     | this branch, everything as above        | what the watch costs at rest now   |
+| 2     | same again                              | is night 1 repeatable              |
+| 3     | this branch, chip sleep OFF in Settings | what light sleep is worth          |
+| 4     | this branch, WiFi off                   | what the network costs at rest     |
+| 5     | the published firmware, via `install_fw.sh` from the main checkout | the before figure |
+
+The recorder needs WiFi on the watch, so night 4 is the firmware's own
+`drain_pct_h` and `battery_minutes` read from the Battery app in the morning,
+not the CSV.
+
+## 8. Register cheat-sheet (the ones the firmware touches)
 
 | Reg  | What                                  | Encoding                              |
 |------|---------------------------------------|---------------------------------------|

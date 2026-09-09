@@ -291,7 +291,8 @@ static esp_err_t status_handler(httpd_req_t *req)
              "\"board_temp\":%.1f,\"drain_pct_h\":%.2f,\"hours_left\":%.1f,"
              "\"on_battery_s\":%u,\"battery_minutes\":%u,\"cycles\":%u,"
              "\"cpu_mhz\":%d,\"saving\":%s,\"panel_asleep\":%s,\"light_sleep\":%s,"
-             "\"power_on\":\"%s\",\"last_power_off\":\"%s\",\"boot_reason\":\"%s\"",
+             "\"power_on\":\"%s\",\"last_power_off\":\"%s\",\"boot_reason\":\"%s\""
+             ",\"uptime_s\":%u,\"display\":%d",
              batt.voltage, pw.vbus,
              batt.charging ? "true" : "false", batt.usb_present ? "true" : "false",
              chg_names[pw.charge_state <= AOS_CHG_IDLE ? pw.charge_state : AOS_CHG_IDLE],
@@ -302,7 +303,8 @@ static esp_err_t status_handler(httpd_req_t *req)
              pw.power_saving_active ? "true" : "false",
              pw.panel_asleep ? "true" : "false",
              pw.light_sleep ? "true" : "false",
-             pw.power_on_reason, pw.power_off_reason, aos_hal_boot_reason());
+             pw.power_on_reason, pw.power_off_reason, aos_hal_boot_reason(),
+             (unsigned)(aos_hal_uptime_ms() / 1000), (int)aos_hal_display_state());
     }
     if (n > 0 && n < (int)sizeof(json) - 1) {
         json[n++] = '}';
