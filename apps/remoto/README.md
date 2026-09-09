@@ -35,10 +35,11 @@ button asks Home Assistant from the board and answers whether the token works;
 if it does, the page fetches the entity list and from then on the fields
 autocomplete by themselves.
 
-> **The token travels in the clear.** The firmware does not do TLS on purpose:
-> no certificates and no 40 KB of mbedtls per connection. That is acceptable
-> against your own Home Assistant on your own LAN; it is not against an
-> installation exposed to the internet. If yours is, use the internal address.
+> **Over `http://` the token travels in the clear.** The firmware has spoken
+> `https://` since 2026-09-03 -`aos_http.c`, with the IDF's certificate bundle-
+> so if your Home Assistant has a certificate, put the `https://` address in and
+> the token goes encrypted. Over plain `http://` it does not: acceptable against
+> your own instance on your own LAN, not against one exposed to the internet.
 
 ## How state shows up on the buttons
 
