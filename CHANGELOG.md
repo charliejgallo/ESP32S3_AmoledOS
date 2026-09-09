@@ -3,10 +3,11 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.3.0 — 2026-09-09
 
-Everything here was built on 2026-09-09 in a fork of the portal, tested on
-the board over OTA, and merged back. The rule for the whole batch: the
+The portal grows from a file manager into the place to drive and test the
+watch from a browser. Everything here was built in a fork, tested on the
+board over OTA, and merged back. The rule for the whole batch: the
 browser does the work, nothing new is static in internal RAM, nothing new is
 a task. Measured with `idf.py size`, the static internal footprint went
 **down** 1.9 KB (the PM dump of `/api/pmu` was a 2 KB static; it is a PSRAM

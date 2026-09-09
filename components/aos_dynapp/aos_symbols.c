@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts
  * Mas 86 funciones de libc/libm agregadas a mano.
- * Total: 2576 simbolos.
+ * Total: 2584 simbolos.
  */
 
 #include <stddef.h>
@@ -28,7 +28,9 @@ extern int __truncdfsf2;
 extern int __udivdi3;
 extern int __umoddi3;
 extern int abs;
+extern int aos_alarm_get;
 extern int aos_alarm_service_tick;
+extern int aos_alarm_set;
 extern int aos_app_activity_get;
 extern int aos_app_alarm_get;
 extern int aos_app_calc_get;
@@ -214,6 +216,7 @@ extern int aos_hal_path_music;
 extern int aos_hal_path_photos;
 extern int aos_hal_path_recordings;
 extern int aos_hal_path_scans;
+extern int aos_hal_path_sd_root;
 extern int aos_hal_play_file;
 extern int aos_hal_player_pause;
 extern int aos_hal_player_play;
@@ -326,7 +329,12 @@ extern int aos_ui_launcher_set_style;
 extern int aos_ui_open;
 extern int aos_ui_register_app;
 extern int aos_ui_request_language;
+extern int aos_ui_request_launcher_style;
+extern int aos_ui_request_nav;
+extern int aos_ui_request_open;
 extern int aos_ui_request_snapshot;
+extern int aos_ui_request_toast;
+extern int aos_ui_request_watchface;
 extern int aos_ui_request_watchface_picker;
 extern int aos_ui_show_launcher;
 extern int aos_ui_snapshot_peek;
@@ -2607,7 +2615,9 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(__udivdi3),
     ESP_ELFSYM_EXPORT(__umoddi3),
     ESP_ELFSYM_EXPORT(abs),
+    ESP_ELFSYM_EXPORT(aos_alarm_get),
     ESP_ELFSYM_EXPORT(aos_alarm_service_tick),
+    ESP_ELFSYM_EXPORT(aos_alarm_set),
     ESP_ELFSYM_EXPORT(aos_app_activity_get),
     ESP_ELFSYM_EXPORT(aos_app_alarm_get),
     ESP_ELFSYM_EXPORT(aos_app_calc_get),
@@ -2793,6 +2803,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_path_photos),
     ESP_ELFSYM_EXPORT(aos_hal_path_recordings),
     ESP_ELFSYM_EXPORT(aos_hal_path_scans),
+    ESP_ELFSYM_EXPORT(aos_hal_path_sd_root),
     ESP_ELFSYM_EXPORT(aos_hal_play_file),
     ESP_ELFSYM_EXPORT(aos_hal_player_pause),
     ESP_ELFSYM_EXPORT(aos_hal_player_play),
@@ -2905,7 +2916,12 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_ui_open),
     ESP_ELFSYM_EXPORT(aos_ui_register_app),
     ESP_ELFSYM_EXPORT(aos_ui_request_language),
+    ESP_ELFSYM_EXPORT(aos_ui_request_launcher_style),
+    ESP_ELFSYM_EXPORT(aos_ui_request_nav),
+    ESP_ELFSYM_EXPORT(aos_ui_request_open),
     ESP_ELFSYM_EXPORT(aos_ui_request_snapshot),
+    ESP_ELFSYM_EXPORT(aos_ui_request_toast),
+    ESP_ELFSYM_EXPORT(aos_ui_request_watchface),
     ESP_ELFSYM_EXPORT(aos_ui_request_watchface_picker),
     ESP_ELFSYM_EXPORT(aos_ui_show_launcher),
     ESP_ELFSYM_EXPORT(aos_ui_snapshot_peek),
