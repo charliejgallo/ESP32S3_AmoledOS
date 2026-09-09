@@ -288,3 +288,8 @@ CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
 CONFIG_PM_ENABLE=y
 # CONFIG_PM_DFS_INIT_AUTO is not set
 # CONFIG_FREERTOS_USE_TICKLESS_IDLE is not set
+# Contabilidad de cuanto tiempo pasa la CPU en cada modo (lo imprime
+# esp_pm_dump_locks, expuesto en /api/pmu?locks=1). Es la unica forma honesta
+# de saber si el DFS hace algo: medir la frecuencia desde una tarea da siempre
+# 240, porque una tarea corriendo ES lo que la sube.
+CONFIG_PM_PROFILING=y

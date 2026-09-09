@@ -170,6 +170,11 @@ esp_err_t   axp2101_rail_enable(axp2101_t *pmu, axp2101_rail_t rail, bool on);
 /* Everything above, to the log, in one go. */
 void axp2101_dump(axp2101_t *pmu);
 
+/* Raw access, for experiments driven from outside (the web portal's
+ * /api/pmu). -1 on a failed read. */
+int       axp2101_register_read(axp2101_t *pmu, uint8_t reg);
+esp_err_t axp2101_register_write(axp2101_t *pmu, uint8_t reg, uint8_t value);
+
 void axp2101_shutdown(axp2101_t *pmu);
 
 #ifdef __cplusplus

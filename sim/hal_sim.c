@@ -2054,3 +2054,16 @@ void aos_hal_imu_gyro_request(bool on)
     }
     printf("[hal] gyro %s\n", s_sim_gyro_users ? "on" : "off");
 }
+
+int   aos_hal_pmu_rail_count(void) { return 0; }
+bool  aos_hal_pmu_rail_get(int idx, const char **name, bool *on, int *mv)
+{ (void)idx; (void)name; (void)on; (void)mv; return false; }
+int   aos_hal_pmu_rail_find(const char *name) { (void)name; return -1; }
+bool  aos_hal_pmu_rail_set(int idx, bool on) { (void)idx; (void)on; return false; }
+int   aos_hal_pmu_register_read(int reg) { (void)reg; return -1; }
+bool  aos_hal_pmu_register_write(int reg, int value) { (void)reg; (void)value; return false; }
+float aos_hal_pmu_ts_voltage(void) { return 0.5f; }
+
+void aos_hal_pm_dump_locks(void) {}
+
+int aos_hal_probe_devices(char *out, size_t len) { return snprintf(out, len, "{}"); }

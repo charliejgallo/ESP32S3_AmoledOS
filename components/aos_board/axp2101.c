@@ -144,6 +144,14 @@ esp_err_t axp2101_init(axp2101_t *pmu, i2c_master_bus_handle_t bus)
      * has an NTC on it and the charger uses it as its temperature guard. */
     reg_set_bit(pmu, REG_BAT_DET_CTRL, 0);
     reg_update(pmu, REG_ADC_CHANNEL_CTRL, 0x1F, 0x1F);
+
+    /* Measured 2026-09-09: Waveshare's EFUSE leaves reg 0x50 at 0x12 - TS
+     * as "external input, does not gate the charger" (bit4, kept) and the
+     * current source OFF (bits 3:2 = 00), so the ADC read full scale and
+     * the NTC looked absent. With the source on, TS read 0.429 V = 8.6 kOhm
+     * = 28.7 C next to a die at 33 C. Mode 10 switches the source on only
+     * while the TS channel is being sampled, which is the cheapest. */
+    reg_update(pmu, 0x50, 0x0C, 0x08);
     return ESP_OK;
 }
 
@@ -620,6 +628,9 @@ void axp2101_dump(axp2101_t *pmu)
                   "key on %d ms, long %d ms, off %d ms",
              warn, off, axp2101_poweroff_voltage_mv(pmu), on_ms, irq_ms, off_ms);
 
+    ESP_LOGI(TAG, "adc ctrl 0x%02X, ts ctrl 0x%02X (bit4=1: TS does not gate the charger)",
+             reg_read8(pmu, REG_ADC_CHANNEL_CTRL), reg_read8(pmu, 0x50));
+
     uint8_t on_src = axp2101_power_on_source(pmu), off_src = axp2101_power_off_source(pmu);
     ESP_LOGI(TAG, "powered on by: %s (0x%02X); last power-off: %s (0x%02X)",
              axp2101_power_on_source_name(on_src), on_src,
@@ -643,4 +654,14 @@ void axp2101_dump(axp2101_t *pmu)
 void axp2101_shutdown(axp2101_t *pmu)
 {
     reg_set_bit(pmu, REG_COMMON_CONFIG, 0);
+}
+
+int axp2101_register_read(axp2101_t *pmu, uint8_t reg)
+{
+    return reg_read8(pmu, reg);
+}
+
+esp_err_t axp2101_register_write(axp2101_t *pmu, uint8_t reg, uint8_t value)
+{
+    return reg_write8(pmu, reg, value);
 }

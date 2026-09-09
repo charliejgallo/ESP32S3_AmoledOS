@@ -202,6 +202,8 @@ static void pm_policy_apply(void);
 static void panel_sleep(bool sleep);
 static bool power_saving_active(void);
 static int  cpu_mhz_now(void);
+static TaskHandle_t s_player_task;
+static TaskHandle_t s_mic_task;
 
 static esp_codec_dev_handle_t s_speaker;
 static esp_codec_dev_handle_t s_mic;
@@ -571,6 +573,82 @@ void aos_hal_imu_gyro_request(bool on)
     aos_board_imu_gyro_enable(s_gyro_users > 0);
 }
 
+int aos_hal_pmu_rail_count(void)                       { return aos_board_pmu_rail_count(); }
+bool aos_hal_pmu_rail_get(int idx, const char **name, bool *on, int *mv)
+{
+    return aos_board_pmu_rail_get(idx, name, on, mv);
+}
+int aos_hal_pmu_rail_find(const char *name)             { return aos_board_pmu_rail_find(name); }
+bool aos_hal_pmu_rail_set(int idx, bool on)             { return aos_board_pmu_rail_set(idx, on) == ESP_OK; }
+int aos_hal_pmu_register_read(int reg)                  { return aos_board_pmu_register_read((uint8_t)reg); }
+bool aos_hal_pmu_register_write(int reg, int value)
+{
+    return aos_board_pmu_register_write((uint8_t)reg, (uint8_t)value) == ESP_OK;
+}
+float aos_hal_pmu_ts_voltage(void)                      { return aos_board_pmu_ts_voltage(); }
+int aos_hal_probe_devices(char *out, size_t len)
+{
+    i2c_master_bus_handle_t bus = bsp_i2c_get_handle();
+    static const struct { const char *name; uint8_t addr; } devs[] = {
+        { "pmu", 0x34 }, { "expander", 0x20 }, { "touch", 0x15 }, { "touch_v1", 0x38 },
+        { "rtc", 0x51 }, { "imu", 0x6B }, { "imu_low", 0x6A }, { "codec", 0x18 }, { "codec_alt", 0x30 },
+    };
+    int n = snprintf(out, len, "{");
+    for (unsigned i = 0; i < sizeof(devs) / sizeof(devs[0]) && n < (int)len - 32; i++) {
+        bool ok = bus && i2c_master_probe(bus, devs[i].addr, 50) == ESP_OK;
+        n += snprintf(out + n, len - n, "%s\"%s\":%s", i ? "," : "", devs[i].name, ok ? "true" : "false");
+    }
+    aos_imu_t imu;
+    bool have = aos_hal_imu_read(&imu);
+    n += snprintf(out + n, len - n, ",\"imu_read\":%s,\"ax\":%.3f,\"ay\":%.3f,\"az\":%.3f",
+                  have ? "true" : "false", have ? imu.ax : 0.0f, have ? imu.ay : 0.0f, have ? imu.az : 0.0f);
+
+    /* The panel: its tearing-effect line (GPIO13, enabled by the BSP's init
+     * with 0x35) toggles at the refresh rate only while the driver IC is
+     * powered and awake. Woken first, because sleep-in stops TE too. */
+    aos_hal_activity();
+    vTaskDelay(pdMS_TO_TICKS(250));
+    gpio_config_t te = {
+        .pin_bit_mask = 1ULL << GPIO_NUM_13, .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE, .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&te);
+    int edges = 0, last = gpio_get_level(GPIO_NUM_13);
+    int64_t until = esp_timer_get_time() + 100000;
+    while (esp_timer_get_time() < until) {
+        int now = gpio_get_level(GPIO_NUM_13);
+        if (now != last) { edges++; last = now; }
+    }
+    n += snprintf(out + n, len - n, ",\"te_edges_100ms\":%d", edges);
+
+    /* The microphone: open, let the capture task fill, take the RMS. A dead
+     * analogue side gives a flat zero; a live one gives room noise. */
+    float rms = -1.0f;
+    if (aos_hal_mic_open(16000)) {
+        vTaskDelay(pdMS_TO_TICKS(400));
+        static int16_t pcm[1024];
+        int got = aos_hal_mic_read(pcm, 1024);
+        if (got > 0) {
+            double acc = 0;
+            for (int i = 0; i < got; i++) acc += (double)pcm[i] * pcm[i];
+            rms = (float)sqrt(acc / got);
+        }
+        aos_hal_mic_close();
+    }
+    n += snprintf(out + n, len - n, ",\"mic_rms\":%.1f}", rms);
+    return n;
+}
+
+void aos_hal_pm_dump_locks(void)
+{
+    ESP_LOGI(TAG, "pm: cpu %d MHz, our max lock %s, saving %s, display %d, player %p mic %p",
+             cpu_mhz_now(), s_pm_max_held ? "HELD" : "released",
+             power_saving_active() ? "on" : "off", (int)s_display_state,
+             (void *)s_player_task, (void *)s_mic_task);
+    esp_pm_dump_locks(stdout);
+}
+
 bool aos_hal_imu_read(aos_imu_t *out)
 {
     if (!out) {
@@ -923,7 +1001,6 @@ static uint32_t   s_player_duration;
 static uint32_t   s_player_position;
 static uint32_t   s_player_rate = 44100;
 static uint8_t    s_player_channels = 2;
-static TaskHandle_t s_player_task;
 static volatile bool s_player_abort;
 
 static void player_title_from_path(const char *path)
@@ -1184,7 +1261,6 @@ bool aos_hal_audio_is_playing(void)
 
 static volatile uint32_t s_mic_users;
 static uint32_t          s_mic_rate = AOS_MIC_RATE_HZ;  /* set by whoever is first */
-static TaskHandle_t      s_mic_task;
 static volatile bool     s_mic_running;  /* the codec really is open */
 static volatile int      s_mic_level;    /* 0..100 of the last block */
 static volatile int      s_mic_peak;     /* raw peak of the last block */

@@ -105,14 +105,33 @@ without one; this board has it, so the firmware leaves it on: the charger keeps
 its temperature guard and the firmware gets a board temperature. It is the
 PCB's temperature, not the cell's — the battery pack is two wires.
 
-### Which rail feeds what
+### Which rail feeds what (measured)
 
-DCDC1 is `VCC3V3`, and everything hangs from it: the ESP32-S3, the AMOLED
-(`VCI`/`VDDIO`), the IMU, the RTC's I2C side. DCDC2/3/4 (0.9/1.2/1.8 V), the
-four ALDOs, BLDO2 and CPUSLDO appear on the schematic with names and no
-consumer that could be traced. The firmware logs the rail table at boot
-(`axp2101: rails`); nothing is switched off until that table has been read on
-a real board, and DCDC1 is refused by the driver.
+Measured on 2026-09-09 by switching each regulator off, rebooting, and
+checking the panel's tearing-effect line (GPIO13, 60 Hz only while the driver
+IC runs), the accelerometer, the microphone's RMS and the speaker by ear:
+
+| Rail                              | Feeds                                  |
+|-----------------------------------|----------------------------------------|
+| DCDC1 3.3 V                       | everything: ESP32-S3, IMU, RTC, touch, codec, expander |
+| ALDO1 3.3 V, ALDO2 3.3 V, ALDO3 3.0 V, ALDO4 1.8 V, BLDO2 2.8 V | the AMOLED. TE stops with any one of them off |
+| DCDC2 0.9 V, DCDC3 1.2 V, DCDC4 1.8 V, BLDO1 1.2 V, CPUSLDO 1.2 V, DLDO1, DLDO2 | **nothing**. The firmware switches them off at boot |
+| DCDC5                             | not fitted, off from the factory       |
+
+Two things to know before repeating the experiment. The PMU **keeps the rail
+states across an ESP32 reset**: a reboot does not restore anything, only the
+firmware's own programme does. And **cutting a panel rail while the panel
+runs leaves it dead until the next init**: the screen stays black even after
+the rail is back, and the touch keeps reading. Always reboot between a
+switch and a judgement. `/api/pmu?rail=NAME&on=0|1` and `/api/pmu?probe=1`
+exist for exactly this.
+
+### The QMI8658 does not survive accel-only mode
+
+Writing CTRL7 with only the accelerometer enabled (to save the gyro's ~1 mA)
+makes the accelerometer itself read 0x7FFF/0x8000 on every axis, and it only
+recovers with the gyro enabled again. With the Waveshare driver's init, both
+sensors stay on.
 
 ### Accelerometer axes
 

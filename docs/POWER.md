@@ -183,13 +183,16 @@ USB or above that.
 `WIFI_PS_MIN_MODEM` otherwise. The web portal answers a few hundred ms later
 with the screen off.
 
-### 5.7 The gyroscope is off
+### 5.7 The gyroscope stays on (tried, and it broke the accelerometer)
 
 Steps, orientation and wrist-raise are accelerometer-only, and the gyroscope
-is the expensive half of the QMI8658 (about 1 mA at 125 Hz against tens of µA
-for the accelerometer). It is enabled only while an app that shows it is open,
-through `aos_hal_imu_gyro_request()`; today that is *Actividad*. With it off
-`gx/gy/gz` read as 0.
+is the expensive half of the QMI8658 (about 1 mA at 125 Hz). The first
+version of this branch started the chip with CTRL7 = accelerometer only and
+switched the gyro on for the one app that shows it. **On the board the
+accelerometer then read 0x7FFF/0x8000 on every axis**, and it only came back
+with the gyro enabled again. The saving is still there to be had, but not
+through that register write with this driver's init; both sensors stay on and
+`aos_hal_imu_gyro_request()` only counts.
 
 ### 5.8 What the battery screen and `/api/status` show
 
@@ -201,22 +204,54 @@ lifetime minutes on battery and completed charge cycles (both in NVS), the CPU
 clock right now, whether the panel is asleep, whether saving is active, and why
 the PMU last powered off.
 
-## 6. What has NOT been done, and why
+## 6. Measured on the board (2026-09-09, v2, USB-powered, WiFi + BLE up)
 
-* **No rail is switched off.** The candidates (DCDC2/3/4, the ALDOs, BLDO2,
-  CPUSLDO) are unloaded on paper, and an unloaded regulator costs tens of µA
-  each. Against a 60–80 mA active budget that is noise; against a 1 mA
-  screen-off budget it is not. The driver can do it (`axp2101_rail_enable`,
-  which refuses DCDC1) and the boot log prints the table; the decision waits
-  for that table to be read on both board revisions.
+* **Boot programme confirmed in the PMU's own dump**: cc 150 mA, pre 50 mA,
+  term 25 mA, target 4100 mV, warn 10 %, shutdown 3 %, VOFF 2900 mV, key
+  long 1500 ms / off 6000 ms. Powered on by "power key", last power-off
+  "power key held".
+* **The power key works**: press → `pmu irq 0x000200`, release → `0x000900`
+  (positive edge + short). A click from *dimmed* lit the screen; a click from
+  *active* put it off. The whole round trip through the expander poll is
+  under 250 ms.
+* **Panel sleep**: `panel asleep in 4 ms`, `panel awake in 119 ms`, and the
+  touch wakes it. WiFi went to `ps type 2` (MAX_MODEM) on off and back to 1 on
+  wake.
+* **The TS pin has the NTC after all**, but Waveshare's EFUSE leaves reg 0x50
+  at 0x12: TS as "external input" (does not gate the charger) and the
+  current source OFF, so the ADC read full scale and the board looked
+  thermistor-less. With the source on it reads 0.43 V = 8.6 kΩ = 28.7 °C next
+  to a die at 33 °C. The driver now sets the source to "on while sampling"
+  and leaves the charger ungated, which for a PCB thermistor is the right
+  call.
+* **The rail map**, by switching each regulator off, rebooting and checking
+  the panel's TE line, the accelerometer and the microphone (details in
+  [HARDWARE.md](HARDWARE.md)): the AMOLED needs ALDO1-4 and BLDO2; DCDC2,
+  DCDC3, DCDC4, BLDO1, CPUSLDO, DLDO1 and DLDO2 feed nothing and are now off
+  from boot. Two traps found on the way: rail states **survive an ESP32
+  reset** (only the firmware's programme restores them), and cutting a panel
+  rail while the panel runs leaves it black until the next init even after
+  the rail returns.
+* **DFS cannot be read from a task.** ESP-IDF holds a `CPU_FREQ_MAX` lock
+  (`rtos0`/`rtos1`) whenever a core is not idle, so any measurement made from
+  a task — the web handler included — sees 240 MHz. The frequency is 80 MHz
+  only in idle. `CONFIG_PM_PROFILING` accumulates time per mode and
+  `/api/pmu?locks=1` prints it; that is the number to quote.
+
+## 6b. What has NOT been done, and why
+
 * **No light sleep.** It is where the real screen-off savings are — the S3 at
   80 MHz idle still draws ~25 mA — but the QSPI panel driver, the I2S codec,
-  the USB-Serial-JTAG console and the touch interrupt all need to be walked
+  the USB-Serial-JTAG console, the BLE controller (which pins a
+  `NO_LIGHT_SLEEP` lock) and the touch interrupt all need to be walked
   through it. DFS first; light sleep is the next step and this document is
   where its measurements go.
-* **Nothing here has been measured with a meter yet.** The datasheet figures
-  are datasheet figures. The way to measure is a USB power meter inline, or the
-  battery's own drain figure over a night, before and after each switch.
+* **No current measured with a meter.** The gains are argued from the
+  datasheet and observed in behaviour, not in milliamps. A USB power meter
+  inline, or a night's drain figure before and after each switch, is the
+  measurement that is still missing.
+* **The gyro saving** (5.7) needs the QMI8658C's CTRL2/CTRL7 pages read
+  with the board in hand.
 
 ## 7. Register cheat-sheet (the ones the firmware touches)
 

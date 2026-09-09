@@ -302,9 +302,26 @@ bool aos_hal_battery_care_enabled(void);
 void aos_hal_panel_sleep_enable(bool on);
 bool aos_hal_panel_sleep_enabled(void);
 
-/* The gyroscope is off unless an app asks for it (see aos_board.h). Counted:
- * every request(true) needs its request(false). */
+/* Meant to switch the gyroscope off while no app needs it. On the board the
+ * accel-only mode broke the accelerometer (see qmi8658.c), so for now the
+ * gyro stays on and this only counts. Counted: every request(true) needs its
+ * request(false). */
 void aos_hal_imu_gyro_request(bool on);
+
+/* The PMU's regulators and raw registers. EXPERIMENTS ONLY, behind the web
+ * portal's /api/pmu: nothing in the firmware switches a rail by itself. See
+ * docs/POWER.md section 6. */
+int       aos_hal_pmu_rail_count(void);
+bool      aos_hal_pmu_rail_get(int idx, const char **name, bool *on, int *mv);
+int       aos_hal_pmu_rail_find(const char *name);
+bool      aos_hal_pmu_rail_set(int idx, bool on);
+int       aos_hal_pmu_register_read(int reg);                 /* -1 on failure */
+bool      aos_hal_pmu_register_write(int reg, int value);
+float     aos_hal_pmu_ts_voltage(void);
+void      aos_hal_pm_dump_locks(void);      /* who is holding the CPU at 240, to the log */
+/* Who answers on the I2C bus right now, plus one accelerometer sample, as
+ * JSON. The rail experiment's yardstick. */
+int       aos_hal_probe_devices(char *out, size_t len);
 
 /* -------------------------------------------------------------------------- */
 /* Storage                                                                     */

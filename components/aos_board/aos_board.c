@@ -10,6 +10,8 @@
 #include "driver/i2c_master.h"
 
 #include <math.h>
+#include <string.h>
+#include <strings.h>
 
 static const char *TAG = "aos_board";
 
@@ -149,6 +151,29 @@ esp_err_t aos_board_pmu_configure(const aos_pmu_config_t *cfg)
     axp2101_poweroff_voltage_set(&s_pmu, cfg->poweroff_mv);
     axp2101_charging_enable(&s_pmu, true);
 
+    /* Regulators with nothing on them, measured on 2026-09-09 by switching
+     * each one off, rebooting and checking the panel's TE line, the
+     * accelerometer, the microphone and (by ear) the speaker. The AMOLED
+     * needs ALDO1-4 and BLDO2 - its TE signal stops when any of them goes -
+     * and DCDC1 is everything else. These seven feed nothing on this board
+     * and stay off. The PMU keeps rail states across an ESP32 reset, so this
+     * is also what protects a reboot from inheriting a stray experiment. */
+    static const axp2101_rail_t unused[] = {
+        AXP2101_RAIL_DCDC2, AXP2101_RAIL_DCDC3, AXP2101_RAIL_DCDC4,
+        AXP2101_RAIL_BLDO1, AXP2101_RAIL_CPUSLDO,
+        AXP2101_RAIL_DLDO1, AXP2101_RAIL_DLDO2,
+    };
+    static const axp2101_rail_t panel[] = {
+        AXP2101_RAIL_ALDO1, AXP2101_RAIL_ALDO2, AXP2101_RAIL_ALDO3,
+        AXP2101_RAIL_ALDO4, AXP2101_RAIL_BLDO2,
+    };
+    for (unsigned i = 0; i < sizeof(unused) / sizeof(unused[0]); i++) {
+        axp2101_rail_enable(&s_pmu, unused[i], false);
+    }
+    for (unsigned i = 0; i < sizeof(panel) / sizeof(panel[0]); i++) {
+        axp2101_rail_enable(&s_pmu, panel[i], true);
+    }
+
     /* What we want to hear about. Everything else (gauge watchdog, "new SOC"
      * every percent, battery insert/remove on a soldered pack) would only be
      * noise on a polled line. */
@@ -233,4 +258,60 @@ void aos_board_pmu_dump(void)
     if (s_pmu_ready) {
         axp2101_dump(&s_pmu);
     }
+}
+
+int aos_board_pmu_rail_count(void)
+{
+    return AXP2101_RAIL_COUNT;
+}
+
+bool aos_board_pmu_rail_get(int idx, const char **name, bool *on, int *mv)
+{
+    if (!s_pmu_ready || idx < 0 || idx >= AXP2101_RAIL_COUNT) {
+        return false;
+    }
+    if (name) *name = axp2101_rail_name((axp2101_rail_t)idx);
+    if (on)   *on   = axp2101_rail_is_enabled(&s_pmu, (axp2101_rail_t)idx);
+    if (mv)   *mv   = axp2101_rail_voltage_mv(&s_pmu, (axp2101_rail_t)idx);
+    return true;
+}
+
+int aos_board_pmu_rail_find(const char *name)
+{
+    for (int i = 0; name && i < AXP2101_RAIL_COUNT; i++) {
+        if (strcasecmp(name, axp2101_rail_name((axp2101_rail_t)i)) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+esp_err_t aos_board_pmu_rail_set(int idx, bool on)
+{
+    if (!s_pmu_ready || idx < 0 || idx >= AXP2101_RAIL_COUNT) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    esp_err_t ret = axp2101_rail_enable(&s_pmu, (axp2101_rail_t)idx, on);
+    ESP_LOGW(TAG, "rail %s -> %s (%s)", axp2101_rail_name((axp2101_rail_t)idx),
+             on ? "on" : "OFF", esp_err_to_name(ret));
+    return ret;
+}
+
+int aos_board_pmu_register_read(uint8_t reg)
+{
+    return s_pmu_ready ? axp2101_register_read(&s_pmu, reg) : -1;
+}
+
+esp_err_t aos_board_pmu_register_write(uint8_t reg, uint8_t value)
+{
+    if (!s_pmu_ready) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    ESP_LOGW(TAG, "pmu reg 0x%02X <- 0x%02X", reg, value);
+    return axp2101_register_write(&s_pmu, reg, value);
+}
+
+float aos_board_pmu_ts_voltage(void)
+{
+    return s_pmu_ready ? axp2101_ts_voltage(&s_pmu) : 0.0f;
 }

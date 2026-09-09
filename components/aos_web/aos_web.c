@@ -160,6 +160,73 @@ static bool params(httpd_req_t *req, const char **dir_path, char *name, size_t n
     return true;
 }
 
+
+/* --------------------------------------------------------------------------
+ * /api/pmu — the PMU's regulators and registers, for experiments.
+ *
+ *   GET /api/pmu                       the rail table, TS and a few registers
+ *   GET /api/pmu?rail=ALDO1&on=0       switch a rail (DCDC1 is refused)
+ *   GET /api/pmu?reg=0x50&val=0x10     write a register
+ *   GET /api/pmu?reg=0x50              read one
+ *
+ * Nothing here is remembered: a reboot restores the firmware's programme and
+ * the PMU's own defaults. It exists so a rail can be switched off while
+ * watching the screen, the touch, the codec and the card, without a reflash
+ * per attempt. See docs/POWER.md section 6.
+ * -------------------------------------------------------------------------- */
+static esp_err_t pmu_handler(httpd_req_t *req)
+{
+    char query[128] = "", value[24];
+    httpd_req_get_url_query_str(req, query, sizeof(query));
+
+    char note[96] = "";
+    if (httpd_query_key_value(query, "locks", value, sizeof(value)) == ESP_OK) {
+        aos_hal_pm_dump_locks();
+        snprintf(note, sizeof(note), "\"locks\":\"in the log\",");
+    } else if (httpd_query_key_value(query, "probe", value, sizeof(value)) == ESP_OK) {
+        char probe[320];
+        aos_hal_probe_devices(probe, sizeof(probe));
+        if (atoi(value) > 1) {
+            aos_hal_beep(880, 200);
+        }
+        httpd_resp_set_type(req, "application/json");
+        return httpd_resp_send(req, probe, HTTPD_RESP_USE_STRLEN);
+    } else if (httpd_query_key_value(query, "rail", value, sizeof(value)) == ESP_OK) {
+        int idx = aos_hal_pmu_rail_find(value);
+        char on_s[8] = "1";
+        httpd_query_key_value(query, "on", on_s, sizeof(on_s));
+        bool ok = idx >= 0 && aos_hal_pmu_rail_set(idx, atoi(on_s) != 0);
+        snprintf(note, sizeof(note), "\"set\":\"%s\",\"ok\":%s,", value, ok ? "true" : "false");
+    } else if (httpd_query_key_value(query, "reg", value, sizeof(value)) == ESP_OK) {
+        int reg = (int)strtol(value, NULL, 0);
+        char val_s[16];
+        if (httpd_query_key_value(query, "val", val_s, sizeof(val_s)) == ESP_OK) {
+            bool ok = aos_hal_pmu_register_write(reg, (int)strtol(val_s, NULL, 0));
+            snprintf(note, sizeof(note), "\"wrote\":\"0x%02X\",\"ok\":%s,", reg, ok ? "true" : "false");
+        } else {
+            snprintf(note, sizeof(note), "\"reg\":\"0x%02X\",\"value\":%d,", reg,
+                     aos_hal_pmu_register_read(reg));
+        }
+    }
+
+    char json[900];
+    int n = snprintf(json, sizeof(json), "{%s\"ts_v\":%.3f,\"adc_ctrl\":%d,\"ts_ctrl\":%d,"
+                     "\"status1\":%d,\"status2\":%d,\"rails\":[",
+                     note, aos_hal_pmu_ts_voltage(),
+                     aos_hal_pmu_register_read(0x30), aos_hal_pmu_register_read(0x50),
+                     aos_hal_pmu_register_read(0x00), aos_hal_pmu_register_read(0x01));
+    int count = aos_hal_pmu_rail_count();
+    for (int i = 0; i < count && n < (int)sizeof(json) - 64; i++) {
+        const char *name; bool on; int mv;
+        if (!aos_hal_pmu_rail_get(i, &name, &on, &mv)) continue;
+        n += snprintf(json + n, sizeof(json) - n, "%s{\"name\":\"%s\",\"on\":%s,\"mv\":%d}",
+                      i ? "," : "", name, on ? "true" : "false", mv);
+    }
+    n += snprintf(json + n, sizeof(json) - n, "]}");
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);
+}
+
 /* -------------------------------------------------------------------------- */
 
 static esp_err_t page_handler(httpd_req_t *req)
@@ -1802,6 +1869,7 @@ static esp_err_t remoto_entities_handler(httpd_req_t *req)
 static const httpd_uri_t ROUTES[] = {
         { .uri = "/",            .method = HTTP_GET,  .handler = page_handler },
         { .uri = "/api/status",  .method = HTTP_GET,  .handler = status_handler },
+        { .uri = "/api/pmu",     .method = HTTP_GET,  .handler = pmu_handler },
         { .uri = "/api/list",    .method = HTTP_GET,  .handler = list_handler },
         { .uri = "/api/upload",  .method = HTTP_POST, .handler = upload_handler },
         { .uri = "/api/ota",     .method = HTTP_POST, .handler = ota_handler },

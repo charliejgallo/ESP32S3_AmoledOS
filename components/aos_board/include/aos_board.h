@@ -85,6 +85,15 @@ bool aos_board_power_key_down(void);
 
 void aos_board_pmu_dump(void);
 
+/* Regulators and raw registers, for the experiments behind /api/pmu. */
+int       aos_board_pmu_rail_count(void);
+bool      aos_board_pmu_rail_get(int idx, const char **name, bool *on, int *mv);
+int       aos_board_pmu_rail_find(const char *name);       /* -1 if unknown */
+esp_err_t aos_board_pmu_rail_set(int idx, bool on);
+int       aos_board_pmu_register_read(uint8_t reg);
+esp_err_t aos_board_pmu_register_write(uint8_t reg, uint8_t value);
+float     aos_board_pmu_ts_voltage(void);
+
 /* --- RTC ---------------------------------------------------------------- */
 bool aos_board_rtc_get(struct tm *out);
 bool aos_board_rtc_set(const struct tm *value);
@@ -109,8 +118,8 @@ bool     aos_board_imu_wrist_raised(void);  /* wrist-raise gesture */
 
 /* The gyroscope is the expensive half of the QMI8658 (about 1 mA on its own
  * against tens of uA for the accelerometer) and nothing the watch does all day
- * needs it: steps, orientation and wrist raise are accelerometer only. It is
- * off unless somebody asks. With it off, gx/gy/gz read as 0. */
+ * needs it. Switching it off was tried and broke the accelerometer (see the
+ * note in qmi8658.c), so today this only records the request. */
 void     aos_board_imu_gyro_enable(bool on);
 bool     aos_board_imu_gyro_enabled(void);
 
