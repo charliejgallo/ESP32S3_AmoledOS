@@ -81,8 +81,38 @@ declare a gesture. Apps with horizontal pages have to ask
 
 ### The AXP2101 does not measure battery current
 
-It gives voltage, VBUS, VSYS, die temperature and the fuel gauge's percentage.
-Current is reported as `NAN` rather than an invented number.
+It gives voltage, VBUS, VSYS, die temperature, the TS pin and the fuel gauge's
+percentage. Current is reported as `NAN` rather than an invented number. The
+percentage is a voltage-model gauge, not a coulomb counter, so drain rates and
+hours-left are arithmetic on it over time (see [POWER.md](POWER.md)).
+
+### The PMU's interrupt line does not reach the ESP32
+
+From the schematic: `AXP_IRQ` goes to **EXIO5** of the TCA9554 expander, and
+the expander's own `INT` pin is only pulled up. So PMU interrupts (power key,
+USB in/out, charge done, low battery) are **polled** through the expander over
+I2C, every 200 ms in the housekeeping task. The power key's level is also
+readable, on **EXIO4** (`SYS_OUT`, high while pressed, through a BSS138).
+
+`PWROK` from the PMU drives `CHIP_PU`: when the PMU cuts the rails, the ESP32
+is reset by hardware, which is why a PMU power-off is clean by construction.
+
+### The TS pin has a real NTC on it
+
+`RP2`, a 10K thermistor, sits between TS and ground next to the PMU. Waveshare's
+own example disables TS measurement "to avoid abnormal charging" on boards
+without one; this board has it, so the firmware leaves it on: the charger keeps
+its temperature guard and the firmware gets a board temperature. It is the
+PCB's temperature, not the cell's — the battery pack is two wires.
+
+### Which rail feeds what
+
+DCDC1 is `VCC3V3`, and everything hangs from it: the ESP32-S3, the AMOLED
+(`VCI`/`VDDIO`), the IMU, the RTC's I2C side. DCDC2/3/4 (0.9/1.2/1.8 V), the
+four ALDOs, BLDO2 and CPUSLDO appear on the schematic with names and no
+consumer that could be traced. The firmware logs the rail table at boot
+(`axp2101: rails`); nothing is switched off until that table has been read on
+a real board, and DCDC1 is refused by the driver.
 
 ### Accelerometer axes
 

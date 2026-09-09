@@ -5,5 +5,5 @@ idf_component_register(
              waveshare__qmi8658
              waveshare__pcf85063a
              esp_timer
-    PRIV_REQUIRES esp_driver_i2c esp_driver_gpio
+    PRIV_REQUIRES esp_driver_i2c esp_driver_gpio espressif__esp_io_expander espressif__esp_io_expander_tca9554
 )

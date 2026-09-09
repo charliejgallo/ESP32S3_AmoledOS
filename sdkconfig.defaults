@@ -278,3 +278,13 @@ CONFIG_BT_NIMBLE_GATT_MAX_PROCS=8
 # that compiles and then hangs on boot leaves the watch needing a USB cable,
 # which is exactly what OTA exists to avoid. The confirmation is in main.c.
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+
+# --- Energia -----------------------------------------------------------------
+# Escalado dinamico de frecuencia: el HAL pide 240 MHz mientras la pantalla
+# esta activa o suena audio, y suelta el candado al apagarse (80 MHz). Sin
+# light sleep: el panel QSPI, el I2S y la consola USB no lo sobrevivirian sin
+# mas trabajo. El tickless idle tampoco: sin light sleep no aporta nada y
+# cambia la temporizacion de los ticks. Ver docs/POWER.md.
+CONFIG_PM_ENABLE=y
+# CONFIG_PM_DFS_INIT_AUTO is not set
+# CONFIG_FREERTOS_USE_TICKLESS_IDLE is not set

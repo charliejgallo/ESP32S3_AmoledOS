@@ -48,7 +48,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_OUT = os.path.join(REPO, "sim", "sim_fs", "lang")
 
 SYSTEM_CATALOG = "_sistema.lang"
-FIRMWARE_DIRS = ["components/aos_ui", "components/aos_apps"]
+FIRMWARE_DIRS = ["components/aos_ui", "components/aos_apps", "main"]
 
 # `_("...")` and `N_("...")`, allowing the adjacent-literal concatenation C
 # does for you:

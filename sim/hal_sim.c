@@ -1991,3 +1991,66 @@ void aos_hal_log(const char *tag, const char *fmt, ...)
     printf("\n");
     va_end(args);
 }
+
+/* -------------------------------------------------------------------------- */
+/* Power: the simulator has no PMU, so this is a plausible watch on battery.   */
+/* -------------------------------------------------------------------------- */
+
+static bool s_sim_power_saving = true;
+static bool s_sim_battery_care = true;
+static bool s_sim_panel_sleep  = true;
+static int  s_sim_gyro_users;
+static void (*s_sim_power_cb)(aos_power_event_t event, int percent);
+
+bool aos_hal_power_info(aos_power_info_t *out)
+{
+    if (!out) {
+        return false;
+    }
+    aos_battery_t batt;
+    aos_hal_battery_read(&batt);
+    memset(out, 0, sizeof(*out));
+    out->charge_state          = batt.charging ? AOS_CHG_CC : AOS_CHG_IDLE;
+    out->vbus                  = batt.usb_present ? 5.02f : 0.0f;
+    out->vsys                  = batt.voltage;
+    out->board_temperature     = 27.4f;
+    out->battery_present       = true;
+    out->charge_ma             = s_sim_battery_care ? 150 : 300;
+    out->charge_target_mv      = s_sim_battery_care ? 4100 : 4200;
+    out->warn_pct              = 10;
+    out->shutdown_pct          = 3;
+    out->poweroff_mv           = 2900;
+    uint32_t up_s              = (uint32_t)(aos_hal_uptime_ms() / 1000);
+    out->drain_pct_per_hour    = up_s > 20 ? 120.0f : NAN;    /* 1% per 30 s */
+    out->hours_left            = up_s > 20 ? batt.percent / 120.0f : NAN;
+    out->on_battery_s          = batt.usb_present ? 0 : up_s;
+    out->battery_minutes_total = 3400 + up_s / 60;
+    out->charge_cycles         = 12;
+    out->power_on_reason       = "power key";
+    out->power_off_reason      = "power key held";
+    out->cpu_mhz               = (s_sim_power_saving && s_display_state != AOS_DISPLAY_ACTIVE) ? 80 : 240;
+    out->panel_asleep          = s_sim_panel_sleep && s_display_state == AOS_DISPLAY_OFF;
+    out->power_saving_active   = s_sim_power_saving || batt.percent <= 20;
+    return true;
+}
+
+void aos_hal_set_power_event_cb(void (*cb)(aos_power_event_t event, int percent))
+{
+    s_sim_power_cb = cb;
+}
+
+void aos_hal_power_saving_enable(bool on) { s_sim_power_saving = on; aos_hal_pref_set_i32("pwr_save", on); }
+bool aos_hal_power_saving_enabled(void)  { return s_sim_power_saving; }
+void aos_hal_battery_care_enable(bool on) { s_sim_battery_care = on; aos_hal_pref_set_i32("batt_care", on); }
+bool aos_hal_battery_care_enabled(void)  { return s_sim_battery_care; }
+void aos_hal_panel_sleep_enable(bool on)  { s_sim_panel_sleep = on; aos_hal_pref_set_i32("panel_slp", on); }
+bool aos_hal_panel_sleep_enabled(void)   { return s_sim_panel_sleep; }
+
+void aos_hal_imu_gyro_request(bool on)
+{
+    s_sim_gyro_users += on ? 1 : -1;
+    if (s_sim_gyro_users < 0) {
+        s_sim_gyro_users = 0;
+    }
+    printf("[hal] gyro %s\n", s_sim_gyro_users ? "on" : "off");
+}

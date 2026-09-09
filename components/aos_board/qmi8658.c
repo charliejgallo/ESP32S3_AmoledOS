@@ -33,6 +33,7 @@ static int64_t  s_last_step_us;
 static int      s_orientation;
 static bool     s_wrist_raised;
 static float    s_filtered_az = 1.0f;
+static bool     s_gyro_on;
 
 bool aos_imu_start(i2c_master_bus_handle_t bus)
 {
@@ -59,7 +60,10 @@ bool aos_imu_start(i2c_master_bus_handle_t bus)
     qmi8658_set_gyro_odr(&s_imu, QMI8658_GYRO_ODR_125HZ);
     qmi8658_set_accel_unit_mps2(&s_imu, false);   /* we want g */
     qmi8658_set_gyro_unit_dps(&s_imu, true);
-    qmi8658_enable_sensors(&s_imu, QMI8658_ENABLE_ACCEL | QMI8658_ENABLE_GYRO);
+    /* Accelerometer only. The gyro is switched on by aos_board_imu_gyro_enable()
+     * when an app asks for it: see the note in aos_board.h. */
+    qmi8658_enable_sensors(&s_imu, QMI8658_ENABLE_ACCEL);
+    s_gyro_on = false;
 
     s_present = true;
     ESP_LOGI(TAG, "QMI8658 ready at 0x%02X", address);
@@ -86,9 +90,9 @@ bool aos_board_imu_read(aos_imu_sample_t *out)
     out->ax = data.accelX / 1000.0f;
     out->ay = data.accelY / 1000.0f;
     out->az = data.accelZ / 1000.0f;
-    out->gx = data.gyroX;
-    out->gy = data.gyroY;
-    out->gz = data.gyroZ;
+    out->gx = s_gyro_on ? data.gyroX : 0.0f;
+    out->gy = s_gyro_on ? data.gyroY : 0.0f;
+    out->gz = s_gyro_on ? data.gyroZ : 0.0f;
     out->temperature = data.temperature;
     out->valid = true;
     return true;
@@ -164,4 +168,22 @@ int aos_board_imu_orientation(void)
 bool aos_board_imu_wrist_raised(void)
 {
     return s_wrist_raised;
+}
+
+void aos_board_imu_gyro_enable(bool on)
+{
+    if (!s_present || on == s_gyro_on) {
+        return;
+    }
+    esp_err_t ret = qmi8658_enable_sensors(&s_imu,
+                        QMI8658_ENABLE_ACCEL | (on ? QMI8658_ENABLE_GYRO : 0));
+    if (ret == ESP_OK) {
+        s_gyro_on = on;
+        ESP_LOGI(TAG, "gyro %s", on ? "on" : "off");
+    }
+}
+
+bool aos_board_imu_gyro_enabled(void)
+{
+    return s_gyro_on;
 }

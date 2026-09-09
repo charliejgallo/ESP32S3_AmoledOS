@@ -1,4 +1,5 @@
 #include "aos_web.h"
+#include <math.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include "aos_hal.h"
@@ -178,16 +179,53 @@ static esp_err_t status_handler(httpd_req_t *req)
 
     /* The slot and the trial flag are what make an update verifiable from
      * outside: two builds of the same version look identical otherwise. */
-    char json[288];
-    snprintf(json, sizeof(json),
+    /* The PMU's detail rides along: it is what a home-automation poller
+     * wants, and the only way to watch the drain without wearing the watch. */
+    aos_power_info_t pw;
+    bool have_pw = aos_hal_power_info(&pw);
+    /* JSON has no NaN: what is not known yet goes out as -1. */
+    if (have_pw) {
+        if (isnan(pw.board_temperature))  pw.board_temperature  = -1.0f;
+        if (isnan(pw.drain_pct_per_hour)) pw.drain_pct_per_hour = -1.0f;
+        if (isnan(pw.hours_left))         pw.hours_left         = -1.0f;
+    }
+    static const char *chg_names[] = {
+        "trickle", "precharge", "cc", "cv", "done", "idle"
+    };
+
+    char json[640];
+    int n = snprintf(json, sizeof(json),
              "{\"version\":\"%s\",\"battery\":%d,\"heap\":%u,\"psram\":%u,"
-             "\"sd\":%s,\"board\":\"%s\",\"slot\":\"%s\",\"trial\":%s}",
+             "\"sd\":%s,\"board\":\"%s\",\"slot\":\"%s\",\"trial\":%s",
              aos_hal_firmware_version(), percent,
              (unsigned)internal, (unsigned)psram,
              aos_hal_sd_present() ? "true" : "false",
              aos_hal_board_name(),
              aos_hal_ota_running_slot(),
              aos_hal_ota_pending_verify() ? "true" : "false");
+    if (have_pw && n > 0 && n < (int)sizeof(json)) {
+        n += snprintf(json + n, sizeof(json) - n,
+             ",\"vbat\":%.3f,\"vbus\":%.2f,\"charging\":%s,\"usb\":%s,"
+             "\"charge_state\":\"%s\",\"charge_ma\":%d,\"charge_target_mv\":%d,"
+             "\"board_temp\":%.1f,\"drain_pct_h\":%.2f,\"hours_left\":%.1f,"
+             "\"on_battery_s\":%u,\"battery_minutes\":%u,\"cycles\":%u,"
+             "\"cpu_mhz\":%d,\"saving\":%s,\"panel_asleep\":%s,"
+             "\"power_on\":\"%s\",\"last_power_off\":\"%s\"",
+             batt.voltage, pw.vbus,
+             batt.charging ? "true" : "false", batt.usb_present ? "true" : "false",
+             chg_names[pw.charge_state <= AOS_CHG_IDLE ? pw.charge_state : AOS_CHG_IDLE],
+             pw.charge_ma, pw.charge_target_mv,
+             pw.board_temperature, pw.drain_pct_per_hour, pw.hours_left,
+             (unsigned)pw.on_battery_s, (unsigned)pw.battery_minutes_total,
+             (unsigned)pw.charge_cycles, pw.cpu_mhz,
+             pw.power_saving_active ? "true" : "false",
+             pw.panel_asleep ? "true" : "false",
+             pw.power_on_reason, pw.power_off_reason);
+    }
+    if (n > 0 && n < (int)sizeof(json) - 1) {
+        json[n++] = '}';
+        json[n]   = '\0';
+    }
 
     httpd_resp_set_type(req, "application/json");
     return httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);

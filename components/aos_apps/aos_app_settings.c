@@ -83,6 +83,24 @@ static void aod_cb(lv_event_t *event)
     aos_ui_toast(on ? _("Siempre encendido") : _("La pantalla se apaga"), 1400);
 }
 
+static void power_saving_cb(lv_event_t *event)
+{
+    lv_obj_t *sw = lv_event_get_target(event);
+    aos_hal_power_saving_enable(lv_obj_has_state(sw, LV_STATE_CHECKED));
+}
+
+static void battery_care_cb(lv_event_t *event)
+{
+    lv_obj_t *sw = lv_event_get_target(event);
+    aos_hal_battery_care_enable(lv_obj_has_state(sw, LV_STATE_CHECKED));
+}
+
+static void panel_sleep_cb(lv_event_t *event)
+{
+    lv_obj_t *sw = lv_event_get_target(event);
+    aos_hal_panel_sleep_enable(lv_obj_has_state(sw, LV_STATE_CHECKED));
+}
+
 static void aod_brightness_cb(lv_event_t *event)
 {
     lv_obj_t *slider = lv_event_get_target(event);
@@ -1155,6 +1173,11 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     lv_obj_t *aod_slider = slider(page, aos_hal_aod_brightness_get(), aod_brightness_cb);
     lv_slider_set_range(aod_slider, 1, 40);
     lv_slider_set_value(aod_slider, aos_hal_aod_brightness_get(), LV_ANIM_OFF);
+
+    section(page, _("ENERGIA"));
+    switch_row(page, _("Ahorro de energia"), aos_hal_power_saving_enabled(), power_saving_cb);
+    switch_row(page, _("Cuidar la bateria"), aos_hal_battery_care_enabled(), battery_care_cb);
+    switch_row(page, _("Dormir el panel apagado"), aos_hal_panel_sleep_enabled(), panel_sleep_cb);
 
     section(page, _("IDIOMA"));
     s_lang_count = aos_i18n_scan(s_langs, AOS_LANG_MAX);

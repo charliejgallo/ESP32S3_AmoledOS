@@ -8,6 +8,7 @@
 #include "aos_hal.h"
 #include "aos_ble.h"
 #include "aos_board.h"
+#include "axp2101.h"
 
 #include "bsp/esp-bsp.h"
 
@@ -32,6 +33,10 @@
 #include "driver/i2s_std.h"
 #include "driver/gpio.h"
 #include "esp_lcd_panel_io.h"
+#include "esp_lcd_panel_ops.h"
+#include "esp_lcd_panel_commands.h"
+#include "esp_pm.h"
+#include "soc/rtc.h"
 #include "esp_lcd_touch.h"
 #include "esp_lvgl_port.h"
 #include "esp_lvgl_port_touch.h"
@@ -53,6 +58,28 @@
 #define OFF_TIMEOUT_MS          300000      /* dimmed -> off              */
 #define OFF_NO_AOD_MS           30000       /* active -> off, without AOD */
 #define AOD_LOW_BATTERY_PCT     15
+
+/* --- Battery policy -----------------------------------------------------------
+ * The cell Waveshare ships is a 3.7 V 300 mAh pouch. The charger's factory
+ * programme (300 mA, 4.2 V, terminate at 125 mA) is 1 C into it and stops
+ * early; what is below is 0.5 C and a proper termination, which is what the
+ * cell's own datasheet asks for. See docs/POWER.md.
+ * -------------------------------------------------------------------------- */
+#define AOS_BATTERY_MAH             300
+#define AOS_CHARGE_MA_CARE          150     /* 0.5 C                              */
+#define AOS_CHARGE_MA_FULL          300     /* the chip's own default, 1 C        */
+#define AOS_CHARGE_MV_CARE          4100    /* ~10% less capacity, ~2x the cycles */
+#define AOS_CHARGE_MV_FULL          4200
+#define AOS_PRECHARGE_MA            50
+#define AOS_TERMINATION_MA          25      /* C/12                               */
+#define AOS_LOW_BATTERY_WARN_PCT    10      /* the PMU raises an IRQ here         */
+#define AOS_LOW_BATTERY_OFF_PCT     3       /* and here; we power off cleanly     */
+#define AOS_POWEROFF_MV             2900    /* VOFF: the PMU's own cut, was 2.6 V */
+#define AOS_CRITICAL_VBAT           3.30f   /* software backstop, sustained 15 s  */
+#define AOS_LOW_BATTERY_SAVING_PCT  20      /* power saving switches itself on    */
+#define AOS_PANEL_WAKE_MS           120     /* sleep-out to display-on            */
+#define AOS_DFS_MIN_MHZ             80
+#define AOS_DFS_MAX_MHZ             240
 
 /* Stack of the housekeeping task. Measured on the board: while running it has
  * ~2.0 KB of the 4 to spare, so its peak is about 2 KB. Left at 3 KB, which
@@ -139,6 +166,42 @@ static bool          s_aod_enabled = true;
 static int           s_aod_brightness = 10;
 static void        (*s_display_cb)(aos_display_state_t state);
 static char          s_board_name[48] = "desconocida";
+
+/* Panel handles: display_start() gets them from the BSP and keeps them so the
+ * driver IC can be put to sleep and woken. */
+static esp_lcd_panel_handle_t    s_panel;
+static esp_lcd_panel_io_handle_t s_panel_io;
+static bool                      s_panel_asleep;
+static bool                      s_panel_sleep_enabled = true;
+
+/* Power policy */
+static bool                 s_power_saving = true;      /* preference          */
+static bool                 s_battery_care = true;      /* preference          */
+static bool                 s_low_battery_saving;       /* forced under 20%    */
+static esp_pm_lock_handle_t s_pm_max_lock;
+static bool                 s_pm_max_held;
+static int                  s_wifi_ps = -1;
+static void               (*s_power_cb)(aos_power_event_t event, int percent);
+static int                  s_gyro_users;
+
+/* Battery bookkeeping */
+static bool     s_usb_last = true;
+static int64_t  s_unplug_us;
+static int      s_unplug_pct = -1;
+static float    s_drain_pct_h = NAN;
+static float    s_hours_left  = NAN;
+static uint32_t s_battery_minutes;      /* lifetime, NVS "bat_min"   */
+static uint32_t s_charge_cycles;        /* lifetime, NVS "chg_cyc"   */
+static uint32_t s_unsaved_minutes;
+static bool     s_low_warned;
+static bool     s_charge_counted;
+static int      s_critical_strikes;
+static bool     s_shutting_down;
+
+static void pm_policy_apply(void);
+static void panel_sleep(bool sleep);
+static bool power_saving_active(void);
+static int  cpu_mhz_now(void);
 
 static esp_codec_dev_handle_t s_speaker;
 static esp_codec_dev_handle_t s_mic;
@@ -259,10 +322,20 @@ void aos_hal_display_set_state(aos_display_state_t state)
     s_display_state = state;
 
     switch (state) {
-    case AOS_DISPLAY_ACTIVE: bsp_display_brightness_set(s_brightness);     break;
-    case AOS_DISPLAY_AOD:    bsp_display_brightness_set(s_aod_brightness); break;
-    case AOS_DISPLAY_OFF:    bsp_display_brightness_set(0);                break;
+    case AOS_DISPLAY_ACTIVE:
+        panel_sleep(false);
+        bsp_display_brightness_set(s_brightness);
+        break;
+    case AOS_DISPLAY_AOD:
+        panel_sleep(false);
+        bsp_display_brightness_set(s_aod_brightness);
+        break;
+    case AOS_DISPLAY_OFF:
+        bsp_display_brightness_set(0);
+        panel_sleep(true);
+        break;
     }
+    pm_policy_apply();
 
     ESP_LOGI(TAG, "display -> %s",
              state == AOS_DISPLAY_ACTIVE ? "active" :
@@ -329,9 +402,12 @@ void aos_hal_sleep(void)
     aos_hal_display_on(false);
 }
 
+static void battery_stats_save(void);
+
 void aos_hal_shutdown(void)
 {
     ESP_LOGI(TAG, "powering off through the PMU");
+    battery_stats_save();
     aos_board_pmu_shutdown();
 }
 
@@ -394,6 +470,105 @@ bool aos_hal_battery_read(aos_battery_t *out)
     out->charging    = pmu.charging;
     out->usb_present = pmu.usb_present;
     return true;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Power API                                                                   */
+/* -------------------------------------------------------------------------- */
+
+bool aos_hal_power_info(aos_power_info_t *out)
+{
+    if (!out) {
+        return false;
+    }
+    memset(out, 0, sizeof(*out));
+    aos_pmu_state_t pmu;
+    if (!aos_board_pmu_read(&pmu) || !pmu.valid) {
+        return false;
+    }
+    out->charge_state      = (aos_charge_state_t)pmu.charge_state;
+    out->vbus              = pmu.vbus;
+    out->vsys              = pmu.vsys;
+    out->board_temperature = pmu.board_temperature;
+    out->battery_present   = pmu.battery_present;
+
+    aos_pmu_charger_t chg;
+    if (aos_board_pmu_charger_get(&chg)) {
+        out->charge_ma        = chg.charge_ma;
+        out->charge_target_mv = chg.target_mv;
+        out->warn_pct         = chg.warn_pct;
+        out->shutdown_pct     = chg.shutdown_pct;
+        out->poweroff_mv      = chg.poweroff_mv;
+    }
+    out->drain_pct_per_hour    = s_drain_pct_h;
+    out->hours_left            = s_hours_left;
+    out->on_battery_s          = s_unplug_us ? (uint32_t)((esp_timer_get_time() - s_unplug_us) / 1000000) : 0;
+    out->battery_minutes_total = s_battery_minutes;
+    out->charge_cycles         = s_charge_cycles;
+    out->power_on_reason       = aos_board_pmu_power_on_reason();
+    out->power_off_reason      = aos_board_pmu_power_off_reason();
+    out->cpu_mhz               = cpu_mhz_now();
+    out->panel_asleep          = s_panel_asleep;
+    out->power_saving_active   = power_saving_active();
+    return true;
+}
+
+void aos_hal_set_power_event_cb(void (*cb)(aos_power_event_t event, int percent))
+{
+    s_power_cb = cb;
+}
+
+void aos_hal_power_saving_enable(bool on)
+{
+    s_power_saving = on;
+    aos_hal_pref_set_i32("pwr_save", on ? 1 : 0);
+    pm_policy_apply();
+}
+
+bool aos_hal_power_saving_enabled(void)
+{
+    return s_power_saving;
+}
+
+void aos_hal_battery_care_enable(bool on)
+{
+    s_battery_care = on;
+    aos_hal_pref_set_i32("batt_care", on ? 1 : 0);
+    aos_board_pmu_charge_target_set(on ? AOS_CHARGE_MV_CARE : AOS_CHARGE_MV_FULL);
+    aos_board_pmu_charge_current_set(on ? AOS_CHARGE_MA_CARE : AOS_CHARGE_MA_FULL);
+    ESP_LOGI(TAG, "battery care %s: charging to %d mV at %d mA", on ? "on" : "off",
+             on ? AOS_CHARGE_MV_CARE : AOS_CHARGE_MV_FULL,
+             on ? AOS_CHARGE_MA_CARE : AOS_CHARGE_MA_FULL);
+}
+
+bool aos_hal_battery_care_enabled(void)
+{
+    return s_battery_care;
+}
+
+void aos_hal_panel_sleep_enable(bool on)
+{
+    s_panel_sleep_enabled = on;
+    aos_hal_pref_set_i32("panel_slp", on ? 1 : 0);
+    if (!on) {
+        panel_sleep(false);
+    } else if (s_display_state == AOS_DISPLAY_OFF) {
+        panel_sleep(true);
+    }
+}
+
+bool aos_hal_panel_sleep_enabled(void)
+{
+    return s_panel_sleep_enabled;
+}
+
+void aos_hal_imu_gyro_request(bool on)
+{
+    s_gyro_users += on ? 1 : -1;
+    if (s_gyro_users < 0) {
+        s_gyro_users = 0;
+    }
+    aos_board_imu_gyro_enable(s_gyro_users > 0);
 }
 
 bool aos_hal_imu_read(aos_imu_t *out)
@@ -2476,6 +2651,277 @@ aos_touch_gesture_t aos_hal_touch_gesture(void)
 }
 
 /* --------------------------------------------------------------------------
+ * Panel sleep
+ *
+ * "Screen off" used to mean brightness 0: every pixel dark, but the driver IC
+ * still scanning, its charge pumps still running and the QSPI link still
+ * live. Sleep-in (0x10) stops all of that and keeps the frame memory, so the
+ * wake is sleep-out (0x11), a wait the panel's datasheet asks for, and
+ * display-on (0x29). Both revisions' controllers speak the same MIPI DCS
+ * commands and both go through the co5300 driver with the QSPI opcode wrap,
+ * which is what the (0x02 << 24) below is.
+ *
+ * Taken under the LVGL lock so a flush cannot be mid-flight on the same bus.
+ * The lock is recursive, so this works from the LVGL task and from the
+ * housekeeping task alike.
+ * -------------------------------------------------------------------------- */
+static void panel_cmd(uint8_t cmd)
+{
+    esp_lcd_panel_io_tx_param(s_panel_io, (0x02 << 24) | ((int)cmd << 8), NULL, 0);
+}
+
+static void panel_sleep(bool sleep)
+{
+    if (!s_panel || !s_panel_io || sleep == s_panel_asleep) {
+        return;
+    }
+    if (sleep && !s_panel_sleep_enabled) {
+        return;
+    }
+    if (!aos_hal_lock(2000)) {
+        ESP_LOGW(TAG, "panel %s: could not take the LVGL lock", sleep ? "sleep" : "wake");
+        return;
+    }
+    int64_t t0 = esp_timer_get_time();
+    if (sleep) {
+        esp_lcd_panel_disp_on_off(s_panel, false);
+        panel_cmd(LCD_CMD_SLPIN);
+        vTaskDelay(pdMS_TO_TICKS(5));
+    } else {
+        panel_cmd(LCD_CMD_SLPOUT);
+        vTaskDelay(pdMS_TO_TICKS(AOS_PANEL_WAKE_MS));
+        esp_lcd_panel_disp_on_off(s_panel, true);
+    }
+    s_panel_asleep = sleep;
+    aos_hal_unlock();
+    ESP_LOGI(TAG, "panel %s in %lld ms", sleep ? "asleep" : "awake",
+             (esp_timer_get_time() - t0) / 1000);
+}
+
+/* --------------------------------------------------------------------------
+ * Power policy
+ *
+ * Two knobs, both decided here and nowhere else:
+ *
+ *   CPU  240 MHz while the screen is active or audio runs; 80 MHz otherwise.
+ *        It is a pm lock on ESP_PM_CPU_FREQ_MAX, so anything else that needs
+ *        the full clock can take its own. Without power saving the lock is
+ *        simply always held, which is the behaviour the firmware always had.
+ *   WiFi deepest modem sleep with the screen off, the light one otherwise.
+ *        The web portal answers a few hundred ms later with the screen off,
+ *        which nobody is looking at anyway.
+ *
+ * "Saving" is the preference OR the battery under 20% and unplugged.
+ * -------------------------------------------------------------------------- */
+static bool power_saving_active(void)
+{
+    return s_power_saving || s_low_battery_saving;
+}
+
+static void pm_policy_apply(void)
+{
+    bool saving   = power_saving_active();
+    bool want_max = !saving || s_display_state == AOS_DISPLAY_ACTIVE ||
+                    s_player_task != NULL || s_mic_task != NULL;
+
+    if (s_pm_max_lock) {
+        if (want_max && !s_pm_max_held) {
+            if (esp_pm_lock_acquire(s_pm_max_lock) == ESP_OK) {
+                s_pm_max_held = true;
+            }
+        } else if (!want_max && s_pm_max_held) {
+            if (esp_pm_lock_release(s_pm_max_lock) == ESP_OK) {
+                s_pm_max_held = false;
+            }
+        }
+    }
+
+    if (s_net_state != AOS_NET_OFF) {
+        int ps = (saving && s_display_state == AOS_DISPLAY_OFF) ? WIFI_PS_MAX_MODEM
+                                                                 : WIFI_PS_MIN_MODEM;
+        if (ps != s_wifi_ps && esp_wifi_set_ps((wifi_ps_type_t)ps) == ESP_OK) {
+            s_wifi_ps = ps;
+        }
+    }
+}
+
+static int cpu_mhz_now(void)
+{
+    rtc_cpu_freq_config_t cfg;
+    rtc_clk_cpu_freq_get_config(&cfg);
+    return (int)cfg.freq_mhz;
+}
+
+/* --------------------------------------------------------------------------
+ * Battery bookkeeping
+ *
+ * The AXP2101 has no coulomb counter, so anything about rates is arithmetic
+ * on its percentage over time. It is honest arithmetic: nothing is shown
+ * until there has been a quarter of an hour and two percent of drop to
+ * divide, and it resets every time USB is plugged in.
+ * -------------------------------------------------------------------------- */
+static void battery_stats_save(void)
+{
+    if (s_unsaved_minutes) {
+        aos_hal_pref_set_i32("bat_min", (int32_t)s_battery_minutes);
+        s_unsaved_minutes = 0;
+    }
+}
+
+static void power_event(aos_power_event_t event, int percent)
+{
+    if (s_power_cb) {
+        s_power_cb(event, percent);
+    }
+}
+
+static void usb_changed(bool present, int percent)
+{
+    if (present == s_usb_last) {
+        return;
+    }
+    s_usb_last = present;
+    if (present) {
+        ESP_LOGI(TAG, "usb in at %d%%", percent);
+        s_unplug_us   = 0;
+        s_drain_pct_h = NAN;
+        s_hours_left  = NAN;
+        s_charge_counted = false;
+        s_critical_strikes = 0;
+        battery_stats_save();
+        power_event(AOS_POWER_USB_IN, percent);
+    } else {
+        ESP_LOGI(TAG, "usb out at %d%%", percent);
+        s_unplug_us  = esp_timer_get_time();
+        s_unplug_pct = percent;
+        s_low_warned = false;
+        power_event(AOS_POWER_USB_OUT, percent);
+    }
+}
+
+/* The clean way down: tell the UI, give it a moment to say so, save what has
+ * to be saved, and let the PMU cut the rails. Only ever on battery. */
+static void power_critical(int percent)
+{
+    if (s_shutting_down) {
+        return;
+    }
+    s_shutting_down = true;
+    ESP_LOGW(TAG, "battery critical at %d%%: powering off", percent);
+    power_event(AOS_POWER_CRITICAL, percent);
+    vTaskDelay(pdMS_TO_TICKS(3000));
+
+    aos_pmu_state_t pmu;
+    if (aos_board_pmu_read(&pmu) && pmu.valid && pmu.usb_present) {
+        ESP_LOGI(TAG, "usb arrived in time: staying up");
+        s_shutting_down = false;
+        s_critical_strikes = 0;
+        return;
+    }
+    aos_hal_shutdown();
+}
+
+/* Every 200 ms: the PMU's interrupt line, through the expander. */
+static void pmu_irq_service(void)
+{
+    uint32_t irq = aos_board_pmu_poll_irq();
+    if (!irq) {
+        return;
+    }
+    aos_pmu_state_t pmu;
+    bool ok  = aos_board_pmu_read(&pmu) && pmu.valid;
+    int  pct = ok ? pmu.percent : -1;
+    ESP_LOGI(TAG, "pmu irq 0x%06lx at %d%%", (unsigned long)irq, pct);
+
+    /* The power key. The chip decodes the gesture itself: a "negative edge"
+     * is the press, "short" is a release before the long threshold, "long"
+     * fires while still held. Holding on to the off threshold is the PMU's
+     * own power-off and never reaches here. */
+    if (irq & AXP2101_IRQ_PKEY_NEGATIVE) {
+        if (s_button_cb) s_button_cb(AOS_BUTTON_PWR, AOS_BUTTON_PRESS);
+    }
+    if (irq & AXP2101_IRQ_PKEY_SHORT) {
+        if (s_button_cb) s_button_cb(AOS_BUTTON_PWR, AOS_BUTTON_CLICK);
+    }
+    if (irq & AXP2101_IRQ_PKEY_LONG) {
+        if (s_button_cb) s_button_cb(AOS_BUTTON_PWR, AOS_BUTTON_LONG);
+    }
+
+    if (irq & AXP2101_IRQ_VBUS_INSERT) usb_changed(true, pct);
+    if (irq & AXP2101_IRQ_VBUS_REMOVE) usb_changed(false, pct);
+
+    if ((irq & AXP2101_IRQ_CHG_DONE) && !s_charge_counted) {
+        s_charge_counted = true;
+        s_charge_cycles++;
+        aos_hal_pref_set_i32("chg_cyc", (int32_t)s_charge_cycles);
+        power_event(AOS_POWER_CHARGE_DONE, pct);
+    }
+    if ((irq & AXP2101_IRQ_SOC_WARN_LEVEL) && ok && !pmu.usb_present && !s_low_warned) {
+        s_low_warned = true;
+        power_event(AOS_POWER_LOW_BATTERY, pct);
+    }
+    if ((irq & AXP2101_IRQ_SOC_SHUTDOWN_LEVEL) && ok && !pmu.usb_present) {
+        power_critical(pct);
+    }
+    if (irq & (AXP2101_IRQ_DIE_OVER_TEMP | AXP2101_IRQ_BAT_WORK_OVER_TEMP |
+               AXP2101_IRQ_BAT_CHG_OVER_TEMP)) {
+        ESP_LOGW(TAG, "PMU reports over-temperature (0x%06lx)", (unsigned long)irq);
+        power_event(AOS_POWER_OVERHEAT, pct);
+    }
+    if (irq & AXP2101_IRQ_CHG_TIMEOUT) {
+        ESP_LOGW(TAG, "charger safety timer expired: the cell is not taking charge");
+    }
+}
+
+/* Every 5 s: what the IRQ line could have missed, the low-battery backstop,
+ * the automatic power saving and the arithmetic above. */
+static void power_watch(void)
+{
+    static int minute_ticks;
+    aos_pmu_state_t pmu;
+    if (!aos_board_pmu_read(&pmu) || !pmu.valid) {
+        return;
+    }
+    int pct = pmu.percent;
+    usb_changed(pmu.usb_present, pct);
+
+    bool on_battery = !pmu.usb_present;
+    bool was_saving = s_low_battery_saving;
+    s_low_battery_saving = on_battery && pct >= 0 && pct <= AOS_LOW_BATTERY_SAVING_PCT;
+    if (was_saving != s_low_battery_saving) {
+        ESP_LOGI(TAG, "low-battery power saving %s", s_low_battery_saving ? "on" : "off");
+    }
+
+    /* Backstop for the PMU's shutdown IRQ: three strikes fifteen seconds
+     * apart, and not during the first half minute, when the gauge is still
+     * finding its feet. */
+    if (on_battery && esp_timer_get_time() > 30 * 1000000LL &&
+        ((pct >= 0 && pct <= AOS_LOW_BATTERY_OFF_PCT) || pmu.vbat < AOS_CRITICAL_VBAT)) {
+        if (++s_critical_strikes >= 3) {
+            power_critical(pct);
+        }
+    } else {
+        s_critical_strikes = 0;
+    }
+
+    if (on_battery && ++minute_ticks >= 12) {
+        minute_ticks = 0;
+        s_battery_minutes++;
+        if (++s_unsaved_minutes >= 10) {
+            battery_stats_save();
+        }
+        if (s_unplug_us && s_unplug_pct >= 0 && pct >= 0) {
+            float hours = (float)(esp_timer_get_time() - s_unplug_us) / 3600e6f;
+            int   drop  = s_unplug_pct - pct;
+            if (hours >= 0.25f && drop >= 2) {
+                s_drain_pct_h = (float)drop / hours;
+                s_hours_left  = (float)pct / s_drain_pct_h;
+            }
+        }
+    }
+}
+
+/* --------------------------------------------------------------------------
  * Background task: IMU, screen auto-dimming and wake on wrist raise.
  * -------------------------------------------------------------------------- */
 static void housekeeping_task(void *arg)
@@ -2489,7 +2935,12 @@ static void housekeeping_task(void *arg)
 
         if (++hk_ticks % 125 == 0) {        /* 125 * 40 ms = 5 s */
             touch_keep_awake();
+            power_watch();
         }
+        if (hk_ticks % 5 == 0) {            /* 200 ms */
+            pmu_irq_service();
+        }
+        pm_policy_apply();
 
         /* How much stack each of our tasks has to spare, in bytes (in ESP-IDF
          * the high water mark comes in bytes, not words). Useful for deciding
@@ -2929,6 +3380,8 @@ static lv_display_t *display_start(void)
         ESP_LOGE(TAG, "bsp_display_new failed");
         return NULL;
     }
+    s_panel    = panel;
+    s_panel_io = io;
 
     const lvgl_port_display_cfg_t disp_cfg = {
         .io_handle     = io,
@@ -3050,6 +3503,36 @@ bool aos_hal_init(void)
     aos_board_init();
     snprintf(s_board_name, sizeof(s_board_name), "%s", aos_board_variant_name());
 
+    {
+        int32_t saved;
+        if (aos_hal_pref_get_i32("pwr_save", &saved))  s_power_saving        = (saved != 0);
+        if (aos_hal_pref_get_i32("batt_care", &saved)) s_battery_care        = (saved != 0);
+        if (aos_hal_pref_get_i32("panel_slp", &saved)) s_panel_sleep_enabled = (saved != 0);
+        if (aos_hal_pref_get_i32("bat_min", &saved))   s_battery_minutes     = (uint32_t)saved;
+        if (aos_hal_pref_get_i32("chg_cyc", &saved))   s_charge_cycles       = (uint32_t)saved;
+
+        const aos_pmu_config_t pmu_cfg = {
+            .charge_ma      = s_battery_care ? AOS_CHARGE_MA_CARE : AOS_CHARGE_MA_FULL,
+            .precharge_ma   = AOS_PRECHARGE_MA,
+            .termination_ma = AOS_TERMINATION_MA,
+            .target_mv      = s_battery_care ? AOS_CHARGE_MV_CARE : AOS_CHARGE_MV_FULL,
+            .warn_pct       = AOS_LOW_BATTERY_WARN_PCT,
+            .shutdown_pct   = AOS_LOW_BATTERY_OFF_PCT,
+            .poweroff_mv    = AOS_POWEROFF_MV,
+        };
+        aos_board_pmu_configure(&pmu_cfg);
+        aos_board_pmu_dump();
+
+        aos_pmu_state_t pmu;
+        if (aos_board_pmu_read(&pmu) && pmu.valid) {
+            s_usb_last = pmu.usb_present;
+            if (!pmu.usb_present) {
+                s_unplug_us  = esp_timer_get_time();
+                s_unplug_pct = pmu.percent;
+            }
+        }
+    }
+
     bsp_spiffs_mount();
     s_sd_mounted = (bsp_sdcard_mount() == ESP_OK);
     ESP_LOGI(TAG, "microSD %s", s_sd_mounted ? "mounted" : "not available");
@@ -3137,6 +3620,31 @@ bool aos_hal_init(void)
         .intr_type    = GPIO_INTR_DISABLE,
     };
     gpio_config(&boot_button);
+
+    /* Dynamic frequency scaling: the lock is taken here and released by the
+     * policy when there is nothing to draw. esp_pm_configure fails harmlessly
+     * when CONFIG_PM_ENABLE is off, and then the clock is what it always was. */
+    {
+        esp_pm_config_t pm = {
+            .max_freq_mhz = AOS_DFS_MAX_MHZ,
+            .min_freq_mhz = AOS_DFS_MIN_MHZ,
+            .light_sleep_enable = false,
+        };
+        esp_err_t pm_ret = esp_pm_configure(&pm);
+        if (pm_ret == ESP_OK &&
+            esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "aos_ui", &s_pm_max_lock) == ESP_OK) {
+            esp_pm_lock_acquire(s_pm_max_lock);
+            s_pm_max_held = true;
+            ESP_LOGI(TAG, "DFS %d..%d MHz, power saving %s, battery care %s, panel sleep %s",
+                     AOS_DFS_MIN_MHZ, AOS_DFS_MAX_MHZ,
+                     s_power_saving ? "on" : "off", s_battery_care ? "on" : "off",
+                     s_panel_sleep_enabled ? "on" : "off");
+        } else {
+            s_pm_max_lock = NULL;
+            ESP_LOGW(TAG, "DFS not available (%s): the CPU stays at %d MHz",
+                     esp_err_to_name(pm_ret), cpu_mhz_now());
+        }
+    }
 
     s_last_activity_us = esp_timer_get_time();
     xTaskCreate(housekeeping_task, "aos_hk", HK_STACK, NULL, 4, NULL);

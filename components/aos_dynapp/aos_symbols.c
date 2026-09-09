@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts
  * Mas 86 funciones de libc/libm agregadas a mano.
- * Total: 2447 simbolos.
+ * Total: 2552 simbolos.
  */
 
 #include <stddef.h>
@@ -38,6 +38,7 @@ extern int aos_app_flashlight_get;
 extern int aos_app_level_get;
 extern int aos_app_life_get;
 extern int aos_app_music_get;
+extern int aos_app_notifs_get;
 extern int aos_app_photos_get;
 extern int aos_app_pomodoro_get;
 extern int aos_app_power_get;
@@ -47,6 +48,8 @@ extern int aos_app_stopwatch_get;
 extern int aos_app_timer_get;
 extern int aos_app_worldclock_get;
 extern int aos_apps_register_builtin;
+extern int aos_board_imu_gyro_enable;
+extern int aos_board_imu_gyro_enabled;
 extern int aos_board_imu_orientation;
 extern int aos_board_imu_poll;
 extern int aos_board_imu_read;
@@ -54,8 +57,17 @@ extern int aos_board_imu_steps;
 extern int aos_board_imu_steps_reset;
 extern int aos_board_imu_wrist_raised;
 extern int aos_board_init;
+extern int aos_board_pmu_charge_current_set;
+extern int aos_board_pmu_charge_target_set;
+extern int aos_board_pmu_charger_get;
+extern int aos_board_pmu_configure;
+extern int aos_board_pmu_dump;
+extern int aos_board_pmu_poll_irq;
+extern int aos_board_pmu_power_off_reason;
+extern int aos_board_pmu_power_on_reason;
 extern int aos_board_pmu_read;
 extern int aos_board_pmu_shutdown;
+extern int aos_board_power_key_down;
 extern int aos_board_rtc_alarm_clear;
 extern int aos_board_rtc_alarm_set;
 extern int aos_board_rtc_get;
@@ -83,11 +95,24 @@ extern int aos_hal_aod_enable;
 extern int aos_hal_aod_enabled;
 extern int aos_hal_audio_is_playing;
 extern int aos_hal_audio_stop;
+extern int aos_hal_battery_care_enable;
+extern int aos_hal_battery_care_enabled;
 extern int aos_hal_battery_read;
 extern int aos_hal_beep;
 extern int aos_hal_board_name;
 extern int aos_hal_brightness_get;
 extern int aos_hal_brightness_set;
+extern int aos_hal_bt_bonded;
+extern int aos_hal_bt_enable;
+extern int aos_hal_bt_enabled;
+extern int aos_hal_bt_forget;
+extern int aos_hal_bt_pair_begin;
+extern int aos_hal_bt_pair_cancel;
+extern int aos_hal_bt_pair_code;
+extern int aos_hal_bt_pair_confirm;
+extern int aos_hal_bt_peer;
+extern int aos_hal_bt_phone_battery;
+extern int aos_hal_bt_state;
 extern int aos_hal_display_is_on;
 extern int aos_hal_display_on;
 extern int aos_hal_display_set_state;
@@ -101,6 +126,7 @@ extern int aos_hal_http_release;
 extern int aos_hal_http_request;
 extern int aos_hal_http_state;
 extern int aos_hal_http_status;
+extern int aos_hal_imu_gyro_request;
 extern int aos_hal_imu_orientation;
 extern int aos_hal_imu_read;
 extern int aos_hal_imu_steps;
@@ -114,6 +140,7 @@ extern int aos_hal_media_enabled;
 extern int aos_hal_media_info;
 extern int aos_hal_media_link;
 extern int aos_hal_media_peer;
+extern int aos_hal_media_player;
 extern int aos_hal_mic_available;
 extern int aos_hal_mic_close;
 extern int aos_hal_mic_gain_get;
@@ -142,6 +169,32 @@ extern int aos_hal_net_set_credentials;
 extern int aos_hal_net_ssid;
 extern int aos_hal_net_state;
 extern int aos_hal_net_sync_time;
+extern int aos_hal_notif_action;
+extern int aos_hal_notif_action_failed;
+extern int aos_hal_notif_at;
+extern int aos_hal_notif_calls_always;
+extern int aos_hal_notif_calls_always_set;
+extern int aos_hal_notif_categories;
+extern int aos_hal_notif_categories_set;
+extern int aos_hal_notif_clear;
+extern int aos_hal_notif_count;
+extern int aos_hal_notif_enable;
+extern int aos_hal_notif_enabled;
+extern int aos_hal_notif_pop;
+extern int aos_hal_notif_pop_removed;
+extern int aos_hal_notif_remove;
+extern int aos_hal_notif_sound;
+extern int aos_hal_notif_sound_set;
+extern int aos_hal_ota_abort;
+extern int aos_hal_ota_begin;
+extern int aos_hal_ota_end;
+extern int aos_hal_ota_error;
+extern int aos_hal_ota_mark_valid;
+extern int aos_hal_ota_pending_verify;
+extern int aos_hal_ota_running_slot;
+extern int aos_hal_ota_write;
+extern int aos_hal_panel_sleep_enable;
+extern int aos_hal_panel_sleep_enabled;
 extern int aos_hal_path_apps;
 extern int aos_hal_path_data;
 extern int aos_hal_path_lang;
@@ -155,6 +208,9 @@ extern int aos_hal_player_play;
 extern int aos_hal_player_resume;
 extern int aos_hal_player_status;
 extern int aos_hal_player_stop;
+extern int aos_hal_power_info;
+extern int aos_hal_power_saving_enable;
+extern int aos_hal_power_saving_enabled;
 extern int aos_hal_pref_erase;
 extern int aos_hal_pref_get_i32;
 extern int aos_hal_pref_get_str;
@@ -176,6 +232,7 @@ extern int aos_hal_sd_present;
 extern int aos_hal_sd_usage;
 extern int aos_hal_set_button_cb;
 extern int aos_hal_set_display_state_cb;
+extern int aos_hal_set_power_event_cb;
 extern int aos_hal_shutdown;
 extern int aos_hal_sleep;
 extern int aos_hal_time_is_valid;
@@ -214,8 +271,23 @@ extern int aos_montserrat_20;
 extern int aos_montserrat_28;
 extern int aos_montserrat_36;
 extern int aos_montserrat_48;
+extern int aos_notif_action_failed;
+extern int aos_notif_push;
+extern int aos_notif_push_removed;
+extern int aos_notif_reset_pending;
+extern int aos_notif_ui_close;
+extern int aos_notif_ui_show;
+extern int aos_notif_ui_tick;
+extern int aos_notif_ui_uid;
+extern int aos_notif_ui_visible;
 extern int aos_page;
+extern int aos_pair_ui_cancel;
+extern int aos_pair_ui_suppress;
+extern int aos_pair_ui_tick;
+extern int aos_pair_ui_visible;
 extern int aos_rtc_start;
+extern int aos_text_font_has;
+extern int aos_text_safe;
 extern int aos_theme_init;
 extern int aos_tr;
 extern int aos_trc;
@@ -265,13 +337,46 @@ extern int atan2f;
 extern int atoi;
 extern int atol;
 extern int axp2101_battery_percent;
+extern int axp2101_battery_present;
 extern int axp2101_battery_voltage;
+extern int axp2101_charge_current_ma;
+extern int axp2101_charge_current_set;
+extern int axp2101_charge_state;
+extern int axp2101_charge_state_name;
+extern int axp2101_charge_target_mv;
+extern int axp2101_charge_target_set;
+extern int axp2101_charging_enable;
 extern int axp2101_die_temperature;
+extern int axp2101_dump;
 extern int axp2101_init;
+extern int axp2101_irq_enable;
+extern int axp2101_irq_read_clear;
 extern int axp2101_is_charging;
 extern int axp2101_is_vbus_present;
+extern int axp2101_low_battery_levels_get;
+extern int axp2101_low_battery_levels_set;
+extern int axp2101_power_key_timing_get;
+extern int axp2101_power_key_timing_set;
+extern int axp2101_power_off_source;
+extern int axp2101_power_off_source_name;
+extern int axp2101_power_on_source;
+extern int axp2101_power_on_source_name;
+extern int axp2101_poweroff_voltage_mv;
+extern int axp2101_poweroff_voltage_set;
+extern int axp2101_precharge_current_ma;
+extern int axp2101_precharge_current_set;
+extern int axp2101_rail_enable;
+extern int axp2101_rail_is_enabled;
+extern int axp2101_rail_name;
+extern int axp2101_rail_voltage_mv;
 extern int axp2101_shutdown;
 extern int axp2101_system_voltage;
+extern int axp2101_termination_current_ma;
+extern int axp2101_termination_current_set;
+extern int axp2101_ts_temperature;
+extern int axp2101_ts_voltage;
+extern int axp2101_vbus_current_limit_ma;
+extern int axp2101_vbus_current_limit_set;
 extern int axp2101_vbus_voltage;
 extern int calloc;
 extern int ceilf;
@@ -2488,6 +2593,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_app_level_get),
     ESP_ELFSYM_EXPORT(aos_app_life_get),
     ESP_ELFSYM_EXPORT(aos_app_music_get),
+    ESP_ELFSYM_EXPORT(aos_app_notifs_get),
     ESP_ELFSYM_EXPORT(aos_app_photos_get),
     ESP_ELFSYM_EXPORT(aos_app_pomodoro_get),
     ESP_ELFSYM_EXPORT(aos_app_power_get),
@@ -2497,6 +2603,8 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_app_timer_get),
     ESP_ELFSYM_EXPORT(aos_app_worldclock_get),
     ESP_ELFSYM_EXPORT(aos_apps_register_builtin),
+    ESP_ELFSYM_EXPORT(aos_board_imu_gyro_enable),
+    ESP_ELFSYM_EXPORT(aos_board_imu_gyro_enabled),
     ESP_ELFSYM_EXPORT(aos_board_imu_orientation),
     ESP_ELFSYM_EXPORT(aos_board_imu_poll),
     ESP_ELFSYM_EXPORT(aos_board_imu_read),
@@ -2504,8 +2612,17 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_board_imu_steps_reset),
     ESP_ELFSYM_EXPORT(aos_board_imu_wrist_raised),
     ESP_ELFSYM_EXPORT(aos_board_init),
+    ESP_ELFSYM_EXPORT(aos_board_pmu_charge_current_set),
+    ESP_ELFSYM_EXPORT(aos_board_pmu_charge_target_set),
+    ESP_ELFSYM_EXPORT(aos_board_pmu_charger_get),
+    ESP_ELFSYM_EXPORT(aos_board_pmu_configure),
+    ESP_ELFSYM_EXPORT(aos_board_pmu_dump),
+    ESP_ELFSYM_EXPORT(aos_board_pmu_poll_irq),
+    ESP_ELFSYM_EXPORT(aos_board_pmu_power_off_reason),
+    ESP_ELFSYM_EXPORT(aos_board_pmu_power_on_reason),
     ESP_ELFSYM_EXPORT(aos_board_pmu_read),
     ESP_ELFSYM_EXPORT(aos_board_pmu_shutdown),
+    ESP_ELFSYM_EXPORT(aos_board_power_key_down),
     ESP_ELFSYM_EXPORT(aos_board_rtc_alarm_clear),
     ESP_ELFSYM_EXPORT(aos_board_rtc_alarm_set),
     ESP_ELFSYM_EXPORT(aos_board_rtc_get),
@@ -2533,11 +2650,24 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_aod_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_audio_is_playing),
     ESP_ELFSYM_EXPORT(aos_hal_audio_stop),
+    ESP_ELFSYM_EXPORT(aos_hal_battery_care_enable),
+    ESP_ELFSYM_EXPORT(aos_hal_battery_care_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_battery_read),
     ESP_ELFSYM_EXPORT(aos_hal_beep),
     ESP_ELFSYM_EXPORT(aos_hal_board_name),
     ESP_ELFSYM_EXPORT(aos_hal_brightness_get),
     ESP_ELFSYM_EXPORT(aos_hal_brightness_set),
+    ESP_ELFSYM_EXPORT(aos_hal_bt_bonded),
+    ESP_ELFSYM_EXPORT(aos_hal_bt_enable),
+    ESP_ELFSYM_EXPORT(aos_hal_bt_enabled),
+    ESP_ELFSYM_EXPORT(aos_hal_bt_forget),
+    ESP_ELFSYM_EXPORT(aos_hal_bt_pair_begin),
+    ESP_ELFSYM_EXPORT(aos_hal_bt_pair_cancel),
+    ESP_ELFSYM_EXPORT(aos_hal_bt_pair_code),
+    ESP_ELFSYM_EXPORT(aos_hal_bt_pair_confirm),
+    ESP_ELFSYM_EXPORT(aos_hal_bt_peer),
+    ESP_ELFSYM_EXPORT(aos_hal_bt_phone_battery),
+    ESP_ELFSYM_EXPORT(aos_hal_bt_state),
     ESP_ELFSYM_EXPORT(aos_hal_display_is_on),
     ESP_ELFSYM_EXPORT(aos_hal_display_on),
     ESP_ELFSYM_EXPORT(aos_hal_display_set_state),
@@ -2551,6 +2681,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_http_request),
     ESP_ELFSYM_EXPORT(aos_hal_http_state),
     ESP_ELFSYM_EXPORT(aos_hal_http_status),
+    ESP_ELFSYM_EXPORT(aos_hal_imu_gyro_request),
     ESP_ELFSYM_EXPORT(aos_hal_imu_orientation),
     ESP_ELFSYM_EXPORT(aos_hal_imu_read),
     ESP_ELFSYM_EXPORT(aos_hal_imu_steps),
@@ -2564,6 +2695,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_media_info),
     ESP_ELFSYM_EXPORT(aos_hal_media_link),
     ESP_ELFSYM_EXPORT(aos_hal_media_peer),
+    ESP_ELFSYM_EXPORT(aos_hal_media_player),
     ESP_ELFSYM_EXPORT(aos_hal_mic_available),
     ESP_ELFSYM_EXPORT(aos_hal_mic_close),
     ESP_ELFSYM_EXPORT(aos_hal_mic_gain_get),
@@ -2592,6 +2724,32 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_net_ssid),
     ESP_ELFSYM_EXPORT(aos_hal_net_state),
     ESP_ELFSYM_EXPORT(aos_hal_net_sync_time),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_action),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_action_failed),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_at),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_calls_always),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_calls_always_set),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_categories),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_categories_set),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_clear),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_count),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_enable),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_enabled),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_pop),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_pop_removed),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_remove),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_sound),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_sound_set),
+    ESP_ELFSYM_EXPORT(aos_hal_ota_abort),
+    ESP_ELFSYM_EXPORT(aos_hal_ota_begin),
+    ESP_ELFSYM_EXPORT(aos_hal_ota_end),
+    ESP_ELFSYM_EXPORT(aos_hal_ota_error),
+    ESP_ELFSYM_EXPORT(aos_hal_ota_mark_valid),
+    ESP_ELFSYM_EXPORT(aos_hal_ota_pending_verify),
+    ESP_ELFSYM_EXPORT(aos_hal_ota_running_slot),
+    ESP_ELFSYM_EXPORT(aos_hal_ota_write),
+    ESP_ELFSYM_EXPORT(aos_hal_panel_sleep_enable),
+    ESP_ELFSYM_EXPORT(aos_hal_panel_sleep_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_path_apps),
     ESP_ELFSYM_EXPORT(aos_hal_path_data),
     ESP_ELFSYM_EXPORT(aos_hal_path_lang),
@@ -2605,6 +2763,9 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_player_resume),
     ESP_ELFSYM_EXPORT(aos_hal_player_status),
     ESP_ELFSYM_EXPORT(aos_hal_player_stop),
+    ESP_ELFSYM_EXPORT(aos_hal_power_info),
+    ESP_ELFSYM_EXPORT(aos_hal_power_saving_enable),
+    ESP_ELFSYM_EXPORT(aos_hal_power_saving_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_pref_erase),
     ESP_ELFSYM_EXPORT(aos_hal_pref_get_i32),
     ESP_ELFSYM_EXPORT(aos_hal_pref_get_str),
@@ -2626,6 +2787,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_sd_usage),
     ESP_ELFSYM_EXPORT(aos_hal_set_button_cb),
     ESP_ELFSYM_EXPORT(aos_hal_set_display_state_cb),
+    ESP_ELFSYM_EXPORT(aos_hal_set_power_event_cb),
     ESP_ELFSYM_EXPORT(aos_hal_shutdown),
     ESP_ELFSYM_EXPORT(aos_hal_sleep),
     ESP_ELFSYM_EXPORT(aos_hal_time_is_valid),
@@ -2664,8 +2826,23 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_montserrat_28),
     ESP_ELFSYM_EXPORT(aos_montserrat_36),
     ESP_ELFSYM_EXPORT(aos_montserrat_48),
+    ESP_ELFSYM_EXPORT(aos_notif_action_failed),
+    ESP_ELFSYM_EXPORT(aos_notif_push),
+    ESP_ELFSYM_EXPORT(aos_notif_push_removed),
+    ESP_ELFSYM_EXPORT(aos_notif_reset_pending),
+    ESP_ELFSYM_EXPORT(aos_notif_ui_close),
+    ESP_ELFSYM_EXPORT(aos_notif_ui_show),
+    ESP_ELFSYM_EXPORT(aos_notif_ui_tick),
+    ESP_ELFSYM_EXPORT(aos_notif_ui_uid),
+    ESP_ELFSYM_EXPORT(aos_notif_ui_visible),
     ESP_ELFSYM_EXPORT(aos_page),
+    ESP_ELFSYM_EXPORT(aos_pair_ui_cancel),
+    ESP_ELFSYM_EXPORT(aos_pair_ui_suppress),
+    ESP_ELFSYM_EXPORT(aos_pair_ui_tick),
+    ESP_ELFSYM_EXPORT(aos_pair_ui_visible),
     ESP_ELFSYM_EXPORT(aos_rtc_start),
+    ESP_ELFSYM_EXPORT(aos_text_font_has),
+    ESP_ELFSYM_EXPORT(aos_text_safe),
     ESP_ELFSYM_EXPORT(aos_theme_init),
     ESP_ELFSYM_EXPORT(aos_tr),
     ESP_ELFSYM_EXPORT(aos_trc),
@@ -2715,13 +2892,46 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(atoi),
     ESP_ELFSYM_EXPORT(atol),
     ESP_ELFSYM_EXPORT(axp2101_battery_percent),
+    ESP_ELFSYM_EXPORT(axp2101_battery_present),
     ESP_ELFSYM_EXPORT(axp2101_battery_voltage),
+    ESP_ELFSYM_EXPORT(axp2101_charge_current_ma),
+    ESP_ELFSYM_EXPORT(axp2101_charge_current_set),
+    ESP_ELFSYM_EXPORT(axp2101_charge_state),
+    ESP_ELFSYM_EXPORT(axp2101_charge_state_name),
+    ESP_ELFSYM_EXPORT(axp2101_charge_target_mv),
+    ESP_ELFSYM_EXPORT(axp2101_charge_target_set),
+    ESP_ELFSYM_EXPORT(axp2101_charging_enable),
     ESP_ELFSYM_EXPORT(axp2101_die_temperature),
+    ESP_ELFSYM_EXPORT(axp2101_dump),
     ESP_ELFSYM_EXPORT(axp2101_init),
+    ESP_ELFSYM_EXPORT(axp2101_irq_enable),
+    ESP_ELFSYM_EXPORT(axp2101_irq_read_clear),
     ESP_ELFSYM_EXPORT(axp2101_is_charging),
     ESP_ELFSYM_EXPORT(axp2101_is_vbus_present),
+    ESP_ELFSYM_EXPORT(axp2101_low_battery_levels_get),
+    ESP_ELFSYM_EXPORT(axp2101_low_battery_levels_set),
+    ESP_ELFSYM_EXPORT(axp2101_power_key_timing_get),
+    ESP_ELFSYM_EXPORT(axp2101_power_key_timing_set),
+    ESP_ELFSYM_EXPORT(axp2101_power_off_source),
+    ESP_ELFSYM_EXPORT(axp2101_power_off_source_name),
+    ESP_ELFSYM_EXPORT(axp2101_power_on_source),
+    ESP_ELFSYM_EXPORT(axp2101_power_on_source_name),
+    ESP_ELFSYM_EXPORT(axp2101_poweroff_voltage_mv),
+    ESP_ELFSYM_EXPORT(axp2101_poweroff_voltage_set),
+    ESP_ELFSYM_EXPORT(axp2101_precharge_current_ma),
+    ESP_ELFSYM_EXPORT(axp2101_precharge_current_set),
+    ESP_ELFSYM_EXPORT(axp2101_rail_enable),
+    ESP_ELFSYM_EXPORT(axp2101_rail_is_enabled),
+    ESP_ELFSYM_EXPORT(axp2101_rail_name),
+    ESP_ELFSYM_EXPORT(axp2101_rail_voltage_mv),
     ESP_ELFSYM_EXPORT(axp2101_shutdown),
     ESP_ELFSYM_EXPORT(axp2101_system_voltage),
+    ESP_ELFSYM_EXPORT(axp2101_termination_current_ma),
+    ESP_ELFSYM_EXPORT(axp2101_termination_current_set),
+    ESP_ELFSYM_EXPORT(axp2101_ts_temperature),
+    ESP_ELFSYM_EXPORT(axp2101_ts_voltage),
+    ESP_ELFSYM_EXPORT(axp2101_vbus_current_limit_ma),
+    ESP_ELFSYM_EXPORT(axp2101_vbus_current_limit_set),
     ESP_ELFSYM_EXPORT(axp2101_vbus_voltage),
     ESP_ELFSYM_EXPORT(calloc),
     ESP_ELFSYM_EXPORT(ceilf),

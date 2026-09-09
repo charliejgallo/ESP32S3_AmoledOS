@@ -18,6 +18,7 @@
 #include "aos_dynapp.h"
 #include "aos_web.h"
 #include "aos_ble.h"   /* F0: measurement, see docs/HANDOFF-BLE-ANCS.md */
+#include "aos_i18n.h"
 
 static const char *TAG = "amoledos";
 
@@ -25,8 +26,60 @@ static const char *TAG = "amoledos";
  * is offered to the front app first, which may want it for something else (in
  * a game it is the trigger). It runs in the HAL's background task, so it takes
  * the LVGL lock. */
+static bool s_pwr_was_active;
+
+/* What the PMU reports, turned into a toast. The HAL powers off by itself
+ * three seconds after CRITICAL; here the screen is lit so the message is
+ * seen. */
+static void power_cb(aos_power_event_t event, int percent)
+{
+    char text[64];
+    const char *msg = NULL;
+    switch (event) {
+    case AOS_POWER_USB_IN:      msg = _("USB conectado");                 break;
+    case AOS_POWER_USB_OUT:     return;
+    case AOS_POWER_CHARGE_DONE: msg = _("Carga completa");                break;
+    case AOS_POWER_LOW_BATTERY:
+        snprintf(text, sizeof(text), _("Bateria baja: %d%%"), percent);
+        msg = text;
+        break;
+    case AOS_POWER_CRITICAL:    msg = _("Bateria agotada, apagando");     break;
+    case AOS_POWER_OVERHEAT:    msg = _("Temperatura alta");              break;
+    }
+    if (event == AOS_POWER_LOW_BATTERY || event == AOS_POWER_CRITICAL) {
+        aos_hal_activity();
+    }
+    if (msg && aos_hal_lock(500)) {
+        aos_ui_toast(msg, event == AOS_POWER_CRITICAL ? 3000 : 1800);
+        aos_hal_unlock();
+    }
+}
+
 static void button_cb(aos_button_t button, aos_button_action_t action)
 {
+    /* The power button is the physical screen switch: a click lights the
+     * screen if it was off and switches it off if it was on. What it was is
+     * remembered at the press, because by the release the HAL may already
+     * have lit it. Holding it is the PMU's own power-off; the "long" event
+     * at 1.5 s only warns about it. */
+    if (button == AOS_BUTTON_PWR) {
+        if (action == AOS_BUTTON_PRESS) {
+            s_pwr_was_active = (aos_hal_display_state() == AOS_DISPLAY_ACTIVE);
+        } else if (action == AOS_BUTTON_CLICK) {
+            if (s_pwr_was_active) {
+                aos_hal_display_on(false);
+            } else {
+                aos_hal_activity();
+            }
+        } else if (action == AOS_BUTTON_LONG) {
+            aos_hal_activity();
+            if (aos_hal_lock(500)) {
+                aos_ui_toast(_("Mantene apretado para apagar"), 2500);
+                aos_hal_unlock();
+            }
+        }
+        return;
+    }
     if (button != AOS_BUTTON_BOOT) {
         return;
     }
@@ -71,6 +124,7 @@ void app_main(void)
     ESP_LOGI(TAG, "board: %s", aos_hal_board_name());
 
     aos_hal_set_button_cb(button_cb);
+    aos_hal_set_power_event_cb(power_cb);
 
     if (aos_hal_lock(portMAX_DELAY)) {
         aos_ui_init();

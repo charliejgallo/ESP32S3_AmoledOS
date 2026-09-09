@@ -129,6 +129,7 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     s_act.orient = aos_label(page, "-", aos_font_small, AOS_C_TEAL);
     lv_obj_align(s_act.orient, LV_ALIGN_BOTTOM_MID, 0, -36);
 
+    aos_hal_imu_gyro_request(true);
     s_act.timer = lv_timer_create(refresh, 120, NULL);
     refresh(NULL);
     return &s_act;
@@ -141,6 +142,7 @@ static void destroy(aos_app_t *self, void *inst)
         lv_timer_delete(s_act.timer);
         s_act.timer = NULL;
     }
+    aos_hal_imu_gyro_request(false);
 }
 
 void aos_app_activity_get(aos_app_t *app)

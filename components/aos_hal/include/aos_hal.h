@@ -230,6 +230,83 @@ typedef enum {
 void aos_hal_set_button_cb(void (*cb)(aos_button_t button, aos_button_action_t action));
 
 /* -------------------------------------------------------------------------- */
+/* Power: what the PMU knows and what the firmware keeps about the battery     */
+/* -------------------------------------------------------------------------- */
+
+/* The charger's stage, straight from the AXP2101. */
+typedef enum {
+    AOS_CHG_TRICKLE = 0,    /* very flat cell, tiny current       */
+    AOS_CHG_PRECHARGE,      /* below 3 V, precharge current       */
+    AOS_CHG_CC,             /* constant current                   */
+    AOS_CHG_CV,             /* constant voltage, current tapering */
+    AOS_CHG_DONE,           /* terminated                         */
+    AOS_CHG_IDLE,           /* not charging                       */
+} aos_charge_state_t;
+
+/* Everything aos_battery_t does not carry. aos_battery_t is frozen: the .so
+ * apps were compiled against its size, so the extra detail lives here. */
+typedef struct {
+    aos_charge_state_t charge_state;
+    float    vbus, vsys;            /* V                                        */
+    float    board_temperature;     /* NTC next to the PMU, NAN if there is none */
+    bool     battery_present;
+    /* the charger's programme */
+    int      charge_ma;             /* constant-current limit                   */
+    int      charge_target_mv;      /* 4100 with battery care, 4200 without     */
+    int      warn_pct, shutdown_pct;
+    int      poweroff_mv;           /* where the PMU cuts everything (VOFF)      */
+    /* kept by the firmware */
+    float    drain_pct_per_hour;    /* NAN until it has seen enough             */
+    float    hours_left;            /* NAN until it has seen enough             */
+    uint32_t on_battery_s;          /* since USB was unplugged, 0 while plugged */
+    uint32_t battery_minutes_total; /* lifetime on battery, survives restarts   */
+    uint32_t charge_cycles;         /* completed charges, survives restarts     */
+    const char *power_on_reason;    /* why the PMU came up this time            */
+    const char *power_off_reason;   /* why it went down the last time           */
+    int      cpu_mhz;               /* what the CPU is running at right now     */
+    bool     panel_asleep;          /* the AMOLED's driver IC is in sleep-in    */
+    bool     power_saving_active;   /* by preference or because the battery is low */
+} aos_power_info_t;
+
+bool aos_hal_power_info(aos_power_info_t *out);
+
+/* What the PMU reports as it happens. Runs outside the LVGL task: a listener
+ * that touches the UI takes aos_hal_lock() first. 'percent' is the battery at
+ * the time of the event. */
+typedef enum {
+    AOS_POWER_USB_IN = 0,
+    AOS_POWER_USB_OUT,
+    AOS_POWER_CHARGE_DONE,
+    AOS_POWER_LOW_BATTERY,      /* the warning level, once per discharge     */
+    AOS_POWER_CRITICAL,         /* the shutdown level: the HAL powers off in a few seconds */
+    AOS_POWER_OVERHEAT,
+} aos_power_event_t;
+
+void aos_hal_set_power_event_cb(void (*cb)(aos_power_event_t event, int percent));
+
+/* Policies. All three are preferences and survive restarts.
+ *
+ * Power saving: the CPU drops to 80 MHz whenever the screen is not active and
+ * no audio is running, and WiFi goes to its deepest modem sleep with the
+ * screen off. It also switches itself on under 20% on battery.
+ *
+ * Battery care: charge to 4.1 V instead of 4.2 V and at half the current.
+ * Costs some capacity per charge, buys many more charges.
+ *
+ * Panel sleep: with the screen off, the AMOLED's driver IC is put in sleep-in
+ * instead of merely at brightness 0. Waking costs about a tenth of a second. */
+void aos_hal_power_saving_enable(bool on);
+bool aos_hal_power_saving_enabled(void);
+void aos_hal_battery_care_enable(bool on);
+bool aos_hal_battery_care_enabled(void);
+void aos_hal_panel_sleep_enable(bool on);
+bool aos_hal_panel_sleep_enabled(void);
+
+/* The gyroscope is off unless an app asks for it (see aos_board.h). Counted:
+ * every request(true) needs its request(false). */
+void aos_hal_imu_gyro_request(bool on);
+
+/* -------------------------------------------------------------------------- */
 /* Storage                                                                     */
 /* -------------------------------------------------------------------------- */
 
