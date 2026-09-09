@@ -135,7 +135,11 @@ static void picker_update(void)
 
     char dots[AOS_MAX_WATCHFACES * 4 + 1] = {0};
     for (int i = 0; i < s_face_count; i++) {
-        strcat(dots, i == s_preview ? "\xE2\x97\x8F" : "\xE2\x97\x8B");   /* ● ○ */
+        /* U+2022 BULLET and U+00B7 MIDDLE DOT, not U+25CF/U+25CB. The round
+         * ones are not in the font: it is built with
+         * "-r 0x20-0x7F,0xA0-0xFF,0x2022,0x20AC", so ● and ○ came out as
+         * empty boxes on the watch. These two are inside those ranges. */
+        strcat(dots, i == s_preview ? "\xE2\x80\xA2" : "\xC2\xB7");   /* • · */
         if (i != s_face_count - 1) {
             strcat(dots, " ");
         }
@@ -170,7 +174,23 @@ void aos_watchface_open_picker(void)
     s_picker = lv_obj_create(s_host);
     lv_obj_remove_style_all(s_picker);
     lv_obj_set_size(s_picker, AOS_SCREEN_W, 96);
-    lv_obj_align(s_picker, LV_ALIGN_BOTTOM_MID, 0, 0);
+    /* Lifted 52 px off the bottom, and that is not decoration.
+     *
+     * Flush with the bottom edge the card sits at y 352..448 and its three
+     * buttons -46 px tall, centred on the card- end up spanning y 369..415.
+     * The digitiser reports nothing below y=395 (AOS_TOUCH_Y_MAX), so only the
+     * top 22 px of each button could be pressed and the visual centre, which
+     * is where a finger goes, was dead. The picker opened and then appeared
+     * not to work.
+     *
+     * Raised, the card is at y 300..396 and the buttons at y 317..363, clear
+     * of the limit with room to spare. The dots land at ~372..390, which is
+     * fine: they are read, not pressed.
+     *
+     * tools/audit_layout.sh does not catch this on its own -it exempts
+     * anything leaving a 20 px strip, and 22 px passed- so the arithmetic has
+     * to be done by hand for anything touchable this low. */
+    lv_obj_align(s_picker, LV_ALIGN_BOTTOM_MID, 0, -52);
     lv_obj_set_style_bg_color(s_picker, AOS_C_CARD, 0);
     lv_obj_set_style_bg_opa(s_picker, LV_OPA_90, 0);
     lv_obj_set_style_radius(s_picker, 28, 0);
