@@ -24,6 +24,7 @@
 #include "esp_event.h"
 #include "nvs_flash.h"
 #include "esp_ota_ops.h"
+#include "esp_app_desc.h"
 #include "nvs.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -2206,7 +2207,13 @@ void aos_hal_heap_info(uint32_t *free_internal, uint32_t *free_psram)
 }
 
 const char *aos_hal_board_name(void)       { return s_board_name; }
-const char *aos_hal_firmware_version(void) { return FIRMWARE_VERSION; }
+/* From the app descriptor, which CMakeLists fills with 'git describe --tags'.
+ * FIRMWARE_VERSION is only the floor for a build with no git repo behind it. */
+const char *aos_hal_firmware_version(void)
+{
+    const esp_app_desc_t *d = esp_app_get_description();
+    return (d && d->version[0]) ? d->version : FIRMWARE_VERSION;
+}
 
 /* -------------------------------------------------------------------------- */
 /* OTA                                                                         */
