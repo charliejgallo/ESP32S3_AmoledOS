@@ -213,3 +213,8 @@ language and reports text that does not fit, runs off screen, overflows its
 container, or sits below the touch ceiling. What matters is the *difference*
 between languages: a finding that appears identically in both is pre-existing,
 not something a translation broke.
+
+It is a sweep and costs minutes: it is for adding a language, touching the
+theme or a shared widget, and for release checks. One screen is audited on its
+own with `AOS_SIM_AUDIT=<label> AOS_SIM_VIEW=<id>`, which is the same check in
+a second.

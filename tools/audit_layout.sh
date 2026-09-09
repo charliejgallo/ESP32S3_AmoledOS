@@ -17,6 +17,29 @@
 # It does not replace looking at the screen: it sees no overlaps and no
 # ugliness, and it does not see text nobody wrapped (that is what
 # 'gen_lang.py unmarked' is for).
+#
+# --- WHEN TO RUN THIS, AND WHEN NOT TO --------------------------------------
+#
+# This is a SWEEP. It exists for the cases where every screen, or nearly every
+# screen, has to be looked at:
+#
+#   - after adding or changing a language;
+#   - after touching the theme, a font or a shared widget;
+#   - before a release.
+#
+# It opens 47 screens per language, one process each, and takes minutes. It is
+# NOT the tool for checking one or two screens, and reaching for it that way is
+# a waste: the run is slow, and the answer arrives buried in a report about
+# everything else.
+#
+# For one screen, open that screen:
+#
+#   cd sim
+#   AOS_SIM_AUDIT=es/aos.settings AOS_SIM_VIEW=aos.settings ./build/amoledos_sim
+#
+# Same check, same output lines, one second. Add AOS_SIM_KEYS to reach a screen
+# that needs navigating to, and AOS_SIM_AUDIT_MS if it takes a while to
+# assemble -that is how the watchface picker is audited, below-.
 set -e
 ROOT=${0:a:h:h}
 SIM=$ROOT/sim
@@ -93,14 +116,15 @@ def geo(t):
 print("\n=== regressions: appear in one language and not in %s ===" % base)
 total = 0
 ellipsis = []
+lowedge = []
 for lang in langs[1:]:
     for app in sorted(per[lang]):
         b = collections.Counter(geo(t) for t in per[base][app])
         o = collections.Counter(geo(t) for t in per[lang][app])
         solo = [t for t in per[lang][app] if o[geo(t)] > b.get(geo(t), 0)]
         for kind, rest in solo:
-            if kind == "ELLIPSIS":
-                ellipsis.append((lang, rest))
+            if kind in ("ELLIPSIS", "LOWEDGE"):
+                (ellipsis if kind == "ELLIPSIS" else lowedge).append((lang, rest))
                 continue
             print("  %-4s %-9s %s" % (lang, kind, rest[:100]))
             total += 1
@@ -114,10 +138,24 @@ if ellipsis:
     for lang, rest in ellipsis:
         print("  %-4s %s" % (lang, rest[:100]))
 
+# LOWEDGE is not breakage: a control low on the screen that still leaves a
+# usable strip. It is here so that, if something feels unresponsive on the
+# board, you know where to look first -and the first suspect is the touch
+# calibration, not the layout-. See docs/internal, section 9.
+bajos = [(a, r) for a in sorted(per[base]) for k, r in per[base][a] if k == "LOWEDGE"]
+if bajos or lowedge:
+    print("\n=== low on the screen (NOT breakage; check on the board if in doubt) ===")
+    for app, rest in bajos:
+        print("  %-14s %s" % (app, rest[:90]))
+    for lang, rest in lowedge:
+        print("  %-4s %s" % (lang, rest[:90]))
+
 print("\n=== pre-existing (identical in every language) ===")
 n = 0
 for app in sorted(per[base]):
     for kind, rest in per[base][app]:
+        if kind == "LOWEDGE":
+            continue
         print("  %-9s %-14s %s" % (kind, app, rest[:90]))
         n += 1
 print("  none" if not n else "  %d in total" % n)

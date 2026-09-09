@@ -776,24 +776,39 @@ static void audit_obj(lv_obj_t *obj, const char *tag)
          * the limit-. On the board the picker opened and then would not
          * respond. See docs/internal/HANDOFF-PUBLICACION.md, section 3.
          *
-         * The exemption that has to survive is for the genuinely large object,
-         * where the top part IS a target in its own right: hello_app's whole
-         * screen (y 0..448, centre 224) or any panel that reaches well above
-         * the limit. Hence the second condition asks for BOTH a dead centre
-         * and no comfortable alternative -under 40 px, about a fingertip- so a
-         * tall object with a usable top is still left alone. */
+         * BUT a dead centre is NOT breakage, and that had to be learnt from the
+         * board rather than from the arithmetic. Measured on the four controls
+         * that sit low today:
+         *
+         *     picker's button   46 px tall, 22 live (47%), centre 392
+         *     alarm's Nueva     60 px tall, 23 live (38%), centre 397
+         *     convert's 0 , +/- 54 px tall, 25 live (46%), centre 392
+         *     dice's TIRAR      62 px tall, 27 live (43%), centre 394
+         *
+         * They are the same case geometrically, and yet three of them are used
+         * every day without trouble. What made the picker feel broken was not
+         * its shape: it was that the touch calibration had been wiped at the
+         * same time, so every press landed offset as well. With cal_* in place
+         * a live strip of 40% is plenty of target.
+         *
+         * So this half is reported as LOWEDGE and does NOT count as a problem:
+         * it is the list of what to look at on the board if something feels
+         * unresponsive, not a list of defects. UNTOUCHABLE stays for what has
+         * almost nothing left, which is breakage in any hand. */
         int32_t centro = (a.y1 + a.y2) / 2;
-        bool sin_franja    = vivos < 20;
-        bool centro_muerto = centro > AOS_TOUCH_Y_MAX && vivos < 40;
 
-        if (!scrollea && a.y2 > AOS_TOUCH_Y_MAX && (sin_franja || centro_muerto)) {
-            const char *por_que = vivos <= 0    ? "DEAD"
-                                : sin_franja    ? "only a few px left"
-                                                : "its centre is below the limit";
-            printf("AUDIT UNTOUCHABLE %s | %s | y %ld..%ld (centre %ld, %ld px live) | %s\n",
-                   tag, audit_nombre(obj), (long)a.y1, (long)a.y2,
-                   (long)centro, (long)vivos, por_que);
-            s_audit_hits++;
+        if (!scrollea && a.y2 > AOS_TOUCH_Y_MAX) {
+            if (vivos < 20) {
+                printf("AUDIT UNTOUCHABLE %s | %s | y %ld..%ld (centre %ld, %ld px live) | %s\n",
+                       tag, audit_nombre(obj), (long)a.y1, (long)a.y2,
+                       (long)centro, (long)vivos,
+                       vivos <= 0 ? "DEAD" : "only a few px left");
+                s_audit_hits++;
+            } else if (centro > AOS_TOUCH_Y_MAX && vivos < 40) {
+                printf("AUDIT LOWEDGE %s | %s | y %ld..%ld (centre %ld, %ld px live)\n",
+                       tag, audit_nombre(obj), (long)a.y1, (long)a.y2,
+                       (long)centro, (long)vivos);
+            }
         }
     }
 

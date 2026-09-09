@@ -125,6 +125,25 @@ The audit reports four things: text clipped inside its own box, text off the
 the touch ceiling** — the last one being invisible in the simulator, where the
 mouse reaches everywhere.
 
+A control that sits low but still leaves a usable strip is listed separately,
+as `LOWEDGE`, and does **not** count as a problem. Several of them are in
+everyday use on the board: with the touch calibrated, 40% of a button is plenty
+of target. The list is there so that if something does feel unresponsive you
+know where to look — and the first suspect is the calibration, not the layout.
+
+> **`audit_layout.sh` is a sweep, not a spot check.** It opens 47 screens per
+> language, one process each, and takes minutes; it is for adding a language,
+> touching the theme or a shared widget, and for release checks. To look at one
+> screen, open that screen — same check, same output, one second:
+>
+> ```bash
+> cd sim
+> AOS_SIM_AUDIT=es/aos.settings AOS_SIM_VIEW=aos.settings ./build/amoledos_sim
+> ```
+>
+> `AOS_SIM_KEYS` gets you to a screen that needs navigating to, and
+> `AOS_SIM_AUDIT_MS` waits longer if it takes a while to assemble.
+
 `AOS_SIM_POS=x,y` pins the window at a known place; the simulator prints the
 exact `screencapture -R` command to crop it.
 
