@@ -11,6 +11,7 @@ shared script, and `aos_web.c` with the handlers.
 |---|---|
 | `/` | **Home.** Battery, network, memory and system cards fed by `/api/status`; wake / screen off / sync time / restart; the firmware (OTA) upload. |
 | `/ajustes` | **Settings.** The same controls as the watch's Settings app: brightness, watchface, launcher style, always-on and its brightness, volume, the four power switches, time zone, set the time, language, wifi / Bluetooth, notifications. Each control applies on release. |
+| `/alarmas` | **Alarms.** The six slots of the Alarms app: time, on/off, delete, add. A change is stored in NVS and the alarm service reloads on its next tick, redrawing the app if it is open. |
 | `/pantalla` | **Screen.** A live capture of the panel, with the controls to drive it from the browser: wake, off, back, watchface, menu, a toast, and a button per app to open it. For testing without the watch on the wrist. |
 | `/archivos` | **Files.** The card by folder (apps, photos, music, recordings): upload by drag, download, delete, listen, and a preview for photos. Shows the free space. A fifth tab, **Card**, is an explorer of the whole card: any folder, breadcrumbs, new folder, delete an empty one. |
 | `/registro` | **Log.** The ESP_LOG output, tailed over wifi from a 16 KB ring in PSRAM. Filter, pause, save as text. |
@@ -35,6 +36,7 @@ POST /api/ajustes                any subset: brillo volumen aod aod_brillo esfer
 POST /api/accion                 que=despertar|apagar|volver|inicio|menu|beep|
                                  sync_hora | hora&epoch=N | abrir&id=X | toast&texto=T
 GET  /api/apps                   the launcher's apps, and which one is open
+GET  /api/alarmas   POST /api/alarmas   i=N&minuto=M&on=0|1  (minuto=-1 clears)
 GET  /api/log?desde=N            the ring from offset N; X-Desde / X-Hasta headers
 GET  /api/captura[?sin_despertar=1]   the screen, as BMP
 GET  /api/lang   POST /api/lang  language

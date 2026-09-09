@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Alarmas</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  .ajuste input[type=time] {
+    width: auto; font-size: 22px; font-variant-numeric: tabular-nums;
+    padding: 6px 10px; letter-spacing: .02em;
+  }
+  .ajuste .texto b { font-size: 13px; color: var(--dim); font-weight: 500; }
+  .ajuste button.chica { color: var(--red); background: var(--card2); }
+  #agregar { margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Alarmas</h1></div>
+  <p class="sub" data-t="bajada">Las mismas seis que la app Alarmas del reloj.
+     Suenan todos los días a esa hora mientras estén encendidas; el cambio se
+     guarda al soltar el control y la app, si está abierta, se redibuja sola.</p>
+
+  <nav class="paginas"></nav>
+
+  <div id="lista"></div>
+  <div class="vacio" id="vacio" hidden data-t="ninguna">No hay alarmas. Agregá una.</div>
+  <button id="agregar" class="sec" data-t="b_agregar">Agregar alarma</button>
+  <p class="sub" id="lleno" hidden style="margin-top:10px" data-t="lleno">Ya están las seis. Borrá una para agregar otra.</p>
+
+  <div class="aviso" data-t="nota">La alarma suena 20 pitidos por el parlante y
+    enciende la pantalla, con la app que esté abierta. No hay repetición por
+    día de la semana: es diaria o está apagada.</div>
+</div>
+<div id="brindis"></div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "Alarms",
+    bajada: "The same six as the watch's Alarms app. They ring every day at that time while enabled; a change is saved when you release the control, and the app redraws itself if it is open.",
+    ninguna: "No alarms. Add one.", b_agregar: "Add alarm",
+    lleno: "All six are in use. Delete one to add another.",
+    nota: "An alarm rings 20 beeps through the speaker and turns the screen on, whatever app is open. There is no per-weekday repeat: it is daily, or off.",
+    alarma: "Alarm %n", borrar: "delete", guardado: "saved", fallo: "failed: ",
+    confirmar: "Delete the %s alarm?", sin_conexion: "no connection to the watch"
+  },
+  de: {
+    titulo: "Wecker",
+    bajada: "Dieselben sechs wie in der Wecker-App der Uhr. Sie klingeln jeden Tag zu dieser Zeit, solange sie an sind; eine Aenderung wird beim Loslassen gespeichert, und die App zeichnet sich neu, wenn sie offen ist.",
+    ninguna: "Keine Wecker. Leg einen an.", b_agregar: "Wecker hinzufuegen",
+    lleno: "Alle sechs sind belegt. Loesche einen, um einen weiteren anzulegen.",
+    nota: "Ein Wecker piept 20-mal ueber den Lautsprecher und schaltet den Bildschirm ein, egal welche App offen ist. Keine Wiederholung nach Wochentag: taeglich oder aus.",
+    alarma: "Wecker %n", borrar: "loeschen", guardado: "gespeichert", fallo: "fehlgeschlagen: ",
+    confirmar: "Wecker %s loeschen?", sin_conexion: "keine Verbindung zur Uhr"
+  }
+};
+const ES = {
+  alarma: "Alarma %n", borrar: "borrar", guardado: "guardado", fallo: "falló: ",
+  confirmar: "¿Borrar la alarma de las %s?", sin_conexion: "sin conexión con el reloj"
+};
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? (ES[k] !== undefined ? ES[k] : k) : v; }
+
+function hhmm(min) { return String(Math.floor(min / 60)).padStart(2, "0") + ":" + String(min % 60).padStart(2, "0"); }
+
+async function guardar(i, minuto, on) {
+  try {
+    await aos.post("/api/alarmas", { i: i, minuto: minuto, on: on ? 1 : 0 });
+    aos.brindis(t("guardado"));
+    return true;
+  } catch (e) {
+    aos.brindis(t("fallo") + e.message);
+    return false;
+  }
+}
+
+function fila(a) {
+  const div = document.createElement("div");
+  div.className = "ajuste";
+
+  const hora = document.createElement("input");
+  hora.type = "time";
+  hora.value = hhmm(a.minuto);
+  hora.onchange = () => {
+    const [h, m] = hora.value.split(":").map(Number);
+    if (isNaN(h) || isNaN(m)) return;
+    a.minuto = h * 60 + m;
+    guardar(a.i, a.minuto, a.on);
+  };
+
+  const texto = document.createElement("div");
+  texto.className = "texto";
+  const rot = document.createElement("b");
+  rot.textContent = t("alarma").replace("%n", a.i + 1);
+  texto.append(rot);
+
+  const sw = document.createElement("label");
+  sw.className = "interruptor";
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.checked = a.on;
+  cb.onchange = () => { a.on = cb.checked; guardar(a.i, a.minuto, a.on); };
+  sw.append(cb, document.createElement("i"));
+
+  const borrar = document.createElement("button");
+  borrar.className = "chica";
+  borrar.textContent = t("borrar");
+  borrar.onclick = async () => {
+    if (!confirm(t("confirmar").replace("%s", hhmm(a.minuto)))) return;
+    if (await guardar(a.i, -1, false)) cargar();
+  };
+
+  div.append(hora, texto, sw, borrar);
+  return div;
+}
+
+let alarmas = [];
+
+function pintar() {
+  const lista = $("lista");
+  lista.innerHTML = "";
+  const puestas = alarmas.filter(a => a.minuto >= 0).sort((x, y) => x.minuto - y.minuto);
+  for (const a of puestas) lista.append(fila(a));
+  $("vacio").hidden = puestas.length > 0;
+  const lleno = puestas.length >= alarmas.length && alarmas.length > 0;
+  $("agregar").hidden = lleno;
+  $("lleno").hidden = !lleno;
+}
+
+async function cargar() {
+  try {
+    alarmas = (await (await fetch("/api/alarmas")).json()).alarmas || [];
+  } catch (e) {
+    $("lista").innerHTML = '<div class="vacio">' + aos.esc(t("sin_conexion")) + "</div>";
+    return;
+  }
+  pintar();
+}
+
+$("agregar").onclick = async () => {
+  const libre = alarmas.find(a => a.minuto < 0);
+  if (!libre) return;
+  /* La proxima hora en punto, encendida: lo mas probable es que se quiera
+     ajustar de ahi, no escribir desde cero. */
+  const ahora = new Date();
+  const minuto = ((ahora.getHours() + 1) % 24) * 60;
+  if (await guardar(libre.i, minuto, true)) cargar();
+};
+
+aos.init(TR).then(cargar);
+</script>
+</body>
+</html>

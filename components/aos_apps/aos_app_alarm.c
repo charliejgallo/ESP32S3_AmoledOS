@@ -24,6 +24,8 @@ typedef struct {
 
 static alarm_slot_t s_alarms[MAX_ALARMS];
 static bool         s_loaded;
+static volatile bool s_reload;      /* the portal changed something */
+static void rebuild_list(void);
 static int          s_last_fired_minute = -1;
 static int          s_ringing_left;
 
@@ -65,8 +67,46 @@ static void alarm_save(int index)
 
 /* -------------------------------------------------------------------------- */
 
+bool aos_alarm_get(int index, int *minute_of_day, bool *enabled)
+{
+    if (index < 0 || index >= MAX_ALARMS) {
+        return false;
+    }
+    char key[16];
+    snprintf(key, sizeof(key), KEY_FMT, index);
+    int32_t value = 0;
+    bool have = aos_hal_pref_get_i32(key, &value) && (value & 0xFFFF) != 0xFFFF;
+    if (minute_of_day) *minute_of_day = have ? (int)(value & 0xFFFF) : -1;
+    if (enabled)       *enabled       = have && (value >> 16) != 0;
+    return true;
+}
+
+bool aos_alarm_set(int index, int minute_of_day, bool enabled)
+{
+    if (index < 0 || index >= MAX_ALARMS || minute_of_day >= 24 * 60) {
+        return false;
+    }
+    char key[16];
+    snprintf(key, sizeof(key), KEY_FMT, index);
+    int32_t value = minute_of_day < 0 ? 0xFFFF
+                  : (minute_of_day | (enabled ? 1 << 16 : 0));
+    if (!aos_hal_pref_set_i32(key, value)) {
+        return false;
+    }
+    s_reload = true;
+    return true;
+}
+
 void aos_alarm_service_tick(void)
 {
+    if (s_reload) {
+        /* Written from the server task; applied here, with the lock held,
+         * which is also where the list can be redrawn if the app is open. */
+        s_reload = false;
+        s_loaded = false;
+        alarms_load();
+        rebuild_list();
+    }
     alarms_load();
 
     if (s_ringing_left > 0) {

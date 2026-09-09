@@ -28,6 +28,7 @@ INICIO_PAGE = os.path.join(ROOT, "components", "aos_web", "inicio.html")
 AJUSTES_PAGE = os.path.join(ROOT, "components", "aos_web", "ajustes.html")
 PANTALLA_PAGE = os.path.join(ROOT, "components", "aos_web", "pantalla.html")
 REGISTRO_PAGE = os.path.join(ROOT, "components", "aos_web", "registro.html")
+ALARMAS_PAGE = os.path.join(ROOT, "components", "aos_web", "alarmas.html")
 CAPTURA_FAKE = os.path.join(ROOT, "docs", "img", "launcher-list.png")
 REMOTO_PAGE = os.path.join(ROOT, "components", "aos_web", "remoto.html")
 RED_PAGE    = os.path.join(ROOT, "components", "aos_web", "red.html")
@@ -380,6 +381,21 @@ class Handler(BaseHTTPRequestHandler):
             with open(REGISTRO_PAGE, "rb") as page:
                 self._send(200, page.read(), "text/html; charset=utf-8")
 
+        elif url.path == "/alarmas":
+            with open(ALARMAS_PAGE, "rb") as page:
+                self._send(200, page.read(), "text/html; charset=utf-8")
+
+        elif url.path == "/api/alarmas":
+            # The board's packing: minute | enabled << 16, 0xFFFF = empty.
+            d = prefs_leer(self.base)
+            lista = []
+            for i in range(6):
+                v = int(d.get(f"alarm{i}", 0xFFFF) or 0xFFFF)
+                vacia = (v & 0xFFFF) == 0xFFFF
+                lista.append({"i": i, "minuto": -1 if vacia else v & 0xFFFF,
+                              "on": (not vacia) and (v >> 16) != 0})
+            self._send(200, json.dumps({"alarmas": lista}))
+
         elif url.path == "/api/status":
             # The same fields the board sends, with invented values. The heap
             # is deliberately the real order of magnitude (40 KB), so the
@@ -555,6 +571,19 @@ class Handler(BaseHTTPRequestHandler):
                     cambios[claves[k]] = v[0]
             prefs_escribir(self.base, cambios)
             print(f"  ajustes: {cambios}")
+            return self._send(200, '{"ok":true}')
+
+        if url.path == "/api/alarmas":
+            largo = int(self.headers.get("Content-Length") or 0)
+            campos = parse_qs(self.rfile.read(largo).decode())
+            i = int((campos.get("i") or ["-1"])[0])
+            minuto = int((campos.get("minuto") or ["-1"])[0])
+            on = (campos.get("on") or ["0"])[0] == "1"
+            if not 0 <= i < 6 or minuto >= 1440:
+                return self._send(400, "alarma invalida", "text/plain; charset=utf-8")
+            v = 0xFFFF if minuto < 0 else (minuto | (1 << 16 if on else 0))
+            prefs_escribir(self.base, {f"alarm{i}": v})
+            print(f"  alarma {i}: {minuto} {'on' if on else 'off'}")
             return self._send(200, '{"ok":true}')
 
         if url.path == "/api/accion":

@@ -32,6 +32,15 @@ void aos_app_settings_get(aos_app_t *app);
  * alarms sound even with the app closed. */
 void aos_alarm_service_tick(void);
 
+/* The alarms, for the web portal. Six slots; a slot is a minute of the day
+ * (0..1439, or -1 for empty) and whether it is enabled. get() reads the stored
+ * value; set() stores it and asks the service to reload on its next tick,
+ * which is what refreshes the app's list if it is open. Both are safe from
+ * any task: they touch NVS, not the table the service checks. */
+#define AOS_ALARM_MAX 6
+bool aos_alarm_get(int index, int *minute_of_day, bool *enabled);
+bool aos_alarm_set(int index, int minute_of_day, bool enabled);
+
 #ifdef __cplusplus
 }
 #endif

@@ -7,6 +7,7 @@
 #include "aos_ui.h"     /* aos_ui_request_language and the rest of the notes */
 #include "aos_watchface.h"
 #include "aos_log.h"
+#include "aos_apps.h"   /* aos_alarm_get / set */
 #include <time.h>
 
 #include "esp_http_server.h"
@@ -53,6 +54,8 @@ extern const uint8_t pantalla_html_start[] asm("_binary_pantalla_html_start");
 extern const uint8_t pantalla_html_end[]   asm("_binary_pantalla_html_end");
 extern const uint8_t registro_html_start[] asm("_binary_registro_html_start");
 extern const uint8_t registro_html_end[]   asm("_binary_registro_html_end");
+extern const uint8_t alarmas_html_start[]  asm("_binary_alarmas_html_start");
+extern const uint8_t alarmas_html_end[]    asm("_binary_alarmas_html_end");
 
 /* Defined further down, used by the status handler above them. */
 static void json_escape(char *dst, size_t dst_len, const char *src);
@@ -2374,6 +2377,52 @@ static esp_err_t log_handler(httpd_req_t *req)
     return httpd_resp_send_chunk(req, NULL, 0);
 }
 
+static esp_err_t alarmas_page_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    return httpd_resp_send(req, (const char *)alarmas_html_start,
+                           alarmas_html_end - alarmas_html_start - 1);
+}
+
+/* GET /api/alarmas: the six slots. Empty ones come with minuto -1. */
+static esp_err_t alarmas_get_handler(httpd_req_t *req)
+{
+    char json[AOS_ALARM_MAX * 40 + 24];
+    int n = snprintf(json, sizeof(json), "{\"alarmas\":[");
+    for (int i = 0; i < AOS_ALARM_MAX; i++) {
+        int minuto = -1; bool on = false;
+        aos_alarm_get(i, &minuto, &on);
+        n += snprintf(json + n, sizeof(json) - n, "%s{\"i\":%d,\"minuto\":%d,\"on\":%s}",
+                      i ? "," : "", i, minuto, on ? "true" : "false");
+    }
+    snprintf(json + n, sizeof(json) - n, "]}");
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_sendstr(req, json);
+}
+
+/* POST /api/alarmas: i=N&minuto=M&on=0|1, or i=N&minuto=-1 to clear. */
+static esp_err_t alarmas_post_handler(httpd_req_t *req)
+{
+    char body[96];
+    if (!leer_cuerpo(req, body, sizeof(body))) {
+        return ESP_FAIL;
+    }
+    char v[16];
+    int i = -1, minuto = -1, on = 0;
+    if (httpd_query_key_value(body, "i", v, sizeof(v)) == ESP_OK)      i = atoi(v);
+    if (httpd_query_key_value(body, "minuto", v, sizeof(v)) == ESP_OK) minuto = atoi(v);
+    if (httpd_query_key_value(body, "on", v, sizeof(v)) == ESP_OK)     on = atoi(v);
+    bool ok = aos_alarm_set(i, minuto, on != 0);
+    ESP_LOGI(TAG, "alarm %d from the portal: %d %s -> %s", i, minuto, on ? "on" : "off",
+             ok ? "ok" : "rejected");
+    if (!ok) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "alarma invalida");
+        return ESP_FAIL;
+    }
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_sendstr(req, "{\"ok\":true}");
+}
+
 static const httpd_uri_t ROUTES[] = {
         { .uri = "/",            .method = HTTP_GET,  .handler = inicio_page_handler },
         { .uri = "/archivos",    .method = HTTP_GET,  .handler = page_handler },
@@ -2385,6 +2434,9 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/pantalla",    .method = HTTP_GET,  .handler = pantalla_page_handler },
         { .uri = "/registro",    .method = HTTP_GET,  .handler = registro_page_handler },
         { .uri = "/api/log",     .method = HTTP_GET,  .handler = log_handler },
+        { .uri = "/alarmas",     .method = HTTP_GET,  .handler = alarmas_page_handler },
+        { .uri = "/api/alarmas", .method = HTTP_GET,  .handler = alarmas_get_handler },
+        { .uri = "/api/alarmas", .method = HTTP_POST, .handler = alarmas_post_handler },
         { .uri = "/api/status",  .method = HTTP_GET,  .handler = status_handler },
         { .uri = "/api/pmu",     .method = HTTP_GET,  .handler = pmu_handler },
         { .uri = "/api/list",    .method = HTTP_GET,  .handler = list_handler },
