@@ -30,13 +30,13 @@ import zlib
 def bmp_a_png(bmp, destino):
     """Only the BMP the board sends: 24-bit, uncompressed, bottom-up."""
     if bmp[:2] != b"BM":
-        raise SystemExit(f"eso no es un BMP: {bmp[:60]!r}")
+        raise SystemExit(f"that is not a BMP: {bmp[:60]!r}")
     off, = struct.unpack_from("<I", bmp, 10)
     w, = struct.unpack_from("<i", bmp, 18)
     h, = struct.unpack_from("<i", bmp, 22)
     bpp, = struct.unpack_from("<H", bmp, 28)
     if bpp != 24:
-        raise SystemExit(f"esperaba 24 bits por pixel, vinieron {bpp}")
+        raise SystemExit(f"expected 24 bits per pixel, got {bpp}")
 
     fila_bytes = ((w * 3 + 3) // 4) * 4
     filas = []
@@ -76,10 +76,10 @@ def main():
         with urllib.request.urlopen(url, timeout=45) as r:
             bmp = r.read()
     except urllib.error.HTTPError as e:
-        raise SystemExit(f"la placa dijo que no: {e.code} {e.read().decode('utf-8', 'replace')}")
+        raise SystemExit(f"the board said no: {e.code} {e.read().decode('utf-8', 'replace')}")
 
     w, h = bmp_a_png(bmp, destino)
-    print(f"{destino}  {w}x{h}  ({len(bmp) // 1024} KB de BMP)")
+    print(f"{destino}  {w}x{h}  ({len(bmp) // 1024} KB of BMP)")
 
 
 if __name__ == "__main__":

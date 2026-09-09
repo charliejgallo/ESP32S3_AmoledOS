@@ -27,7 +27,7 @@ NM=$(ls ~/.espressif/tools/xtensa-esp-elf/*/xtensa-esp-elf/bin/xtensa-esp-elf-nm
 OD=$(ls ~/.espressif/tools/xtensa-esp-elf/*/xtensa-esp-elf/bin/xtensa-esp-elf-objdump | head -1)
 
 if [ ! -f $TABLE ] || ! grep -q ESP_ELFSYM_EXPORT $TABLE; then
-    echo "La tabla de simbolos esta vacia. Corre primero:"
+    echo "The symbol table is empty. Run this first:"
     echo "  idf.py build && python3 tools/gen_symbols.py && idf.py build"
     exit 1
 fi
@@ -42,14 +42,14 @@ fi
 # That is why the apps' LVGL configuration is DERIVED from the firmware's.
 LVCFG=$ROOT/build/aos_lvgl_sync.defaults
 if [ ! -f $ROOT/sdkconfig ]; then
-    echo "Falta $ROOT/sdkconfig: corre 'idf.py build' en el firmware primero."
+    echo "$ROOT/sdkconfig is missing: run 'idf.py build' on the firmware first."
     exit 1
 fi
 mkdir -p $ROOT/build
 grep -E '^CONFIG_LV_' $ROOT/sdkconfig > $LVCFG
 grep -E '^# CONFIG_LV_[A-Z0-9_]+ is not set$' $ROOT/sdkconfig |
     sed -E 's/^# (CONFIG_LV_[A-Z0-9_]+) is not set$/\1=n/' >> $LVCFG
-echo "configuracion de LVGL sincronizada desde el firmware ($(wc -l < $LVCFG | tr -d ' ') opciones)"
+echo "LVGL configuration synced from the firmware ($(wc -l < $LVCFG | tr -d ' ') options)"
 
 apps=${@:-$(ls $ROOT/apps | grep -v '\.cmake$')}
 problemas=0
@@ -76,7 +76,7 @@ for app in ${(z)apps}; do
     log=$dir/build/idf_so.log
     if ! idf.py -DSDKCONFIG_DEFAULTS="$dir/sdkconfig.defaults;$LVCFG" so > $log 2>&1 ||
        ! grep -qE "Linking .*\.so completed" $log; then
-        echo "  FALLO al compilar. Ultimas lineas de $log:"
+        echo "  BUILD FAILED. Last lines of $log:"
         tail -12 $log | sed 's/^/    /'
         problemas=$((problemas + 1))
         continue
@@ -90,7 +90,7 @@ for app in ${(z)apps}; do
     # 'movi' with the constant.
     if ! $NM -D --defined-only $so | grep -qE ' aos_app_abi$' ||
        ! $NM -D --defined-only $so | grep -qE ' aos_app_init$'; then
-        echo "  FALLA: no exporta aos_app_abi/aos_app_init"
+        echo "  FAIL: it does not export aos_app_abi/aos_app_init"
         problemas=$((problemas + 1))
         continue
     fi
@@ -98,7 +98,7 @@ for app in ${(z)apps}; do
           grep -oE 'movi(\.n)?[[:space:]]+a[0-9]+,[[:space:]]*-?[0-9]+' |
           head -1 | grep -oE '\-?[0-9]+$')
     if [ "$abi" != "$ABI" ]; then
-        echo "  FALLA: el .so dice ABI $abi y el firmware espera $ABI"
+        echo "  FAIL: the .so says ABI $abi and the firmware expects $ABI"
         problemas=$((problemas + 1))
         continue
     fi
@@ -116,25 +116,25 @@ for app in ${(z)apps}; do
         grep -q "ESP_ELFSYM_EXPORT($s)" $TABLE || faltan="$faltan $s"
     done
     if [ -n "$faltan" ]; then
-        echo "  FALLA: simbolos fuera de la tabla del firmware:$faltan"
-        echo "         agregalos a EXTRA_SYMBOLS en tools/gen_symbols.py y regenera"
+        echo "  FAIL: symbols outside the firmware table:$faltan"
+        echo "        add them to EXTRA_SYMBOLS in tools/gen_symbols.py and regenerate"
         problemas=$((problemas + 1))
         continue
     fi
 
-    printf "  ok  %s  %s  ABI %s  %s simbolos\n" \
+    printf "  ok  %s  %s  ABI %s  %s symbols\n" \
         $(basename $so) $(du -h $so | cut -f1) $abi $($NM -D -u $so | wc -l | tr -d ' ')
 done
 
 echo
 if [ $problemas -eq 0 ]; then
-    echo "Compilado. FALTA INSTALARLO: los .so nuevos siguen en apps/*/build/"
-echo "  por wifi:   ./tools/install_apps.sh <ip-de-la-placa>"
-echo "  a mano:     cp apps/*/build/*.so /Volumes/<sd>/apps/"
-echo ""
-echo "  Sin este paso la placa sigue corriendo los binarios viejos, y el"
-echo "  sintoma engania: el firmware se ve actualizado y las apps no."
+    echo "Built. NOT INSTALLED YET: the new .so files are still in apps/*/build/"
+    echo "  over wifi:  ./tools/install_apps.sh <board-ip>"
+    echo "  by hand:    cp apps/*/build/*.so /Volumes/<sd>/apps/"
+    echo ""
+    echo "  Without this step the board keeps running the old binaries, and the"
+    echo "  symptom misleads: the firmware looks updated and the apps do not."
 else
-    echo "$problemas app(s) con problemas"
+    echo "$problemas app(s) with problems"
     exit 1
 fi

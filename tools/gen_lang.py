@@ -315,8 +315,8 @@ def collect():
         if not marked:
             continue
         if not app_id:
-            print("aviso: apps/%s tiene cadenas marcadas pero no encontre su "
-                  "desc.id; se omite" % dirname, file=sys.stderr)
+            print("warning: apps/%s has marked strings but I could not find "
+                  "its desc.id; skipping it" % dirname, file=sys.stderr)
             continue
         catalogs["%s.lang" % app_id] = marked
 
@@ -324,12 +324,12 @@ def collect():
     catalogs.move_to_end(SYSTEM_CATALOG, last=False)
 
     if warnings:
-        print("\nAVISO: %d llamadas a _() con un literal que no pude leer."
+        print("\nWARNING: %d calls to _() with a literal I could not read."
               % len(warnings), file=sys.stderr)
-        print("Casi siempre es una macro pegada al texto (LV_SYMBOL_*). En\n"
-              "tiempo de ejecucion la clave lleva los bytes de la macro\n"
-              "adelante, aca no, y la traduccion no engancha nunca. Pasa la\n"
-              "macro como argumento:  LV_SYMBOL_WIFI \"  %s\", _(\"texto\")",
+        print("Nearly always a macro glued onto the text (LV_SYMBOL_*). At\n"
+              "run time the key carries the macro's bytes in front, here it\n"
+              "does not, and the translation never matches. Pass the macro as\n"
+              "an argument:  LV_SYMBOL_WIFI \"  %s\", _(\"text\")",
               file=sys.stderr)
         for rel, line, body in warnings[:10]:
             print("   %s:%d  _(%s)" % (rel, line, body), file=sys.stderr)
@@ -377,8 +377,8 @@ def write_catalog(path, entries, existing, code):
         if val != shown:
             translated += 1
         if "\t" in key:
-            print("aviso: la cadena %r tiene un TAB literal y rompe el "
-                  "formato; se omite" % key, file=sys.stderr)
+            print("warning: the string %r has a literal TAB and breaks the "
+                  "format; skipping it" % key, file=sys.stderr)
             continue
         lines.append("%s\t%s" % (key, val))
         lines.append("")
@@ -398,7 +398,7 @@ def cmd_template(args):
     if not os.path.exists(meta):
         with open(meta, "w", encoding="utf-8") as fh:
             fh.write("name=%s\nformat=1\n" % args.code)
-        print("  meta.txt        creado, edita 'name=' con el nombre visible")
+        print("  meta.txt        created, edit 'name=' with the visible name")
 
     total = done = 0
     for filename, entries in catalogs.items():
@@ -409,18 +409,18 @@ def cmd_template(args):
         n = write_catalog(path, entries, existing, args.code)
         total += len(entries)
         done += n
-        print("  %-22s %4d cadenas, %4d traducidas" % (filename, len(entries), n))
+        print("  %-22s %4d strings, %4d translated" % (filename, len(entries), n))
 
-    print("\n  %d cadenas en total, %d traducidas (%d%%)"
+    print("\n  %d strings in total, %d translated (%d%%)"
           % (total, done, (100 * done // total) if total else 0))
-    print("  en %s" % out_dir)
+    print("  in %s" % out_dir)
 
 
 def cmd_check(args):
     catalogs = collect()
     pack_dir = os.path.join(args.out, args.code)
     if not os.path.isdir(pack_dir):
-        sys.exit("no existe el pack %s" % pack_dir)
+        sys.exit("the pack %s does not exist" % pack_dir)
 
     problems = 0
     for filename, entries in catalogs.items():
@@ -437,19 +437,19 @@ def cmd_check(args):
             # "identical" and not "untranslated": many of them are identical on
             # purpose - proper nouns, cities, SI units. Calling them pending
             # sends you hunting for work that does not exist.
-            print("  %-22s ok  (%d cadenas, %d iguales en los dos idiomas)"
+            print("  %-22s ok  (%d strings, %d identical in both languages)"
                   % (filename, len(entries), len(untranslated)))
             continue
 
         problems += 1
         print("  %s" % filename)
         if missing:
-            print("     faltan %d (en el codigo, no en el pack):" % len(missing))
+            print("     %d missing (in the code, not in the pack):" % len(missing))
             for k in missing[:6]:
                 print("        %s" % k)
         if orphan:
-            print("     sobran %d (en el pack, ya no en el codigo -- el texto"
-                  " espanol cambio?):" % len(orphan))
+            print("     %d left over (in the pack, no longer in the code --"
+                  " did the Spanish text change?):" % len(orphan))
             for k in orphan[:6]:
                 print("        %s" % k)
 
@@ -484,9 +484,9 @@ def cmd_check(args):
                 malos.append((val, "".join(sorted(fuera))))
         if malos:
             problems += 1
-            print("  %s: %d textos con caracteres no ASCII" % (filename, len(malos)))
-            print("     esta app dibuja con %s: los acentos se descartan en"
-                  " silencio. Translitera (ae, oe, ue, ss)." % why)
+            print("  %s: %d texts with non-ASCII characters" % (filename, len(malos)))
+            print("     this app draws with %s: accents are discarded"
+                  " silently. Transliterate (ae, oe, ue, ss)." % why)
             for val, fuera in malos[:6]:
                 print("        %r  ->  %s" % (val, fuera))
 
@@ -495,7 +495,7 @@ def cmd_check(args):
     for name in sorted(os.listdir(pack_dir)):
         if name.endswith(".lang") and name not in known:
             problems += 1
-            print("  %s: el pack lo trae pero ninguna app lo pide" % name)
+            print("  %s: the pack carries it but no app asks for it" % name)
 
     sys.exit(1 if problems else 0)
 
@@ -629,15 +629,15 @@ def cmd_pseudo(args):
         with open(os.path.join(out_dir, filename), "w", encoding="utf-8") as fh:
             fh.write("\n".join(lines) + "\n")
         total += len(entries)
-        print("  %-22s %4d cadenas%s" % (filename, len(entries),
-                                         "" if accents else "   (sin acentos)"))
+        print("  %-22s %4d strings%s" % (filename, len(entries),
+                                         "" if accents else "   (no accents)"))
 
-    print("\n  %d cadenas en %s" % (total, out_dir))
-    print("  ahora: ./tools/audit_layout.sh es %s" % args.code)
+    print("\n  %d strings in %s" % (total, out_dir))
+    print("  now: ./tools/audit_layout.sh es %s" % args.code)
 
 
 # --------------------------------------------------------------------------
-# Catalogos embebidos en el firmware
+# Catalogues embedded in the firmware
 # --------------------------------------------------------------------------
 
 EMBED_OUT = os.path.join(REPO, "components", "aos_ui", "aos_lang_embedded.c")
@@ -681,7 +681,7 @@ def cmd_embed(args):
     for code in args.codes:
         d = os.path.join(args.out, code)
         if not os.path.isdir(d):
-            sys.exit("no existe el pack %s" % d)
+            sys.exit("the pack %s does not exist" % d)
 
         name = code
         meta = os.path.join(d, "meta.txt")
@@ -753,10 +753,10 @@ def cmd_embed(args):
     total = os.path.getsize(EMBED_OUT)
     print("  %s" % os.path.relpath(EMBED_OUT, REPO))
     for code, name, strings, apps, files in packs:
-        print("    %-4s %-10s %3d cadenas, %2d catalogos de app"
+        print("    %-4s %-10s %3d strings, %2d app catalogues"
               % (code, name, strings, apps))
-    print("    fuente C: %.1f KB (el flash real lo dice el .map)" % (total / 1024))
-    print("\n  Regenera aos_symbols.c si cambia la API, y recompila.")
+    print("    C source: %.1f KB (the real flash figure is in the .map)" % (total / 1024))
+    print("\n  Regenerate aos_symbols.c if the API changes, and rebuild.")
 
 
 def cmd_unmarked(args):
@@ -807,9 +807,9 @@ def cmd_unmarked(args):
                 print("     %s:%d  %r" % (rel, line, s))
             total += len(rows)
     if total:
-        print("\n  %d cadenas con pinta de interfaz y sin marcar" % total)
+        print("\n  %d strings that look like interface text and are unmarked" % total)
     else:
-        print("  nada sin marcar")
+        print("  nothing unmarked")
     sys.exit(1 if total else 0)
 
 
@@ -825,10 +825,10 @@ def cmd_stats(args):
             with open(path, encoding="utf-8", errors="replace") as fh:
                 total_calls += len(MARKED.findall(strip_comments(fh.read())))
 
-    print("  marcadas y en catalogo : %d cadenas unicas" % marked)
-    print("  de las cuales sistema  : %d" % len(catalogs.get(SYSTEM_CATALOG, {})))
-    print("  catalogos de app       : %d" % (len(catalogs) - 1))
-    print("  llamadas a _() en el firmware: %d" % total_calls)
+    print("  marked and in a catalogue : %d unique strings" % marked)
+    print("  of those, system          : %d" % len(catalogs.get(SYSTEM_CATALOG, {})))
+    print("  app catalogues            : %d" % (len(catalogs) - 1))
+    print("  calls to _() in the firmware: %d" % total_calls)
 
 
 def main():

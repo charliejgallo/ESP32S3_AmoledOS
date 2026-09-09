@@ -141,10 +141,10 @@ void aos_hal_sim_set_tilt(float x, float y)
 
 void aos_hal_sim_set_pose(int pose)
 {
-    static const char *const names[] = { "plana", "de canto", "boca abajo",
-                                         "en la mano" };
+    static const char *const names[] = { "flat", "on edge", "face down",
+                                         "in the hand" };
     s_pose = ((pose % 4) + 4) % 4;
-    printf("[hal] placa %s\n", names[s_pose]);
+    printf("[hal] board %s\n", names[s_pose]);
 }
 
 int aos_hal_sim_get_pose(void)
@@ -304,7 +304,7 @@ int aos_hal_brightness_get(void)
 void aos_hal_brightness_set(int percent)
 {
     s_brightness = percent < 0 ? 0 : (percent > 100 ? 100 : percent);
-    printf("[hal] brillo %d%%\n", s_brightness);
+    printf("[hal] brightness %d%%\n", s_brightness);
 }
 
 aos_touch_gesture_t aos_hal_touch_gesture(void)
@@ -323,9 +323,9 @@ void aos_hal_display_set_state(aos_display_state_t state)
         return;
     }
     s_display_state = state;
-    printf("[hal] pantalla -> %s\n",
-           state == AOS_DISPLAY_ACTIVE ? "activa" :
-           state == AOS_DISPLAY_AOD    ? "atenuada" : "apagada");
+    printf("[hal] display -> %s\n",
+           state == AOS_DISPLAY_ACTIVE ? "active" :
+           state == AOS_DISPLAY_AOD    ? "dimmed" : "off");
     if (s_display_cb) {
         s_display_cb(state);
     }
@@ -621,7 +621,7 @@ static void tone_init(void)
     s_beep_log = (getenv("AOS_SIM_BEEP_LOG") != NULL);
 
     if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0) {
-        printf("[hal] sin audio: %s\n", SDL_GetError());
+        printf("[hal] no audio: %s\n", SDL_GetError());
         return;
     }
 
@@ -635,7 +635,7 @@ static void tone_init(void)
 
     s_audio = SDL_OpenAudioDevice(NULL, 0, &want, NULL, 0);
     if (s_audio == 0) {
-        printf("[hal] no se pudo abrir el audio: %s\n", SDL_GetError());
+        printf("[hal] could not open the audio device: %s\n", SDL_GetError());
         return;
     }
     SDL_PauseAudioDevice(s_audio, 0);
@@ -711,7 +711,7 @@ bool aos_hal_player_play(const char *path)
     s_player_pos_ms = 0;
     s_player_last_ms = aos_hal_uptime_ms();
     s_player_state = AOS_PLAYER_PLAYING;
-    printf("[hal] reproduciendo %s (%u s)\n", path, (unsigned)s_player_duration);
+    printf("[hal] playing %s (%u s)\n", path, (unsigned)s_player_duration);
     return true;
 }
 
@@ -771,16 +771,16 @@ static int  s_media_track;
 static uint64_t s_media_started_ms;
 
 static const struct { const char *title, *artist, *album; uint32_t len; } MEDIA[] = {
-    { "Cancion de cuna",  "Los Simulados", "Pruebas",   214 },
-    { "Segundo tema",     "Los Simulados", "Pruebas",   187 },
-    { "Instrumental",     "Otra Banda",    "En vivo",   301 },
+    { "Lullaby",          "The Simulated", "Test Runs", 214 },
+    { "Second Track",     "The Simulated", "Test Runs", 187 },
+    { "Instrumental",     "Another Band",  "Live",      301 },
 };
 #define MEDIA_COUNT ((int)(sizeof(MEDIA) / sizeof(MEDIA[0])))
 
 void aos_hal_media_enable(bool enable)
 {
     s_media_enabled = enable;
-    printf("[hal] control de medios %s\n", enable ? "encendido" : "apagado");
+    printf("[hal] media control %s\n", enable ? "on" : "off");
 }
 
 bool aos_hal_media_enabled(void)
@@ -799,7 +799,7 @@ aos_media_link_t aos_hal_media_link(void)
 
 const char *aos_hal_media_peer(void)
 {
-    return aos_hal_media_link() == AOS_MEDIA_CONNECTED ? "iPhone simulado" : "";
+    return aos_hal_media_link() == AOS_MEDIA_CONNECTED ? "simulated iPhone" : "";
 }
 
 const char *aos_hal_media_player(void)
@@ -850,7 +850,7 @@ bool aos_hal_media_command(aos_media_cmd_t cmd)
         aos_hal_volume_set(aos_hal_volume_get() - 5);
         break;
     }
-    printf("[hal] comando de medios %d\n", (int)cmd);
+    printf("[hal] media command %d\n", (int)cmd);
     return true;
 }
 
@@ -880,28 +880,28 @@ static const struct {
     bool silent, can_act;
 } FALSAS[] = {
     { AOS_NOTIF_SOCIAL, "WhatsApp", "Mariana",
-      "\xC2\xBFVamos a comer algo? \xF0\x9F\x8D\x95 Te espero a las nueve",
+      "Shall we go and eat something? \xF0\x9F\x8D\x95 See you at nine",
       false, false },
-    { AOS_NOTIF_CALL_INCOMING, "Telefono", "Papa",
-      "Llamada entrante", false, true },
-    { AOS_NOTIF_EMAIL, "Mail", "Facturacion \xE2\x80\x94 Vencimiento",
-      "Su factura del mes vence el 15. \xE2\x80\x9CNo responder a este "
-      "correo\xE2\x80\x9D, dice abajo, como siempre.", false, true },
-    { AOS_NOTIF_SCHEDULE, "Calendario", "Reunion en 15 minutos",
-      "Revision del firmware \xE2\x80\x93 sala chica", false, false },
-    { AOS_NOTIF_NEWS, "Noticias", "Ultimo momento",
-      "Una noticia que probablemente no querias, para probar el filtro por "
-      "categoria.", false, false },
-    { AOS_NOTIF_SOCIAL, "Instagram", "te etiquetaron",
-      "\xF0\x9F\x93\xB8 alguien te etiqueto en una foto", true, false },
-    { AOS_NOTIF_CALL_MISSED, "Telefono", "Llamada perdida",
-      "Mariana \xC2\xB7 hace 2 minutos", false, false },
-    { AOS_NOTIF_OTHER, "Sistema", "Un titulo bastante largo para ver como se "
-      "porta la pantalla completa",
-      "Y un mensaje todavia mas largo, con varias oraciones, para verificar "
-      "que el texto se corta donde tiene que cortarse y no se derrama fuera "
-      "de los 368 pixeles de ancho que tiene esta pantalla. Tiene que entrar "
-      "o recortarse con elegancia, no desbordarse.", false, false },
+    { AOS_NOTIF_CALL_INCOMING, "Phone", "Dad",
+      "Incoming call", false, true },
+    { AOS_NOTIF_EMAIL, "Mail", "Billing \xE2\x80\x94 Payment due",
+      "Your monthly invoice is due on the 15th. \xE2\x80\x9C" "Do not reply "
+      "to this email\xE2\x80\x9D, it says at the bottom, as always.", false, true },
+    { AOS_NOTIF_SCHEDULE, "Calendar", "Meeting in 15 minutes",
+      "Firmware review \xE2\x80\x93 small room", false, false },
+    { AOS_NOTIF_NEWS, "News", "Breaking",
+      "A piece of news you probably did not want, to test the filter by "
+      "category.", false, false },
+    { AOS_NOTIF_SOCIAL, "Instagram", "you were tagged",
+      "\xF0\x9F\x93\xB8 someone tagged you in a photo", true, false },
+    { AOS_NOTIF_CALL_MISSED, "Phone", "Missed call",
+      "Mariana \xC2\xB7 2 minutes ago", false, false },
+    { AOS_NOTIF_OTHER, "System", "A fairly long title, to see how the "
+      "full screen behaves",
+      "And a message longer still, with several sentences, to verify that the "
+      "text is cut where it has to be cut and does not spill outside the 368 "
+      "pixels of width this screen has. It has to fit, or be clipped "
+      "gracefully, not overflow.", false, false },
 };
 #define FALSAS_COUNT ((int)(sizeof(FALSAS) / sizeof(FALSAS[0])))
 
@@ -927,11 +927,11 @@ static void empujar_falsa(int i, bool pre_existing)
     snprintf(n.message, sizeof(n.message), "%s", FALSAS[i].msg);
 
     bool acepto = aos_notif_push(&n);
-    printf("[hal] notificacion #%u %s: %s / %s%s\n",
+    printf("[hal] notification #%u %s: %s / %s%s\n",
            (unsigned)n.uid,
-           acepto ? (n.pre_existing ? "guardada (ya estaba)" : "aceptada")
-                  : "DESCARTADA por el filtro",
-           n.app, n.title, n.silent ? "  (silenciosa)" : "");
+           acepto ? (n.pre_existing ? "stored (was already there)" : "accepted")
+                  : "DROPPED by the filter",
+           n.app, n.title, n.silent ? "  (silent)" : "");
 }
 
 /* Called by the simulator's 'n' key. */
@@ -939,7 +939,7 @@ void aos_hal_sim_notificacion(void)
 {
     static int i;
     if (aos_hal_bt_state() != AOS_BT_CONNECTED) {
-        printf("[hal] no hay telefono conectado: la notificacion no llega\n");
+        printf("[hal] no phone connected: the notification does not arrive\n");
         return;
     }
     empujar_falsa(i++, false);
@@ -950,7 +950,7 @@ void aos_hal_sim_notificacion(void)
 void aos_hal_sim_rafaga(void)
 {
     if (aos_hal_bt_state() != AOS_BT_CONNECTED) {
-        printf("[hal] no hay telefono conectado\n");
+        printf("[hal] no phone connected\n");
         return;
     }
     for (int k = 0; k < 5; k++) {
@@ -962,10 +962,10 @@ void aos_hal_sim_rafaga(void)
 void aos_hal_sim_notificaciones_previas(void)
 {
     if (aos_hal_bt_state() != AOS_BT_CONNECTED) {
-        printf("[hal] no hay telefono conectado\n");
+        printf("[hal] no phone connected\n");
         return;
     }
-    printf("[hal] el telefono vuelca lo que ya tenia pendiente\n");
+    printf("[hal] the phone dumps what it already had pending\n");
     for (int i = 0; i < 4; i++) {
         empujar_falsa(i, true);
     }
@@ -984,7 +984,7 @@ void aos_hal_bt_enable(bool on)
         aos_notif_reset_pending();
     }
     aos_hal_pref_set_i32("bt_on", on ? 1 : 0);
-    printf("[hal] bluetooth %s\n", on ? "encendido" : "apagado");
+    printf("[hal] bluetooth %s\n", on ? "on" : "off");
 }
 
 bool aos_hal_bt_enabled(void)
@@ -1012,7 +1012,7 @@ aos_bt_state_t aos_hal_bt_state(void)
 
 const char *aos_hal_bt_peer(void)
 {
-    return aos_hal_bt_state() == AOS_BT_CONNECTED ? "iPhone simulado" : "";
+    return aos_hal_bt_state() == AOS_BT_CONNECTED ? "simulated iPhone" : "";
 }
 
 bool aos_hal_bt_phone_battery(int *percent)
@@ -1041,7 +1041,7 @@ void aos_hal_bt_forget(void)
     s_bt_on_ms = aos_hal_uptime_ms();
     aos_hal_pref_set_i32("bt_bond", 0);
     aos_notif_reset_pending();
-    printf("[hal] telefono olvidado\n");
+    printf("[hal] phone forgotten\n");
 }
 
 void aos_hal_bt_pair_begin(void)
@@ -1052,7 +1052,7 @@ void aos_hal_bt_pair_begin(void)
     s_bt_pairing   = true;
     s_bt_pair_code = 0;
     s_bt_pair_ms   = aos_hal_uptime_ms();
-    printf("[hal] esperando que el telefono pida emparejarse...\n");
+    printf("[hal] waiting for the phone to ask to pair...\n");
 }
 
 uint32_t aos_hal_bt_pair_code(void)
@@ -1064,7 +1064,7 @@ uint32_t aos_hal_bt_pair_code(void)
      * seen. */
     if (!s_bt_pair_code && aos_hal_uptime_ms() - s_bt_pair_ms > 1500) {
         s_bt_pair_code = 100000 + (uint32_t)(aos_hal_uptime_ms() % 900000);
-        printf("[hal] el telefono muestra el codigo %06u\n",
+        printf("[hal] the phone shows the code %06u\n",
                (unsigned)s_bt_pair_code);
     }
     return s_bt_pair_code;
@@ -1075,13 +1075,13 @@ void aos_hal_bt_pair_confirm(bool accept)
     s_bt_pairing   = false;
     s_bt_pair_code = 0;
     if (!accept) {
-        printf("[hal] emparejamiento rechazado\n");
+        printf("[hal] pairing rejected\n");
         return;
     }
     s_bt_bonded = true;
     s_bt_on_ms  = aos_hal_uptime_ms();
     aos_hal_pref_set_i32("bt_bond", 1);
-    printf("[hal] emparejado con el telefono\n");
+    printf("[hal] paired with the phone\n");
 }
 
 void aos_hal_bt_pair_cancel(void)
@@ -1091,8 +1091,8 @@ void aos_hal_bt_pair_cancel(void)
 
 bool aos_hal_notif_action(uint32_t uid, bool positive)
 {
-    printf("[hal] accion %s sobre la notificacion #%u\n",
-           positive ? "positiva (atender / aceptar)" : "negativa (cortar / descartar)",
+    printf("[hal] %s action on notification #%u\n",
+           positive ? "positive (answer / accept)" : "negative (hang up / dismiss)",
            (unsigned)uid);
     aos_notif_push_removed(uid);
     return true;
@@ -1212,7 +1212,7 @@ static int mic_synth_block(int16_t *buffer, int samples)
         const char *env = getenv("MIC_TONE");
         tone_hz = env ? (float)atof(env) : 0.0f;
         if (tone_hz > 0.0f) {
-            printf("[hal] microfono sintetico: tono de %.1f Hz\n", tone_hz);
+            printf("[hal] synthetic microphone: %.1f Hz tone\n", tone_hz);
         }
     }
 
@@ -1340,7 +1340,7 @@ bool aos_hal_rec_start(const char *path, uint32_t sample_rate)
 
     s_rec_file = fopen(path, "wb");
     if (!s_rec_file) {
-        printf("[hal] no se pudo crear %s\n", path);
+        printf("[hal] could not create %s\n", path);
         return false;
     }
 
@@ -1362,7 +1362,7 @@ bool aos_hal_rec_start(const char *path, uint32_t sample_rate)
     s_rec_state   = AOS_REC_RECORDING;
 
     rec_header_write(s_rec_file, s_rec_rate, 0);
-    printf("[hal] grabando en %s (%u Hz)\n", path, (unsigned)s_rec_rate);
+    printf("[hal] recording into %s (%u Hz)\n", path, (unsigned)s_rec_rate);
     return true;
 }
 
@@ -1389,7 +1389,7 @@ bool aos_hal_rec_stop(void)
         rec_header_write(s_rec_file, s_rec_rate, s_rec_bytes);
         fclose(s_rec_file);
         s_rec_file = NULL;
-        printf("[hal] grabacion cerrada: %s (%u bytes)\n",
+        printf("[hal] recording closed: %s (%u bytes)\n",
                s_rec_path, (unsigned)s_rec_bytes);
     }
     s_rec_state = AOS_REC_IDLE;
@@ -1473,7 +1473,7 @@ bool aos_hal_mic_open(uint32_t sample_rate)
         s_rec_last_ms = aos_hal_uptime_ms();
     }
     s_mic_open = true;
-    printf("[hal] microfono abierto (%u Hz)\n", (unsigned)s_mic_rate);
+    printf("[hal] microphone open (%u Hz)\n", (unsigned)s_mic_rate);
     return true;
 }
 
@@ -1724,7 +1724,7 @@ static void scan_advance(void)
             fclose(s_scan_file);
             s_scan_file = NULL;
         }
-        printf("[hal] barrido sintetico terminado: %s\n", s_scan_path);
+        printf("[hal] synthetic scan finished: %s\n", s_scan_path);
     }
 }
 
@@ -1750,7 +1750,7 @@ bool aos_hal_scan_start(uint32_t flags)
     if (s_scan_file) {
         fprintf(s_scan_file,
                 "{\"t\":\"inicio\",\"fecha\":\"%04d-%02d-%02d %02d:%02d\","
-                "\"ssid\":\"simulador\",\"ip\":\"192.168.1.50\","
+                "\"ssid\":\"simulator\",\"ip\":\"192.168.1.50\","
                 "\"mascara\":\"255.255.255.0\",\"rssi\":-54}\n",
                 t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min);
         fflush(s_scan_file);
@@ -1764,7 +1764,7 @@ bool aos_hal_scan_start(uint32_t flags)
     s_scan_escritos_wifi = s_scan_escritos_host = s_scan_escritos_port = 0;
     s_scan_escritos_nombre = 0;
     s_scan_fin_escrito = false;
-    printf("[hal] barrido sintetico en %s\n", s_scan_path);
+    printf("[hal] synthetic scan into %s\n", s_scan_path);
     return true;
 }
 
@@ -1803,7 +1803,7 @@ bool aos_hal_scan_status(aos_scan_status_t *out)
 }
 
 aos_net_state_t aos_hal_net_state(void) { return AOS_NET_CONNECTED; }
-const char *aos_hal_net_ssid(void)      { return "simulador"; }
+const char *aos_hal_net_ssid(void)      { return "simulator"; }
 int         aos_hal_net_rssi(void)      { return -54; }
 const char *aos_hal_net_ip(void)        { return "127.0.0.1"; }
 bool        aos_hal_net_sync_time(void) { return true; }
@@ -1947,7 +1947,7 @@ void aos_hal_heap_info(uint32_t *free_internal, uint32_t *free_psram)
     if (free_psram)    *free_psram    = 6 * 1024 * 1024;
 }
 
-const char *aos_hal_board_name(void)       { return "simulador SDL"; }
+const char *aos_hal_board_name(void)       { return "SDL simulator"; }
 const char *aos_hal_firmware_version(void) { return "0.1.0-dev"; }
 
 void aos_hal_log(const char *tag, const char *fmt, ...)

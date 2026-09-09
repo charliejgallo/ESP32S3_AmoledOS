@@ -88,7 +88,8 @@ void aos_sim_register_app(bool (*init)(aos_app_t *app))
     if (s_sim_app_count < MAX_SIM_APPS) {
         s_sim_app_inits[s_sim_app_count++] = init;
     } else {
-        printf("[sim] AVISO: no entra otra app de apps/ (tope %d)\n", MAX_SIM_APPS);
+        printf("[sim] WARNING: no room for another app from apps/ (max %d)\n",
+               MAX_SIM_APPS);
     }
 }
 
@@ -102,7 +103,7 @@ static void sim_register_dynamic_apps(void)
         }
     }
     if (s_sim_app_count > 0) {
-        printf("[sim] %d apps de apps/ precargadas\n", s_sim_app_count);
+        printf("[sim] %d apps from apps/ preloaded\n", s_sim_app_count);
     }
 }
 
@@ -206,7 +207,7 @@ static void key_cb(lv_event_t *event)
         aos_lang_t langs[AOS_LANG_MAX];
         int n = aos_i18n_scan(langs, AOS_LANG_MAX);
         if (n < 2) {
-            printf("[sim] no hay packs en sim_fs/lang/\n");
+            printf("[sim] no packs in sim_fs/lang/\n");
             break;
         }
         int cur = 0;
@@ -216,7 +217,7 @@ static void key_cb(lv_event_t *event)
             }
         }
         const char *next = langs[(cur + 1) % n].code;
-        printf("[sim] idioma -> %s\n", next);
+        printf("[sim] language -> %s\n", next);
         aos_ui_request_language(next);
         break;
     }
@@ -450,7 +451,7 @@ static void swipe_start(const char *dir)
     }
 
     s_virtual_down = true;
-    printf("[script] swipe %s desde (%d,%d)\n", dir,
+    printf("[script] swipe %s from (%d,%d)\n", dir,
            (int)s_virtual_point.x, (int)s_virtual_point.y);
 }
 
@@ -470,7 +471,7 @@ static void hold_start(const char *arg)
     s_virtual_point.y = y;
     s_virtual_down = true;
     s_hold_until = aos_hal_uptime_ms() + (uint64_t)ms;
-    printf("[script] hold en (%d,%d) por %d ms\n", x, y, ms);
+    printf("[script] hold at (%d,%d) for %d ms\n", x, y, ms);
 }
 
 /* Tilt from the script: tilt:X,Y with both between -0.5 and 0.5, which is the
@@ -498,7 +499,7 @@ static void tilt_start(const char *arg)
     if (y > 1.0f || y < -1.0f) y /= 100.0f;
 
     aos_hal_sim_set_tilt(x, y);
-    printf("[script] inclinacion %.3f, %.3f\n", (double)x, (double)y);
+    printf("[script] tilt %.3f, %.3f\n", (double)x, (double)y);
 }
 
 static void tap_start(const char *arg)
@@ -514,7 +515,7 @@ static void tap_start(const char *arg)
     s_virtual_point.y = y;
     s_virtual_down = true;
     s_tap_pending = true;
-    printf("[script] tap en (%d,%d)\n", x, y);
+    printf("[script] tap at (%d,%d)\n", x, y);
 }
 
 static void script_tick(uint64_t now_ms)
@@ -596,7 +597,7 @@ static void script_tick(uint64_t now_ms)
         s_script_next_ms = now_ms + 50;
     } else if (strncmp(s_script_cursor, "ms:", 3) == 0) {
         s_script_gap_ms = (uint32_t)atoi(s_script_cursor + 3);
-        printf("[script] separacion entre pasos: %u ms\n",
+        printf("[script] gap between steps: %u ms\n",
                (unsigned)s_script_gap_ms);
         /* besides setting the spacing, it waits: that way "ms:3000,tap" is
          * enough to give something time to connect before the first step */
@@ -608,7 +609,7 @@ static void script_tick(uint64_t now_ms)
         tap_start(s_script_cursor[3] == ':' ? s_script_cursor + 4 : NULL);
         s_script_next_ms = now_ms + 60;
     } else if (s_script_cursor[0] != '\0') {
-        printf("[script] tecla '%s'\n", s_script_cursor);
+        printf("[script] key '%s'\n", s_script_cursor);
         if (s_script_cursor[1] == '\0' && s_script_cursor[0] > ' ' &&
             s_script_cursor[0] < 127) {
             script_push_text(s_script_cursor[0]);
@@ -662,8 +663,8 @@ static void layout_report(lv_obj_t *obj, int depth)
         lv_obj_get_transformed_area(obj, &area, LV_OBJ_POINT_TRANSFORM_FLAG_RECURSIVE);
         int32_t cx = (area.x1 + area.x2) / 2;
         int32_t cy = (area.y1 + area.y2) / 2;
-        printf("  %*s\"%s\"  escala %ld  caja x %ld..%ld  centro x=%ld "
-               "(pantalla %d, desvio %+ld)\n",
+        printf("  %*s\"%s\"  scale %ld  box x %ld..%ld  centre x=%ld "
+               "(screen %d, offset %+ld)\n",
                depth * 2, "", lv_label_get_text(obj), (long)scale,
                (long)area.x1, (long)area.x2, (long)cx,
                AOS_SCREEN_W / 2, (long)(cx - AOS_SCREEN_W / 2));
@@ -710,7 +711,7 @@ static const char *audit_nombre(lv_obj_t *obj)
             }
         }
     }
-    return "(sin texto)";
+    return "(no text)";
 }
 
 static void audit_obj(lv_obj_t *obj, const char *tag)
@@ -763,9 +764,9 @@ static void audit_obj(lv_obj_t *obj, const char *tag)
          * or with hello_app's whole screen. What is reported is the one not
          * leaving enough of a strip for a finger. */
         if (!scrollea && a.y2 > AOS_TOUCH_Y_MAX && vivos < 20) {
-            printf("AUDIT INTOCABLE %s | %s | y %ld..%ld | %s\n", tag,
+            printf("AUDIT UNTOUCHABLE %s | %s | y %ld..%ld | %s\n", tag,
                    audit_nombre(obj), (long)a.y1, (long)a.y2,
-                   vivos <= 0 ? "MUERTO" : "quedan px contados");
+                   vivos <= 0 ? "DEAD" : "only a few px left");
             s_audit_hits++;
         }
     }
@@ -819,7 +820,7 @@ static void audit_obj(lv_obj_t *obj, const char *tag)
             if (lm == LV_LABEL_LONG_MODE_DOTS) {
                 size_t n = strlen(txt);
                 if (n >= 3 && strcmp(txt + n - 3, "...") == 0 && nat.x > w - 12) {
-                    printf("AUDIT PUNTOS  %s | \"%s\" | caja %ldx%ld\n",
+                    printf("AUDIT ELLIPSIS %s | \"%s\" | box %ldx%ld\n",
                            tag, txt, (long)w, (long)h);
                 }
             }
@@ -833,8 +834,8 @@ static void audit_obj(lv_obj_t *obj, const char *tag)
                  * have to be shortened in that language to be understood. That
                  * is why it comes out under a different name and does not add
                  * to the total. */
-                printf("AUDIT %s %s | \"%s\" | caja %ldx%ld texto %ldx%ld\n",
-                       lm == LV_LABEL_LONG_MODE_DOTS ? "PUNTOS " : "CORTADO",
+                printf("AUDIT %s %s | \"%s\" | box %ldx%ld text %ldx%ld\n",
+                       lm == LV_LABEL_LONG_MODE_DOTS ? "ELLIPSIS" : "CLIPPED ",
                        tag, txt, (long)w, (long)h, (long)nat.x, (long)nat.y);
                 if (lm != LV_LABEL_LONG_MODE_DOTS) {
                     s_audit_hits++;
@@ -850,7 +851,7 @@ static void audit_obj(lv_obj_t *obj, const char *tag)
             bool fuera_x = (t.x1 < 0 || t.x2 > AOS_SCREEN_W);
             bool fuera_y = !scroll && (t.y1 < 0 || t.y2 > AOS_SCREEN_H);
             if (fuera_x || fuera_y) {
-                printf("AUDIT AFUERA  %s | \"%s\" | x %ld..%ld y %ld..%ld\n",
+                printf("AUDIT OFFSCREEN %s | \"%s\" | x %ld..%ld y %ld..%ld\n",
                        tag, txt, (long)t.x1, (long)t.x2, (long)t.y1, (long)t.y2);
                 s_audit_hits++;
             }
@@ -869,7 +870,7 @@ static void audit_obj(lv_obj_t *obj, const char *tag)
                  * outside the parent by design. */
                 bool alto  = !scroll && (a.y1 < pa.y1 - 1 || a.y2 > pa.y2 + 1);
                 if (lv_area_get_width(&pa) > 0 && (ancho || alto)) {
-                    printf("AUDIT DESBORDA %s | \"%s\" | label %ld..%ld/%ld..%ld padre %ld..%ld/%ld..%ld\n",
+                    printf("AUDIT OVERFLOW %s | \"%s\" | label %ld..%ld/%ld..%ld parent %ld..%ld/%ld..%ld\n",
                            tag, txt, (long)a.x1, (long)a.x2, (long)a.y1, (long)a.y2,
                            (long)pa.x1, (long)pa.x2, (long)pa.y1, (long)pa.y2);
                     s_audit_hits++;
@@ -888,25 +889,25 @@ static void audit_run(const char *tag)
 {
     s_audit_hits = 0;
     audit_obj(lv_screen_active(), tag);
-    printf("AUDIT FIN %s | %d problemas\n", tag, s_audit_hits);
+    printf("AUDIT END %s | %d problems\n", tag, s_audit_hits);
 }
 
 static void print_help(void)
 {
-    printf("\n  AmoledOS - simulador\n"
+    printf("\n  AmoledOS - simulator\n"
            "  ---------------------------------------------------------\n"
-           "  mouse: arrastrar arriba = menu, arrastrar derecha = volver\n"
-           "  ESC / backspace / flecha izquierda ... volver\n"
-           "  H / tecla Inicio ................... reloj\n"
-           "  M / flecha arriba .................. menu de apps\n"
-           "  L / G / P .......................... menu lista/grilla/panal\n"
-           "  1..9 ............................... abrir la app N\n"
-           "  W .................................. cambiar esfera\n"
-"  T .................................. rotar idioma\n"
-           "  A .................................. modo atenuado (always-on)\n"
-           "  I .................................. postura de la placa (IMU)\n"
-           "  ESPACIO ............................ boton lateral (BOOT)\n"
-           "  mouse .............................. inclinacion (acelerometro)\n"
+           "  mouse: drag up = menu, drag right = back\n"
+           "  ESC / backspace / left arrow ....... back\n"
+           "  H / Home key ....................... watch\n"
+           "  M / up arrow ....................... app menu\n"
+           "  L / G / P .......................... list/grid/honeycomb menu\n"
+           "  1..9 ............................... open app N\n"
+           "  W .................................. change watchface\n"
+           "  T .................................. cycle language\n"
+           "  A .................................. dimmed mode (always-on)\n"
+           "  I .................................. board posture (IMU)\n"
+           "  SPACE .............................. side button (BOOT)\n"
+           "  mouse .............................. tilt (accelerometer)\n"
            "  ---------------------------------------------------------\n\n");
 }
 
@@ -983,8 +984,9 @@ int main(void)
          * the last step comes out split ("key 'swip'") and you start looking
          * for the bug in the app. */
         if (strlen(script) >= sizeof(s_script)) {
-            printf("[script] AVISO: el guion tiene %zu caracteres y el maximo "
-                   "son %zu; se corta\n", strlen(script), sizeof(s_script) - 1);
+            printf("[script] WARNING: the script is %zu characters and the "
+                   "maximum is %zu; it gets cut\n",
+                   strlen(script), sizeof(s_script) - 1);
         }
         snprintf(s_script, sizeof(s_script), "%s", script);
         s_script_cursor  = s_script;
@@ -1002,7 +1004,7 @@ int main(void)
             SDL_SetWindowPosition(window, x, y);
         }
         SDL_GetWindowPosition(window, &x, &y);
-        printf("[sim] ventana en %d,%d  (screencapture -R %d,%d,%d,%d)\n",
+        printf("[sim] window at %d,%d  (screencapture -R %d,%d,%d,%d)\n",
                x, y, x, y, AOS_SCREEN_W * ZOOM, AOS_SCREEN_H * ZOOM);
     }
 
@@ -1044,7 +1046,7 @@ int main(void)
 
         if (layout_at && now >= layout_at) {
             layout_at = 0;
-            printf("[layout] textos en pantalla:\n");
+            printf("[layout] on-screen texts:\n");
             layout_report(lv_screen_active(), 0);
         }
 

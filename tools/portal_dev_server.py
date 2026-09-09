@@ -471,7 +471,7 @@ def main():
     for name in DIRS:
         os.makedirs(os.path.join(args.root, name), exist_ok=True)
 
-    print(f"portal de prueba en http://localhost:{args.port}  (raiz {args.root})")
+    print(f"test portal at http://localhost:{args.port}  (root {args.root})")
     HTTPServer(("127.0.0.1", args.port), Handler).serve_forever()
 
 

@@ -14,16 +14,16 @@
 # again.
 set -e
 ROOT=${0:a:h:h}
-HOST=${1:?uso: install_lang.sh <ip-o-nombre> <codigo> [codigo...]}
+HOST=${1:?usage: install_lang.sh <ip-or-name> <code> [code...]}
 shift
 CODES=("$@")
-(( ${#CODES[@]} )) || { echo "falta el codigo de idioma (en, pt, ...)"; exit 1; }
+(( ${#CODES[@]} )) || { echo "the language code is missing (en, pt, ...)"; exit 1; }
 
 for code in $CODES; do
     DIR=$ROOT/sim/sim_fs/lang/$code
-    [[ -d $DIR ]] || { echo "no existe $DIR - genera el pack con gen_lang.py"; exit 1; }
+    [[ -d $DIR ]] || { echo "$DIR does not exist - generate the pack with gen_lang.py"; exit 1; }
     files=($DIR/*(.N))
-    (( ${#files[@]} )) || { echo "$DIR esta vacio"; exit 1; }
+    (( ${#files[@]} )) || { echo "$DIR is empty"; exit 1; }
 
     echo "== $code -> $HOST =="
     total=0
@@ -38,12 +38,12 @@ for code in $CODES; do
             printf "   %-24s %6s B  ok\n" $name $size
             (( total += size ))
         else
-            printf "   %-24s %6s B  FALLO (HTTP %s)\n" $name $size $code_http
+            printf "   %-24s %6s B  FAILED (HTTP %s)\n" $name $size $code_http
             exit 1
         fi
     done
-    echo "   $((${#files[@]})) archivos, $total bytes"
-    echo "   comprobando: $(curl -sS --max-time 10 "http://$HOST/api/list?dir=lang/$code" | head -c 200)"
+    echo "   $((${#files[@]})) files, $total bytes"
+    echo "   checking: $(curl -sS --max-time 10 "http://$HOST/api/list?dir=lang/$code" | head -c 200)"
 done
 echo
-echo "listo. Elegi el idioma en Ajustes > IDIOMA."
+echo "done. Choose the language in Settings > LANGUAGE."

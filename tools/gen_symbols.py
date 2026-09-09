@@ -158,9 +158,9 @@ def collect(nm, archive):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--build", default=os.path.join(ROOT, "build"),
-                        help="carpeta de build de ESP-IDF")
+                        help="ESP-IDF build folder")
     parser.add_argument("--libs", nargs="*", default=DEFAULT_LIBS,
-                        help="componentes a exportar")
+                        help="components to export")
     parser.add_argument("--output",
                         default=os.path.join(ROOT, "components", "aos_dynapp",
                                              "aos_symbols.c"))
@@ -168,7 +168,7 @@ def main():
 
     nm = find_nm()
     if not nm:
-        sys.exit("no encontre xtensa-esp32s3-elf-nm; hace falta 'source ~/esp/esp-idf/export.sh'")
+        sys.exit("xtensa-esp32s3-elf-nm not found; you need 'source ~/esp/esp-idf/export.sh'")
 
     archives = []
     for lib in args.libs:
@@ -179,10 +179,10 @@ def main():
                     archives.append(os.path.join(base, name))
                     found = True
         if not found:
-            print(f"  aviso: no encontre lib{lib}.a, la salteo")
+            print(f"  warning: lib{lib}.a not found, skipping it")
 
     if not archives:
-        sys.exit("no hay librerias para exportar; corre 'idf.py build' primero")
+        sys.exit("no libraries to export; run 'idf.py build' first")
 
     symbols = []
     seen = set()
@@ -221,8 +221,8 @@ def main():
         out.write("    ESP_ELFSYM_END,\n")
         out.write("};\n")
 
-    print(f"{len(symbols)} simbolos exportados en {args.output}")
-    print("ahora corre 'idf.py build' de nuevo")
+    print(f"{len(symbols)} symbols exported into {args.output}")
+    print("now run 'idf.py build' again")
 
 
 if __name__ == "__main__":

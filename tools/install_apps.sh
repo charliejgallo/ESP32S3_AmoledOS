@@ -18,7 +18,7 @@
 # it did not work.
 set -e
 ROOT=${0:a:h:h}
-HOST=${1:?uso: install_apps.sh <ip-o-nombre> [app...]}
+HOST=${1:?usage: install_apps.sh <ip-or-name> [app...]}
 shift
 WANT=("$@")
 
@@ -29,7 +29,7 @@ for d in $ROOT/apps/*(/); do
     so=($d/build/*.so(.N))
     (( ${#so[@]} )) && files+=($so[1])
 done
-(( ${#files[@]} )) || { echo "no encontre .so - corre ./tools/build_apps.sh primero"; exit 1; }
+(( ${#files[@]} )) || { echo "no .so found - run ./tools/build_apps.sh first"; exit 1; }
 
 echo "== ${#files[@]} apps -> $HOST =="
 total=0
@@ -42,11 +42,11 @@ for f in $files; do
         printf "   %-18s %7s B  ok\n" $name $size
         (( total += size ))
     else
-        printf "   %-18s %7s B  FALLO (HTTP %s)\n" $name $size $code
+        printf "   %-18s %7s B  FAILED (HTTP %s)\n" $name $size $code
         exit 1
     fi
 done
-echo "   $total bytes en total"
+echo "   $total bytes in total"
 echo
 # A bare 'python' may be the system's python2, which has no pyserial: the
 # upload succeeds, the restart fails with an ImportError and the board is left
@@ -70,7 +70,7 @@ do
     fi
 done
 
-echo "reiniciando la placa (los .so se cargan al arrancar)..."
+echo "restarting the board (the .so files are loaded at startup)..."
 PORT=$(ls /dev/cu.usbmodem* 2>/dev/null | head -1)
 if [[ -n $PORT && -n $PYBIN ]]; then
     $PYBIN - $PORT <<'PY'
@@ -78,10 +78,10 @@ import sys, time, serial
 s = serial.Serial(sys.argv[1], 115200)
 s.dtr = False; s.rts = True; time.sleep(0.1); s.rts = False
 PY
-    echo "   listo, reiniciada por $PORT"
+    echo "   done, restarted over $PORT"
 elif [[ -n $PORT ]]; then
-    echo "   hay puerto pero ningun python con pyserial (probá 'source ~/esp/esp-idf/export.sh')"
-    echo "   reinicia la placa a mano para que tome los .so nuevos"
+    echo "   there is a port but no python with pyserial (try 'source ~/esp/esp-idf/export.sh')"
+    echo "   restart the board by hand so it picks up the new .so files"
 else
-    echo "   sin puerto serie: reinicia la placa a mano para que tome los .so nuevos"
+    echo "   no serial port: restart the board by hand so it picks up the new .so files"
 fi
