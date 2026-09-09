@@ -332,7 +332,7 @@ static void mirar_respuesta(void)
         aos_hal_log("sensores", "%d bytes, %d de %d con numero", len, buenos, s_sn.n);
     } else {
         s_sn.ultimo_error = estado;
-        aos_hal_log("sensores", "fallo: %d", estado);
+        aos_hal_log("sensores", "failure: %d", estado);
         if (estado == AOS_HTTP_ERR_SIN_HORA) {
             s_sn.retry_ms = (uint32_t)aos_hal_uptime_ms() + 3000;
         }

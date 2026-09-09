@@ -216,7 +216,7 @@ static bool cargar(ch_t *g)
         memcpy(g->s.visto,   v->visto,   sizeof(v->visto));
         aos_hal_log("chatarra", "guardado v2 convertido a v3");
     } else {
-        aos_hal_log("chatarra", "guardado v%u de %u B: no se sabe convertir",
+        aos_hal_log("chatarra", "save v%u of %u B: no known conversion",
                     (unsigned)sv.ver, (unsigned)sv.largo);
         return false;
     }
@@ -261,7 +261,7 @@ static void guardar(ch_t *g)
      * portal uses for 'remoto's profile. */
     f = fopen(tmp, "wb");
     if (!f) {
-        aos_hal_log("chatarra", "no se pudo escribir %s", tmp);
+        aos_hal_log("chatarra", "could not write %s", tmp);
         return;
     }
     fwrite(&sv, 1, sizeof(sv), f);
@@ -493,7 +493,7 @@ static void tick(lv_timer_t *t)
         uint32_t dt = (uint32_t)(ahora - a->prev_ms);
         a->prev_ms = ahora;
         a->fps = (int16_t)(dt ? (int)(a->frames * 1000u / dt) : 0);
-        aos_hal_log("chatarra", "%d fps, %d %% de pantalla",
+        aos_hal_log("chatarra", "%d fps, %d %% of the screen",
                     a->fps, ch_dirty_area(&a->g.d_push) * 100 / (CH_W * CH_H));
         a->frames = 0;
     }
@@ -592,7 +592,7 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
     a->bgmem = (uint16_t *)malloc(chico);
     a->big   = (uint16_t *)malloc(chico * CH_SCALE * CH_SCALE);
     if (!a->fbmem || !a->bgmem || !a->big) {
-        aos_hal_log("chatarra", "sin memoria para los buffers");
+        aos_hal_log("chatarra", "out of memory for the buffers");
         free(a->fbmem); free(a->bgmem); free(a->big);
         lv_free(a);
         return NULL;
@@ -693,7 +693,7 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
             ruta_save(ruta, sizeof(ruta));
             f = fopen(ruta, "wb");
             if (f) { fwrite(&vv, 1, sizeof(vv), f); fclose(f); }
-            aos_hal_log("chatarra", "guardado v2 de prueba escrito (%u B)",
+            aos_hal_log("chatarra", "test v2 save written (%u B)",
                         (unsigned)sizeof(vv));
         }
         if ((v = getenv("CH_FPS")) && v[0])  a->mostrar_fps = 1;

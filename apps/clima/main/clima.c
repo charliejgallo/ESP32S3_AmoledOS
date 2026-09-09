@@ -614,7 +614,7 @@ static void refresh_ui(void)
         uint32_t t0 = (uint32_t)aos_hal_uptime_ms();
         fill_hours();
         fill_days();
-        aos_hal_log("clima", "tira de horas y semana redibujadas en %u ms",
+        aos_hal_log("clima", "hour strip and week redrawn in %u ms",
                     (unsigned)((uint32_t)aos_hal_uptime_ms() - t0));
     }
 

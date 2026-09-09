@@ -873,7 +873,7 @@ static void run_selftest(at_app_t *a)
            "solved=%d (esperado 2,0)\n", col, at_is_solved(&a->board));
     ok = ok && moved && col == 2 && !at_is_solved(&a->board);
 
-    printf("[ATASCO_SELFTEST] %s\n", ok ? "TODO OK" : "FALLO");
+    printf("[ATASCO_SELFTEST] %s\n", ok ? "ALL OK" : "FAILED");
 }
 
 static void *at_create(aos_app_t *self, lv_obj_t *root)

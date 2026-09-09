@@ -243,7 +243,7 @@ static void mic_esperar_cierre(void)
     if (!abierta || ahora - s_af.estado_desde > CERRAR_TIMEOUT) {
         if (abierta) {
             aos_hal_log("afinador",
-                        "la captura sigue abierta (la tiene otro): voy con %u Hz",
+                        "the capture is still open (someone else has it): going with %u Hz",
                         (unsigned)st.sample_rate);
         }
         mic_abrir_ya();
@@ -359,7 +359,7 @@ static void afinar_paso(void)
      * number the simulator cannot give. */
     if (ahora - s_af.ultimo_log > 5000) {
         s_af.ultimo_log = ahora;
-        aos_hal_log("afinador", "NSDF peor %u ms (%u retardos, %d muestras, %u Hz)",
+        aos_hal_log("afinador", "NSDF worst %u ms (%u lags, %d samples, %u Hz)",
                     (unsigned)s_af.analisis_ms_peor,
                     (unsigned)(s_af.rate_real / 30 - s_af.rate_real / 1300),
                     VENTANA, (unsigned)s_af.rate_real);

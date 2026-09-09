@@ -2173,7 +2173,7 @@ static void *g2043_create(aos_app_t *self, lv_obj_t *root)
     a->big = (uint16_t *)malloc((size_t)GX_W * GX_H * GX_SCALE * GX_SCALE *
                                 sizeof(uint16_t));
     if (!a->mem || !a->big) {
-        aos_hal_log("2043", "sin memoria para el canvas de %u B",
+        aos_hal_log("2043", "out of memory for the %u B canvas",
                     (unsigned)((size_t)GX_W * GX_H * sizeof(uint16_t)));
         lv_free(a);
         return NULL;

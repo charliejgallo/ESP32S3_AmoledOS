@@ -1202,7 +1202,7 @@ static void *cjump_create(aos_app_t *self, lv_obj_t *root)
     a->pvbig = (uint16_t *)malloc((size_t)PV_W * PV_H * PV_SCALE * PV_SCALE *
                                   sizeof(uint16_t));
     if (!a->fbmem || !a->bgmem || !a->big || !a->pvmem || !a->pvbig) {
-        aos_hal_log("cjump", "sin memoria para los buffers");
+        aos_hal_log("cjump", "out of memory for the buffers");
         free(a->fbmem);
         free(a->bgmem);
         free(a->big);

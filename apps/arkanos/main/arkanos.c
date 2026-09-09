@@ -827,7 +827,7 @@ static void *arkanos_create(aos_app_t *self, lv_obj_t *root)
     a->bgmem = (uint16_t *)malloc(chico);
     a->big   = (uint16_t *)malloc(chico * AK_SCALE * AK_SCALE);
     if (!a->fbmem || !a->bgmem || !a->big) {
-        aos_hal_log("arkanos", "sin memoria para los buffers (%u B)",
+        aos_hal_log("arkanos", "out of memory for the buffers (%u B)",
                     (unsigned)(chico * (2 + AK_SCALE * AK_SCALE)));
         free(a->fbmem);
         free(a->bgmem);

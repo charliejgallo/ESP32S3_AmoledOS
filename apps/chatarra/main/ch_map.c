@@ -921,13 +921,13 @@ int ch_map_check(void)
     }
     for (int i = 0; i < PIEZAS; i++) {
         if (!ch_partes[i].nombre) {
-            aos_hal_log("chatarra", "la pieza %d no tiene fila", i);
+            aos_hal_log("chatarra", "part %d has no row", i);
             malos++;
         }
     }
     for (int i = 0; i < MOVES; i++) {
         if (!ch_moves[i].nombre) {
-            aos_hal_log("chatarra", "el ataque %d no tiene fila", i);
+            aos_hal_log("chatarra", "attack %d has no row", i);
             malos++;
         }
     }
