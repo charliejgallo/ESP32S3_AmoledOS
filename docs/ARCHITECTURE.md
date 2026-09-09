@@ -23,7 +23,8 @@ components/
   aos_apps/              the 18 built-in apps
   aos_dynapp/            .so loader and symbol table
   aos_ble/               NimBLE: ANCS, AMS, pairing (board only)
-  aos_web/               the web portal, embedded in the binary
+  aos_web/               the web portal, embedded in the binary (files, wifi,
+                         app settings, and the OTA endpoint)
   aos_fonts/             Montserrat with the Latin-1 supplement
   elf_loader/            Espressif's ELF loader (Apache-2.0, vendored)
 

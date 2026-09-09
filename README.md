@@ -212,11 +212,11 @@ Where something is a guess, it says so.
 ## Status
 
 Running on hardware. WiFi, BLE against a real iPhone, audio in and out, the
-microSD, the web portal and TLS have all been exercised on the board — most of
-the measurements quoted throughout the source were taken there.
+microSD, the web portal, TLS and over-the-air updates have all been exercised
+on the board — most of the measurements quoted throughout the source were taken
+there.
 
-Known gaps: MP3 (the player handles 16-bit PCM WAV only) and OTA updates
-through the portal.
+Known gaps: MP3 — the player handles 16-bit PCM WAV only.
 
 ## Licence
 
