@@ -1,9 +1,13 @@
 /*
  * AmoledOS - Alarms.
  *
- * Stored in preferences as integers: minute_of_day | (enabled << 16). The
- * checking lives in aos_alarm_service_tick(), which always runs from the main
- * loop, whether the app is open or not.
+ * Stored in preferences as integers:
+ *     minute_of_day | (enabled << 16) | (days << 17)
+ * 'days' is a mask of seven bits indexed by tm_wday (bit 0 = Sunday). A mask
+ * of 0 -what every alarm stored before the mask existed carries- is read as
+ * every day, so nothing on an old card changes behaviour. The checking lives
+ * in aos_alarm_service_tick(), which always runs from the main loop, whether
+ * the app is open or not.
  */
 #include "aos_apps.h"
 #include "aos_i18n.h"
@@ -18,9 +22,12 @@
 #define KEY_FMT         "alarm%d"
 
 typedef struct {
-    int  minute_of_day;     /* -1 = empty */
-    bool enabled;
+    int     minute_of_day;  /* -1 = empty */
+    bool    enabled;
+    uint8_t days;           /* tm_wday bits; ALL_DAYS = every day */
 } alarm_slot_t;
+
+#define ALL_DAYS 0x7F
 
 static alarm_slot_t s_alarms[MAX_ALARMS];
 static bool         s_loaded;
@@ -33,7 +40,16 @@ static lv_obj_t *s_list;
 static lv_obj_t *s_editor;
 static lv_obj_t *s_roller_h;
 static lv_obj_t *s_roller_m;
+static lv_obj_t *s_day_btn[7];      /* editor, Monday first */
 static int       s_editing = -1;
+
+/* The editor's row goes Monday to Sunday; tm_wday counts from Sunday. */
+static const int DAY_WDAY[7] = { 1, 2, 3, 4, 5, 6, 0 };
+/* The same keys the calendar uses, so one translation serves both. */
+static const char *const DAY_CTX[7]     = { "lun", "mar", "mie", "jue", "vie", "sab", "dom" };
+static const char *const DAY_INITIAL[7] = { NC_("lun", "L"), NC_("mar", "M"), NC_("mie", "M"),
+                                            NC_("jue", "J"), NC_("vie", "V"), NC_("sab", "S"),
+                                            NC_("dom", "D") };
 
 static void alarms_load(void)
 {
@@ -46,10 +62,15 @@ static void alarms_load(void)
         int32_t value = 0;
         if (aos_hal_pref_get_i32(key, &value) && (value & 0xFFFF) != 0xFFFF) {
             s_alarms[i].minute_of_day = value & 0xFFFF;
-            s_alarms[i].enabled       = (value >> 16) != 0;
+            s_alarms[i].enabled       = ((value >> 16) & 1) != 0;
+            s_alarms[i].days          = (uint8_t)((value >> 17) & ALL_DAYS);
+            if (s_alarms[i].days == 0) {
+                s_alarms[i].days = ALL_DAYS;     /* stored before the mask */
+            }
         } else {
             s_alarms[i].minute_of_day = -1;
             s_alarms[i].enabled       = false;
+            s_alarms[i].days          = ALL_DAYS;
         }
     }
     s_loaded = true;
@@ -61,13 +82,15 @@ static void alarm_save(int index)
     snprintf(key, sizeof(key), KEY_FMT, index);
     int32_t value = s_alarms[index].minute_of_day < 0
                   ? 0xFFFF
-                  : (s_alarms[index].minute_of_day | (s_alarms[index].enabled ? 1 << 16 : 0));
+                  : (s_alarms[index].minute_of_day
+                     | (s_alarms[index].enabled ? 1 << 16 : 0)
+                     | ((int32_t)(s_alarms[index].days & ALL_DAYS) << 17));
     aos_hal_pref_set_i32(key, value);
 }
 
 /* -------------------------------------------------------------------------- */
 
-bool aos_alarm_get(int index, int *minute_of_day, bool *enabled)
+bool aos_alarm_get(int index, int *minute_of_day, bool *enabled, int *days)
 {
     if (index < 0 || index >= MAX_ALARMS) {
         return false;
@@ -76,20 +99,26 @@ bool aos_alarm_get(int index, int *minute_of_day, bool *enabled)
     snprintf(key, sizeof(key), KEY_FMT, index);
     int32_t value = 0;
     bool have = aos_hal_pref_get_i32(key, &value) && (value & 0xFFFF) != 0xFFFF;
+    int mask = (int)((value >> 17) & ALL_DAYS);
     if (minute_of_day) *minute_of_day = have ? (int)(value & 0xFFFF) : -1;
-    if (enabled)       *enabled       = have && (value >> 16) != 0;
+    if (enabled)       *enabled       = have && ((value >> 16) & 1) != 0;
+    if (days)          *days          = have ? (mask ? mask : ALL_DAYS) : ALL_DAYS;
     return true;
 }
 
-bool aos_alarm_set(int index, int minute_of_day, bool enabled)
+bool aos_alarm_set(int index, int minute_of_day, bool enabled, int days)
 {
     if (index < 0 || index >= MAX_ALARMS || minute_of_day >= 24 * 60) {
         return false;
     }
+    days &= ALL_DAYS;
+    if (minute_of_day >= 0 && days == 0) {
+        return false;               /* an alarm that never rings is a mistake */
+    }
     char key[16];
     snprintf(key, sizeof(key), KEY_FMT, index);
     int32_t value = minute_of_day < 0 ? 0xFFFF
-                  : (minute_of_day | (enabled ? 1 << 16 : 0));
+                  : (minute_of_day | (enabled ? 1 << 16 : 0) | ((int32_t)days << 17));
     if (!aos_hal_pref_set_i32(key, value)) {
         return false;
     }
@@ -123,7 +152,8 @@ void aos_alarm_service_tick(void)
     }
 
     for (int i = 0; i < MAX_ALARMS; i++) {
-        if (s_alarms[i].enabled && s_alarms[i].minute_of_day == minute_of_day) {
+        if (s_alarms[i].enabled && s_alarms[i].minute_of_day == minute_of_day &&
+            (s_alarms[i].days & (1u << now.tm_wday))) {
             s_last_fired_minute = minute_of_day;
             s_ringing_left = 20;
             char buf[48];
@@ -168,31 +198,77 @@ static void editor_show(bool visible)
     }
 }
 
+static void editor_set_days(uint8_t days)
+{
+    for (int d = 0; d < 7; d++) {
+        if (!s_day_btn[d]) continue;
+        if (days & (1u << DAY_WDAY[d])) {
+            lv_obj_add_state(s_day_btn[d], LV_STATE_CHECKED);
+        } else {
+            lv_obj_remove_state(s_day_btn[d], LV_STATE_CHECKED);
+        }
+    }
+}
+
+static uint8_t editor_get_days(void)
+{
+    uint8_t days = 0;
+    for (int d = 0; d < 7; d++) {
+        if (s_day_btn[d] && lv_obj_has_state(s_day_btn[d], LV_STATE_CHECKED)) {
+            days |= (uint8_t)(1u << DAY_WDAY[d]);
+        }
+    }
+    return days;
+}
+
+static void editor_open(int index, int hour, int minute, uint8_t days)
+{
+    s_editing = index;
+    lv_roller_set_selected(s_roller_h, (uint32_t)hour, LV_ANIM_OFF);
+    lv_roller_set_selected(s_roller_m, (uint32_t)minute, LV_ANIM_OFF);
+    editor_set_days(days);
+    editor_show(true);
+}
+
 static void add_cb(lv_event_t *event)
 {
     (void)event;
     for (int i = 0; i < MAX_ALARMS; i++) {
         if (s_alarms[i].minute_of_day < 0) {
-            s_editing = i;
             struct tm now;
             aos_hal_time_now(&now);
-            lv_roller_set_selected(s_roller_h, (uint32_t)now.tm_hour, LV_ANIM_OFF);
-            lv_roller_set_selected(s_roller_m, 0, LV_ANIM_OFF);
-            editor_show(true);
+            editor_open(i, now.tm_hour, 0, ALL_DAYS);
             return;
         }
     }
     aos_ui_toast(_("No hay lugar para mas alarmas"), 1600);
 }
 
+/* Tapping the time of an alarm reopens it in the editor. */
+static void edit_cb(lv_event_t *event)
+{
+    int index = (int)(intptr_t)lv_event_get_user_data(event);
+    if (s_alarms[index].minute_of_day < 0) {
+        return;
+    }
+    editor_open(index, s_alarms[index].minute_of_day / 60,
+                s_alarms[index].minute_of_day % 60, s_alarms[index].days);
+}
+
 static void save_cb(lv_event_t *event)
 {
     (void)event;
     if (s_editing >= 0) {
+        uint8_t days = editor_get_days();
+        if (days == 0) {
+            aos_ui_toast(_("Elegi al menos un dia"), 1600);
+            return;
+        }
         int hour   = (int)lv_roller_get_selected(s_roller_h);
         int minute = (int)lv_roller_get_selected(s_roller_m);
         s_alarms[s_editing].minute_of_day = hour * 60 + minute;
         s_alarms[s_editing].enabled = true;
+        s_alarms[s_editing].days = days;
         alarm_save(s_editing);
         s_editing = -1;
     }
@@ -233,7 +309,29 @@ static void rebuild_list(void)
         snprintf(buf, sizeof(buf), "%02d:%02d",
                  s_alarms[i].minute_of_day / 60, s_alarms[i].minute_of_day % 60);
         lv_obj_t *label = aos_label(row, buf, aos_font_title, AOS_C_TEXT);
-        lv_obj_align(label, LV_ALIGN_LEFT_MID, 18, 0);
+        lv_obj_align(label, LV_ALIGN_LEFT_MID, 18, -9);
+        lv_obj_add_flag(label, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_ext_click_area(label, 10);
+        lv_obj_add_event_cb(label, edit_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
+
+        /* The days, as initials, or a word when it is all of them. */
+        char days_txt[40];
+        if ((s_alarms[i].days & ALL_DAYS) == ALL_DAYS) {
+            snprintf(days_txt, sizeof(days_txt), "%s", _("todos los dias"));
+        } else {
+            char *p = days_txt;
+            for (int d = 0; d < 7; d++) {
+                if (s_alarms[i].days & (1u << DAY_WDAY[d])) {
+                    p += snprintf(p, sizeof(days_txt) - (p - days_txt), "%s%s",
+                                  p == days_txt ? "" : " ",
+                                  C_(DAY_CTX[d], DAY_INITIAL[d]));
+                }
+            }
+            if (p == days_txt) days_txt[0] = '\0';
+        }
+        lv_obj_t *days_lbl = aos_label(row, days_txt, aos_font_small,
+                                       s_alarms[i].enabled ? AOS_C_ACCENT : AOS_C_DIM);
+        lv_obj_align(days_lbl, LV_ALIGN_LEFT_MID, 18, 16);
 
         lv_obj_t *sw = lv_switch_create(row);
         lv_obj_set_size(sw, 56, 30);
@@ -332,6 +430,25 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     lv_obj_set_style_bg_color(s_roller_m, AOS_C_CARD2, LV_PART_SELECTED);
     lv_obj_align(s_roller_m, LV_ALIGN_TOP_MID, 70, 60);
 
+    /* Seven toggles, Monday to Sunday, between the rollers and the buttons.
+     * Plain LVGL buttons with CHECKABLE: pressed feedback comes from the
+     * checked state's colour, no transform, no layer. */
+    for (int d = 0; d < 7; d++) {
+        lv_obj_t *b = lv_button_create(s_editor);
+        lv_obj_remove_style_all(b);
+        lv_obj_set_size(b, 40, 40);
+        lv_obj_set_style_radius(b, 20, 0);
+        lv_obj_set_style_bg_opa(b, LV_OPA_COVER, 0);
+        lv_obj_set_style_bg_color(b, AOS_C_CARD2, 0);
+        lv_obj_set_style_bg_color(b, AOS_C_ACCENT, LV_STATE_CHECKED);
+        lv_obj_add_flag(b, LV_OBJ_FLAG_CHECKABLE);
+        lv_obj_align(b, LV_ALIGN_TOP_MID, (d - 3) * 46, 200);
+        lv_obj_t *l = aos_label(b, C_(DAY_CTX[d], DAY_INITIAL[d]), aos_font_body, AOS_C_TEXT);
+        lv_obj_center(l);
+        lv_obj_remove_flag(l, LV_OBJ_FLAG_CLICKABLE);
+        s_day_btn[d] = b;
+    }
+
     lv_obj_t *save = aos_button(s_editor, _("Guardar"), AOS_C_GREEN, save_cb, NULL);
     lv_obj_set_size(save, 140, 60);
     lv_obj_align(save, LV_ALIGN_BOTTOM_LEFT, 26, -24);
@@ -350,6 +467,7 @@ static void destroy(aos_app_t *self, void *inst)
     s_list = NULL;
     s_editor = NULL;
     s_editing = -1;
+    for (int d = 0; d < 7; d++) s_day_btn[d] = NULL;
 }
 
 static bool back(aos_app_t *self, void *inst)

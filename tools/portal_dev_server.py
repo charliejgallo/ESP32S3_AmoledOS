@@ -392,8 +392,10 @@ class Handler(BaseHTTPRequestHandler):
             for i in range(6):
                 v = int(d.get(f"alarm{i}", 0xFFFF) or 0xFFFF)
                 vacia = (v & 0xFFFF) == 0xFFFF
+                dias = (v >> 17) & 0x7F
                 lista.append({"i": i, "minuto": -1 if vacia else v & 0xFFFF,
-                              "on": (not vacia) and (v >> 16) != 0})
+                              "on": (not vacia) and ((v >> 16) & 1) != 0,
+                              "dias": dias or 0x7F})
             self._send(200, json.dumps({"alarmas": lista}))
 
         elif url.path == "/api/status":
@@ -579,9 +581,10 @@ class Handler(BaseHTTPRequestHandler):
             i = int((campos.get("i") or ["-1"])[0])
             minuto = int((campos.get("minuto") or ["-1"])[0])
             on = (campos.get("on") or ["0"])[0] == "1"
-            if not 0 <= i < 6 or minuto >= 1440:
+            dias = int((campos.get("dias") or ["127"])[0]) & 0x7F
+            if not 0 <= i < 6 or minuto >= 1440 or (minuto >= 0 and dias == 0):
                 return self._send(400, "alarma invalida", "text/plain; charset=utf-8")
-            v = 0xFFFF if minuto < 0 else (minuto | (1 << 16 if on else 0))
+            v = 0xFFFF if minuto < 0 else (minuto | (1 << 16 if on else 0) | (dias << 17))
             prefs_escribir(self.base, {f"alarm{i}": v})
             print(f"  alarma {i}: {minuto} {'on' if on else 'off'}")
             return self._send(200, '{"ok":true}')

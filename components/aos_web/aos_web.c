@@ -2387,20 +2387,22 @@ static esp_err_t alarmas_page_handler(httpd_req_t *req)
 /* GET /api/alarmas: the six slots. Empty ones come with minuto -1. */
 static esp_err_t alarmas_get_handler(httpd_req_t *req)
 {
-    char json[AOS_ALARM_MAX * 40 + 24];
+    char json[AOS_ALARM_MAX * 52 + 24];
     int n = snprintf(json, sizeof(json), "{\"alarmas\":[");
     for (int i = 0; i < AOS_ALARM_MAX; i++) {
-        int minuto = -1; bool on = false;
-        aos_alarm_get(i, &minuto, &on);
-        n += snprintf(json + n, sizeof(json) - n, "%s{\"i\":%d,\"minuto\":%d,\"on\":%s}",
-                      i ? "," : "", i, minuto, on ? "true" : "false");
+        int minuto = -1, dias = 0x7F; bool on = false;
+        aos_alarm_get(i, &minuto, &on, &dias);
+        n += snprintf(json + n, sizeof(json) - n,
+                      "%s{\"i\":%d,\"minuto\":%d,\"on\":%s,\"dias\":%d}",
+                      i ? "," : "", i, minuto, on ? "true" : "false", dias);
     }
     snprintf(json + n, sizeof(json) - n, "]}");
     httpd_resp_set_type(req, "application/json");
     return httpd_resp_sendstr(req, json);
 }
 
-/* POST /api/alarmas: i=N&minuto=M&on=0|1, or i=N&minuto=-1 to clear. */
+/* POST /api/alarmas: i=N&minuto=M&on=0|1&dias=MASK (tm_wday bits), or
+ * i=N&minuto=-1 to clear. */
 static esp_err_t alarmas_post_handler(httpd_req_t *req)
 {
     char body[96];
@@ -2408,13 +2410,14 @@ static esp_err_t alarmas_post_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
     char v[16];
-    int i = -1, minuto = -1, on = 0;
+    int i = -1, minuto = -1, on = 0, dias = 0x7F;
     if (httpd_query_key_value(body, "i", v, sizeof(v)) == ESP_OK)      i = atoi(v);
     if (httpd_query_key_value(body, "minuto", v, sizeof(v)) == ESP_OK) minuto = atoi(v);
     if (httpd_query_key_value(body, "on", v, sizeof(v)) == ESP_OK)     on = atoi(v);
-    bool ok = aos_alarm_set(i, minuto, on != 0);
-    ESP_LOGI(TAG, "alarm %d from the portal: %d %s -> %s", i, minuto, on ? "on" : "off",
-             ok ? "ok" : "rejected");
+    if (httpd_query_key_value(body, "dias", v, sizeof(v)) == ESP_OK)   dias = atoi(v);
+    bool ok = aos_alarm_set(i, minuto, on != 0, dias);
+    ESP_LOGI(TAG, "alarm %d from the portal: %d %s days=0x%02x -> %s", i, minuto,
+             on ? "on" : "off", dias & 0x7F, ok ? "ok" : "rejected");
     if (!ok) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "alarma invalida");
         return ESP_FAIL;

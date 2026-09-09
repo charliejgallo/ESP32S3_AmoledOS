@@ -38,8 +38,10 @@ void aos_alarm_service_tick(void);
  * which is what refreshes the app's list if it is open. Both are safe from
  * any task: they touch NVS, not the table the service checks. */
 #define AOS_ALARM_MAX 6
-bool aos_alarm_get(int index, int *minute_of_day, bool *enabled);
-bool aos_alarm_set(int index, int minute_of_day, bool enabled);
+/* 'days' is a seven-bit mask indexed by tm_wday (bit 0 = Sunday); 0x7F is
+ * every day. set() refuses a live alarm with no day at all. */
+bool aos_alarm_get(int index, int *minute_of_day, bool *enabled, int *days);
+bool aos_alarm_set(int index, int minute_of_day, bool enabled, int days);
 
 #ifdef __cplusplus
 }

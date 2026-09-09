@@ -13,13 +13,21 @@
   .ajuste .texto b { font-size: 13px; color: var(--dim); font-weight: 500; }
   .ajuste button.chica { color: var(--red); background: var(--card2); }
   #agregar { margin-top: 12px; }
+  .ajuste.alarma { flex-wrap: wrap; }
+  .dias { display: flex; gap: 5px; width: 100%; margin-top: 2px; }
+  .dias button {
+    width: 34px; height: 34px; padding: 0; border-radius: 17px; font-size: 13px;
+    background: var(--card2); color: var(--dim);
+  }
+  .dias button.on { background: var(--accent); color: #fff; }
+  .dias .todos { margin-left: auto; width: auto; padding: 0 12px; font-size: 12.5px; border-radius: 17px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top"><h1 data-t="titulo">Alarmas</h1></div>
   <p class="sub" data-t="bajada">Las mismas seis que la app Alarmas del reloj.
-     Suenan todos los días a esa hora mientras estén encendidas; el cambio se
+     Suenan a esa hora los días marcados mientras estén encendidas; el cambio se
      guarda al soltar el control y la app, si está abierta, se redibuja sola.</p>
 
   <nav class="paginas"></nav>
@@ -30,8 +38,8 @@
   <p class="sub" id="lleno" hidden style="margin-top:10px" data-t="lleno">Ya están las seis. Borrá una para agregar otra.</p>
 
   <div class="aviso" data-t="nota">La alarma suena 20 pitidos por el parlante y
-    enciende la pantalla, con la app que esté abierta. No hay repetición por
-    día de la semana: es diaria o está apagada.</div>
+    enciende la pantalla, con la app que esté abierta. Sin ningún día marcado
+    no se puede guardar: una alarma que nunca suena es un error.</div>
 </div>
 <div id="brindis"></div>
 
@@ -40,25 +48,28 @@
 const TR = {
   en: {
     titulo: "Alarms",
-    bajada: "The same six as the watch's Alarms app. They ring every day at that time while enabled; a change is saved when you release the control, and the app redraws itself if it is open.",
+    bajada: "The same six as the watch's Alarms app. They ring at that time on the marked days while enabled; a change is saved when you release the control, and the app redraws itself if it is open.",
     ninguna: "No alarms. Add one.", b_agregar: "Add alarm",
     lleno: "All six are in use. Delete one to add another.",
-    nota: "An alarm rings 20 beeps through the speaker and turns the screen on, whatever app is open. There is no per-weekday repeat: it is daily, or off.",
+    nota: "An alarm rings 20 beeps through the speaker and turns the screen on, whatever app is open. With no day marked it cannot be saved: an alarm that never rings is a mistake.",
     alarma: "Alarm %n", borrar: "delete", guardado: "saved", fallo: "failed: ",
+    dias: "M,T,W,T,F,S,S", todos: "every day", laborables: "weekdays", finde: "weekend",
     confirmar: "Delete the %s alarm?", sin_conexion: "no connection to the watch"
   },
   de: {
     titulo: "Wecker",
-    bajada: "Dieselben sechs wie in der Wecker-App der Uhr. Sie klingeln jeden Tag zu dieser Zeit, solange sie an sind; eine Aenderung wird beim Loslassen gespeichert, und die App zeichnet sich neu, wenn sie offen ist.",
+    bajada: "Dieselben sechs wie in der Wecker-App der Uhr. Sie klingeln zu dieser Zeit an den markierten Tagen, solange sie an sind; eine Aenderung wird beim Loslassen gespeichert, und die App zeichnet sich neu, wenn sie offen ist.",
     ninguna: "Keine Wecker. Leg einen an.", b_agregar: "Wecker hinzufuegen",
     lleno: "Alle sechs sind belegt. Loesche einen, um einen weiteren anzulegen.",
-    nota: "Ein Wecker piept 20-mal ueber den Lautsprecher und schaltet den Bildschirm ein, egal welche App offen ist. Keine Wiederholung nach Wochentag: taeglich oder aus.",
+    nota: "Ein Wecker piept 20-mal ueber den Lautsprecher und schaltet den Bildschirm ein, egal welche App offen ist. Ohne markierten Tag laesst er sich nicht speichern: ein Wecker, der nie klingelt, ist ein Fehler.",
     alarma: "Wecker %n", borrar: "loeschen", guardado: "gespeichert", fallo: "fehlgeschlagen: ",
+    dias: "M,D,M,D,F,S,S", todos: "jeden Tag", laborables: "werktags", finde: "Wochenende",
     confirmar: "Wecker %s loeschen?", sin_conexion: "keine Verbindung zur Uhr"
   }
 };
 const ES = {
   alarma: "Alarma %n", borrar: "borrar", guardado: "guardado", fallo: "falló: ",
+  dias: "L,M,X,J,V,S,D", todos: "todos los días", laborables: "laborables", finde: "finde",
   confirmar: "¿Borrar la alarma de las %s?", sin_conexion: "sin conexión con el reloj"
 };
 const $ = aos.$;
@@ -66,9 +77,14 @@ function t(k) { const v = aos.t(k); return v === k ? (ES[k] !== undefined ? ES[k
 
 function hhmm(min) { return String(Math.floor(min / 60)).padStart(2, "0") + ":" + String(min % 60).padStart(2, "0"); }
 
-async function guardar(i, minuto, on) {
+/* La mascara va en bits de tm_wday: bit 0 domingo ... bit 6 sabado. La fila
+   de botones va de lunes a domingo. */
+const WDAY = [1, 2, 3, 4, 5, 6, 0];
+const TODOS = 0x7F, LABORABLES = 0x3E, FINDE = 0x41;
+
+async function guardar(i, minuto, on, dias) {
   try {
-    await aos.post("/api/alarmas", { i: i, minuto: minuto, on: on ? 1 : 0 });
+    await aos.post("/api/alarmas", { i: i, minuto: minuto, on: on ? 1 : 0, dias: dias === undefined ? TODOS : dias });
     aos.brindis(t("guardado"));
     return true;
   } catch (e) {
@@ -79,7 +95,7 @@ async function guardar(i, minuto, on) {
 
 function fila(a) {
   const div = document.createElement("div");
-  div.className = "ajuste";
+  div.className = "ajuste alarma";
 
   const hora = document.createElement("input");
   hora.type = "time";
@@ -88,7 +104,7 @@ function fila(a) {
     const [h, m] = hora.value.split(":").map(Number);
     if (isNaN(h) || isNaN(m)) return;
     a.minuto = h * 60 + m;
-    guardar(a.i, a.minuto, a.on);
+    guardar(a.i, a.minuto, a.on, a.dias);
   };
 
   const texto = document.createElement("div");
@@ -102,7 +118,7 @@ function fila(a) {
   const cb = document.createElement("input");
   cb.type = "checkbox";
   cb.checked = a.on;
-  cb.onchange = () => { a.on = cb.checked; guardar(a.i, a.minuto, a.on); };
+  cb.onchange = () => { a.on = cb.checked; guardar(a.i, a.minuto, a.on, a.dias); };
   sw.append(cb, document.createElement("i"));
 
   const borrar = document.createElement("button");
@@ -110,10 +126,45 @@ function fila(a) {
   borrar.textContent = t("borrar");
   borrar.onclick = async () => {
     if (!confirm(t("confirmar").replace("%s", hhmm(a.minuto)))) return;
-    if (await guardar(a.i, -1, false)) cargar();
+    if (await guardar(a.i, -1, false, a.dias)) cargar();
   };
 
-  div.append(hora, texto, sw, borrar);
+  /* Los dias: siete botones y dos atajos. Sin ningun dia no se guarda; el
+     boton queda visualmente apagado pero la alarma conserva lo anterior. */
+  const dias = document.createElement("div");
+  dias.className = "dias";
+  const iniciales = t("dias").split(",");
+  const botones = [];
+  const atajo = document.createElement("button");
+  atajo.className = "todos";
+
+  function pintarDias() {
+    botones.forEach((b, d) => b.classList.toggle("on", !!(a.dias & (1 << WDAY[d]))));
+    /* El atajo dice lo que hay, o con una flecha lo que va a poner. */
+    atajo.textContent = a.dias === LABORABLES ? t("laborables")
+                      : a.dias === FINDE ? t("finde")
+                      : a.dias === TODOS ? t("todos") : "→ " + t("todos");
+  }
+  async function ponerDias(mask) {
+    if (mask === 0) { aos.brindis(t("nota").split(".")[1] || t("fallo")); pintarDias(); return; }
+    const antes = a.dias;
+    a.dias = mask;
+    pintarDias();
+    if (!await guardar(a.i, a.minuto, a.on, a.dias)) { a.dias = antes; pintarDias(); }
+  }
+  for (let d = 0; d < 7; d++) {
+    const b = document.createElement("button");
+    b.textContent = iniciales[d];
+    b.onclick = () => ponerDias(a.dias ^ (1 << WDAY[d]));
+    botones.push(b);
+    dias.append(b);
+  }
+  /* El atajo rota: todos -> laborables -> finde -> todos. */
+  atajo.onclick = () => ponerDias(a.dias === TODOS ? LABORABLES : a.dias === LABORABLES ? FINDE : TODOS);
+  dias.append(atajo);
+  pintarDias();
+
+  div.append(hora, texto, sw, borrar, dias);
   return div;
 }
 
@@ -147,7 +198,7 @@ $("agregar").onclick = async () => {
      ajustar de ahi, no escribir desde cero. */
   const ahora = new Date();
   const minuto = ((ahora.getHours() + 1) % 24) * 60;
-  if (await guardar(libre.i, minuto, true)) cargar();
+  if (await guardar(libre.i, minuto, true, TODOS)) cargar();
 };
 
 aos.init(TR).then(cargar);
