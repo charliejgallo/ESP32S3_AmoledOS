@@ -108,6 +108,40 @@ static const char *resolve_dir(const char *dir)
             }
         }
         snprintf(path, sizeof(path), "%s/%s", aos_hal_path_lang(), code);
+    } else if (strcmp(dir, "sd") == 0 || strncmp(dir, "sd/", 3) == 0) {
+        /* The explorer: any folder of the card. Validated component by
+         * component, because it comes from the network: no empty pieces, no
+         * dot-files (that rules out "." and ".."), plain printable ASCII and
+         * none of what FAT itself forbids. Without a card there is no "sd". */
+        const char *root = aos_hal_path_sd_root();
+        const char *rel = dir[2] ? dir + 3 : "";
+        if (!root || strlen(rel) > 100) {
+            return NULL;
+        }
+        const char *c = rel;
+        while (*c) {
+            const char *end = strchr(c, '/');
+            size_t n = end ? (size_t)(end - c) : strlen(c);
+            if (n == 0 || c[0] == '.') {
+                return NULL;
+            }
+            for (size_t i = 0; i < n; i++) {
+                unsigned char ch = (unsigned char)c[i];
+                if (ch < 0x20 || ch > 0x7E || strchr("\\:*?\"<>|", ch)) {
+                    return NULL;
+                }
+            }
+            if (!end) break;
+            c = end + 1;
+        }
+        if (rel[0]) {
+            snprintf(path, sizeof(path), "%s/%s", root, rel);
+        } else {
+            snprintf(path, sizeof(path), "%s", root);
+        }
+        /* A trailing slash from the page is harmless; FatFs dislikes it. */
+        size_t len = strlen(path);
+        if (len > 1 && path[len - 1] == '/') path[len - 1] = '\0';
     } else {
         return NULL;
     }
@@ -144,6 +178,7 @@ static bool params(httpd_req_t *req, const char **dir_path, char *name, size_t n
     if (httpd_query_key_value(query, "dir", value, sizeof(value)) != ESP_OK) {
         return false;
     }
+    url_decode(value);          /* the explorer's paths carry spaces */
     *dir_path = resolve_dir(value);
     if (!*dir_path) {
         return false;
@@ -411,11 +446,23 @@ static esp_err_t list_handler(httpd_req_t *req)
             snprintf(full, sizeof(full), "%s/%s", dir_path, entry->d_name);
 
             struct stat info;
-            if (stat(full, &info) != 0 || !S_ISREG(info.st_mode)) {
+            if (stat(full, &info) != 0) {
                 continue;
             }
-            snprintf(item, sizeof(item), "%s{\"name\":\"%s\",\"size\":%ld}",
-                     first ? "" : ",", entry->d_name, (long)info.st_size);
+            char nombre[200];
+            json_escape(nombre, sizeof(nombre), entry->d_name);
+            if (S_ISDIR(info.st_mode)) {
+                /* Folders ride in the same list, flagged: the explorer tab of
+                 * the Files page walks them; the fixed tabs never see one
+                 * because their folders hold files only. */
+                snprintf(item, sizeof(item), "%s{\"name\":\"%s\",\"dir\":true}",
+                         first ? "" : ",", nombre);
+            } else if (S_ISREG(info.st_mode)) {
+                snprintf(item, sizeof(item), "%s{\"name\":\"%s\",\"size\":%ld}",
+                         first ? "" : ",", nombre, (long)info.st_size);
+            } else {
+                continue;
+            }
             httpd_resp_sendstr_chunk(req, item);
             first = false;
         }
@@ -697,12 +744,42 @@ static esp_err_t delete_handler(httpd_req_t *req)
 
     char path[256];
     snprintf(path, sizeof(path), "%s/%s", dir_path, name);
-    if (remove(path) == 0) {
+    struct stat info;
+    bool ok;
+    if (stat(path, &info) == 0 && S_ISDIR(info.st_mode)) {
+        /* Only an empty folder goes: rmdir refuses otherwise, and that is the
+         * behaviour wanted. Wiping a tree from a browser is not a feature. */
+        ok = rmdir(path) == 0;
+    } else {
+        ok = remove(path) == 0;
+    }
+    if (ok) {
         ESP_LOGI(TAG, "deleted %s", path);
     }
 
     httpd_resp_set_type(req, "application/json");
+    if (!ok) {
+        httpd_resp_set_status(req, "409 Conflict");
+        return httpd_resp_sendstr(req, "{\"ok\":false,\"error\":\"no se pudo borrar\"}");
+    }
     return httpd_resp_send(req, "{\"ok\":true}", HTTPD_RESP_USE_STRLEN);
+}
+
+/* POST /api/mkdir?dir=sd/...&name=nueva: one folder, inside a validated one. */
+static esp_err_t mkdir_handler(httpd_req_t *req)
+{
+    const char *dir_path = NULL;
+    char name[96];
+    if (!params(req, &dir_path, name, sizeof(name))) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "parametros invalidos");
+        return ESP_FAIL;
+    }
+    char path[256];
+    snprintf(path, sizeof(path), "%s/%s", dir_path, name);
+    bool ok = mkdir(path, 0777) == 0;
+    ESP_LOGI(TAG, "mkdir %s -> %s", path, ok ? "ok" : "failed");
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_sendstr(req, ok ? "{\"ok\":true}" : "{\"ok\":false}");
 }
 
 
@@ -2316,6 +2393,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/ota/restart", .method = HTTP_POST, .handler = ota_restart_handler },
         { .uri = "/api/download",.method = HTTP_GET,  .handler = download_handler },
         { .uri = "/api/delete",  .method = HTTP_POST, .handler = delete_handler },
+        { .uri = "/api/mkdir",   .method = HTTP_POST, .handler = mkdir_handler },
         { .uri = "/wifi",        .method = HTTP_GET,  .handler = wifi_page_handler },
         { .uri = "/api/scan",    .method = HTTP_GET,  .handler = scan_handler },
         { .uri = "/api/wifi",    .method = HTTP_POST, .handler = wifi_set_handler },

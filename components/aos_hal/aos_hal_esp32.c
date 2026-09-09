@@ -11,6 +11,7 @@
 #include "axp2101.h"
 
 #include "bsp/esp-bsp.h"
+#include "esp_vfs_fat.h"
 
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -884,8 +885,18 @@ bool aos_hal_sd_present(void)
 
 bool aos_hal_sd_usage(uint64_t *total_bytes, uint64_t *free_bytes)
 {
-    (void)total_bytes; (void)free_bytes;
-    return false;   /* pending: esp_vfs_fat_info() on the mount point */
+    /* FatFs walks the FAT to count free clusters: on a 32 GB card that is a
+     * few hundred ms the first time and cached by FatFs afterwards (FSINFO).
+     * Called from the portal's status handler, never from the UI task. */
+    if (!s_sd_mounted) {
+        return false;
+    }
+    return esp_vfs_fat_info(BSP_SD_MOUNT_POINT, total_bytes, free_bytes) == ESP_OK;
+}
+
+const char *aos_hal_path_sd_root(void)
+{
+    return s_sd_mounted ? BSP_SD_MOUNT_POINT : NULL;
 }
 
 /* -------------------------------------------------------------------------- */

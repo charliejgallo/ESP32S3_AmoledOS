@@ -30,6 +30,15 @@
   }
   ul.lista li button { padding: 6px 12px; font-size: 13px; border-radius: 9px;
                        background: var(--card2); color: var(--red); }
+  .ruta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: -6px 0 14px;
+          font-size: 13.5px; }
+  .ruta a { color: var(--accent); text-decoration: none; }
+  .ruta span.sep { color: var(--dim); }
+  .ruta b { font-weight: 500; }
+  .ruta button { margin-left: auto; }
+  ul.lista li.carpeta .nombre::before { content: "\1F4C1  "; }
+  ul.lista li.carpeta { cursor: pointer; }
+  ul.lista li.carpeta:hover { background: var(--card2); }
   #previa { margin: 0 0 14px; text-align: center; }
   #previa img { max-width: 100%; max-height: 448px; border-radius: 14px; background: #000; }
   #previa .pie { color: var(--dim); font-size: 12.5px; margin-top: 6px; }
@@ -52,7 +61,9 @@
     <button data-dir="photos" data-t="car_fotos">Fotos</button>
     <button data-dir="music" data-t="car_musica">Musica</button>
     <button data-dir="recordings" data-t="car_grab">Grabaciones</button>
+    <button data-dir="sd" data-t="car_sd">Tarjeta</button>
   </div>
+  <div class="ruta" id="ruta" hidden></div>
 
   <div id="soltar">
     <span data-t="soltar_aca">Arrastra archivos aca o</span>
@@ -79,6 +90,10 @@ const TR = {
     act_ver: "view", tarjeta_libre: "%f free of %t", cerrar: "close",
     car_apps: "Apps", car_fotos: "Photos", car_musica: "Music",
     car_grab: "Recordings",
+    car_sd: "Card", d_sd: "any file, into the folder you are looking at",
+    h_sd: "The whole card. The four tabs on the left are the folders the watch uses; the rest is yours. A folder only goes when it is empty.",
+    act_abrir: "open", b_nueva: "New folder", ph_carpeta: "Name of the new folder", carpeta_creada: "folder created",
+    no_borrar: "could not delete: is the folder empty?", raiz: "card",
     soltar_aca: "Drop files here or",
     elegilos: "pick them",
     sin_conexion: "no connection to the watch",
@@ -102,6 +117,10 @@ const TR = {
     act_ver: "ansehen", tarjeta_libre: "%f frei von %t", cerrar: "schliessen",
     car_apps: "Apps", car_fotos: "Fotos", car_musica: "Musik",
     car_grab: "Aufnahmen",
+    car_sd: "Karte", d_sd: "jede Datei, in den Ordner, den du gerade siehst",
+    h_sd: "Die ganze Karte. Die vier Reiter links sind die Ordner der Uhr; der Rest gehoert dir. Ein Ordner geht nur weg, wenn er leer ist.",
+    act_abrir: "oeffnen", b_nueva: "Neuer Ordner", ph_carpeta: "Name des neuen Ordners", carpeta_creada: "Ordner angelegt",
+    no_borrar: "konnte nicht loeschen: ist der Ordner leer?", raiz: "Karte",
     soltar_aca: "Dateien hierher ziehen oder",
     elegilos: "auswaehlen",
     sin_conexion: "keine Verbindung zur Uhr",
@@ -129,6 +148,10 @@ const ES = {
   confirmar: "¿Borrar %s?",
   borrado: "borrado", listo: "listo", fallo: "falló ",
   act_ver: "ver", tarjeta_libre: "%f libres de %t", cerrar: "cerrar",
+  d_sd: "cualquier archivo, a la carpeta que estás mirando",
+  h_sd: "La tarjeta entera. Las cuatro pestañas de la izquierda son las carpetas que usa el reloj; el resto es tuyo. Una carpeta sólo se borra vacía.",
+  act_abrir: "abrir", b_nueva: "Nueva carpeta", ph_carpeta: "Nombre de la carpeta nueva",
+  carpeta_creada: "carpeta creada", no_borrar: "no se pudo borrar: ¿la carpeta está vacía?", raiz: "tarjeta",
   d_apps: ".so compilados para ESP32-S3",
   h_apps: "Las apps se cargan al arrancar. Después de subir una, reiniciá el reloj.",
   d_fotos: ".jpg, .png o .bmp",
@@ -148,8 +171,50 @@ const PISTAS = {
   apps:       { soltar: "d_apps",   pie: "h_apps"   },
   photos:     { soltar: "d_fotos",  pie: "h_fotos"  },
   music:      { soltar: "d_musica", pie: "h_musica" },
-  recordings: { soltar: "d_grab",   pie: "h_grab"   }
+  recordings: { soltar: "d_grab",   pie: "h_grab"   },
+  sd:         { soltar: "d_sd",     pie: "h_sd"     }
 };
+
+/* La pestana Tarjeta navega: dir vale "sd", "sd/fotos viejas", etc. Las
+   barras van tal cual en la URL y el resto se codifica; el firmware decodifica
+   el parametro entero. */
+function urlDir() { return encodeURIComponent(dir).replace(/%2F/gi, "/"); }
+function esTarjeta() { return dir === "sd" || dir.startsWith("sd/"); }
+
+function pintarRuta() {
+  const r = $("ruta");
+  if (!esTarjeta()) { r.hidden = true; return; }
+  r.hidden = false;
+  r.innerHTML = "";
+  const partes = dir.split("/");          /* ["sd", "a", "b"] */
+  partes.forEach((p, i) => {
+    if (i) { const sep = document.createElement("span"); sep.className = "sep"; sep.textContent = "/"; r.append(sep); }
+    const aca = i === partes.length - 1;
+    const el = document.createElement(aca ? "b" : "a");
+    el.textContent = i === 0 ? t("raiz") : p;
+    if (!aca) { el.href = "#"; el.onclick = e => { e.preventDefault(); irA(partes.slice(0, i + 1).join("/")); }; }
+    r.append(el);
+  });
+  const nueva = document.createElement("button");
+  nueva.className = "sec chica";
+  nueva.textContent = t("b_nueva");
+  nueva.onclick = async () => {
+    const nombre = prompt(t("ph_carpeta"));
+    if (!nombre) return;
+    const res = await fetch(`/api/mkdir?dir=${urlDir()}&name=${encodeURIComponent(nombre)}`, { method: "POST" });
+    const j = await res.json().catch(() => ({}));
+    aos.brindis(j.ok ? t("carpeta_creada") : t("fallo") + nombre);
+    refrescar();
+  };
+  r.append(nueva);
+}
+
+function irA(nuevoDir) {
+  dir = nuevoDir;
+  $("previa").hidden = true;
+  pintarRuta();
+  refrescar();
+}
 
 let dir = "apps";
 const listaEl = $("lista"), barraEl = $("barra"), rellenoEl = barraEl.firstElementChild;
@@ -176,7 +241,7 @@ async function refrescar() {
   listaEl.innerHTML = "";
   let datos;
   try {
-    datos = await (await fetch(`/api/list?dir=${dir}`)).json();
+    datos = await (await fetch(`/api/list?dir=${urlDir()}`)).json();
   } catch (e) {
     listaEl.innerHTML = '<div class="vacio">' + aos.esc(t("sin_conexion")) + "</div>";
     return;
@@ -185,16 +250,43 @@ async function refrescar() {
     listaEl.innerHTML = '<div class="vacio">' + aos.esc(t("vacio")) + "</div>";
     return;
   }
-  for (const f of datos.files) {
+  const ordenados = datos.files.slice().sort((a, b) =>
+    (b.dir ? 1 : 0) - (a.dir ? 1 : 0) || a.name.localeCompare(b.name));
+  for (const f of ordenados) {
     const li = document.createElement("li");
     const nombre = document.createElement("span");
     nombre.className = "nombre";
     /* El nombre sale de la tarjeta, o sea de afuera: textContent siempre. */
     nombre.textContent = f.name;
+
+    if (f.dir) {
+      /* Una carpeta: se entra tocandola. Borrar solo si esta vacia, y eso lo
+         decide el reloj. */
+      li.classList.add("carpeta");
+      const abrir = document.createElement("a");
+      abrir.className = "act";
+      abrir.textContent = t("act_abrir");
+      abrir.href = "#";
+      const entrar = e => { e.preventDefault(); irA(dir + "/" + f.name); };
+      abrir.onclick = entrar;
+      nombre.onclick = entrar;
+      const borrar = document.createElement("button");
+      borrar.textContent = t("act_borrar");
+      borrar.onclick = async e => {
+        e.stopPropagation();
+        if (!confirm(t("confirmar").replace("%s", f.name))) return;
+        const res = await fetch(`/api/delete?dir=${urlDir()}&name=${encodeURIComponent(f.name)}`, { method: "POST" });
+        aos.brindis(res.ok ? t("borrado") : t("no_borrar"));
+        refrescar();
+      };
+      li.append(nombre, abrir, borrar);
+      listaEl.append(li);
+      continue;
+    }
     const tam = document.createElement("span");
     tam.className = "detalle";
     tam.textContent = humano(f.size);
-    const url = `/api/download?dir=${dir}&name=${encodeURIComponent(f.name)}`;
+    const url = `/api/download?dir=${urlDir()}&name=${encodeURIComponent(f.name)}`;
 
     /* Escuchar solo donde tiene sentido. El enlace va sin "dl", asi que el
        reloj lo manda inline y lo abre el reproductor del navegador. Las fotos
@@ -224,9 +316,9 @@ async function refrescar() {
     borrar.textContent = t("act_borrar");
     borrar.onclick = async () => {
       if (!confirm(t("confirmar").replace("%s", f.name))) return;
-      await fetch(`/api/delete?dir=${dir}&name=${encodeURIComponent(f.name)}`,
-                  { method: "POST" });
-      aos.brindis(t("borrado"));
+      const res = await fetch(`/api/delete?dir=${urlDir()}&name=${encodeURIComponent(f.name)}`,
+                              { method: "POST" });
+      aos.brindis(res.ok ? t("borrado") : t("no_borrar"));
       refrescar();
     };
     li.append(nombre, tam);
@@ -243,7 +335,7 @@ async function subir(archivos) {
     rellenoEl.style.width = (i / archivos.length * 100) + "%";
     try {
       const res = await fetch(
-        `/api/upload?dir=${dir}&name=${encodeURIComponent(f.name)}`,
+        `/api/upload?dir=${urlDir()}&name=${encodeURIComponent(f.name)}`,
         { method: "POST", body: f });
       if (!res.ok) throw new Error(await res.text());
     } catch (e) {
@@ -271,6 +363,7 @@ document.querySelectorAll(".carpetas button").forEach(b => {
     dir = b.dataset.dir;
     $("previa").hidden = true;
     pintarPistas();
+    pintarRuta();
     refrescar();
   };
 });

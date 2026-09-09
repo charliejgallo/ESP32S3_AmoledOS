@@ -440,6 +440,7 @@ const char *aos_hal_path_data(void)   { return "sim_fs/data";   }
 const char *aos_hal_path_lang(void)   { return "sim_fs/lang";   }
 const char *aos_hal_path_recordings(void) { return "sim_fs/recordings"; }
 const char *aos_hal_path_scans(void)  { return "sim_fs/redes";  }
+const char *aos_hal_path_sd_root(void) { return "sim_fs"; }
 
 bool aos_hal_sd_present(void) { return true; }
 

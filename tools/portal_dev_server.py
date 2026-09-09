@@ -238,6 +238,15 @@ class Handler(BaseHTTPRequestHandler):
 
     def _safe_dir(self, query):
         name = (parse_qs(query).get("dir") or ["apps"])[0]
+        if name == "sd" or name.startswith("sd/"):
+            # The explorer: any folder of the card, validated piece by piece
+            # the way the firmware does it.
+            rel = name[3:] if len(name) > 2 else ""
+            for piece in rel.split("/") if rel else []:
+                if not piece or piece.startswith(".") or any(c in piece for c in '\\:*?"<>|'):
+                    return None
+            path = os.path.join(self.base, rel) if rel else self.base
+            return path if os.path.isdir(path) else None
         if name not in DIRS:
             return None
         path = os.path.join(self.base, name)
@@ -471,7 +480,11 @@ class Handler(BaseHTTPRequestHandler):
             files = []
             for name in sorted(os.listdir(folder)):
                 full = os.path.join(folder, name)
-                if os.path.isfile(full) and not name.startswith("."):
+                if name.startswith("."):
+                    continue
+                if os.path.isdir(full):
+                    files.append({"name": name, "dir": True})
+                elif os.path.isfile(full):
                     files.append({"name": name, "size": os.path.getsize(full)})
             self._send(200, json.dumps({"files": files}))
 
@@ -612,10 +625,22 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, json.dumps({"ok": True, "size": written}))
 
         elif url.path == "/api/delete":
-            if os.path.isfile(target):
-                os.remove(target)
+            try:
+                if os.path.isdir(target):
+                    os.rmdir(target)
+                elif os.path.isfile(target):
+                    os.remove(target)
                 print(f"  borrado {name}")
-            self._send(200, '{"ok":true}')
+                self._send(200, '{"ok":true}')
+            except OSError:
+                self._send(409, '{"ok":false,"error":"no se pudo borrar"}')
+
+        elif url.path == "/api/mkdir":
+            try:
+                os.mkdir(target)
+                self._send(200, '{"ok":true}')
+            except OSError:
+                self._send(200, '{"ok":false}')
 
         else:
             self._send(404, '{"error":"no existe"}')

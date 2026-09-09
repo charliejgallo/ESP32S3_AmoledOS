@@ -342,6 +342,7 @@ const char *aos_hal_path_music(void);
 const char *aos_hal_path_recordings(void);  /* wav from the recorder */
 const char *aos_hal_path_data(void);        /* app state               */
 const char *aos_hal_path_scans(void);       /* network surveys         */
+const char *aos_hal_path_sd_root(void);     /* the card's mount point, NULL without card */
 
 /* Language packs. Unlike those above, this one does NOT fall back to SPIFFS:
  * packs live on the card only. That is not a limitation but the design
