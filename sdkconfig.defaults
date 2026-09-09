@@ -271,3 +271,10 @@ CONFIG_BT_CTRL_RUN_IN_FLASH_ONLY=y
 # Cuatro es el valor de fabrica y alcanza justo. Ocho da aire para que un
 # reintento no se pise con una suscripcion. Ver docs/HANDOFF-BLE-ANCS.md.
 CONFIG_BT_NIMBLE_GATT_MAX_PROCS=8
+
+# --- OTA -------------------------------------------------------------------
+# An image installed over the air boots on trial and the bootloader goes back
+# to the previous one unless the firmware confirms it. Without this, a build
+# that compiles and then hangs on boot leaves the watch needing a USB cable,
+# which is exactly what OTA exists to avoid. The confirmation is in main.c.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y

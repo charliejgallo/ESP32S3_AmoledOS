@@ -894,6 +894,52 @@ int         aos_hal_http_len(int id);
 void aos_hal_http_release(int id);
 
 /* -------------------------------------------------------------------------- */
+/* Firmware update (OTA)                                                       */
+/*                                                                             */
+/* The partition table always had two 5 MB app slots and an otadata, and the   */
+/* board already boots through them; what was missing was somebody writing to  */
+/* the idle one. The image arrives from outside in pieces -the portal streams  */
+/* it in from a POST- and this only knows how to put those pieces down.        */
+/*                                                                             */
+/* Measured cost of linking this in: 5,936 B of flash code, 2,640 B of flash   */
+/* data and 260 B of DIRAM. Nothing in IRAM, which matters, because IRAM is at */
+/* 100% and there would have been no room.                                     */
+/*                                                                             */
+/* On the desktop there is nothing to write to: begin() fails and says so.     */
+/* -------------------------------------------------------------------------- */
+
+/* Opens the idle slot. total_bytes may be 0 if the size is not known yet. */
+bool aos_hal_ota_begin(size_t total_bytes);
+
+/* In order, as the bytes arrive. */
+bool aos_hal_ota_write(const void *data, size_t len);
+
+/* Closes the image, checks it and points the bootloader at it. It does NOT
+ * restart: whoever called wants to answer the request first. */
+bool aos_hal_ota_end(void);
+
+/* Gives up and leaves the running image untouched. */
+void aos_hal_ota_abort(void);
+
+/* Why the last one failed, for showing in the portal. "" if there was no
+ * failure. */
+const char *aos_hal_ota_error(void);
+
+/* Rollback.
+ *
+ * With CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE an image that has just been
+ * installed boots ON TRIAL: if nobody confirms it before the next restart, the
+ * bootloader goes back to the previous one on its own. That is the whole point
+ * of the safety net -an image that compiles and then hangs on boot does not
+ * leave the watch needing a cable-.
+ *
+ * pending_verify() says whether this boot is a trial one; mark_valid() is the
+ * confirmation. See main.c for when it is called and why it does not wait for
+ * the network. */
+bool aos_hal_ota_pending_verify(void);
+void aos_hal_ota_mark_valid(void);
+
+/* -------------------------------------------------------------------------- */
 /* Miscellaneous                                                               */
 /* -------------------------------------------------------------------------- */
 

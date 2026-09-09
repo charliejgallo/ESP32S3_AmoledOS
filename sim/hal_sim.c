@@ -1948,6 +1948,34 @@ void aos_hal_heap_info(uint32_t *free_internal, uint32_t *free_psram)
 }
 
 const char *aos_hal_board_name(void)       { return "SDL simulator"; }
+
+/* -------------------------------------------------------------------------- */
+/* OTA                                                                         */
+/*                                                                             */
+/* There is no flash to write to here, and pretending otherwise would be worse
+ * than saying no: the portal would show a progress bar for an update that is
+ * not happening. begin() refuses and leaves the reason in the same place the
+ * board leaves it, so the error path IS testable on the desktop -which is the
+ * half of the flow worth rehearsing anyway-. */
+
+bool aos_hal_ota_begin(size_t total_bytes)
+{
+    (void)total_bytes;
+    printf("[hal] ota: there is no flash in the simulator\n");
+    return false;
+}
+
+bool aos_hal_ota_write(const void *data, size_t len) { (void)data; (void)len; return false; }
+bool aos_hal_ota_end(void)   { return false; }
+void aos_hal_ota_abort(void) { }
+
+const char *aos_hal_ota_error(void)
+{
+    return "el simulador no tiene flash que actualizar";
+}
+
+bool aos_hal_ota_pending_verify(void) { return false; }
+void aos_hal_ota_mark_valid(void)     { }
 const char *aos_hal_firmware_version(void) { return "0.1.0-dev"; }
 
 void aos_hal_log(const char *tag, const char *fmt, ...)

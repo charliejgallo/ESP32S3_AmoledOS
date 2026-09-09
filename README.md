@@ -125,6 +125,13 @@ The apps are loaded once at startup, so restart the board after copying them.
 Then set the wifi up from the watch: Settings → the network screen raises an
 access point and shows a QR code.
 
+**After that first install the cable is optional.** The firmware updates over
+WiFi — `./tools/install_fw.sh <board-ip>`, or drop the `.bin` on the portal's
+front page — writing into the idle one of the two 5 MB app slots and leaving
+NVS alone, so your wifi, language and app data survive. The new image boots on
+trial and the bootloader goes back to the previous one on its own if it does
+not come up. See [docs/BUILDING.md](docs/BUILDING.md).
+
 ## Quick start
 
 ```bash

@@ -32,6 +32,15 @@
                        background: var(--card2); color: var(--red); }
   .vacio { color: var(--dim); text-align: center; padding: 26px; }
 
+  #fw { margin-top: 34px; padding-top: 22px; border-top: 1px solid var(--card2); }
+  #fw h2 { font-size: 15px; color: var(--text); margin: 0 0 6px; }
+  #fw button { background: var(--card2); color: var(--text); border: 0;
+               border-radius: 12px; padding: 10px 16px; font: inherit;
+               cursor: pointer; }
+  #fw-barra { height: 4px; background: var(--card2); border-radius: 2px;
+              margin: 14px 0 6px; overflow: hidden; display: none; }
+  #fw-barra i { display: block; height: 100%; width: 0;
+                background: var(--accent); transition: width .15s; }
   #barra { height: 4px; background: var(--card2); border-radius: 2px;
            overflow: hidden; margin-bottom: 14px; display: none; }
   #barra i { display: block; height: 100%; width: 0; background: var(--accent); }
@@ -64,6 +73,17 @@
   <div id="barra"><i></i></div>
   <ul class="lista" id="lista"></ul>
   <p class="sub" id="pista"></p>
+
+  <div id="fw">
+    <h2 data-t="fw_titulo">Firmware</h2>
+    <p class="sub" data-t="fw_ayuda">El .bin va a la ranura que no se esta
+      usando y arranca a prueba: si no levanta, el arranque siguiente vuelve
+      solo al anterior. No toca la wifi, el idioma ni los datos de las apps.</p>
+    <input type="file" id="fw-archivo" accept=".bin" hidden>
+    <button id="fw-elegir" data-t="fw_elegir">Elegir amoledos.bin</button>
+    <div id="fw-barra"><i></i></div>
+    <p class="sub" id="fw-estado"></p>
+  </div>
 </div>
 <div id="brindis"></div>
 
@@ -72,6 +92,11 @@
 const TR = {
   en: {
     conectando: "connecting...",
+    fw_titulo: "Firmware",
+    fw_elegir: "Choose amoledos.bin",
+    fw_ayuda: "The .bin goes into the slot that is not in use and boots on trial: if it does not come up, the next boot goes back to the previous one by itself. It does not touch the wifi, the language or the apps' data.",
+    fw_subiendo: "sending %s...", fw_ok: "installed, restarting...",
+    fw_error: "it failed: ", fw_grande: "that is not a firmware image",
     car_apps: "Apps", car_fotos: "Photos", car_musica: "Music",
     car_grab: "Recordings",
     soltar_aca: "Drop files here or",
@@ -94,6 +119,11 @@ const TR = {
   },
   de: {
     conectando: "wird verbunden...",
+    fw_titulo: "Firmware",
+    fw_elegir: "amoledos.bin waehlen",
+    fw_ayuda: "Die .bin geht in den ungenutzten Slot und startet auf Probe: kommt sie nicht hoch, kehrt der naechste Start von selbst zur vorherigen zurueck. WLAN, Sprache und App-Daten bleiben unberuehrt.",
+    fw_subiendo: "sende %s...", fw_ok: "installiert, Neustart...",
+    fw_error: "fehlgeschlagen: ", fw_grande: "das ist kein Firmware-Abbild",
     car_apps: "Apps", car_fotos: "Fotos", car_musica: "Musik",
     car_grab: "Aufnahmen",
     soltar_aca: "Dateien hierher ziehen oder",
@@ -124,6 +154,10 @@ const ES = {
   confirmar: "¿Borrar %s?",
   borrado: "borrado", listo: "listo", fallo: "falló ",
   est_bateria: "batería", est_micro: "microSD", est_si: "sí", est_no: "no",
+  fw_titulo: "Firmware",
+  fw_elegir: "Elegir amoledos.bin",
+  fw_subiendo: "enviando %s...", fw_ok: "instalado, reiniciando...",
+  fw_error: "fallo: ", fw_grande: "eso no es una imagen de firmware",
   d_apps: ".so compilados para ESP32-S3",
   h_apps: "Las apps se cargan al arrancar. Después de subir una, reiniciá el reloj.",
   d_fotos: ".jpg, .png o .bmp",
@@ -237,6 +271,49 @@ async function subir(archivos) {
   aos.brindis(t("listo"));
   refrescar();
 }
+
+/* Firmware.
+ *
+ * XMLHttpRequest and not fetch() because this is the one upload where the
+ * progress matters: it is 3 MB over wifi and it takes a while, and a page that
+ * looks frozen invites pulling the cable out in the middle. fetch() has no
+ * upload progress event.
+ *
+ * The restart is a second call, and the answer to it never arrives -the board
+ * goes down while replying-, so its failure is the expected outcome and is
+ * ignored on purpose. */
+function subirFirmware(f) {
+  if (!f) return;
+  if (!/\.bin$/i.test(f.name)) { aos.brindis(t("fw_grande")); return; }
+
+  const barra = $("fw-barra"), relleno = barra.querySelector("i");
+  const est = $("fw-estado");
+  barra.style.display = "block";
+  est.textContent = t("fw_subiendo").replace("%s", f.name);
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "/api/ota");
+  xhr.upload.onprogress = e => {
+    if (e.lengthComputable) relleno.style.width = (e.loaded / e.total * 100) + "%";
+  };
+  xhr.onload = () => {
+    if (xhr.status >= 200 && xhr.status < 300) {
+      est.textContent = t("fw_ok");
+      fetch("/api/ota/restart", { method: "POST" }).catch(() => {});
+    } else {
+      est.textContent = t("fw_error") + (xhr.responseText || xhr.status);
+      barra.style.display = "none";
+    }
+  };
+  xhr.onerror = () => {
+    est.textContent = t("fw_error") + "red";
+    barra.style.display = "none";
+  };
+  xhr.send(f);
+}
+
+$("fw-elegir").onclick = () => $("fw-archivo").click();
+$("fw-archivo").onchange = e => subirFirmware(e.target.files[0]);
 
 async function estado() {
   try {

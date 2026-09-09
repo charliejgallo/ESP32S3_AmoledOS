@@ -304,6 +304,103 @@ static esp_err_t upload_handler(httpd_req_t *req)
 }
 
 /* --------------------------------------------------------------------------
+ * Firmware update
+ *
+ * The same shape as upload_handler: read the body in 4 KB pieces and hand each
+ * one straight on. The difference is where they go -esp_ota_write instead of
+ * fwrite- and that here there is no half-written file to delete if it fails,
+ * because what gets written is the idle slot and the running one is not
+ * touched until the very last step.
+ *
+ * It does NOT restart by itself. The answer has to reach the browser first,
+ * otherwise the socket dies mid-reply and whoever pushed the update is left
+ * not knowing whether it worked. The restart is a second call, POST
+ * /api/ota/restart, which tools/install_fw.sh makes on its own.
+ *
+ * And the image arrives on trial: see aos_hal_ota_pending_verify() and the
+ * confirmation in main.c.
+ * -------------------------------------------------------------------------- */
+
+static esp_err_t ota_handler(httpd_req_t *req)
+{
+    if (req->content_len <= 0) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "cuerpo vacio");
+        return ESP_FAIL;
+    }
+
+    if (!aos_hal_ota_begin((size_t)req->content_len)) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
+                            aos_hal_ota_error());
+        return ESP_FAIL;
+    }
+
+    char *buffer = malloc(UPLOAD_CHUNK);
+    if (!buffer) {
+        aos_hal_ota_abort();
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "sin memoria");
+        return ESP_FAIL;
+    }
+
+    int remaining = req->content_len;
+    while (remaining > 0) {
+        int chunk = httpd_req_recv(req, buffer,
+                                   remaining < UPLOAD_CHUNK ? remaining : UPLOAD_CHUNK);
+        if (chunk <= 0) {
+            if (chunk == HTTPD_SOCK_ERR_TIMEOUT) {
+                continue;
+            }
+            free(buffer);
+            aos_hal_ota_abort();
+            ESP_LOGE(TAG, "ota: upload cut short with %d B to go", remaining);
+            return ESP_FAIL;
+        }
+        if (!aos_hal_ota_write(buffer, (size_t)chunk)) {
+            free(buffer);
+            /* write() already aborted and left the reason behind */
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
+                                aos_hal_ota_error());
+            return ESP_FAIL;
+        }
+        remaining -= chunk;
+    }
+    free(buffer);
+
+    if (!aos_hal_ota_end()) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
+                            aos_hal_ota_error());
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "ota: image of %d B installed, waiting for the restart",
+             req->content_len);
+
+    char json[128];
+    snprintf(json, sizeof(json),
+             "{\"ok\":true,\"size\":%d,\"restart\":\"/api/ota/restart\"}",
+             req->content_len);
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);
+}
+
+/* Separate so the answer to the upload gets out first. Half a second is enough
+ * for the socket to drain; a plain esp_restart() here cuts the reply. */
+static void restart_task(void *arg)
+{
+    (void)arg;
+    vTaskDelay(pdMS_TO_TICKS(500));
+    aos_hal_reboot();
+    vTaskDelete(NULL);
+}
+
+static esp_err_t ota_restart_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "application/json");
+    esp_err_t r = httpd_resp_send(req, "{\"ok\":true}", HTTPD_RESP_USE_STRLEN);
+    xTaskCreate(restart_task, "aos_restart", 2048, NULL, 5, NULL);
+    return r;
+}
+
+/* --------------------------------------------------------------------------
  * Download
  *
  * Sent in chunks and not in one go: a one-minute WAV is 2 MB, and building the
@@ -1665,6 +1762,8 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/status",  .method = HTTP_GET,  .handler = status_handler },
         { .uri = "/api/list",    .method = HTTP_GET,  .handler = list_handler },
         { .uri = "/api/upload",  .method = HTTP_POST, .handler = upload_handler },
+        { .uri = "/api/ota",     .method = HTTP_POST, .handler = ota_handler },
+        { .uri = "/api/ota/restart", .method = HTTP_POST, .handler = ota_restart_handler },
         { .uri = "/api/download",.method = HTTP_GET,  .handler = download_handler },
         { .uri = "/api/delete",  .method = HTTP_POST, .handler = delete_handler },
         { .uri = "/wifi",        .method = HTTP_GET,  .handler = wifi_page_handler },

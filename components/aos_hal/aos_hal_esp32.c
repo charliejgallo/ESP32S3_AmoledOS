@@ -23,6 +23,7 @@
 #include "esp_netif_sntp.h"
 #include "esp_event.h"
 #include "nvs_flash.h"
+#include "esp_ota_ops.h"
 #include "nvs.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -2206,6 +2207,133 @@ void aos_hal_heap_info(uint32_t *free_internal, uint32_t *free_psram)
 
 const char *aos_hal_board_name(void)       { return s_board_name; }
 const char *aos_hal_firmware_version(void) { return FIRMWARE_VERSION; }
+
+/* -------------------------------------------------------------------------- */
+/* OTA                                                                         */
+/*                                                                             */
+/* Deliberately thin: opening, writing and closing. No downloading, no          */
+/* progress bar, no policy about when to update. The bytes come from whoever    */
+/* calls -today the portal's POST /api/ota- and this puts them down.            */
+/*                                                                             */
+/* esp_ota_write() validates the header of the first chunk, so an image for     */
+/* another chip, or a file that is not an image at all, fails on the first      */
+/* write and never touches the running slot. The idle slot is the only thing    */
+/* that gets erased, so a failure halfway leaves the watch exactly as it was.   */
+/* -------------------------------------------------------------------------- */
+
+static esp_ota_handle_t     s_ota;
+static const esp_partition_t *s_ota_part;
+static char                 s_ota_err[96];
+
+static void ota_fail(const char *what, esp_err_t err)
+{
+    snprintf(s_ota_err, sizeof(s_ota_err), "%s: %s", what, esp_err_to_name(err));
+    ESP_LOGE(TAG, "ota: %s", s_ota_err);
+}
+
+bool aos_hal_ota_begin(size_t total_bytes)
+{
+    if (s_ota) {
+        aos_hal_ota_abort();     /* an interrupted one left the slot open */
+    }
+    s_ota_err[0] = '\0';
+
+    s_ota_part = esp_ota_get_next_update_partition(NULL);
+    if (!s_ota_part) {
+        snprintf(s_ota_err, sizeof(s_ota_err), "no hay particion OTA libre");
+        ESP_LOGE(TAG, "ota: %s", s_ota_err);
+        return false;
+    }
+    if (total_bytes > s_ota_part->size) {
+        snprintf(s_ota_err, sizeof(s_ota_err), "la imagen no entra: %u B en %u B",
+                 (unsigned)total_bytes, (unsigned)s_ota_part->size);
+        ESP_LOGE(TAG, "ota: %s", s_ota_err);
+        return false;
+    }
+
+    /* OTA_SIZE_UNKNOWN erases the whole partition, which is several seconds.
+     * With the size known it only erases what it needs. */
+    esp_err_t err = esp_ota_begin(s_ota_part,
+                                  total_bytes ? total_bytes : OTA_SIZE_UNKNOWN,
+                                  &s_ota);
+    if (err != ESP_OK) {
+        s_ota = 0;
+        ota_fail("esp_ota_begin", err);
+        return false;
+    }
+    ESP_LOGI(TAG, "ota: writing into %s (%u B free), image of %u B",
+             s_ota_part->label, (unsigned)s_ota_part->size, (unsigned)total_bytes);
+    return true;
+}
+
+bool aos_hal_ota_write(const void *data, size_t len)
+{
+    if (!s_ota) {
+        return false;
+    }
+    esp_err_t err = esp_ota_write(s_ota, data, len);
+    if (err != ESP_OK) {
+        ota_fail("esp_ota_write", err);
+        esp_ota_abort(s_ota);
+        s_ota = 0;
+        return false;
+    }
+    return true;
+}
+
+bool aos_hal_ota_end(void)
+{
+    if (!s_ota) {
+        return false;
+    }
+    esp_err_t err = esp_ota_end(s_ota);
+    s_ota = 0;
+    if (err != ESP_OK) {
+        /* ESP_ERR_OTA_VALIDATE_FAILED is the interesting one: the image
+         * arrived whole but its checksum does not match. */
+        ota_fail("esp_ota_end", err);
+        return false;
+    }
+    err = esp_ota_set_boot_partition(s_ota_part);
+    if (err != ESP_OK) {
+        ota_fail("esp_ota_set_boot_partition", err);
+        return false;
+    }
+    ESP_LOGW(TAG, "ota: %s is now the boot partition; it starts on trial",
+             s_ota_part->label);
+    return true;
+}
+
+void aos_hal_ota_abort(void)
+{
+    if (s_ota) {
+        esp_ota_abort(s_ota);
+        s_ota = 0;
+        ESP_LOGW(TAG, "ota: aborted, the running image is untouched");
+    }
+}
+
+const char *aos_hal_ota_error(void)
+{
+    return s_ota_err;
+}
+
+bool aos_hal_ota_pending_verify(void)
+{
+    const esp_partition_t *run = esp_ota_get_running_partition();
+    esp_ota_img_states_t state;
+    if (!run || esp_ota_get_state_partition(run, &state) != ESP_OK) {
+        return false;
+    }
+    return state == ESP_OTA_IMG_PENDING_VERIFY;
+}
+
+void aos_hal_ota_mark_valid(void)
+{
+    if (esp_ota_mark_app_valid_cancel_rollback() == ESP_OK) {
+        ESP_LOGI(TAG, "ota: this image is confirmed, the rollback is cancelled");
+    }
+}
 
 /* The format is built separately and only then passed through ESP_LOGI.
  *

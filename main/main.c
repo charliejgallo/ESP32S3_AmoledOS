@@ -95,8 +95,33 @@ void app_main(void)
 
     uint32_t ticks = 0;
 
+    /* An image installed over the air boots ON TRIAL: if nobody confirms it,
+     * the bootloader goes back to the previous one at the next restart. The
+     * confirmation is below, at 30 s.
+     *
+     * Why 30 s and not right here: what the trial protects against is an image
+     * that compiles and then does not come up -a panic in aos_hal_init(), a
+     * watchdog while the .so files load, a screen that never draws-. All of
+     * that has already happened or not by the time this loop has been turning
+     * for half a minute, so half a minute is the evidence.
+     *
+     * And why it does NOT wait for the network, which was the first idea: an
+     * image is not broken because the router is down. Asking for wifi would
+     * roll back a firmware that works perfectly in a house whose internet went
+     * out, and the user would never find out why the watch went backwards. */
+    bool trial = aos_hal_ota_pending_verify();
+    if (trial) {
+        ESP_LOGW(TAG, "this image is on trial: it is confirmed at 30 s "
+                      "or the bootloader goes back to the previous one");
+    }
+
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(200));
+
+        if (trial && ticks >= 150) {        /* 150 * 200 ms = 30 s */
+            aos_hal_ota_mark_valid();
+            trial = false;
+        }
 
         /* The portal starts with the network ready, and also with the setup
          * access point up: that is precisely where it is needed. */

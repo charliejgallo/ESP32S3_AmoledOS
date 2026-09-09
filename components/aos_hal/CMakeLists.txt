@@ -5,7 +5,7 @@ idf_component_register(
              waveshare__esp32_s3_touch_amoled_1_8 espressif__esp_lcd_touch
              espressif__esp_lvgl_port
     # mbedtls es de aos_http.c: el bundle de certificados y el handshake.
-    PRIV_REQUIRES esp_driver_gpio esp_driver_i2c esp_driver_i2s esp_lcd mbedtls
+    PRIV_REQUIRES esp_driver_gpio esp_driver_i2c esp_driver_i2s esp_lcd mbedtls app_update
 )
 
 # El reloj del QSPI del panel lo fija un macro del BSP, que es un componente

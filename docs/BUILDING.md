@@ -167,10 +167,43 @@ Uploading over WiFi, without taking the card out:
 The firmware loads the `.so` files once at startup, so the script restarts the
 board when it finishes.
 
+## Updating the firmware over WiFi
+
+Since v0.1.2 the firmware goes over the network too, so the cable is only
+needed the first time:
+
+```bash
+idf.py build
+./tools/install_fw.sh amoledos.local
+```
+
+It POSTs `build/amoledos.bin` — the app alone, **not** the merged image — to
+`/api/ota`, which writes it into whichever of the two 5 MB slots is idle and
+points the bootloader at it. The same file can be dropped on the portal's front
+page, under *Firmware*.
+
+**It does not touch NVS.** The wifi, the language, the watchface and the apps'
+data survive, which is the whole difference against flashing `amoledos-full.bin`
+over USB.
+
+> **The image boots on trial.** With `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE` an
+> image that has just been installed has to confirm itself: `main.c` does that
+> at 30 seconds of uptime, and if it never gets there —a panic in
+> `aos_hal_init()`, a watchdog while the `.so` files load, a screen that never
+> draws— the next restart goes back to the previous image by itself. That is
+> why a bad build over the air does not need the cable to recover.
+>
+> The confirmation deliberately does **not** wait for the network: an image is
+> not broken because the router is down.
+
+The one thing it will not do is change the partition table or the bootloader.
+Those are still USB, and so is the first install on a fresh board.
+
 ## Other tools
 
 | Tool | What it does |
 | --- | --- |
+| `tools/install_fw.sh` | pushes the firmware over WiFi (`/api/ota`), keeping NVS |
 | `tools/gen_symbols.py` | generates the symbol table the apps resolve against |
 | `tools/gen_fonts.py` | regenerates Montserrat with the Latin-1 supplement |
 | `tools/gen_lang.py` | extracts, checks and embeds the translation catalogues |
