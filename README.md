@@ -116,7 +116,7 @@ Eighteen ship inside the binary. They are the ones the watch cannot be without
 | | | |
 |---|---|---|
 | <img src="docs/img/int-activity.png" width="200"><br>**Actividad** — steps and movement from the QMI8658, with the day's history. | <img src="docs/img/int-stopwatch.png" width="200"><br>**Cronómetro** — laps, and it keeps counting with the screen off. | <img src="docs/img/int-timer.png" width="200"><br>**Temporizador** — countdown with presets, and it rings through the speaker. |
-| <img src="docs/img/int-pomodoro.png" width="200"><br>**Pomodoro** — work and break cycles, with the day's tally kept across restarts. | <img src="docs/img/int-worldclock.png" width="200"><br>**Reloj mundial** — several cities at once, each with its own offset. | <img src="docs/img/int-alarm.png" width="200"><br>**Alarmas** — repeating alarms per weekday, checked by a service that runs whatever app is open. |
+| <img src="docs/img/int-pomodoro.png" width="200"><br>**Pomodoro** — work and break cycles, with the day's tally kept across restarts. | <img src="docs/img/int-worldclock.png" width="200"><br>**Reloj mundial** — several cities at once, each with its own offset. | <img src="docs/img/int-alarm.png" width="200"><br>**Alarmas** — up to six, each on its own days of the week, checked by a service that runs whatever app is open; also editable from the portal. |
 | <img src="docs/img/int-calendar.png" width="200"><br>**Calendario** — the month, drawn with the week starting on Monday. | <img src="docs/img/int-notifs.png" width="200"><br>**Notificaciones** — the iPhone's, over ANCS: history, per-category filter and actions. | <img src="docs/img/int-btremote.png" width="200"><br>**Control BT** — the phone's music over AMS: title, artist, album and transport. |
 | <img src="docs/img/int-music.png" width="200"><br>**Música** — plays WAV from the card through the ES8311 codec. | <img src="docs/img/int-photos.png" width="200"><br>**Fotos** — JPEG, PNG and BMP from the card, decoded and scaled to the screen. | <img src="docs/img/int-flashlight.png" width="200"><br>**Linterna** — the panel at full white, which on an AMOLED is the only way to make light. |
 | <img src="docs/img/int-level.png" width="200"><br>**Nivel** — a spirit level off the accelerometer, with the bubble and the angle in degrees. | <img src="docs/img/int-calc.png" width="200"><br>**Calculadora** — four operations, sized for a thumb rather than for density. | <img src="docs/img/int-convert.png" width="200"><br>**Conversor** — units across several families, with the keypad shared with the calculator. |
@@ -226,6 +226,7 @@ network survey's report format.
 | [APP-API.md](docs/APP-API.md) | writing an app, and the things that will bite you |
 | [I18N.md](docs/I18N.md) | how translation works and why the key is the Spanish string |
 | [POWER.md](docs/POWER.md) | the AXP2101, the rails, light sleep, and the measurements behind each switch |
+| [PORTAL.md](docs/PORTAL.md) | the web portal: pages, API, what it costs the board, and the dev server |
 
 ## A note on what is written down
 

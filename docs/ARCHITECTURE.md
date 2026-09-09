@@ -23,8 +23,10 @@ components/
   aos_apps/              the 18 built-in apps
   aos_dynapp/            .so loader and symbol table
   aos_ble/               NimBLE: ANCS, AMS, pairing (board only)
-  aos_web/               the web portal, embedded in the binary (files, wifi,
-                         app settings, and the OTA endpoint)
+  aos_web/               the web portal, embedded in the binary: status, the
+                         watch's settings, alarms, a live screen, the log,
+                         files, wifi, app settings, and the OTA endpoint
+                         (docs/PORTAL.md)
   aos_fonts/             Montserrat with the Latin-1 supplement
   elf_loader/            Espressif's ELF loader (Apache-2.0, vendored)
 
