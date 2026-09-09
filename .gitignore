@@ -38,3 +38,4 @@ compile_commands.json
 # Handoff notes written for the next coding session, not for readers of the
 # repository. Kept on disk, out of git.
 docs/internal/
+night-*.csv

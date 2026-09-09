@@ -218,6 +218,14 @@ over USB.
 The one thing it will not do is change the partition table or the bootloader.
 Those are still USB, and so is the first install on a fresh board.
 
+> **Light sleep and the USB console.** On battery, with the screen off, the
+> chip light-sleeps, and the USB-Serial-JTAG peripheral does not survive that:
+> the console goes quiet and, after a while, the device disappears from the
+> host until it is replugged. That is why light sleep is only armed when the
+> PMU reports no USB — plug the cable in and the console is back within five
+> seconds, no reboot needed. If the port is gone anyway, replug once, or use
+> the OTA route above, which does not care.
+
 ## Other tools
 
 | Tool | What it does |
@@ -228,6 +236,7 @@ Those are still USB, and so is the first install on a fresh board.
 | `tools/gen_lang.py` | extracts, checks and embeds the translation catalogues |
 | `tools/install_lang.sh <ip> <code>` | uploads a language pack over WiFi |
 | `tools/captura.py <ip> [out.png]` | takes a screenshot of the board over HTTP |
+| `tools/battery_night.py <ip>` | records a night on battery over WiFi; `--report` the morning after |
 | `tools/ppm2png.py` | converts the games' PPM dumps to PNG |
 | `tools/portal_dev_server.py` | serves the web portal against a local folder |
 

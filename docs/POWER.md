@@ -1,5 +1,12 @@
 # Power: the AXP2101, and what the firmware does to make the battery last
 
+> **State of this document (2026-09-09).** Everything in sections 5 and 6 runs
+> on the board and was checked there, except two paths that have not yet been
+> through a real discharge: the clean power-off at 3 % (5.2) and the charge
+> cycle counter (5.3). The night-on-battery figure (section 7) is the
+> measurement still missing. Light sleep is armed on battery only; on USB
+> there is nothing to save and the console would die.
+
 Written on 2026-09-09 after reading the AXP2101 datasheet (V1.0, section 6.13),
 the board's schematic, Waveshare's `90_axp2101_pmu` example and their Arduino
 `12_LVGL_AXP2101_ADC_Data` sketch, and comparing them with what
@@ -305,6 +312,9 @@ Two things to know when working on the board with light sleep on:
   update** while this is on. That is also why the PM dump is served by
   `/api/pmu?locks=1` as text and the reset reason by `/api/status` instead
   of being read from the log.
+* Light sleep is armed **on battery only**, since the USB console does not
+  survive it and there is nothing to save on the cable. Plugging USB in
+  disarms it within five seconds, through the PMU's VBUS report.
 * One trial image rolled back once during the A/B rounds; its crash was not
   captured (no console). `boot_reason` in `/api/status` exists since, so the
   next one will be.

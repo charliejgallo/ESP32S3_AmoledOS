@@ -53,6 +53,20 @@ buttons.
 It is iPhone only: ANCS is published by iOS and Android has no standard
 equivalent.
 
+**Battery.** The AXP2101 is programmed rather than left at its factory
+values: the cell charges at 0.5 C to 4.1 V with a proper termination current
+("battery care", a switch), the watch powers itself off cleanly at 3 % instead
+of running the cell down to the PMU's 2.6 V cut, and the power key works: a
+click is the screen switch. With the screen off the CPU drops to 80 MHz, WiFi
+goes to its deepest modem sleep and, on battery, the chip light-sleeps between
+wake-ups — 58 % of the time, measured. Seven of the PMU's regulators feed
+nothing on this board and are off. The Battery app shows the charger's stage,
+the board temperature from the thermistor next to the PMU, drain in %/h with
+hours left, time on battery, charge cycles and why the PMU last powered off;
+`/api/status` serves the same to a home-automation poller. The whole
+investigation, what the datasheet and the schematic say and what the board
+said back, is in [docs/POWER.md](docs/POWER.md).
+
 **Network onboarding.** With no stored credentials there is no way to enter
 credentials, so the watch brings up its own access point and serves the form
 itself. The screen shows the password in a large font and a QR code that
@@ -185,6 +199,7 @@ network survey's report format.
 | [BUILDING.md](docs/BUILDING.md) | firmware, simulator, dynamic apps, and every tool |
 | [APP-API.md](docs/APP-API.md) | writing an app, and the things that will bite you |
 | [I18N.md](docs/I18N.md) | how translation works and why the key is the Spanish string |
+| [POWER.md](docs/POWER.md) | the AXP2101, the rails, light sleep, and the measurements behind each switch |
 
 ## A note on what is written down
 
@@ -216,7 +231,11 @@ microSD, the web portal, TLS and over-the-air updates have all been exercised
 on the board — most of the measurements quoted throughout the source were taken
 there.
 
-Known gaps: MP3 — the player handles 16-bit PCM WAV only.
+Known gaps: MP3 — the player handles 16-bit PCM WAV only. On the power side,
+the clean power-off at 3 % and the charge-cycle counter are written and
+reviewed but have not yet been through a real discharge, and the night-on-
+battery figure is still to be taken — [POWER.md](docs/POWER.md) section 7 is
+the protocol and `tools/battery_night.py` the recorder.
 
 ## Licence
 

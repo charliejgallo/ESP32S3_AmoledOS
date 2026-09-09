@@ -228,7 +228,6 @@ static bool     s_shutting_down;
 
 static void pm_policy_apply(void);
 static bool panel_sleep(bool sleep);
-static void brightness_apply_later(void);
 static void lvgl_timers_idle(bool idle);
 static bool power_saving_active(void);
 static int  cpu_mhz_now(void);
@@ -2911,42 +2910,6 @@ static bool panel_sleep(bool sleep)
     return true;
 }
 
-/* The UI learns of the wake through its own tick, after the panel is already
- * on: the way back from an app or the menu to the face is drawn right in
- * front of the user, and freshly created widgets show up in the theme's
- * default colours for a frame or two (seen: a light blue flash, then white,
- * then the face). So after a real wake the brightness stays at 0 for a
- * moment and comes up from a one-shot timer, once the UI has caught up. */
-#define AOS_WAKE_GRACE_MS   300
-static esp_timer_handle_t s_brightness_timer;
-
-static void brightness_timer_cb(void *arg)
-{
-    (void)arg;
-    if (!aos_hal_lock(300)) {
-        return;
-    }
-    switch (s_display_state) {
-    case AOS_DISPLAY_ACTIVE: bsp_display_brightness_set(s_brightness);     break;
-    case AOS_DISPLAY_AOD:    bsp_display_brightness_set(s_aod_brightness); break;
-    default: break;
-    }
-    aos_hal_unlock();
-}
-
-static void __attribute__((unused)) brightness_apply_later(void)
-{
-    if (!s_brightness_timer) {
-        const esp_timer_create_args_t args = { .callback = brightness_timer_cb, .name = "aos_bright" };
-        if (esp_timer_create(&args, &s_brightness_timer) != ESP_OK) {
-            brightness_timer_cb(NULL);
-            return;
-        }
-    }
-    esp_timer_stop(s_brightness_timer);
-    esp_timer_start_once(s_brightness_timer, AOS_WAKE_GRACE_MS * 1000);
-}
-
 /* --------------------------------------------------------------------------
  * Power policy
  *
@@ -2998,8 +2961,13 @@ static void pm_policy_apply(void)
      * the I2S codec are not asked to survive it, and neither is anyone who is
      * looking at the watch. It is an esp_pm reconfiguration, so it can be
      * switched at run time. */
+    /* And only on battery: on USB there is nothing to save, and the
+     * USB-Serial-JTAG console does not survive light sleep - the port
+     * vanishes from the host until it is replugged, which is no way to
+     * develop. s_usb_last is what the PMU said, refreshed every 5 s and on
+     * every insert/remove interrupt. */
     bool want_ls = s_light_sleep_enabled && saving && s_pm_max_lock &&
-                   s_display_state == AOS_DISPLAY_OFF && !audio;
+                   s_display_state == AOS_DISPLAY_OFF && !audio && !s_usb_last;
     if (want_ls != s_light_sleep_on) {
         esp_pm_config_t pm = {
             .max_freq_mhz = AOS_DFS_MAX_MHZ,
@@ -3060,6 +3028,7 @@ static void usb_changed(bool present, int percent)
         return;
     }
     s_usb_last = present;
+    pm_policy_apply();
     if (present) {
         ESP_LOGI(TAG, "usb in at %d%%", percent);
         s_unplug_us   = 0;
