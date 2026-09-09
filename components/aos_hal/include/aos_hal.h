@@ -266,6 +266,7 @@ typedef struct {
     int      cpu_mhz;               /* what the CPU is running at right now     */
     bool     panel_asleep;          /* the AMOLED's driver IC is in sleep-in    */
     bool     power_saving_active;   /* by preference or because the battery is low */
+    bool     light_sleep;           /* automatic light sleep is armed right now */
 } aos_power_info_t;
 
 bool aos_hal_power_info(aos_power_info_t *out);
@@ -302,6 +303,11 @@ bool aos_hal_battery_care_enabled(void);
 void aos_hal_panel_sleep_enable(bool on);
 bool aos_hal_panel_sleep_enabled(void);
 
+/* Light sleep: with the screen off and no audio, the chip sleeps between
+ * wake-ups (tickless idle). A finger, the BOOT button, WiFi and BLE wake it. */
+void aos_hal_light_sleep_enable(bool on);
+bool aos_hal_light_sleep_enabled(void);
+
 /* Meant to switch the gyroscope off while no app needs it. On the board the
  * accel-only mode broke the accelerometer (see qmi8658.c), so for now the
  * gyro stays on and this only counts. Counted: every request(true) needs its
@@ -319,6 +325,9 @@ int       aos_hal_pmu_register_read(int reg);                 /* -1 on failure *
 bool      aos_hal_pmu_register_write(int reg, int value);
 float     aos_hal_pmu_ts_voltage(void);
 void      aos_hal_pm_dump_locks(void);      /* who is holding the CPU at 240, to the log */
+int       aos_hal_pm_dump_text(char *out, size_t len);   /* the same, as text */
+void      aos_hal_panel_hw_reset(void);     /* LCD_RESET low: the panel forgets everything */
+const char *aos_hal_boot_reason(void);      /* why the ESP32 last reset, static string */
 /* Who answers on the I2C bus right now, plus one accelerometer sample, as
  * JSON. The rail experiment's yardstick. */
 int       aos_hal_probe_devices(char *out, size_t len);

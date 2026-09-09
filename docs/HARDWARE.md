@@ -126,6 +126,16 @@ the rail is back, and the touch keeps reading. Always reboot between a
 switch and a judgement. `/api/pmu?rail=NAME&on=0|1` and `/api/pmu?probe=1`
 exist for exactly this.
 
+### The panel's reset line is on the expander, and it matters
+
+`LCD_RESET` is EXIO0 of the TCA9554. The BSP leaves it alone and resets the
+panel with the software command (0x01) over QSPI. A panel whose interface-mode
+register has been corrupted — which is what happens when the QSPI lines float
+during light sleep — no longer decodes that command, and neither an ESP32
+reset nor switching its five rails off and on recovers it, because its logic
+is on DCDC1. The firmware pulls EXIO0 low for 20 ms before every display
+init; `/api/pmu?panelreset=1` does it on demand.
+
 ### The QMI8658 does not survive accel-only mode
 
 Writing CTRL7 with only the accelerometer enabled (to save the gyro's ~1 mA)

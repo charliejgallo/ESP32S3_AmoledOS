@@ -11,4 +11,4 @@ idf_component_register(
 # El reloj del QSPI del panel lo fija un macro del BSP, que es un componente
 # gestionado. Se intercepta la creacion del panel para subirlo (ver
 # __wrap_esp_lcd_new_panel_io_spi en aos_hal_esp32.c).
-target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--wrap=esp_lcd_new_panel_io_spi")
+target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--wrap=esp_lcd_new_panel_io_spi" "-Wl,--wrap=i2s_new_channel")

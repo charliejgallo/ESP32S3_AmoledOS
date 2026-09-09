@@ -1998,7 +1998,8 @@ void aos_hal_log(const char *tag, const char *fmt, ...)
 
 static bool s_sim_power_saving = true;
 static bool s_sim_battery_care = true;
-static bool s_sim_panel_sleep  = true;
+static bool s_sim_panel_sleep  = false;
+static bool s_sim_light_sleep  = true;
 static int  s_sim_gyro_users;
 static void (*s_sim_power_cb)(aos_power_event_t event, int percent);
 
@@ -2031,6 +2032,7 @@ bool aos_hal_power_info(aos_power_info_t *out)
     out->cpu_mhz               = (s_sim_power_saving && s_display_state != AOS_DISPLAY_ACTIVE) ? 80 : 240;
     out->panel_asleep          = s_sim_panel_sleep && s_display_state == AOS_DISPLAY_OFF;
     out->power_saving_active   = s_sim_power_saving || batt.percent <= 20;
+    out->light_sleep           = s_sim_light_sleep && s_display_state == AOS_DISPLAY_OFF;
     return true;
 }
 
@@ -2044,6 +2046,8 @@ bool aos_hal_power_saving_enabled(void)  { return s_sim_power_saving; }
 void aos_hal_battery_care_enable(bool on) { s_sim_battery_care = on; aos_hal_pref_set_i32("batt_care", on); }
 bool aos_hal_battery_care_enabled(void)  { return s_sim_battery_care; }
 void aos_hal_panel_sleep_enable(bool on)  { s_sim_panel_sleep = on; aos_hal_pref_set_i32("panel_slp", on); }
+void aos_hal_light_sleep_enable(bool on)  { s_sim_light_sleep = on; aos_hal_pref_set_i32("light_slp", on); }
+bool aos_hal_light_sleep_enabled(void)   { return s_sim_light_sleep; }
 bool aos_hal_panel_sleep_enabled(void)   { return s_sim_panel_sleep; }
 
 void aos_hal_imu_gyro_request(bool on)
@@ -2067,3 +2071,9 @@ float aos_hal_pmu_ts_voltage(void) { return 0.5f; }
 void aos_hal_pm_dump_locks(void) {}
 
 int aos_hal_probe_devices(char *out, size_t len) { return snprintf(out, len, "{}"); }
+
+int aos_hal_pm_dump_text(char *out, size_t len) { return snprintf(out, len, "sim\n"); }
+
+void aos_hal_panel_hw_reset(void) {}
+
+const char *aos_hal_boot_reason(void) { return "sim"; }

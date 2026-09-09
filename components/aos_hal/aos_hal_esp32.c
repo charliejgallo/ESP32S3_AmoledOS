@@ -36,6 +36,7 @@
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_commands.h"
 #include "esp_pm.h"
+#include "esp_sleep.h"
 #include "soc/rtc.h"
 #include "esp_lcd_touch.h"
 #include "esp_lvgl_port.h"
@@ -156,6 +157,28 @@ esp_err_t __wrap_esp_lcd_new_panel_io_spi(esp_lcd_spi_bus_handle_t bus,
 
 static const char *TAG = "aos_hal";
 
+/* The I2S channels, caught on their way out of the BSP. esp_codec_dev enables
+ * a channel on open and NEVER disables it on close (close only switches the
+ * codec chip off), and an enabled channel holds an APB_FREQ_MAX pm lock,
+ * which forbids light sleep for good. With the handles in hand the policy
+ * can disable both whenever no audio is running; the codec enables them
+ * again on its next open. */
+static i2s_chan_handle_t s_i2s_tx, s_i2s_rx;
+static bool              s_i2s_idle;
+
+esp_err_t __real_i2s_new_channel(const i2s_chan_config_t *chan_cfg,
+                                 i2s_chan_handle_t *tx, i2s_chan_handle_t *rx);
+esp_err_t __wrap_i2s_new_channel(const i2s_chan_config_t *chan_cfg,
+                                 i2s_chan_handle_t *tx, i2s_chan_handle_t *rx)
+{
+    esp_err_t ret = __real_i2s_new_channel(chan_cfg, tx, rx);
+    if (ret == ESP_OK) {
+        if (tx) s_i2s_tx = *tx;
+        if (rx) s_i2s_rx = *rx;
+    }
+    return ret;
+}
+
 static lv_display_t *s_display;
 static int           s_brightness = 80;
 static int           s_volume     = 60;
@@ -172,12 +195,17 @@ static char          s_board_name[48] = "desconocida";
 static esp_lcd_panel_handle_t    s_panel;
 static esp_lcd_panel_io_handle_t s_panel_io;
 static bool                      s_panel_asleep;
-static bool                      s_panel_sleep_enabled = true;
+static bool                      s_panel_sleep_enabled = false;  /* off: SLPOUT flashes, see POWER.md 6b */
+static esp_err_t                 s_panel_last_err;   /* of the last wake sequence */
 
 /* Power policy */
 static bool                 s_power_saving = true;      /* preference          */
 static bool                 s_battery_care = true;      /* preference          */
 static bool                 s_low_battery_saving;       /* forced under 20%    */
+static bool                 s_light_sleep_enabled = true;   /* preference       */
+static volatile bool        s_speaker_open;             /* held by tone_task   */
+static volatile bool        s_mic_holds_codec;          /* the capture took the codec */
+static bool                 s_light_sleep_on;           /* what esp_pm has now */
 static esp_pm_lock_handle_t s_pm_max_lock;
 static bool                 s_pm_max_held;
 static int                  s_wifi_ps = -1;
@@ -199,7 +227,9 @@ static int      s_critical_strikes;
 static bool     s_shutting_down;
 
 static void pm_policy_apply(void);
-static void panel_sleep(bool sleep);
+static bool panel_sleep(bool sleep);
+static void brightness_apply_later(void);
+static void lvgl_timers_idle(bool idle);
 static bool power_saving_active(void);
 static int  cpu_mhz_now(void);
 static TaskHandle_t s_player_task;
@@ -337,6 +367,7 @@ void aos_hal_display_set_state(aos_display_state_t state)
         panel_sleep(true);
         break;
     }
+    lvgl_timers_idle(state == AOS_DISPLAY_OFF);
     pm_policy_apply();
 
     ESP_LOGI(TAG, "display -> %s",
@@ -512,6 +543,7 @@ bool aos_hal_power_info(aos_power_info_t *out)
     out->cpu_mhz               = cpu_mhz_now();
     out->panel_asleep          = s_panel_asleep;
     out->power_saving_active   = power_saving_active();
+    out->light_sleep           = s_light_sleep_on;
     return true;
 }
 
@@ -564,6 +596,18 @@ bool aos_hal_panel_sleep_enabled(void)
     return s_panel_sleep_enabled;
 }
 
+void aos_hal_light_sleep_enable(bool on)
+{
+    s_light_sleep_enabled = on;
+    aos_hal_pref_set_i32("light_slp", on ? 1 : 0);
+    pm_policy_apply();
+}
+
+bool aos_hal_light_sleep_enabled(void)
+{
+    return s_light_sleep_enabled;
+}
+
 void aos_hal_imu_gyro_request(bool on)
 {
     s_gyro_users += on ? 1 : -1;
@@ -614,13 +658,19 @@ int aos_hal_probe_devices(char *out, size_t len)
         .intr_type = GPIO_INTR_DISABLE,
     };
     gpio_config(&te);
-    int edges = 0, last = gpio_get_level(GPIO_NUM_13);
+    gpio_sleep_sel_dis(GPIO_NUM_13);
+    int edges = 0, last = gpio_get_level(GPIO_NUM_13), highs = 0, samples = 0;
     int64_t until = esp_timer_get_time() + 100000;
     while (esp_timer_get_time() < until) {
         int now = gpio_get_level(GPIO_NUM_13);
+        highs += now; samples++;
         if (now != last) { edges++; last = now; }
     }
-    n += snprintf(out + n, len - n, ",\"te_edges_100ms\":%d", edges);
+    n += snprintf(out + n, len - n, ",\"te_edges_100ms\":%d,\"te_high_pct\":%d,"
+                  "\"panel_asleep\":%s,\"panel_wake_err\":\"%s\",\"display\":%d",
+                  edges, samples ? 100 * highs / samples : -1,
+                  s_panel_asleep ? "true" : "false", esp_err_to_name(s_panel_last_err),
+                  (int)s_display_state);
 
     /* The microphone: open, let the capture task fill, take the RMS. A dead
      * analogue side gives a flat zero; a live one gives room noise. */
@@ -640,12 +690,54 @@ int aos_hal_probe_devices(char *out, size_t len)
     return n;
 }
 
+/* The same dump into a buffer, for the web portal: with light sleep on the
+ * USB console drops, so the log is not where the numbers can be read. */
+int aos_hal_pm_dump_text(char *out, size_t len)
+{
+    if (!out || len < 64) {
+        return 0;
+    }
+    int n = snprintf(out, len, "cpu %d MHz, max lock %s, saving %s, light sleep %s, display %d, audio %s\n",
+                     cpu_mhz_now(), s_pm_max_held ? "held" : "released",
+                     power_saving_active() ? "on" : "off", s_light_sleep_on ? "on" : "off",
+                     (int)s_display_state,
+                     (s_player_task || s_mic_task || s_speaker_open || s_mic_holds_codec) ? "yes" : "no");
+    FILE *f = fmemopen(out + n, len - n - 1, "w");
+    if (f) {
+        esp_pm_dump_locks(f);
+        fclose(f);
+        out[len - 1] = '\0';
+        n += (int)strlen(out + n);
+    }
+    return n;
+}
+
+const char *aos_hal_boot_reason(void)
+{
+    switch (esp_reset_reason()) {
+    case ESP_RST_POWERON:  return "power-on";
+    case ESP_RST_SW:       return "software";
+    case ESP_RST_PANIC:    return "PANIC";
+    case ESP_RST_TASK_WDT: return "task watchdog";
+    case ESP_RST_INT_WDT:  return "interrupt watchdog";
+    case ESP_RST_WDT:      return "watchdog";
+    case ESP_RST_BROWNOUT: return "brownout";
+    case ESP_RST_USB:      return "usb";
+    default:               return "other";
+    }
+}
+
+void aos_hal_panel_hw_reset(void)
+{
+    aos_board_panel_hw_reset();
+}
+
 void aos_hal_pm_dump_locks(void)
 {
-    ESP_LOGI(TAG, "pm: cpu %d MHz, our max lock %s, saving %s, display %d, player %p mic %p",
+    ESP_LOGI(TAG, "pm: cpu %d MHz, our max lock %s, saving %s, light sleep %s, display %d, player %p mic %p",
              cpu_mhz_now(), s_pm_max_held ? "HELD" : "released",
-             power_saving_active() ? "on" : "off", (int)s_display_state,
-             (void *)s_player_task, (void *)s_mic_task);
+             power_saving_active() ? "on" : "off", s_light_sleep_on ? "on" : "off",
+             (int)s_display_state, (void *)s_player_task, (void *)s_mic_task);
     esp_pm_dump_locks(stdout);
 }
 
@@ -847,8 +939,6 @@ bool aos_hal_sd_usage(uint64_t *total_bytes, uint64_t *free_bytes)
  * there is no need for an owner with more states than the hardware has.
  * -------------------------------------------------------------------------- */
 
-static volatile bool s_mic_holds_codec;   /* the capture took the codec */
-static volatile bool s_speaker_open;      /* held by tone_task */
 
 typedef struct {
     uint16_t freq;
@@ -911,6 +1001,7 @@ static void tone_task(void *arg)
                 .channel         = 1,
                 .sample_rate     = TONE_RATE,
             };
+            s_speaker_open = true;      /* before the open: see s_i2s_idle */
             if (esp_codec_dev_open(s_speaker, &fs) != ESP_OK) {
                 continue;
             }
@@ -2741,37 +2832,119 @@ aos_touch_gesture_t aos_hal_touch_gesture(void)
  * The lock is recursive, so this works from the LVGL task and from the
  * housekeeping task alike.
  * -------------------------------------------------------------------------- */
-static void panel_cmd(uint8_t cmd)
+static esp_err_t panel_cmd(uint8_t cmd)
 {
-    esp_lcd_panel_io_tx_param(s_panel_io, (0x02 << 24) | ((int)cmd << 8), NULL, 0);
+    return esp_lcd_panel_io_tx_param(s_panel_io, (0x02 << 24) | ((int)cmd << 8), NULL, 0);
 }
 
-static void panel_sleep(bool sleep)
+/* With the screen off LVGL has nothing to draw and nobody to listen to, but
+ * its refresh timer (33 ms) and the touch read timer (33 ms) go on waking
+ * the chip. The refresh timer is paused; the touch is read every 200 ms,
+ * because a finger also wakes the chip through GPIO21 and the read is what
+ * turns that into aos_hal_activity(). Both back to normal on wake. */
+static void lvgl_timers_idle(bool idle)
 {
-    if (!s_panel || !s_panel_io || sleep == s_panel_asleep) {
+    if (!s_display || !aos_hal_lock(2000)) {
         return;
     }
+    lv_timer_t *refr = lv_display_get_refr_timer(s_display);
+    if (refr) {
+        if (idle) lv_timer_pause(refr); else lv_timer_resume(refr);
+    }
+    for (lv_indev_t *indev = lv_indev_get_next(NULL); indev; indev = lv_indev_get_next(indev)) {
+        lv_timer_t *read = lv_indev_get_read_timer(indev);
+        if (read) {
+            lv_timer_set_period(read, idle ? 200 : LV_DEF_REFR_PERIOD);
+        }
+    }
+    aos_hal_unlock();
+}
+
+/* true when the panel was actually put to sleep or woken by this call */
+static bool panel_sleep(bool sleep)
+{
+    if (!s_panel || !s_panel_io || sleep == s_panel_asleep) {
+        return false;
+    }
     if (sleep && !s_panel_sleep_enabled) {
-        return;
+        return false;
     }
     if (!aos_hal_lock(2000)) {
         ESP_LOGW(TAG, "panel %s: could not take the LVGL lock", sleep ? "sleep" : "wake");
-        return;
+        return false;
     }
     int64_t t0 = esp_timer_get_time();
     if (sleep) {
-        esp_lcd_panel_disp_on_off(s_panel, false);
+        /* No display-off here: the panel's own sleep-in blanks it, and a
+         * display-on at wake was measured to cost a light-blue then white
+         * flash (see docs/POWER.md 6b). Brightness is already 0. */
         panel_cmd(LCD_CMD_SLPIN);
         vTaskDelay(pdMS_TO_TICKS(5));
     } else {
-        panel_cmd(LCD_CMD_SLPOUT);
+        s_panel_last_err = panel_cmd(LCD_CMD_SLPOUT);
+        /* Sleep-out brings the brightness register back to the factory 0xFF
+         * on this panel, and with it a flash of whatever the pixels do while
+         * their supply comes up (seen: light blue, then white). Brightness is
+         * pinned at 0 for the whole sequence; the caller raises it after the
+         * panel is on and showing a finished frame. */
+        bsp_display_brightness_set(0);
         vTaskDelay(pdMS_TO_TICKS(AOS_PANEL_WAKE_MS));
-        esp_lcd_panel_disp_on_off(s_panel, true);
+        /* The panel's memory still holds whatever was on screen when it went
+         * to sleep, and the UI has moved on since (back to the face, into
+         * always-on): with the refresh timer paused none of that was drawn.
+         * Displaying the old memory and letting LVGL catch up on top of it
+         * showed the menu bleeding through the watchface. So: the whole
+         * screen is rendered into the panel while it is still display-off,
+         * and only then is it switched on. Costs about 60 ms of the wake. */
+        if (s_display) {
+            lv_timer_t *refr = lv_display_get_refr_timer(s_display);
+            if (refr) lv_timer_resume(refr);
+            lv_obj_invalidate(lv_screen_active());
+            lv_refr_now(s_display);
+        }
+        vTaskDelay(pdMS_TO_TICKS(20));      /* one frame before the brightness comes up */
     }
     s_panel_asleep = sleep;
     aos_hal_unlock();
     ESP_LOGI(TAG, "panel %s in %lld ms", sleep ? "asleep" : "awake",
              (esp_timer_get_time() - t0) / 1000);
+    return true;
+}
+
+/* The UI learns of the wake through its own tick, after the panel is already
+ * on: the way back from an app or the menu to the face is drawn right in
+ * front of the user, and freshly created widgets show up in the theme's
+ * default colours for a frame or two (seen: a light blue flash, then white,
+ * then the face). So after a real wake the brightness stays at 0 for a
+ * moment and comes up from a one-shot timer, once the UI has caught up. */
+#define AOS_WAKE_GRACE_MS   300
+static esp_timer_handle_t s_brightness_timer;
+
+static void brightness_timer_cb(void *arg)
+{
+    (void)arg;
+    if (!aos_hal_lock(300)) {
+        return;
+    }
+    switch (s_display_state) {
+    case AOS_DISPLAY_ACTIVE: bsp_display_brightness_set(s_brightness);     break;
+    case AOS_DISPLAY_AOD:    bsp_display_brightness_set(s_aod_brightness); break;
+    default: break;
+    }
+    aos_hal_unlock();
+}
+
+static void __attribute__((unused)) brightness_apply_later(void)
+{
+    if (!s_brightness_timer) {
+        const esp_timer_create_args_t args = { .callback = brightness_timer_cb, .name = "aos_bright" };
+        if (esp_timer_create(&args, &s_brightness_timer) != ESP_OK) {
+            brightness_timer_cb(NULL);
+            return;
+        }
+    }
+    esp_timer_stop(s_brightness_timer);
+    esp_timer_start_once(s_brightness_timer, AOS_WAKE_GRACE_MS * 1000);
 }
 
 /* --------------------------------------------------------------------------
@@ -2797,8 +2970,17 @@ static bool power_saving_active(void)
 static void pm_policy_apply(void)
 {
     bool saving   = power_saving_active();
-    bool want_max = !saving || s_display_state == AOS_DISPLAY_ACTIVE ||
-                    s_player_task != NULL || s_mic_task != NULL;
+    bool audio    = s_player_task != NULL || s_mic_task != NULL ||
+                    s_speaker_open || s_mic_holds_codec;
+    bool want_max = !saving || s_display_state == AOS_DISPLAY_ACTIVE || audio;
+
+    if (audio) {
+        s_i2s_idle = false;
+    } else if (!s_i2s_idle) {
+        if (s_i2s_tx) i2s_channel_disable(s_i2s_tx);
+        if (s_i2s_rx) i2s_channel_disable(s_i2s_rx);
+        s_i2s_idle = true;
+    }
 
     if (s_pm_max_lock) {
         if (want_max && !s_pm_max_held) {
@@ -2809,6 +2991,27 @@ static void pm_policy_apply(void)
             if (esp_pm_lock_release(s_pm_max_lock) == ESP_OK) {
                 s_pm_max_held = false;
             }
+        }
+    }
+
+    /* Light sleep only with the screen off and no audio: the QSPI panel and
+     * the I2S codec are not asked to survive it, and neither is anyone who is
+     * looking at the watch. It is an esp_pm reconfiguration, so it can be
+     * switched at run time. */
+    bool want_ls = s_light_sleep_enabled && saving && s_pm_max_lock &&
+                   s_display_state == AOS_DISPLAY_OFF && !audio;
+    if (want_ls != s_light_sleep_on) {
+        esp_pm_config_t pm = {
+            .max_freq_mhz = AOS_DFS_MAX_MHZ,
+            .min_freq_mhz = AOS_DFS_MIN_MHZ,
+            .light_sleep_enable = want_ls,
+        };
+        esp_err_t ret = esp_pm_configure(&pm);
+        if (ret == ESP_OK) {
+            s_light_sleep_on = want_ls;
+            ESP_LOGI(TAG, "light sleep %s", want_ls ? "on" : "off");
+        } else {
+            ESP_LOGW(TAG, "light sleep %s refused: %s", want_ls ? "on" : "off", esp_err_to_name(ret));
         }
     }
 
@@ -3074,7 +3277,9 @@ static void housekeeping_task(void *arg)
             break;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(40));
+        /* Screen off: nobody is waiting on the 40 ms cadence, and every wake
+         * is a wake out of light sleep. */
+        vTaskDelay(pdMS_TO_TICKS(s_display_state == AOS_DISPLAY_OFF ? 100 : 40));
     }
 }
 
@@ -3440,14 +3645,28 @@ static void display_round_area_cb(lv_event_t *e)
     area->y2 |= 1;
 }
 
+static uint32_t lvgl_tick_ms(void)
+{
+    return (uint32_t)(esp_timer_get_time() / 1000);
+}
+
 static lv_display_t *display_start(void)
 {
     lvgl_port_cfg_t port_cfg = ESP_LVGL_PORT_INIT_CONFIG();
     port_cfg.task_stack = 20 * 1024;
+    /* The port's tick is a periodic esp_timer, 5 ms from the factory, and a
+     * timer every 5 ms is a wake-up every 5 ms: with it, the chip never gets
+     * the 8 idle ms tickless idle asks for before it sleeps. LVGL 9 can take
+     * its tick from a callback instead, so the tick comes from esp_timer's
+     * clock (which light sleep keeps right) and the port's timer is left
+     * ticking once every 100 ms, where it only touches a counter nobody
+     * reads. */
+    port_cfg.timer_period_ms = 100;
     if (lvgl_port_init(&port_cfg) != ESP_OK) {
         ESP_LOGE(TAG, "lvgl_port_init failed");
         return NULL;
     }
+    lv_tick_set_cb(lvgl_tick_ms);
 
     esp_lcd_panel_handle_t    panel = NULL;
     esp_lcd_panel_io_handle_t io    = NULL;
@@ -3458,6 +3677,17 @@ static lv_display_t *display_start(void)
     }
     s_panel    = panel;
     s_panel_io = io;
+
+    /* Light sleep isolates every GPIO (ESP_SLEEP_GPIO_RESET_WORKAROUND):
+     * chip select and the QSPI lines float while the chip sleeps, and the
+     * panel reads the noise as commands. Measured: after the first real light
+     * sleep the panel came back dead (TE stopped) until the next init. These
+     * six keep their normal configuration through sleep instead. */
+    const gpio_num_t lcd_pins[] = { BSP_LCD_CS, BSP_LCD_PCLK, BSP_LCD_DATA0,
+                                    BSP_LCD_DATA1, BSP_LCD_DATA2, BSP_LCD_DATA3 };
+    for (unsigned i = 0; i < sizeof(lcd_pins) / sizeof(lcd_pins[0]); i++) {
+        gpio_sleep_sel_dis(lcd_pins[i]);
+    }
 
     const lvgl_port_display_cfg_t disp_cfg = {
         .io_handle     = io,
@@ -3584,6 +3814,7 @@ bool aos_hal_init(void)
         if (aos_hal_pref_get_i32("pwr_save", &saved))  s_power_saving        = (saved != 0);
         if (aos_hal_pref_get_i32("batt_care", &saved)) s_battery_care        = (saved != 0);
         if (aos_hal_pref_get_i32("panel_slp", &saved)) s_panel_sleep_enabled = (saved != 0);
+        if (aos_hal_pref_get_i32("light_slp", &saved)) s_light_sleep_enabled = (saved != 0);
         if (aos_hal_pref_get_i32("bat_min", &saved))   s_battery_minutes     = (uint32_t)saved;
         if (aos_hal_pref_get_i32("chg_cyc", &saved))   s_charge_cycles       = (uint32_t)saved;
 
@@ -3664,6 +3895,7 @@ bool aos_hal_init(void)
      * That is why only claudito, 2043 and gemas failed (canvas and images) and
      * not flappy or recorder, which use ordinary widgets. display_start()
      * raises it. */
+    aos_board_panel_hw_reset();
     s_display = display_start();
 
     if (!s_display) {
@@ -3696,6 +3928,28 @@ bool aos_hal_init(void)
         .intr_type    = GPIO_INTR_DISABLE,
     };
     gpio_config(&boot_button);
+
+    /* What wakes the chip from light sleep: the touch controller's INT line
+     * (GPIO21, pulses low on a finger) and the BOOT button. The PMU's IRQ
+     * cannot: it ends on the expander (see aos_board.c), and it is polled
+     * whenever the chip is awake anyway. */
+    gpio_wakeup_enable(BSP_LCD_TOUCH_INT, GPIO_INTR_LOW_LEVEL);
+    gpio_wakeup_enable(BOOT_BUTTON_GPIO, GPIO_INTR_LOW_LEVEL);
+    esp_sleep_enable_gpio_wakeup();
+
+    /* The BSP enables both I2S channels at init and each enabled channel
+     * holds an APB_FREQ_MAX pm lock, which forbids light sleep for good. The
+     * codec's data interface disables the channel on close, so one open and
+     * close per device at boot puts them in the state they are in after any
+     * real use: off until needed. */
+    if (s_speaker) {
+        esp_codec_dev_sample_info_t fs = { .sample_rate = 16000, .channel = 1, .bits_per_sample = 16 };
+        if (esp_codec_dev_open(s_speaker, &fs) == ESP_OK) esp_codec_dev_close(s_speaker);
+    }
+    if (s_mic) {
+        esp_codec_dev_sample_info_t fs = { .sample_rate = 16000, .channel = 1, .bits_per_sample = 16 };
+        if (esp_codec_dev_open(s_mic, &fs) == ESP_OK) esp_codec_dev_close(s_mic);
+    }
 
     /* Dynamic frequency scaling: the lock is taken here and released by the
      * policy when there is nothing to draw. esp_pm_configure fails harmlessly

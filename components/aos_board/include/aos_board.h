@@ -85,6 +85,11 @@ bool aos_board_power_key_down(void);
 
 void aos_board_pmu_dump(void);
 
+/* Hardware reset of the AMOLED through LCD_RESET on EXIO0 of the expander.
+ * The BSP never pulls it: it relies on the software reset command, which a
+ * panel whose interface mode got corrupted no longer understands. */
+void aos_board_panel_hw_reset(void);
+
 /* Regulators and raw registers, for the experiments behind /api/pmu. */
 int       aos_board_pmu_rail_count(void);
 bool      aos_board_pmu_rail_get(int idx, const char **name, bool *on, int *mv);

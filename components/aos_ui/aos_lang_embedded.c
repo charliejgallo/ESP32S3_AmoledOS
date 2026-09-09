@@ -327,6 +327,7 @@ static const char blob_en__sistema_lang[] =
     "Ahorro de energia\tPower saving\n"
     "Cuidar la bateria\tBattery care\n"
     "Dormir el panel apagado\tSleep the panel when off\n"
+    "Dormir el chip apagado\tSleep the chip when off\n"
     "IDIOMA\tLANGUAGE\n"
     "sin packs en la tarjeta\tno packs on the card\n"
     "%d cadenas, %d apps cubiertas\t%d strings, %d apps covered\n"
@@ -1697,6 +1698,7 @@ static const char blob_de__sistema_lang[] =
     "Ahorro de energia\tEnergiesparen\n"
     "Cuidar la bateria\tAkku schonen\n"
     "Dormir el panel apagado\tPanel im Aus schlafen legen\n"
+    "Dormir el chip apagado\tChip im Aus schlafen legen\n"
     "IDIOMA\tSPRACHE\n"
     "sin packs en la tarjeta\tkeine Pakete auf der Karte\n"
     "%d cadenas, %d apps cubiertas\t%d Texte, %d Apps abgedeckt\n"
@@ -2754,7 +2756,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 436, 20, files_en, 21 },
-    { "de", "Deutsch", 436, 20, files_de, 21 },
+    { "en", "English", 437, 20, files_en, 21 },
+    { "de", "Deutsch", 437, 20, files_de, 21 },
 };
 const int aos_lang_pack_count = 2;

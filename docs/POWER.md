@@ -152,18 +152,23 @@ enum and nothing that emitted it. Now a click turns the screen on when it is
 off and off when it is on; holding it is still the PMU's own power-off (6 s
 from the factory, read at boot and shown in the log).
 
-### 5.4 Panel sleep
+### 5.4 Panel sleep (built, measured, and OFF by default)
 
-With the screen off, the AMOLED's driver IC gets *display off* (0x28) and
-*sleep in* (0x10): charge pumps and scanning stop, frame memory is kept.
-Waking is *sleep out* (0x11), the 120 ms the DCS spec asks for, *display on*
-(0x29) and the brightness command. Both revisions' controllers (SH8601 and
-CO5300) go through the same driver and the same QSPI opcode wrap.
+With the screen off the AMOLED's driver IC can be put in *sleep in* (0x10):
+charge pumps and scanning stop, frame memory is kept, and the wake is
+*sleep out* (0x11) plus the 120 ms the DCS spec asks for. It works, it
+survives light sleep, and **it flashes**: on every sleep-out this CO5300 shows
+a light-blue then a white frame before the first real one, with the
+brightness register at 0, with display-off around it or without it, and with
+light sleep on or off (three rounds of A/B with the board in hand). It is the
+panel's own power-up, not anything the firmware draws.
 
-The commands are sent under the LVGL lock so a flush is never mid-flight on
-the bus. Wake latency is the 120 ms plus whatever the housekeeping tick adds.
-The Settings switch *Dormir el panel apagado* turns this off without a
-reflash, in case one revision's panel dislikes it.
+So the default is off: "screen off" is brightness 0, which the panel shows as
+black and which is what the firmware always did. The Settings switch *Dormir
+el panel apagado* turns sleep-in on for whoever prefers the saving to the
+flash; the code path stays, with one sequence trap fixed on the way (the UI
+moves on while the panel sleeps, so the whole screen is rendered into the
+panel's memory before it is shown, or the old content bleeds through).
 
 ### 5.5 CPU frequency
 
@@ -238,20 +243,85 @@ the PMU last powered off.
   only in idle. `CONFIG_PM_PROFILING` accumulates time per mode and
   `/api/pmu?locks=1` prints it; that is the number to quote.
 
-## 6b. What has NOT been done, and why
+## 6b. Light sleep (2026-09-09, second pass)
 
-* **No light sleep.** It is where the real screen-off savings are — the S3 at
-  80 MHz idle still draws ~25 mA — but the QSPI panel driver, the I2S codec,
-  the USB-Serial-JTAG console, the BLE controller (which pins a
-  `NO_LIGHT_SLEEP` lock) and the touch interrupt all need to be walked
-  through it. DFS first; light sleep is the next step and this document is
-  where its measurements go.
+Armed only with the screen off, power saving active and no audio, through
+`esp_pm_configure()` at run time, so the rest of the time the firmware behaves
+exactly as in section 5. What it took, in the order the lock dump forced it:
+
+1. **The BLE controller.** It pinned `btLS NO_LIGHT_SLEEP` and `bt
+   APB_FREQ_MAX` for good. With modem sleep (`BT_CTRL_MODEM_SLEEP`, mode 1)
+   and the main crystal as its low-power clock (the ESP32 has no 32 kHz
+   crystal on this board), kept powered through sleep
+   (`BT_CTRL_MAIN_XTAL_PU_DURING_LIGHT_SLEEP`), it holds the APB lock 25 % of
+   the time and no light-sleep lock at all.
+2. **The I2S channels.** The BSP enables both at init, `esp_codec_dev` enables
+   them on open and never disables them on close, and an enabled channel holds
+   `APB_FREQ_MAX`. The HAL wraps `i2s_new_channel` to keep the handles and
+   parks both channels whenever nothing plays or records; the codec brings
+   them back on its next open.
+3. **LVGL's tick.** The port ran a 5 ms `esp_timer` for it, and tickless idle
+   wants 8 ms of nothing before it sleeps. The tick now comes from
+   `esp_timer_get_time()` through `lv_tick_set_cb()`, and the port's timer is
+   left at 100 ms.
+4. **LVGL's own timers.** With the screen off the refresh timer is paused and
+   the touch read timer goes from 33 to 200 ms. The housekeeping task goes
+   from 40 to 100 ms.
+5. **Wake sources.** GPIO21 (the touch INT, pulses low on a finger) and GPIO0
+   (BOOT), both low-level. WiFi and BLE wake the chip on their own.
+6. **The panel.** `ESP_SLEEP_GPIO_RESET_WORKAROUND` isolates every GPIO in
+   sleep: chip select and the four QSPI lines float, the CO5300 reads the
+   noise as commands, and the first real sleep left it black. Worse: what it
+   corrupts includes the interface-mode register, after which it no longer
+   understands the software reset the BSP relies on, and neither an ESP32
+   reset nor a power cycle of its five rails brings it back (its logic hangs
+   from DCDC1). Two fixes: the six panel pins keep their normal configuration
+   through sleep (`gpio_sleep_sel_dis`), and the firmware now pulls the
+   panel's hardware reset on EXIO0 before every init, which the BSP never
+   did. `/api/pmu?panelreset=1` does it on demand.
+
+Measured with the screen off, 120 s, WiFi and BLE connected, over USB:
+
+| Mode                | Time  |
+|---------------------|-------|
+| light sleep         | 53 %  |
+| 80 MHz, awake idle  | 21 %  |
+| 240 MHz, busy       | 26 %  |
+
+About 30 sleeps a second, so the average nap is under 20 ms: the phone's BLE
+connection interval and the 100/200 ms cadences above are what bound it. The
+web portal answers in about 190 ms through it, and a touch wakes the screen
+as before.
+
+Panel sleep was on during these measurements and is off by default since
+(5.4); the light-sleep figures do not depend on it.
+
+Two things to know when working on the board with light sleep on:
+
+* **The USB console dies the moment the chip sleeps** (the USB-Serial-JTAG
+  peripheral does not survive light sleep), and after a while the device is
+  gone from the Mac altogether until it is replugged. `idf.py flash` then
+  cannot find the port; **`tools/install_fw.sh <ip>` over WiFi is the way to
+  update** while this is on. That is also why the PM dump is served by
+  `/api/pmu?locks=1` as text and the reset reason by `/api/status` instead
+  of being read from the log.
+* One trial image rolled back once during the A/B rounds; its crash was not
+  captured (no console). `boot_reason` in `/api/status` exists since, so the
+  next one will be.
+* It is a Settings switch (*Dormir el chip apagado*), so a misbehaving
+  peripheral can be taken out of the equation without a reflash.
+
+## 6c. What has NOT been done, and why
+
 * **No current measured with a meter.** The gains are argued from the
-  datasheet and observed in behaviour, not in milliamps. A USB power meter
-  inline, or a night's drain figure before and after each switch, is the
-  measurement that is still missing.
+  datasheet and observed in the PM statistics, not in milliamps. A USB power
+  meter inline, or a night's drain figure before and after each switch, is
+  the measurement that is still missing.
 * **The gyro saving** (5.7) needs the QMI8658C's CTRL2/CTRL7 pages read
   with the board in hand.
+* **Longer naps.** The BLE connection interval is the phone's to set; the
+  housekeeping and touch cadences with the screen off could be stretched
+  further at the cost of wrist-raise and touch latency.
 
 ## 7. Register cheat-sheet (the ones the firmware touches)
 

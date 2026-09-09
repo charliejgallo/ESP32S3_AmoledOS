@@ -101,6 +101,12 @@ static void panel_sleep_cb(lv_event_t *event)
     aos_hal_panel_sleep_enable(lv_obj_has_state(sw, LV_STATE_CHECKED));
 }
 
+static void light_sleep_cb(lv_event_t *event)
+{
+    lv_obj_t *sw = lv_event_get_target(event);
+    aos_hal_light_sleep_enable(lv_obj_has_state(sw, LV_STATE_CHECKED));
+}
+
 static void aod_brightness_cb(lv_event_t *event)
 {
     lv_obj_t *slider = lv_event_get_target(event);
@@ -1178,6 +1184,7 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     switch_row(page, _("Ahorro de energia"), aos_hal_power_saving_enabled(), power_saving_cb);
     switch_row(page, _("Cuidar la bateria"), aos_hal_battery_care_enabled(), battery_care_cb);
     switch_row(page, _("Dormir el panel apagado"), aos_hal_panel_sleep_enabled(), panel_sleep_cb);
+    switch_row(page, _("Dormir el chip apagado"), aos_hal_light_sleep_enabled(), light_sleep_cb);
 
     section(page, _("IDIOMA"));
     s_lang_count = aos_i18n_scan(s_langs, AOS_LANG_MAX);

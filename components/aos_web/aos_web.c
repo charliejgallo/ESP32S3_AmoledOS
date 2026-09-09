@@ -180,9 +180,23 @@ static esp_err_t pmu_handler(httpd_req_t *req)
     httpd_req_get_url_query_str(req, query, sizeof(query));
 
     char note[96] = "";
-    if (httpd_query_key_value(query, "locks", value, sizeof(value)) == ESP_OK) {
-        aos_hal_pm_dump_locks();
-        snprintf(note, sizeof(note), "\"locks\":\"in the log\",");
+    if (httpd_query_key_value(query, "ls", value, sizeof(value)) == ESP_OK) {
+        aos_hal_light_sleep_enable(atoi(value) != 0);
+        snprintf(note, sizeof(note), "\"light_sleep_pref\":%d,", atoi(value) ? 1 : 0);
+    } else if (httpd_query_key_value(query, "panelslp", value, sizeof(value)) == ESP_OK) {
+        aos_hal_panel_sleep_enable(atoi(value) != 0);
+        snprintf(note, sizeof(note), "\"panel_sleep_pref\":%d,", atoi(value) ? 1 : 0);
+    } else if (httpd_query_key_value(query, "panelreset", value, sizeof(value)) == ESP_OK) {
+        aos_hal_panel_hw_reset();
+        snprintf(note, sizeof(note), "\"panelreset\":true,");
+    } else if (httpd_query_key_value(query, "display", value, sizeof(value)) == ESP_OK) {
+        if (atoi(value)) aos_hal_activity(); else aos_hal_display_on(false);
+        snprintf(note, sizeof(note), "\"display\":%d,", atoi(value) ? 1 : 0);
+    } else if (httpd_query_key_value(query, "locks", value, sizeof(value)) == ESP_OK) {
+        static char dump[2048];
+        aos_hal_pm_dump_text(dump, sizeof(dump));
+        httpd_resp_set_type(req, "text/plain");
+        return httpd_resp_send(req, dump, HTTPD_RESP_USE_STRLEN);
     } else if (httpd_query_key_value(query, "probe", value, sizeof(value)) == ESP_OK) {
         char probe[320];
         aos_hal_probe_devices(probe, sizeof(probe));
@@ -276,8 +290,8 @@ static esp_err_t status_handler(httpd_req_t *req)
              "\"charge_state\":\"%s\",\"charge_ma\":%d,\"charge_target_mv\":%d,"
              "\"board_temp\":%.1f,\"drain_pct_h\":%.2f,\"hours_left\":%.1f,"
              "\"on_battery_s\":%u,\"battery_minutes\":%u,\"cycles\":%u,"
-             "\"cpu_mhz\":%d,\"saving\":%s,\"panel_asleep\":%s,"
-             "\"power_on\":\"%s\",\"last_power_off\":\"%s\"",
+             "\"cpu_mhz\":%d,\"saving\":%s,\"panel_asleep\":%s,\"light_sleep\":%s,"
+             "\"power_on\":\"%s\",\"last_power_off\":\"%s\",\"boot_reason\":\"%s\"",
              batt.voltage, pw.vbus,
              batt.charging ? "true" : "false", batt.usb_present ? "true" : "false",
              chg_names[pw.charge_state <= AOS_CHG_IDLE ? pw.charge_state : AOS_CHG_IDLE],
@@ -287,7 +301,8 @@ static esp_err_t status_handler(httpd_req_t *req)
              (unsigned)pw.charge_cycles, pw.cpu_mhz,
              pw.power_saving_active ? "true" : "false",
              pw.panel_asleep ? "true" : "false",
-             pw.power_on_reason, pw.power_off_reason);
+             pw.light_sleep ? "true" : "false",
+             pw.power_on_reason, pw.power_off_reason, aos_hal_boot_reason());
     }
     if (n > 0 && n < (int)sizeof(json) - 1) {
         json[n++] = '}';

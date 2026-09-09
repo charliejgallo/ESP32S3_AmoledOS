@@ -281,15 +281,22 @@ CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
 
 # --- Energia -----------------------------------------------------------------
 # Escalado dinamico de frecuencia: el HAL pide 240 MHz mientras la pantalla
-# esta activa o suena audio, y suelta el candado al apagarse (80 MHz). Sin
-# light sleep: el panel QSPI, el I2S y la consola USB no lo sobrevivirian sin
-# mas trabajo. El tickless idle tampoco: sin light sleep no aporta nada y
-# cambia la temporizacion de los ticks. Ver docs/POWER.md.
+# esta activa o suena audio, y suelta el candado al apagarse (80 MHz). El
+# light sleep automatico (tickless idle) lo enciende el HAL SOLO con la
+# pantalla apagada y sin audio; el resto del tiempo esta apagado. El
+# controlador BLE necesita su propio modo de sueno para no clavar un candado
+# NO_LIGHT_SLEEP: modem sleep con el XTAL principal como reloj lento (la
+# placa no tiene cristal de 32 kHz en el ESP32) y el XTAL encendido durante
+# el sleep, que cuesta algo pero deja dormir. Ver docs/POWER.md.
 CONFIG_PM_ENABLE=y
 # CONFIG_PM_DFS_INIT_AUTO is not set
-# CONFIG_FREERTOS_USE_TICKLESS_IDLE is not set
+CONFIG_FREERTOS_USE_TICKLESS_IDLE=y
 # Contabilidad de cuanto tiempo pasa la CPU en cada modo (lo imprime
 # esp_pm_dump_locks, expuesto en /api/pmu?locks=1). Es la unica forma honesta
 # de saber si el DFS hace algo: medir la frecuencia desde una tarea da siempre
 # 240, porque una tarea corriendo ES lo que la sube.
 CONFIG_PM_PROFILING=y
+CONFIG_BT_CTRL_MODEM_SLEEP=y
+CONFIG_BT_CTRL_MODEM_SLEEP_MODE_1=y
+CONFIG_BT_CTRL_LPCLK_SEL_MAIN_XTAL=y
+CONFIG_BT_CTRL_MAIN_XTAL_PU_DURING_LIGHT_SLEEP=y

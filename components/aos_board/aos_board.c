@@ -6,6 +6,8 @@
 
 #include "bsp/esp-bsp.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "esp_io_expander.h"
 #include "driver/i2c_master.h"
 
@@ -34,6 +36,7 @@ static char                s_power_off_reason[48] = "unknown";
 
 /* The TCA9554's pins, from the schematic. Only the two the PMU uses are
  * touched here; the display's reset lines are left exactly as found. */
+#define EXIO_LCD_RESET      IO_EXPANDER_PIN_NUM_0   /* LCD_RESET, active low           */
 #define EXIO_POWER_KEY      IO_EXPANDER_PIN_NUM_4   /* SYS_OUT: high while PWR is held */
 #define EXIO_PMU_IRQ        IO_EXPANDER_PIN_NUM_5   /* AXP_IRQ: active low             */
 
@@ -314,4 +317,19 @@ esp_err_t aos_board_pmu_register_write(uint8_t reg, uint8_t value)
 float aos_board_pmu_ts_voltage(void)
 {
     return s_pmu_ready ? axp2101_ts_voltage(&s_pmu) : 0.0f;
+}
+
+void aos_board_panel_hw_reset(void)
+{
+    if (!s_expander) {
+        return;
+    }
+    esp_io_expander_set_dir(s_expander, EXIO_LCD_RESET, IO_EXPANDER_OUTPUT);
+    esp_io_expander_set_level(s_expander, EXIO_LCD_RESET, 1);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    esp_io_expander_set_level(s_expander, EXIO_LCD_RESET, 0);
+    vTaskDelay(pdMS_TO_TICKS(20));
+    esp_io_expander_set_level(s_expander, EXIO_LCD_RESET, 1);
+    vTaskDelay(pdMS_TO_TICKS(50));
+    ESP_LOGI(TAG, "panel hardware reset through EXIO0");
 }
