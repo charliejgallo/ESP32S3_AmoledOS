@@ -102,6 +102,7 @@ typedef enum {
     AOS_ICON_MONEY,         /* Exchange rates: the banknote with the coin on top */
     AOS_ICON_CHART,         /* Sensors: the jagged line over the two axes */
     AOS_ICON_JUMP,          /* Claude Jump: the critter jumping off its platform */
+    AOS_ICON_PIXEL,         /* Pixel Art: a heart of cells on the grid */
 } aos_icon_id_t;
 
 typedef struct {

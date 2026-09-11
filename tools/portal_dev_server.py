@@ -36,6 +36,7 @@ WIFI_PAGE   = os.path.join(ROOT, "components", "aos_web", "wifi.html")
 AP_PAGE     = os.path.join(ROOT, "components", "aos_web", "ap.html")
 CLIMA_PAGE  = os.path.join(ROOT, "components", "aos_web", "clima.html")
 COTIZ_PAGE  = os.path.join(ROOT, "components", "aos_web", "cotiz.html")
+PIXEL_PAGE  = os.path.join(ROOT, "components", "aos_web", "pixel.html")
 SENSO_PAGE  = os.path.join(ROOT, "components", "aos_web", "sensores.html")
 CSS_FILE    = os.path.join(ROOT, "components", "aos_web", "aos.css")
 JS_FILE     = os.path.join(ROOT, "components", "aos_web", "aos.js")
@@ -46,12 +47,12 @@ JS_FILE     = os.path.join(ROOT, "components", "aos_web", "aos.js")
 AP_SSID_AUTO = "AmoledOS-5IM"
 AP_PASS_FABRICA = "amoledos"
 AP_ALFABETO = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-DIRS = ("apps", "photos", "music", "recordings", "redes")
+DIRS = ("apps", "photos", "music", "recordings", "redes", "pixel")
 
 CONTENT_TYPES = {
     ".wav": "audio/wav", ".mp3": "audio/mpeg",
     ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-    ".png": "image/png", ".bmp": "image/bmp",
+    ".png": "image/png", ".bmp": "image/bmp", ".gif": "image/gif",
 }
 
 
@@ -293,6 +294,10 @@ class Handler(BaseHTTPRequestHandler):
 
         elif url.path == "/cotiz":
             with open(COTIZ_PAGE, "rb") as page:
+                self._send(200, page.read(), "text/html; charset=utf-8")
+
+        elif url.path == "/pixel":
+            with open(PIXEL_PAGE, "rb") as page:
                 self._send(200, page.read(), "text/html; charset=utf-8")
 
         elif url.path == "/sensores":

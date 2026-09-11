@@ -46,7 +46,8 @@
       { url: "/clima",    t: "nav_clima"    },
       { url: "/cotiz",    t: "nav_cotiz"    },
       { url: "/sensores", t: "nav_sensores" },
-      { url: "/remoto",   t: "nav_remoto"   }
+      { url: "/remoto",   t: "nav_remoto"   },
+      { url: "/pixel",    t: "nav_pixel"    }
     ]}
   ];
 
@@ -58,7 +59,7 @@
           nav_archivos: "Archivos", nav_registro: "Registro",
           nav_wifi: "Conectar", nav_ap: "Punto de acceso", nav_red: "Escaneos",
           nav_clima: "Clima", nav_cotiz: "Cotizaciones",
-          nav_sensores: "Sensores", nav_remoto: "Remoto",
+          nav_sensores: "Sensores", nav_remoto: "Remoto", nav_pixel: "Pixel Art",
           viv_cargando: "cargando", viv_usb: "USB", viv_sin: "sin conexión con el reloj",
           viv_ram: "RAM", viv_activa: "pantalla activa", viv_aod: "atenuada",
           viv_off: "pantalla apagada", viv_ap: "modo AP", viv_prueba: "a prueba" },
@@ -67,7 +68,7 @@
           nav_archivos: "Files", nav_registro: "Log",
           nav_wifi: "Connect", nav_ap: "Access point", nav_red: "Scans",
           nav_clima: "Weather", nav_cotiz: "Exchange rates",
-          nav_sensores: "Sensors", nav_remoto: "Remote",
+          nav_sensores: "Sensors", nav_remoto: "Remote", nav_pixel: "Pixel Art",
           viv_cargando: "loading", viv_usb: "USB", viv_sin: "no connection to the watch",
           viv_ram: "RAM", viv_activa: "screen on", viv_aod: "dimmed",
           viv_off: "screen off", viv_ap: "AP mode", viv_prueba: "on trial" },
@@ -76,7 +77,7 @@
           nav_archivos: "Dateien", nav_registro: "Protokoll",
           nav_wifi: "Verbinden", nav_ap: "Zugangspunkt", nav_red: "Scans",
           nav_clima: "Wetter", nav_cotiz: "Wechselkurse",
-          nav_sensores: "Sensoren", nav_remoto: "Fernbedienung",
+          nav_sensores: "Sensoren", nav_remoto: "Fernbedienung", nav_pixel: "Pixel Art",
           viv_cargando: "laedt", viv_usb: "USB", viv_sin: "keine Verbindung zur Uhr",
           viv_ram: "RAM", viv_activa: "Bildschirm an", viv_aod: "gedimmt",
           viv_off: "Bildschirm aus", viv_ap: "AP-Modus", viv_prueba: "auf Probe" }

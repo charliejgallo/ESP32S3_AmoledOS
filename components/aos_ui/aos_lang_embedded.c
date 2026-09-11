@@ -448,6 +448,7 @@ static const char blob_en__sistema_lang[] =
     "Gemas\tGems\n"
     "Hola\tHello\n"
     "Laberinto\tMaze\n"
+    "Pixel Art\tPixel Art\n"
     "Grabadora\tRecorder\n"
     "Remoto\tRemote\n"
     "Sensores\tSensors\n"
@@ -576,6 +577,36 @@ static const char blob_en_aos_netscan_lang[] =
     "en tu red local\ton your local network\n"
     "puertos\tports\n"
     "abiertos, en total\topen, in total\n"
+    ;
+
+static const char blob_en_aos_pixel_lang[] =
+    "No se pudo guardar\tCould not save\n"
+    "vacío\tempty\n"
+    "sin tarjeta: memoria interna\tno card: internal memory\n"
+    "Tocá un lienzo para editarlo\tTap a canvas to edit it\n"
+    "Nuevo lienzo\tNew canvas\n"
+    "Cancelar\tCancel\n"
+    "Lienzo\tCanvas\n"
+    "Hace falta más de un cuadro\tIt takes more than one frame\n"
+    "Lápiz\tPencil\n"
+    "Rellenar\tFill\n"
+    "Tomar color\tPick colour\n"
+    "Velocidad\tSpeed\n"
+    "¿Seguro? Tocá de nuevo\tSure? Tap again\n"
+    "Borrar lienzo\tDelete canvas\n"
+    "Máximo 16 cuadros\t16 frames at most\n"
+    "Exportado:\tExported:\n"
+    "No se pudo exportar\tCould not export\n"
+    "Reproducir\tPlay\n"
+    "Duplicar cuadro\tDuplicate frame\n"
+    "Cuadro en blanco\tBlank frame\n"
+    "Exportar GIF\tExport GIF\n"
+    "Exportar PNG\tExport PNG\n"
+    "Deshacer\tUndo\n"
+    "Borrar cuadro\tDelete frame\n"
+    "Limpiar cuadro\tClear frame\n"
+    "No se pudo abrir\tCould not open\n"
+    "Actualizado desde el portal\tUpdated from the portal\n"
     ;
 
 static const char blob_en_aos_remoto_lang[] =
@@ -1370,6 +1401,7 @@ static const aos_lang_file_t files_en[] = {
     { "aos.maze.lang", blob_en_aos_maze_lang },
     { "aos.mines.lang", blob_en_aos_mines_lang },
     { "aos.netscan.lang", blob_en_aos_netscan_lang },
+    { "aos.pixel.lang", blob_en_aos_pixel_lang },
     { "aos.remoto.lang", blob_en_aos_remoto_lang },
     { "aos.sensores.lang", blob_en_aos_sensores_lang },
     { "aos.simon.lang", blob_en_aos_simon_lang },
@@ -1821,6 +1853,7 @@ static const char blob_de__sistema_lang[] =
     "Gemas\tJuwelen\n"
     "Hola\tHallo\n"
     "Laberinto\tLabyrinth\n"
+    "Pixel Art\tPixel Art\n"
     "Grabadora\tRekorder\n"
     "Remoto\tFernbedienung\n"
     "Sensores\tSensoren\n"
@@ -1949,6 +1982,36 @@ static const char blob_de_aos_netscan_lang[] =
     "en tu red local\tin deinem Netz\n"
     "puertos\tPorts\n"
     "abiertos, en total\toffen, insgesamt\n"
+    ;
+
+static const char blob_de_aos_pixel_lang[] =
+    "No se pudo guardar\tSpeichern fehlgeschlagen\n"
+    "vacío\tleer\n"
+    "sin tarjeta: memoria interna\tkeine Karte: interner Speicher\n"
+    "Tocá un lienzo para editarlo\tTippe eine Leinwand an, um sie zu bearbeiten\n"
+    "Nuevo lienzo\tNeue Leinwand\n"
+    "Cancelar\tAbbrechen\n"
+    "Lienzo\tLeinwand\n"
+    "Hace falta más de un cuadro\tDafür braucht es mehr als ein Bild\n"
+    "Lápiz\tStift\n"
+    "Rellenar\tFüllen\n"
+    "Tomar color\tFarbe aufnehmen\n"
+    "Velocidad\tTempo\n"
+    "¿Seguro? Tocá de nuevo\tSicher? Nochmal tippen\n"
+    "Borrar lienzo\tLeinwand löschen\n"
+    "Máximo 16 cuadros\tHöchstens 16 Bilder\n"
+    "Exportado:\tExportiert:\n"
+    "No se pudo exportar\tExport fehlgeschlagen\n"
+    "Reproducir\tAbspielen\n"
+    "Duplicar cuadro\tBild duplizieren\n"
+    "Cuadro en blanco\tLeeres Bild\n"
+    "Exportar GIF\tGIF exportieren\n"
+    "Exportar PNG\tPNG exportieren\n"
+    "Deshacer\tRückgängig\n"
+    "Borrar cuadro\tBild löschen\n"
+    "Limpiar cuadro\tBild leeren\n"
+    "No se pudo abrir\tÖffnen fehlgeschlagen\n"
+    "Actualizado desde el portal\tVom Portal aktualisiert\n"
     ;
 
 static const char blob_de_aos_remoto_lang[] =
@@ -2743,6 +2806,7 @@ static const aos_lang_file_t files_de[] = {
     { "aos.maze.lang", blob_de_aos_maze_lang },
     { "aos.mines.lang", blob_de_aos_mines_lang },
     { "aos.netscan.lang", blob_de_aos_netscan_lang },
+    { "aos.pixel.lang", blob_de_aos_pixel_lang },
     { "aos.remoto.lang", blob_de_aos_remoto_lang },
     { "aos.sensores.lang", blob_de_aos_sensores_lang },
     { "aos.simon.lang", blob_de_aos_simon_lang },
@@ -2760,7 +2824,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 439, 20, files_en, 21 },
-    { "de", "Deutsch", 439, 20, files_de, 21 },
+    { "en", "English", 440, 21, files_en, 22 },
+    { "de", "Deutsch", 440, 21, files_de, 22 },
 };
 const int aos_lang_pack_count = 2;

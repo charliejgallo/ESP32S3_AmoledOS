@@ -1126,6 +1126,31 @@ static void draw_vector(lv_obj_t *base, aos_icon_id_t id, int32_t size)
         break;
     }
 
+    case AOS_ICON_PIXEL: {
+        /* Pixel Art: a heart on a 5x5 grid, one square per lit cell and
+         * nothing where the cell is off. Thirteen rectangles, all axis
+         * aligned, no rotation: the menu redraws every visible icon per
+         * frame of scroll and a layer per icon would show. */
+        static const uint8_t heart[5] = { 0x0A, 0x1F, 0x1F, 0x0E, 0x04 };
+        int32_t pitch = s * 14 / 100;
+        int32_t cell  = LV_MAX(2, s * 11 / 100);
+        for (int r = 0; r < 5; r++) {
+            for (int c = 0; c < 5; c++) {
+                if (!(heart[r] & (0x10 >> c))) {
+                    continue;
+                }
+                lv_obj_t *q = lv_obj_create(base);
+                lv_obj_remove_style_all(q);
+                lv_obj_set_size(q, cell, cell);
+                lv_obj_set_style_radius(q, LV_MAX(1, s * 2 / 100), 0);
+                lv_obj_set_style_bg_color(q, AOS_C_TEXT, 0);
+                lv_obj_set_style_bg_opa(q, LV_OPA_COVER, 0);
+                lv_obj_align(q, LV_ALIGN_CENTER, (c - 2) * pitch, (r - 2) * pitch);
+            }
+        }
+        break;
+    }
+
     default:
         break;
     }

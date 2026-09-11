@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Pixel Art</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  /* La galeria: ocho tarjetas, una por lienzo del reloj. */
+  .grilla { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .slot { background: var(--card); border-radius: 14px; padding: 12px; cursor: pointer;
+          display: flex; flex-direction: column; align-items: center; gap: 8px;
+          border: 1px solid transparent; }
+  .slot:hover { border-color: var(--accent); }
+  .slot canvas { width: 128px; height: 128px; image-rendering: pixelated; border-radius: 8px;
+                 background: #000; }
+  .slot .mas { width: 128px; height: 128px; border-radius: 8px; border: 2px dashed var(--line);
+               display: flex; align-items: center; justify-content: center; font-size: 40px;
+               color: var(--dim); }
+  .slot b { font-weight: 500; }
+  .slot span { color: var(--dim); font-size: 13px; }
+
+  /* El editor: el lienzo a la izquierda, herramientas y cuadros a la derecha. */
+  .edtop { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .edtop b { font-size: 17px; }
+  .edtop #estado { color: var(--dim); font-size: 13.5px; }
+  .edtop #estado.bien { color: var(--green); }
+  .edtop #estado.mal { color: var(--red); }
+  .edcuerpo { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+  .lienzo { flex: 1 1 320px; max-width: 512px; }
+  .lienzo canvas { width: 100%; aspect-ratio: 1; display: block; border-radius: 10px;
+                   image-rendering: pixelated; touch-action: none; cursor: crosshair;
+                   background: #000; }
+  .lado { flex: 1 1 260px; min-width: 240px; display: flex; flex-direction: column; gap: 14px; }
+  .herr { display: flex; gap: 8px; flex-wrap: wrap; }
+  .herr button { padding: 8px 12px; font-size: 13.5px; border-radius: 10px; }
+  .herr button.tool { background: var(--card2); color: var(--text); }
+  .herr button.tool.on { background: var(--accent); color: #fff; }
+  .paleta { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; max-width: 320px; }
+  .paleta i { display: block; aspect-ratio: 1; border-radius: 8px; cursor: pointer;
+              border: 2px solid var(--line); box-sizing: border-box; }
+  .paleta i.on { border-color: var(--text); outline: 2px solid var(--accent); }
+  .cuadros { background: var(--card); border-radius: 14px; padding: 12px 14px; }
+  .cuadros h3 { margin: 0 0 8px; font-size: 12px; color: var(--dim); font-weight: 600;
+                text-transform: uppercase; letter-spacing: .05em; }
+  .tira { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; }
+  .tira .cuadro { flex: none; position: relative; cursor: pointer; }
+  .tira canvas { width: 64px; height: 64px; border-radius: 6px; image-rendering: pixelated;
+                 display: block; border: 2px solid transparent; background: #000; }
+  .tira .cuadro.on canvas { border-color: var(--accent); }
+  .tira .cuadro span { position: absolute; left: 4px; top: 4px; font-size: 11px;
+                       background: rgba(0,0,0,.6); color: #fff; padding: 1px 5px; border-radius: 6px; }
+  .cuadros .fila { margin-top: 8px; gap: 6px; }
+  .cuadros .fila button { padding: 7px 11px; font-size: 13px; border-radius: 9px; }
+  .velo { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 13.5px;
+          color: var(--dim); }
+  .velo input[type=range] { flex: 1; width: auto; margin: 0; }
+  .velo output { min-width: 4.5em; text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+  .acciones { gap: 8px; }
+  .acciones select { width: auto; padding: 9px 12px; }
+  #dialogo[hidden], #editor[hidden], #galeria[hidden] { display: none; }
+  #dialogo { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex;
+             align-items: center; justify-content: center; z-index: 5; }
+  #dialogo .caja { background: var(--card); border-radius: 16px; padding: 22px 24px; width: 300px; }
+  #dialogo .caja h3 { margin: 0 0 14px; font-size: 16px; }
+  #dialogo .tamanos { display: flex; gap: 10px; margin-bottom: 14px; }
+  #dialogo .tamanos button { flex: 1; padding: 18px 0; font-size: 17px; }
+  ul.lista li { display: flex; gap: 12px; align-items: center; }
+  ul.lista li img { width: 48px; height: 48px; image-rendering: pixelated; border-radius: 6px;
+                    background: #000; flex: none; }
+  ul.lista li .nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  ul.lista li .val { color: var(--dim); font-size: 13px; }
+  ul.lista li a { color: var(--accent); font-size: 13.5px; text-decoration: none; }
+  footer { margin-top: 28px; font-size: 13px; color: var(--dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Pixel Art</h1></div>
+  <p class="sub" data-t="bajada">Los lienzos de la app Pixel Art del reloj, dibujados con el
+     mouse. Lo que guardás acá aparece en el reloj al instante, y al revés.</p>
+
+  <nav class="paginas"></nav>
+
+  <section id="galeria">
+    <h2 data-t="h_lienzos">Lienzos</h2>
+    <div class="grilla" id="slots"></div>
+
+    <h2 data-t="h_exports">Exportados en la tarjeta</h2>
+    <ul class="lista" id="exports"></ul>
+    <p class="sub" id="sinexports" data-t="sin_exports" hidden>Todavía no hay nada exportado. Desde
+       el menú del reloj, o con los botones PNG y GIF del editor.</p>
+  </section>
+
+  <section id="editor" hidden>
+    <div class="edtop">
+      <button class="sec" id="volver">← <span data-t="btn_volver">Lienzos</span></button>
+      <b id="ednombre"></b>
+      <span id="estado"></span>
+    </div>
+    <div class="edcuerpo">
+      <div class="lienzo"><canvas id="cv" width="512" height="512"></canvas></div>
+      <div class="lado">
+        <div class="herr">
+          <button class="tool on" id="t-pen" data-t="t_lapiz">Lápiz</button>
+          <button class="tool" id="t-fill" data-t="t_balde">Rellenar</button>
+          <button class="tool" id="t-pick" data-t="t_gotero">Tomar color</button>
+          <button class="sec" id="deshacer" data-t="btn_deshacer">Deshacer</button>
+        </div>
+        <div class="paleta" id="paleta"></div>
+        <div class="cuadros">
+          <h3 data-t="h_cuadros">Cuadros</h3>
+          <div class="tira" id="tira"></div>
+          <div class="fila">
+            <button class="sec" id="f-dup" data-t="f_dup">Duplicar</button>
+            <button class="sec" id="f-blank" data-t="f_blank">En blanco</button>
+            <button class="sec" id="f-clear" data-t="f_clear">Limpiar</button>
+            <button class="mala" id="f-del" data-t="f_del">Borrar cuadro</button>
+          </div>
+          <div class="velo">
+            <span data-t="velocidad">Velocidad</span>
+            <input type="range" id="delay" min="50" max="1000" step="10">
+            <output id="delayv"></output>
+            <button class="sec" id="play">▶</button>
+          </div>
+        </div>
+        <div class="fila acciones">
+          <button id="guardar" data-t="btn_guardar">Guardar en el reloj</button>
+          <select id="escala" title="escala">
+            <option value="8">×8</option><option value="16" selected>×16</option>
+            <option value="32">×32</option>
+          </select>
+          <button class="sec" id="dl-png">PNG</button>
+          <button class="sec" id="dl-gif">GIF</button>
+          <button class="sec" id="dl-pix">.pix</button>
+          <button class="mala" id="borrar" data-t="btn_borrar">Borrar del reloj</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="dialogo" hidden>
+    <div class="caja">
+      <h3 data-t="nuevo">Nuevo lienzo</h3>
+      <div class="tamanos">
+        <button id="n8">8 × 8</button>
+        <button id="n16">16 × 16</button>
+      </div>
+      <button class="sec" id="ncancel" data-t="cancelar" style="width:100%">Cancelar</button>
+    </div>
+  </div>
+
+  <footer data-t="pie">Los archivos .pix viven en /pixel de la tarjeta. La app del reloj los
+    relee sola cuando cambian; si la tenés abierta en ese lienzo, se actualiza en pantalla.</footer>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+/* El formato .pix es el contrato entre esta pagina y apps/pixel/main/px_file.c,
+   y esta escrito en los dos lados a proposito: el firmware no lo entiende,
+   solo guarda y devuelve bytes por /api/upload y /api/download. */
+const SLOTS = 8, MAX_FRAMES = 16;
+const PALETA = [
+  [0x00,0x00,0x00],[0xFF,0xFF,0xFF],[0xB0,0xB0,0xB8],[0x5A,0x5A,0x64],
+  [0xFF,0x3B,0x30],[0xA8,0x14,0x1E],[0xFF,0x8A,0x1E],[0xC8,0x50,0x00],
+  [0xFF,0xD6,0x0A],[0xFF,0xF4,0x8C],[0x30,0xD1,0x58],[0x14,0x7A,0x32],
+  [0xA6,0xF0,0x5A],[0x00,0xC8,0xBE],[0x5A,0xC8,0xFA],[0x0A,0x84,0xFF],
+  [0x10,0x3C,0xA0],[0xAF,0x52,0xDE],[0x5E,0x1E,0x8C],[0xFF,0x2D,0x95],
+  [0xFF,0xB3,0xC8],[0x8B,0x46,0x18],[0x50,0x28,0x0A],[0xC8,0x8A,0x46],
+  [0xE6,0xB8,0x8A],[0xFF,0xDC,0xB4],[0xD2,0x96,0x6E],[0x8C,0x5A,0x3C],
+  [0xFF,0xE4,0xE1],[0xC8,0xE6,0xFF],[0xD4,0xA0,0x17],[0x2A,0x2A,0x32]
+];
+const GRID = "#3a3a3e";
+
+const TR = {
+  en: {
+    titulo: "Pixel Art",
+    bajada: "The canvases of the watch's Pixel Art app, drawn with a mouse. What you save " +
+            "here shows up on the watch right away, and the other way round.",
+    h_lienzos: "Canvases", h_exports: "Exported on the card",
+    sin_exports: "Nothing exported yet. From the watch's menu, or with the PNG and GIF " +
+                 "buttons of the editor.",
+    btn_volver: "Canvases", t_lapiz: "Pencil", t_balde: "Fill", t_gotero: "Pick colour",
+    btn_deshacer: "Undo", h_cuadros: "Frames", f_dup: "Duplicate", f_blank: "Blank",
+    f_clear: "Clear", f_del: "Delete frame", velocidad: "Speed",
+    btn_guardar: "Save to the watch", btn_borrar: "Delete from the watch",
+    nuevo: "New canvas", cancelar: "Cancel",
+    pie: "The .pix files live in /pixel on the card. The watch app re-reads them on its own " +
+         "when they change; if it is open on that canvas, the screen updates.",
+    vacio: "empty", cuadro: "frame", cuadros: "frames", lienzo: "Canvas",
+    guardando: "saving...", guardado: "saved on the watch", sin_guardar: "unsaved changes",
+    err_guardar: "could not save", err_placa: "could not reach the board",
+    err_leer: "could not read", borrar_seg: "Delete this canvas from the watch?",
+    salir_seg: "There are unsaved changes. Leave anyway?", max_cuadros: "16 frames at most",
+    borrado: "deleted", un_cuadro: "it needs more than one frame",
+    borrar_export: "Delete this file?"
+  },
+  de: {
+    titulo: "Pixel Art",
+    bajada: "Die Leinwaende der Pixel-Art-App der Uhr, mit der Maus gezeichnet. Was du hier " +
+            "speicherst, erscheint sofort auf der Uhr, und umgekehrt.",
+    h_lienzos: "Leinwaende", h_exports: "Auf der Karte exportiert",
+    sin_exports: "Noch nichts exportiert. Ueber das Menue der Uhr oder mit den Knoepfen PNG " +
+                 "und GIF im Editor.",
+    btn_volver: "Leinwaende", t_lapiz: "Stift", t_balde: "Fuellen", t_gotero: "Farbe aufnehmen",
+    btn_deshacer: "Rueckgaengig", h_cuadros: "Bilder", f_dup: "Duplizieren", f_blank: "Leer",
+    f_clear: "Leeren", f_del: "Bild loeschen", velocidad: "Tempo",
+    btn_guardar: "Auf der Uhr speichern", btn_borrar: "Von der Uhr loeschen",
+    nuevo: "Neue Leinwand", cancelar: "Abbrechen",
+    pie: "Die .pix-Dateien liegen in /pixel auf der Karte. Die Uhr-App liest sie von selbst " +
+         "neu, wenn sie sich aendern; ist sie auf dieser Leinwand geoeffnet, aktualisiert " +
+         "sich der Bildschirm.",
+    vacio: "leer", cuadro: "Bild", cuadros: "Bilder", lienzo: "Leinwand",
+    guardando: "wird gespeichert...", guardado: "auf der Uhr gespeichert",
+    sin_guardar: "ungespeicherte Aenderungen",
+    err_guardar: "Speichern fehlgeschlagen", err_placa: "Platine nicht erreichbar",
+    err_leer: "Lesen fehlgeschlagen", borrar_seg: "Diese Leinwand von der Uhr loeschen?",
+    salir_seg: "Es gibt ungespeicherte Aenderungen. Trotzdem verlassen?",
+    max_cuadros: "Hoechstens 16 Bilder", borrado: "geloescht",
+    un_cuadro: "es braucht mehr als ein Bild", borrar_export: "Diese Datei loeschen?"
+  }
+};
+/* Solo lo que arma el JavaScript; lo demas ya esta en el HTML. */
+const ES = {
+  vacio: "vacío", cuadro: "cuadro", cuadros: "cuadros", lienzo: "Lienzo",
+  guardando: "guardando...", guardado: "guardado en el reloj", sin_guardar: "cambios sin guardar",
+  err_guardar: "no se pudo guardar", err_placa: "no se pudo hablar con la placa",
+  err_leer: "no se pudo leer", borrar_seg: "¿Borrar este lienzo del reloj?",
+  salir_seg: "Hay cambios sin guardar. ¿Salir igual?", max_cuadros: "Máximo 16 cuadros",
+  borrado: "borrado", un_cuadro: "hace falta más de un cuadro",
+  borrar_export: "¿Borrar este archivo?"
+};
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? (ES[k] || k) : v; }
+
+/* ---------- el formato ---------- */
+function parsePix(buf) {
+  const b = new Uint8Array(buf);
+  if (b.length < 12 || String.fromCharCode(b[0], b[1], b[2], b[3]) !== "PIX1") return null;
+  const size = b[4], frames = b[5], ncol = b[6] || 256;
+  if ((size !== 8 && size !== 16) || frames < 1 || frames > MAX_FRAMES) return null;
+  const delay = b[8] | (b[9] << 8);
+  const pal = [];
+  let p = 12;
+  for (let i = 0; i < ncol; i++, p += 3) pal.push([b[p], b[p + 1], b[p + 2]]);
+  /* una paleta ajena se mapea a la nuestra por color mas cercano, como en el reloj */
+  const map = pal.map(c => nearest(c));
+  const same = ncol === PALETA.length && map.every((m, i) => m === i);
+  const cells = size * size, fr = [];
+  for (let f = 0; f < frames; f++) {
+    const a = new Uint8Array(cells);
+    for (let i = 0; i < cells; i++) {
+      const v = b[p + i];
+      a[i] = v < ncol ? (same ? v : map[v]) : 0;
+    }
+    fr.push(a);
+    p += cells;
+  }
+  return { size, frames: fr, delay: delay >= 50 && delay <= 2000 ? delay : 200 };
+}
+function nearest(c) {
+  let best = 0, bd = 1e12;
+  PALETA.forEach((q, i) => {
+    const d = 2 * (c[0] - q[0]) ** 2 + 4 * (c[1] - q[1]) ** 2 + 3 * (c[2] - q[2]) ** 2;
+    if (d < bd) { bd = d; best = i; }
+  });
+  return best;
+}
+function buildPix(doc) {
+  const cells = doc.size * doc.size;
+  const out = new Uint8Array(12 + PALETA.length * 3 + doc.frames.length * cells);
+  out.set([80, 73, 88, 49, doc.size, doc.frames.length, PALETA.length, 0,
+           doc.delay & 255, doc.delay >> 8, 0, 0]);
+  let p = 12;
+  PALETA.forEach(c => { out.set(c, p); p += 3; });
+  doc.frames.forEach(f => { out.set(f, p); p += cells; });
+  return out;
+}
+function css(i) { const c = PALETA[i]; return `rgb(${c[0]},${c[1]},${c[2]})`; }
+
+/* ---------- la API del reloj (la generica de archivos) ---------- */
+const DIR = "pixel";
+function urlDl(name, dl) {
+  return "/api/download?dir=" + DIR + "&name=" + encodeURIComponent(name) + (dl ? "&dl=1" : "");
+}
+function nombreSlot(n) { return "lienzo" + n + ".pix"; }
+async function listar() {
+  const r = await fetch("/api/list?dir=" + DIR);
+  if (!r.ok) throw new Error(r.status);
+  return (await r.json()).files || [];
+}
+async function leer(name) {
+  const r = await fetch(urlDl(name) + "&_=" + Date.now(), { cache: "no-store" });
+  if (!r.ok) throw new Error(r.status);
+  return parsePix(await r.arrayBuffer());
+}
+
+/* ---------- galeria ---------- */
+let archivos = [];
+async function cargar() {
+  try { archivos = await listar(); }
+  catch (e) { aos.brindis(t("err_placa")); archivos = []; }
+  const slots = $("slots");
+  slots.innerHTML = "";
+  for (let n = 1; n <= SLOTS; n++) {
+    const card = document.createElement("div");
+    card.className = "slot";
+    const f = archivos.find(a => a.name === nombreSlot(n));
+    if (f) {
+      const cv = document.createElement("canvas");
+      cv.width = cv.height = 128;
+      const b = document.createElement("b"), s = document.createElement("span");
+      b.textContent = t("lienzo") + " " + n;
+      s.textContent = "…";
+      card.append(cv, b, s);
+      card.onclick = () => abrir(n);
+      leer(f.name).then(doc => {
+        if (!doc) { s.textContent = t("err_leer"); return; }
+        pintar(cv, doc, 0, false);
+        s.textContent = doc.size + "×" + doc.size + " · " + doc.frames.length + " " +
+                        (doc.frames.length === 1 ? t("cuadro") : t("cuadros"));
+      }).catch(() => { s.textContent = t("err_leer"); });
+    } else {
+      const mas = document.createElement("div");
+      mas.className = "mas";
+      mas.textContent = "+";
+      const b = document.createElement("b"), s = document.createElement("span");
+      b.textContent = t("lienzo") + " " + n;
+      s.textContent = t("vacio");
+      card.append(mas, b, s);
+      card.onclick = () => nuevo(n);
+    }
+    slots.appendChild(card);
+  }
+  /* los exportados: png y gif, con vista previa que sirve la propia placa */
+  const ex = archivos.filter(a => /\.(png|gif)$/i.test(a.name));
+  const ul = $("exports");
+  ul.innerHTML = "";
+  $("sinexports").hidden = ex.length > 0;
+  ex.forEach(a => {
+    const li = document.createElement("li");
+    const img = document.createElement("img");
+    img.src = urlDl(a.name) + "&_=" + (a.size || 0);
+    img.alt = "";
+    const nom = document.createElement("span");
+    nom.className = "nombre";
+    nom.textContent = a.name;
+    const val = document.createElement("span");
+    val.className = "val";
+    val.textContent = Math.round(a.size / 1024 * 10) / 10 + " KB";
+    const dl = document.createElement("a");
+    dl.href = urlDl(a.name, true);
+    dl.textContent = "↓";
+    dl.title = "download";
+    const del = document.createElement("button");
+    del.className = "mala chica";
+    del.textContent = "×";
+    del.onclick = async () => {
+      if (!confirm(t("borrar_export"))) return;
+      await borrarArchivo(a.name);
+      cargar();
+    };
+    li.append(img, nom, val, dl, del);
+    ul.appendChild(li);
+  });
+}
+async function borrarArchivo(name) {
+  const r = await fetch("/api/delete?dir=" + DIR + "&name=" + encodeURIComponent(name), { method: "POST" });
+  if (!r.ok) { aos.brindis(t("err_placa")); return false; }
+  return true;
+}
+
+/* ---------- editor ---------- */
+let doc = null, slot = 0, cur = 0, tool = "pen", color = 1, dirty = false;
+let undo = [], playing = null, pintando = false, ultimaCelda = -1;
+const cv = $("cv"), ctx = cv.getContext("2d");
+
+function pintar(canvas, d, f, grilla) {
+  const c = canvas.getContext("2d");
+  const cell = canvas.width / d.size;
+  c.fillStyle = grilla ? GRID : "#000";
+  c.fillRect(0, 0, canvas.width, canvas.height);
+  const px = d.frames[f], inset = grilla ? 1 : 0;
+  for (let y = 0; y < d.size; y++)
+    for (let x = 0; x < d.size; x++) {
+      c.fillStyle = css(px[y * d.size + x]);
+      c.fillRect(x * cell + inset, y * cell + inset, cell - inset, cell - inset);
+    }
+}
+function pintarCelda(x, y) {
+  const cell = cv.width / doc.size;
+  ctx.fillStyle = css(doc.frames[cur][y * doc.size + x]);
+  ctx.fillRect(x * cell + 1, y * cell + 1, cell - 1, cell - 1);
+}
+function redibujar() {
+  pintar(cv, doc, cur, true);
+  pintarTira();
+  $("ednombre").textContent = t("lienzo") + " " + slot + " · " + doc.size + "×" + doc.size +
+                              " · " + (cur + 1) + "/" + doc.frames.length;
+  $("delay").value = doc.delay;
+  $("delayv").value = doc.delay + " ms";
+  $("f-del").disabled = doc.frames.length < 2;
+  $("deshacer").disabled = undo.length === 0;
+  estado(dirty ? t("sin_guardar") : "", dirty ? "" : "");
+}
+function pintarTira() {
+  const tira = $("tira");
+  tira.innerHTML = "";
+  doc.frames.forEach((f, i) => {
+    const d = document.createElement("div");
+    d.className = "cuadro" + (i === cur ? " on" : "");
+    const c = document.createElement("canvas");
+    c.width = c.height = 64;
+    pintar(c, doc, i, false);
+    const s = document.createElement("span");
+    s.textContent = i + 1;
+    d.append(c, s);
+    d.onclick = () => { parar(); cur = i; undo = []; redibujar(); };
+    tira.appendChild(d);
+  });
+  const on = tira.querySelector(".on");
+  if (on) on.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+function estado(txt, clase) {
+  const e = $("estado");
+  e.textContent = txt;
+  e.className = clase || "";
+}
+function marcar() { dirty = true; estado(t("sin_guardar"), ""); }
+function guardarUndo() {
+  undo.push(new Uint8Array(doc.frames[cur]));
+  if (undo.length > 50) undo.shift();
+  $("deshacer").disabled = false;
+}
+function celdaDe(ev) {
+  const r = cv.getBoundingClientRect();
+  const x = Math.floor((ev.clientX - r.left) / r.width * doc.size);
+  const y = Math.floor((ev.clientY - r.top) / r.height * doc.size);
+  if (x < 0 || y < 0 || x >= doc.size || y >= doc.size) return null;
+  return { x, y, i: y * doc.size + x };
+}
+function rellenar(f, x, y, c) {
+  const n = doc.size, px = doc.frames[f], from = px[y * n + x];
+  if (from === c) return;
+  const pila = [y * n + x];
+  px[y * n + x] = c;
+  while (pila.length) {
+    const i = pila.pop(), cx = i % n, cy = (i / n) | 0;
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => {
+      const nx = cx + dx, ny = cy + dy;
+      if (nx < 0 || ny < 0 || nx >= n || ny >= n) return;
+      const j = ny * n + nx;
+      if (px[j] === from) { px[j] = c; pila.push(j); }
+    });
+  }
+}
+cv.addEventListener("pointerdown", ev => {
+  if (!doc) return;
+  parar();
+  const c = celdaDe(ev);
+  if (!c) return;
+  cv.setPointerCapture(ev.pointerId);
+  const px = doc.frames[cur];
+  if (tool === "pick") { elegirColor(px[c.i]); return; }
+  if (tool === "fill") {
+    if (px[c.i] !== color) { guardarUndo(); rellenar(cur, c.x, c.y, color); marcar(); redibujar(); }
+    return;
+  }
+  guardarUndo();
+  pintando = true;
+  ultimaCelda = -1;
+  trazo(c);
+});
+cv.addEventListener("pointermove", ev => {
+  if (!pintando) return;
+  const c = celdaDe(ev);
+  if (c) trazo(c);
+});
+function soltar() { if (pintando) { pintando = false; pintarTira(); } }
+cv.addEventListener("pointerup", soltar);
+cv.addEventListener("pointercancel", soltar);
+function trazo(c) {
+  if (c.i === ultimaCelda) return;
+  ultimaCelda = c.i;
+  const px = doc.frames[cur];
+  if (px[c.i] === color) return;
+  px[c.i] = color;
+  pintarCelda(c.x, c.y);
+  marcar();
+}
+
+/* paleta */
+function armarPaleta() {
+  const p = $("paleta");
+  p.innerHTML = "";
+  PALETA.forEach((c, i) => {
+    const s = document.createElement("i");
+    s.style.background = css(i);
+    s.title = i;
+    s.onclick = () => elegirColor(i);
+    p.appendChild(s);
+  });
+}
+function elegirColor(i) {
+  color = i;
+  [...$("paleta").children].forEach((s, k) => s.classList.toggle("on", k === i));
+  if (tool === "pick") herramienta("pen");
+}
+function herramienta(h) {
+  tool = h;
+  $("t-pen").classList.toggle("on", h === "pen");
+  $("t-fill").classList.toggle("on", h === "fill");
+  $("t-pick").classList.toggle("on", h === "pick");
+}
+$("t-pen").onclick = () => herramienta("pen");
+$("t-fill").onclick = () => herramienta("fill");
+$("t-pick").onclick = () => herramienta("pick");
+$("deshacer").onclick = () => {
+  if (!undo.length) return;
+  doc.frames[cur] = undo.pop();
+  marcar();
+  redibujar();
+};
+
+/* cuadros */
+$("f-dup").onclick = () => insertar(new Uint8Array(doc.frames[cur]));
+$("f-blank").onclick = () => insertar(new Uint8Array(doc.size * doc.size));
+function insertar(f) {
+  parar();
+  if (doc.frames.length >= MAX_FRAMES) { aos.brindis(t("max_cuadros")); return; }
+  doc.frames.splice(cur + 1, 0, f);
+  cur++;
+  undo = [];
+  marcar();
+  redibujar();
+}
+$("f-del").onclick = () => {
+  parar();
+  if (doc.frames.length < 2) return;
+  doc.frames.splice(cur, 1);
+  if (cur >= doc.frames.length) cur = doc.frames.length - 1;
+  undo = [];
+  marcar();
+  redibujar();
+};
+$("f-clear").onclick = () => { parar(); guardarUndo(); doc.frames[cur].fill(0); marcar(); redibujar(); };
+$("delay").oninput = () => { doc.delay = +$("delay").value; $("delayv").value = doc.delay + " ms"; marcar(); };
+$("play").onclick = () => {
+  if (playing) { parar(); return; }
+  if (doc.frames.length < 2) { aos.brindis(t("un_cuadro")); return; }
+  $("play").textContent = "■";
+  playing = setInterval(() => { cur = (cur + 1) % doc.frames.length; redibujar(); }, doc.delay);
+};
+function parar() {
+  if (!playing) return;
+  clearInterval(playing);
+  playing = null;
+  $("play").textContent = "▶";
+}
+
+/* guardar, bajar, borrar */
+$("guardar").onclick = async () => {
+  parar();
+  estado(t("guardando"), "");
+  try {
+    const r = await fetch("/api/upload?dir=" + DIR + "&name=" + nombreSlot(slot),
+                          { method: "POST", body: buildPix(doc) });
+    if (!r.ok) throw new Error(r.status);
+    dirty = false;
+    estado(t("guardado"), "bien");
+  } catch (e) {
+    estado(t("err_guardar"), "mal");
+  }
+};
+function bajar(blob, nombre) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = nombre;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+$("dl-pix").onclick = () => bajar(new Blob([buildPix(doc)]), nombreSlot(slot));
+$("dl-png").onclick = () => {
+  const esc = +$("escala").value, c = document.createElement("canvas");
+  c.width = c.height = doc.size * esc;
+  pintar(c, doc, cur, false);
+  c.toBlob(b => bajar(b, "lienzo" + slot + "-" + (cur + 1) + ".png"), "image/png");
+};
+$("dl-gif").onclick = () => bajar(new Blob([gif(doc, +$("escala").value)], { type: "image/gif" }),
+                                  "lienzo" + slot + ".gif");
+$("borrar").onclick = async () => {
+  parar();
+  if (!confirm(t("borrar_seg"))) return;
+  if (await borrarArchivo(nombreSlot(slot))) { dirty = false; aos.brindis(t("borrado")); volver(true); }
+};
+$("volver").onclick = () => volver(false);
+function volver(forzar) {
+  if (dirty && !forzar && !confirm(t("salir_seg"))) return;
+  parar();
+  doc = null;
+  dirty = false;
+  $("editor").hidden = true;
+  $("galeria").hidden = false;
+  cargar();
+}
+window.addEventListener("beforeunload", ev => { if (dirty) { ev.preventDefault(); ev.returnValue = ""; } });
+
+async function abrir(n) {
+  let d;
+  try { d = await leer(nombreSlot(n)); } catch (e) { d = null; }
+  if (!d) { aos.brindis(t("err_leer")); return; }
+  editar(n, d, false);
+}
+function editar(n, d, nuevoDoc) {
+  doc = d; slot = n; cur = 0; undo = []; dirty = nuevoDoc;
+  herramienta("pen");
+  elegirColor(color);
+  $("galeria").hidden = true;
+  $("editor").hidden = false;
+  redibujar();
+  window.scrollTo(0, 0);
+}
+let slotNuevo = 0;
+function nuevo(n) { slotNuevo = n; $("dialogo").hidden = false; }
+$("ncancel").onclick = () => { $("dialogo").hidden = true; };
+$("n8").onclick = () => crear(8);
+$("n16").onclick = () => crear(16);
+function crear(size) {
+  $("dialogo").hidden = true;
+  editar(slotNuevo, { size, delay: 200, frames: [new Uint8Array(size * size)] }, true);
+}
+
+/* ---------- GIF: LZW como lo pide el formato, igual que px_export.c ---------- */
+function gif(d, esc) {
+  const w = d.size * esc, out = [];
+  const u16 = v => out.push(v & 255, v >> 8);
+  out.push(71, 73, 70, 56, 57, 97);          /* GIF89a */
+  u16(w); u16(w); out.push(0xF4, 0, 0);       /* tabla global de 32 colores */
+  PALETA.forEach(c => out.push(c[0], c[1], c[2]));
+  if (d.frames.length > 1) out.push(0x21, 0xFF, 0x0B, 78, 69, 84, 83, 67, 65, 80, 69, 50, 46, 48, 3, 1, 0, 0, 0);
+  const cs = Math.max(2, Math.round(d.delay / 10));
+  d.frames.forEach(f => {
+    out.push(0x21, 0xF9, 4, 4, cs & 255, cs >> 8, 0, 0);
+    out.push(0x2C); u16(0); u16(0); u16(w); u16(w); out.push(0);
+    out.push(5);                              /* min code size */
+    const px = new Uint8Array(w * w);
+    for (let y = 0; y < w; y++) for (let x = 0; x < w; x++)
+      px[y * w + x] = f[((y / esc) | 0) * d.size + ((x / esc) | 0)];
+    lzw(px, 5, out);
+    out.push(0);
+  });
+  out.push(0x3B);
+  return new Uint8Array(out);
+}
+function lzw(px, min, out) {
+  const clear = 1 << min, eoi = clear + 1;
+  let width = min + 1, free = eoi + 1, dict = new Map();
+  let acc = 0, nbits = 0, block = [];
+  const emit = code => {
+    acc |= code << nbits; nbits += width;
+    while (nbits >= 8) {
+      block.push(acc & 255); acc >>>= 8; nbits -= 8;
+      if (block.length === 255) { out.push(255, ...block); block = []; }
+    }
+  };
+  emit(clear);
+  let prefix = px[0];
+  for (let i = 1; i < px.length; i++) {
+    const c = px[i], key = (prefix << 8) | c, hit = dict.get(key);
+    if (hit !== undefined) { prefix = hit; continue; }
+    emit(prefix);
+    if (free < 4096) {
+      dict.set(key, free++);
+      if (free > (1 << width) && width < 12) width++;
+    } else {
+      emit(clear); dict = new Map(); width = min + 1; free = eoi + 1;
+    }
+    prefix = c;
+  }
+  emit(prefix);
+  emit(eoi);
+  if (nbits > 0) block.push(acc & 255);
+  if (block.length) out.push(block.length, ...block);
+}
+
+armarPaleta();
+aos.init(TR).then(cargar);
+</script>
+</body>
+</html>
