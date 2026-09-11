@@ -759,10 +759,7 @@ static void construir_afinador(lv_obj_t *p)
     s_af.pista = lv_obj_create(p);
     lv_obj_remove_style_all(s_af.pista);
     lv_obj_set_size(s_af.pista, mitad * 2, 8);
-    /* The page starts 22 px lower since the tabs moved below y = 56, so from
-     * the strip down everything sits 22 px higher: TONO has to end above the
-     * touch floor (screen 390 = page 296). */
-    lv_obj_set_pos(s_af.pista, 34, 128);
+    lv_obj_set_pos(s_af.pista, 34, 150);
     lv_obj_set_style_bg_color(s_af.pista, AOS_C_CARD2, 0);
     lv_obj_set_style_bg_opa(s_af.pista, LV_OPA_COVER, 0);
     lv_obj_set_style_radius(s_af.pista, 4, 0);
@@ -770,14 +767,14 @@ static void construir_afinador(lv_obj_t *p)
     s_af.centro = lv_obj_create(p);
     lv_obj_remove_style_all(s_af.centro);
     lv_obj_set_size(s_af.centro, 2, 26);
-    lv_obj_set_pos(s_af.centro, AOS_SCREEN_W / 2 - 1, 119);
+    lv_obj_set_pos(s_af.centro, AOS_SCREEN_W / 2 - 1, 141);
     lv_obj_set_style_bg_color(s_af.centro, AOS_C_DIM, 0);
     lv_obj_set_style_bg_opa(s_af.centro, LV_OPA_COVER, 0);
 
     s_af.marca = lv_obj_create(p);
     lv_obj_remove_style_all(s_af.marca);
     lv_obj_set_size(s_af.marca, 6, 30);
-    lv_obj_set_pos(s_af.marca, AOS_SCREEN_W / 2 - 3, 117);
+    lv_obj_set_pos(s_af.marca, AOS_SCREEN_W / 2 - 3, 139);
     lv_obj_set_style_bg_color(s_af.marca, AOS_C_DIM, 0);
     lv_obj_set_style_bg_opa(s_af.marca, LV_OPA_COVER, 0);
     lv_obj_set_style_radius(s_af.marca, 3, 0);
@@ -786,32 +783,32 @@ static void construir_afinador(lv_obj_t *p)
      * and this reached down to 426: the TONO button came out cut off by the
      * screen's edge and the text below was NEVER visible. tools/audit_layout.sh
      * found it, not the eye; it was like that in both languages. */
-    s_af.lbl_cents  = caja(p, "", aos_font_title, AOS_C_TEXT, 148, 32);
-    s_af.lbl_hz     = caja(p, "", aos_font_small, AOS_C_DIM, 182, 22);
+    s_af.lbl_cents  = caja(p, "", aos_font_title, AOS_C_TEXT, 170, 32);
+    s_af.lbl_hz     = caja(p, "", aos_font_small, AOS_C_DIM, 204, 22);
     /* The status drops to y=324 (screen 396..422): it is text that is only
      * read and it is out of the way there, and that way both buttons move up
      * into the strip this board's touch panel reaches (see AOS_TOUCH_Y_MAX in
      * aos_hal.h). */
     s_af.lbl_estado = caja(p, _("abriendo el microfono"), aos_font_body,
-                           AOS_C_DIM, 300, 26);
+                           AOS_C_DIM, 324, 26);
 
     /* A4 */
-    chip(p, "-", 34, 206, 44, 40, ev_a4, (void *)(intptr_t)-1, AOS_C_CARD);
-    chip(p, "+", 290, 206, 44, 40, ev_a4, (void *)(intptr_t)1, AOS_C_CARD);
-    s_af.lbl_a4 = caja(p, "A4 440", aos_font_body, AOS_C_TEXT, 213, 26);
+    chip(p, "-", 34, 228, 44, 40, ev_a4, (void *)(intptr_t)-1, AOS_C_CARD);
+    chip(p, "+", 290, 228, 44, 40, ev_a4, (void *)(intptr_t)1, AOS_C_CARD);
+    s_af.lbl_a4 = caja(p, "A4 440", aos_font_body, AOS_C_TEXT, 235, 26);
 
     /* reference tone */
-    lv_obj_t *bt = chip(p, _("TONO"), 104, 252, 160, 44, ev_tono, NULL, AOS_C_ACCENT);
+    lv_obj_t *bt = chip(p, _("TONO"), 104, 274, 160, 44, ev_tono, NULL, AOS_C_ACCENT);
     s_af.lbl_tono = lv_obj_get_child(bt, 0);
-    caja(p, _("escuchar y sonar no van juntos"), aos_font_small, AOS_C_DIM, 332, 20);
+    caja(p, _("escuchar y sonar no van juntos"), aos_font_small, AOS_C_DIM, 354, 20);
 }
 
 static void construir_ruido(lv_obj_t *p)
 {
     /* This page never fitted: "borrar maximo" sat at y = 390 of a page that
-     * starts at 94 of the screen, and the audit never saw it because the page
-     * is born hidden. Compressed so the calibration chips end above the touch
-     * floor, and the maximum is cleared with the x beside it. */
+     * starts at 72 of the screen, and the audit never saw it because the page
+     * is born hidden. Compressed (v0.3.2) so the calibration chips sit well
+     * inside the screen, and the maximum is cleared with the x beside it. */
     s_af.lbl_db = caja(p, "--", aos_font_huge, AOS_C_TEXT, 40, 70);
     lv_obj_set_width(s_af.lbl_db, 200);
     lv_obj_set_x(s_af.lbl_db, (AOS_SCREEN_W - 200) / 2);
@@ -873,11 +870,9 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     lv_obj_set_style_bg_color(root, AOS_C_BG, 0);
     lv_obj_set_style_bg_opa(root, LV_OPA_COVER, 0);
 
-    /* y 26 and not 4: below the status bar the panel reports nothing above
-     * y = 55 (AOS_TOUCH_Y_MIN). */
-    s_af.tab[0] = chip(root, _("AFINAR"), 24, 26, 152, 34, ev_tab,
+    s_af.tab[0] = chip(root, _("AFINAR"), 24, 4, 152, 34, ev_tab,
                        (void *)(intptr_t)MODO_AFINAR, AOS_C_ACCENT);
-    s_af.tab[1] = chip(root, _("RUIDO"), 192, 26, 152, 34, ev_tab,
+    s_af.tab[1] = chip(root, _("RUIDO"), 192, 4, 152, 34, ev_tab,
                        (void *)(intptr_t)MODO_RUIDO, AOS_C_CARD);
 
     for (int i = 0; i < 2; i++) {
@@ -886,8 +881,8 @@ static void *create(aos_app_t *self, lv_obj_t *root)
         /* lv_obj_remove_style_all deletes the SIZE (in LVGL 9 the width and
          * the height are local style), so it has to be put back or the page is
          * drawn clipped in the top left with no error at all. */
-        lv_obj_set_size(s_af.pag[i], AOS_SCREEN_W, AOS_SCREEN_H - 30 - 64);
-        lv_obj_set_pos(s_af.pag[i], 0, 64);
+        lv_obj_set_size(s_af.pag[i], AOS_SCREEN_W, AOS_SCREEN_H - 30 - 42);
+        lv_obj_set_pos(s_af.pag[i], 0, 42);
         lv_obj_remove_flag(s_af.pag[i], LV_OBJ_FLAG_SCROLLABLE);
     }
     lv_obj_add_flag(s_af.pag[1], LV_OBJ_FLAG_HIDDEN);

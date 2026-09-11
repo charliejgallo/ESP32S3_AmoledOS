@@ -60,11 +60,8 @@
  * into the dead strip: it traded three dead buttons for twenty-four dead
  * cells. */
 #define CV_W        368
-/* 2026-09-11: the panel does not report above y = 55 either (AOS_TOUCH_Y_MIN),
- * so the bar's buttons moved down to 58..98 and the board starts at 100. The
- * first rows are the bar's background and nothing else. */
-#define CV_H        288
-#define CANVAS_Y    100
+#define CV_H        330
+#define CANVAS_Y    56
 #define BAR_H       CANVAS_Y
 #define INFO_Y      396
 #define INFO_H      24
@@ -748,7 +745,7 @@ static lv_obj_t *bar_button(lv_obj_t *parent, const char *text, int32_t x,
     lv_obj_t *btn = lv_obj_create(parent);
     lv_obj_remove_style_all(btn);
     lv_obj_set_size(btn, w, 40);
-    lv_obj_set_pos(btn, x, AOS_TOUCH_Y_MIN + 2);
+    lv_obj_set_pos(btn, x, 8);
     lv_obj_set_style_radius(btn, 14, 0);
     lv_obj_set_style_bg_color(btn, color, 0);
     lv_obj_set_style_bg_opa(btn, LV_OPA_COVER, 0);

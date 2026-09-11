@@ -739,7 +739,11 @@ static void audit_obj(lv_obj_t *obj, const char *tag)
     if (lv_obj_has_flag(obj, LV_OBJ_FLAG_CLICKABLE)) {
         lv_area_t a;
         lv_obj_get_coords(obj, &a);
-        int32_t vivos = AOS_TOUCH_Y_MAX - a.y1 + 1;   /* usable px of the object */
+        /* Reach is measured against the landing rows (AOS_TOUCH_LAND_*): the
+         * map takes a touch down to 410 and up to 24 (see aos_ui_touch_map);
+         * AOS_TOUCH_Y_MIN/MAX stay the comfortable window, where the fit is
+         * exact, and only decide what gets a LOWEDGE / HIGHEDGE note. */
+        int32_t vivos = AOS_TOUCH_LAND_BOTTOM - a.y1 + 1;   /* reachable px of the object */
 
         /* Anything hanging off something that scrolls is NOT reported: its
          * coordinates are those of this instant and a finger moves them up.
@@ -823,7 +827,7 @@ static void audit_obj(lv_obj_t *obj, const char *tag)
          * touch 50 px too high; once calibrated, every one of them was dead.
          * Same rule mirrored: what has almost nothing left below the line is
          * broken, a wide object that merely crosses it is HIGHEDGE. */
-        int32_t vivos_top = a.y2 - AOS_TOUCH_Y_MIN + 1;
+        int32_t vivos_top = a.y2 - AOS_TOUCH_LAND_TOP + 1;
         if (!scrollea && a.y1 < AOS_TOUCH_Y_MIN && !lands_top) {
             if (vivos_top < 20) {
                 printf("AUDIT UNTOUCHABLE %s | %s | y %ld..%ld (centre %ld, %ld px live) | %s\n",

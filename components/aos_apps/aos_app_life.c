@@ -40,7 +40,7 @@
  * of buttons needs. */
 #define W           92
 #define H           92
-#define SCALE       3           /* x4 was 368 px: with the bar below the touch floor it no longer fits */
+#define SCALE       4
 #define DW          (W * SCALE)
 #define DH          (H * SCALE)
 /* The bar goes ON TOP and the counter at the bottom.
@@ -56,13 +56,9 @@
  * for seeding cells does not reach the grid's last 34 px strip. It is a
  * shortcut, not the main control, and that was preferred over shrinking the
  * 92x92 grid, which would change the simulation. */
-/* The panel reports nothing above y = 55 (AOS_TOUCH_Y_MIN): the buttons sit at
- * 56..100 and the grid, now 276 px, below them; the status line goes into the
- * bottom dead strip. */
-#define BAR_H       100
+#define BAR_H       56
 #define CANVAS_Y    BAR_H
-#define CANVAS_X    ((AOS_SCREEN_W - DW) / 2)
-#define INFO_Y      400
+#define INFO_Y      (CANVAS_Y + DH)
 
 #define AGE_MAX     7           /* different ages Life colours by */
 
@@ -518,7 +514,7 @@ static lv_obj_t *bar_button(lv_obj_t *parent, const char *text, int slot,
     lv_obj_t *btn = lv_obj_create(parent);
     lv_obj_remove_style_all(btn);
     lv_obj_set_size(btn, w, 44);
-    lv_obj_set_pos(btn, x0 + slot * (w + gap), AOS_TOUCH_Y_MIN);
+    lv_obj_set_pos(btn, x0 + slot * (w + gap), 6);
     lv_obj_set_style_radius(btn, 14, 0);
     lv_obj_set_style_bg_color(btn, color, 0);
     lv_obj_set_style_bg_opa(btn, LV_OPA_COVER, 0);
@@ -573,7 +569,7 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     s_life.canvas = lv_canvas_create(page);
     lv_canvas_set_buffer(s_life.canvas, s_life.big, DW, DH, LV_COLOR_FORMAT_RGB565);
     lv_obj_set_size(s_life.canvas, DW, DH);
-    lv_obj_set_pos(s_life.canvas, CANVAS_X, CANVAS_Y);
+    lv_obj_set_pos(s_life.canvas, 0, CANVAS_Y);
     /* The theme gives everything a radius: on a canvas that forces clipping
      * with a mask and drawing in layers. */
     lv_obj_set_style_radius(s_life.canvas, 0, 0);

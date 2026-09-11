@@ -45,6 +45,19 @@ control that contains the landing row is reachable from the rim.
 - `AOS_TOUCH_LAND_TOP/BOTTOM/LEFT/RIGHT` in aos_hal.h, and the layout audit
   no longer calls a control that contains a landing row untouchable.
 
+### The v0.3.1 / v0.3.2 relocations, undone
+
+They were made against the calibration's artefact, so the apps get their
+room back: Pixel Art's canvas is 288 px again (bar at y = 8), Buscaminas's
+board 330 px (bar at y = 8), Laberinto 15 rows (chips at y = 26), Vida at
+x4 (bar at y = 6); the pause strips of Arkanos and Claude Jump are the HUD
+again; the Conversor's keypad, the Calendario's header (rows 46 px), Clima's
+head and search box, Remoto's pages and Claudito's name-hold and action
+buttons are where they were. A bar at y = 8..48 contains the landing row
+(24), so a finger against the top rim reaches it. What v0.3.2 fixed for
+real stays: the tuner's noise page, whose "clear peak" had never been on
+screen, keeps the x beside the peak.
+
 ## v0.3.2 — 2026-09-11
 
 ### Every control below the touch floor

@@ -54,60 +54,36 @@ extern "C" {
 #define AOS_SCREEN_RADIUS   38      /* rounded corners of the glass */
 
 /* --------------------------------------------------------------------------
- * THE TOUCH PANEL DOES NOT REACH THE BOTTOM. Measured on the board 2026-09-06.
+ * THE TOUCH WINDOW. Measured on the board on 2026-09-06 and 2026-09-11.
  *
- * The display draws down to y = 447, but the CST816 never reports a coordinate
- * below y = 395: the last ~53 px can be seen and cannot be touched. Anything
- * clickable that lives down there is dead, with no error and no warning.
+ * On 2026-09-06 the digitiser seemed to report nothing below y = 395, and on
+ * 2026-09-11 nothing above y = 55: a bar at the top read y = 55 whatever the
+ * finger did. Both were real on the screen and both were wrong about the
+ * cause. The raw view (Settings -> Touch -> Raw view) showed the CST820
+ * reaching 1 and 447 with the finger pressed against the bezel, not before:
+ * the chip already stretches its coordinates so that the rim is the last
+ * pixel. The five-cross calibration measures that stretch and inverts it
+ * (a = 0.81, b = 29 on this unit), and a plain linear fit then sends the rim
+ * to y = 30 and y = 390. The dead bands were the calibration's.
  *
- * How it was measured: the firmware prints "APOYA en X,Y" on every touch. With
- * a finger running along the whole bottom bar of an app, X went from 23 to 325
- * -so the finger really was moving- and Y read 395 on 13 of 22 touches, never
- * going past it. Seventy-eight touches across four apps later, the maximum was
- * still 395.
- *
- * Calibration does NOT fix it, and that was tried: the correction is
- * y = a*raw + b over a raw value the chip clamps at 447, so the ceiling moves
- * with 'a' but does not go away. Nor is our software clipping it -the CST816
- * driver reads 12 bits, esp_lcd_touch only uses y_max to mirror, and the LVGL
- * port multiplies by scale=1-; the limit belongs to the chip.
- *
- * Why it took months to show up: the five calibration points sit at y = 55 and
- * y = AOS_SCREEN_H - 55 = 393, so the procedure never measures below 393 and
- * cannot find out. And the two apps that seemed to prove the bottom worked
- * -hello_app and claudito- hook the touch on an object covering the whole
- * screen, so they respond the same at 395 as at 447 and cannot tell one from
- * the other.
- *
- * Rule: no clickable object may end up below this line. What you SHOULD put
- * there is read-only text -a score, a status line-, which is free and frees up
- * live pixels further up. Buscaminas does exactly that with its mines/time
- * line.
+ * The map in aos_ui.c keeps the fit between two anchor rows (60..350) and
+ * ramps from each to the bezel, so a touch can land anywhere in
+ * AOS_TOUCH_LAND_TOP..AOS_TOUCH_LAND_BOTTOM (24..410; 16..352 in X). The two
+ * constants below remain as the COMFORTABLE window: inside it precision is
+ * the fit's own and a control of any size works; outside it a control is
+ * still reachable (the audit measures reach against the landing rows) but a
+ * finger jammed against the rim lands on the landing row, so a control that
+ * has to be hit from the very edge contains that row. The bottom 37 rows
+ * and the top 23 are still the place for text that is only read.
  * -------------------------------------------------------------------------- */
-#define AOS_TOUCH_Y_MAX     390     /* 395 measured, with 5 px of margin */
-
-/* And the top has the same problem, measured on 2026-09-11 with the Pixel
- * Art app: six taps on a bar of buttons at y = 8..48 all came in as y = 55,
- * whatever the finger did. The digitiser clamps there. So the usable touch
- * window is 55..395, and anything that has to be touched goes at y >= 56.
- * The first rows are for text -a title, a score- exactly like the last. */
-#define AOS_TOUCH_Y_MIN     56
+#define AOS_TOUCH_Y_MAX     390     /* comfortable window, bottom */
+#define AOS_TOUCH_Y_MIN     56      /* comfortable window, top    */
 
 /* Where a finger pressed against the bezel lands (2026-09-11, measured with
- * the raw view of Settings -> Touch, see aos_ui_touch_map in aos_ui.c).
- *
- * The "dead bands" of the two constants above were the CALIBRATION's, not
- * the chip's: the digitiser already stretches its coordinates so that the
- * bezel reads 1 / 447, and a five-cross fit inverts that stretch and parks
- * the bezel at y = 30 and 390. The map now keeps the fit between the
- * crosses and ramps from there to the bezel, so a touch can land anywhere
- * from AOS_TOUCH_LAND_TOP to AOS_TOUCH_LAND_BOTTOM (and _LEFT.._RIGHT in
- * X), continuously; the rim itself lands exactly on these rows. Rows 0..23
- * and 411..447 stay unreachable: a fingertip's centre cannot get closer to
- * a bezel than that anyway. A control that has to be reachable from the
- * very edge contains the landing row; the layout audit checks it. Between
- * AOS_TOUCH_Y_MIN and AOS_TOUCH_Y_MAX precision is that of the fit; outside,
- * the ramp is up to 1.2x steeper. */
+ * the raw view; see aos_ui_touch_map in aos_ui.c). Rows 0..23 and 411..447
+ * stay unreachable: a fingertip's centre cannot get closer to a bezel than
+ * that anyway. A control that has to be reachable from the very edge
+ * contains the landing row; the layout audit checks it. */
 #define AOS_TOUCH_LAND_TOP     24
 #define AOS_TOUCH_LAND_BOTTOM  410
 #define AOS_TOUCH_LAND_LEFT    16

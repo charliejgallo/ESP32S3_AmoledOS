@@ -500,9 +500,15 @@ static void clock_cb(lv_event_t *event)
  * the ceiling: pushing them OUT so the calibration "covers" the edges of the
  * screen achieves nothing. There is nothing to cover -the chip does not report
  * there- and all you get is a point that cannot be touched and a worse fit. */
+/* The rows are their own numbers and not derived from the window constants:
+ * the map trusts the fit between its anchors (60 and 350, aos_ui.c) and the
+ * crosses have to be measured inside that span. */
+#define CAL_TOP_Y      96
+#define CAL_BOTTOM_Y   350
+
 static const lv_point_t CAL_OBJETIVO[CAL_PUNTOS] = {
-    { 55, AOS_TOUCH_Y_MIN + 40 }, { AOS_SCREEN_W - 55, AOS_TOUCH_Y_MIN + 40 },
-    { 55, AOS_TOUCH_Y_MAX - 40 }, { AOS_SCREEN_W - 55, AOS_TOUCH_Y_MAX - 40 },
+    { 55, CAL_TOP_Y },    { AOS_SCREEN_W - 55, CAL_TOP_Y },
+    { 55, CAL_BOTTOM_Y }, { AOS_SCREEN_W - 55, CAL_BOTTOM_Y },
     { AOS_SCREEN_W / 2, AOS_SCREEN_H / 2 },
 };
 

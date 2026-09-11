@@ -1895,9 +1895,7 @@ static void *claudito_create(aos_app_t *self, lv_obj_t *root)
 
     /* the name and the day counter: holding it down resets the days. It
        reaches down to row 10 of the art so as not to eat the bars. */
-    /* At y = 56 and not 0: the panel reports nothing above 55 (AOS_TOUCH_Y_MIN),
-     * so the hold lives on the first rows of the stage, over the name. */
-    a->name_touch = hit_area(root, 0, AOS_TOUCH_Y_MIN, CL_ART_W * CL_SCALE, 11 * CL_SCALE,
+    a->name_touch = hit_area(root, 0, 0, CL_ART_W * CL_SCALE, 11 * CL_SCALE,
                              name_event, 1 | 4 | 16, a, 0);
 
     for (int i = 0; i < TRAY_ITEMS; i++) {
@@ -1909,10 +1907,8 @@ static void *claudito_create(aos_app_t *self, lv_obj_t *root)
     }
 
     for (int i = 0; i < ACT_COUNT; i++) {
-        /* 32 px taller than the bar, upwards: the panel reports nothing
-         * below y = 395 and the bar alone left 11 px to touch. */
-        a->act_btn[i] = hit_area(root, (1 + i * 15) * CL_SCALE, CL_BAR_Y * CL_SCALE - 32,
-                                 14 * CL_SCALE, CL_BAR_H * CL_SCALE + 32,
+        a->act_btn[i] = hit_area(root, (1 + i * 15) * CL_SCALE, CL_BAR_Y * CL_SCALE,
+                                 14 * CL_SCALE, CL_BAR_H * CL_SCALE,
                                  action_event, 8, a, i);
     }
 

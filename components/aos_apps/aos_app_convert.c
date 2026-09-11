@@ -34,20 +34,17 @@
  * margin. Four rows of 54 with 6 end at 420, which is the same 28 px of air
  * the calculator left itself: the watch's rounded bezel eats the last few
  * pixels at the bottom. */
-/* 2026-09-11: the panel reports nothing above y = 55 (AOS_TOUCH_Y_MIN), so
- * everything touchable starts at 56 and the rows above are for text. */
-#define KEY_D       46
+#define KEY_D       54
 #define KEY_GAP_X   18
-#define KEY_GAP_Y   4
+#define KEY_GAP_Y   6
 #define GRID_W      (4 * KEY_D + 3 * KEY_GAP_X)
 #define GRID_X      ((AOS_SCREEN_W - GRID_W) / 2)
-#define GRID_Y      210
+#define GRID_Y      186
 #define ROW_X       12
 #define ROW_W       (AOS_SCREEN_W - 2 * ROW_X)
-#define ROW_H       54
-#define ROW_A_Y     92
-#define ROW_B_Y     150
-#define FAMILY_Y    56
+#define ROW_H       62
+#define ROW_A_Y     48
+#define ROW_B_Y     116
 #define CHIP_W      104
 
 #define C_NUM       lv_color_hex(0x3A3A3C)
@@ -577,8 +574,8 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     s_conv.page = page;
 
     s_conv.btn_family = aos_button(page, "", AOS_C_CARD2, open_family_cb, NULL);
-    lv_obj_set_size(s_conv.btn_family, 240, 30);
-    lv_obj_align(s_conv.btn_family, LV_ALIGN_TOP_MID, 0, FAMILY_Y);
+    lv_obj_set_size(s_conv.btn_family, 240, 34);
+    lv_obj_align(s_conv.btn_family, LV_ALIGN_TOP_MID, 0, 6);
     s_conv.lbl_family = lv_obj_get_child(s_conv.btn_family, 0);
     lv_obj_set_style_text_font(s_conv.lbl_family, aos_font_small, 0);
 
