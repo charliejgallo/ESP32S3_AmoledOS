@@ -16,13 +16,16 @@ the CST820 clips a coordinate. The 16 px X gap the BSP sets is an offset in
 the CO5300's memory addressing, invisible to the touch, and never needed
 compensating — the old comment saying so was wrong.
 
-What is left is the chip: raw 0 arrives ~55 px below the top edge and raw
-447 ~53 px above the bottom one. Its window is the central 340 rows,
-stretched over 0..447 and saturated outside, which is why the Y fit lands
-near a = 0.76, b = 55. A saturated raw carries no information, so no fit can
-bring the bands back; calibrating only decides whether the 340 live rows
-land aligned (calibrated) or spread over the whole height and misplaced by
-up to 55 px (identity).
+Then the board was measured with the new raw view, and the chip was
+acquitted: it reports 1..447 and reaches those values with the finger
+against the bezel, not before (dragging to the edge read 441; only a tap at
+the rim read 447). The digitiser already stretches its coordinates so that
+the rim is the last pixel; the five-cross fit measures that stretch and
+inverts it (a = 0.81, b = 29 here, twice), parking the rim at y = 30 and
+390. **The dead bands were made by the calibration.** The map now keeps the
+fit between two anchor rows (60..350) and ramps from each to the bezel, so
+touches land anywhere in 24..410 (16..352 in X), continuously, and a
+control that contains the landing row is reachable from the rim.
 
 - **Calibration no longer wipes itself first.** It used to save the identity
   before measuring; an attempt cut short by the button or a reboot left the
@@ -35,11 +38,12 @@ up to 55 px (identity).
   the same trap fixed at the bottom in v0.3.0 — to `AOS_TOUCH_Y_MIN + 40`.
 - The five raw points of every calibration go to the log, the loaded fit is
   logged at boot, and `/api/status` reports it (`touch_cal`, `cal_*`).
-- **Ajustes → TÁCTIL → Ver crudo**: the live raw point and the extremes seen,
-  for a finger run around the whole glass; logged on close. That sweep is
-  the measurement that settles the chip's window on BOTH axes — X was never
-  measured at its edges. `AOS_SIM_TOUCH=1` / `=2` open it and the
-  calibration screen in the simulator.
+- **Ajustes → TÁCTIL → Ver crudo**: the live raw point, the dot where the
+  map puts it, a 50 px ruler and the extremes seen; logged on close. Swipe
+  navigation is off while it and the calibration are up (a sweep is a long
+  drag). `AOS_SIM_TOUCH=1` / `=2` open them in the simulator.
+- `AOS_TOUCH_LAND_TOP/BOTTOM/LEFT/RIGHT` in aos_hal.h, and the layout audit
+  no longer calls a control that contains a landing row untouchable.
 
 ## v0.3.2 — 2026-09-11
 

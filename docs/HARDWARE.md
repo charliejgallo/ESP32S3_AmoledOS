@@ -71,20 +71,27 @@ The bars that older apps had at y = 8 all moved below in v0.3.2, and the
 layout audit (`tools/audit_layout.sh`) now flags anything touchable above
 the line, the way it did for the bottom.
 
-**Where the limit lives, audited (2026-09-11).** The whole path was read:
-`esp_lcd_touch_cst816s` passes the 12-bit X/Y through, `esp_lcd_touch` has
-every mirror/swap flag off, the LVGL port multiplies by 1, the calibration
-wrapper clamps only to 0..447, LVGL's rotation is 0. The 16 px X gap the BSP
-applies for the CO5300 is an offset in the panel's memory addressing —
-framebuffer column 0 is the glass's first visible column — so the touch
-never needed compensating for it. The window is the chip's own: raw 0 is
-reached ~55 px below the top edge and raw 447 ~53 px above the bottom one,
-i.e. the central 340 rows stretched over 0..447 and saturated outside. That
-is also why calibrating comes out near a = 0.76, b = 55 in Y, and why no
-fit can recover the bands: a saturated raw carries no information.
-**Ajustes → TÁCTIL → Ver crudo** shows the raw point and the extremes for a
-finger run around the glass, and logs them — that sweep is how to measure
-the window on a given unit, on both axes.
+**Where the limit really lived, audited on the board (2026-09-11).** The
+whole path was read first: `esp_lcd_touch_cst816s` passes the 12-bit X/Y
+through, `esp_lcd_touch` has every mirror/swap flag off, the LVGL port
+multiplies by 1, the calibration wrapper clamps only to 0..447, LVGL's
+rotation is 0, and the 16 px X gap the BSP applies for the CO5300 is an
+offset in the panel's memory addressing that the touch never needed
+compensating for. Then the raw view (**Ajustes → TÁCTIL → Ver crudo**: the
+raw point, the fit's dot, a ruler, the extremes logged on close) showed the
+chip reporting 1..447 and 1..367 — reached with the finger *against the
+bezel*, not before: dragging to the bottom edge read 441, only a tap at the
+rim read 447. The digitiser already stretches its coordinates so that the
+rim reads the last pixel. The five-cross calibration measures exactly that
+stretch and inverts it (a = 0.81, b = 29 on this unit, on two occasions),
+so between the crosses a touch lands where the fingertip is, and the rim
+lands at y = 30 and y = 390. **The dead bands were the calibration's, not
+the chip's.** `aos_ui_touch_map()` now keeps the fit between two anchor
+rows (60..350) and ramps from there to the bezel, landing on
+`AOS_TOUCH_LAND_TOP` (24) and `AOS_TOUCH_LAND_BOTTOM` (410), 16 and 352 in
+X: rows 24..410 are reachable, continuously, and a control that contains
+the landing row is reachable from the very rim. The two constants above
+remain the region where precision is the fit's own.
 
 ### The v2's touch chip falls asleep
 
