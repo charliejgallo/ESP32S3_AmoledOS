@@ -3,6 +3,28 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.3.1 — 2026-09-11
+
+### Pixel Art
+
+- **A drawing app** (`apps/pixel`, dynamic): eight canvases of 8x8 or 16x16
+  cells and a 32-colour palette; pencil, flood fill, colour picker and undo;
+  up to 16 frames per canvas, duplicated and retouched into an animation that
+  plays on the watch. **Exports to the card**: one frame as an indexed PNG,
+  all of them as a looping GIF, both from encoders written for the app
+  (`px_export.c`, verified byte by byte by `apps/pixel/tools/px_harness.c`).
+  The `.pix` files live in `/pixel` on the card and are re-read when they
+  change on disk. On first run it seeds four samples: a black kitten walking
+  through a meadow (16x16, four frames), a beating heart, a winking face and
+  a checkerboard.
+- **Portal page `/pixel`**: the same canvases drawn with a mouse, frames and
+  all, saved back to the watch through the generic file API (`dir=pixel`);
+  PNG and GIF downloads generated in the browser.
+- New menu icon `AOS_ICON_PIXEL`; the English pack embedded in the firmware
+  regenerated (and two alarm strings that had lost their translation put back).
+- The other 21 apps are untouched: no symbol was added to the table and
+  `AOS_ABI_VERSION` stays at 2, so their `.so` files are the v0.3.0 ones.
+
 ## v0.3.0 — 2026-09-09
 
 The portal grows from a file manager into the place to drive and test the

@@ -30,7 +30,7 @@ components/
   aos_fonts/             Montserrat with the Latin-1 supplement
   elf_loader/            Espressif's ELF loader (Apache-2.0, vendored)
 
-apps/                    21 dynamic apps, one directory each
+apps/                    22 dynamic apps, one directory each
 tools/                   generators, test benches and board utilities
 ```
 
