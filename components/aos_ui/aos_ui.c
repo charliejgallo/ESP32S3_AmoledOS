@@ -1264,16 +1264,55 @@ static void counting_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
         s_touch_presses++;
 
         if (!s_cal_raw) {
-            float x = s_cal_ax * (float)data->point.x + s_cal_bx;
-            float y = s_cal_ay * (float)data->point.y + s_cal_by;
-            if (x < 0) x = 0;
-            if (y < 0) y = 0;
-            if (x > AOS_SCREEN_W - 1) x = AOS_SCREEN_W - 1;
-            if (y > AOS_SCREEN_H - 1) y = AOS_SCREEN_H - 1;
-            data->point.x = (int32_t)(x + 0.5f);
-            data->point.y = (int32_t)(y + 0.5f);
+            aos_ui_touch_map(data->point.x, data->point.y,
+                             &data->point.x, &data->point.y);
         }
     }
+}
+
+/* Measured on the board on 2026-09-11 with the raw view: the CST820 never
+ * reports below 1 nor above 447 (Y) / 367 (X), and it reaches those values
+ * with the finger still well inside the glass. */
+#define AOS_TOUCH_RAW_MIN    1
+#define AOS_TOUCH_RAW_X_MAX  367
+#define AOS_TOUCH_RAW_Y_MAX  447
+
+/* The stored fit applied to a raw point, and what to make of a SATURATED one.
+ *
+ * Measured with the raw view on 2026-09-11 (calibration a=0.81, b=29 in Y;
+ * a=0.83, b=30 in X): the digitiser keeps detecting the finger in the dead
+ * bands -it just pins that axis at its limit- and the OTHER axis stays valid.
+ * A finger anywhere in the bottom 58 px reads raw y = 447 with a perfectly
+ * good x. The plain fit sent that finger to the band's inner edge (y = 390),
+ * on top of whatever control lives there; sending it to the MIDDLE of the
+ * band instead means a control drawn inside the band gets it, and the row
+ * above is left alone. What is lost is only where inside the band the finger
+ * is, which a band 30-58 px tall cannot hold more than one row of anyway.
+ *
+ * With the identity fit (simulator, or an uncalibrated board) there is no
+ * band and nothing here changes a coordinate. */
+void aos_ui_touch_map(int32_t rx, int32_t ry, int32_t *sx, int32_t *sy)
+{
+    float x = s_cal_ax * (float)rx + s_cal_bx;
+    float y = s_cal_ay * (float)ry + s_cal_by;
+
+    if (rx <= AOS_TOUCH_RAW_MIN && s_cal_bx > 1.0f) {
+        x = s_cal_bx * 0.5f;                            /* left band   */
+    } else if (rx >= AOS_TOUCH_RAW_X_MAX && x < AOS_SCREEN_W - 2) {
+        x = (x + (float)(AOS_SCREEN_W - 1)) * 0.5f;     /* right band  */
+    }
+    if (ry <= AOS_TOUCH_RAW_MIN && s_cal_by > 1.0f) {
+        y = s_cal_by * 0.5f;                            /* top band    */
+    } else if (ry >= AOS_TOUCH_RAW_Y_MAX && y < AOS_SCREEN_H - 2) {
+        y = (y + (float)(AOS_SCREEN_H - 1)) * 0.5f;     /* bottom band */
+    }
+
+    if (x < 0) x = 0;
+    if (y < 0) y = 0;
+    if (x > AOS_SCREEN_W - 1) x = AOS_SCREEN_W - 1;
+    if (y > AOS_SCREEN_H - 1) y = AOS_SCREEN_H - 1;
+    *sx = (int32_t)(x + 0.5f);
+    *sy = (int32_t)(y + 0.5f);
 }
 
 void aos_ui_touch_stats(uint32_t *reads, uint32_t *presses)

@@ -157,6 +157,8 @@ bool aos_ui_touch_calibration_get(float *ax, float *bx, float *ay, float *by);
 /* Switches the swipe navigation off while a measuring screen needs whole
  * strokes (raw view, calibration). Always pair with a false. */
 void aos_ui_block_gestures(bool block);
+/* The fit applied to a raw point, dead bands included (see aos_ui.c). */
+void aos_ui_touch_map(int32_t rx, int32_t ry, int32_t *sx, int32_t *sy);
 void aos_ui_touch_raw(bool raw);    /* true = uncorrected, for calibrating */
 
 

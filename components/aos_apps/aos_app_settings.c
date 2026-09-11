@@ -697,14 +697,8 @@ static void raw_refresh(int32_t x, int32_t y)
      * off in the wrapper: the dot is where a normal touch would land. While
      * it sits under the finger the fit is right there; where it stops
      * following the finger, the window has ended. */
-    float ax, bx, ay, by;
-    aos_ui_touch_calibration_get(&ax, &bx, &ay, &by);
-    int32_t fx = (int32_t)(ax * (float)x + bx + 0.5f);
-    int32_t fy = (int32_t)(ay * (float)y + by + 0.5f);
-    if (fx < 0) fx = 0;
-    if (fy < 0) fy = 0;
-    if (fx > AOS_SCREEN_W - 1) fx = AOS_SCREEN_W - 1;
-    if (fy > AOS_SCREEN_H - 1) fy = AOS_SCREEN_H - 1;
+    int32_t fx, fy;
+    aos_ui_touch_map(x, y, &fx, &fy);
     if (s_set.raw_dot) {
         lv_obj_set_pos(s_set.raw_dot, fx - 7, fy - 7);
     }
