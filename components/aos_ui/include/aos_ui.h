@@ -154,6 +154,9 @@ void aos_ui_touch_calibration_save(float ax, float bx, float ay, float by);
 void aos_ui_touch_calibration_reset(void);
 /* Current fit; true when it is not the identity (i.e. the panel IS calibrated). */
 bool aos_ui_touch_calibration_get(float *ax, float *bx, float *ay, float *by);
+/* Switches the swipe navigation off while a measuring screen needs whole
+ * strokes (raw view, calibration). Always pair with a false. */
+void aos_ui_block_gestures(bool block);
 void aos_ui_touch_raw(bool raw);    /* true = uncorrected, for calibrating */
 
 

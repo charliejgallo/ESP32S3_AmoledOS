@@ -44,6 +44,7 @@ typedef struct {
     int32_t   cal_rx[5], cal_ry[5];
     lv_obj_t *raw_box;          /* raw touch view: what the digitiser reports  */
     lv_obj_t *raw_label;
+    lv_obj_t *raw_dot;          /* where the stored fit puts the raw point     */
     int32_t   raw_xmin, raw_xmax, raw_ymin, raw_ymax;
     uint32_t  raw_n;
     lv_obj_t *r_day, *r_mon, *r_year, *r_hour, *r_min;
@@ -510,6 +511,7 @@ static void cal_dibujar_objetivo(void);
 static void cal_cerrar(void)
 {
     aos_ui_touch_raw(false);
+    aos_ui_block_gestures(false);
     if (s_set.cal_box) {
         lv_obj_delete(s_set.cal_box);
         s_set.cal_box = NULL;
@@ -656,6 +658,7 @@ static void cal_cb(lv_event_t *event)
      * calibration it had. Wiping it here is what used to leave the panel
      * uncalibrated, and misplaced by 55 px, after an interrupted attempt. */
     aos_ui_touch_raw(true);
+    aos_ui_block_gestures(true);    /* a tap that slides must not be "back" */
 
     lv_obj_t *box = lv_obj_create(lv_layer_top());
     s_set.cal_box = box;
@@ -690,9 +693,24 @@ static void raw_refresh(int32_t x, int32_t y)
         lv_label_set_text(s_set.raw_label, _("Recorré todo el vidrio con el dedo"));
         return;
     }
+    /* The stored fit, applied here by hand because raw mode has switched it
+     * off in the wrapper: the dot is where a normal touch would land. While
+     * it sits under the finger the fit is right there; where it stops
+     * following the finger, the window has ended. */
+    float ax, bx, ay, by;
+    aos_ui_touch_calibration_get(&ax, &bx, &ay, &by);
+    int32_t fx = (int32_t)(ax * (float)x + bx + 0.5f);
+    int32_t fy = (int32_t)(ay * (float)y + by + 0.5f);
+    if (fx < 0) fx = 0;
+    if (fy < 0) fy = 0;
+    if (fx > AOS_SCREEN_W - 1) fx = AOS_SCREEN_W - 1;
+    if (fy > AOS_SCREEN_H - 1) fy = AOS_SCREEN_H - 1;
+    if (s_set.raw_dot) {
+        lv_obj_set_pos(s_set.raw_dot, fx - 7, fy - 7);
+    }
     lv_label_set_text_fmt(s_set.raw_label,
-                          _("crudo %d,%d\nx %d..%d\ny %d..%d\n%u lecturas"),
-                          (int)x, (int)y,
+                          _("crudo %d,%d  ->  %d,%d\nx %d..%d\ny %d..%d\n%u lecturas"),
+                          (int)x, (int)y, (int)fx, (int)fy,
                           (int)s_set.raw_xmin, (int)s_set.raw_xmax,
                           (int)s_set.raw_ymin, (int)s_set.raw_ymax,
                           (unsigned)s_set.raw_n);
@@ -704,6 +722,7 @@ static void raw_close(void)
         return;
     }
     aos_ui_touch_raw(false);
+    aos_ui_block_gestures(false);
     if (s_set.raw_n) {
         aos_hal_log("touch", "raw sweep: x %d..%d  y %d..%d  (%u samples)",
                     (int)s_set.raw_xmin, (int)s_set.raw_xmax,
@@ -713,6 +732,7 @@ static void raw_close(void)
     lv_obj_delete(s_set.raw_box);
     s_set.raw_box   = NULL;
     s_set.raw_label = NULL;
+    s_set.raw_dot   = NULL;
 }
 
 static void raw_close_cb(lv_event_t *event)
@@ -747,6 +767,7 @@ static void raw_cb(lv_event_t *event)
     }
     s_set.raw_n = 0;
     aos_ui_touch_raw(true);
+    aos_ui_block_gestures(true);    /* the sweep IS a long drag: no "back" */
 
     lv_obj_t *box = lv_obj_create(lv_layer_top());
     s_set.raw_box = box;
@@ -768,6 +789,40 @@ static void raw_cb(lv_event_t *event)
     lv_obj_set_style_border_width(frame, 2, 0);
     lv_obj_set_style_border_color(frame, AOS_C_ACCENT, 0);
     aos_make_decorative(frame);
+
+    /* A ruler: one mark every 50 px down the left edge and along the top, so
+     * "the number stopped moving at the 400 mark" can be said with the eyes
+     * and turned into a pixel. */
+    for (int32_t y = 50; y < AOS_SCREEN_H; y += 50) {
+        char t[8];
+        snprintf(t, sizeof(t), "%d", (int)y);
+        lv_obj_t *tick = aos_label(box, t, aos_font_small, AOS_C_DIM);
+        lv_obj_set_pos(tick, 6, y - 8);
+        aos_make_decorative(tick);
+        lv_obj_t *mark = lv_obj_create(box);
+        lv_obj_remove_style_all(mark);
+        lv_obj_set_size(mark, 14, 1);
+        lv_obj_set_pos(mark, AOS_SCREEN_W - 14, y);
+        lv_obj_set_style_bg_color(mark, AOS_C_DIM, 0);
+        lv_obj_set_style_bg_opa(mark, LV_OPA_COVER, 0);
+        aos_make_decorative(mark);
+    }
+    for (int32_t x = 50; x < AOS_SCREEN_W; x += 50) {
+        char t[8];
+        snprintf(t, sizeof(t), "%d", (int)x);
+        lv_obj_t *tick = aos_label(box, t, aos_font_small, AOS_C_DIM);
+        lv_obj_set_pos(tick, x - 10, AOS_SCREEN_H - 22);
+        aos_make_decorative(tick);
+    }
+
+    s_set.raw_dot = lv_obj_create(box);
+    lv_obj_remove_style_all(s_set.raw_dot);
+    lv_obj_set_size(s_set.raw_dot, 14, 14);
+    lv_obj_set_style_radius(s_set.raw_dot, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(s_set.raw_dot, AOS_C_ACCENT, 0);
+    lv_obj_set_style_bg_opa(s_set.raw_dot, LV_OPA_COVER, 0);
+    lv_obj_set_pos(s_set.raw_dot, AOS_SCREEN_W / 2 - 7, AOS_SCREEN_H / 2 - 7);
+    aos_make_decorative(s_set.raw_dot);
 
     s_set.raw_label = aos_label(box, "", aos_font_small, AOS_C_TEXT);
     lv_obj_set_style_text_align(s_set.raw_label, LV_TEXT_ALIGN_CENTER, 0);

@@ -1092,9 +1092,24 @@ static void handle_gesture(lv_dir_t dir)
     }
 }
 
+/* A screen that needs the whole stroke -the raw touch view, the calibration
+ * crosses- switches the gesture handler off while it is up. Without this,
+ * LVGL declares a gesture after 30 px of drag, the handler below waits for
+ * the release (so the screen stops receiving the finger) and a stroke to the
+ * right is "back", which closes the very screen doing the measuring. */
+static bool s_gesture_block;
+
+void aos_ui_block_gestures(bool block)
+{
+    s_gesture_block = block;
+}
+
 static void gesture_cb(lv_event_t *event)
 {
     (void)event;
+    if (s_gesture_block) {
+        return;
+    }
     lv_indev_t *indev = lv_indev_active();
     lv_dir_t dir = lv_indev_get_gesture_dir(indev);
 
