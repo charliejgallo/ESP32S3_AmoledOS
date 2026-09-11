@@ -39,12 +39,14 @@
 #define TICK_MS     100
 
 /* Vertical layout of the 418 px left under the status bar. */
-#define TITLE_Y     6
+/* 2026-09-11: the panel reports nothing above y = 55 (AOS_TOUCH_Y_MIN), so
+ * everything touchable starts at 56 and the rows above are for text. */
+#define TITLE_Y     24
 /* 36 and not 30: aos_font_title has a 35 px line height and the box was
  * clipping the descender of the page's title. */
 #define TITLE_H     36
-#define BODY_Y      40
-#define BODY_H      324
+#define BODY_Y      58
+#define BODY_H      306
 #define DOTS_Y      372
 #define STATUS_Y    392
 

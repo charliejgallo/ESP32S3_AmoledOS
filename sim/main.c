@@ -810,6 +810,27 @@ static void audit_obj(lv_obj_t *obj, const char *tag)
                        (long)centro, (long)vivos);
             }
         }
+
+        /* And the TOP, measured on 2026-09-11 (AOS_TOUCH_Y_MIN): the panel
+         * reports nothing above y = 55. Bars of buttons at y = 8..48 had
+         * "worked" for weeks only because an uncalibrated panel reported the
+         * touch 50 px too high; once calibrated, every one of them was dead.
+         * Same rule mirrored: what has almost nothing left below the line is
+         * broken, a wide object that merely crosses it is HIGHEDGE. */
+        int32_t vivos_top = a.y2 - AOS_TOUCH_Y_MIN + 1;
+        if (!scrollea && a.y1 < AOS_TOUCH_Y_MIN) {
+            if (vivos_top < 20) {
+                printf("AUDIT UNTOUCHABLE %s | %s | y %ld..%ld (centre %ld, %ld px live) | %s\n",
+                       tag, audit_nombre(obj), (long)a.y1, (long)a.y2,
+                       (long)centro, (long)vivos_top,
+                       vivos_top <= 0 ? "DEAD, above the touch panel" : "only a few px left at the top");
+                s_audit_hits++;
+            } else if (centro < AOS_TOUCH_Y_MIN && vivos_top < 40) {
+                printf("AUDIT HIGHEDGE %s | %s | y %ld..%ld (centre %ld, %ld px live)\n",
+                       tag, audit_nombre(obj), (long)a.y1, (long)a.y2,
+                       (long)centro, (long)vivos_top);
+            }
+        }
     }
 
     if (lv_obj_check_type(obj, &lv_label_class)) {

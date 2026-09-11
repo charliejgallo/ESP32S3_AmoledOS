@@ -1245,8 +1245,11 @@ static void *cjump_create(aos_app_t *self, lv_obj_t *root)
      * pause button. */
     a->touch = lv_obj_create(root);
     lv_obj_remove_style_all(a->touch);
-    lv_obj_set_size(a->touch, AOS_SCREEN_W, AOS_SCREEN_H - CJ_HUD_H * CJ_SCALE);
-    lv_obj_set_pos(a->touch, 0, CJ_HUD_H * CJ_SCALE);
+    /* The pause strip reaches down to y = 96, past the score: the panel
+     * reports nothing above y = 55 (AOS_TOUCH_Y_MIN), so the score alone
+     * (0..36) could never be tapped. The critter only reads x. */
+    lv_obj_set_size(a->touch, AOS_SCREEN_W, AOS_SCREEN_H - 96);
+    lv_obj_set_pos(a->touch, 0, 96);
     lv_obj_add_flag(a->touch, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_remove_flag(a->touch, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_event_cb(a->touch, touch_event, LV_EVENT_PRESSED, a);
@@ -1256,7 +1259,7 @@ static void *cjump_create(aos_app_t *self, lv_obj_t *root)
 
     a->hudbtn = lv_obj_create(root);
     lv_obj_remove_style_all(a->hudbtn);
-    lv_obj_set_size(a->hudbtn, AOS_SCREEN_W, CJ_HUD_H * CJ_SCALE);
+    lv_obj_set_size(a->hudbtn, AOS_SCREEN_W, 96);
     lv_obj_set_pos(a->hudbtn, 0, 0);
     lv_obj_add_flag(a->hudbtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_remove_flag(a->hudbtn, LV_OBJ_FLAG_SCROLLABLE);

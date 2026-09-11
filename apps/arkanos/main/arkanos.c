@@ -868,8 +868,11 @@ static void *arkanos_create(aos_app_t *self, lv_obj_t *root)
      * pause button. */
     a->touch = lv_obj_create(root);
     lv_obj_remove_style_all(a->touch);
-    lv_obj_set_size(a->touch, AOS_SCREEN_W, AOS_SCREEN_H - AK_HUD_H * AK_SCALE);
-    lv_obj_set_pos(a->touch, 0, AK_HUD_H * AK_SCALE);
+    /* The pause strip is the HUD plus the top of the field, down to y = 96:
+     * the panel reports nothing above y = 55 (AOS_TOUCH_Y_MIN) and the HUD
+     * alone (0..28) can never be touched. The paddle only reads x. */
+    lv_obj_set_size(a->touch, AOS_SCREEN_W, AOS_SCREEN_H - 96);
+    lv_obj_set_pos(a->touch, 0, 96);
     lv_obj_add_flag(a->touch, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_remove_flag(a->touch, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_event_cb(a->touch, touch_event, LV_EVENT_PRESSED, a);
@@ -880,7 +883,7 @@ static void *arkanos_create(aos_app_t *self, lv_obj_t *root)
 
     a->pausebtn = lv_obj_create(root);
     lv_obj_remove_style_all(a->pausebtn);
-    lv_obj_set_size(a->pausebtn, AOS_SCREEN_W, AK_HUD_H * AK_SCALE);
+    lv_obj_set_size(a->pausebtn, AOS_SCREEN_W, 96);
     lv_obj_set_pos(a->pausebtn, 0, 0);
     lv_obj_add_flag(a->pausebtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_remove_flag(a->pausebtn, LV_OBJ_FLAG_SCROLLABLE);

@@ -47,7 +47,7 @@
  * at the bottom are the bar. The maze is 15x15 cells of 12 px plus the outside
  * wall: 182x182, centred with 1 px on each side. */
 #define LW          184
-#define LH          192
+#define LH          180                 /* 192 until the bar's chips had to go below y = 56 (AOS_TOUCH_Y_MIN) */
 #define SCALE       2
 #define DW          (LW * SCALE)
 #define DH          (LH * SCALE)
@@ -70,7 +70,7 @@
 #define CANVAS_Y    BAR_H
 
 #define MW          15
-#define MH          15
+#define MH          14
 #define CELL        12
 #define WT          2                   /* wall thickness */
 #define OX          ((LW - (MW * CELL + WT)) / 2)
@@ -812,8 +812,8 @@ static lv_obj_t *bar_button(lv_obj_t *parent, const char *text, int32_t x,
 {
     lv_obj_t *btn = lv_obj_create(parent);
     lv_obj_remove_style_all(btn);
-    lv_obj_set_size(btn, w, 34);
-    lv_obj_set_pos(btn, x, 26);
+    lv_obj_set_size(btn, w, 32);
+    lv_obj_set_pos(btn, x, AOS_TOUCH_Y_MIN);
     lv_obj_set_style_radius(btn, 12, 0);
     lv_obj_set_style_bg_color(btn, color, 0);
     lv_obj_set_style_bg_opa(btn, LV_OPA_COVER, 0);

@@ -121,9 +121,9 @@ AOS_SIM_AUDIT=<label> ./build/amoledos_sim  # only the problems, one per line
 ```
 
 The audit reports four things: text clipped inside its own box, text off the
-368x448 screen, text overflowing its container, and **clickable objects below
-the touch ceiling** — the last one being invisible in the simulator, where the
-mouse reaches everywhere.
+368x448 screen, text overflowing its container, and **clickable objects outside
+the touch window** (above y = 56 or below y = 390) — the last one being
+invisible in the simulator, where the mouse reaches everywhere.
 
 A control that sits low but still leaves a usable strip is listed separately,
 as `LOWEDGE`, and does **not** count as a problem. Several of them are in

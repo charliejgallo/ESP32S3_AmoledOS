@@ -257,6 +257,10 @@ static void build_main(lv_obj_t *parent)
     lv_obj_set_scrollbar_mode(ctx->main_view, LV_SCROLLBAR_MODE_OFF);
 
     /* --- header: city + the two buttons --- */
+    /* 22 px of air first: the head's button has to start at y >= 56 of the
+     * screen (AOS_TOUCH_Y_MIN), and the view begins under a 32 px status bar. */
+    lv_obj_set_style_pad_top(ctx->main_view, 22, 0);
+
     lv_obj_t *head = lv_obj_create(ctx->main_view);
     lv_obj_set_size(head, PAGE_W, 40);
     lv_obj_set_style_bg_opa(head, LV_OPA_TRANSP, 0);
@@ -907,7 +911,7 @@ static void build_search(lv_obj_t *parent)
     lv_textarea_set_one_line(ctx->input, true);
     lv_textarea_set_placeholder_text(ctx->input, _("Ciudad"));
     lv_obj_set_size(ctx->input, PAGE_W - 24, 40);
-    lv_obj_align(ctx->input, LV_ALIGN_TOP_MID, 0, 6);
+    lv_obj_align(ctx->input, LV_ALIGN_TOP_MID, 0, 26);
     lv_obj_set_style_bg_color(ctx->input, AOS_C_CARD, 0);
     lv_obj_set_style_border_width(ctx->input, 0, 0);
     lv_obj_set_style_radius(ctx->input, 12, 0);
@@ -918,11 +922,11 @@ static void build_search(lv_obj_t *parent)
 
     ctx->result_hint = aos_label(ctx->search_view, _("Buscar una ciudad"),
                                  aos_font_small, AOS_C_DIM);
-    lv_obj_align(ctx->result_hint, LV_ALIGN_TOP_MID, 0, 52);
+    lv_obj_align(ctx->result_hint, LV_ALIGN_TOP_MID, 0, 72);
 
     ctx->result_box = lv_obj_create(ctx->search_view);
     lv_obj_set_size(ctx->result_box, PAGE_W - 24, 138);
-    lv_obj_align(ctx->result_box, LV_ALIGN_TOP_MID, 0, 72);
+    lv_obj_align(ctx->result_box, LV_ALIGN_TOP_MID, 0, 92);
     lv_obj_set_style_bg_opa(ctx->result_box, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(ctx->result_box, 0, 0);
     lv_obj_set_style_pad_all(ctx->result_box, 0, 0);

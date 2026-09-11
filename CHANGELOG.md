@@ -3,6 +3,30 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.3.2 — 2026-09-11
+
+### Every control below the touch floor
+
+The digitiser reports nothing above y = 55 (see v0.3.1), and once the panel
+is calibrated a button drawn in the first rows is dead. It had gone unnoticed
+because an uncalibrated panel reported those touches 50 px too high — the
+bars "worked" by accident, and the recalibration after the NVS wipe of
+v0.3.0 took that away. Measured with nine taps on Buscaminas's bar: all
+`y = 55`.
+
+- The layout audit now checks the top the way it checks the bottom:
+  `UNTOUCHABLE` for a control with almost nothing left below y = 56,
+  `HIGHEDGE` for a wide one that merely crosses it. It found eleven screens.
+- Moved: the bars of **Buscaminas** (board 288 px), **Vida** (grid at x3,
+  276 px), **Laberinto** (one row fewer, 14x15) and **Conversor** (family
+  button, rows and keypad compressed); the tabs of the **Afinador** and the
+  pages of **Remoto**; the header of the **Calendario** (rows 42 px); the
+  head of **Clima**; the pause strips of **Arkanos** and **Claude Jump**
+  (down to y = 84, the paddle and the critter only read x); Claudito's
+  name-hold (to the top of the stage) and its action buttons (32 px taller,
+  upwards — the bar left 11 px to touch).
+- The other apps were already clean, Pixel Art included.
+
 ## v0.3.1 — 2026-09-11
 
 ### Pixel Art

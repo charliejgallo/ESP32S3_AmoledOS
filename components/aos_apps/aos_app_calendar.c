@@ -39,14 +39,16 @@
  * 7 columns of 48 px is 336, centred that leaves 16 of margin. 6 rows of 46
  * always cover the longest month starting on a Sunday. */
 #define COL_W       48
-#define ROW_H       46
+#define ROW_H       42                  /* 46 until the header moved below y = 56 */
 #define GRID_X      ((AOS_SCREEN_W - 7 * COL_W) / 2)
-#define GRID_Y      74
+#define GRID_Y      98
 #define CELL_W      44                  /* the touchable cell, with air around it */
-#define CELL_H      40
-#define HEADER_Y    2
+#define CELL_H      38
+/* 2026-09-11: the panel reports nothing above y = 55 (AOS_TOUCH_Y_MIN), so
+ * everything touchable starts at 56 and the rows above are for text. */
+#define HEADER_Y    26
 #define HEADER_H    46
-#define WEEK_Y      50
+#define WEEK_Y      74
 #define FOOTER_Y    356
 #define FOOTER_H    30
 
