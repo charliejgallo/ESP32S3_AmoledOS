@@ -7,9 +7,9 @@ a looping GIF. A single frame goes out as a PNG. The same files open in the
 web portal (`/pixel`), where they are drawn with a mouse and saved back; the
 watch notices the change and reloads.
 
-| | |
-|---|---|
-| ![](../../docs/img/app-pixel-gallery.png) | ![](../../docs/img/app-pixel.png) |
+| | | |
+|---|---|---|
+| ![](../../docs/img/app-pixel-gallery.png) | ![](../../docs/img/app-pixel.png) | ![](../../docs/img/pixel-kitten.gif)<br>the kitten, as the app exports it |
 
 ## The samples
 
@@ -125,6 +125,7 @@ PX_NEW=1     opens the size chooser
 cd sim && AOS_SIM_VIEW=aos.pixel PX_DEMO=1 PX_SLOT=2 ./build/amoledos_sim
 python3 tools/portal_dev_server.py      # then http://localhost:8088/pixel
 cc -O1 -Wall -Iapps/pixel/main apps/pixel/tools/px_harness.c apps/pixel/main/px_file.c apps/pixel/main/px_export.c -o /tmp/px_harness && /tmp/px_harness /tmp/px
+cc -O1 -Iapps/pixel/main apps/pixel/tools/px_convert.c apps/pixel/main/px_file.c apps/pixel/main/px_export.c -o /tmp/px_convert && /tmp/px_convert lienzo1.pix kitten.gif 12   # a .pix to GIF/PNG on the Mac
 ```
 
 Mind the simulator's opening animation when scripting taps: the app slides
