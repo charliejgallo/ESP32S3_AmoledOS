@@ -114,7 +114,11 @@ the board it would have been an unexplained restart.
 the touch meant for the container underneath it. `aos_unclickable()` strips the
 flag from an object and all its children.
 
-**Nothing clickable may end below y = 390.** See [HARDWARE.md](HARDWARE.md).
+**A touch can land anywhere between y = 24 and y = 410** (x 16..352); between
+y = 56 and 390 precision is the calibration's own, outside it a finger against
+the rim lands exactly on row 24 or 410, so a control that must be reachable
+from the very edge contains that row. The layout audit checks it. See
+[HARDWARE.md](HARDWARE.md).
 In the simulator the mouse reaches everywhere, so this is invisible there;
 `tools/audit_layout.sh` checks it.
 

@@ -67,9 +67,10 @@ app: six taps on a bar of buttons at y = 8..48 all arrived as y = 55, whatever
 the finger did, so the digitiser clamps there too. The usable touch window is
 **55..395** — 340 of the 448 rows. Anything that has to be touched goes at
 y >= `AOS_TOUCH_Y_MIN` (56); the first rows, like the last, are for text.
-The bars that older apps had at y = 8 all moved below in v0.3.2, and the
-layout audit (`tools/audit_layout.sh`) now flags anything touchable above
-the line, the way it did for the bottom.
+The bars that older apps had at y = 8 moved below in v0.3.2 and came back in
+v0.3.3, when the raw view showed where the limit really was (next section);
+the layout audit (`tools/audit_layout.sh`) measures reach against the landing
+rows of that section.
 
 **Where the limit really lived, audited on the board (2026-09-11).** The
 whole path was read first: `esp_lcd_touch_cst816s` passes the 12-bit X/Y

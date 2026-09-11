@@ -3,7 +3,7 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased — touch audit (branch `touch-audit`)
+## v0.3.3 — 2026-09-11
 
 ### The touch window, audited end to end
 
