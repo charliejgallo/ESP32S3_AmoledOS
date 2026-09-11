@@ -60,10 +60,20 @@ palette so that a file with different colours still opens: the loader maps it
 onto ours by nearest colour. The portal page has the same reader and writer in
 JavaScript; the firmware never parses one, it only stores and serves bytes.
 
+## The layout, and the panel that decides it
+
+The digitiser of this board reports nothing above y = 55 nor below y = 395
+(both measured; see `AOS_TOUCH_Y_MIN` / `AOS_TOUCH_Y_MAX` in `aos_hal.h`).
+The first version put its bar of buttons at y = 8..48, which the simulator
+happily accepts, and on the watch every tap on it arrived as y = 55: the bar
+was dead. So everything touchable lives in 56..390: the bar at 56..92, the
+canvas at 96..336, the palette at 340..386; the two dead strips carry only
+what is read, the status line at the top.
+
 ## How it draws, and what it cost
 
-- **One canvas of 288x288 RGB565 shown 1:1**, 166 KB in PSRAM through
-  `malloc()`. Painting a cell writes that square into the buffer and calls
+- **One canvas of 240x240 RGB565 shown 1:1**, 115 KB in PSRAM through
+  `malloc()`; a cell is 15 px (16x16) or 30 px (8x8). Painting a cell writes that square into the buffer and calls
   `lv_obj_invalidate_area()` on it alone: LVGL blits a few hundred pixels. A
   frame change rewrites the buffer and invalidates once.
 - **Nothing is destroyed from an event callback.** Both screens are built at

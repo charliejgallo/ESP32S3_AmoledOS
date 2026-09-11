@@ -22,10 +22,10 @@
  *     Nothing is destroyed from inside an event callback, which is the rule
  *     this system enforces the hard way.
  *
- * Layout, dictated by the panel (see HARDWARE.md): nothing touchable below
- * y=390, the glass corners eat the first rows, so the bar is at y=8..48, the
- * canvas at 52..340, the palette strip at 344..386, and the dead strip at the
- * bottom carries the one line that is only read.
+ * Layout, dictated by the panel (see HARDWARE.md): the digitiser reports
+ * nothing above y=55 nor below y=395, so the bar is at y=56..92, the canvas
+ * at 96..336, the palette strip at 340..386, and the two dead strips carry
+ * the title and the status line, which are only read.
  */
 #include "aos_app.h"
 #include "aos_fonts.h"
@@ -45,13 +45,18 @@
 
 #define TAG             "pixel"
 
-#define CV_PX           288                 /* canvas side, px              */
-#define CV_X            40
-#define CV_Y            52
-#define BAR_Y           8
-#define BAR_H           40
-#define STRIP_Y         344
-#define STRIP_H         42
+/* The touch window of this panel is y = 55..395 (both measured, see
+ * AOS_TOUCH_Y_MIN / AOS_TOUCH_Y_MAX in aos_hal.h): 340 px for everything
+ * that has to be touched. The bar starts at 56, the canvas is 240 px so that
+ * a comfortable palette strip still fits above 390, and the top and bottom
+ * dead strips carry the title and the status line, which are only read. */
+#define CV_PX           240                 /* canvas side, px              */
+#define CV_X            64
+#define CV_Y            96
+#define BAR_Y           56
+#define BAR_H           36
+#define STRIP_Y         340
+#define STRIP_H         46
 #define SWATCH          40
 #define INFO_Y          400                 /* the dead strip: text only    */
 
@@ -536,12 +541,12 @@ static void build_gallery(app_t *a, lv_obj_t *root)
 
     bar_button(a->gal, LV_SYMBOL_LEFT, 14, 44, AOS_C_CARD2, gal_back_cb, a, NULL);
     lv_obj_t *title = aos_label(a->gal, "Pixel Art", aos_font_title, AOS_C_TEXT);
-    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 12);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 12);      /* dead strip: text only */
 
     for (int i = 0; i < PX_SLOTS; i++) {
         int col = i % 4, row = i / 4;
         int32_t x = TH_X0 + col * (TH_BOX + TH_GAP);
-        int32_t y = 68 + row * (TH_BOX + 40);
+        int32_t y = 104 + row * (TH_BOX + 40);
 
         /* The canvas is the slot: clickable itself, border and badge painted
          * inside its buffer. */
@@ -567,7 +572,7 @@ static void build_gallery(app_t *a, lv_obj_t *root)
     lv_obj_set_width(hint, AOS_SCREEN_W - 40);
     lv_label_set_long_mode(hint, LV_LABEL_LONG_MODE_WRAP);
     lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(hint, LV_ALIGN_TOP_MID, 0, 326);
+    lv_obj_align(hint, LV_ALIGN_TOP_MID, 0, 344);
     lv_obj_remove_flag(hint, LV_OBJ_FLAG_CLICKABLE);
 
     a->gal_info = aos_label_boxed(a->gal, "", aos_font_small, AOS_C_DIM, AOS_SCREEN_W, 20);
@@ -575,7 +580,7 @@ static void build_gallery(app_t *a, lv_obj_t *root)
     lv_obj_remove_flag(a->gal_info, LV_OBJ_FLAG_CLICKABLE);
 
     /* the "new document" overlay: which size */
-    a->sizer = card(root, 24, 96, 320, 236);
+    a->sizer = card(root, 24, 110, 320, 236);
     lv_obj_add_flag(a->sizer, LV_OBJ_FLAG_HIDDEN);
     lv_obj_t *t = aos_label(a->sizer, _("Nuevo lienzo"), aos_font_body, AOS_C_TEXT);
     lv_obj_align(t, LV_ALIGN_TOP_MID, 0, 16);
@@ -1046,7 +1051,7 @@ static void mi_del_doc_cb(lv_event_t *e)
 /* Twenty-one objects that exist only while the menu is on screen. */
 static void build_menu(app_t *a)
 {
-    a->menu = card(a->ed, 24, CV_Y, 320, 334);
+    a->menu = card(a->ed, 24, CV_Y, 320, 290);
     a->menu_del_req = false;
     lv_obj_add_flag(a->menu, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(a->menu, LV_OBJ_FLAG_SCROLLABLE);
@@ -1129,8 +1134,10 @@ static void build_editor(app_t *a, lv_obj_t *root)
     lv_obj_add_event_cb(a->pal, swatch_cb, LV_EVENT_CLICKED, a);
     draw_palette(a);
 
+    /* the status line goes in the TOP dead strip: read only, and the bar
+     * below it is where the fingers are */
     a->info = aos_label_boxed(a->ed, "", aos_font_small, AOS_C_DIM, AOS_SCREEN_W, 20);
-    lv_obj_set_pos(a->info, 0, INFO_Y);
+    lv_obj_set_pos(a->info, 0, 18);
     lv_obj_remove_flag(a->info, LV_OBJ_FLAG_CLICKABLE);
 
 }

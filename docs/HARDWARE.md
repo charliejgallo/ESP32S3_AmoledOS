@@ -62,6 +62,14 @@ frees up live pixels higher up. Several apps do exactly that.
 
 See `AOS_TOUCH_Y_MAX` in [`components/aos_hal/include/aos_hal.h`](../components/aos_hal/include/aos_hal.h).
 
+**The top has the same limit.** Measured on 2026-09-11 with the Pixel Art
+app: six taps on a bar of buttons at y = 8..48 all arrived as y = 55, whatever
+the finger did, so the digitiser clamps there too. The usable touch window is
+**55..395** — 340 of the 448 rows. Anything that has to be touched goes at
+y >= `AOS_TOUCH_Y_MIN` (56); the first rows, like the last, are for text.
+Bars of buttons placed at y = 8 in older apps are worth re-checking on the
+board.
+
 ### The v2's touch chip falls asleep
 
 The v2 carries a **CST820** (ID `0xB7`), not the CST816S the BSP claims. It

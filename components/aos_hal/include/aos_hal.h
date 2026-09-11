@@ -86,6 +86,13 @@ extern "C" {
  * -------------------------------------------------------------------------- */
 #define AOS_TOUCH_Y_MAX     390     /* 395 measured, with 5 px of margin */
 
+/* And the top has the same problem, measured on 2026-09-11 with the Pixel
+ * Art app: six taps on a bar of buttons at y = 8..48 all came in as y = 55,
+ * whatever the finger did. The digitiser clamps there. So the usable touch
+ * window is 55..395, and anything that has to be touched goes at y >= 56.
+ * The first rows are for text -a title, a score- exactly like the last. */
+#define AOS_TOUCH_Y_MIN     56
+
 /* -------------------------------------------------------------------------- */
 /* Battery / PMU (AXP2101)                                                     */
 /* -------------------------------------------------------------------------- */
