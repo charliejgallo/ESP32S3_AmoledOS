@@ -1143,14 +1143,34 @@ static lv_point_t s_press_point;
 /* -------------------------------------------------------------------------- */
 /* Touch calibration                                                           */
 /*                                                                             */
-/* The BSP shifts the panel's window by 16 px in X (bsp_display_set_x_gap) but
- * does NOT compensate the touch coordinates, and besides, each unit has its
- * own tolerance in how the glass was bonded. Rather than hard-coding a number,
- * a linear fit per axis is stored, measured by touching known points:
+/* Each unit has its own tolerance in how the glass was bonded, and the v2's
+ * digitiser has a geometry of its own (below). Rather than hard-coding a
+ * number, a linear fit per axis is stored, measured by touching known points:
  *
  *      screen = a * raw + b
  *
- * With a=1 and b=0 nothing is touched, which is the factory state.            */
+ * With a=1 and b=0 nothing is touched, which is the factory state.
+ *
+ * What the fit does NOT correct, and why (audited 2026-09-11, the whole path
+ * from the chip to LVGL read line by line):
+ *
+ *  - The BSP's 16 px X gap (bsp_display_set_x_gap) is an offset in the
+ *    CO5300's memory addressing: the panel driver adds it to CASET on every
+ *    flush, so framebuffer column 0 IS the leftmost visible column of the
+ *    glass. The touch reports positions on the glass and needs no
+ *    compensation for it. (An earlier comment here said the opposite.)
+ *  - esp_lcd_touch_cst816s reads the 12-bit X/Y as they come; esp_lcd_touch
+ *    has every mirror/swap flag off; the LVGL port multiplies by 1; this
+ *    wrapper clamps only to 0..447; LVGL's rotation is 0. Nothing downstream
+ *    of the chip clips or shifts a coordinate.
+ *  - The v2's CST820 reports raw 0 already ~55 px below the top edge and raw
+ *    447 ~53 px above the bottom one: its window is the central 340 rows,
+ *    stretched over 0..447 and saturated outside. Hence the fit lands near
+ *    a = 0.76, b = 55 in Y, and hence AOS_TOUCH_Y_MIN/MAX in aos_hal.h. A
+ *    saturated raw carries no information, so no fit -linear or not- can
+ *    bring the two bands back; what the fit chooses is only whether the
+ *    340 live rows land aligned (calibrated) or spread over the full height
+ *    and misplaced by up to 55 px (identity).                                */
 /* -------------------------------------------------------------------------- */
 
 static float s_cal_ax = 1.0f, s_cal_bx = 0.0f;
@@ -1165,6 +1185,26 @@ static void cal_load(void)
     if (aos_hal_pref_get_i32("cal_bx", &v)) s_cal_bx = (float)v / 100.0f;
     if (aos_hal_pref_get_i32("cal_ay", &v)) s_cal_ay = (float)v / 10000.0f;
     if (aos_hal_pref_get_i32("cal_by", &v)) s_cal_by = (float)v / 100.0f;
+
+    /* Logged at boot so the portal's log says whether the panel is calibrated
+     * at all: an identity fit is what a wiped or rejected calibration leaves
+     * behind, and from the outside it looks like every touch landing off. */
+    aos_hal_log("touch", "calibration loaded: x = %d/10000*raw + %d/100, "
+                         "y = %d/10000*raw + %d/100%s",
+                (int)(s_cal_ax * 10000), (int)(s_cal_bx * 100),
+                (int)(s_cal_ay * 10000), (int)(s_cal_by * 100),
+                aos_ui_touch_calibration_get(NULL, NULL, NULL, NULL)
+                    ? "" : " (identity: NOT calibrated)");
+}
+
+bool aos_ui_touch_calibration_get(float *ax, float *bx, float *ay, float *by)
+{
+    if (ax) *ax = s_cal_ax;
+    if (bx) *bx = s_cal_bx;
+    if (ay) *ay = s_cal_ay;
+    if (by) *by = s_cal_by;
+    return s_cal_ax != 1.0f || s_cal_bx != 0.0f ||
+           s_cal_ay != 1.0f || s_cal_by != 0.0f;
 }
 
 void aos_ui_touch_calibration_save(float ax, float bx, float ay, float by)

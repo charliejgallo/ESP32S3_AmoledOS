@@ -287,8 +287,11 @@ static const char blob_en__sistema_lang[] =
     "No se pudo ajustar\tCould not set it\n"
     "Fecha y hora\tDate and time\n"
     "Ene\\nFeb\\nMar\\nAbr\\nMay\\nJun\\nJul\\nAgo\\nSep\\nOct\\nNov\\nDic\tJan\\nFeb\\nMar\\nApr\\nMay\\nJun\\nJul\\nAug\\nSep\\nOct\\nNov\\nDec\n"
+    "Calibración descartada, repetila\tCalibration rejected, try again\n"
     "Tactil calibrado\tTouch calibrated\n"
     "Tocá el centro de la cruz\\n%d de %d\tTouch the centre of the cross\\n%d of %d\n"
+    "Recorré todo el vidrio con el dedo\tRun a finger over the whole glass\n"
+    "crudo %d,%d\\nx %d..%d\\ny %d..%d\\n%u lecturas\traw %d,%d\\nx %d..%d\\ny %d..%d\\n%u samples\n"
     "Telefono emparejado\tPhone paired\n"
     "Abri Ajustes -> Bluetooth en el telefono y elegi AmoledOS\tOpen Settings -> Bluetooth on the phone and pick AmoledOS\n"
     "Emparejar telefono\tPair phone\n"
@@ -355,6 +358,7 @@ static const char blob_en__sistema_lang[] =
     "Sincronizar hora\tSync time\n"
     "TACTIL\tTOUCH\n"
     "Calibrar\tCalibrate\n"
+    "Ver crudo\tRaw view\n"
     "SISTEMA\tSYSTEM\n"
     "Reiniciar\tRestart\n"
     "Iniciar\tStart\n"
@@ -699,7 +703,6 @@ static const char blob_en_aos_tuner_lang[] =
     "dB relativo hasta que lo calibres\trelative dB until you calibrate it\n"
     "TONO\tTONE\n"
     "escuchar y sonar no van juntos\tlistening and playing do not mix\n"
-    "borrar maximo\tclear peak\n"
     "sin memoria\tout of memory\n"
     "AFINAR\tTUNE\n"
     "RUIDO\tNOISE\n"
@@ -1694,8 +1697,11 @@ static const char blob_de__sistema_lang[] =
     "No se pudo ajustar\tKonnte nicht gestellt werden\n"
     "Fecha y hora\tDatum und Uhrzeit\n"
     "Ene\\nFeb\\nMar\\nAbr\\nMay\\nJun\\nJul\\nAgo\\nSep\\nOct\\nNov\\nDic\tJan\\nFeb\\nMär\\nApr\\nMai\\nJun\\nJul\\nAug\\nSep\\nOkt\\nNov\\nDez\n"
+    "Calibración descartada, repetila\tKalibrierung verworfen, bitte wiederholen\n"
     "Tactil calibrado\tTouch kalibriert\n"
     "Tocá el centro de la cruz\\n%d de %d\tMitte des Kreuzes antippen\\n%d von %d\n"
+    "Recorré todo el vidrio con el dedo\tMit dem Finger über das ganze Glas fahren\n"
+    "crudo %d,%d\\nx %d..%d\\ny %d..%d\\n%u lecturas\troh %d,%d\\nx %d..%d\\ny %d..%d\\n%u Messungen\n"
     "Telefono emparejado\tTelefon gekoppelt\n"
     "Abri Ajustes -> Bluetooth en el telefono y elegi AmoledOS\tÖffne Einstellungen -> Bluetooth am Telefon und wähle AmoledOS\n"
     "Emparejar telefono\tTelefon koppeln\n"
@@ -1762,6 +1768,7 @@ static const char blob_de__sistema_lang[] =
     "Sincronizar hora\tZeit abgleichen\n"
     "TACTIL\tTOUCH\n"
     "Calibrar\tKalibrieren\n"
+    "Ver crudo\tRohwerte\n"
     "SISTEMA\tSYSTEM\n"
     "Reiniciar\tNeustart\n"
     "Iniciar\tStart\n"
@@ -2106,7 +2113,6 @@ static const char blob_de_aos_tuner_lang[] =
     "dB relativo hasta que lo calibres\trelative dB bis zur Kalibrierung\n"
     "TONO\tTON\n"
     "escuchar y sonar no van juntos\tHören und Spielen geht nicht zugleich\n"
-    "borrar maximo\tSpitze löschen\n"
     "sin memoria\tkein Speicher\n"
     "AFINAR\tSTIMMEN\n"
     "RUIDO\tLÄRM\n"
@@ -2828,7 +2834,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 440, 21, files_en, 22 },
-    { "de", "Deutsch", 440, 21, files_de, 22 },
+    { "en", "English", 444, 21, files_en, 22 },
+    { "de", "Deutsch", 444, 21, files_de, 22 },
 };
 const int aos_lang_pack_count = 2;

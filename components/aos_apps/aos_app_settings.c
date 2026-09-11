@@ -42,6 +42,10 @@ typedef struct {
     lv_obj_t *cal_box;          /* touch calibration screen                    */
     int       cal_paso;
     int32_t   cal_rx[5], cal_ry[5];
+    lv_obj_t *raw_box;          /* raw touch view: what the digitiser reports  */
+    lv_obj_t *raw_label;
+    int32_t   raw_xmin, raw_xmax, raw_ymin, raw_ymax;
+    uint32_t  raw_n;
     lv_obj_t *r_day, *r_mon, *r_year, *r_hour, *r_min;
     lv_timer_t *timer;
 } settings_t;
@@ -474,22 +478,29 @@ static void clock_cb(lv_event_t *event)
 
 #define CAL_PUNTOS  5
 
-/* The bottom two are referred to AOS_TOUCH_Y_MAX and not to AOS_SCREEN_H.
+/* The four corner points are referred to AOS_TOUCH_Y_MIN / AOS_TOUCH_Y_MAX
+ * and not to the screen's edges.
  *
- * They were at AOS_SCREEN_H - 55 = 393, and the sensor dies at 395: the two
- * most important points of the fit fell EXACTLY on the last pixel the chip
- * knows how to report. Hitting them meant putting a finger right on the edge
- * of the sensitive area, so they were measured in the worst possible place and
- * on the verge of not being measured at all. Raising them to
+ * The bottom two were at AOS_SCREEN_H - 55 = 393, and the sensor dies at 395:
+ * the two most important points of the fit fell EXACTLY on the last pixel the
+ * chip knows how to report. Hitting them meant putting a finger right on the
+ * edge of the sensitive area, so they were measured in the worst possible
+ * place and on the verge of not being measured at all. Raising them to
  * AOS_TOUCH_Y_MAX - 40 puts them well inside the useful range and the fit
  * comes from points the sensor reads with room to spare.
  *
+ * The top two had the same problem and nobody saw it until 2026-09-11: they
+ * sat at y = 55, which is where the digitiser's raw Y reaches 0. A finger a
+ * few pixels above the cross reads exactly the same as one on it, so the fit
+ * was being anchored on a saturated value. They now sit at AOS_TOUCH_Y_MIN +
+ * 40, 40 px inside the window like their bottom counterparts.
+ *
  * And beware the opposite temptation, which was the first idea on discovering
- * the ceiling: LOWERING them so the calibration "covers" the bottom of the
+ * the ceiling: pushing them OUT so the calibration "covers" the edges of the
  * screen achieves nothing. There is nothing to cover -the chip does not report
  * there- and all you get is a point that cannot be touched and a worse fit. */
 static const lv_point_t CAL_OBJETIVO[CAL_PUNTOS] = {
-    { 55,  55 }, { AOS_SCREEN_W - 55,  55 },
+    { 55, AOS_TOUCH_Y_MIN + 40 }, { AOS_SCREEN_W - 55, AOS_TOUCH_Y_MIN + 40 },
     { 55, AOS_TOUCH_Y_MAX - 40 }, { AOS_SCREEN_W - 55, AOS_TOUCH_Y_MAX - 40 },
     { AOS_SCREEN_W / 2, AOS_SCREEN_H / 2 },
 };
@@ -505,8 +516,10 @@ static void cal_cerrar(void)
     }
 }
 
-/* screen = a * raw + b, by least squares over the CAL_PUNTOS pairs. */
-static void cal_ajustar(const int32_t *crudo, const int32_t *esperado,
+/* screen = a * raw + b, by least squares over the CAL_PUNTOS pairs.
+ * Returns false when the fit is not to be trusted; a and b still hold what
+ * came out, for the log. */
+static bool cal_ajustar(const int32_t *crudo, const int32_t *esperado,
                         float *a, float *b)
 {
     float sr = 0, se = 0, sre = 0, srr = 0;
@@ -517,16 +530,22 @@ static void cal_ajustar(const int32_t *crudo, const int32_t *esperado,
     float den = CAL_PUNTOS * srr - sr * sr;
     if (den > -0.001f && den < 0.001f) {     /* all the same: no data */
         *a = 1.0f; *b = 0.0f;
-        return;
+        return false;
     }
     *a = (CAL_PUNTOS * sre - sr * se) / den;
     *b = (se - *a * sr) / CAL_PUNTOS;
 
-    /* Safety net: if the fit comes out absurd, we do not apply it. A skewed
-     * touch panel is preferable to an unusable one. */
-    if (*a < 0.7f || *a > 1.4f) {
-        *a = 1.0f; *b = 0.0f;
+    /* Safety net: a fit this far from 1 is a mis-tap, not a panel. It used to
+     * be 0.7..1.4 and to fall back to the identity IN SILENCE, under a
+     * "Touch calibrated" toast: the v2's real Y factor is ~0.76 (a 340 px
+     * window stretched over 448), so a valid measurement sat 0.06 from being
+     * thrown away and replaced by a panel misplaced by 55 px, with nothing to
+     * tell the two apart. Now the caller keeps the previous calibration and
+     * says so; 0.5..2.0 still catches garbage. */
+    if (*a < 0.5f || *a > 2.0f) {
+        return false;
     }
+    return true;
 }
 
 static void cal_press_cb(lv_event_t *event)
@@ -549,12 +568,37 @@ static void cal_press_cb(lv_event_t *event)
         ex[i] = CAL_OBJETIVO[i].x;
         ey[i] = CAL_OBJETIVO[i].y;
     }
+    /* The five raw pairs go to the log: they ARE the measurement, and with
+     * the targets known they say where the digitiser's window is. */
+    aos_hal_log("touch", "calibration raw: (%d,%d) (%d,%d) (%d,%d) (%d,%d) (%d,%d) "
+                         "for targets (%d,%d) (%d,%d) (%d,%d) (%d,%d) (%d,%d)",
+                (int)s_set.cal_rx[0], (int)s_set.cal_ry[0],
+                (int)s_set.cal_rx[1], (int)s_set.cal_ry[1],
+                (int)s_set.cal_rx[2], (int)s_set.cal_ry[2],
+                (int)s_set.cal_rx[3], (int)s_set.cal_ry[3],
+                (int)s_set.cal_rx[4], (int)s_set.cal_ry[4],
+                (int)ex[0], (int)ey[0], (int)ex[1], (int)ey[1],
+                (int)ex[2], (int)ey[2], (int)ex[3], (int)ey[3],
+                (int)ex[4], (int)ey[4]);
+
     float ax, bx, ay, by;
-    cal_ajustar(s_set.cal_rx, ex, &ax, &bx);
-    cal_ajustar(s_set.cal_ry, ey, &ay, &by);
+    bool ok_x = cal_ajustar(s_set.cal_rx, ex, &ax, &bx);
+    bool ok_y = cal_ajustar(s_set.cal_ry, ey, &ay, &by);
+    cal_cerrar();
+
+    if (!ok_x || !ok_y) {
+        /* Nothing is saved: the previous calibration is still in place,
+         * because the measurement only switched the correction off (raw mode)
+         * and never wiped it. */
+        aos_hal_log("touch", "calibration REJECTED (x a=%d/10000 b=%d/100, "
+                             "y a=%d/10000 b=%d/100): the previous one stays",
+                    (int)(ax * 10000), (int)(bx * 100),
+                    (int)(ay * 10000), (int)(by * 100));
+        aos_ui_toast(_("Calibración descartada, repetila"), 2500);
+        return;
+    }
 
     aos_ui_touch_calibration_save(ax, bx, ay, by);
-    cal_cerrar();
     aos_ui_toast(_("Tactil calibrado"), 1800);
 }
 
@@ -605,8 +649,12 @@ static void cal_cb(lv_event_t *event)
     s_set.cal_paso = 0;
 
     /* Uncorrected while measuring: otherwise we would be calibrating on top of
-     * the previous correction and the error would accumulate on every pass. */
-    aos_ui_touch_calibration_reset();
+     * the previous correction and the error would accumulate on every pass.
+     * Raw mode alone does that -the wrapper skips the fit while it is on-, so
+     * the stored calibration is NOT wiped first: an attempt that is abandoned
+     * (physical button, reboot) or rejected leaves the watch with the
+     * calibration it had. Wiping it here is what used to leave the panel
+     * uncalibrated, and misplaced by 55 px, after an interrupted attempt. */
     aos_ui_touch_raw(true);
 
     lv_obj_t *box = lv_obj_create(lv_layer_top());
@@ -620,6 +668,117 @@ static void cal_cb(lv_event_t *event)
     lv_obj_add_event_cb(box, cal_press_cb, LV_EVENT_PRESSED, NULL);
 
     cal_dibujar_objetivo();
+}
+
+/* -------------------------------------------------------------------------- */
+/* Raw touch view                                                              */
+/*                                                                             */
+/* What the digitiser reports with no correction on top: the live raw point   */
+/* and the extremes seen since the screen opened. Run a finger around the      */
+/* whole glass, edge to edge, and the four extremes ARE the chip's window. On  */
+/* the v2 (CST820) the expectation is x 0..367 and y 0..447, with 0 and 447    */
+/* reached well INSIDE the glass, ~55 px from the top and bottom edges. The    */
+/* numbers are logged when the screen closes, so the portal's log keeps them.  */
+/* -------------------------------------------------------------------------- */
+
+static void raw_refresh(int32_t x, int32_t y)
+{
+    if (!s_set.raw_label) {
+        return;
+    }
+    if (s_set.raw_n == 0) {
+        lv_label_set_text(s_set.raw_label, _("Recorré todo el vidrio con el dedo"));
+        return;
+    }
+    lv_label_set_text_fmt(s_set.raw_label,
+                          _("crudo %d,%d\nx %d..%d\ny %d..%d\n%u lecturas"),
+                          (int)x, (int)y,
+                          (int)s_set.raw_xmin, (int)s_set.raw_xmax,
+                          (int)s_set.raw_ymin, (int)s_set.raw_ymax,
+                          (unsigned)s_set.raw_n);
+}
+
+static void raw_close(void)
+{
+    if (!s_set.raw_box) {
+        return;
+    }
+    aos_ui_touch_raw(false);
+    if (s_set.raw_n) {
+        aos_hal_log("touch", "raw sweep: x %d..%d  y %d..%d  (%u samples)",
+                    (int)s_set.raw_xmin, (int)s_set.raw_xmax,
+                    (int)s_set.raw_ymin, (int)s_set.raw_ymax,
+                    (unsigned)s_set.raw_n);
+    }
+    lv_obj_delete(s_set.raw_box);
+    s_set.raw_box   = NULL;
+    s_set.raw_label = NULL;
+}
+
+static void raw_close_cb(lv_event_t *event)
+{
+    (void)event;
+    raw_close();
+}
+
+static void raw_touch_cb(lv_event_t *event)
+{
+    (void)event;
+    lv_point_t p;
+    lv_indev_get_point(lv_indev_active(), &p);   /* raw: the correction is off */
+    if (s_set.raw_n == 0) {
+        s_set.raw_xmin = s_set.raw_xmax = p.x;
+        s_set.raw_ymin = s_set.raw_ymax = p.y;
+    } else {
+        if (p.x < s_set.raw_xmin) s_set.raw_xmin = p.x;
+        if (p.x > s_set.raw_xmax) s_set.raw_xmax = p.x;
+        if (p.y < s_set.raw_ymin) s_set.raw_ymin = p.y;
+        if (p.y > s_set.raw_ymax) s_set.raw_ymax = p.y;
+    }
+    s_set.raw_n++;
+    raw_refresh(p.x, p.y);
+}
+
+static void raw_cb(lv_event_t *event)
+{
+    (void)event;
+    if (s_set.raw_box) {
+        return;
+    }
+    s_set.raw_n = 0;
+    aos_ui_touch_raw(true);
+
+    lv_obj_t *box = lv_obj_create(lv_layer_top());
+    s_set.raw_box = box;
+    lv_obj_remove_style_all(box);
+    lv_obj_set_size(box, AOS_SCREEN_W, AOS_SCREEN_H);
+    lv_obj_set_pos(box, 0, 0);
+    lv_obj_set_style_bg_color(box, AOS_C_BG, 0);
+    lv_obj_set_style_bg_opa(box, LV_OPA_COVER, 0);
+    lv_obj_add_flag(box, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(box, raw_touch_cb, LV_EVENT_PRESSED, NULL);
+    lv_obj_add_event_cb(box, raw_touch_cb, LV_EVENT_PRESSING, NULL);
+
+    /* A frame on the very edge of the framebuffer: if a finger on it does not
+     * take the extremes to 0 / 367 / 447, the chip cannot see out there. */
+    lv_obj_t *frame = lv_obj_create(box);
+    lv_obj_remove_style_all(frame);
+    lv_obj_set_size(frame, AOS_SCREEN_W, AOS_SCREEN_H);
+    lv_obj_set_pos(frame, 0, 0);
+    lv_obj_set_style_border_width(frame, 2, 0);
+    lv_obj_set_style_border_color(frame, AOS_C_ACCENT, 0);
+    aos_make_decorative(frame);
+
+    s_set.raw_label = aos_label(box, "", aos_font_small, AOS_C_TEXT);
+    lv_obj_set_style_text_align(s_set.raw_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(s_set.raw_label, LV_ALIGN_CENTER, 0, -70);
+    aos_make_decorative(s_set.raw_label);
+    raw_refresh(0, 0);
+
+    /* Closes from the centre, the one place a sweep along the edges never
+     * crosses. The physical button closes it too (back()). */
+    lv_obj_t *btn = aos_button(box, _("Listo"), AOS_C_CARD2, raw_close_cb, NULL);
+    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 50);
 }
 
 static void reboot_cb(lv_event_t *event)
@@ -1355,6 +1514,7 @@ static void *create(aos_app_t *self, lv_obj_t *root)
 
     section(page, _("TACTIL"));
     aos_button(page, _("Calibrar"), AOS_C_CARD2, cal_cb, NULL);
+    aos_button(page, _("Ver crudo"), AOS_C_CARD2, raw_cb, NULL);
 
     section(page, _("SISTEMA"));
     char buf[96];
@@ -1400,6 +1560,13 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     } else if (sim_bt && sim_bt[0] == '2') {
         cat_cb(NULL);
     }
+    /* AOS_SIM_TOUCH=1 opens the raw view, =2 the calibration screen. */
+    const char *sim_touch = getenv("AOS_SIM_TOUCH");
+    if (sim_touch && sim_touch[0] == '1') {
+        raw_cb(NULL);
+    } else if (sim_touch && sim_touch[0] == '2') {
+        cal_cb(NULL);
+    }
 #endif
     return &s_set;
 }
@@ -1423,6 +1590,10 @@ static bool back(aos_app_t *self, void *inst)
         cal_cerrar();
         return true;
     }
+    if (s_set.raw_box) {
+        raw_close();
+        return true;
+    }
     if (s_set.bt_box) {
         bt_box_close_cb(NULL);
         return true;
@@ -1443,6 +1614,7 @@ static void destroy(aos_app_t *self, void *inst)
     }
     clock_close();
     cal_cerrar();
+    raw_close();
     ap_box_close();
     bt_box_close();
     cat_box_close();

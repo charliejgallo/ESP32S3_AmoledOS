@@ -3,6 +3,44 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased — touch audit (branch `touch-audit`)
+
+### The touch window, audited end to end
+
+Why a 448-row panel only answers between y = 55 and y = 395, checked at
+every step from the chip to LVGL instead of measured from the outside:
+`esp_lcd_touch_cst816s` reads the 12-bit X/Y as they come, `esp_lcd_touch`
+has every mirror/swap flag off, the LVGL port multiplies by 1, our wrapper
+clamps only to 0..447 and the display rotation is 0. Nothing downstream of
+the CST820 clips a coordinate. The 16 px X gap the BSP sets is an offset in
+the CO5300's memory addressing, invisible to the touch, and never needed
+compensating — the old comment saying so was wrong.
+
+What is left is the chip: raw 0 arrives ~55 px below the top edge and raw
+447 ~53 px above the bottom one. Its window is the central 340 rows,
+stretched over 0..447 and saturated outside, which is why the Y fit lands
+near a = 0.76, b = 55. A saturated raw carries no information, so no fit can
+bring the bands back; calibrating only decides whether the 340 live rows
+land aligned (calibrated) or spread over the whole height and misplaced by
+up to 55 px (identity).
+
+- **Calibration no longer wipes itself first.** It used to save the identity
+  before measuring; an attempt cut short by the button or a reboot left the
+  panel uncalibrated. Raw mode alone bypasses the fit while measuring.
+- **A rejected fit is now said out loud** and keeps the previous
+  calibration. It used to fall back to the identity under a "Touch
+  calibrated" toast, and with the acceptance floor at 0.7 a real measurement
+  of this panel (0.76) sat 0.06 from being thrown away. The floor is 0.5.
+- The two top crosses moved from y = 55 — exactly where raw Y saturates,
+  the same trap fixed at the bottom in v0.3.0 — to `AOS_TOUCH_Y_MIN + 40`.
+- The five raw points of every calibration go to the log, the loaded fit is
+  logged at boot, and `/api/status` reports it (`touch_cal`, `cal_*`).
+- **Ajustes → TÁCTIL → Ver crudo**: the live raw point and the extremes seen,
+  for a finger run around the whole glass; logged on close. That sweep is
+  the measurement that settles the chip's window on BOTH axes — X was never
+  measured at its edges. `AOS_SIM_TOUCH=1` / `=2` open it and the
+  calibration screen in the simulator.
+
 ## v0.3.2 — 2026-09-11
 
 ### Every control below the touch floor

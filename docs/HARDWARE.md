@@ -71,6 +71,21 @@ The bars that older apps had at y = 8 all moved below in v0.3.2, and the
 layout audit (`tools/audit_layout.sh`) now flags anything touchable above
 the line, the way it did for the bottom.
 
+**Where the limit lives, audited (2026-09-11).** The whole path was read:
+`esp_lcd_touch_cst816s` passes the 12-bit X/Y through, `esp_lcd_touch` has
+every mirror/swap flag off, the LVGL port multiplies by 1, the calibration
+wrapper clamps only to 0..447, LVGL's rotation is 0. The 16 px X gap the BSP
+applies for the CO5300 is an offset in the panel's memory addressing —
+framebuffer column 0 is the glass's first visible column — so the touch
+never needed compensating for it. The window is the chip's own: raw 0 is
+reached ~55 px below the top edge and raw 447 ~53 px above the bottom one,
+i.e. the central 340 rows stretched over 0..447 and saturated outside. That
+is also why calibrating comes out near a = 0.76, b = 55 in Y, and why no
+fit can recover the bands: a saturated raw carries no information.
+**Ajustes → TÁCTIL → Ver crudo** shows the raw point and the extremes for a
+finger run around the glass, and logs them — that sweep is how to measure
+the window on a given unit, on both axes.
+
 ### The v2's touch chip falls asleep
 
 The v2 carries a **CST820** (ID `0xB7`), not the CST816S the BSP claims. It

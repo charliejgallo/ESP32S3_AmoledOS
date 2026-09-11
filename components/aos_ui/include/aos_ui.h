@@ -152,6 +152,8 @@ void aos_ui_touch_stats(uint32_t *reads, uint32_t *presses);
 /* Touch calibration: screen = a * raw + b, per axis. */
 void aos_ui_touch_calibration_save(float ax, float bx, float ay, float by);
 void aos_ui_touch_calibration_reset(void);
+/* Current fit; true when it is not the identity (i.e. the panel IS calibrated). */
+bool aos_ui_touch_calibration_get(float *ax, float *bx, float *ay, float *by);
 void aos_ui_touch_raw(bool raw);    /* true = uncorrected, for calibrating */
 
 

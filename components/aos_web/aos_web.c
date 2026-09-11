@@ -392,7 +392,7 @@ static esp_err_t status_handler(httpd_req_t *req)
     if (n > 1 && json[n - 1] == '}') {
         json[--n] = '\0';
     }
-    char extra[420];
+    char extra[520];
     char ssid[68] = "", peer[68] = "";
     if (aos_hal_net_state() == AOS_NET_CONNECTED) {
         json_escape(ssid, sizeof(ssid), aos_hal_net_ssid());
@@ -412,11 +412,18 @@ static esp_err_t status_handler(httpd_req_t *req)
     const char *app = aos_ui_current_app();
     char tz[48];
     json_escape(tz, sizeof(tz), aos_hal_timezone_get());
+    /* The touch fit rides along: from outside, an uncalibrated panel (the
+     * identity) and a calibrated one look the same until a finger lands 55 px
+     * off, and this is the only way to tell without the watch on the wrist. */
+    float cal_ax = 1.0f, cal_bx = 0.0f, cal_ay = 1.0f, cal_by = 0.0f;
+    bool calibrated = aos_ui_touch_calibration_get(&cal_ax, &cal_bx, &cal_ay, &cal_by);
     snprintf(extra, sizeof(extra),
              ",\"ssid\":\"%s\",\"rssi\":%d,\"ip\":\"%s\",\"wifi_on\":%s,"
              "\"ap\":%s,\"ap_ip\":\"%s\",\"bt\":\"%s\",\"bt_peer\":\"%s\","
              "\"phone_batt\":%d,\"exec\":%u,\"sd_total\":%llu,\"sd_free\":%llu,"
-             "\"app\":\"%s\",\"time_ok\":%s,\"tz\":\"%s\",\"now\":%lld}",
+             "\"app\":\"%s\",\"time_ok\":%s,\"tz\":\"%s\",\"now\":%lld,"
+             "\"touch_cal\":%s,\"cal_ax\":%.4f,\"cal_bx\":%.2f,"
+             "\"cal_ay\":%.4f,\"cal_by\":%.2f}",
              ssid, ssid[0] ? aos_hal_net_rssi() : 0,
              ssid[0] ? aos_hal_net_ip() : "",
              aos_hal_net_enabled() ? "true" : "false",
@@ -429,7 +436,8 @@ static esp_err_t status_handler(httpd_req_t *req)
              (unsigned long long)sd_total, (unsigned long long)sd_free,
              app ? app : "",
              aos_hal_time_is_valid() ? "true" : "false", tz,
-             (long long)time(NULL));
+             (long long)time(NULL),
+             calibrated ? "true" : "false", cal_ax, cal_bx, cal_ay, cal_by);
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send_chunk(req, json, n);
