@@ -797,7 +797,13 @@ static void audit_obj(lv_obj_t *obj, const char *tag)
          * almost nothing left, which is breakage in any hand. */
         int32_t centro = (a.y1 + a.y2) / 2;
 
-        if (!scrollea && a.y2 > AOS_TOUCH_Y_MAX) {
+        /* A finger in a dead band lands on a known row (AOS_TOUCH_LAND_*,
+         * see aos_hal.h): a control that contains that row is reachable from
+         * the whole band, however little of it lies inside the window. */
+        bool lands_bottom = a.y1 <= AOS_TOUCH_LAND_BOTTOM && a.y2 >= AOS_TOUCH_LAND_BOTTOM;
+        bool lands_top    = a.y1 <= AOS_TOUCH_LAND_TOP    && a.y2 >= AOS_TOUCH_LAND_TOP;
+
+        if (!scrollea && a.y2 > AOS_TOUCH_Y_MAX && !lands_bottom) {
             if (vivos < 20) {
                 printf("AUDIT UNTOUCHABLE %s | %s | y %ld..%ld (centre %ld, %ld px live) | %s\n",
                        tag, audit_nombre(obj), (long)a.y1, (long)a.y2,
@@ -818,7 +824,7 @@ static void audit_obj(lv_obj_t *obj, const char *tag)
          * Same rule mirrored: what has almost nothing left below the line is
          * broken, a wide object that merely crosses it is HIGHEDGE. */
         int32_t vivos_top = a.y2 - AOS_TOUCH_Y_MIN + 1;
-        if (!scrollea && a.y1 < AOS_TOUCH_Y_MIN) {
+        if (!scrollea && a.y1 < AOS_TOUCH_Y_MIN && !lands_top) {
             if (vivos_top < 20) {
                 printf("AUDIT UNTOUCHABLE %s | %s | y %ld..%ld (centre %ld, %ld px live) | %s\n",
                        tag, audit_nombre(obj), (long)a.y1, (long)a.y2,
