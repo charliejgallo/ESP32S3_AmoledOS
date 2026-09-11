@@ -93,19 +93,21 @@ extern "C" {
  * The first rows are for text -a title, a score- exactly like the last. */
 #define AOS_TOUCH_Y_MIN     56
 
-/* Where a touch INSIDE a dead band lands (2026-09-11, measured with the raw
- * view of Settings -> Touch). The digitiser keeps seeing the finger in the
- * bands: it only pins that axis at its limit, and the other axis stays
- * exact. So a finger anywhere in the bottom band arrives at y =
- * AOS_TOUCH_LAND_BOTTOM with its true x, and a finger in the top band at
- * y = AOS_TOUCH_LAND_TOP. A bar of buttons drawn in a band works, then, as
- * long as it CONTAINS the landing row: x tells the buttons apart. What is
- * lost is only where inside the band the finger is, which a band 30-58 px
- * tall could not hold a second row of anyway. The layout audit knows the
- * rule: a control that contains the landing row is reachable. The values
- * are clamped to the band on the board (a band thinner than the constant
- * lands just inside its edge), so they are the worst case, not a promise of
- * 24 or 410 exactly. */
+/* Where a finger pressed against the bezel lands (2026-09-11, measured with
+ * the raw view of Settings -> Touch, see aos_ui_touch_map in aos_ui.c).
+ *
+ * The "dead bands" of the two constants above were the CALIBRATION's, not
+ * the chip's: the digitiser already stretches its coordinates so that the
+ * bezel reads 1 / 447, and a five-cross fit inverts that stretch and parks
+ * the bezel at y = 30 and 390. The map now keeps the fit between the
+ * crosses and ramps from there to the bezel, so a touch can land anywhere
+ * from AOS_TOUCH_LAND_TOP to AOS_TOUCH_LAND_BOTTOM (and _LEFT.._RIGHT in
+ * X), continuously; the rim itself lands exactly on these rows. Rows 0..23
+ * and 411..447 stay unreachable: a fingertip's centre cannot get closer to
+ * a bezel than that anyway. A control that has to be reachable from the
+ * very edge contains the landing row; the layout audit checks it. Between
+ * AOS_TOUCH_Y_MIN and AOS_TOUCH_Y_MAX precision is that of the fit; outside,
+ * the ramp is up to 1.2x steeper. */
 #define AOS_TOUCH_LAND_TOP     24
 #define AOS_TOUCH_LAND_BOTTOM  410
 #define AOS_TOUCH_LAND_LEFT    16

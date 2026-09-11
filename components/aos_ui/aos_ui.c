@@ -1270,56 +1270,78 @@ static void counting_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
     }
 }
 
-/* Measured on the board on 2026-09-11 with the raw view: the CST820 never
- * reports below 1 nor above 447 (Y) / 367 (X), and it reaches those values
- * with the finger still well inside the glass. */
+/* Measured on the board on 2026-09-11 with the raw view: the CST820 reports
+ * 1..447 in Y and 1..367 in X (never 0), and it reaches those values with
+ * the finger pressed against the bezel -not before: dragging down to the
+ * edge read 441, and only a tap right at the rim read 447. */
 #define AOS_TOUCH_RAW_MIN    1
 #define AOS_TOUCH_RAW_X_MAX  367
 #define AOS_TOUCH_RAW_Y_MAX  447
 
-/* The stored fit applied to a raw point, and what to make of a SATURATED one.
+/* The stored fit applied to a raw point, and what to do near the edges.
  *
- * Measured with the raw view on 2026-09-11 (calibration a=0.81, b=29 in Y;
- * a=0.83, b=30 in X): the digitiser keeps detecting the finger in the dead
- * bands -it just pins that axis at its limit- and the OTHER axis stays valid.
- * A finger anywhere in the bottom 58 px reads raw y = 447 with a perfectly
- * good x. The plain fit sent that finger to the band's inner edge (y = 390),
- * exactly on the border of whatever control ends there. It now lands on a
- * KNOWN row, AOS_TOUCH_LAND_BOTTOM (410): a bar drawn in the band that
- * contains that row receives it, so does the picker's button that ends at
- * 415, and a control that ends above the band is left alone. The row is a
- * constant rather than "the band's edge plus something" so that apps and
- * the layout audit can be written against a number that does not move with
- * each calibration; it is only pulled inside the band when a calibration
- * makes the band thinner than that. Same for the top (24) and the sides.
+ * What the raw view showed (2026-09-11): the chip ALREADY stretches its
+ * coordinates so that a finger against the bezel reads 1 or 447. A finger
+ * whose visual centre is on the y = 55 cross reads raw ~32, one on the
+ * y = 350 cross reads ~398. The five-cross fit measures exactly that and
+ * inverts it (a = 0.81, b = 29 on this unit, twice, days apart): between the
+ * crosses a touch lands where the fingertip visually is, which is what a
+ * button wants -but the same line sends the bezel to y = 30 and y = 390, and
+ * the first 30 and the last 58 rows become unreachable. Those "dead bands"
+ * were never the chip's; they were the calibration's.
  *
- * With the identity fit (simulator, or an uncalibrated board) there is no
- * band and nothing here changes a coordinate. */
-static float land_low(float edge, float land)     /* band between 0 and edge */
-{
-    return (land < edge - 1.0f) ? land : edge - 1.0f;
-}
+ * So the fit is trusted between two anchor rows inside the cross region and
+ * from each anchor a straight ramp takes the raw the rest of the way to the
+ * bezel, landing on AOS_TOUCH_LAND_TOP / _BOTTOM (24 / 410; 16 / 352 in X).
+ * Continuous and monotonic: a drag towards the edge keeps moving, a tap at
+ * the rim lands on a known row, and a bar drawn against the edge that
+ * contains that row is hit. The ramp is only slightly steeper than the fit
+ * (1.2x at the bottom), so precision out there is nearly the same. A ramp
+ * exists only where the fit would otherwise fall short of the landing
+ * value; with the identity fit (simulator, uncalibrated board) nothing here
+ * changes a coordinate. */
+#define AOS_TOUCH_ANCHOR_TOP     60.0f
+#define AOS_TOUCH_ANCHOR_BOTTOM 350.0f
+#define AOS_TOUCH_ANCHOR_LEFT    55.0f
+#define AOS_TOUCH_ANCHOR_RIGHT  313.0f
 
-static float land_high(float edge, float land)    /* band between edge and the end */
+/* One axis: the fit between the anchors, ramps to the landing values past
+ * them. 'raw_lo/raw_hi' are the chip's limits, 'anc_lo/anc_hi' the anchor
+ * screen values, 'land_lo/land_hi' where the bezel must land. */
+static float map_axis(float raw, float a, float b,
+                      float raw_lo, float raw_hi,
+                      float anc_lo, float anc_hi,
+                      float land_lo, float land_hi)
 {
-    return (land > edge + 1.0f) ? land : edge + 1.0f;
+    float v = a * raw + b;
+    if (a < 0.05f) {
+        return v;                                   /* a broken fit: leave it */
+    }
+    float r_lo = (anc_lo - b) / a;                  /* raw at the anchors */
+    float r_hi = (anc_hi - b) / a;
+
+    if (raw <= r_lo && a * raw_lo + b > land_lo && r_lo > raw_lo + 1.0f) {
+        float t = (raw - raw_lo) / (r_lo - raw_lo); /* 0 at the bezel, 1 at the anchor */
+        if (t < 0) t = 0;
+        v = land_lo + t * (anc_lo - land_lo);
+    } else if (raw >= r_hi && a * raw_hi + b < land_hi && r_hi < raw_hi - 1.0f) {
+        float t = (raw - r_hi) / (raw_hi - r_hi);   /* 0 at the anchor, 1 at the bezel */
+        if (t > 1) t = 1;
+        v = anc_hi + t * (land_hi - anc_hi);
+    }
+    return v;
 }
 
 void aos_ui_touch_map(int32_t rx, int32_t ry, int32_t *sx, int32_t *sy)
 {
-    float x = s_cal_ax * (float)rx + s_cal_bx;
-    float y = s_cal_ay * (float)ry + s_cal_by;
-
-    if (rx <= AOS_TOUCH_RAW_MIN && s_cal_bx > 1.0f) {
-        x = land_low(s_cal_bx, AOS_TOUCH_LAND_LEFT);                /* left   */
-    } else if (rx >= AOS_TOUCH_RAW_X_MAX && x < AOS_SCREEN_W - 2) {
-        x = land_high(x, AOS_TOUCH_LAND_RIGHT);                     /* right  */
-    }
-    if (ry <= AOS_TOUCH_RAW_MIN && s_cal_by > 1.0f) {
-        y = land_low(s_cal_by, AOS_TOUCH_LAND_TOP);                 /* top    */
-    } else if (ry >= AOS_TOUCH_RAW_Y_MAX && y < AOS_SCREEN_H - 2) {
-        y = land_high(y, AOS_TOUCH_LAND_BOTTOM);                    /* bottom */
-    }
+    float x = map_axis((float)rx, s_cal_ax, s_cal_bx,
+                       AOS_TOUCH_RAW_MIN, AOS_TOUCH_RAW_X_MAX,
+                       AOS_TOUCH_ANCHOR_LEFT, AOS_TOUCH_ANCHOR_RIGHT,
+                       AOS_TOUCH_LAND_LEFT, AOS_TOUCH_LAND_RIGHT);
+    float y = map_axis((float)ry, s_cal_ay, s_cal_by,
+                       AOS_TOUCH_RAW_MIN, AOS_TOUCH_RAW_Y_MAX,
+                       AOS_TOUCH_ANCHOR_TOP, AOS_TOUCH_ANCHOR_BOTTOM,
+                       AOS_TOUCH_LAND_TOP, AOS_TOUCH_LAND_BOTTOM);
 
     if (x < 0) x = 0;
     if (y < 0) y = 0;
