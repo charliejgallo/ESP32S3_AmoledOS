@@ -581,8 +581,10 @@ static const char blob_en_aos_netscan_lang[] =
 
 static const char blob_en_aos_pixel_lang[] =
     "No se pudo guardar\tCould not save\n"
+    "no se lee\tunreadable\n"
     "vacío\tempty\n"
     "sin tarjeta: memoria interna\tno card: internal memory\n"
+    "No se pudo leer la tarjeta\tCould not read the card\n"
     "Tocá un lienzo para editarlo\tTap a canvas to edit it\n"
     "Nuevo lienzo\tNew canvas\n"
     "Cancelar\tCancel\n"
@@ -1986,8 +1988,10 @@ static const char blob_de_aos_netscan_lang[] =
 
 static const char blob_de_aos_pixel_lang[] =
     "No se pudo guardar\tSpeichern fehlgeschlagen\n"
+    "no se lee\tnicht lesbar\n"
     "vacío\tleer\n"
     "sin tarjeta: memoria interna\tkeine Karte: interner Speicher\n"
+    "No se pudo leer la tarjeta\tKarte konnte nicht gelesen werden\n"
     "Tocá un lienzo para editarlo\tTippe eine Leinwand an, um sie zu bearbeiten\n"
     "Nuevo lienzo\tNeue Leinwand\n"
     "Cancelar\tAbbrechen\n"

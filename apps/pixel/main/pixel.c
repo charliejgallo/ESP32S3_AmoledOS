@@ -63,6 +63,10 @@
 #define GRID_COLOR      0x3A3A3E            /* between cells; on black it reads, just */
 
 #define TIMER_MS        50
+#define SAVE_RETRY_MS   10000
+#define SLOT_ERR        0xFF
+#define PAL_PITCH       45                  /* swatch + gap, in the strip   */
+#define PAL_W           (PX_COLORS * PAL_PITCH)
 #define AUTOSAVE_MS     3000
 #define WATCH_MS        3000
 
@@ -98,13 +102,11 @@ typedef struct {
 
     /* gallery */
     lv_obj_t  *gal;
-    lv_obj_t  *slot_box[PX_SLOTS];
     lv_obj_t  *slot_cv[PX_SLOTS];
     lv_obj_t  *slot_lbl[PX_SLOTS];
-    lv_obj_t  *slot_plus[PX_SLOTS];
-    lv_obj_t  *slot_badge[PX_SLOTS];
     uint16_t  *thumb[PX_SLOTS];
-    uint8_t    slot_size[PX_SLOTS];         /* 0 = empty                    */
+    uint8_t    slot_size[PX_SLOTS];         /* 0 = empty, SLOT_ERR = unreadable */
+    uint8_t    slot_frames[PX_SLOTS];
     lv_obj_t  *sizer;                       /* the "new document" overlay   */
     int        sizer_slot;
     lv_obj_t  *gal_info;
@@ -117,12 +119,16 @@ typedef struct {
     lv_obj_t  *lbl_frame;
     lv_obj_t  *btn_tool;
     lv_obj_t  *lbl_tool;
-    lv_obj_t  *strip;
-    lv_obj_t  *swatch[PX_COLORS];
+    lv_obj_t  *strip;                       /* scrolls sideways             */
+    lv_obj_t  *pal;                         /* ONE canvas with the 32 swatches */
+    uint16_t  *palbuf;
     lv_obj_t  *info;
-    lv_obj_t  *menu;
+    lv_obj_t  *menu;                        /* built when opened, deleted when closed */
     lv_obj_t  *mi_undo, *mi_del_frame, *mi_speed, *mi_del_doc, *mi_play;
+    bool       menu_del_req;                /* the timer deletes it: never from its own callback */
     bool       confirm_del;
+    uint32_t   save_retry_ms;               /* after a failed save, do not hammer the card */
+    bool       save_failed;
     bool       playing;
     uint32_t   play_next_ms;
 } app_t;
@@ -218,7 +224,30 @@ static void draw_frame(app_t *a)
     lv_obj_invalidate(a->canvas);
 }
 
-static void draw_thumb(uint16_t *buf, const px_doc_t *d)
+/* A 3x5 digit font for the frame badge, one bit per pixel, rows top down. */
+static const uint8_t digits3x5[10][5] = {
+    { 7, 5, 5, 5, 7 }, { 2, 6, 2, 2, 7 }, { 7, 1, 7, 4, 7 }, { 7, 1, 7, 1, 7 },
+    { 5, 5, 7, 1, 1 }, { 7, 4, 7, 1, 7 }, { 7, 4, 7, 5, 7 }, { 7, 1, 1, 1, 1 },
+    { 7, 5, 7, 5, 7 }, { 7, 5, 7, 1, 7 },
+};
+
+static void draw_digit(uint16_t *buf, int stride, int x, int y, int d, int scale, uint16_t c)
+{
+    for (int r = 0; r < 5; r++) {
+        for (int k = 0; k < 3; k++) {
+            if (digits3x5[d][r] & (4 >> k)) {
+                fill_rect(buf, stride, x + k * scale, y + r * scale, scale, scale, c);
+            }
+        }
+    }
+}
+
+/* The whole thumbnail is painted by code -border, the plus of an empty
+ * slot, the frame badge- so that a slot is ONE canvas and ONE label. The
+ * first version had a box, a plus label and a badge label per slot as well:
+ * forty objects of internal RAM for eight pictures, and on the board that
+ * RAM is what the card driver needs for its DMA buffers. */
+static void draw_thumb(uint16_t *buf, const px_doc_t *d, int frames)
 {
     int n = d->size;
     int cell = TH_PX / n;
@@ -228,6 +257,37 @@ static void draw_thumb(uint16_t *buf, const px_doc_t *d)
                       px_rgb565(d->px[0][y * n + x]));
         }
     }
+    if (frames > 1) {
+        /* a dark pill top right: a play triangle and the count, digits 6x10 */
+        int nd = frames > 9 ? 2 : 1;
+        int w = 6 + 9 + nd * 8 + 3;
+        uint16_t dark = rgb565(0x141416), white = rgb565(0xFFFFFF);
+        fill_rect(buf, TH_PX, TH_PX - w - 3, 3, w, 16, dark);
+        int x = TH_PX - w;
+        for (int r = 0; r < 7; r++) {           /* the triangle, 4 px wide */
+            int len = r < 4 ? r + 1 : 7 - r;
+            fill_rect(buf, TH_PX, x, 6 + r, len, 1, white);
+        }
+        x += 8;
+        if (nd == 2) {
+            draw_digit(buf, TH_PX, x, 6, frames / 10, 2, white);
+            x += 8;
+        }
+        draw_digit(buf, TH_PX, x, 6, frames % 10, 2, white);
+    }
+}
+
+static void draw_thumb_empty(uint16_t *buf, bool error)
+{
+    uint16_t bg = rgb565(0x000000), line = rgb565(error ? 0x8A1E22 : 0x2C2C2E);
+    fill_rect(buf, TH_PX, 0, 0, TH_PX, TH_PX, bg);
+    fill_rect(buf, TH_PX, 0, 0, TH_PX, 2, line);
+    fill_rect(buf, TH_PX, 0, TH_PX - 2, TH_PX, 2, line);
+    fill_rect(buf, TH_PX, 0, 0, 2, TH_PX, line);
+    fill_rect(buf, TH_PX, TH_PX - 2, 0, 2, TH_PX, line);
+    uint16_t plus = rgb565(error ? 0xFF453A : 0x8E8E93);
+    fill_rect(buf, TH_PX, TH_PX / 2 - 2, TH_PX / 2 - 12, 4, 24, plus);   /* + */
+    fill_rect(buf, TH_PX, TH_PX / 2 - 12, TH_PX / 2 - 2, 24, 4, plus);
 }
 
 /* --------------------------------------------------------------------------
@@ -255,10 +315,18 @@ static bool save_doc(app_t *a)
     bool ok = px_doc_save(a->doc, path);
     if (ok) {
         a->dirty = false;
+        a->save_failed = false;
         note_file(a, path);
     } else {
-        aos_hal_log(TAG, "could not save %s", path);
-        aos_ui_toast(_("No se pudo guardar"), 1500);
+        /* Said once and retried in ten seconds, not every tick: the first
+         * version hammered a card that had run out of DMA memory fifty times
+         * a second, with a toast each time. */
+        a->save_retry_ms = now_ms() + SAVE_RETRY_MS;
+        if (!a->save_failed) {
+            a->save_failed = true;
+            aos_hal_log(TAG, "could not save %s", path);
+            aos_ui_toast(_("No se pudo guardar"), 1500);
+        }
     }
     return ok;
 }
@@ -290,45 +358,62 @@ static uint32_t gallery_signature(void)
  * Gallery
  * -------------------------------------------------------------------------- */
 
-static void gallery_refresh(app_t *a)
+/* Reads the eight files and paints the thumbnails. No LVGL object is
+ * touched here, and it is called BEFORE the objects exist on create(): the
+ * card driver allocates DMA buffers from internal RAM, and this is the moment
+ * the app holds the least of it. */
+static void gallery_scan(app_t *a)
 {
-    int used = 0;
     for (int i = 0; i < PX_SLOTS; i++) {
         char path[160];
         slot_path(i, path, sizeof(path));
+        struct stat st;
+        bool exists = stat(path, &st) == 0;
         if (px_doc_load(a->scratch, path)) {
-            a->slot_size[i] = a->scratch->size;
-            draw_thumb(a->thumb[i], a->scratch);
-            lv_obj_remove_flag(a->slot_cv[i], LV_OBJ_FLAG_HIDDEN);
-            lv_obj_add_flag(a->slot_plus[i], LV_OBJ_FLAG_HIDDEN);
-            lv_label_set_text_fmt(a->slot_lbl[i], "%d · %d×%d", i + 1,
-                                  a->scratch->size, a->scratch->size);
-            /* the badge says how many frames, only when it is an animation */
-            if (a->scratch->frames > 1) {
-                lv_label_set_text_fmt(a->slot_badge[i], LV_SYMBOL_PLAY " %d", a->scratch->frames);
-                lv_obj_remove_flag(a->slot_badge[i], LV_OBJ_FLAG_HIDDEN);
-            } else {
-                lv_obj_add_flag(a->slot_badge[i], LV_OBJ_FLAG_HIDDEN);
+            a->slot_size[i]   = a->scratch->size;
+            a->slot_frames[i] = a->scratch->frames;
+            draw_thumb(a->thumb[i], a->scratch, a->scratch->frames);
+        } else {
+            /* A file that is there and cannot be read is the card failing,
+             * not an empty slot: say so instead of offering to overwrite. */
+            a->slot_size[i] = exists ? SLOT_ERR : 0;
+            a->slot_frames[i] = 0;
+            draw_thumb_empty(a->thumb[i], exists);
+            if (exists) {
+                aos_hal_log(TAG, "cannot read %s", path);
             }
-            lv_obj_set_style_border_color(a->slot_box[i], lv_color_hex(0x5A5A64), 0);
+        }
+    }
+    a->gal_sig = gallery_signature();
+}
+
+static void gallery_labels(app_t *a)
+{
+    int used = 0;
+    for (int i = 0; i < PX_SLOTS; i++) {
+        if (a->slot_size[i] == SLOT_ERR) {
+            lv_label_set_text_fmt(a->slot_lbl[i], "%d · %s", i + 1, _("no se lee"));
+        } else if (a->slot_size[i]) {
+            lv_label_set_text_fmt(a->slot_lbl[i], "%d · %d×%d", i + 1,
+                                  a->slot_size[i], a->slot_size[i]);
             used++;
         } else {
-            a->slot_size[i] = 0;
-            lv_obj_add_flag(a->slot_cv[i], LV_OBJ_FLAG_HIDDEN);
-            lv_obj_remove_flag(a->slot_plus[i], LV_OBJ_FLAG_HIDDEN);
             lv_label_set_text_fmt(a->slot_lbl[i], "%d · %s", i + 1, _("vacío"));
-            lv_obj_add_flag(a->slot_badge[i], LV_OBJ_FLAG_HIDDEN);
-            lv_obj_set_style_border_color(a->slot_box[i], lv_color_hex(0x2C2C2E), 0);
         }
         lv_obj_invalidate(a->slot_cv[i]);
     }
-    a->gal_sig = gallery_signature();
     if (aos_hal_path_sd_root()) {
         lv_label_set_text_fmt(a->gal_info, "%d/%d · SD /pixel", used, PX_SLOTS);
     } else {
         lv_label_set_text_fmt(a->gal_info, "%d/%d · %s", used, PX_SLOTS,
                               _("sin tarjeta: memoria interna"));
     }
+}
+
+static void gallery_refresh(app_t *a)
+{
+    gallery_scan(a);
+    gallery_labels(a);
 }
 
 static void sizer_show(app_t *a, int slot)
@@ -362,7 +447,9 @@ static void slot_cb(lv_event_t *e)
     if (a->closing) {
         return;
     }
-    if (a->slot_size[slot] == 0) {
+    if (a->slot_size[slot] == SLOT_ERR) {
+        aos_ui_toast(_("No se pudo leer la tarjeta"), 1500);
+    } else if (a->slot_size[slot] == 0) {
         sizer_show(a, slot);
     } else {
         go_editor(a, slot);
@@ -456,54 +543,23 @@ static void build_gallery(app_t *a, lv_obj_t *root)
         int32_t x = TH_X0 + col * (TH_BOX + TH_GAP);
         int32_t y = 68 + row * (TH_BOX + 40);
 
-        lv_obj_t *box = lv_obj_create(a->gal);
-        lv_obj_remove_style_all(box);
-        lv_obj_set_size(box, TH_BOX, TH_BOX);
-        lv_obj_set_pos(box, x, y);
-        lv_obj_set_style_radius(box, 10, 0);
-        lv_obj_set_style_bg_color(box, lv_color_hex(0x000000), 0);
-        lv_obj_set_style_bg_opa(box, LV_OPA_COVER, 0);
-        lv_obj_set_style_bg_color(box, AOS_C_CARD2, LV_STATE_PRESSED);
-        lv_obj_set_style_border_width(box, 2, 0);
-        lv_obj_set_style_border_color(box, lv_color_hex(0x2C2C2E), 0);
-        lv_obj_add_flag(box, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_remove_flag(box, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_set_user_data(box, (void *)(intptr_t)i);
-        lv_obj_add_event_cb(box, slot_cb, LV_EVENT_CLICKED, a);
-        a->slot_box[i] = box;
-
-        lv_obj_t *cv = lv_canvas_create(box);
+        /* The canvas is the slot: clickable itself, border and badge painted
+         * inside its buffer. */
+        lv_obj_t *cv = lv_canvas_create(a->gal);
         lv_canvas_set_buffer(cv, a->thumb[i], TH_PX, TH_PX, LV_COLOR_FORMAT_RGB565);
         lv_obj_set_size(cv, TH_PX, TH_PX);
-        lv_obj_center(cv);
+        lv_obj_set_pos(cv, x + (TH_BOX - TH_PX) / 2, y + (TH_BOX - TH_PX) / 2);
         lv_image_set_antialias(cv, false);
-        lv_obj_remove_flag(cv, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_flag(cv, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_remove_flag(cv, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_user_data(cv, (void *)(intptr_t)i);
+        lv_obj_add_event_cb(cv, slot_cb, LV_EVENT_CLICKED, a);
         a->slot_cv[i] = cv;
-
-        lv_obj_t *plus = aos_label(box, LV_SYMBOL_PLUS, aos_font_title, AOS_C_DIM);
-        lv_obj_remove_flag(plus, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_center(plus);
-        a->slot_plus[i] = plus;
 
         lv_obj_t *lbl = aos_label_boxed(a->gal, "", aos_font_small, AOS_C_DIM, TH_BOX + 4, 20);
         lv_obj_set_pos(lbl, x - 2, y + TH_BOX + 4);
         lv_obj_remove_flag(lbl, LV_OBJ_FLAG_CLICKABLE);
         a->slot_lbl[i] = lbl;
-
-        /* the frame-count badge, a dark pill on the thumbnail's corner */
-        lv_obj_t *badge = lv_label_create(box);
-        lv_obj_set_style_text_font(badge, &aos_montserrat_14, 0);
-        lv_obj_set_style_text_color(badge, AOS_C_TEXT, 0);
-        lv_obj_set_style_bg_color(badge, lv_color_hex(0x000000), 0);
-        lv_obj_set_style_bg_opa(badge, LV_OPA_70, 0);
-        lv_obj_set_style_radius(badge, 7, 0);
-        lv_obj_set_style_pad_hor(badge, 5, 0);
-        lv_obj_set_style_pad_ver(badge, 2, 0);
-        lv_obj_align(badge, LV_ALIGN_TOP_RIGHT, -2, 2);
-        lv_obj_remove_flag(badge, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_add_flag(badge, LV_OBJ_FLAG_HIDDEN);
-        a->slot_badge[i] = badge;
     }
 
     /* A fixed box that wraps: the German hint is wider than the screen. */
@@ -547,22 +603,52 @@ static void undo_snapshot(app_t *a)
     a->has_undo = true;
 }
 
+/* The strip is ONE canvas, 32 swatches painted by code, inside a container
+ * that scrolls sideways. The selected one gets a white frame. Thirty-two
+ * objects of internal RAM became one, and the buffer is PSRAM. */
+static void draw_palette(app_t *a)
+{
+    uint16_t bg = rgb565(0x000000);
+    fill_rect(a->palbuf, PAL_W, 0, 0, PAL_W, SWATCH, bg);
+    for (int i = 0; i < PX_COLORS; i++) {
+        int x = i * PAL_PITCH + 2;
+        bool on = i == a->color;
+        uint16_t frame = rgb565(on ? 0xFFFFFF : 0x5A5A64);
+        int b = on ? 3 : 1;
+        fill_rect(a->palbuf, PAL_W, x, 0, SWATCH, SWATCH, frame);
+        fill_rect(a->palbuf, PAL_W, x + b, b, SWATCH - 2 * b, SWATCH - 2 * b, px_rgb565(i));
+    }
+    lv_obj_invalidate(a->pal);
+}
+
 static void set_color(app_t *a, int idx)
 {
     a->color = idx;
-    for (int i = 0; i < PX_COLORS; i++) {
-        lv_obj_set_style_border_width(a->swatch[i], i == idx ? 3 : 1, 0);
-        lv_obj_set_style_border_color(a->swatch[i], i == idx ? AOS_C_TEXT : lv_color_hex(0x5A5A64), 0);
-    }
-    lv_obj_scroll_to_view(a->swatch[idx], LV_ANIM_ON);
+    draw_palette(a);
+    /* bring it into view, centred if it can be */
+    int32_t want = idx * PAL_PITCH + SWATCH / 2 - (AOS_SCREEN_W - 28) / 2;
+    if (want < 0) want = 0;
+    if (want > PAL_W - (AOS_SCREEN_W - 28)) want = PAL_W - (AOS_SCREEN_W - 28);
+    lv_obj_scroll_to_x(a->strip, want, LV_ANIM_ON);
     editor_refresh(a);
 }
 
 static void swatch_cb(lv_event_t *e)
 {
     app_t *a = (app_t *)lv_event_get_user_data(e);
-    int idx = (int)(intptr_t)lv_obj_get_user_data(lv_event_get_target_obj(e));
-    if (!a->closing) {
+    if (a->closing) {
+        return;
+    }
+    lv_indev_t *indev = lv_indev_active();
+    if (!indev) {
+        return;
+    }
+    lv_point_t p;
+    lv_indev_get_point(indev, &p);
+    lv_area_t co;
+    lv_obj_get_coords(a->pal, &co);       /* already shifted by the scroll */
+    int idx = (p.x - co.x1) / PAL_PITCH;
+    if (idx >= 0 && idx < PX_COLORS) {
         set_color(a, idx);
     }
 }
@@ -750,6 +836,9 @@ static void tool_cb(lv_event_t *e)
 
 static void menu_refresh(app_t *a)
 {
+    if (!a->menu) {
+        return;
+    }
     lv_obj_t *l;
     l = lv_obj_get_child(a->mi_speed, 0);
     lv_label_set_text_fmt(l, "%s: %d ms", _("Velocidad"), a->doc->delay_ms);
@@ -759,11 +848,24 @@ static void menu_refresh(app_t *a)
     lv_obj_set_style_bg_opa(a->mi_del_frame, a->doc->frames > 1 ? LV_OPA_COVER : LV_OPA_30, 0);
 }
 
+static bool menu_open(const app_t *a)
+{
+    return a->menu != NULL && !a->menu_del_req;
+}
+
+/* Hides it now and lets the timer delete it: the close nearly always comes
+ * from a click on one of its own items, and an object must not be deleted
+ * while it is dispatching an event. */
 static void menu_close(app_t *a)
 {
     a->confirm_del = false;
-    lv_obj_add_flag(a->menu, LV_OBJ_FLAG_HIDDEN);
+    if (a->menu) {
+        lv_obj_add_flag(a->menu, LV_OBJ_FLAG_HIDDEN);
+        a->menu_del_req = true;
+    }
 }
+
+static void build_menu(app_t *a);
 
 static void menu_cb(lv_event_t *e)
 {
@@ -772,14 +874,17 @@ static void menu_cb(lv_event_t *e)
         return;
     }
     play_stop(a);
-    if (lv_obj_has_flag(a->menu, LV_OBJ_FLAG_HIDDEN)) {
-        a->confirm_del = false;
-        menu_refresh(a);
-        lv_obj_remove_flag(a->menu, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_scroll_to_y(a->menu, 0, LV_ANIM_OFF);
-    } else {
+    if (menu_open(a)) {
         menu_close(a);
+        return;
     }
+    if (!a->menu) {
+        build_menu(a);
+    }
+    a->confirm_del = false;
+    menu_refresh(a);
+    lv_obj_remove_flag(a->menu, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_scroll_to_y(a->menu, 0, LV_ANIM_OFF);
 }
 
 static void mi_undo_cb(lv_event_t *e)
@@ -938,9 +1043,11 @@ static void mi_del_doc_cb(lv_event_t *e)
     go_gallery(a);
 }
 
-static void build_menu(app_t *a, lv_obj_t *parent)
+/* Twenty-one objects that exist only while the menu is on screen. */
+static void build_menu(app_t *a)
 {
-    a->menu = card(parent, 24, CV_Y, 320, 334);
+    a->menu = card(a->ed, 24, CV_Y, 320, 334);
+    a->menu_del_req = false;
     lv_obj_add_flag(a->menu, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(a->menu, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scroll_dir(a->menu, LV_DIR_VER);
@@ -1004,40 +1111,28 @@ static void build_editor(app_t *a, lv_obj_t *root)
     lv_obj_add_event_cb(a->touch, touch_cb, LV_EVENT_RELEASED, a);
     lv_obj_add_event_cb(a->touch, touch_cb, LV_EVENT_PRESS_LOST, a);
 
-    /* the palette strip: 32 swatches, scrolled sideways with the finger */
+    /* the palette strip: one canvas inside a container that scrolls sideways */
     a->strip = lv_obj_create(a->ed);
     lv_obj_remove_style_all(a->strip);
     lv_obj_set_size(a->strip, AOS_SCREEN_W - 28, STRIP_H);
     lv_obj_set_pos(a->strip, 14, STRIP_Y);
     lv_obj_set_scroll_dir(a->strip, LV_DIR_HOR);
     lv_obj_set_scrollbar_mode(a->strip, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_set_flex_flow(a->strip, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(a->strip, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(a->strip, 5, 0);
-    lv_obj_set_style_pad_hor(a->strip, 2, 0);
     lv_obj_remove_flag(a->strip, LV_OBJ_FLAG_CLICKABLE);
-    for (int i = 0; i < PX_COLORS; i++) {
-        lv_obj_t *s = lv_obj_create(a->strip);
-        lv_obj_remove_style_all(s);
-        lv_obj_set_size(s, SWATCH, SWATCH);
-        lv_obj_set_style_radius(s, 9, 0);
-        const uint8_t *c = px_palette[i];
-        lv_obj_set_style_bg_color(s, lv_color_make(c[0], c[1], c[2]), 0);
-        lv_obj_set_style_bg_opa(s, LV_OPA_COVER, 0);
-        lv_obj_set_style_border_width(s, 1, 0);
-        lv_obj_set_style_border_color(s, lv_color_hex(0x5A5A64), 0);
-        lv_obj_add_flag(s, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_remove_flag(s, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_set_user_data(s, (void *)(intptr_t)i);
-        lv_obj_add_event_cb(s, swatch_cb, LV_EVENT_CLICKED, a);
-        a->swatch[i] = s;
-    }
+    a->pal = lv_canvas_create(a->strip);
+    lv_canvas_set_buffer(a->pal, a->palbuf, PAL_W, SWATCH, LV_COLOR_FORMAT_RGB565);
+    lv_obj_set_size(a->pal, PAL_W, SWATCH);
+    lv_obj_set_pos(a->pal, 0, (STRIP_H - SWATCH) / 2);
+    lv_image_set_antialias(a->pal, false);
+    lv_obj_add_flag(a->pal, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(a->pal, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(a->pal, swatch_cb, LV_EVENT_CLICKED, a);
+    draw_palette(a);
 
     a->info = aos_label_boxed(a->ed, "", aos_font_small, AOS_C_DIM, AOS_SCREEN_W, 20);
     lv_obj_set_pos(a->info, 0, INFO_Y);
     lv_obj_remove_flag(a->info, LV_OBJ_FLAG_CLICKABLE);
 
-    build_menu(a, a->ed);
 }
 
 /* --------------------------------------------------------------------------
@@ -1107,7 +1202,14 @@ static void timer_cb(lv_timer_t *t)
         editor_refresh(a);
     }
 
-    if (a->dirty && a->slot >= 0 && now - a->changed_ms > AUTOSAVE_MS && !a->stroke) {
+    if (a->menu_del_req) {
+        a->menu_del_req = false;
+        lv_obj_delete(a->menu);
+        a->menu = NULL;
+    }
+
+    if (a->dirty && a->slot >= 0 && now - a->changed_ms > AUTOSAVE_MS && !a->stroke &&
+        (int32_t)(now - a->save_retry_ms) >= 0) {
         save_doc(a);
     }
 
@@ -1294,7 +1396,8 @@ static void *px_create(aos_app_t *self, lv_obj_t *root)
     a->doc     = malloc(sizeof(px_doc_t));
     a->scratch = malloc(sizeof(px_doc_t));
     a->big     = malloc((size_t)CV_PX * CV_PX * sizeof(uint16_t));
-    bool ok = a->doc && a->scratch && a->big;
+    a->palbuf  = malloc((size_t)PAL_W * SWATCH * sizeof(uint16_t));
+    bool ok = a->doc && a->scratch && a->big && a->palbuf;
     for (int i = 0; i < PX_SLOTS; i++) {
         a->thumb[i] = malloc((size_t)TH_PX * TH_PX * sizeof(uint16_t));
         ok = ok && a->thumb[i];
@@ -1307,6 +1410,7 @@ static void *px_create(aos_app_t *self, lv_obj_t *root)
         free(a->doc);
         free(a->scratch);
         free(a->big);
+        free(a->palbuf);
         for (int i = 0; i < PX_SLOTS; i++) free(a->thumb[i]);
         lv_free(a);
         return NULL;
@@ -1315,9 +1419,6 @@ static void *px_create(aos_app_t *self, lv_obj_t *root)
 
     lv_obj_set_style_bg_color(root, lv_color_hex(0x000000), 0);
     lv_obj_set_style_bg_opa(root, LV_OPA_COVER, 0);
-
-    build_gallery(a, root);
-    build_editor(a, root);
 
     /* The samples, once. In the simulator PX_DEMO=1 forces them, for the
      * screenshots. */
@@ -1333,7 +1434,12 @@ static void *px_create(aos_app_t *self, lv_obj_t *root)
         }
         aos_hal_pref_set_i32(KEY_SEEDED, 1);
     }
-    gallery_refresh(a);
+    /* Files first, objects after: see gallery_scan(). */
+    gallery_scan(a);
+
+    build_gallery(a, root);
+    build_editor(a, root);
+    gallery_labels(a);
     a->watch_ms = now_ms();
     a->timer = lv_timer_create(timer_cb, TIMER_MS, a);
 
@@ -1355,6 +1461,7 @@ static void *px_create(aos_app_t *self, lv_obj_t *root)
             }
             const char *m = getenv("PX_MENU");
             if (m && m[0]) {
+                build_menu(a);
                 menu_refresh(a);
                 lv_obj_remove_flag(a->menu, LV_OBJ_FLAG_HIDDEN);
             }
@@ -1390,6 +1497,7 @@ static void px_destroy(aos_app_t *self, void *inst)
     free(a->doc);
     free(a->scratch);
     free(a->big);
+    free(a->palbuf);
     for (int i = 0; i < PX_SLOTS; i++) {
         free(a->thumb[i]);
     }
@@ -1424,7 +1532,7 @@ static bool px_back(aos_app_t *self, void *inst)
             play_stop(a);
             return true;
         }
-        if (!lv_obj_has_flag(a->menu, LV_OBJ_FLAG_HIDDEN)) {
+        if (menu_open(a)) {
             menu_close(a);
             return true;
         }

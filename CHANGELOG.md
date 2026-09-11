@@ -22,6 +22,12 @@ Newest first. Versions are git tags; what is above the latest tag is on
   PNG and GIF downloads generated in the browser.
 - New menu icon `AOS_ICON_PIXEL`; the English pack embedded in the firmware
   regenerated (and two alarm strings that had lost their translation put back).
+- Measured on the board: with the menu's forty icons, BLE and wifi up, the
+  app must fit in what internal RAM is left or the **microSD driver runs out
+  of DMA memory** and every file operation fails. So a gallery slot is one
+  canvas with everything painted into it, the palette is one canvas, the menu
+  is built only while open, files are read before any object exists, and a
+  failed save backs off ten seconds instead of retrying every tick.
 - The other 21 apps are untouched: no symbol was added to the table and
   `AOS_ABI_VERSION` stays at 2, so their `.so` files are the v0.3.0 ones.
 

@@ -68,6 +68,23 @@ JavaScript; the firmware never parses one, it only stores and serves bytes.
   frame change rewrites the buffer and invalidates once.
 - **Nothing is destroyed from an event callback.** Both screens are built at
   `create()` and shown or hidden; leaving the app is a flag the timer applies.
+  The menu is the exception: built when opened, hidden on close and deleted by
+  the timer on the next tick.
+- **Internal RAM is the budget, and LVGL objects are what spend it.** The
+  first build on the board had ~120 objects (a box, a plus, a badge and a
+  label per slot; 32 swatch objects; the menu always built) and cost 32 KB of
+  internal RAM. Opened from the menu -whose forty icons already hold 26 KB-
+  with BLE and wifi up, that left 8 KB, and **the microSD driver could no
+  longer allocate its DMA buffers**: every read and write failed
+  (`sdmmc_cmd: allocate_dma_buf: not enough mem`), the gallery showed eight
+  empty slots, a new canvas could not be saved, and the autosave retried
+  fifty times a second. Now a slot is one canvas with the border, the plus
+  and the frame badge painted into its buffer; the palette is one canvas in
+  a scrolling container; the menu exists only while open; the files are read
+  **before** the objects are created; and a failed save backs off ten seconds
+  and says so once. A file that exists and cannot be read shows as
+  "no se lee" instead of "vacío", so the card failing is never mistaken for
+  an empty slot.
 - **The encoders are the app's own.** The firmware has lodepng as a decoder
   only and no GIF at all. The PNG writes stored deflate blocks (exact pixels,
   no compression, 16.5 KB for 128x128) and the GIF does real LZW with the
@@ -76,8 +93,8 @@ JavaScript; the firmware never parses one, it only stores and serves bytes.
   written from the spec, and compares every pixel. It found one thing on the
   first run — in the harness's own decoder, not the encoder: the KwKwK case
   emitted its first character first instead of last.
-- **Size**: the `.so` is 28 KB, `.text` 15.6 KB (a third of the 48 KB
-  reservation), 85 symbols, all in the firmware's table.
+- **Size**: the `.so` is 32 KB, `.text` about 17 KB (a third of the 48 KB
+  reservation), 88 symbols, all in the firmware's table.
 - **The page and the firmware.** `/pixel` needs no handler of its own: it
   uses `/api/list`, `/api/download`, `/api/upload` and `/api/delete` with
   `dir=pixel`, which `resolve_dir()` maps to `/sdcard/pixel`. The app polls
