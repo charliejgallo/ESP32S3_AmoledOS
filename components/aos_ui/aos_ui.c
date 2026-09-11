@@ -1284,27 +1284,44 @@ static void counting_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
  * bands -it just pins that axis at its limit- and the OTHER axis stays valid.
  * A finger anywhere in the bottom 58 px reads raw y = 447 with a perfectly
  * good x. The plain fit sent that finger to the band's inner edge (y = 390),
- * on top of whatever control lives there; sending it to the MIDDLE of the
- * band instead means a control drawn inside the band gets it, and the row
- * above is left alone. What is lost is only where inside the band the finger
- * is, which a band 30-58 px tall cannot hold more than one row of anyway.
+ * exactly on the border of whatever control ends there. It now lands
+ * AOS_TOUCH_BAND_IN px inside the band: a bar drawn in the band receives
+ * it, and so does a control that merely crosses the edge by that much (the
+ * picker's button ends at 415), while a control that ends above the edge is
+ * left alone. What is lost is only where inside the band the finger is,
+ * which a band 30-58 px tall cannot hold more than one row of anyway. Not
+ * the band's middle: that would take the touch away from the controls that
+ * cross the edge today, which is the opposite of the point.
  *
  * With the identity fit (simulator, or an uncalibrated board) there is no
  * band and nothing here changes a coordinate. */
+#define AOS_TOUCH_BAND_IN    10.0f
+
+/* 'edge' is where the band starts; the point goes AOS_TOUCH_BAND_IN px past
+ * it towards 'limit' (0 or the screen's last pixel), or halfway if the band
+ * is thinner than that. */
+static float band_point(float edge, float limit)
+{
+    float depth = (limit - edge) * 0.5f;
+    if (depth > AOS_TOUCH_BAND_IN)  depth = AOS_TOUCH_BAND_IN;
+    if (depth < -AOS_TOUCH_BAND_IN) depth = -AOS_TOUCH_BAND_IN;
+    return edge + depth;
+}
+
 void aos_ui_touch_map(int32_t rx, int32_t ry, int32_t *sx, int32_t *sy)
 {
     float x = s_cal_ax * (float)rx + s_cal_bx;
     float y = s_cal_ay * (float)ry + s_cal_by;
 
     if (rx <= AOS_TOUCH_RAW_MIN && s_cal_bx > 1.0f) {
-        x = s_cal_bx * 0.5f;                            /* left band   */
+        x = band_point(s_cal_bx, 0.0f);                            /* left   */
     } else if (rx >= AOS_TOUCH_RAW_X_MAX && x < AOS_SCREEN_W - 2) {
-        x = (x + (float)(AOS_SCREEN_W - 1)) * 0.5f;     /* right band  */
+        x = band_point(x, (float)(AOS_SCREEN_W - 1));              /* right  */
     }
     if (ry <= AOS_TOUCH_RAW_MIN && s_cal_by > 1.0f) {
-        y = s_cal_by * 0.5f;                            /* top band    */
+        y = band_point(s_cal_by, 0.0f);                            /* top    */
     } else if (ry >= AOS_TOUCH_RAW_Y_MAX && y < AOS_SCREEN_H - 2) {
-        y = (y + (float)(AOS_SCREEN_H - 1)) * 0.5f;     /* bottom band */
+        y = band_point(y, (float)(AOS_SCREEN_H - 1));              /* bottom */
     }
 
     if (x < 0) x = 0;
