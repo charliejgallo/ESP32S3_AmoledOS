@@ -49,6 +49,12 @@ GET  /api/list?dir=  POST /api/upload  GET /api/download  POST /api/delete  POST
                                  the list flags folders with "dir":true
 POST /api/ota    POST /api/ota/restart
 GET  /api/pmu?...                the power experiments (docs/POWER.md)
+GET  /api/mem                    the RAM audit's report (docs/RAM-AUDIT.md): heaps by
+                                 region, tasks with stack peaks, block histogram, the
+                                 biggest blocks; ?bench=1 renders the screen 8 times,
+                                 ?fps=N counts frames for N s, ?tap=x,y,ms injects a
+                                 touch (?tap=x,y,ms,x2,y2 a drag: slow ones scroll),
+                                 ?lvpsram=0|1 switches LVGL's allocations live
 ```
 
 ## What it costs the board

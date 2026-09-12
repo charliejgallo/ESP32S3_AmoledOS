@@ -17,5 +17,5 @@ Audit build switches (CMake variables, e.g. `idf.py -DAOS_AUDIT_LVGL_PSRAM=1 -DA
 `AOS_AUDIT_LVGL_PSRAM` (LVGL allocations to PSRAM), `AOS_AUDIT_LVGL_STACK16`
 (LVGL task stack 16 K), `AOS_AUDIT_PSRAM_STACKS` (the tone task's stack in
 PSRAM), `AOS_AUDIT_PSRAM_BSS` (our components' `.bss` to PSRAM).
-- `fpsrun.sh <label> <app-id> [tap "x,y,ms"...]` — open an app, inject taps, capture the screen, count rendered frames for 5 s (`/api/mem?fps=5`).
+- `fpsrun.sh <label> <app-id> [tap "x,y,ms"...]` — open an app, inject taps (`x,y,ms`, or `x,y,ms,x2,y2` for a drag), capture the screen, count rendered frames for 5 s (`/api/mem?fps=5`).
 - `fpsround.sh <label> <build-dir>` — OTA a build with the serial captured, then the three games' FPS twice.

@@ -287,11 +287,11 @@ static const char blob_en__sistema_lang[] =
     "No se pudo ajustar\tCould not set it\n"
     "Fecha y hora\tDate and time\n"
     "Ene\\nFeb\\nMar\\nAbr\\nMay\\nJun\\nJul\\nAgo\\nSep\\nOct\\nNov\\nDic\tJan\\nFeb\\nMar\\nApr\\nMay\\nJun\\nJul\\nAug\\nSep\\nOct\\nNov\\nDec\n"
-    "Calibración descartada, repetila\tCalibration rejected, try again\n"
+    "Calibración descartada, repetila\tCalibración descartada, repetila\n"
     "Tactil calibrado\tTouch calibrated\n"
     "Tocá el centro de la cruz\\n%d de %d\tTouch the centre of the cross\\n%d of %d\n"
-    "Recorré todo el vidrio con el dedo\tRun a finger over the whole glass\n"
-    "crudo %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u lecturas\traw %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u samples\n"
+    "Recorré todo el vidrio con el dedo\tRecorré todo el vidrio con el dedo\n"
+    "crudo %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u lecturas\tcrudo %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u lecturas\n"
     "Telefono emparejado\tPhone paired\n"
     "Abri Ajustes -> Bluetooth en el telefono y elegi AmoledOS\tOpen Settings -> Bluetooth on the phone and pick AmoledOS\n"
     "Emparejar telefono\tPair phone\n"
@@ -318,6 +318,7 @@ static const char blob_en__sistema_lang[] =
     "fallo la conexion\tconnection failed\n"
     "wifi apagado\tWi-Fi off\n"
     "sin red configurada\tno network set up\n"
+    "apps cargadas: %d (código en PSRAM)\\nejecutable %u K  (mayor %u K, %u huecos)\\ninterna %u K   psram %u K\tapps loaded: %d (code in PSRAM)\\nexecutable %u K  (largest %u K, %u gaps)\\ninternal %u K   psram %u K\n"
     "reserva apps: %u K libres (mayor %u K, %d en uso)\\nejecutable %u K  (mayor %u K, %u huecos)\\ninterna %u K   psram %u K\tapp pool: %u K free (largest %u K, %d in use)\\nexecutable %u K  (largest %u K, %u gaps)\\ninternal %u K   psram %u K\n"
     "memoria: no disponible en el simulador\tmemory: not available in the simulator\n"
     "Ya conectado, abri\\nhttp://%s/wifi\tOnce connected, open\\nhttp://%s/wifi\n"
@@ -358,7 +359,7 @@ static const char blob_en__sistema_lang[] =
     "Sincronizar hora\tSync time\n"
     "TACTIL\tTOUCH\n"
     "Calibrar\tCalibrate\n"
-    "Ver crudo\tRaw view\n"
+    "Ver crudo\tVer crudo\n"
     "SISTEMA\tSYSTEM\n"
     "Reiniciar\tRestart\n"
     "Iniciar\tStart\n"
@@ -1697,11 +1698,11 @@ static const char blob_de__sistema_lang[] =
     "No se pudo ajustar\tKonnte nicht gestellt werden\n"
     "Fecha y hora\tDatum und Uhrzeit\n"
     "Ene\\nFeb\\nMar\\nAbr\\nMay\\nJun\\nJul\\nAgo\\nSep\\nOct\\nNov\\nDic\tJan\\nFeb\\nMär\\nApr\\nMai\\nJun\\nJul\\nAug\\nSep\\nOkt\\nNov\\nDez\n"
-    "Calibración descartada, repetila\tKalibrierung verworfen, bitte wiederholen\n"
+    "Calibración descartada, repetila\tCalibración descartada, repetila\n"
     "Tactil calibrado\tTouch kalibriert\n"
     "Tocá el centro de la cruz\\n%d de %d\tMitte des Kreuzes antippen\\n%d von %d\n"
-    "Recorré todo el vidrio con el dedo\tMit dem Finger über das ganze Glas fahren\n"
-    "crudo %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u lecturas\troh %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u Messungen\n"
+    "Recorré todo el vidrio con el dedo\tRecorré todo el vidrio con el dedo\n"
+    "crudo %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u lecturas\tcrudo %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u lecturas\n"
     "Telefono emparejado\tTelefon gekoppelt\n"
     "Abri Ajustes -> Bluetooth en el telefono y elegi AmoledOS\tÖffne Einstellungen -> Bluetooth am Telefon und wähle AmoledOS\n"
     "Emparejar telefono\tTelefon koppeln\n"
@@ -1728,6 +1729,7 @@ static const char blob_de__sistema_lang[] =
     "fallo la conexion\tVerbindung fehlgeschlagen\n"
     "wifi apagado\tWLAN aus\n"
     "sin red configurada\tkein Netzwerk eingerichtet\n"
+    "apps cargadas: %d (código en PSRAM)\\nejecutable %u K  (mayor %u K, %u huecos)\\ninterna %u K   psram %u K\tApps geladen: %d (Code im PSRAM)\\nausführbar %u K  (größter %u K, %u Lücken)\\nintern %u K   PSRAM %u K\n"
     "reserva apps: %u K libres (mayor %u K, %d en uso)\\nejecutable %u K  (mayor %u K, %u huecos)\\ninterna %u K   psram %u K\tApp-Reserve: %u K frei (größter %u K, %d belegt)\\nausführbar %u K  (größter %u K, %u Lücken)\\nintern %u K   PSRAM %u K\n"
     "memoria: no disponible en el simulador\tSpeicher: im Simulator nicht verfügbar\n"
     "Ya conectado, abri\\nhttp://%s/wifi\tWenn verbunden, oeffne\\nhttp://%s/wifi\n"
@@ -1768,7 +1770,7 @@ static const char blob_de__sistema_lang[] =
     "Sincronizar hora\tZeit abgleichen\n"
     "TACTIL\tTOUCH\n"
     "Calibrar\tKalibrieren\n"
-    "Ver crudo\tRohwerte\n"
+    "Ver crudo\tVer crudo\n"
     "SISTEMA\tSYSTEM\n"
     "Reiniciar\tNeustart\n"
     "Iniciar\tStart\n"
@@ -2834,7 +2836,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 444, 21, files_en, 22 },
-    { "de", "Deutsch", 444, 21, files_de, 22 },
+    { "en", "English", 445, 21, files_en, 22 },
+    { "de", "Deutsch", 445, 21, files_de, 22 },
 };
 const int aos_lang_pack_count = 2;

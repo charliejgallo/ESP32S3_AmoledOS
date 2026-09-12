@@ -241,10 +241,12 @@ what that looks like in practice:
   by hand.
 * Rebuilding a twenty-row list costs **111–124 ms** with the LVGL thread
   blocked; filling the same rows in costs 18–31.
-* Dynamic apps take their code from a **48 KB contiguous reservation** claimed
-  at startup, because the general heap fragments. Turning WiFi on costs ~60 KB
-  of the same pool and Bluetooth ~30 KB, which makes both of those switches
-  also *app* switches.
+* Dynamic apps used to take their code from a **48 KB contiguous reservation**
+  claimed at startup, because the general heap fragments. Since the RAM audit
+  the loader puts each app's code in PSRAM and maps it onto the instruction
+  bus through the MMU; the games run at the same frame rate as from internal
+  RAM, and the executable heap idles with 140 KB free instead of 30
+  ([docs/RAM-AUDIT.md](docs/RAM-AUDIT.md) has every number).
 * An autocorrelation pitch detector returns 146.8 Hz for a 440 Hz tone. The
   tuner uses NSDF and picks the *first* peak over the threshold, not the
   highest.

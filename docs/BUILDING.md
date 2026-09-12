@@ -38,6 +38,25 @@ idf.py -p /dev/cu.usbmodem* flash monitor
 
 The firmware is ~3.0 MB in a 5 MB partition.
 
+**The build carries the RAM audit's levers, on by default.** `sdkconfig.defaults`
+holds the configuration measured in [RAM-AUDIT.md](RAM-AUDIT.md) — the apps'
+code in PSRAM through the MMU, a 16 K DMA reserve, the SPI/I2C interrupt
+handlers in flash, IPv6 off, the stacks that had run out of margin — and four
+CMake switches move LVGL's objects, our components' `.bss` and the tone task's
+stack to PSRAM. Each one is a variable of the CMake cache, so a `-D` sticks
+until it is set again:
+
+```bash
+idf.py -DAOS_AUDIT_LVGL_PSRAM=0 build     # LVGL's objects back in internal RAM
+idf.py -DAOS_AUDIT_LVGL_STACK16=0 build   # the LVGL task stack 20 K again
+idf.py -DAOS_AUDIT_PSRAM_STACKS=0 build   # the tone task's stack internal
+idf.py -DAOS_AUDIT_PSRAM_BSS=0 build      # our .bss back in internal RAM
+```
+
+`sdkconfig.defaults` is only read when `sdkconfig` does not exist. After
+pulling a change to it, delete `sdkconfig` before building: a stale one builds
+the old configuration without a word. (`idf.py fullclean` does not remove it.)
+
 ## Simulator
 
 Reproduces the 368x448 display with the mouse acting as a finger.
@@ -177,6 +196,14 @@ It also derives each app's LVGL configuration from the firmware's. That is not
 tidiness: `lv_global_t` has fields under `#if` guards, so a mismatched config
 makes every inline LVGL function the app compiles write into the wrong field —
 silent corruption that neither heap poisoning nor a stack watchpoint detects.
+
+The `.so` compiles with `-Os -ffunction-sections -fdata-sections`, set by hand
+in `components/elf_loader/elf_loader.cmake` (the copy in `managed_components`
+is not the one used: `apps/common.cmake` puts ours first on the module path,
+and an app's own `sdkconfig` optimisation level does not reach these flags).
+Its `.text` runs from PSRAM through the MMU since the RAM audit, so an app is
+no longer refused for its size; `-Os` stays because the code is fetched
+through a 16 KB instruction cache and a small `.text` misses it less.
 
 Uploading over WiFi, without taking the card out:
 

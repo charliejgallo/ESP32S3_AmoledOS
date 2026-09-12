@@ -148,8 +148,10 @@ void aos_ui_tick(void);
 
 /* Diagnostics: accumulated touch reads and presses. */
 void aos_ui_touch_stats(uint32_t *reads, uint32_t *presses);
-/* RAM audit: inject one tap at screen (x, y), held hold_ms. */
+/* RAM audit: inject one tap at screen (x, y), held hold_ms; or a drag from
+ * (x, y) to (x2, y2) over hold_ms, which scrolls a page when it is slow. */
 void aos_ui_inject_tap(int x, int y, int hold_ms);
+void aos_ui_inject_drag(int x, int y, int x2, int y2, int hold_ms);
 
 /* Touch calibration: screen = a * raw + b, per axis. */
 void aos_ui_touch_calibration_save(float ax, float bx, float ay, float by);

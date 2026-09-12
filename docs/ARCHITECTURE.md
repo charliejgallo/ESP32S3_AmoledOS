@@ -93,14 +93,20 @@ Two details that are easy to get wrong:
   aos_app_entry" even though `nm` shows it perfectly.
 * Apps are loaded **on demand**. At startup each `.so` is opened only far enough
   to read its descriptor and closed again; the code enters RAM when the user
-  opens the app. This is not an optimisation, it is the only thing that fits:
-  the apps' `.text` has to live in executable internal RAM, of which there is
-  about 83 KB, and the apps together are far more than that.
+  opens the app and leaves when the app closes, unless it runs in the
+  background. Until v0.3.3 this was the only thing that fit: the apps' `.text`
+  had to live in executable internal RAM, of which there were about 83 KB, and
+  the apps together are far more than that. Since the RAM audit the `.text`
+  lives in **PSRAM and runs through the MMU**:
+  `elf_loader/src/soc/esp_elf_esp32s3.c` maps the loader's 64 KB-aligned block
+  onto the instruction bus with `esp_mmu_map()`, the relocations and `dlsym`
+  hand out that alias, and the mapping goes when the app closes. The internal
+  heap no longer sees the apps at all.
 
-### The memory asymmetry that shapes app design
+### The memory asymmetry that shaped app design
 
 ```
-one line of code costs        ~8 bytes of a 48 KB pool
+one line of code cost         ~8 bytes of a 48 KB pool      (until v0.3.3)
 one kilobyte of table costs    nothing (the loader sends .rodata to PSRAM)
 ```
 
@@ -109,6 +115,13 @@ robot parts are not 64 sprites and not 64 functions: they are 64 *descriptors*
 of a handful of bytes plus four drawing functions that interpret them. Its whole
 world — maps, dialogue, items, attacks — is `const` tables. Adding a town adds
 not one line of code.
+
+With the code in PSRAM the pool is gone and the asymmetry is a much milder one:
+code and tables both live in PSRAM, the code fetched through the 16 KB
+instruction cache and the tables through the 32 KB data cache. The habit is
+still worth keeping — a small `.text` misses the cache less and loads faster,
+and the apps still build with `-Os` — but no app is refused for its size any
+more.
 
 ## Drawing
 

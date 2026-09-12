@@ -214,16 +214,31 @@ Kconfig values. AmoledOS therefore brings the display up itself, in
 
 ### Internal RAM is the scarce resource
 
-There are 8 MB of PSRAM and roughly 83 KB of executable internal RAM. Running
-short of *internal* RAM does not raise an error: it puts garbage on the screen,
-because the display flush's DMA buffer allocation fails and that strip is never
-drawn.
+There are 8 MB of PSRAM and about 390 KB of internal heap, and the WiFi and
+Bluetooth drivers, the task stacks and the firmware's own tables take most of
+it: v0.3.3 idled with 30 KB free in the executable heap and 22 KB in its
+largest block. Running short of *internal* RAM does not raise an error: it puts
+garbage on the screen, because the display flush's DMA buffer allocation fails
+and that strip is never drawn.
 
-Two consequences that shape the whole system:
+Three consequences that shape the whole system:
 
 * Large static buffers go to PSRAM (`AOS_BSS_PSRAM`, or plain `malloc()` with
-  `CONFIG_SPIRAM_USE_MALLOC`).
-* The code of dynamic apps comes out of a **48 KB contiguous reservation** taken
-  at startup, before anything can fragment the heap. Turning WiFi on costs
-  ~60 KB of the same pool; turning Bluetooth on costs ~30 KB. Both switches are
-  therefore also *app* switches.
+  `CONFIG_SPIRAM_USE_MALLOC`). Since the RAM audit so does the `.bss` of every
+  AmoledOS component (`main/aos_psram.lf`) and every LVGL object, style and
+  layer (`aos_lvmem.c` wraps `lv_malloc_core`): the launcher alone used to
+  scatter 48 KB of small blocks through the executable heap.
+* The code of dynamic apps runs **from PSRAM, through the MMU**. The loader
+  takes a 64 KB-aligned PSRAM block and maps it onto the instruction bus with
+  `esp_mmu_map()`, so it is fetched through the 16 KB instruction cache like
+  the firmware's own code from flash; the games measured the same frame rate
+  as from internal RAM. Until v0.3.3 the code came out of a 48 KB contiguous
+  reservation taken at startup, which is why turning WiFi or Bluetooth on
+  used to be an *app* switch too.
+* A task that can start a flash operation — anything that reads NVS: the HTTP
+  client, the player, the microphone — keeps its stack in internal RAM. The
+  flash driver asserts otherwise, and the watch resets.
+
+The whole measurement, lever by lever, is in [RAM-AUDIT.md](RAM-AUDIT.md).
+With all of it the executable heap idles with 140 KB free and 131 KB in one
+block.

@@ -122,10 +122,20 @@ from the very edge contains that row. The layout audit checks it. See
 In the simulator the mouse reaches everywhere, so this is invisible there;
 `tools/audit_layout.sh` checks it.
 
-**Large buffers go through `malloc()`, not `lv_malloc()`.** LVGL's pool on the
-board is 64 KB of internal RAM and it needs it for objects and draw buffers.
-With `CONFIG_SPIRAM_USE_MALLOC` a plain `malloc()` lands in PSRAM, of which
-there are 8 MB.
+**Large buffers go through `malloc()`, not `lv_malloc()`.** With
+`CONFIG_SPIRAM_USE_MALLOC` a plain `malloc()` lands in PSRAM, of which there
+are 8 MB. Since the RAM audit LVGL's own allocations land there too (the
+firmware wraps `lv_malloc_core`), so hundreds of LVGL objects no longer eat
+internal RAM; `malloc()` stays the API for buffers because it behaves the same
+in the simulator and does not depend on that wrap.
+
+**Your code runs from PSRAM.** The loader puts the `.so`'s `.text` in PSRAM and
+maps it onto the instruction bus through the MMU, so there is no size an app
+has to fit in any more (until v0.3.3 every loaded app shared a 48 KB
+reservation of internal RAM, and Ajustes → SISTEMA showed how much was left).
+`.rodata` and `.data` go to PSRAM as before. Keep the `-Os` that
+`elf_loader.cmake` sets: a smaller `.text` misses the 16 KB instruction cache
+less and loads faster.
 
 **No `double`, no 64-bit division, if you can avoid it.** The ESP32-S3's FPU is
 single precision, so a `double` means calls into the software emulation — and

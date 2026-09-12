@@ -1251,18 +1251,30 @@ static lv_indev_read_cb_t s_orig_read_cb;
 static volatile uint32_t  s_touch_reads;
 static volatile uint32_t  s_touch_presses;
 
-/* RAM audit: a tap injected from the portal (/api/mem?tap=x,y), so that the
- * games can be driven without a finger while measuring. Held for hold_ms,
- * then one released reading. Screen coordinates, no calibration applied. */
+/* RAM audit: a tap or a drag injected from the portal (/api/mem?tap=x,y),
+ * so that the games can be driven and a page scrolled without a finger while
+ * measuring. Pressed for hold_ms, moving in a straight line from (x, y) to
+ * (x2, y2) -a tap has both ends equal-, then one released reading. Screen
+ * coordinates, no calibration applied. A slow drag scrolls: LVGL takes a
+ * swipe as a gesture only above 3 px/ms. */
 static volatile int32_t  s_inject_x = -1;
 static volatile int32_t  s_inject_y;
-static volatile uint32_t s_inject_until;
+static volatile int32_t  s_inject_x2, s_inject_y2;
+static volatile uint32_t s_inject_start, s_inject_until;
+
+void aos_ui_inject_drag(int x, int y, int x2, int y2, int hold_ms)
+{
+    s_inject_y  = y;
+    s_inject_x2 = x2;
+    s_inject_y2 = y2;
+    s_inject_start = lv_tick_get();
+    s_inject_until = s_inject_start + (uint32_t)(hold_ms > 0 ? hold_ms : 80);
+    s_inject_x  = x;
+}
 
 void aos_ui_inject_tap(int x, int y, int hold_ms)
 {
-    s_inject_y = y;
-    s_inject_until = lv_tick_get() + (uint32_t)(hold_ms > 0 ? hold_ms : 80);
-    s_inject_x = x;
+    aos_ui_inject_drag(x, y, x, y, hold_ms);
 }
 
 static void counting_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
@@ -1283,10 +1295,13 @@ static void counting_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
         }
     }
     if (s_inject_x >= 0) {
-        if ((int32_t)(lv_tick_get() - s_inject_until) < 0) {
+        uint32_t now = lv_tick_get();
+        if ((int32_t)(now - s_inject_until) < 0) {
+            uint32_t span = s_inject_until - s_inject_start;
+            uint32_t t    = span ? (now - s_inject_start) : 0;
             data->state   = LV_INDEV_STATE_PRESSED;
-            data->point.x = s_inject_x;
-            data->point.y = s_inject_y;
+            data->point.x = s_inject_x + (s_inject_x2 - s_inject_x) * (int32_t)t / (int32_t)(span ? span : 1);
+            data->point.y = s_inject_y + (s_inject_y2 - s_inject_y) * (int32_t)t / (int32_t)(span ? span : 1);
         } else {
             data->state = LV_INDEV_STATE_RELEASED;
             s_inject_x  = -1;

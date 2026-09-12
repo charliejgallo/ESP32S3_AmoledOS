@@ -429,7 +429,9 @@ allocation; only the comparison counts.
 How the frame rate was measured: `/api/mem?fps=N` counts LVGL's
 `LV_EVENT_RENDER_READY` (one per refresh that drew something, which for a
 game redrawing its canvas is one per frame) over N seconds, and
-`/api/mem?tap=x,y,ms` injects a touch through the calibration wrapper so the
+`/api/mem?tap=x,y,ms` (or `x,y,ms,x2,y2` for a drag, which scrolls a page
+when it is slower than LVGL's 3 px/ms gesture threshold) injects a touch
+through the calibration wrapper so the
 games can be started without a finger. claudito animates by itself (asleep at
 this hour), gems after PLAY (184,363) shows its idle sparkle, 2043 in touch
 mode (184,163) runs its level with the ship idle; 2043 also logs its own
@@ -490,3 +492,45 @@ with a few hundred bytes to spare.
 
 To go back to v0.3.3 at any time: `tools/install_fw.sh <ip> <path to the
 v0.3.3 amoledos.bin>`; the apps on the card need no change either way.
+
+## 10. Merged
+
+The candidate ran on the wrist for the rest of 2026-09-12 — the same round of
+apps as section 9, plus whatever a normal day brings — without a reset, and
+went to `main` that night. Readings at the moment of the merge, 7.7 hours
+after boot, phone connected:
+
+| | At the merge |
+| --- | ---: |
+| Internal free | 184,955 |
+| Exec free | 136,956 |
+| Largest exec block | 124,928 |
+| Lowest exec free since boot | 127,692 |
+| Free blocks in the main heap | 4 |
+
+What changed for the merge:
+
+* **Ajustes → SISTEMA** no longer prints the reservation line (there is no
+  reservation): its first line says how many `.so` are loaded and that their
+  code is in PSRAM. The old text stays in the code for a build without
+  `CONFIG_ELF_LOADER_TEXT_PSRAM_MMU`, chosen at run time through
+  `aos_dynapp_code_in_psram()` so that `aos_apps` keeps not reading Kconfig.
+* The documents that described the 48 K pool — README, ARCHITECTURE,
+  HARDWARE, APP-API, BUILDING, the `-Os` comment in `elf_loader.cmake` and
+  the app-writing handoff — describe the code-in-PSRAM model instead, and
+  say which of their old numbers are history.
+* `/api/mem` stays in the portal, without the per-call-site owner tables
+  (they need the five heap-tracing lines of `sdkconfig.defaults`, commented
+  out); the task table with stack peaks, the histogram, the benchmark and
+  the frame counter work in the release build. PORTAL.md lists it.
+
+**Building `main` after the merge**: `sdkconfig.defaults` changed a lot and
+IDF only reads it when `sdkconfig` is absent, so delete `sdkconfig` before the
+first build. A plain `idf.py build` is the candidate.
+
+Still on the table, none of it measured alone: the WiFi buffers at 6/6/6
+(-6.6 K), mDNS's task and allocations in PSRAM through its own Kconfig, the
+BLE controller without scanning and with 3 activities, and
+`HEAP_PLACE_FUNCTION_INTO_FLASH` (7.5 K, +16 % per full render). The next
+thing that presses on internal RAM decides whether any of them is worth its
+bisection.

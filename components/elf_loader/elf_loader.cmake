@@ -115,9 +115,13 @@ macro(project_so project_name)
         #     g2043      46.282      28.208    39 %
         #     truco      27.146      15.959    41 %
         #
-        # Se elige -Os y no -O2 porque lo que escasea es la reserva de codigo
-        # de 48 KB, no los ciclos: el cuello de las apps es el dibujo de LVGL,
-        # que corre en el firmware y ya va en -O2.
+        # Se elige -Os y no -O2 porque los ciclos no son el cuello: el de las
+        # apps es el dibujo de LVGL, que corre en el firmware y ya va en -O2.
+        # Hasta v0.3.3 el motivo era la reserva de codigo de 48 KB; desde la
+        # auditoria de RAM (CONFIG_ELF_LOADER_TEXT_PSRAM_MMU) el .text corre
+        # desde PSRAM a traves de la MMU y el tamano ya no limita, pero un
+        # .text chico pasa mejor por la cache de instrucciones de 16 KB y
+        # carga mas rapido, asi que la bandera se queda.
         set(so_compile_flags -c
                              -fPIC
                              -Os

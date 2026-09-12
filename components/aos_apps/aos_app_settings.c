@@ -1254,21 +1254,37 @@ static void refresh(lv_timer_t *timer)
         multi_heap_info_t ej;
         heap_caps_get_info(&ej, MALLOC_CAP_EXEC);
 
-        uint32_t p_libre = 0, p_mayor = 0;
-        int      p_usados = 0;
-        aos_dynapp_pool_info(&p_libre, &p_mayor, &p_usados);
-
         char mem[200];
-        snprintf(mem, sizeof(mem),
-                 _("reserva apps: %u K libres (mayor %u K, %d en uso)\n"
-                   "ejecutable %u K  (mayor %u K, %u huecos)\n"
-                   "interna %u K   psram %u K"),
-                 (unsigned)(p_libre / 1024), (unsigned)(p_mayor / 1024), p_usados,
-                 (unsigned)(ej.total_free_bytes / 1024),
-                 (unsigned)(ej.largest_free_block / 1024),
-                 (unsigned)ej.free_blocks,
-                 (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024),
-                 (unsigned)(heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024));
+        if (aos_dynapp_code_in_psram()) {
+            /* Since the RAM audit the apps' code runs from PSRAM through the
+             * MMU, so there is no reservation whose room could run out. What
+             * is still worth a line is how many .so are loaded: the ones in
+             * the background keep theirs open until a restart. */
+            snprintf(mem, sizeof(mem),
+                     _("apps cargadas: %d (código en PSRAM)\n"
+                       "ejecutable %u K  (mayor %u K, %u huecos)\n"
+                       "interna %u K   psram %u K"),
+                     aos_dynapp_loaded_list(NULL, 0),
+                     (unsigned)(ej.total_free_bytes / 1024),
+                     (unsigned)(ej.largest_free_block / 1024),
+                     (unsigned)ej.free_blocks,
+                     (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024),
+                     (unsigned)(heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024));
+        } else {
+            uint32_t p_libre = 0, p_mayor = 0;
+            int      p_usados = 0;
+            aos_dynapp_pool_info(&p_libre, &p_mayor, &p_usados);
+            snprintf(mem, sizeof(mem),
+                     _("reserva apps: %u K libres (mayor %u K, %d en uso)\n"
+                       "ejecutable %u K  (mayor %u K, %u huecos)\n"
+                       "interna %u K   psram %u K"),
+                     (unsigned)(p_libre / 1024), (unsigned)(p_mayor / 1024), p_usados,
+                     (unsigned)(ej.total_free_bytes / 1024),
+                     (unsigned)(ej.largest_free_block / 1024),
+                     (unsigned)ej.free_blocks,
+                     (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024),
+                     (unsigned)(heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024));
+        }
         lv_label_set_text(s_set.mem_label, mem);
 #else
         lv_label_set_text(s_set.mem_label, _("memoria: no disponible en el simulador"));

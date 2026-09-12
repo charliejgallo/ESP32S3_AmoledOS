@@ -178,15 +178,22 @@ esp_err_t aos_mem_handler(httpd_req_t *req)
     httpd_resp_set_hdr(req, "Cache-Control", "no-store");
     httpd_resp_set_type(req, "text/plain; charset=utf-8");
 
-    /* ?tap=x,y[,ms]: inject a tap; ?fps=N: rendered frames per second. */
+    /* ?tap=x,y[,ms[,x2,y2]]: inject a tap, or a drag to (x2, y2) over ms
+     * (a slow one scrolls the page); ?fps=N: rendered frames per second. */
     {
-        char q[64] = "", v[24];
+        char q[64] = "", v[32];
         if (httpd_req_get_url_query_str(req, q, sizeof(q)) == ESP_OK) {
             if (httpd_query_key_value(q, "tap", v, sizeof(v)) == ESP_OK) {
-                int x = 0, y = 0, ms = 80;
-                if (sscanf(v, "%d,%d,%d", &x, &y, &ms) >= 2) {
-                    aos_ui_inject_tap(x, y, ms);
-                    outf(&o, "tap injected at %d,%d for %d ms\n", x, y, ms);
+                int x = 0, y = 0, ms = 80, x2 = 0, y2 = 0;
+                int n = sscanf(v, "%d,%d,%d,%d,%d", &x, &y, &ms, &x2, &y2);
+                if (n >= 2) {
+                    if (n < 5) {
+                        x2 = x;
+                        y2 = y;
+                    }
+                    aos_ui_inject_drag(x, y, x2, y2, ms);
+                    outf(&o, "tap injected at %d,%d for %d ms, ending at %d,%d\n",
+                         x, y, ms, x2, y2);
                 }
             }
             if (httpd_query_key_value(q, "fps", v, sizeof(v)) == ESP_OK) {

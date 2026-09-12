@@ -48,8 +48,15 @@ int aos_dynapp_loaded_list(char *out, size_t len);
 
 
 /* State of the contiguous code reservation: free bytes, largest hole and how
- * many modules occupy it (-1 if it could not be reserved). */
+ * many modules occupy it (-1 if it could not be reserved, or if there is none
+ * because the code runs from PSRAM). */
 void aos_dynapp_pool_info(uint32_t *libre, uint32_t *mayor, int *usados);
+
+/* True when the apps' .text lives in PSRAM and runs through the MMU
+ * (CONFIG_ELF_LOADER_TEXT_PSRAM_MMU): there is no internal reservation, and
+ * what the settings screen can report is who is loaded, not how much room is
+ * left. Kept here so that aos_apps does not read the firmware's Kconfig. */
+bool aos_dynapp_code_in_psram(void);
 
 #ifdef __cplusplus
 }

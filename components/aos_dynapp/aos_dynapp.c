@@ -250,6 +250,15 @@ void aos_dynapp_pool_info(uint32_t *libre, uint32_t *mayor, int *usados)
     if (usados) *usados = n;
 }
 
+bool aos_dynapp_code_in_psram(void)
+{
+#if CONFIG_ELF_LOADER_TEXT_PSRAM_MMU
+    return true;
+#else
+    return false;
+#endif
+}
+
 void *__wrap_esp_elf_malloc(uint32_t n, bool exec)
 {
 #if CONFIG_ELF_LOADER_TEXT_PSRAM_MMU
@@ -639,9 +648,9 @@ bool aos_dynapp_unload(const char *app_id)
  *
  * An app with AOS_APP_FLAG_BACKGROUND is not destroyed on exit, so its .so
  * stays loaded until a restart. That is deliberate (the recorder has to go on
- * recording) but it is paid for in executable memory, which is where the code
- * of ALL dynamic apps comes from. Without this list there is no way to know
- * who is holding it. */
+ * recording) but it is paid for in memory: PSRAM and MMU pages now, and until
+ * v0.3.3 the internal reservation the code of ALL dynamic apps came from.
+ * Without this list there is no way to know who is holding it. */
 int aos_dynapp_loaded_list(char *out, size_t len)
 {
     int n = 0;

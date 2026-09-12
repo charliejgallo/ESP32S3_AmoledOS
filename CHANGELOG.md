@@ -3,7 +3,7 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased (branch `ram-audit`)
+## Unreleased
 
 ### The RAM audit, and the apps' code in PSRAM
 
@@ -36,6 +36,10 @@ screen cost, and what could move. `docs/RAM-AUDIT.md` has all of it.
   board), heap task tracking (deadlocks esp_timer), mDNS's `.bss` in PSRAM
   (its TCB), the http/player/mic stacks in PSRAM (they reach NVS), the heap
   allocator in flash (+16 % on every full render).
+- Ajustes → SISTEMA no longer reports the reservation: its first line says
+  how many apps are loaded and that their code is in PSRAM. `/api/mem` stays
+  in the portal (PORTAL.md); `tools/ram_audit/` has the scripts. README,
+  ARCHITECTURE, HARDWARE, APP-API and BUILDING describe the new model.
 
 ## v0.3.3 — 2026-09-11
 
