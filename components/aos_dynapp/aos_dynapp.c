@@ -132,6 +132,10 @@ static struct {
     bool     used;
 } s_pool_blk[POOL_MAX_BLOCK];
 
+/* Only a build without CONFIG_ELF_LOADER_TEXT_PSRAM_MMU sets the reservation
+ * aside (see aos_dynapp_scan()); with the option s_pool stays NULL and the
+ * pool_* functions below answer "not ours". */
+#if !CONFIG_ELF_LOADER_TEXT_PSRAM_MMU
 static void pool_init(void)
 {
     if (s_pool) {
@@ -145,6 +149,7 @@ static void pool_init(void)
     ESP_LOGI(TAG, "code reservation: %u KB contiguous at %p",
              (unsigned)(POOL_BYTES / 1024), s_pool);
 }
+#endif
 
 /* First hole that fits. With few large blocks nothing more is needed. */
 static void *pool_alloc(uint32_t n)
