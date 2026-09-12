@@ -3,7 +3,7 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.3.4 — 2026-09-12
 
 ### The RAM audit, and the apps' code in PSRAM
 
@@ -40,6 +40,11 @@ screen cost, and what could move. `docs/RAM-AUDIT.md` has all of it.
   how many apps are loaded and that their code is in PSRAM. `/api/mem` stays
   in the portal (PORTAL.md); `tools/ram_audit/` has the scripts. README,
   ARCHITECTURE, HARDWARE, APP-API and BUILDING describe the new model.
+- The English and German catalogs get the power and settings strings that
+  had stayed in Spanish since v0.3.0 (POWER, Battery care, Forget phone, the
+  charger states, the battery toasts, "Hold to power off"), and keep the
+  raw-view strings of v0.3.3, which the audit branch had embedded from a
+  stale pack. The apps' `.so` files are the ones of v0.3.3, unchanged.
 
 ## v0.3.3 — 2026-09-11
 
