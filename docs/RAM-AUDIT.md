@@ -257,9 +257,18 @@ with its price; note that turning it on also forces the SPI ISR to flash.
 The second bundle, without mDNS, is clean: our components' `.bss` in PSRAM
 (-10 K static; `main/aos_psram.lf`, `-DAOS_AUDIT_PSRAM_BSS=1`, with
 `aos_ble`'s `s_ds` kept internal as its author asked), the tone task's stack
-in PSRAM at boot and http/player/mic when they run
-(`-DAOS_AUDIT_PSRAM_STACKS=1`), IPv6 off. X10 boots, confirms, connects and
-advertises, and leaves **98 K of executable heap with 86 K in one block**.
+in PSRAM (`-DAOS_AUDIT_PSRAM_STACKS=1`), IPv6 off. X10 boots, confirms,
+connects and advertises, and leaves **98 K of executable heap with 86 K in
+one block**.
+
+The same switch first moved the http, player and mic stacks too, and the
+board found the mistake before the audit did: opening Clima (or
+Cotizaciones) reset it. The http task calls `aos_hal_time_is_valid()` before
+its request, which reads a preference from NVS, and the flash driver asserts
+when the task that starts a flash operation has its stack in PSRAM
+(`esp_task_stack_is_sane_cache_disabled`, `cache_utils.c:127`). Only the tone
+task, which writes PCM to I2S and nothing else, keeps a PSRAM stack; any task
+that can reach NVS, SPIFFS or OTA stays internal.
 
 ### 6.5 X11, measured: what this branch ships
 
@@ -278,8 +287,7 @@ Static DIRAM **87,663** (reference 114,487, **-26.8 K**).
 | 2043 loaded (28.6 K of the pool) | 138,527 | 90,528 / 81,920 | 18,016 / 9,216 |
 | Bluetooth off | 172,535 | 124,536 / 81,920 | 64,020 / 29,184 |
 
-Stacks: 73,472 internal (the tone task's 3 K in PSRAM; http / player / mic
-follow when they run). LVGL task peak 5.3 K of 16 K. `main` unchanged at
+Stacks: 73,472 internal (the tone task's 3 K in PSRAM). LVGL task peak 5.3 K of 16 K. `main` unchanged at
 7,948 of 8,704. Watchface full render 128 ms (reference build with the same
 instrumentation: 115 ms; the difference is the SPI ISR, the PHY strings and
 our `.bss` in PSRAM).
@@ -348,11 +356,11 @@ Ordered by what they could give the apps' reservation.
    blocks) although audio plays a few seconds a day. `aos_hal` already wraps
    `i2s_new_channel`; creating the channels when playing or recording starts
    and deleting them after would return that memory to the exec heap.
-8. **Task stacks**: `mdns` (4 K) can go to PSRAM by Kconfig; the tone, http,
-   player and mic tasks never touch flash and take `xTaskCreateWithCaps`
-   (E1b); `main` should get 10 K (it boots with 764 B to spare) and
-   `sys_evt` 3 K. The LVGL task can drop from 20 K to 16 K on the measured
-   7.6 K peak; httpd and wifi stay.
+8. **Task stacks**: `mdns` (4 K) can go to PSRAM by Kconfig; only the tone
+   task proved safe in PSRAM (the http one reads NVS and crashes there, see
+   6.4); `main` should get 10 K (it boots with 764 B to spare) and `sys_evt`
+   3 K. The LVGL task can drop from 20 K to 16 K on the measured 7.6 K peak;
+   httpd and wifi stay.
 9. **Bluetooth controller**: 3 activities instead of 6 (828 B each) and no
    scan feature; the coexistence path is where two of the E1b crashes were,
    so these need their own test before being trusted.

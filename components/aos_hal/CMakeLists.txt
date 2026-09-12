@@ -16,7 +16,7 @@ target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--wrap=esp_lcd_new_panel_i
 # RAM audit switches, passed as -D<name>=1 to idf.py (see docs/RAM-AUDIT.md):
 #   AOS_AUDIT_LVGL_PSRAM    LVGL objects, styles and layers go to PSRAM (aos_lvmem.c)
 #   AOS_AUDIT_LVGL_STACK16  LVGL task stack 16 KB instead of 20
-#   AOS_AUDIT_PSRAM_STACKS  player/mic/tone/http task stacks in PSRAM
+#   AOS_AUDIT_PSRAM_STACKS  the tone task's stack in PSRAM (http/player/mic stay internal: they can reach NVS)
 if(AOS_AUDIT_LVGL_PSRAM)
     target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--wrap=lv_malloc_core" "-Wl,--wrap=lv_realloc_core")
 endif()

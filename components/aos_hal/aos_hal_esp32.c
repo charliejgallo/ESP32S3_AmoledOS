@@ -957,17 +957,21 @@ typedef struct {
 
 static QueueHandle_t s_tone_queue;
 
-/* RAM audit (E1b): with AOS_AUDIT_PSRAM_STACKS the player, mic and tone tasks
- * get their stacks in PSRAM (they never touch flash: SD card only). A task
- * created with xTaskCreateWithCaps must exit through vTaskDeleteWithCaps. */
+/* RAM audit (E1b): with AOS_AUDIT_PSRAM_STACKS the tone task gets its stack
+ * in PSRAM: it only writes PCM to I2S and never touches flash. The http,
+ * player and mic tasks were moved too at first and the http one crashed the
+ * board the moment Clima ran: it reads a preference (NVS) before the request,
+ * and the flash driver asserts when the calling task's stack is in PSRAM
+ * (cache_utils.c, esp_task_stack_is_sane_cache_disabled). Any task that may
+ * reach NVS, SPIFFS or OTA stays internal. */
 #ifdef AOS_AUDIT_PSRAM_STACKS
 #define AOS_XTASKCREATE(fn, name, stack, arg, prio, handle) \
     xTaskCreateWithCaps(fn, name, stack, arg, prio, handle, MALLOC_CAP_SPIRAM)
-#define AOS_VTASKDELETE_SELF() vTaskDeleteWithCaps(NULL)
+#define vTaskDelete(NULL) vTaskDeleteWithCaps(NULL)
 #else
 #define AOS_XTASKCREATE(fn, name, stack, arg, prio, handle) \
     xTaskCreate(fn, name, stack, arg, prio, handle)
-#define AOS_VTASKDELETE_SELF() vTaskDelete(NULL)
+#define vTaskDelete(NULL) vTaskDelete(NULL)
 #endif
 
 static void tone_task(void *arg)
@@ -1168,7 +1172,7 @@ static void player_task(void *arg)
         ESP_LOGE(TAG, "could not open %s", s_player_path);
         s_player_state = AOS_PLAYER_STOPPED;
         s_player_task = NULL;
-        AOS_VTASKDELETE_SELF();
+        vTaskDelete(NULL);
         return;
     }
 
@@ -1179,7 +1183,7 @@ static void player_task(void *arg)
         fclose(file);
         s_player_state = AOS_PLAYER_STOPPED;
         s_player_task = NULL;
-        AOS_VTASKDELETE_SELF();
+        vTaskDelete(NULL);
         return;
     }
 
@@ -1198,7 +1202,7 @@ static void player_task(void *arg)
         fclose(file);
         s_player_state = AOS_PLAYER_STOPPED;
         s_player_task = NULL;
-        AOS_VTASKDELETE_SELF();
+        vTaskDelete(NULL);
         return;
     }
     esp_codec_dev_set_out_vol(s_speaker, s_volume);
@@ -1232,7 +1236,7 @@ static void player_task(void *arg)
     s_player_position = 0;
     s_player_state = AOS_PLAYER_STOPPED;
     s_player_task = NULL;
-    AOS_VTASKDELETE_SELF();
+    vTaskDelete(NULL);
 }
 
 bool aos_hal_player_play(const char *path)
@@ -1255,7 +1259,7 @@ bool aos_hal_player_play(const char *path)
     s_player_abort = false;
     s_player_state = AOS_PLAYER_PLAYING;
 
-    if (AOS_XTASKCREATE(player_task, "aos_player", 4096, NULL, 5, &s_player_task) != pdPASS) {
+    if (xTaskCreate(player_task, "aos_player", 4096, NULL, 5, &s_player_task) != pdPASS) {
         s_player_state = AOS_PLAYER_STOPPED;
         return false;
     }
@@ -1539,7 +1543,7 @@ static void mic_task(void *arg)
         s_mic_users       = 0;
         s_mic_holds_codec = false;
         s_mic_task        = NULL;
-        AOS_VTASKDELETE_SELF();
+        vTaskDelete(NULL);
         return;
     }
     esp_codec_dev_set_in_gain(s_mic, (float)s_mic_gain_db);
@@ -1651,7 +1655,7 @@ static void mic_task(void *arg)
     s_mic_users       = 0;
     s_mic_holds_codec = false;      /* the speaker is available again */
     s_mic_task        = NULL;
-    AOS_VTASKDELETE_SELF();
+    vTaskDelete(NULL);
 }
 
 /* Adds one user to the capture and starts it if it was needed. */
@@ -1671,7 +1675,7 @@ static bool mic_acquire(uint32_t user)
         xQueueSend(s_tone_queue, &wake, 0);
     }
 
-    if (AOS_XTASKCREATE(mic_task, "aos_mic", 4096, NULL, 6, &s_mic_task) != pdPASS) {
+    if (xTaskCreate(mic_task, "aos_mic", 4096, NULL, 6, &s_mic_task) != pdPASS) {
         s_mic_users &= ~user;
         if (!s_mic_users) {
             s_mic_holds_codec = false;

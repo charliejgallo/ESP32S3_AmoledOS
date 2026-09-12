@@ -321,7 +321,9 @@ CONFIG_FREERTOS_USE_TRACE_FACILITY=y
 
 # --- the levers that survived: build X11 in docs/RAM-AUDIT.md ----------------
 # Together with -DAOS_AUDIT_LVGL_PSRAM=1 -DAOS_AUDIT_LVGL_STACK16=1
-# -DAOS_AUDIT_PSRAM_BSS=1 -DAOS_AUDIT_PSRAM_STACKS=1 (see
+# -DAOS_AUDIT_PSRAM_BSS=1 -DAOS_AUDIT_PSRAM_STACKS=1 (the last one moves only
+# the tone task's stack: the http task reads NVS and the flash driver refuses
+# a PSRAM stack there, measured as a reset on opening Clima) (see
 # components/aos_hal/CMakeLists.txt and main/CMakeLists.txt). Section 6.3/6.4
 # of the document has the measured numbers of every step.
 #

@@ -76,19 +76,10 @@
 #include "mbedtls/x509_crt.h"
 #include "mbedtls/net_sockets.h"
 
-/* RAM audit (E1b): with AOS_AUDIT_PSRAM_STACKS the http task's stack lives in
- * PSRAM (it never touches flash). A task created with xTaskCreateWithCaps
- * must exit through vTaskDeleteWithCaps. */
-#include "esp_heap_caps.h"
-#ifdef AOS_AUDIT_PSRAM_STACKS
-#define AOS_XTASKCREATE(fn, name, stack, arg, prio, handle) \
-    xTaskCreateWithCaps(fn, name, stack, arg, prio, handle, MALLOC_CAP_SPIRAM)
-#define AOS_VTASKDELETE_SELF() vTaskDeleteWithCaps(NULL)
-#else
-#define AOS_XTASKCREATE(fn, name, stack, arg, prio, handle) \
-    xTaskCreate(fn, name, stack, arg, prio, handle)
-#define AOS_VTASKDELETE_SELF() vTaskDelete(NULL)
-#endif
+/* RAM audit: the http task's stack stays in internal RAM. Moving it to PSRAM
+ * was tried (E1b) and crashed the board the moment Clima asked for the
+ * weather: aos_hal_time_is_valid() reads a preference from NVS, and the
+ * flash driver refuses a task whose stack is in PSRAM. */
 
 #ifdef AOS_SIM
   #include <pthread.h>
@@ -684,7 +675,7 @@ static void *http_thread(void *arg)
 static void http_task(void *arg)
 {
     http_work((slot_t *)arg);
-    AOS_VTASKDELETE_SELF();
+    vTaskDelete(NULL);
 }
 #endif
 
@@ -856,7 +847,7 @@ int aos_hal_http_request(const char *method, const char *url,
      *
      * Priority 4, the same as LVGL, because it spends nearly all its time
      * waiting. */
-    if (AOS_XTASKCREATE(http_task, "aos_http", s->tls ? 7168 : 5120, s, 4, NULL) != pdPASS) {
+    if (xTaskCreate(http_task, "aos_http", s->tls ? 7168 : 5120, s, 4, NULL) != pdPASS) {
         LOCK(s_lock);
         slot_free(s);
         UNLOCK(s_lock);
