@@ -2,7 +2,7 @@
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
 368x448 AMOLED you can hold in your hand. Seven watchfaces, eighteen built-in
-apps, twenty-two more loaded from the microSD as shared objects, a web portal,
+apps, twenty-three more loaded from the microSD as shared objects, a web portal,
 iPhone notifications over BLE, and a desktop simulator that runs the same UI
 code so you can build the whole thing without the board.
 
@@ -105,7 +105,7 @@ browser, and the log tailed over wifi. See [docs/PORTAL.md](docs/PORTAL.md).
 
 ## The apps
 
-Forty of them, in two families that differ in where the code lives, not
+Forty-one of them, in two families that differ in where the code lives, not
 in what they are allowed to do.
 
 ### Built into the firmware
@@ -124,7 +124,7 @@ Eighteen ship inside the binary. They are the ones the watch cannot be without
 
 ### Loaded from the microSD
 
-Twenty-two more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
+Twenty-three more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
 `.so` files at startup. The same source builds into the simulator, so they are
 designed on a laptop and copied to the card without changing a line — and a new
 one needs no firmware rebuild.
@@ -132,6 +132,7 @@ one needs no firmware rebuild.
 | | | |
 |---|---|---|
 | <img src="docs/img/app-chatarra-map.png" width="200"><br>**Chatarra** — a turn-based robot RPG. Eight zones, 51 rooms, 64 parts drawn from descriptors rather than sprites. | <img src="docs/img/app-chatarra-battle.png" width="200"><br>Its combat: six elemental types, an effectiveness table, and the robot you fight with is one you built from parts torn off others. | <img src="docs/img/app-cjump.png" width="200"><br>**Claude Jump** — a vertical platformer with five zones, coins and sixteen costumes. |
+| <img src="docs/img/app-topos.png" width="200"><br>**Topos** — whack-a-mole in three modes. A mole in a hard hat takes two taps, a golden one is worth a lot, and a bomb must not be touched. | <img src="docs/img/app-topos-frenzy.png" width="200"><br>Frenzy: several at once and combos up to ×5. The lawn never moves, so only what comes out of the holes is redrawn — about a tenth of the screen per frame. | <img src="docs/img/app-topos-survival.png" width="200"><br>Survival: three hearts and a level every eight moles. Every state has its own sprite — peeking, glancing about, taunting, dizzy, the hat flying off. |
 | <img src="docs/img/app-gemas.png" width="200"><br>**Gemas** — match-three. The jewels are traced in code as convex polygons with facets, not stored as bitmaps. | <img src="docs/img/app-2043.png" width="200"><br>**2043** — a vertical shooter, an homage to Capcom's 1943, with a different boss per planet. | <img src="docs/img/app-arkanos.png" width="200"><br>**Arkanos** — brick breaking, twelve walls, and the app that introduced dirty-rectangle drawing. |
 | <img src="docs/img/app-claudito.png" width="200"><br>**Claudito** — a virtual pet, entirely hand-drawn pixel art on a 92x112 grid. | <img src="docs/img/app-truco.png" width="200"><br>**Truco** — Argentine truco against the machine, with cards drawn in code and a matchstick scoreboard. | <img src="docs/img/app-atasco.png" width="200"><br>**Atasco** — a sliding block puzzle. 25 levels, each with a BFS-verified minimum move count. |
 | <img src="docs/img/app-clima.png" width="200"><br>**Clima** — weather from Open-Meteo over HTTPS, with the icons drawn from shape descriptions at any size. | <img src="docs/img/app-remoto.png" width="200"><br>**Remoto** — a programmable Home Assistant remote: button pages, accelerometer gestures and a dial you turn with your wrist. | <img src="docs/img/app-sensores.png" width="200"><br>**Sensores** — up to four Home Assistant sensors with three hours of chart, sampled by the watch itself. |
@@ -143,7 +144,7 @@ one needs no firmware rebuild.
 ## Flash it without building
 
 The [latest release](https://github.com/charliejgallo/ESP32S3_AmoledOS/releases/latest)
-carries the firmware and the twenty-two dynamic apps already built, for the
+carries the firmware and the twenty-three dynamic apps already built, for the
 Waveshare ESP32-S3-Touch-AMOLED-1.8.
 
 ```bash
@@ -203,7 +204,7 @@ components/
   aos_dynapp/         .so loader and symbol table
   aos_ble/            NimBLE: ANCS, AMS, pairing
   aos_web/            the web portal, embedded in the binary
-apps/                 22 dynamic apps
+apps/                 23 dynamic apps
 tools/                generators, test benches, board utilities
 ```
 

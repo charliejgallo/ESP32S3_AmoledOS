@@ -68,7 +68,7 @@ cmake --build build -j8
 ./build/amoledos_sim
 ```
 
-It compiles the real `aos_ui`, `aos_apps` and all 22 dynamic apps (with
+It compiles the real `aos_ui`, `aos_apps` and all 23 dynamic apps (with
 `AOS_SIM_BUILTIN`, so `AOS_APP_ENTRY` self-registers them instead of exporting
 the `.so` symbol).
 

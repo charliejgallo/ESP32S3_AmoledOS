@@ -3,6 +3,40 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.3.5 — 2026-09-12
+
+### Topos, a whack-a-mole
+
+`apps/topos/`, a dynamic app. Nine holes in a lawn; moles pop up and you tap
+them. A mole in a hard hat takes two taps, a golden one is worth a lot, a bomb
+must not be touched. Three modes with a difficulty that climbs as you play:
+classic (60 s), survival (three hearts, a level every eight moles) and frenzy
+(30 s, several at once, combos up to ×5). A record per mode.
+
+- Every state has its own sprite: a mole peeks out, glances about, taunts
+  with its tongue out when nobody hits it, and goes dizzy when whacked; the
+  hard hat flies off spinning; a bomb burns its fuse, blinks red at the end,
+  and either fizzles out or blows up. Bodies, hat, bomb and mallet are
+  rendered when the app opens, lit and quantised into four tones; faces and
+  paws are hand-drawn.
+- The lawn never moves, so it runs on dirty rectangles, and the compositor
+  goes one step past Claude Jump's: a slot that did not change costs nothing,
+  and a changed one has its area rebuilt from the background plus everything
+  touching it. `tools/tp_harness.c` compares every frame with a full redraw.
+- English and German from the first commit.
+- The firmware gets its icon, `AOS_ICON_MOLE` (a mole peeking out of its
+  hole). Until the watch runs a build with it, the app shows an empty circle
+  in the menu.
+- Measured on the board: the sprites render in 22 ms when the app opens, and
+  frenzy under a stream of taps holds 29 frames per second, LVGL's ceiling.
+
+### Also
+
+- `aos_dynapp.c`: `pool_init()` is compiled only in a build without
+  `CONFIG_ELF_LOADER_TEXT_PSRAM_MMU`, the one that still sets the 48 K
+  reservation aside. It had been a dead-code warning since v0.3.4.
+- The apps' `.so` files are the ones of v0.3.4, plus `topos.so`.
+
 ## v0.3.4 — 2026-09-12
 
 ### The RAM audit, and the apps' code in PSRAM
