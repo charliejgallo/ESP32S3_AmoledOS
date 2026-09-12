@@ -3,6 +3,16 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+### Also
+
+- `aos_hal_esp32.c`: the unused `s_media_enabled` is gone, together with the
+  "WAITING ON HARDWARE" comment above it, left over from the BLE HID plan.
+  Media control ended up on AMS and its on/off state lives in `aos_ble`, so
+  nothing ever touched the variable: a warning since the first commit, which
+  incremental builds hide. The simulator keeps its own, which it does use.
+
 ## v0.3.5 — 2026-09-12
 
 ### Topos, a whack-a-mole

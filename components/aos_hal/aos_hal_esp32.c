@@ -1911,22 +1911,6 @@ int aos_hal_mic_gain_get(void)
 }
 
 /* --------------------------------------------------------------------------
- * Remote control of the phone's music
- *
- * WAITING ON HARDWARE. The plan is to present as a BLE HID device and send the
- * consumer usages (0x0C): 0xCD play/pause, 0xB5 next, 0xB6 previous, 0xE9/0xEA
- * volume. iOS and Android both understand that. Metadata, iPhone only, via
- * AMS.
- *
- * It is deliberately not implemented yet: a BLE stack written blind, with no
- * phone to test it against, is code that looks like it works and does not. The
- * API is already settled and the simulator implements the whole of it, so when
- * the board arrives only this block has to be filled in.
- * -------------------------------------------------------------------------- */
-
-static bool s_media_enabled;
-
-/* --------------------------------------------------------------------------
  * Control of the phone's music, over AMS
  *
  * This block sat empty from the start waiting for "the BLE stack". It turned
