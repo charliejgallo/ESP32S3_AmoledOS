@@ -16,6 +16,10 @@ Newest first. Versions are git tags; what is above the latest tag is on
   HID. Planned, not scheduled. The comments in `aos_hal.h` and Control BT
   that still gave BLE HID as the way the music is controlled now say AMS,
   and point there.
+- `/api/apps`: whether an app came from the card is asked to `aos_dynapp`.
+  It was guessed from the id, and twelve of the card's apps are `aos.*`
+  (clima, dados, pixel, truco...), so the portal's Screen page showed them
+  as built-in.
 
 ## v0.3.5 — 2026-09-12
 

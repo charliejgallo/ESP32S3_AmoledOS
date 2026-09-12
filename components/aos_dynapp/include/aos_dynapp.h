@@ -41,6 +41,11 @@ void aos_dynapp_tick(void);
 /* Unloads an already registered dynamic app and takes it off the menu. */
 bool aos_dynapp_unload(const char *app_id);
 
+/* Whether the app with this id came from a .so on the card. The id does not
+ * say it: twelve of the card's apps are "aos.something", like the built-in
+ * ones, so only the table of loaded stubs knows. */
+bool aos_dynapp_is_dynamic(const char *app_id);
+
 
 /* .so modules loaded right now. Returns how many; 'out' receives the names
  * separated by spaces. Those remaining are the background ones. */

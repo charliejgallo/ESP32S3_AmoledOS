@@ -330,6 +330,11 @@ static dynapp_t *find_by_id(const char *id)
     return NULL;
 }
 
+bool aos_dynapp_is_dynamic(const char *app_id)
+{
+    return app_id && find_by_id(app_id);
+}
+
 /* --------------------------------------------------------------------------
  * Opening and closing the .so
  * -------------------------------------------------------------------------- */

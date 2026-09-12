@@ -8,6 +8,7 @@
 #include "aos_watchface.h"
 #include "aos_log.h"
 #include "aos_apps.h"   /* aos_alarm_get / set */
+#include "aos_dynapp.h" /* aos_dynapp_is_dynamic, for /api/apps */
 #include <time.h>
 
 #include "esp_http_server.h"
@@ -2347,7 +2348,8 @@ static esp_err_t accion_handler(httpd_req_t *req)
 }
 
 /* GET /api/apps: what the launcher shows, so the Screen page can open any of
- * them. Built-in ids start with "aos."; the rest came from the card. */
+ * them. Whether one came from the card is asked to aos_dynapp: the id does
+ * not say it, twelve of the card's apps are "aos.something" too. */
 static esp_err_t apps_handler(httpd_req_t *req)
 {
     char item[160];
@@ -2365,7 +2367,7 @@ static esp_err_t apps_handler(httpd_req_t *req)
         json_escape(nombre, sizeof(nombre), a->desc.name ? a->desc.name : a->desc.id);
         snprintf(item, sizeof(item), "%s{\"id\":\"%s\",\"nombre\":\"%s\",\"dinamica\":%s}",
                  i ? "," : "", a->desc.id, nombre,
-                 strncmp(a->desc.id, "aos.", 4) == 0 ? "false" : "true");
+                 aos_dynapp_is_dynamic(a->desc.id) ? "true" : "false");
         httpd_resp_sendstr_chunk(req, item);
     }
     httpd_resp_sendstr_chunk(req, "]}");
