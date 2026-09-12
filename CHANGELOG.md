@@ -3,6 +3,40 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased (branch `ram-audit`)
+
+### The RAM audit, and the apps' code in PSRAM
+
+Measured on the board with `/api/mem` (heaps by region, task stacks with
+peaks, the owner of every internal block by call stack, a render benchmark,
+an injected tap): where the 279 K of internal RAM in use went, what each
+screen cost, and what could move. `docs/RAM-AUDIT.md` has all of it.
+
+- **LVGL's objects, styles and layers live in PSRAM** (`aos_lvmem.c`, a
+  linker wrap of `lv_malloc_core`, no LVGL config change, apps untouched).
+  The launcher alone used to put 48 K of small blocks in the executable heap
+  and pulverise it on every screen change; the watchface renders in the same
+  115 ms with and without.
+- **The apps' code runs from PSRAM** (`CONFIG_ELF_LOADER_TEXT_PSRAM_MMU`,
+  `elf_loader/src/soc/esp_elf_esp32s3.c`): the loader gets a 64 KB-aligned
+  PSRAM block and `esp_mmu_map()` gives it an executable alias on the
+  instruction bus; `dlsym` now hands out the alias too. The 48 K reservation
+  is gone. claudito, Claude Jump and 2043 keep their frame rate.
+- The DMA reserve is 16 K (it was carved out of the executable heap and never
+  used), assertion messages of cache-off code no longer live in DRAM (6.8 K),
+  PHY strings and the SPI and I2C ISRs are in flash, IPv6 is off, our
+  components' `.bss` is in PSRAM (`main/aos_psram.lf`), the LVGL task stack
+  is 16 K (measured peak 9.1 K), the tone task's stack is in PSRAM.
+- Stacks that ran out of margin: `main` 10 K, `sys_evt` 3 K, `nimble_host`
+  5 K, `aos_hk` 4 K, `aos_tone` 4 K.
+- Result, watchface idle with WiFi and BLE up: general executable heap
+  **140 K free with 131 K in one block** (v0.3.3: 30 K / 22 K); after a day
+  of use it never went below 125 K.
+- Rejected with evidence: the ROM flash driver (corrupts the heap on this
+  board), heap task tracking (deadlocks esp_timer), mDNS's `.bss` in PSRAM
+  (its TCB), the http/player/mic stacks in PSRAM (they reach NVS), the heap
+  allocator in flash (+16 % on every full render).
+
 ## v0.3.3 — 2026-09-11
 
 ### The touch window, audited end to end

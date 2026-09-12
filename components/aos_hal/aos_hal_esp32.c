@@ -87,7 +87,9 @@
  * ~2.0 KB of the 4 to spare, so its peak is about 2 KB. Left at 3 KB, which
  * keeps 1 KB of headroom over what was measured. Shrinking a stack is a better
  * deal than sending it to PSRAM: it frees internal RAM and pays no cache. */
-#define HK_STACK            3072
+/* 4 K, not 3: measured at a 2,384 B peak with 688 B to spare (RAM audit,
+ * 2026-09-12). */
+#define HK_STACK            4096
 
 
 /* --------------------------------------------------------------------------
@@ -3867,7 +3869,9 @@ bool aos_hal_init(void)
         /* Priority 6, above the LVGL task (4): with drawing at 100% CPU and
          * the same priority, this task got no turn and the notes came out
          * mute. Audio cannot depend on how long a frame takes to draw. */
-        AOS_XTASKCREATE(tone_task, "aos_tone", 3072, NULL, 6, NULL);
+        /* 4 K, not 3: 2,500 B peak measured while a tone played (RAM audit). In
+         * PSRAM, so the extra kilobyte costs no internal RAM. */
+        AOS_XTASKCREATE(tone_task, "aos_tone", 4096, NULL, 6, NULL);
     }
 
     int32_t saved = 0;

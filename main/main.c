@@ -113,9 +113,11 @@ static void audit_trace_start(void)
 }
 #endif
 
-/* RAM audit: is the .bss placed in PSRAM really backed by PSRAM? E1 died
- * reading a NimBLE global that lives there as NULL right after writing it;
- * this says at boot whether the region is mapped, and proves a write. */
+#if CONFIG_HEAP_TRACING_STANDALONE
+/* RAM audit builds only: is the .bss placed in PSRAM really backed by PSRAM?
+ * E1 died reading a NimBLE global that lives there as NULL right after
+ * writing it; this says at boot whether the region is mapped, and proves a
+ * write. */
 #include "esp_mmu_map.h"
 #include "esp_rom_sys.h"
 #include "esp_memory_utils.h"
@@ -134,13 +136,14 @@ static void audit_psram_bss_check(void)
     esp_mmu_map_dump_mapped_blocks(stdout);
     fflush(stdout);
 }
+#endif
 
 void app_main(void)
 {
 #if CONFIG_HEAP_TRACING_STANDALONE
     audit_trace_start();
-#endif
     audit_psram_bss_check();
+#endif
     /* First thing: from here on the log is also kept for /registro. */
     aos_log_init();
 

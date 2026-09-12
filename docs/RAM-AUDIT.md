@@ -436,3 +436,57 @@ mode (184,163) runs its level with the ship idle; 2043 also logs its own
 "real frame" time. Both builds carry the same instrumentation (heap tracing
 included), so only the difference between them means anything.
 
+
+## 9. A day on the wrist, and the candidate build
+
+The user ran X13 (with the two fixes below) for an afternoon on 2026-09-12:
+iPhone connected with notifications (ANCS), photos, tuner, settings
+(brightness and volume, which write NVS from the LVGL task), music, remote
+(a light switched through Home Assistant), clima refreshed, dice by touch and
+by the IMU, cotizaciones, atasco, truco, simon, recorder, scanner, pixel art,
+claudito, chatarra. No reset, no error or warning in the log.
+
+Readings after that session, phone connected:
+
+| | After the session | Lowest point of the session | v0.3.3 idle |
+| --- | ---: | ---: | ---: |
+| Internal free | 181,703 | 157,012 | 94,083 |
+| Exec free | 133,704 | 124,980 | 30,020 |
+| Largest exec block | 122,880 | | 22,016 |
+| Free blocks in the main heap | 7 | | up to 25 |
+
+Two things the day found that the audit had not:
+
+* **The http task cannot have its stack in PSRAM.** It reads a preference
+  from NVS before every request (`aos_hal_time_is_valid`), and the flash
+  driver asserts when the task that starts a flash operation has a PSRAM
+  stack. Clima and Cotizaciones reset the watch until the stack went back to
+  internal RAM; the player and mic stacks followed by the same rule. Only the
+  tone task keeps a PSRAM stack.
+* **A macro fix that renamed `vTaskDelete`.** The first correction turned
+  every `vTaskDelete()` of `aos_hal_esp32.c` into `vTaskDeleteWithCaps()`,
+  so the mic task, created with plain `xTaskCreate`, died in FreeRTOS's
+  assert at the end of a recording. Caught by pressing stop with the serial
+  port captured.
+
+Stack peaks after the session: LVGL 9,068 of 16,384 (photos included),
+`nimble_host` 3,548 of 4,096 with the phone connected, `aos_tone` 2,500 of
+3,072, `main` 7,948 of 8,704, `sys_evt` 2,232 of 2,816, `aos_hk` 2,384 of
+3,072. None of the last five was touched by the audit; all five were sized
+with a few hundred bytes to spare.
+
+**The candidate build** (this branch's `sdkconfig.defaults` and a plain
+`idf.py build`; the four code switches are now on by default and
+`CONFIG_ELF_LOADER_TEXT_PSRAM_MMU=y`):
+
+* stacks: `main` 10 K, `sys_evt` 3 K, `nimble_host` 5 K, `aos_hk` 4 K,
+  `aos_tone` 4 K (PSRAM); about 4.8 K of internal RAM for the margins;
+* heap tracing off (it costs CPU on every allocation; the `/api/mem` task
+  table and stack peaks stay, the per-call-site owners need the five
+  commented lines back);
+* everything else as X13: DMA reserve 16 K, silent asserts, no WPA
+  enterprise, PHY strings and SPI/I2C ISRs in flash, IPv6 off, LVGL in PSRAM
+  with a 16 K task stack, our `.bss` in PSRAM, the apps' code in PSRAM.
+
+To go back to v0.3.3 at any time: `tools/install_fw.sh <ip> <path to the
+v0.3.3 amoledos.bin>`; the apps on the card need no change either way.

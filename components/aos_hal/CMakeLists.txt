@@ -13,7 +13,13 @@ idf_component_register(
 # __wrap_esp_lcd_new_panel_io_spi en aos_hal_esp32.c).
 target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--wrap=esp_lcd_new_panel_io_spi" "-Wl,--wrap=i2s_new_channel")
 
-# RAM audit switches, passed as -D<name>=1 to idf.py (see docs/RAM-AUDIT.md):
+# RAM audit switches (docs/RAM-AUDIT.md). All ON by default since the
+# candidate build of 2026-09-12; pass -D<name>=0 to idf.py to turn one off.
+foreach(_sw AOS_AUDIT_LVGL_PSRAM AOS_AUDIT_LVGL_STACK16 AOS_AUDIT_PSRAM_STACKS)
+    if(NOT DEFINED ${_sw})
+        set(${_sw} 1)
+    endif()
+endforeach()
 #   AOS_AUDIT_LVGL_PSRAM    LVGL objects, styles and layers go to PSRAM (aos_lvmem.c)
 #   AOS_AUDIT_LVGL_STACK16  LVGL task stack 16 KB instead of 20
 #   AOS_AUDIT_PSRAM_STACKS  the tone task's stack in PSRAM (http/player/mic stay internal: they can reach NVS)

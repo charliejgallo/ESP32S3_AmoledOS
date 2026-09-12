@@ -59,7 +59,7 @@ CONFIG_LV_PERF_MONITOR_ALIGN_TOP_MID=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y
 CONFIG_FREERTOS_HZ=1000
-CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+# (main task stack: see the RAM audit block at the end, 10240)
 CONFIG_COMPILER_OPTIMIZATION_PERF=y
 
 # Consola por el USB-Serial/JTAG del Type-C
@@ -312,12 +312,24 @@ CONFIG_BT_CTRL_MAIN_XTAL_PU_DURING_LIGHT_SLEEP=y
 # CPU per allocation. (HEAP_TASK_TRACKING was tried first and is unusable in
 # IDF 5.5: it takes a mutex inside free(), and esp_timer frees timers from a
 # critical section -> interrupt watchdog three seconds after boot.)
-CONFIG_HEAP_TRACING_STANDALONE=y
-CONFIG_HEAP_TRACING_STACK_DEPTH=6
-CONFIG_HEAP_TRACE_HASH_MAP=y
-CONFIG_HEAP_TRACE_HASH_MAP_SIZE=2048
-CONFIG_HEAP_TRACE_HASH_MAP_IN_EXT_RAM=y
+# Heap tracing is OFF in the candidate build (2026-09-12): it costs CPU on
+# every allocation. Uncomment the five lines to get the per-call-site owner
+# tables back in /api/mem; the task table and the stack peaks stay, they only
+# need the trace facility.
+# CONFIG_HEAP_TRACING_STANDALONE=y
+# CONFIG_HEAP_TRACING_STACK_DEPTH=6
+# CONFIG_HEAP_TRACE_HASH_MAP=y
+# CONFIG_HEAP_TRACE_HASH_MAP_SIZE=2048
+# CONFIG_HEAP_TRACE_HASH_MAP_IN_EXT_RAM=y
 CONFIG_FREERTOS_USE_TRACE_FACILITY=y
+
+# --- stacks that ran out of margin in the audit (measured peaks, 2026-09-12) --
+# main boots with 7,948 of 8,704 used; sys_evt 2,232 of 2,816; the NimBLE host
+# 3,548 of 4,096 with the iPhone connected. (aos_hk and aos_tone are sized in
+# aos_hal_esp32.c: 4 K each now.)
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=10240
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=3072
+CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE=5120
 
 # --- the levers that survived: build X11 in docs/RAM-AUDIT.md ----------------
 # Together with -DAOS_AUDIT_LVGL_PSRAM=1 -DAOS_AUDIT_LVGL_STACK16=1
@@ -354,12 +366,13 @@ CONFIG_LWIP_IPV6=n
 # only if the frame time is not the constraint.
 # CONFIG_HEAP_PLACE_FUNCTION_INTO_FLASH=y
 
-# --- prototype, off by default: the apps' code in PSRAM through the MMU -------
+# --- the apps' code in PSRAM through the MMU (ON since the candidate build) --
 # components/elf_loader/src/soc/esp_elf_esp32s3.c. Measured 2026-09-12: the
 # 48 K reservation disappears, the general executable heap goes to 140 K free
-# with 131 K in one block, and claudito / Claude Jump / 2043 run at the same
-# frame rate as from internal RAM. docs/RAM-AUDIT.md, section 8.
-# CONFIG_ELF_LOADER_TEXT_PSRAM_MMU=y
+# with 131 K in one block, claudito / Claude Jump / 2043 run at the same frame
+# rate as from internal RAM, and a full day of use kept the executable heap
+# above 125 K with 7 free blocks. docs/RAM-AUDIT.md, sections 8 and 9.
+CONFIG_ELF_LOADER_TEXT_PSRAM_MMU=y
 
 # --- tried and REJECTED, with the reason ---------------------------------------
 # CONFIG_SPI_FLASH_ROM_IMPL=y
