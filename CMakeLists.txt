@@ -16,6 +16,10 @@ include(${CMAKE_CURRENT_LIST_DIR}/components/aos_fonts/aos_fonts.cmake)
 
 project(amoledos)
 
+# RAM audit: building the IDF components that own IRAM code with -Os was
+# measured at -4.5 K of IRAM in all (docs/RAM-AUDIT.md, section 7); not
+# worth a bisection of its own, so it is not applied.
+
 # Genera la tabla de simbolos que ven las apps dinamicas y habilita
 # 'idf.py so' para compilar los .so de las apps.
 include(elf_loader OPTIONAL)

@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "aos_hal_esp32.c" "aos_http.c" "aos_scan.c" "aos_notif.c"
+    SRCS "aos_hal_esp32.c" "aos_lvmem.c" "aos_http.c" "aos_scan.c" "aos_notif.c"
     INCLUDE_DIRS "include"
     REQUIRES aos_ble aos_board lvgl esp_wifi esp_netif nvs_flash esp_timer espressif__mdns lwip
              waveshare__esp32_s3_touch_amoled_1_8 espressif__esp_lcd_touch
@@ -12,3 +12,17 @@ idf_component_register(
 # gestionado. Se intercepta la creacion del panel para subirlo (ver
 # __wrap_esp_lcd_new_panel_io_spi en aos_hal_esp32.c).
 target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--wrap=esp_lcd_new_panel_io_spi" "-Wl,--wrap=i2s_new_channel")
+
+# RAM audit switches, passed as -D<name>=1 to idf.py (see docs/RAM-AUDIT.md):
+#   AOS_AUDIT_LVGL_PSRAM    LVGL objects, styles and layers go to PSRAM (aos_lvmem.c)
+#   AOS_AUDIT_LVGL_STACK16  LVGL task stack 16 KB instead of 20
+#   AOS_AUDIT_PSRAM_STACKS  player/mic/tone/http task stacks in PSRAM
+if(AOS_AUDIT_LVGL_PSRAM)
+    target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--wrap=lv_malloc_core" "-Wl,--wrap=lv_realloc_core")
+endif()
+if(AOS_AUDIT_LVGL_STACK16)
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE AOS_AUDIT_LVGL_STACK16=1)
+endif()
+if(AOS_AUDIT_PSRAM_STACKS)
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE AOS_AUDIT_PSRAM_STACKS=1)
+endif()

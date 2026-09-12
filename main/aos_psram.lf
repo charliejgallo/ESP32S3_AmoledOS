@@ -1,0 +1,66 @@
+# RAM audit (E1b): the .bss of the firmware's own components goes to PSRAM.
+#
+# None of this code runs with the cache disabled (no IRAM_ATTR function, no
+# ISR handler in these archives) and no static array here is handed to DMA
+# directly: the I2S and SD drivers copy through their own internal buffers.
+# The one exception kept internal is aos_ble's s_ds, which its author marked
+# as written from a NimBLE callback.
+#
+# 'extram_bss' is the scheme esp_wifi's fragment defines (bss and common ->
+# extern_ram); it is what SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY uses for the
+# radio libraries, applied here to ours.
+
+[mapping:aos_hal_psram]
+archive: libaos_hal.a
+entries:
+    * (extram_bss)
+
+[mapping:aos_ui_psram]
+archive: libaos_ui.a
+entries:
+    * (extram_bss)
+
+[mapping:aos_apps_psram]
+archive: libaos_apps.a
+entries:
+    * (extram_bss)
+
+[mapping:aos_web_psram]
+archive: libaos_web.a
+entries:
+    * (extram_bss)
+
+[mapping:aos_ble_psram]
+archive: libaos_ble.a
+entries:
+    aos_ble:s_ds (default)
+    * (extram_bss)
+
+[mapping:aos_board_psram]
+archive: libaos_board.a
+entries:
+    * (extram_bss)
+
+[mapping:aos_dynapp_psram]
+archive: libaos_dynapp.a
+entries:
+    * (extram_bss)
+
+[mapping:aos_main_psram]
+archive: libmain.a
+entries:
+    * (extram_bss)
+
+# NOT libespressif__mdns.a: its static StaticTask_t (mdns_task_buffer) is the
+# mDNS task's TCB, and FreeRTOS asserts that a TCB is in internal RAM
+# (portVALID_TCB_MEM). Measured: X6 died in mdns_init() for exactly that.
+
+[mapping:lvgl_psram]
+archive: liblvgl__lvgl.a
+entries:
+    * (extram_bss)
+
+[mapping:elf_loader_psram]
+archive: libelf_loader.a
+entries:
+    * (extram_bss)

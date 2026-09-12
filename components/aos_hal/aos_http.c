@@ -76,6 +76,20 @@
 #include "mbedtls/x509_crt.h"
 #include "mbedtls/net_sockets.h"
 
+/* RAM audit (E1b): with AOS_AUDIT_PSRAM_STACKS the http task's stack lives in
+ * PSRAM (it never touches flash). A task created with xTaskCreateWithCaps
+ * must exit through vTaskDeleteWithCaps. */
+#include "esp_heap_caps.h"
+#ifdef AOS_AUDIT_PSRAM_STACKS
+#define AOS_XTASKCREATE(fn, name, stack, arg, prio, handle) \
+    xTaskCreateWithCaps(fn, name, stack, arg, prio, handle, MALLOC_CAP_SPIRAM)
+#define AOS_VTASKDELETE_SELF() vTaskDeleteWithCaps(NULL)
+#else
+#define AOS_XTASKCREATE(fn, name, stack, arg, prio, handle) \
+    xTaskCreate(fn, name, stack, arg, prio, handle)
+#define AOS_VTASKDELETE_SELF() vTaskDelete(NULL)
+#endif
+
 #ifdef AOS_SIM
   #include <pthread.h>
   typedef pthread_mutex_t aos_lock_t;
@@ -670,7 +684,7 @@ static void *http_thread(void *arg)
 static void http_task(void *arg)
 {
     http_work((slot_t *)arg);
-    vTaskDelete(NULL);
+    AOS_VTASKDELETE_SELF();
 }
 #endif
 
@@ -842,7 +856,7 @@ int aos_hal_http_request(const char *method, const char *url,
      *
      * Priority 4, the same as LVGL, because it spends nearly all its time
      * waiting. */
-    if (xTaskCreate(http_task, "aos_http", s->tls ? 7168 : 5120, s, 4, NULL) != pdPASS) {
+    if (AOS_XTASKCREATE(http_task, "aos_http", s->tls ? 7168 : 5120, s, 4, NULL) != pdPASS) {
         LOCK(s_lock);
         slot_free(s);
         UNLOCK(s_lock);

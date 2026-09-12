@@ -2463,6 +2463,9 @@ static esp_err_t alarmas_post_handler(httpd_req_t *req)
     return httpd_resp_sendstr(req, "{\"ok\":true}");
 }
 
+/* aos_mem.c: the RAM audit endpoint (branch ram-audit). */
+esp_err_t aos_mem_handler(httpd_req_t *req);
+
 static const httpd_uri_t ROUTES[] = {
         { .uri = "/",            .method = HTTP_GET,  .handler = inicio_page_handler },
         { .uri = "/archivos",    .method = HTTP_GET,  .handler = page_handler },
@@ -2479,6 +2482,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/alarmas", .method = HTTP_POST, .handler = alarmas_post_handler },
         { .uri = "/api/status",  .method = HTTP_GET,  .handler = status_handler },
         { .uri = "/api/pmu",     .method = HTTP_GET,  .handler = pmu_handler },
+        { .uri = "/api/mem",     .method = HTTP_GET,  .handler = aos_mem_handler },
         { .uri = "/api/list",    .method = HTTP_GET,  .handler = list_handler },
         { .uri = "/api/upload",  .method = HTTP_POST, .handler = upload_handler },
         { .uri = "/api/ota",     .method = HTTP_POST, .handler = ota_handler },

@@ -96,8 +96,51 @@ static void button_cb(aos_button_t button, aos_button_action_t action)
     }
 }
 
+#if CONFIG_HEAP_TRACING_STANDALONE
+#include "esp_heap_trace.h"
+/* RAM audit: every allocation from here on keeps its call stack (LEAKS mode
+ * drops the record on free, so the buffer holds what is live). 5000 records
+ * of ~80 B in PSRAM. Read back by /api/mem. */
+#define AUDIT_TRACE_RECORDS 5000
+static void audit_trace_start(void)
+{
+    heap_trace_record_t *buf = heap_caps_calloc(AUDIT_TRACE_RECORDS, sizeof(*buf),
+                                                MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!buf || heap_trace_init_standalone(buf, AUDIT_TRACE_RECORDS) != ESP_OK ||
+        heap_trace_start(HEAP_TRACE_LEAKS) != ESP_OK) {
+        ESP_LOGW(TAG, "audit: heap tracing NOT started");
+    }
+}
+#endif
+
+/* RAM audit: is the .bss placed in PSRAM really backed by PSRAM? E1 died
+ * reading a NimBLE global that lives there as NULL right after writing it;
+ * this says at boot whether the region is mapped, and proves a write. */
+#include "esp_mmu_map.h"
+#include "esp_rom_sys.h"
+#include "esp_memory_utils.h"
+extern uint8_t _ext_ram_bss_start, _ext_ram_bss_end;
+EXT_RAM_BSS_ATTR static volatile uint32_t s_audit_probe;
+static void audit_psram_bss_check(void)
+{
+    esp_paddr_t pa = 0;
+    mmu_target_t tg = 0;
+    esp_err_t r = esp_mmu_vaddr_to_paddr(&_ext_ram_bss_start, &pa, &tg);
+    s_audit_probe = 0xA5A5C3C3u;
+    esp_rom_printf("AUDIT ext_ram_bss %p..%p external=%d v2p=%d target=%d paddr=0x%x probe=%s\n",
+                   &_ext_ram_bss_start, &_ext_ram_bss_end,
+                   (int)esp_ptr_external_ram(&_ext_ram_bss_start), (int)r, (int)tg,
+                   (unsigned)pa, s_audit_probe == 0xA5A5C3C3u ? "OK" : "LOST");
+    esp_mmu_map_dump_mapped_blocks(stdout);
+    fflush(stdout);
+}
+
 void app_main(void)
 {
+#if CONFIG_HEAP_TRACING_STANDALONE
+    audit_trace_start();
+#endif
+    audit_psram_bss_check();
     /* First thing: from here on the log is also kept for /registro. */
     aos_log_init();
 
