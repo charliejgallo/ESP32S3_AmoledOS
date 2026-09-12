@@ -300,3 +300,69 @@ CONFIG_BT_CTRL_MODEM_SLEEP=y
 CONFIG_BT_CTRL_MODEM_SLEEP_MODE_1=y
 CONFIG_BT_CTRL_LPCLK_SEL_MAIN_XTAL=y
 CONFIG_BT_CTRL_MAIN_XTAL_PU_DURING_LIGHT_SLEEP=y
+
+# ===== RAM audit (branch ram-audit, 2026-09-11) ===============================
+# Everything below this line is the audit. docs/RAM-AUDIT.md has the numbers.
+#
+# --- instrumentation: NOT for a release ---------------------------------------
+# Standalone heap tracing, started first thing in app_main in LEAKS mode, so
+# /api/mem can say which call site owns every live internal block; the record
+# buffer (5000 x ~80 B) and the hash map live in PSRAM. The trace facility is
+# for the task list with stack high-water marks. Costs ~2 K of IRAM and some
+# CPU per allocation. (HEAP_TASK_TRACKING was tried first and is unusable in
+# IDF 5.5: it takes a mutex inside free(), and esp_timer frees timers from a
+# critical section -> interrupt watchdog three seconds after boot.)
+CONFIG_HEAP_TRACING_STANDALONE=y
+CONFIG_HEAP_TRACING_STACK_DEPTH=6
+CONFIG_HEAP_TRACE_HASH_MAP=y
+CONFIG_HEAP_TRACE_HASH_MAP_SIZE=2048
+CONFIG_HEAP_TRACE_HASH_MAP_IN_EXT_RAM=y
+CONFIG_FREERTOS_USE_TRACE_FACILITY=y
+
+# --- the levers that survived: build X11 in docs/RAM-AUDIT.md ----------------
+# Together with -DAOS_AUDIT_LVGL_PSRAM=1 -DAOS_AUDIT_LVGL_STACK16=1
+# -DAOS_AUDIT_PSRAM_BSS=1 -DAOS_AUDIT_PSRAM_STACKS=1 (see
+# components/aos_hal/CMakeLists.txt and main/CMakeLists.txt). Section 6.3/6.4
+# of the document has the measured numbers of every step.
+#
+# The DMA reserve is carved out of the executable heap at boot and re-registered
+# as a heap WITHOUT the EXEC cap (that is why "exec" runs 64 K below "internal").
+# Measured 100 % free in every state; half of it is enough as a last resort and
+# the other 16 K go back to the executable heap.
+CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=16384
+# Assertion messages of functions that run with the cache off live in DRAM:
+# 6.8 K of strings (cache_hal alone 5 K). Silent asserts keep the check and
+# print only the address; addr2line gives the rest.
+CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_SILENT=y
+# No WPA enterprise: the watch joins a home WPA2 network.
+CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT=n
+# PHY strings and the SPI / GDMA / I2C ISRs to flash. During a flash write the
+# LCD DMA completion and the touch I2C wait a few ms instead of running; the
+# render did not move (121 ms vs 115 without any of this, measured).
+CONFIG_ESP_PHY_IRAM_OPT=n
+CONFIG_SPI_MASTER_ISR_IN_IRAM=n
+CONFIG_GDMA_ISR_HANDLER_IN_IRAM=n
+CONFIG_GDMA_CTRL_FUNC_IN_IRAM=n
+CONFIG_I2C_MASTER_ISR_HANDLER_IN_IRAM=n
+# lwip without IPv6: nothing here speaks it.
+CONFIG_LWIP_IPV6=n
+# OPTIONAL, off: the heap allocator in flash is another 7.5 K of executable
+# heap, but every allocation LVGL makes per frame then runs TLSF from flash
+# and a full watchface render goes from 121 ms to 140 (X9 vs X5). Turn it on
+# only if the frame time is not the constraint.
+# CONFIG_HEAP_PLACE_FUNCTION_INTO_FLASH=y
+
+# --- tried and REJECTED, with the reason ---------------------------------------
+# CONFIG_SPI_FLASH_ROM_IMPL=y
+#   -17 K of IRAM, but on top of the working X5 it alone corrupts the heap
+#   before the first app finishes loading (StoreProhibited inside TLSF on a
+#   free-list pointer of 0xae02c). Not diagnosed further.
+# CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=6 / _TX_BUFFER_NUM=6 / RX_BA_WIN=6
+#   -6.6 K; never tested alone, because it rode in the builds that died of the
+#   ROM flash driver. Untested, not rejected.
+# CONFIG_MDNS_TASK_CREATE_FROM_SPIRAM=y / CONFIG_MDNS_MEMORY_ALLOC_SPIRAM=y
+#   Not tested alone either: the build that had them also moved mDNS's .bss
+#   to PSRAM, and its static TCB there is what FreeRTOS refused.
+# CONFIG_BT_CTRL_BLE_SCAN=n, CONFIG_BT_CTRL_BLE_MAX_ACT=3
+#   Untested alone (same builds); the coexistence path was where those builds
+#   died, so these two need their own test before being trusted.
