@@ -710,6 +710,15 @@ int esp_elf_relocate(esp_elf_t *elf, const uint8_t *pbuf)
 #if CONFIG_ELF_LOADER_BUS_ADDRESS_MIRROR
                         elf->symtab[num].addr =
                             (void *)(elf->ptext + symtab[j].value - elf->sec[ELF_SEC_TEXT].v_addr);
+#ifdef CONFIG_ELF_LOADER_CACHE_OFFSET
+                        /* AmoledOS: what dlsym() hands out has to be the
+                         * executable alias, like the entry point and every
+                         * relocated reference; without this a .text in PSRAM
+                         * gives data-bus pointers and jumping to one is an
+                         * InstructionFetchError. */
+                        elf->symtab[num].addr =
+                            (void *)elf_remap_text(elf, (uintptr_t)elf->symtab[num].addr);
+#endif
 #else
                         elf->symtab[num].addr =
                             (void *)(elf->psegment + symtab[j].value - elf->svaddr);
@@ -734,6 +743,9 @@ int esp_elf_relocate(esp_elf_t *elf, const uint8_t *pbuf)
 
 #ifdef CONFIG_ELF_LOADER_LOAD_PSRAM
     esp_elf_arch_flush();
+#endif
+#ifdef CONFIG_ELF_LOADER_TEXT_PSRAM_MMU
+    esp_elf_arch_flush_text(elf);
 #endif
 
     return 0;

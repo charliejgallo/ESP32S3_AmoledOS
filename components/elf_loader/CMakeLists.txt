@@ -15,6 +15,11 @@ if(CONFIG_ELF_LOADER)
         if(CONFIG_IDF_TARGET_ESP32S2 AND (CONFIG_ELF_LOADER_LOAD_PSRAM))
             list(APPEND srcs "src/soc/esp_elf_esp32s2.c")
         endif()
+
+        # AmoledOS: ESP32-S3, .text in PSRAM mapped on the instruction bus
+        if(CONFIG_IDF_TARGET_ESP32S3 AND (CONFIG_ELF_LOADER_TEXT_PSRAM_MMU))
+            list(APPEND srcs "src/soc/esp_elf_esp32s3.c")
+        endif()
     elseif(CONFIG_IDF_TARGET_ARCH_RISCV)
         list(APPEND srcs "src/arch/esp_elf_riscv.c")
     endif()
@@ -28,11 +33,10 @@ if(CONFIG_ELF_LOADER)
     set(ldfragments "linker.lf")
 endif()
 
-set(priv_req spi_flash)
-
-if(CONFIG_IDF_TARGET_ESP32P4)
-    list(APPEND priv_req esp_mm)
-endif()
+# esp_mm: esp_mmu_map / esp_cache, used by the P4 build and by the AmoledOS
+# ESP32-S3 PSRAM-code mode (src/soc/esp_elf_esp32s3.c). It exists on every
+# target, so it is simply required.
+set(priv_req spi_flash esp_mm)
 
 idf_component_register(SRCS ${srcs}
                        INCLUDE_DIRS ${include_dirs}

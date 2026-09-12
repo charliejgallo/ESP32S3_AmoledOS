@@ -32,9 +32,17 @@
 #include "freertos/task.h"
 #include "aos_dynapp.h"
 #include "aos_hal.h"
+#include "aos_ui.h"
 #include "lvgl.h"
 #include "esp_timer.h"
 #include "esp_log.h"
+
+/* ?fps=N: frames LVGL actually rendered per second, counted over N seconds.
+ * LV_EVENT_RENDER_READY fires once per refresh that had something to draw,
+ * which for a game redrawing its canvas every frame is one per frame. */
+static volatile uint32_t s_renders;
+static bool              s_fps_hooked;
+static void render_cb(lv_event_t *e) { (void)e; s_renders++; }
 
 #if CONFIG_HEAP_TRACING_STANDALONE
 #include "esp_heap_trace.h"
@@ -170,9 +178,38 @@ esp_err_t aos_mem_handler(httpd_req_t *req)
     httpd_resp_set_hdr(req, "Cache-Control", "no-store");
     httpd_resp_set_type(req, "text/plain; charset=utf-8");
 
+    /* ?tap=x,y[,ms]: inject a tap; ?fps=N: rendered frames per second. */
+    {
+        char q[64] = "", v[24];
+        if (httpd_req_get_url_query_str(req, q, sizeof(q)) == ESP_OK) {
+            if (httpd_query_key_value(q, "tap", v, sizeof(v)) == ESP_OK) {
+                int x = 0, y = 0, ms = 80;
+                if (sscanf(v, "%d,%d,%d", &x, &y, &ms) >= 2) {
+                    aos_ui_inject_tap(x, y, ms);
+                    outf(&o, "tap injected at %d,%d for %d ms\n", x, y, ms);
+                }
+            }
+            if (httpd_query_key_value(q, "fps", v, sizeof(v)) == ESP_OK) {
+                int secs = atoi(v);
+                if (secs < 1) secs = 3;
+                if (secs > 20) secs = 20;
+                if (!s_fps_hooked && aos_hal_lock(2000)) {
+                    lv_display_add_event_cb(lv_display_get_default(), render_cb, LV_EVENT_RENDER_READY, NULL);
+                    s_fps_hooked = true;
+                    aos_hal_unlock();
+                }
+                uint32_t a = s_renders;
+                vTaskDelay(pdMS_TO_TICKS(secs * 1000));
+                uint32_t b = s_renders;
+                outf(&o, "== fps ==\nrendered frames %u in %d s = %.1f fps\n\n",
+                     (unsigned)(b - a), secs, (double)(b - a) / (double)secs);
+            }
+        }
+    }
+
     /* ?lvpsram=0|1: flip the LVGL-to-PSRAM policy for new allocations. */
     {
-        char q[32] = "", v[8];
+        char q[64] = "", v[8];
         extern void aos_lvmem_set_psram(bool on);
         extern bool aos_lvmem_get_psram(void);
         if (httpd_req_get_url_query_str(req, q, sizeof(q)) == ESP_OK &&
@@ -186,7 +223,7 @@ esp_err_t aos_mem_handler(httpd_req_t *req)
      * the startup benchmark (one rectangle) this walks the real object tree
      * and styles, which is what moving LVGL's memory changes. */
     {
-        char q[32] = "", v[8];
+        char q[64] = "", v[8];
         if (httpd_req_get_url_query_str(req, q, sizeof(q)) == ESP_OK &&
             httpd_query_key_value(q, "bench", v, sizeof(v)) == ESP_OK) {
             int64_t us = -1;

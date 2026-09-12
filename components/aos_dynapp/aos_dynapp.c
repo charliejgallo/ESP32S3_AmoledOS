@@ -252,6 +252,18 @@ void aos_dynapp_pool_info(uint32_t *libre, uint32_t *mayor, int *usados)
 
 void *__wrap_esp_elf_malloc(uint32_t n, bool exec)
 {
+#if CONFIG_ELF_LOADER_TEXT_PSRAM_MMU
+    /* RAM audit prototype: the code goes to PSRAM, 64 KB-aligned so that the
+     * loader maps whole instruction-bus pages at it (esp_elf_esp32s3.c). The
+     * internal reservation is not used at all. */
+    if (exec) {
+        void *p = heap_caps_aligned_alloc(0x10000, n, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (!p) {
+            ESP_LOGE(TAG, "%u B of code: no PSRAM block", (unsigned)n);
+        }
+        return p;
+    }
+#endif
     if (exec) {
         void *p = pool_alloc(n);
         if (p) {
@@ -673,7 +685,11 @@ int aos_dynapp_scan(void)
      * which takes some 35 KB of this same memory. Asking for it later would be
      * asking for it already fragmented, which is precisely what we want to
      * avoid. */
+#if !CONFIG_ELF_LOADER_TEXT_PSRAM_MMU
     pool_init();
+#else
+    ESP_LOGI(TAG, "apps' code runs from PSRAM: no internal reservation");
+#endif
 
     elf_set_symbol_resolver(resolver);
 

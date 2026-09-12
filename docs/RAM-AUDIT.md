@@ -365,3 +365,66 @@ Ordered by what they could give the apps' reservation.
 12. **Smaller data cache** (`ESP32S3_DATA_CACHE_16KB`): +16 K of DRAM-only
     memory (not exec-capable) at the price of PSRAM bandwidth for every
     canvas and layer. Not recommended.
+
+## 8. Prototype: the apps' code in PSRAM through the MMU
+
+Built on 2026-09-12 on top of X11, behind `CONFIG_ELF_LOADER_TEXT_PSRAM_MMU`
+(off by default). What it does:
+
+* `aos_dynapp`'s `esp_elf_malloc` wrapper hands the loader a 64 KB-aligned
+  PSRAM block for the `.text` instead of a slice of the 48 K reservation, and
+  the reservation is not created at all.
+* `components/elf_loader/src/soc/esp_elf_esp32s3.c` (new): for every
+  object it asks `esp_mmu_vaddr_to_paddr` where the PSRAM block physically
+  is and `esp_mmu_map()` for an executable alias of those pages on the
+  instruction bus (`MMU_TARGET_PSRAM0`, `MMU_MEM_CAP_EXEC`; the S3 accepts it,
+  only the classic ESP32 refuses PSRAM there). `text_off` becomes the
+  distance from the data-bus address of the code to its alias, and the
+  loader's existing `elf_remap_text()` (the ESP32-S2 mechanism,
+  `CONFIG_ELF_LOADER_CACHE_OFFSET` + `SET_MMU`) applies it to every
+  relocation, the entry point and, new in this branch, the addresses `dlsym`
+  hands out. After the relocations the code is written back from the data
+  cache and the alias dropped from the instruction cache
+  (`esp_elf_arch_flush_text`); `esp_mmu_unmap` on close. Every app in this
+  repository fits one 64 KB page.
+* Two dead ends on the way, both in the serial log: the MMU table must be
+  written with the caches frozen *from IRAM code* (the first version called
+  the flash-write style "disable caches and the other CPU" from flash and the
+  interrupt watchdog reset the board at the first `dlopen`); and
+  `esp_mmu_map_reserve_block_with_caps()` must not be used once the mapper's
+  block list exists, because it moves `free_head` and every later
+  `esp_partition_mmap` then fails its unmap check (the second version died
+  reading `otadata`). `esp_mmu_map()` itself does the freezing, the cache-bus
+  enable and the invalidation, so the third version has none of that by hand.
+
+Nothing changes for the apps: same `.so` files, same ABI. The pool is gone,
+so the general executable heap gains the 48 K as well.
+
+**Result: it works, and the games do not notice.** Build X13 = X11 + the
+option. The 22 apps load and unload through the alias at boot, the games run
+from PSRAM, the image confirms its trial. At idle the general executable heap
+has **140,708 free with 131,072 in one block** (X11: 90,524 / 81,920; the
+reference: 30,020 / 22,016), internal free 188,707.
+
+| Game | X12 (code in the 48 K reservation) | X13 (code in PSRAM) |
+| --- | ---: | ---: |
+| claudito, asleep, idle animation | 13.4 / 13.6 / 13.2 fps | 13.4 / 13.4 fps |
+| Claude Jump, playing | 29.2 fps | 29.0 fps |
+| 2043, touch mode, level running | 9.6 / 9.8 / 8.6 fps; own log 102-121 ms per frame | 9.6 fps; own log 103-109 ms per frame |
+
+Run-to-run noise (2043: 8.6 to 9.8 on the same build) is larger than any
+difference between the builds. Gems could not be measured: the injected
+PLAY tap lands only sometimes and its board is static otherwise. The
+absolute figures are low because both builds carry heap tracing on every
+allocation; only the comparison counts.
+
+How the frame rate was measured: `/api/mem?fps=N` counts LVGL's
+`LV_EVENT_RENDER_READY` (one per refresh that drew something, which for a
+game redrawing its canvas is one per frame) over N seconds, and
+`/api/mem?tap=x,y,ms` injects a touch through the calibration wrapper so the
+games can be started without a finger. claudito animates by itself (asleep at
+this hour), gems after PLAY (184,363) shows its idle sparkle, 2043 in touch
+mode (184,163) runs its level with the ship idle; 2043 also logs its own
+"real frame" time. Both builds carry the same instrumentation (heap tracing
+included), so only the difference between them means anything.
+

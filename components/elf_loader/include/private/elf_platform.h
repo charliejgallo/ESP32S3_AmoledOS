@@ -92,6 +92,15 @@ int esp_elf_arch_init_mmu(esp_elf_t *elf);
 void esp_elf_arch_deinit_mmu(esp_elf_t *elf);
 #endif
 
+/**
+ * @brief AmoledOS: after the relocations are written, push the .text from the
+ *        data cache to the memory and drop stale instruction-cache lines of
+ *        its executable alias. ESP32-S3 with ELF_LOADER_TEXT_PSRAM_MMU.
+ */
+#ifdef CONFIG_ELF_LOADER_TEXT_PSRAM_MMU
+void esp_elf_arch_flush_text(esp_elf_t *elf);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

@@ -50,6 +50,20 @@ menu "Espressif ELF Loader Configuration"
             help
                 Load ELF file into PSRAM instead of internal SRAM.
 
+        config ELF_LOADER_TEXT_PSRAM_MMU
+            bool "ESP32-S3: run the .text of loaded objects from PSRAM through the MMU"
+            default n
+            depends on IDF_TARGET_ESP32S3 && SPIRAM && !ELF_LOADER_LOAD_PSRAM
+            select ELF_LOADER_CACHE_OFFSET
+            select ELF_LOADER_SET_MMU
+            help
+                AmoledOS (RAM audit prototype). The .text of a loaded object is
+                allocated in PSRAM, page-aligned, and free pages of the
+                instruction bus are pointed at it (src/soc/esp_elf_esp32s3.c),
+                the way ELF_LOADER_SET_MMU does on the ESP32-S2. Every address
+                that lands in .text is translated to the executable alias by
+                elf_remap_text(). The internal-RAM reservation is not used.
+
         menu "ELF Symbols Table"
 
             config ELF_LOADER_LIBC_SYMBOLS

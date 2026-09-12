@@ -1251,6 +1251,20 @@ static lv_indev_read_cb_t s_orig_read_cb;
 static volatile uint32_t  s_touch_reads;
 static volatile uint32_t  s_touch_presses;
 
+/* RAM audit: a tap injected from the portal (/api/mem?tap=x,y), so that the
+ * games can be driven without a finger while measuring. Held for hold_ms,
+ * then one released reading. Screen coordinates, no calibration applied. */
+static volatile int32_t  s_inject_x = -1;
+static volatile int32_t  s_inject_y;
+static volatile uint32_t s_inject_until;
+
+void aos_ui_inject_tap(int x, int y, int hold_ms)
+{
+    s_inject_y = y;
+    s_inject_until = lv_tick_get() + (uint32_t)(hold_ms > 0 ? hold_ms : 80);
+    s_inject_x = x;
+}
+
 static void counting_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
 {
     if (indev != s_counted_indev) {
@@ -1266,6 +1280,16 @@ static void counting_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
         if (!s_cal_raw) {
             aos_ui_touch_map(data->point.x, data->point.y,
                              &data->point.x, &data->point.y);
+        }
+    }
+    if (s_inject_x >= 0) {
+        if ((int32_t)(lv_tick_get() - s_inject_until) < 0) {
+            data->state   = LV_INDEV_STATE_PRESSED;
+            data->point.x = s_inject_x;
+            data->point.y = s_inject_y;
+        } else {
+            data->state = LV_INDEV_STATE_RELEASED;
+            s_inject_x  = -1;
         }
     }
 }
