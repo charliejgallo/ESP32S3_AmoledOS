@@ -103,6 +103,7 @@ typedef enum {
     AOS_ICON_CHART,         /* Sensors: the jagged line over the two axes */
     AOS_ICON_JUMP,          /* Claude Jump: the critter jumping off its platform */
     AOS_ICON_PIXEL,         /* Pixel Art: a heart of cells on the grid */
+    AOS_ICON_MOLE,          /* Topos: a mole peeking out of its hole */
 } aos_icon_id_t;
 
 typedef struct {

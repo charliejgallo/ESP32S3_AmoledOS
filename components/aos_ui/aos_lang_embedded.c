@@ -458,6 +458,7 @@ static const char blob_en__sistema_lang[] =
     "Remoto\tRemote\n"
     "Sensores\tSensors\n"
     "Simon\tSimon\n"
+    "Topos\tWhack-a-Mole\n"
     "Truco\tTruco\n"
     ;
 
@@ -1399,6 +1400,33 @@ static const char blob_en_demo_hello_lang[] =
     "tocar para sumar\ttap to count\n"
     ;
 
+static const char blob_en_demo_topos_lang[] =
+    "Clásico\tClassic\n"
+    "Supervivencia\tSurvival\n"
+    "Frenesí\tFrenzy\n"
+    "60 segundos\t60 seconds\n"
+    "Tres vidas\tThree lives\n"
+    "30 segundos a fondo\t30 seconds flat out\n"
+    "Sonido\tSound\n"
+    "¡Ya!\tGo!\n"
+    "Nivel\tLevel\n"
+    "¡Últimos 10 segundos!\tLast 10 seconds!\n"
+    "¡Tiempo!\tTime's up!\n"
+    "¡Sin vidas!\tNo lives left!\n"
+    "¡Nuevo récord!\tNew best!\n"
+    "¡Se acabó!\tGame over!\n"
+    "Golpes\tHits\n"
+    "Mejor racha\tBest streak\n"
+    "Récord\tBest\n"
+    "Topos\tWhack-a-Mole\n"
+    "Tocá los topos; los de casco, dos veces. ¡Las bombas no!\tTap the moles; the ones in hard hats, twice. Not the bombs!\n"
+    "Pausa\tPaused\n"
+    "Seguir\tResume\n"
+    "Menú\tMenu\n"
+    "Salir\tExit\n"
+    "Otra vez\tAgain\n"
+    ;
+
 static const aos_lang_file_t files_en[] = {
     { "_sistema.lang", blob_en__sistema_lang },
     { "aos.clima.lang", blob_en_aos_clima_lang },
@@ -1422,6 +1450,7 @@ static const aos_lang_file_t files_en[] = {
     { "demo.flappy.lang", blob_en_demo_flappy_lang },
     { "demo.gemas.lang", blob_en_demo_gemas_lang },
     { "demo.hello.lang", blob_en_demo_hello_lang },
+    { "demo.topos.lang", blob_en_demo_topos_lang },
 };
 
 static const char blob_de__sistema_lang[] =
@@ -1869,6 +1898,7 @@ static const char blob_de__sistema_lang[] =
     "Remoto\tFernbedienung\n"
     "Sensores\tSensoren\n"
     "Simon\tSimon\n"
+    "Topos\tMaulwürfe\n"
     "Truco\tTruco\n"
     ;
 
@@ -2810,6 +2840,33 @@ static const char blob_de_demo_hello_lang[] =
     "tocar para sumar\ttippen zum Zählen\n"
     ;
 
+static const char blob_de_demo_topos_lang[] =
+    "Clásico\tKlassisch\n"
+    "Supervivencia\tÜberleben\n"
+    "Frenesí\tRaserei\n"
+    "60 segundos\t60 Sekunden\n"
+    "Tres vidas\tDrei Leben\n"
+    "30 segundos a fondo\t30 Sekunden Vollgas\n"
+    "Sonido\tTon\n"
+    "¡Ya!\tLos!\n"
+    "Nivel\tLevel\n"
+    "¡Últimos 10 segundos!\tNoch 10 Sekunden!\n"
+    "¡Tiempo!\tZeit um!\n"
+    "¡Sin vidas!\tKeine Leben mehr!\n"
+    "¡Nuevo récord!\tNeuer Rekord!\n"
+    "¡Se acabó!\tVorbei!\n"
+    "Golpes\tTreffer\n"
+    "Mejor racha\tBeste Serie\n"
+    "Récord\tRekord\n"
+    "Topos\tMaulwürfe\n"
+    "Tocá los topos; los de casco, dos veces. ¡Las bombas no!\tTippe die Maulwürfe an, die mit Helm zweimal. Keine Bomben!\n"
+    "Pausa\tPause\n"
+    "Seguir\tWeiter\n"
+    "Menú\tMenü\n"
+    "Salir\tBeenden\n"
+    "Otra vez\tNochmal\n"
+    ;
+
 static const aos_lang_file_t files_de[] = {
     { "_sistema.lang", blob_de__sistema_lang },
     { "aos.clima.lang", blob_de_aos_clima_lang },
@@ -2833,10 +2890,11 @@ static const aos_lang_file_t files_de[] = {
     { "demo.flappy.lang", blob_de_demo_flappy_lang },
     { "demo.gemas.lang", blob_de_demo_gemas_lang },
     { "demo.hello.lang", blob_de_demo_hello_lang },
+    { "demo.topos.lang", blob_de_demo_topos_lang },
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 445, 21, files_en, 22 },
-    { "de", "Deutsch", 445, 21, files_de, 22 },
+    { "en", "English", 446, 22, files_en, 23 },
+    { "de", "Deutsch", 446, 22, files_de, 23 },
 };
 const int aos_lang_pack_count = 2;

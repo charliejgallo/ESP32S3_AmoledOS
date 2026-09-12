@@ -1151,6 +1151,49 @@ static void draw_vector(lv_obj_t *base, aos_icon_id_t id, int32_t size)
         break;
     }
 
+    case AOS_ICON_MOLE: {
+        /* Topos: a mole peeking out of its hole. Cardinal shapes only, like
+         * the rest of the catalogue. The body is white as every shape here;
+         * the mound in front is dirt-coloured, so it reads as the edge of the
+         * hole and not as more mole, and the nose carries the only other
+         * colour. */
+        lv_obj_t *cuerpo = lv_obj_create(base);
+        lv_obj_remove_style_all(cuerpo);
+        lv_obj_set_size(cuerpo, s * 44 / 100, s * 52 / 100);
+        lv_obj_set_style_radius(cuerpo, s * 22 / 100, 0);
+        lv_obj_set_style_bg_color(cuerpo, AOS_C_TEXT, 0);
+        lv_obj_set_style_bg_opa(cuerpo, LV_OPA_COVER, 0);
+        lv_obj_align(cuerpo, LV_ALIGN_CENTER, 0, -s * 4 / 100);
+
+        for (int i = 0; i < 2; i++) {
+            lv_obj_t *ojo = lv_obj_create(cuerpo);
+            lv_obj_remove_style_all(ojo);
+            lv_obj_set_size(ojo, LV_MAX(2, s * 6 / 100), LV_MAX(3, s * 8 / 100));
+            lv_obj_set_style_radius(ojo, LV_RADIUS_CIRCLE, 0);
+            lv_obj_set_style_bg_color(ojo, lv_color_hex(0x000000), 0);
+            lv_obj_set_style_bg_opa(ojo, LV_OPA_COVER, 0);
+            lv_obj_align(ojo, LV_ALIGN_TOP_MID, (i ? 1 : -1) * s * 8 / 100,
+                         s * 12 / 100);
+        }
+
+        lv_obj_t *nariz = lv_obj_create(cuerpo);
+        lv_obj_remove_style_all(nariz);
+        lv_obj_set_size(nariz, LV_MAX(3, s * 13 / 100), LV_MAX(2, s * 9 / 100));
+        lv_obj_set_style_radius(nariz, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_color(nariz, lv_color_hex(0xFF8FA6), 0);
+        lv_obj_set_style_bg_opa(nariz, LV_OPA_COVER, 0);
+        lv_obj_align(nariz, LV_ALIGN_TOP_MID, 0, s * 22 / 100);
+
+        lv_obj_t *monte = lv_obj_create(base);
+        lv_obj_remove_style_all(monte);
+        lv_obj_set_size(monte, s * 76 / 100, s * 20 / 100);
+        lv_obj_set_style_radius(monte, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_color(monte, lv_color_hex(0xDDA05E), 0);
+        lv_obj_set_style_bg_opa(monte, LV_OPA_COVER, 0);
+        lv_obj_align(monte, LV_ALIGN_CENTER, 0, s * 25 / 100);
+        break;
+    }
+
     default:
         break;
     }
