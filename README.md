@@ -62,7 +62,8 @@ buttons.
 | music and its controls | AMS |
 
 It is iPhone only: ANCS is published by iOS and Android has no standard
-equivalent.
+equivalent. Android phones are planned, starting with music controls over
+BLE HID: see [docs/ROADMAP.md](docs/ROADMAP.md).
 
 **Battery.** The AXP2101 is programmed rather than left at its factory
 values: the cell charges at 0.5 C to 4.1 V with a proper termination current
@@ -228,6 +229,7 @@ network survey's report format.
 | [I18N.md](docs/I18N.md) | how translation works and why the key is the Spanish string |
 | [POWER.md](docs/POWER.md) | the AXP2101, the rails, light sleep, and the measurements behind each switch |
 | [PORTAL.md](docs/PORTAL.md) | the web portal: pages, API, what it costs the board, and the dev server |
+| [ROADMAP.md](docs/ROADMAP.md) | what is planned and has no date: Android phones, starting with BLE HID |
 
 ## A note on what is written down
 

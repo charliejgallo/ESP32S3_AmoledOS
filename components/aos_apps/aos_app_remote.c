@@ -1,13 +1,13 @@
 /*
  * AmoledOS - Control of the phone's music.
  *
- * The ESP32-S3 has no Bluetooth Classic, so there is no AVRCP: the watch
- * presents itself as a BLE HID device and sends the media keys, which iOS and
- * Android both understand.
+ * The ESP32-S3 has no Bluetooth Classic, so there is no AVRCP. With an iPhone
+ * it is AMS, over BLE: the commands, and the track's title, artist and album.
  *
- * The metadata (title, artist) only appears with an iPhone, because it arrives
- * over AMS, which is BLE. With Android you are left with the controls and the
- * notice that there is no information available.
+ * Commands without track information are a state of their own: AMS before the
+ * first title arrives, or a phone that only takes media keys (BLE HID, planned
+ * for Android: docs/ROADMAP.md). The screen says there is no information
+ * instead of drawing an empty one.
  */
 #include "aos_apps.h"
 #include "aos_i18n.h"
@@ -104,7 +104,8 @@ static void refresh(lv_timer_t *timer)
             lv_label_set_text(s_remote.album, "");
             lv_label_set_text(s_remote.player, aos_hal_media_player());
             lv_obj_add_flag(s_remote.progress, LV_OBJ_FLAG_HIDDEN);
-            /* Android does not publish the metadata over BLE, it only accepts the keys */
+            /* No title has arrived over AMS yet, or the phone only takes the
+             * keys (BLE HID, planned for Android) */
             lv_label_set_text(s_remote.hint, _("sin datos del tema"));
         }
         lv_label_set_text(s_remote.play_label,

@@ -12,6 +12,10 @@ Newest first. Versions are git tags; what is above the latest tag is on
   Media control ended up on AMS and its on/off state lives in `aos_ble`, so
   nothing ever touched the variable: a warning since the first commit, which
   incremental builds hide. The simulator keeps its own, which it does use.
+- `docs/ROADMAP.md`: Android phones, starting with music controls over BLE
+  HID. Planned, not scheduled. The comments in `aos_hal.h` and Control BT
+  that still gave BLE HID as the way the music is controlled now say AMS,
+  and point there.
 
 ## v0.3.5 — 2026-09-12
 

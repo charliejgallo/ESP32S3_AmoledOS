@@ -529,12 +529,12 @@ bool aos_hal_player_status(aos_player_status_t *out);
  *
  * NOTE: the ESP32-S3 has no Bluetooth Classic (soc_caps.h says so:
  * SOC_BLE_SUPPORTED yes, SOC_BT_CLASSIC_SUPPORTED no), so A2DP and AVRCP are
- * out. What can be done is to present as a BLE HID device and send the media
- * keys, which iOS and Android both understand.
+ * out. What there is today is AMS (Apple Media Service, over BLE): the
+ * commands and the track's title, artist and album, from an iPhone only.
  *
- * Metadata (title, artist) only arrives from an iPhone, via AMS (Apple Media
- * Service, which is BLE). On Android you are left with controls and no
- * information.
+ * For Android the plan is BLE HID media keys, which need no app on the phone:
+ * controls with no information, which is what has_metadata = false already
+ * means. Planned, not scheduled: docs/ROADMAP.md.
  * -------------------------------------------------------------------------- */
 
 typedef enum {
@@ -580,13 +580,14 @@ bool             aos_hal_media_command(aos_media_cmd_t cmd);
 /* --------------------------------------------------------------------------
  * Bluetooth link with the phone
  *
- * One phone at a time, paired and with the keys stored. Three things hang off
- * this same connection: notifications (ANCS), music control (BLE HID) and its
- * metadata (AMS). That is why the link is a thing of its own and not a part of
- * notifications.
+ * One phone at a time, paired and with the keys stored. Everything the watch
+ * takes from the phone hangs off this same connection: notifications (ANCS),
+ * the music and its controls (AMS), the phone's time and battery. That is why
+ * the link is a thing of its own and not a part of notifications.
  *
  * NONE of this names ANCS: the day there is an Android on the other side, the
- * provider changes inside the HAL and the UI never finds out.
+ * provider changes inside the HAL and the UI never finds out. The plan is in
+ * docs/ROADMAP.md.
  *
  * Turning it on costs ~30 KB of executable RAM, which is where the code of
  * dynamic apps comes from: this switch is also an app switch, like the WiFi
