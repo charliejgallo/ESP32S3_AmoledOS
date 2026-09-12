@@ -967,12 +967,15 @@ static QueueHandle_t s_tone_queue;
 #ifdef AOS_AUDIT_PSRAM_STACKS
 #define AOS_XTASKCREATE(fn, name, stack, arg, prio, handle) \
     xTaskCreateWithCaps(fn, name, stack, arg, prio, handle, MALLOC_CAP_SPIRAM)
-#define vTaskDelete(NULL) vTaskDeleteWithCaps(NULL)
 #else
 #define AOS_XTASKCREATE(fn, name, stack, arg, prio, handle) \
     xTaskCreate(fn, name, stack, arg, prio, handle)
-#define vTaskDelete(NULL) vTaskDelete(NULL)
 #endif
+/* Only the tone task, which never exits, is created through AOS_XTASKCREATE.
+ * (A first fix here defined a macro NAMED vTaskDelete by mistake, turning every
+ * vTaskDelete() of this file into vTaskDeleteWithCaps(): the mic task, created
+ * with plain xTaskCreate, then died in FreeRTOS's assert at the end of a
+ * recording. Measured on the board 2026-09-12.) */
 
 static void tone_task(void *arg)
 {
