@@ -39,6 +39,10 @@ Newest first. Versions are git tags; what is above the latest tag is on
   the card goes back to the watch on its own. `aos_hal_sd_release/reclaim/
   mark_mounted` move the card between the BSP mount and esp_tinyusb's MSC
   storage. While the computer has it the watch has no card.
+- The portal stays up while the USB network is up: `main.c` stopped it
+  whenever WiFi was down and no access point was up, so switching WiFi off
+  from the portal over the cable took the portal down with it (found in
+  the week of use, 2026-09-13).
 - **Gamepad** (D5): a gamepad report in the HID interface,
   `aos_hal_usb_gamepad` in the HAL, `?pad=` in `/api/usb`, and a "Pad"
   face in Control PC: cross, A/B/X/Y, shoulders, select and start, the

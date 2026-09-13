@@ -19,6 +19,7 @@
 #include "aos_web.h"
 #include "aos_log.h"   /* the log ring the portal serves */
 #include "aos_usb.h"   /* the USB PHY mux back on the console at boot */
+#include "aos_usb_net.h" /* the USB network counts as a network for the portal */
 #include "aos_ble.h"   /* F0: measurement, see docs/HANDOFF-BLE-ANCS.md */
 #include "aos_i18n.h"
 
@@ -232,19 +233,25 @@ void app_main(void)
         }
 
         /* The portal starts with the network ready, and also with the setup
-         * access point up: that is precisely where it is needed. */
+         * access point up: that is precisely where it is needed. Since the
+         * USB branch the network over the cable counts too - measured
+         * 2026-09-13: switching WiFi off from the portal over USB took the
+         * portal down with it, and with WiFi off there was no way back but
+         * the watch's own Settings. */
         /* With no network there is no point leaving the server taking up
          * memory. */
-        if (aos_web_running() &&
-            aos_hal_net_state() != AOS_NET_CONNECTED && !aos_hal_net_ap_active()) {
+        bool network_up = aos_hal_net_state() == AOS_NET_CONNECTED ||
+                          aos_hal_net_ap_active() || aos_usb_net_up();
+        if (aos_web_running() && !network_up) {
             aos_web_stop();
             ESP_LOGI(TAG, "web portal off: there is no network");
         }
 
-        if (!aos_web_running() &&
-            (aos_hal_net_state() == AOS_NET_CONNECTED || aos_hal_net_ap_active())) {
+        if (!aos_web_running() && network_up) {
             if (aos_web_start() == ESP_OK) {
-                ESP_LOGI(TAG, "web portal at http://%s/", aos_hal_net_ip());
+                ESP_LOGI(TAG, "web portal at http://%s/",
+                         aos_hal_net_state() == AOS_NET_CONNECTED ? aos_hal_net_ip()
+                         : aos_usb_net_up() ? "192.168.7.1" : aos_hal_net_ip());
             }
         }
 

@@ -482,7 +482,13 @@ In this order, each behind the same switch and each measured with T3:
    board has no Ethernet, so its predefined mDNS interface is switched off
    to free the third of the three slots. Which of the two addresses a
    browser picks for the name is the computer's choice (macOS took WiFi
-   with both up); the IP is the sure way to the cable.
+   with both up); the IP is the sure way to the cable. **WiFi off is the
+   case the cable is for, and it was the one not tested** until the week
+   of use: `main.c` stopped the portal whenever WiFi was down and no access
+   point was up, so switching WiFi off from the portal over USB killed the
+   portal on both sides, with the link itself alive (ping answered) and no
+   way back but the watch's Settings. Fixed: the USB network counts as a
+   network for the portal.
 4. **D4 mouse by tilt.** *Done 2026-09-13: tried on the wrist - the pitch
    sign needed inverting, which is now the default; clicks and right
    clicks fine; speeds 2 and 3 felt right and a 4 was asked for.* A third report (ID 3, TinyUSB's mouse) in the same
