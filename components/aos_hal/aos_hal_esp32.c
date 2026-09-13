@@ -901,6 +901,38 @@ const char *aos_hal_path_sd_root(void)
     return s_sd_mounted ? BSP_SD_MOUNT_POINT : NULL;
 }
 
+bool aos_hal_sd_release(void)
+{
+    if (!s_sd_mounted) {
+        return false;
+    }
+    /* esp_vfs_fat_sdcard_unmount() also deinits the SDMMC host and frees the
+     * card: whoever takes over starts from a cold host. */
+    esp_err_t e = bsp_sdcard_unmount();
+    if (e != ESP_OK) {
+        ESP_LOGW(TAG, "card unmount for disk mode: %s", esp_err_to_name(e));
+        return false;
+    }
+    s_sd_mounted = false;
+    ESP_LOGI(TAG, "microSD released");
+    return true;
+}
+
+bool aos_hal_sd_reclaim(void)
+{
+    if (s_sd_mounted) {
+        return true;
+    }
+    s_sd_mounted = (bsp_sdcard_mount() == ESP_OK);
+    ESP_LOGI(TAG, "microSD %s", s_sd_mounted ? "mounted again" : "did not come back");
+    return s_sd_mounted;
+}
+
+void aos_hal_sd_mark_mounted(bool mounted)
+{
+    s_sd_mounted = mounted;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Audio                                                                       */
 /* -------------------------------------------------------------------------- */

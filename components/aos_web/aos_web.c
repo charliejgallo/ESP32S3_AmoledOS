@@ -10,6 +10,10 @@
 #include "aos_apps.h"   /* aos_alarm_get / set */
 #include "aos_dynapp.h" /* aos_dynapp_is_dynamic, for /api/apps */
 #include "aos_usb.h"    /* /api/usb: the USB port's mode, branch usb */
+#include "esp_timer.h"
+#include "esp_core_dump.h"
+#include "esp_partition.h"
+#include <errno.h>
 #include <time.h>
 
 #include "esp_http_server.h"
@@ -126,13 +130,18 @@ static const char *resolve_dir(const char *dir)
             return NULL;
         }
         snprintf(path, sizeof(path), "%s/pixel", root);
-    } else if (strcmp(dir, "sd") == 0 || strncmp(dir, "sd/", 3) == 0) {
-        /* The explorer: any folder of the card. Validated component by
-         * component, because it comes from the network: no empty pieces, no
-         * dot-files (that rules out "." and ".."), plain printable ASCII and
-         * none of what FAT itself forbids. Without a card there is no "sd". */
-        const char *root = aos_hal_path_sd_root();
-        const char *rel = dir[2] ? dir + 3 : "";
+    } else if (strcmp(dir, "sd") == 0 || strncmp(dir, "sd/", 3) == 0 ||
+               strcmp(dir, "usb") == 0 || strncmp(dir, "usb/", 4) == 0) {
+        /* The explorer: any folder of the card, or of the pendrive in host
+         * mode (branch usb: same rules, root /usb while one is mounted, so
+         * /api/list and /api/download serve it with no handler of their
+         * own). Validated component by component, because it comes from the
+         * network: no empty pieces, no dot-files (that rules out "." and
+         * ".."), plain printable ASCII and none of what FAT itself forbids.
+         * Without a card there is no "sd"; without a pendrive no "usb". */
+        bool usb = dir[0] == 'u';
+        const char *root = usb ? aos_usb_msc_root() : aos_hal_path_sd_root();
+        const char *rel = usb ? (dir[3] ? dir + 4 : "") : (dir[2] ? dir + 3 : "");
         if (!root || strlen(rel) > 100) {
             return NULL;
         }
@@ -2062,13 +2071,13 @@ static esp_err_t remoto_entities_handler(httpd_req_t *req)
     return httpd_resp_send(req, "", 0);
 }
 
-/* GET /api/usb[?mode=console|device|host][&console=0|1]: which side of
+/* GET /api/usb[?mode=console|device|disk|host][&console=0|1]: which side of
  * the USB PHY is on, what is plugged in when it is the host, and the heap
  * figures the switch costs. Phase 1 of docs/USB.md: the tests are driven from
  * here before anything reaches Settings. */
 static esp_err_t usb_handler(httpd_req_t *req)
 {
-    char query[96] = "", value[16];
+    char query[320] = "", value[16];
     httpd_req_get_url_query_str(req, query, sizeof(query));
     if (httpd_query_key_value(query, "console", value, sizeof(value)) == ESP_OK) {
         aos_usb_console_on_cdc(atoi(value) != 0);
@@ -2078,9 +2087,56 @@ static esp_err_t usb_handler(httpd_req_t *req)
         if      (!strcmp(value, "console")) ok = aos_usb_mode_set(AOS_USB_CONSOLE);
         else if (!strcmp(value, "device"))  ok = aos_usb_mode_set(AOS_USB_DEVICE);
         else if (!strcmp(value, "host"))    ok = aos_usb_mode_set(AOS_USB_HOST);
+        else if (!strcmp(value, "disk"))    ok = aos_usb_mode_set(AOS_USB_DISK);
         else {
             httpd_resp_set_status(req, "400 Bad Request");
-            return httpd_resp_sendstr(req, "mode: console, device or host");
+            return httpd_resp_sendstr(req, "mode: console, device, disk or host");
+        }
+    }
+    if (httpd_query_key_value(query, "tusblog", value, sizeof(value)) == ESP_OK) {
+        char *txt = heap_caps_malloc(8192 + 1, MALLOC_CAP_SPIRAM);
+        if (!txt) {
+            httpd_resp_set_status(req, "503 Service Unavailable");
+            return httpd_resp_sendstr(req, "sin memoria");
+        }
+        aos_usb_tusb_log(txt, 8192 + 1);
+        httpd_resp_set_type(req, "text/plain");
+        esp_err_t r = httpd_resp_send(req, txt, HTTPD_RESP_USE_STRLEN);
+        free(txt);
+        return r;
+    }
+    /* ?cp=<name>&from=<dir>&to=<dir>: whole-file copy between any two of
+     * the explorer's folders, the pendrive included (H1), timed for T5.
+     * The name is the last component only, like every other name here. */
+    char copy_note[160] = "";
+    char cp[128];
+    if (httpd_query_key_value(query, "cp", cp, sizeof(cp)) == ESP_OK) {
+        char from_s[64] = "", to_s[64] = "", name[96];
+        httpd_query_key_value(query, "from", from_s, sizeof(from_s));
+        httpd_query_key_value(query, "to", to_s, sizeof(to_s));
+        url_decode(cp); url_decode(from_s); url_decode(to_s);
+        char from_path[160], to_path[160];
+        const char *r = resolve_dir(from_s);
+        if (r) snprintf(from_path, sizeof(from_path), "%s", r);
+        const char *w = r ? resolve_dir(to_s) : NULL;
+        if (w) snprintf(to_path, sizeof(to_path), "%s", w);
+        if (!r || !w || !safe_name(cp, name, sizeof(name))) {
+            httpd_resp_set_status(req, "400 Bad Request");
+            return httpd_resp_sendstr(req, "cp: name, from and to (photos, music, apps, sd/..., usb/...)");
+        }
+        char src[300], dst[300];
+        snprintf(src, sizeof(src), "%s/%s", from_path, name);
+        snprintf(dst, sizeof(dst), "%s/%s", to_path, name);
+        int64_t t0 = esp_timer_get_time();
+        long bytes = aos_usb_copy(src, dst);
+        int ms = (int)((esp_timer_get_time() - t0) / 1000);
+        if (bytes < 0) {
+            snprintf(copy_note, sizeof(copy_note), "\"copy\":{\"ok\":false,\"errno\":%d,\"ms\":%d},", errno, ms);
+            ESP_LOGW(TAG, "copy %s -> %s failed: errno %d", src, dst, errno);
+        } else {
+            snprintf(copy_note, sizeof(copy_note), "\"copy\":{\"ok\":true,\"bytes\":%ld,\"ms\":%d,\"kb_s\":%ld},",
+                     bytes, ms, ms > 0 ? bytes / ms : 0);
+            ESP_LOGI(TAG, "copied %s -> %s: %ld B in %d ms", src, dst, bytes, ms);
         }
     }
     char *json = heap_caps_malloc(1536, MALLOC_CAP_SPIRAM);
@@ -2088,13 +2144,55 @@ static esp_err_t usb_handler(httpd_req_t *req)
         httpd_resp_set_status(req, "503 Service Unavailable");
         return httpd_resp_sendstr(req, "sin memoria");
     }
-    int n = snprintf(json, 1536, "{\"ok\":%s,\"status\":", ok ? "true" : "false");
+    int n = snprintf(json, 1536, "{\"ok\":%s,%s\"status\":", ok ? "true" : "false", copy_note);
     n += aos_usb_status_json(json + n, 1536 - n);
     if (n < 1534) { json[n++] = '}'; json[n] = 0; }
     httpd_resp_set_type(req, "application/json");
     esp_err_t r = httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);
     free(json);
     return r;
+}
+
+/* GET /api/coredump: the last core dump, raw (ELF), straight from the
+ * coredump partition. For the panics that happen with the USB port on the
+ * OTG side, where no console can print them. Decode on the Mac with
+ * espcoredump.py info_corefile --core <file> --core-format elf build/amoledos.elf.
+ * ?erase=1 clears it. */
+static esp_err_t coredump_handler(httpd_req_t *req)
+{
+    char query[32] = "", value[8];
+    httpd_req_get_url_query_str(req, query, sizeof(query));
+    if (httpd_query_key_value(query, "erase", value, sizeof(value)) == ESP_OK) {
+        esp_err_t e = esp_core_dump_image_erase();
+        httpd_resp_set_type(req, "application/json");
+        char out[64];
+        snprintf(out, sizeof(out), "{\"erased\":%s}", e == ESP_OK ? "true" : "false");
+        return httpd_resp_sendstr(req, out);
+    }
+    size_t addr = 0, size = 0;
+    if (esp_core_dump_image_get(&addr, &size) != ESP_OK || size == 0) {
+        httpd_resp_set_status(req, "404 Not Found");
+        return httpd_resp_sendstr(req, "no core dump");
+    }
+    const esp_partition_t *part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
+                                                           ESP_PARTITION_SUBTYPE_DATA_COREDUMP, NULL);
+    if (!part) {
+        httpd_resp_set_status(req, "500 Internal Server Error");
+        return httpd_resp_sendstr(req, "no coredump partition");
+    }
+    char *buf = heap_caps_malloc(4096, MALLOC_CAP_SPIRAM);
+    if (!buf) {
+        httpd_resp_set_status(req, "503 Service Unavailable");
+        return httpd_resp_sendstr(req, "sin memoria");
+    }
+    httpd_resp_set_type(req, "application/octet-stream");
+    for (size_t off = 0; off < size; off += 4096) {
+        size_t n = size - off < 4096 ? size - off : 4096;
+        if (esp_partition_read(part, off, buf, n) != ESP_OK) break;
+        if (httpd_resp_send_chunk(req, buf, n) != ESP_OK) break;
+    }
+    free(buf);
+    return httpd_resp_send_chunk(req, NULL, 0);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -2522,6 +2620,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/pmu",     .method = HTTP_GET,  .handler = pmu_handler },
         { .uri = "/api/mem",     .method = HTTP_GET,  .handler = aos_mem_handler },
         { .uri = "/api/usb",     .method = HTTP_GET,  .handler = usb_handler },
+        { .uri = "/api/coredump",.method = HTTP_GET,  .handler = coredump_handler },
         { .uri = "/api/list",    .method = HTTP_GET,  .handler = list_handler },
         { .uri = "/api/upload",  .method = HTTP_POST, .handler = upload_handler },
         { .uri = "/api/ota",     .method = HTTP_POST, .handler = ota_handler },

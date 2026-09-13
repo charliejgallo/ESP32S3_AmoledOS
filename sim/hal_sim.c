@@ -443,6 +443,9 @@ const char *aos_hal_path_scans(void)  { return "sim_fs/redes";  }
 const char *aos_hal_path_sd_root(void) { return "sim_fs"; }
 
 bool aos_hal_sd_present(void) { return true; }
+bool aos_hal_sd_release(void) { return false; }   /* nothing to lend in the simulator */
+bool aos_hal_sd_reclaim(void) { return true; }
+void aos_hal_sd_mark_mounted(bool mounted) { (void)mounted; }
 
 bool aos_hal_sd_usage(uint64_t *total_bytes, uint64_t *free_bytes)
 {

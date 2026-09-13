@@ -347,6 +347,16 @@ const char *aos_hal_path_data(void);        /* app state               */
 const char *aos_hal_path_scans(void);       /* network surveys         */
 const char *aos_hal_path_sd_root(void);     /* the card's mount point, NULL without card */
 
+/* Disk mode (branch usb, docs/USB.md D2): the card leaves the watch while a
+ * computer has it. release() unmounts it and shuts the SD host so aos_usb
+ * can take the raw sectors; reclaim() mounts it again the usual way.
+ * mark_mounted() is for the interval in between, when the USB side mounts
+ * it back for the watch (the computer ejected it) or takes it again. The
+ * simulator has no card to lend: release() says false. */
+bool aos_hal_sd_release(void);
+bool aos_hal_sd_reclaim(void);
+void aos_hal_sd_mark_mounted(bool mounted);
+
 /* Language packs. Unlike those above, this one does NOT fall back to SPIFFS:
  * packs live on the card only. That is not a limitation but the design
  * decision - the base language is the one in the source, so "no card" means

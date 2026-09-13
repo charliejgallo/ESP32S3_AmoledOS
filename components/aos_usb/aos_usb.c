@@ -31,9 +31,26 @@
 #include "esp_heap_caps.h"
 #include "esp_pm.h"
 #include "esp_intr_alloc.h"
+#include "esp_rom_sys.h"
+#include "esp_attr.h"
+#include "esp_rom_uart.h"
+#include "soc/usb_dwc_struct.h"
+#include "soc/usb_wrap_struct.h"
+#include "soc/rtc_cntl_struct.h"
 #include "hal/usb_serial_jtag_ll.h"
 #include "usb/usb_host.h"
 #include "usb/usb_helpers.h"
+#include "usb/msc_host.h"
+#include "usb/msc_host_vfs.h"
+#include "esp_vfs_fat.h"
+#include "tinyusb_msc.h"
+#include "tusb.h"
+#include "driver/sdmmc_host.h"
+#include "sdmmc_cmd.h"
+#include "bsp/esp32_s3_touch_amoled_1_8.h"   /* the SD pins and the mount point */
+#include "aos_hal.h"
+#include <errno.h>
+#include <sys/stat.h>
 #include "tinyusb.h"
 #include "tinyusb_default_config.h"
 #include "tinyusb_cdc_acm.h"
@@ -68,7 +85,6 @@ typedef struct {
     usb_device_handle_t hdl;        /* kept open until it goes, like the IDF example */
 } aos_usb_dev_t;
 
-static aos_usb_mode_t       s_mode = AOS_USB_CONSOLE;
 static bool                 s_console_on_cdc = true;
 static bool                 s_console_redirected;
 static SemaphoreHandle_t    s_lock;             /* mode changes and the device table */
@@ -86,6 +102,96 @@ static volatile uint8_t         s_pending_new[AOS_USB_MAX_DEV];
 static volatile int             s_pending_new_n;
 static usb_device_handle_t      s_pending_gone[AOS_USB_MAX_DEV];
 static volatile int             s_pending_gone_n;
+
+/* D2, disk mode: the card as a USB drive. The BSP's mount is undone, the
+ * card is initialised again here and handed to esp_tinyusb's MSC storage,
+ * which owns it from then on: on the USB side while the computer has it,
+ * mounted back at /sdcard for the watch when the computer ejects it (that
+ * is the driver's auto-mount, and the event callback tells the HAL). */
+static sdmmc_card_t               *s_card;
+static tinyusb_msc_storage_handle_t s_storage;
+static bool                        s_card_away;
+
+/* H1: one pendrive at a time, mounted at /usb. The MSC class driver runs
+ * its own task; its callback only takes note, and the client task does the
+ * install and the mount (control transfers from inside the callback would
+ * wait on the task that is running the callback). */
+#define AOS_USB_MSC_ROOT "/usb"
+static bool                     s_msc_installed;
+static msc_host_device_handle_t s_msc_dev;
+static msc_host_vfs_handle_t    s_msc_vfs;
+static bool                     s_msc_mounted;
+static uint32_t                 s_msc_sectors, s_msc_sector_size;
+static volatile uint8_t         s_msc_pending_addr;
+static volatile bool            s_msc_pending_gone;
+
+/* -------------------------------------------------------------------------- */
+/* Boot, and TinyUSB's own log                                                 */
+/* -------------------------------------------------------------------------- */
+
+/* Breadcrumbs across a reset: the teardown of an OTG mode has crashed in
+ * ways that leave no core dump and no console, so every step writes its
+ * number to RTC memory, which survives everything but a power cycle, and
+ * /api/usb reports the last one seen at boot ("boot_step"). */
+#define STEP_MAGIC 0x55534253u
+static RTC_NOINIT_ATTR uint32_t s_step_magic;
+static RTC_NOINIT_ATTR uint32_t s_step;
+static uint32_t s_boot_step;                /* what the previous life left, 0 if nothing */
+#define STEP(n) do { s_step_magic = STEP_MAGIC; s_step = (n); } while (0)
+
+#define ROM_RING 8192
+static char             *s_rom_ring;        /* PSRAM; written from the TinyUSB task and its ISR */
+static volatile uint32_t s_rom_w;
+
+static aos_usb_mode_t       s_mode = AOS_USB_CONSOLE;
+
+static void rom_putc(char c)
+{
+    if (s_mode == AOS_USB_CONSOLE) {
+        esp_rom_output_putc(c);             /* the console keeps everything it used to get */
+    }                                       /* in an OTG mode the Serial-JTAG is not there: no waiting on its FIFO */
+    if (s_rom_ring) {
+        s_rom_ring[s_rom_w % ROM_RING] = c;
+        s_rom_w++;
+    }
+}
+
+void aos_usb_init(void)
+{
+    s_boot_step = (s_step_magic == STEP_MAGIC) ? s_step : 0;
+    STEP(0);
+    /* Pad down for a moment, as in phy_back_to_console(): after a reboot
+     * from an OTG mode the computer may still hold the OTG device's address
+     * (a reset is too short a detach for some hosts), and then the
+     * Serial-JTAG never enumerates until the cable is pulled. */
+    usb_serial_jtag_ll_phy_enable_pad(false);
+    usb_serial_jtag_ll_phy_enable_external(false);
+    vTaskDelay(pdMS_TO_TICKS(100));
+    usb_serial_jtag_ll_phy_enable_pad(true);
+    /* TinyUSB logs through esp_rom_printf, from its ISR included. Level 1
+     * (errors and asserts) only: at level 2 it prints on every transfer,
+     * from the ISR, and disk mode died of the interrupt watchdog while the
+     * Mac read the card (2026-09-12). */
+    s_rom_ring = heap_caps_calloc(ROM_RING, 1, MALLOC_CAP_SPIRAM);
+    esp_rom_install_channel_putc(1, rom_putc);
+}
+
+int aos_usb_tusb_log(char *out, size_t len)
+{
+    if (!s_rom_ring || len == 0) {
+        if (len) out[0] = 0;
+        return 0;
+    }
+    uint32_t w = s_rom_w;
+    uint32_t have = w < ROM_RING ? w : ROM_RING;
+    uint32_t start = w - have;
+    size_t n = 0;
+    for (uint32_t i = 0; i < have && n + 1 < len; i++) {
+        out[n++] = s_rom_ring[(start + i) % ROM_RING];
+    }
+    out[n] = 0;
+    return (int)n;
+}
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                     */
@@ -200,9 +306,46 @@ static bool stream_to(const char *path)
     return o && e && i;
 }
 
+/* Device mode gets its own configuration: CDC only. esp_tinyusb's default
+ * descriptor lists every class that is compiled in, MSC included, and with
+ * no MSC driver installed the class callbacks dereference a NULL driver
+ * (tinyusb_msc.c, _msc_storage_get_by_lun) the moment the computer asks
+ * TEST UNIT READY: a panic seconds after enumeration, measured 2026-09-12.
+ * Disk mode installs the driver and keeps the default CDC+MSC descriptor. */
+enum { AOS_ITF_CDC = 0, AOS_ITF_CDC_DATA, AOS_ITF_CDC_ONLY_TOTAL };
+#define AOS_EP_CDC_NOTIF   0x81
+#define AOS_EP_CDC_OUT     0x02
+#define AOS_EP_CDC_IN      0x82
+#define AOS_STRID_CDC      4              /* esp_tinyusb's default string table: 4 = the CDC interface */
+static const uint8_t s_cfg_cdc_only[] = {
+    TUD_CONFIG_DESCRIPTOR(1, AOS_ITF_CDC_ONLY_TOTAL, 0, TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN,
+                          TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
+    TUD_CDC_DESCRIPTOR(AOS_ITF_CDC, AOS_STRID_CDC, AOS_EP_CDC_NOTIF, 8, AOS_EP_CDC_OUT, AOS_EP_CDC_IN, 64),
+};
+static const tusb_desc_device_t s_dev_cdc_only = {
+    .bLength = sizeof(tusb_desc_device_t),
+    .bDescriptorType = TUSB_DESC_DEVICE,
+    .bcdUSB = 0x0200,
+    .bDeviceClass = TUSB_CLASS_MISC,
+    .bDeviceSubClass = MISC_SUBCLASS_COMMON,
+    .bDeviceProtocol = MISC_PROTOCOL_IAD,
+    .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
+    .idVendor = 0x303A,                     /* Espressif */
+    .idProduct = 0x4002,                    /* esp_tinyusb's "CDC only" PID; 0x4003 is CDC+MSC (disk mode) */
+    .bcdDevice = CONFIG_TINYUSB_DESC_BCD_DEVICE,
+    .iManufacturer = 1, .iProduct = 2, .iSerialNumber = 3,
+    .bNumConfigurations = 1,
+};
+
+static bool s_device_with_msc;              /* set by disk_start() before device_start() */
+
 static bool device_start(void)
 {
     tinyusb_config_t cfg = TINYUSB_DEFAULT_CONFIG();
+    if (!s_device_with_msc) {
+        cfg.descriptor.device = &s_dev_cdc_only;
+        cfg.descriptor.full_speed_config = s_cfg_cdc_only;
+    }
     esp_err_t e = tinyusb_driver_install(&cfg);
     if (e != ESP_OK) {
         ESP_LOGE(TAG, "tinyusb_driver_install: %s", esp_err_to_name(e));
@@ -228,13 +371,18 @@ static bool device_start(void)
 
 static void device_stop(void)
 {
+    STEP(20);
     if (s_console_redirected) {
         stream_to(ESP_VFS_DEV_CONSOLE);
+        STEP(21);
         esp_vfs_tusb_cdc_unregister(NULL);
         s_console_redirected = false;
     }
+    STEP(22);
     tinyusb_cdcacm_deinit(TINYUSB_CDC_ACM_0);
+    STEP(23);
     esp_err_t e = tinyusb_driver_uninstall();
+    STEP(24);
     if (e != ESP_OK) {
         ESP_LOGW(TAG, "tinyusb_driver_uninstall: %s", esp_err_to_name(e));
     }
@@ -357,6 +505,125 @@ static void close_all(void)
     xSemaphoreGive(s_lock);
 }
 
+/* ---- H1: the pendrive ---------------------------------------------------- */
+
+static void msc_event_cb(const msc_host_event_t *ev, void *arg)
+{
+    if (ev->event == MSC_DEVICE_CONNECTED) {
+        s_msc_pending_addr = ev->device.address;
+    } else if (ev->event == MSC_DEVICE_DISCONNECTED) {
+        s_msc_pending_gone = true;
+    }
+}
+
+static void msc_unmount(void)
+{
+    if (s_msc_vfs) {
+        msc_host_vfs_unregister(s_msc_vfs);
+        s_msc_vfs = NULL;
+    }
+    if (s_msc_dev) {
+        msc_host_uninstall_device(s_msc_dev);
+        s_msc_dev = NULL;
+    }
+    if (s_msc_mounted) {
+        ESP_LOGI(TAG, "pendrive unmounted from " AOS_USB_MSC_ROOT);
+    }
+    s_msc_mounted = false;
+}
+
+static void msc_mount(uint8_t addr)
+{
+    if (s_msc_dev) {
+        ESP_LOGW(TAG, "a second MSC device (address %d): one at a time, ignored", addr);
+        return;
+    }
+    esp_err_t e = msc_host_install_device(addr, &s_msc_dev);
+    if (e != ESP_OK) {
+        ESP_LOGE(TAG, "msc_host_install_device: %s", esp_err_to_name(e));
+        s_msc_dev = NULL;
+        return;
+    }
+    msc_host_device_info_t info;
+    if (msc_host_get_device_info(s_msc_dev, &info) == ESP_OK) {
+        s_msc_sectors = info.sector_count;
+        s_msc_sector_size = info.sector_size;
+        ESP_LOGI(TAG, "pendrive: %lu sectors of %lu B = %lu MB",
+                 (unsigned long)info.sector_count, (unsigned long)info.sector_size,
+                 (unsigned long)((uint64_t)info.sector_count * info.sector_size >> 20));
+    }
+    const esp_vfs_fat_mount_config_t cfg = {
+        .format_if_mount_failed = false,
+        .max_files = 4,
+        .allocation_unit_size = 16 * 1024,
+    };
+    e = msc_host_vfs_register(s_msc_dev, AOS_USB_MSC_ROOT, &cfg, &s_msc_vfs);
+    if (e != ESP_OK) {
+        ESP_LOGE(TAG, "msc_host_vfs_register: %s (not FAT?)", esp_err_to_name(e));
+        s_msc_vfs = NULL;
+        msc_host_uninstall_device(s_msc_dev);
+        s_msc_dev = NULL;
+        return;
+    }
+    s_msc_mounted = true;
+    uint64_t total = 0, free_b = 0;
+    esp_vfs_fat_info(AOS_USB_MSC_ROOT, &total, &free_b);
+    ESP_LOGI(TAG, "pendrive mounted at " AOS_USB_MSC_ROOT ": %llu MB, %llu MB free",
+             (unsigned long long)(total >> 20), (unsigned long long)(free_b >> 20));
+}
+
+bool aos_usb_msc_mounted(void)
+{
+    return s_msc_mounted;
+}
+
+const char *aos_usb_msc_root(void)
+{
+    return s_msc_mounted ? AOS_USB_MSC_ROOT : NULL;
+}
+
+long aos_usb_copy(const char *src, const char *dst)
+{
+    const size_t chunk = 32 * 1024;
+    uint8_t *buf = heap_caps_malloc(chunk, MALLOC_CAP_SPIRAM);
+    if (!buf) {
+        errno = ENOMEM;
+        return -1;
+    }
+    FILE *in = fopen(src, "rb");
+    if (!in) {
+        free(buf);
+        return -1;
+    }
+    FILE *out = fopen(dst, "wb");
+    if (!out) {
+        int err = errno;
+        fclose(in);
+        free(buf);
+        errno = err;
+        return -1;
+    }
+    long total = 0;
+    bool ok = true;
+    size_t n;
+    while ((n = fread(buf, 1, chunk, in)) > 0) {
+        if (fwrite(buf, 1, n, out) != n) {
+            ok = false;
+            break;
+        }
+        total += (long)n;
+    }
+    if (ferror(in)) ok = false;
+    fclose(in);
+    if (fclose(out) != 0) ok = false;
+    free(buf);
+    if (!ok) {
+        unlink(dst);
+        return -1;
+    }
+    return total;
+}
+
 static void host_client_task(void *arg)
 {
     usb_host_client_config_t cfg = {
@@ -382,7 +649,17 @@ static void host_client_task(void *arg)
         while (s_pending_gone_n > 0) {
             drop_gone(s_pending_gone[--s_pending_gone_n]);
         }
+        if (s_msc_pending_gone) {
+            s_msc_pending_gone = false;
+            msc_unmount();
+        }
+        if (s_msc_pending_addr) {
+            uint8_t a = s_msc_pending_addr;
+            s_msc_pending_addr = 0;
+            msc_mount(a);
+        }
     }
+    msc_unmount();
     close_all();
     usb_host_client_deregister(s_client);
     s_client = NULL;
@@ -463,6 +740,20 @@ static bool host_start(void)
         usb_host_uninstall();
         return false;
     }
+    s_msc_pending_addr = 0;
+    s_msc_pending_gone = false;
+    const msc_host_driver_config_t msc_cfg = {
+        .create_backround_task = true,
+        .task_priority = 5,
+        .stack_size = 4096,
+        .core_id = 1,
+        .callback = msc_event_cb,
+    };
+    esp_err_t e = msc_host_install(&msc_cfg);
+    s_msc_installed = (e == ESP_OK);
+    if (!s_msc_installed) {
+        ESP_LOGW(TAG, "msc_host_install: %s (host mode without pendrives)", esp_err_to_name(e));
+    }
     return true;
 }
 
@@ -472,17 +763,164 @@ static void host_stop(void)
     if (s_client) {
         usb_host_client_unblock(s_client);
     }
-    /* Client first (it deregisters, which is the NO_CLIENTS the library task
-     * waits for), then the library task. 2 s each; never hang the caller. */
-    for (int i = 0; i < 2; i++) {
-        if (xSemaphoreTake(s_task_done, pdMS_TO_TICKS(2000)) != pdTRUE) {
-            ESP_LOGW(TAG, "a host task did not finish in time");
+    /* The client task unmounts the pendrive and deregisters; then the MSC
+     * driver's own client goes; NO_CLIENTS is what the library task waits
+     * for. 2 s each; never hang the caller. */
+    if (xSemaphoreTake(s_task_done, pdMS_TO_TICKS(2000)) != pdTRUE) {
+        ESP_LOGW(TAG, "the client task did not finish in time");
+    }
+    if (s_msc_installed) {
+        esp_err_t e = msc_host_uninstall();
+        if (e != ESP_OK) {
+            ESP_LOGW(TAG, "msc_host_uninstall: %s", esp_err_to_name(e));
         }
+        s_msc_installed = false;
+    }
+    if (xSemaphoreTake(s_task_done, pdMS_TO_TICKS(2000)) != pdTRUE) {
+        ESP_LOGW(TAG, "the library task did not finish in time");
     }
     esp_err_t e = usb_host_uninstall();
     if (e != ESP_OK) {
         ESP_LOGW(TAG, "usb_host_uninstall: %s", esp_err_to_name(e));
     }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Disk mode: the microSD as a USB drive                                       */
+/* -------------------------------------------------------------------------- */
+
+static void msc_storage_cb(tinyusb_msc_storage_handle_t h, tinyusb_msc_event_t *ev, void *arg)
+{
+    /* From the TinyUSB task. */
+    switch (ev->id) {
+    case TINYUSB_MSC_EVENT_MOUNT_COMPLETE: {
+        bool on_watch = ev->mount_point == TINYUSB_MSC_STORAGE_MOUNT_APP;
+        s_card_away = !on_watch;
+        aos_hal_sd_mark_mounted(on_watch);
+        ESP_LOGI(TAG, "%s", on_watch ? "card back on the watch (the computer ejected it)"
+                                     : "card handed to the computer");
+        break;
+    }
+    case TINYUSB_MSC_EVENT_MOUNT_FAILED:
+        ESP_LOGW(TAG, "card mount/unmount failed (%s side)",
+                 ev->mount_point == TINYUSB_MSC_STORAGE_MOUNT_APP ? "watch" : "USB");
+        break;
+    case TINYUSB_MSC_EVENT_FORMAT_REQUIRED:
+        ESP_LOGE(TAG, "the card has no filesystem the watch can mount; it is NOT formatted here");
+        break;
+    default:
+        break;
+    }
+}
+
+/* The BSP's slot, pin for pin (bsp_sdcard_mount). */
+static bool sd_take(void)
+{
+    if (!aos_hal_sd_release()) {
+        ESP_LOGW(TAG, "no card to hand over");
+        return false;
+    }
+    sdmmc_host_t host = SDMMC_HOST_DEFAULT();
+    const sdmmc_slot_config_t slot = {
+        .clk = BSP_SD_CLK, .cmd = BSP_SD_CMD, .d0 = BSP_SD_D0,
+        .d1 = GPIO_NUM_NC, .d2 = GPIO_NUM_NC, .d3 = GPIO_NUM_NC, .d4 = GPIO_NUM_NC,
+        .d5 = GPIO_NUM_NC, .d6 = GPIO_NUM_NC, .d7 = GPIO_NUM_NC,
+        .cd = SDMMC_SLOT_NO_CD, .wp = SDMMC_SLOT_NO_WP, .width = 1, .flags = 0,
+    };
+    esp_err_t e = sdmmc_host_init();
+    if (e == ESP_OK) e = sdmmc_host_init_slot(host.slot, &slot);
+    if (e == ESP_OK) {
+        s_card = calloc(1, sizeof(sdmmc_card_t));
+        e = s_card ? sdmmc_card_init(&host, s_card) : ESP_ERR_NO_MEM;
+    }
+    if (e != ESP_OK) {
+        ESP_LOGE(TAG, "card init for disk mode: %s", esp_err_to_name(e));
+        free(s_card);
+        s_card = NULL;
+        sdmmc_host_deinit();
+        aos_hal_sd_reclaim();
+        return false;
+    }
+    ESP_LOGI(TAG, "card taken: %s, %llu MB", s_card->cid.name,
+             (unsigned long long)((uint64_t)s_card->csd.capacity * s_card->csd.sector_size >> 20));
+    return true;
+}
+
+static void sd_give_back(void)
+{
+    sdmmc_host_deinit();
+    free(s_card);
+    s_card = NULL;
+    aos_hal_sd_reclaim();
+}
+
+static bool disk_start(void)
+{
+    if (!sd_take()) {
+        return false;
+    }
+    const tinyusb_msc_driver_config_t dcfg = { .callback = msc_storage_cb };   /* auto-mount on */
+    esp_err_t e = tinyusb_msc_install_driver(&dcfg);
+    if (e != ESP_OK) {
+        ESP_LOGE(TAG, "tinyusb_msc_install_driver: %s", esp_err_to_name(e));
+        sd_give_back();
+        return false;
+    }
+    const tinyusb_msc_storage_config_t scfg = {
+        .medium.card = s_card,
+        .fat_fs = {
+            .base_path = BSP_SD_MOUNT_POINT,
+            .config = { .format_if_mount_failed = false, .max_files = 8, .allocation_unit_size = 16 * 1024 },
+            .do_not_format = true,
+        },
+        .mount_point = TINYUSB_MSC_STORAGE_MOUNT_USB,
+    };
+    e = tinyusb_msc_new_storage_sdmmc(&scfg, &s_storage);
+    if (e != ESP_OK) {
+        ESP_LOGE(TAG, "tinyusb_msc_new_storage_sdmmc: %s", esp_err_to_name(e));
+        s_storage = NULL;
+        tinyusb_msc_uninstall_driver();
+        sd_give_back();
+        return false;
+    }
+    s_card_away = true;
+    s_device_with_msc = true;
+    if (!device_start()) {
+        s_device_with_msc = false;
+        tinyusb_msc_delete_storage(s_storage);
+        s_storage = NULL;
+        tinyusb_msc_uninstall_driver();
+        s_card_away = false;
+        sd_give_back();
+        return false;
+    }
+    ESP_LOGI(TAG, "disk mode: the card is the computer's until it ejects it");
+    return true;
+}
+
+static void disk_stop(void)
+{
+    STEP(30);
+    device_stop();
+    s_device_with_msc = false;
+    STEP(31);
+    if (s_storage) {
+        esp_err_t e = tinyusb_msc_delete_storage(s_storage);     /* unmounts /sdcard if it was back */
+        if (e != ESP_OK) ESP_LOGW(TAG, "tinyusb_msc_delete_storage: %s", esp_err_to_name(e));
+        s_storage = NULL;
+    }
+    STEP(32);
+    tinyusb_msc_uninstall_driver();
+    s_card_away = false;
+    aos_hal_sd_mark_mounted(false);
+    STEP(33);
+    sd_give_back();
+    STEP(34);
+}
+
+bool aos_usb_disk_card_away(void)
+{
+    return s_card_away;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -500,6 +938,7 @@ const char *aos_usb_mode_name(aos_usb_mode_t mode)
     case AOS_USB_CONSOLE: return "console";
     case AOS_USB_DEVICE:  return "device";
     case AOS_USB_HOST:    return "host";
+    case AOS_USB_DISK:    return "disk";
     default:              return "?";
     }
 }
@@ -521,15 +960,26 @@ bool aos_usb_mode_set(aos_usb_mode_t mode)
     }
     mem_line("before the switch");
 
-    /* Leave the current mode. The table lock is released around the host
-     * teardown because its tasks take it to close their devices. */
+    /* Leave the current mode: teardown first, the PHY back afterwards.
+     * Measured both ways (2026-09-12): with the mux flipped before the
+     * uninstall the computer never sees a detach (the OTG side's pull-up
+     * override is still in force through the pad toggle) and keeps the old
+     * device's node until the cable is pulled; with the uninstall first the
+     * overrides are gone, the pad toggle is a real detach, and the
+     * Serial-JTAG is back on the computer 0.6 s later. The table lock is
+     * released around the host teardown because its tasks take it to close
+     * their devices. */
+    STEP(10);
     if (s_mode == AOS_USB_DEVICE) {
         device_stop();
+    } else if (s_mode == AOS_USB_DISK) {
+        disk_stop();
     } else if (s_mode == AOS_USB_HOST) {
         xSemaphoreGive(s_lock);
         host_stop();
         xSemaphoreTake(s_lock, portMAX_DELAY);
     }
+    STEP(11);
     if (s_mode != AOS_USB_CONSOLE) {
         phy_back_to_console();
         if (s_pm_lock) esp_pm_lock_release(s_pm_lock);
@@ -540,7 +990,9 @@ bool aos_usb_mode_set(aos_usb_mode_t mode)
     bool ok = true;
     if (mode != AOS_USB_CONSOLE) {
         if (s_pm_lock) esp_pm_lock_acquire(s_pm_lock);
-        ok = (mode == AOS_USB_DEVICE) ? device_start() : host_start();
+        ok = (mode == AOS_USB_DEVICE) ? device_start()
+           : (mode == AOS_USB_DISK)   ? disk_start()
+           :                            host_start();
         if (ok) {
             s_mode = mode;
         } else {
@@ -550,6 +1002,7 @@ bool aos_usb_mode_set(aos_usb_mode_t mode)
         mem_line(ok ? aos_usb_mode_name(mode) : "mode failed, console");
     }
     ESP_LOGI(TAG, "usb: %s", aos_usb_mode_name(s_mode));
+    STEP(40);
     xSemaphoreGive(s_lock);
     return ok;
 }
@@ -561,8 +1014,9 @@ bool aos_usb_mode_set(aos_usb_mode_t mode)
 int aos_usb_status_json(char *out, size_t len)
 {
     ensure_init();
-    int n = snprintf(out, len, "{\"mode\":\"%s\",\"console_on_cdc\":%s,\"seen\":%d,\"devices\":[",
-                     aos_usb_mode_name(s_mode), s_console_on_cdc ? "true" : "false", s_seen);
+    int n = snprintf(out, len, "{\"mode\":\"%s\",\"console_on_cdc\":%s,\"card_away\":%s,\"boot_step\":%lu,\"seen\":%d,\"devices\":[",
+                     aos_usb_mode_name(s_mode), s_console_on_cdc ? "true" : "false",
+                     s_card_away ? "true" : "false", (unsigned long)s_boot_step, s_seen);
     if (s_lock) xSemaphoreTake(s_lock, portMAX_DELAY);
     bool first = true;
     for (int i = 0; i < AOS_USB_MAX_DEV && n < (int)len; i++) {
@@ -585,7 +1039,38 @@ int aos_usb_status_json(char *out, size_t len)
     }
     if (s_lock) xSemaphoreGive(s_lock);
     if (n < (int)len) {
-        n += snprintf(out + n, len - n, "],\"mem\":{\"internal\":%u,\"exec\":%u,\"exec_block\":%u}}",
+        /* Raw registers, for the days a device is plugged and nothing
+         * happens: HPRT bit 0 = connected, 1 = connect detected, 2 = port
+         * enabled, 12 = port powered, 17-18 = speed; GOTGCTL bit 16 = ID
+         * (0 host), 18/19 = A/B session valid; RTC usb_conf bit 19 =
+         * sw_usb_phy_sel (1 = the PHY is on the OTG), 20 = sw override on.
+         *
+         * ONLY while an OTG mode is on. Leaving a mode gates the OTG
+         * peripheral's clock, and on the S3 a read of a clock-gated
+         * peripheral hangs the bus: the CPU stalls with interrupts dead and
+         * the interrupt watchdog resets the chip, with no panic and no core
+         * dump. Every "crash on leaving a mode" of 2026-09-12 was this read,
+         * one HTTP response after the switch had already finished. */
+        usb_host_lib_info_t li = { 0 };
+        if (s_mode == AOS_USB_HOST) usb_host_lib_info(&li);
+        uint64_t total = 0, free_b = 0;
+        if (s_msc_mounted) esp_vfs_fat_info(AOS_USB_MSC_ROOT, &total, &free_b);
+        n += snprintf(out + n, len - n, "],\"msc\":{\"mounted\":%s,\"root\":\"%s\",\"sectors\":%lu,"
+                      "\"sector_size\":%lu,\"kb_total\":%llu,\"kb_free\":%llu},",
+                      s_msc_mounted ? "true" : "false", s_msc_mounted ? AOS_USB_MSC_ROOT : "",
+                      (unsigned long)s_msc_sectors, (unsigned long)s_msc_sector_size,
+                      (unsigned long long)(total >> 10), (unsigned long long)(free_b >> 10));
+        bool otg = s_mode != AOS_USB_CONSOLE;
+        n += snprintf(out + n, len - n, "\"regs\":{\"hprt\":\"0x%08x\",\"gotgctl\":\"0x%08x\","
+                      "\"gusbcfg\":\"0x%08x\",\"gintsts\":\"0x%08x\",\"wrap_otg_conf\":\"0x%08x\","
+                      "\"rtc_usb_conf\":\"0x%08x\",\"lib_devices\":%d,\"lib_clients\":%d},",
+                      otg ? (unsigned)USB_DWC.hprt_reg.val : 0, otg ? (unsigned)USB_DWC.gotgctl_reg.val : 0,
+                      otg ? (unsigned)USB_DWC.gusbcfg_reg.val : 0, otg ? (unsigned)USB_DWC.gintsts_reg.val : 0,
+                      otg ? (unsigned)USB_WRAP.otg_conf.val : 0, (unsigned)RTCCNTL.usb_conf.val,
+                      li.num_devices, li.num_clients);
+    }
+    if (n < (int)len) {
+        n += snprintf(out + n, len - n, "\"mem\":{\"internal\":%u,\"exec\":%u,\"exec_block\":%u}}",
                       (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
                       (unsigned)heap_caps_get_free_size(MALLOC_CAP_EXEC),
                       (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_EXEC));

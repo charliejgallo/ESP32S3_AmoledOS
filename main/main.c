@@ -18,6 +18,7 @@
 #include "aos_dynapp.h"
 #include "aos_web.h"
 #include "aos_log.h"   /* the log ring the portal serves */
+#include "aos_usb.h"   /* the USB PHY mux back on the console at boot */
 #include "aos_ble.h"   /* F0: measurement, see docs/HANDOFF-BLE-ANCS.md */
 #include "aos_i18n.h"
 
@@ -146,6 +147,9 @@ void app_main(void)
 #endif
     /* First thing: from here on the log is also kept for /registro. */
     aos_log_init();
+    /* Second: the USB port back on the console, whatever the last mode was
+     * (the mux survives a software reset; docs/USB.md). */
+    aos_usb_init();
 
     ESP_LOGI(TAG, "AmoledOS %s starting up", aos_hal_firmware_version());
 

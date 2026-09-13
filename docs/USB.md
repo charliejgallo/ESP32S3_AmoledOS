@@ -178,9 +178,13 @@ to the one to solder:
   socket for a charger. The charger's 5 V reaches both the peripheral and the
   watch's VBUS — **the PMU charges the battery while the watch hosts**, and
   `usb_present` stays true so light sleep stays off. D+/D- pass straight
-  through. Buy the *passive* kind: adapters that negotiate USB-PD may withhold
-  the 5 V because the watch's CC pins carry the pull-downs of a device, not
-  the pull-ups of a host. This is the recommended everyday rig.
+  through. This is the recommended everyday rig, with two things measured
+  on 2026-09-12 (section 6, T4): one adapter did not connect its A socket
+  to the plug at all (the watch's CC pins carry a device's pull-downs, so
+  an adapter that waits for a host never switches), and the one that works
+  **negotiates USB-PD with the charger and passes the result to the watch**
+  — 16 V on the AXP2101's 5 V input with a PD charger. **Use a plain 5 V
+  USB-A charger on it, never a PD one.**
 * **4.B — a self-powered hub through a USB-C-to-A OTG adapter.** Needs H8
   (hubs support) on. Some hubs wait for VBUS from the host before they
   connect upstream, and this rig gives them none: it may or may not work per
@@ -282,7 +286,105 @@ interrupt on that core), while TinyUSB installs fine because it does so from
 its own task on core 1. The host library is now installed from `aos_usb`'s
 own library task, pinned to core 1, with a fallback to any low/medium level.
 
-**T4-T8:** not run; they need a host rig (section 4).
+**T4 — passes, on the second adapter.** A Kingston DataTraveler 2.0
+(`0951:1603`, full speed, one MSC interface: SCSI, bulk-only) enumerates and
+`/api/usb` lists it with its strings; the log has the descriptors. The
+adapter itself showed up first as a "Billboard Device" (`177a:963d`, EXPSM,
+two HID interfaces) for four seconds and then went away: that is the
+adapter's USB-PD controller announcing itself, which is the warning below.
+
+Two adapters were tried:
+
+* **The first one passed nothing:** HPRT read `0x1000` (port powered, no
+  connection) for five minutes with the pendrive in, i.e. D+ never came up
+  on the watch's side. Its A socket is not wired through to the C plug
+  without a negotiation the watch cannot do.
+* **The second one passes data, and passes the charger's PD voltage too.**
+  With a USB-PD charger on it, the PMU read **VBUS = 16.38 V**: the VBUS
+  ADC at full scale (`0x38/0x39 = 0x3FF8`), `VBUS good` clear in register
+  `0x00`, the charger idle, VSYS equal to VBAT — the input path shut and the
+  watch on battery. The same reading stayed after swapping in a plain 5 V
+  charger, with the pendrive no longer enumerating either, so what the
+  adapter puts on its C plug without a PD partner is still an open
+  question (section 6, "open"). The adapter negotiates with the charger on
+  its own and hands the result to the watch, whose VBUS pin is the
+  AXP2101's input; the PMU disconnecting it is what saved the day. **Only a
+  plain 5 V charger (no PD, a USB-A brick) goes on these adapters**, and
+  the first thing to check with any new adapter is `/api/status`:
+  `usb: true` and `vbus` near 5 V before anything else.
+
+**T5 — disk mode works; write speed measured.** `?mode=disk` and the Mac
+mounts `SDCARD` (FAT32, 7.9 GB) after **9-12 s**; folders and files are
+the card's. `diskutil eject` hands the card back to the watch on its own
+(the driver's auto-mount, "card back on the watch" in the log), `sd: true`
+in `/api/status` and the file written from the Mac is in
+`/api/list?dir=sd`. Written from the Mac with `dd`, 8-16 MB of random data:
+
+| MSC endpoint buffer (`CONFIG_TINYUSB_MSC_BUFSIZE`) | write | read (cold) |
+| --- | --- | --- |
+| 512 B (the default) | 74 KB/s | — |
+| 8 KB (the S3's ceiling) | **767 KB/s** | **708 KB/s** |
+
+(16 MB of random data with `dd`; the read after an eject and a fresh
+mount, so the Mac's cache is out of it.) Three device/console cycles and
+two disk cycles in a row: internal RAM back to the byte each time
+(167 475 → 167 475), the largest executable block down from 106 K to 98 K
+after the first disk cycle and steady after.
+macOS creates `.Spotlight-V100` and `.fseventsd` on the card; the portal's
+listings skip dot-files, so the watch never sees them. Eject can be refused
+("Dissenter parent PPID 1", Spotlight indexing the new files): unmount with
+force, or leave the mode anyway — the watch gets the card back regardless,
+the Mac just complains that the disk was not ejected properly.
+
+**Things measured on the way to T5, all of them costing a reboot each:**
+
+1. **macOS takes 9-15 s to register the device.** The first "it does not
+   enumerate" was a 7-second wait; `ioreg` shows the node `!registered`
+   meanwhile and then it flips. Waiting is the fix.
+2. **The MSC class with no MSC driver behind it panics.** With
+   `CONFIG_TINYUSB_MSC_ENABLED` the default configuration descriptor lists
+   the MSC interface in every device mode, and `_msc_storage_get_by_lun()`
+   dereferences `p_msc_driver` (NULL until `tinyusb_msc_install_driver`)
+   the moment the Mac asks TEST UNIT READY. Device mode (console only) now
+   passes its own CDC-only descriptor, PID `0x4002`; disk mode keeps the
+   default CDC+MSC one, PID `0x4003`.
+3. **The PHY mux survives a software reset.** `RTC_CNTL.usb_conf` is not
+   touched by a reboot, so an OTA from an OTG mode came up with the PHY on
+   the OTG, a dead console and nothing on the Mac — and `rtc_usb_conf`
+   read `0x180000` "in console mode". `aos_usb_init()`, first thing in
+   `app_main`, puts it back (pad down for 100 ms, mux to the Serial-JTAG,
+   pad up).
+4. **TinyUSB's log at level 2 kills disk mode.** It prints from the ISR on
+   every transfer through `esp_rom_printf`; with the Mac reading sectors
+   the interrupt watchdog fired. Level 1 (errors only) stays, into a ring
+   served by `/api/usb?tusblog=1` (the hook `rom_putc`, installed at boot,
+   keeps the console output as it was).
+5. **Reading the OTG registers with the peripheral's clock gated hangs the
+   bus.** `/api/usb` dumped `USB_DWC`/`USB_WRAP` for the host diagnosis;
+   after leaving a mode the uninstall gates the clock, the read stalls the
+   CPU with interrupts dead, and the interrupt watchdog resets the chip
+   with **no panic and no core dump** — one HTTP response after a switch
+   that had already finished (the RTC-memory breadcrumbs of `/api/usb`
+   `boot_step` said 40, "done"). Every "crash on leaving a mode" since the
+   dump existed was this. The registers are read in OTG modes only.
+6. **A stale node on the Mac, and the order of the teardown.** After those
+   resets macOS kept the OTG device's node (`AmoledOS watch`,
+   `/dev/cu.usbmodem1234561`) across reboots of the watch, and neither the
+   Serial-JTAG nor a new device mode showed up until the cable was pulled.
+   The same happened, without any crash, when the PHY was handed back
+   *before* the uninstall: the OTG side's pull-up override is still in
+   force through the pad toggle, the computer sees no detach, and it goes
+   on talking to a device that is gone. Uninstall first, then the pad
+   toggle: a real detach, and the Serial-JTAG is back in 0.6 s, every
+   time (three cycles measured).
+
+**Tooling that came out of it, kept:** a `coredump` partition (256 K in the
+free tail of the flash, `partitions.csv`) with `/api/coredump` to fetch the
+dump over WiFi and `CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT` so a panic in an
+OTG mode is written instead of printed into a dead console; the RTC
+breadcrumbs (`boot_step`); the TinyUSB ring (`tusblog`).
+
+**T6-T8:** not run.
 
 ## 7. The plan, in phases
 
@@ -317,11 +419,18 @@ host mode with something plugged in and needs the rig.
 
 In this order, each behind the same switch and each measured with T3:
 
-1. **D2 disk mode.** The card's owner moves: `aos_usb` takes the card from
-   the BSP mount (`esp_vfs_fat_sdcard_unmount` keeps the `sdmmc_card_t`
-   only if we mount it ourselves, so the mount moves from `bsp_sdcard_mount()`
-   into `aos_hal`), hands it to `tinyusb_msc_new_storage_sdmmc`, and on eject
-   mounts it back and rescans the apps. T5.
+1. **D2 disk mode.** *Running since 2026-09-12 (T5).* The card's owner
+   moves: `aos_hal_sd_release()` undoes the BSP mount (which also shuts the
+   SD host), `aos_usb` initialises the card again on the same pins and
+   hands it to `tinyusb_msc_new_storage_sdmmc` with `do_not_format` and
+   mount point USB; esp_tinyusb owns it from there — on the USB side while
+   the computer has it, mounted back at `/sdcard` for the watch when the
+   computer ejects it (`aos_hal_sd_mark_mounted` follows the driver's
+   events). Leaving the mode deletes the storage, deinits the host and
+   `aos_hal_sd_reclaim()` mounts through the BSP again. New `.so` files
+   copied in show up at the next boot (no rescan yet). Cost: 4.8 KB of
+   internal RAM while on, +17 KB of flash, 8 KB of static RAM for the
+   endpoint buffer.
 2. **D3 HID keyboard + consumer control** as an app: media keys, clicker,
    macro pad. Composite with D1 (D12).
 3. **D6 USB network (NCM).** The portal over the cable.
@@ -332,10 +441,33 @@ In this order, each behind the same switch and each measured with T3:
 the media keys work on the Mac, and the portal answers at `192.168.7.1` with
 WiFi off.
 
-### Phase 3 — host functions
+### Where host mode stands (2026-09-12)
+
+**Parked.** T4 passed (a pendrive enumerates, the inspector lists it) and
+H1 (the pendrive at `/usb`, the explorer, the timed copy) is written and
+built, but every way of powering a peripheral costs the thing this watch
+is: a small, self-contained device on the wrist. The passive "OTG +
+charge" adapters either do not pass data at all or negotiate USB-PD and
+hand the charger's voltage to the PMU's 5 V input; a self-powered hub
+works but is a desk setup; the solder pads mean wires on the case. None of
+it is a thing to carry. So host mode stays in the firmware as it is —
+the inspector and the pendrive mount, behind the switch — and the host
+functions below wait for a rig worth building (a small board with a boost
+converter on the pads, or a hub in a dock) or a reason that beats the
+inconvenience. Device mode, which needs nothing but the cable the watch
+charges with, is where the work goes.
+
+### Phase 3 — host functions (parked)
 
 1. **H1 pendrive**: mount, browse, copy both ways, backup. The file list UI
    already exists in the portal; the watch gets a two-pane copy screen.
+   *Written 2026-09-12, waiting for a rig to run:* in host mode the MSC
+   class driver is installed too; a pendrive is mounted at `/usb` (one at a
+   time, FAT only, no formatting), the portal's explorer reaches it as
+   `dir=usb` and `dir=usb/<folder>` through `/api/list` and
+   `/api/download`, and `/api/usb?cp=<name>&from=<dir>&to=<dir>` copies a
+   file between any two explorer folders and reports bytes and ms (T5).
+   +15 KB of flash for the class driver and the second FAT volume.
 2. **H2/H3 keyboard and mouse**: text entry hook, launcher navigation, pointer.
 3. **H4 gamepad**: the report-descriptor parser, `aos_hal_gamepad_*`, and one
    game (2043) reading it.

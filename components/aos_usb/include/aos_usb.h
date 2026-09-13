@@ -14,9 +14,20 @@
 
 typedef enum {
     AOS_USB_CONSOLE = 0,    /* USB-Serial-JTAG: log, idf.py monitor, esptool */
-    AOS_USB_DEVICE,         /* OTG as a peripheral: today a CDC serial port with the console on it */
-    AOS_USB_HOST,           /* OTG as a host: today the inspector (enumerate and describe what is plugged) */
+    AOS_USB_DEVICE,         /* OTG as a peripheral: a CDC serial port with the console on it */
+    AOS_USB_HOST,           /* OTG as a host: the inspector, and a pendrive mounted at /usb */
+    AOS_USB_DISK,           /* DEVICE plus the microSD as a USB drive of the computer (docs/USB.md D2) */
 } aos_usb_mode_t;
+
+/* From app_main, before anything: puts the PHY mux back on the Serial-JTAG.
+ * RTC_CNTL.usb_conf survives a software reset, so a reboot (an OTA) from an
+ * OTG mode would otherwise come up with a dead console and nothing on the
+ * computer. Also hooks TinyUSB's own log (esp_rom_printf) into a ring for
+ * /api/usb?tusblog=1, since in an OTG mode that output has nowhere to go. */
+void aos_usb_init(void);
+
+/* The captured TinyUSB / ROM printf output, oldest first. */
+int aos_usb_tusb_log(char *out, size_t len);
 
 aos_usb_mode_t aos_usb_mode_get(void);
 const char    *aos_usb_mode_name(aos_usb_mode_t mode);
@@ -30,5 +41,18 @@ bool aos_usb_mode_set(aos_usb_mode_t mode);
  * true). Takes effect at the next switch into device mode. */
 void aos_usb_console_on_cdc(bool on);
 
-/* {"mode":..,"devices":[..],"mem":{..}} — what /api/usb answers. */
+/* Disk mode: true while the computer holds the card (the watch has no
+ * /sdcard meanwhile); false once it ejected it or the mode was left. */
+bool aos_usb_disk_card_away(void);
+
+/* Host mode, H1: a pendrive (MSC) is mounted at /usb while it is plugged.
+ * aos_usb_msc_root() is "/usb" when one is mounted, NULL otherwise. */
+bool        aos_usb_msc_mounted(void);
+const char *aos_usb_msc_root(void);
+
+/* Whole-file copy, any path to any path, through a 32 KB PSRAM buffer.
+ * Returns the bytes copied, or -1 (errno says why). */
+long aos_usb_copy(const char *src, const char *dst);
+
+/* {"mode":..,"devices":[..],"msc":{..},"regs":{..},"mem":{..}} — what /api/usb answers. */
 int aos_usb_status_json(char *out, size_t len);

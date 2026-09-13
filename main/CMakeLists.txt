@@ -1,7 +1,7 @@
 idf_component_register(
     SRCS "main.c"
     INCLUDE_DIRS "."
-    REQUIRES aos_hal aos_ui aos_apps aos_board aos_dynapp aos_web aos_ble esp_mm
+    REQUIRES aos_hal aos_ui aos_apps aos_board aos_dynapp aos_web aos_ble aos_usb esp_mm
 )
 # RAM audit switch (see docs/RAM-AUDIT.md): the .bss of our components to PSRAM.
 # ON by default since the candidate build of 2026-09-12; -DAOS_AUDIT_PSRAM_BSS=0 turns it off.

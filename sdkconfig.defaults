@@ -394,5 +394,20 @@ CONFIG_ELF_LOADER_TEXT_PSRAM_MMU=y
 # class available to aos_usb for device mode; nothing is installed until
 # /api/usb?mode=device (later Settings) asks for it.
 CONFIG_TINYUSB_CDC_ENABLED=y
+# Disk mode (D2): the MSC class, with the largest endpoint buffer the S3
+# allows (8 KB of static internal RAM). Measured 2026-09-12: 512 B (the
+# default) writes at 74 KB/s; docs/USB.md T5 has the 8 KB figures.
+CONFIG_TINYUSB_MSC_ENABLED=y
+CONFIG_TINYUSB_MSC_BUFSIZE=8192
+CONFIG_TINYUSB_DEBUG_LEVEL=1
 CONFIG_TINYUSB_DESC_MANUFACTURER_STRING="AmoledOS"
 CONFIG_TINYUSB_DESC_PRODUCT_STRING="AmoledOS watch"
+# Core dumps to the coredump partition (branch usb): the only way to see a
+# panic while the USB port is on the OTG side. Read with idf.py coredump-info.
+CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
+CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF=y
+CONFIG_ESP_COREDUMP_CHECKSUM_CRC32=y
+# The panic goes to the coredump partition and the board reboots without
+# printing: with the USB port on the OTG side the console is not there, and a
+# panic print into a dead Serial-JTAG FIFO waits on every character.
+CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT=y

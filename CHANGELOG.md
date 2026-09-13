@@ -33,6 +33,28 @@ Newest first. Versions are git tags; what is above the latest tag is on
 - `/api/usb[?mode=console|device|host][&console=0|1]`: drives the switch
   from the portal and answers the mode, the devices seen in host mode and
   the heap figures around each switch (tests T1-T4 of the document).
+- **Disk mode** (`/api/usb?mode=disk`): the microSD as a USB drive of the
+  computer, CDC console alongside. The Mac mounts it in 9-12 s, writes at
+  776 KB/s (8 KB MSC buffer; 74 KB/s with the 512 B default), and on eject
+  the card goes back to the watch on its own. `aos_hal_sd_release/reclaim/
+  mark_mounted` move the card between the BSP mount and esp_tinyusb's MSC
+  storage. While the computer has it the watch has no card.
+- **Host mode** gained the pendrive: `usb_host_msc` mounts it at `/usb`,
+  the portal's explorer reaches it as `dir=usb`, and
+  `/api/usb?cp=<name>&from=<dir>&to=<dir>` copies files between any two
+  folders, timed. Parked after T4 (docs/USB.md, "Where host mode stands"):
+  powering a peripheral costs the watch its portability.
+- Found on the way, each one a reboot: the MSC class with no driver behind
+  it panics on TEST UNIT READY (device mode now has a CDC-only
+  descriptor); the PHY mux survives a software reset (`aos_usb_init()`
+  puts it back at boot); TinyUSB's log at level 2 prints from the ISR and
+  the interrupt watchdog fires under load; reading the OTG registers with
+  the peripheral's clock gated hangs the bus with no panic (the register
+  dump is now OTG-modes only); macOS needs 9-15 s to register the device.
+- Tooling: a `coredump` partition in the free tail of the flash with
+  `/api/coredump`, silent-reboot panics so they are written and not printed
+  into a dead console, RTC-memory breadcrumbs (`boot_step` in `/api/usb`)
+  and TinyUSB's own log in a ring (`/api/usb?tusblog=1`).
 - `main/idf_component.yml`: `esp_tinyusb` 2.2.1, `usb_host_msc` 1.2.0,
   `usb_host_hid` 1.2.1, `usb_host_cdc_acm` 2.4.1, `usb_host_uvc` 2.5.2.
   With the classes off the binary does not move.
