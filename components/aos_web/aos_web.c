@@ -48,6 +48,8 @@ extern const uint8_t remoto_html_start[] asm("_binary_remoto_html_start");
 extern const uint8_t red_html_start[]    asm("_binary_red_html_start");
 extern const uint8_t remoto_html_end[]   asm("_binary_remoto_html_end");
 extern const uint8_t red_html_end[]      asm("_binary_red_html_end");
+extern const uint8_t usb_html_start[]    asm("_binary_usb_html_start");
+extern const uint8_t usb_html_end[]      asm("_binary_usb_html_end");
 extern const uint8_t ap_html_start[]     asm("_binary_ap_html_start");
 extern const uint8_t ap_html_end[]       asm("_binary_ap_html_end");
 extern const uint8_t aos_css_start[]     asm("_binary_aos_css_start");
@@ -982,6 +984,13 @@ static esp_err_t js_handler(httpd_req_t *req)
 {
     return estatico(req, "application/javascript; charset=utf-8",
                     aos_js_start, aos_js_end);
+}
+
+static esp_err_t usb_page_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    return httpd_resp_send(req, (const char *)usb_html_start,
+                           usb_html_end - usb_html_start - 1);
 }
 
 static esp_err_t ap_page_handler(httpd_req_t *req)
@@ -2635,6 +2644,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/pmu",     .method = HTTP_GET,  .handler = pmu_handler },
         { .uri = "/api/mem",     .method = HTTP_GET,  .handler = aos_mem_handler },
         { .uri = "/api/usb",     .method = HTTP_GET,  .handler = usb_handler },
+        { .uri = "/usb",         .method = HTTP_GET,  .handler = usb_page_handler },
         { .uri = "/api/coredump",.method = HTTP_GET,  .handler = coredump_handler },
         { .uri = "/api/list",    .method = HTTP_GET,  .handler = list_handler },
         { .uri = "/api/upload",  .method = HTTP_POST, .handler = upload_handler },

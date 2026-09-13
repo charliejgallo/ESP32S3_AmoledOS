@@ -35,7 +35,8 @@
       { url: "/alarmas",  t: "nav_alarmas"  },
       { url: "/pantalla", t: "nav_pantalla" },
       { url: "/archivos", t: "nav_archivos" },
-      { url: "/registro", t: "nav_registro" }
+      { url: "/registro", t: "nav_registro" },
+      { url: "/usb",      t: "nav_usb"      }
     ]},
     { t: "grp_red", paginas: [
       { url: "/wifi",     t: "nav_wifi"     },
@@ -56,7 +57,7 @@
   var NAV = {
     es: { grp_reloj: "Reloj", grp_red: "Red", grp_apps: "Apps",
           nav_inicio: "Inicio", nav_ajustes: "Ajustes", nav_alarmas: "Alarmas", nav_pantalla: "Pantalla",
-          nav_archivos: "Archivos", nav_registro: "Registro",
+          nav_archivos: "Archivos", nav_registro: "Registro", nav_usb: "USB",
           nav_wifi: "Conectar", nav_ap: "Punto de acceso", nav_red: "Escaneos",
           nav_clima: "Clima", nav_cotiz: "Cotizaciones",
           nav_sensores: "Sensores", nav_remoto: "Remoto", nav_pixel: "Pixel Art",
@@ -65,7 +66,7 @@
           viv_off: "pantalla apagada", viv_ap: "modo AP", viv_prueba: "a prueba" },
     en: { grp_reloj: "Watch", grp_red: "Network", grp_apps: "Apps",
           nav_inicio: "Home", nav_ajustes: "Settings", nav_alarmas: "Alarms", nav_pantalla: "Screen",
-          nav_archivos: "Files", nav_registro: "Log",
+          nav_archivos: "Files", nav_registro: "Log", nav_usb: "USB",
           nav_wifi: "Connect", nav_ap: "Access point", nav_red: "Scans",
           nav_clima: "Weather", nav_cotiz: "Exchange rates",
           nav_sensores: "Sensors", nav_remoto: "Remote", nav_pixel: "Pixel Art",
@@ -74,7 +75,7 @@
           viv_off: "screen off", viv_ap: "AP mode", viv_prueba: "on trial" },
     de: { grp_reloj: "Uhr", grp_red: "Netz", grp_apps: "Apps",
           nav_inicio: "Start", nav_ajustes: "Einstellungen", nav_alarmas: "Wecker", nav_pantalla: "Bildschirm",
-          nav_archivos: "Dateien", nav_registro: "Protokoll",
+          nav_archivos: "Dateien", nav_registro: "Protokoll", nav_usb: "USB",
           nav_wifi: "Verbinden", nav_ap: "Zugangspunkt", nav_red: "Scans",
           nav_clima: "Wetter", nav_cotiz: "Wechselkurse",
           nav_sensores: "Sensoren", nav_remoto: "Fernbedienung", nav_pixel: "Pixel Art",

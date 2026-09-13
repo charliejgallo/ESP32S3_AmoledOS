@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - USB</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+.teclas { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+.teclas button { min-width: 64px; }
+table.disp { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.disp td, table.disp th { text-align: left; padding: 4px 8px 4px 0; vertical-align: top; }
+table.disp th { color: var(--dim); font-weight: 500; }
+.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">USB</h1></div>
+  <p class="sub" data-t="bajada">El puerto USB-C es una cosa a la vez: la consola
+     con la que se graba el firmware, un teclado y una red para la computadora,
+     la tarjeta como disco de la computadora, o un puerto para un pendrive.</p>
+
+  <nav class="paginas"></nav>
+
+  <h2 data-t="modo">Modo</h2>
+  <div class="aviso" id="aviso-cable" hidden data-t="aviso_cable">Estas entrando por
+     la red USB. Cambiar de modo corta esta conexion: segui desde la red wifi.</div>
+  <label class="opcion">
+    <input type="radio" name="modo" value="console">
+    <span><b data-t="m_consola">Consola</b>
+      <span class="pie" data-t="m_consola_desc">Lo que es al arrancar: el log por
+        el puerto serie y la grabacion del firmware con esptool.</span></span>
+  </label>
+  <label class="opcion">
+    <input type="radio" name="modo" value="device">
+    <span><b data-t="m_teclado">Teclado y red para la computadora</b>
+      <span class="pie" data-t="m_teclado_desc">El reloj es un teclado con teclas de
+        musica, y una red: este portal responde en http://192.168.7.1 por el
+        cable, sin wifi.</span></span>
+  </label>
+  <label class="opcion">
+    <input type="radio" name="modo" value="disk">
+    <span><b data-t="m_disco">Disco: la tarjeta en la computadora</b>
+      <span class="pie" data-t="m_disco_desc">La microSD aparece como un disco
+        extraible. Mientras la tiene la computadora el reloj no la tiene:
+        expulsala para devolversela.</span></span>
+  </label>
+  <label class="opcion">
+    <input type="radio" name="modo" value="host">
+    <span><b data-t="m_host">Host: un pendrive en el reloj</b>
+      <span class="pie" data-t="m_host_desc">El reloj es el que manda en el cable.
+        Hace falta darle 5 V al pendrive desde afuera; docs/USB.md dice como.</span></span>
+  </label>
+  <div class="aviso" id="aviso" hidden></div>
+
+  <h2 data-t="ahora">Ahora mismo</h2>
+  <div class="tarjeta">
+    <dl class="datos">
+      <dt data-t="lbl_modo">Modo</dt><dd id="e-modo">-</dd>
+      <dt data-t="lbl_teclado">Teclado</dt><dd id="e-teclado">-</dd>
+      <dt data-t="lbl_red">Red USB</dt><dd id="e-red">-</dd>
+      <dt data-t="lbl_tarjeta">Tarjeta</dt><dd id="e-tarjeta">-</dd>
+      <dt data-t="lbl_pendrive">Pendrive</dt><dd id="e-pendrive">-</dd>
+      <dt data-t="lbl_mem">RAM interna</dt><dd id="e-mem">-</dd>
+    </dl>
+  </div>
+
+  <div id="sec-teclas" hidden>
+    <h2 data-t="teclas">Teclas</h2>
+    <p class="sub" data-t="teclas_desc">Cada boton manda la tecla a la computadora
+       a la que esta enchufado el reloj.</p>
+    <div class="teclas" id="teclas"></div>
+    <p class="fila">
+      <input id="texto" type="text" maxlength="120" autocomplete="off"
+             data-t-ph="ph_texto" placeholder="texto para escribir en la computadora">
+      <button id="escribir" class="sec" data-t="btn_escribir">Escribir</button>
+    </p>
+  </div>
+
+  <div id="sec-host" hidden>
+    <h2 data-t="host">Enchufado al reloj</h2>
+    <div class="tarjeta">
+      <table class="disp" id="dispositivos"></table>
+      <p class="sub" id="sin-disp" data-t="sin_disp">Nada enumerado todavia.</p>
+      <div id="pendrive-lista" hidden>
+        <h3 data-t="pendrive_arch">Archivos del pendrive</h3>
+        <table class="disp" id="archivos"></table>
+      </div>
+    </div>
+  </div>
+
+  <h2 data-t="diag">Diagnostico</h2>
+  <div class="tarjeta">
+    <dl class="datos">
+      <dt data-t="lbl_paso">Ultimo paso antes del reinicio</dt><dd id="e-paso">-</dd>
+      <dt data-t="lbl_regs">Registros del OTG</dt><dd class="mono" id="e-regs">-</dd>
+    </dl>
+    <p class="fila">
+      <a href="/api/usb?tusblog=1" class="sec" data-t="lnk_tusb">Log de TinyUSB</a>
+      <a href="/api/coredump" class="sec" data-t="lnk_core">Volcado del ultimo panico</a>
+      <a href="/api/usb" class="sec">/api/usb</a>
+    </p>
+  </div>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "USB",
+    bajada: "The USB-C port is one thing at a time: the console the firmware is " +
+            "flashed through, a keyboard and a network for the computer, the card " +
+            "as a drive of the computer, or a port for a flash drive.",
+    modo: "Mode",
+    aviso_cable: "You are coming in over the USB network. Changing the mode cuts " +
+                 "this connection: carry on from the wifi network.",
+    m_consola: "Console",
+    m_consola_desc: "What it is at boot: the log on the serial port and firmware " +
+                    "flashing with esptool.",
+    m_teclado: "Keyboard and network for the computer",
+    m_teclado_desc: "The watch is a keyboard with media keys, and a network: this " +
+                    "portal answers at http://192.168.7.1 over the cable, no wifi.",
+    m_disco: "Disk: the card on the computer",
+    m_disco_desc: "The microSD shows up as a removable drive. While the computer " +
+                  "has it the watch does not: eject it to give it back.",
+    m_host: "Host: a flash drive on the watch",
+    m_host_desc: "The watch drives the cable. The flash drive needs its 5 V from " +
+                 "elsewhere; docs/USB.md says how.",
+    ahora: "Right now",
+    lbl_modo: "Mode", lbl_teclado: "Keyboard", lbl_red: "USB network",
+    lbl_tarjeta: "Card", lbl_pendrive: "Flash drive", lbl_mem: "Internal RAM",
+    teclas: "Keys",
+    teclas_desc: "Each button sends the key to the computer the watch is plugged into.",
+    ph_texto: "text to type on the computer",
+    btn_escribir: "Type",
+    host: "Plugged into the watch",
+    sin_disp: "Nothing enumerated yet.",
+    pendrive_arch: "Files on the flash drive",
+    diag: "Diagnostics",
+    lbl_paso: "Last step before the reboot",
+    lbl_regs: "OTG registers",
+    lnk_tusb: "TinyUSB log", lnk_core: "Last panic's core dump",
+    v_console: "console", v_device: "keyboard and network", v_disk: "disk", v_host: "host",
+    v_listo: "ready", v_esperando: "waiting for the computer", v_no: "off",
+    v_red_si: "up at http://192.168.7.1", v_red_no: "off",
+    v_tarj_compu: "on the computer", v_tarj_reloj: "on the watch",
+    v_pen_si: "%s MB, %s MB free, mounted at /usb", v_pen_no: "none",
+    v_mem: "%s KB free, executable %s KB, largest block %s KB",
+    v_paso_ok: "the last switch finished (40)", v_paso_none: "nothing recorded",
+    cambiando: "Switching...", ok_modo: "Done: the port is now <b>%s</b>.",
+    err_modo: "The port did not come up in that mode; it went back to the console.",
+    err: "Could not reach the watch: ",
+    tecla_ok: "Sent.", tecla_no: "The keyboard is not ready.",
+    escrito: "Typed %s characters."
+  },
+  de: {
+    titulo: "USB",
+    bajada: "Der USB-C-Port ist immer nur eines: die Konsole, ueber die die Firmware " +
+            "geflasht wird, Tastatur und Netzwerk fuer den Computer, die Karte als " +
+            "Laufwerk des Computers, oder ein Port fuer einen USB-Stick.",
+    modo: "Modus",
+    aviso_cable: "Du kommst ueber das USB-Netzwerk. Ein Moduswechsel trennt diese " +
+                 "Verbindung: mach ueber das WLAN weiter.",
+    m_consola: "Konsole",
+    m_consola_desc: "Der Zustand beim Start: das Protokoll am seriellen Port und " +
+                    "das Flashen mit esptool.",
+    m_teclado: "Tastatur und Netzwerk fuer den Computer",
+    m_teclado_desc: "Die Uhr ist eine Tastatur mit Medientasten und ein Netzwerk: " +
+                    "dieses Portal antwortet unter http://192.168.7.1 ueber das " +
+                    "Kabel, ohne WLAN.",
+    m_disco: "Laufwerk: die Karte am Computer",
+    m_disco_desc: "Die microSD erscheint als Wechseldatentraeger. Solange der " +
+                  "Computer sie hat, hat die Uhr sie nicht: auswerfen gibt sie zurueck.",
+    m_host: "Host: ein USB-Stick an der Uhr",
+    m_host_desc: "Die Uhr fuehrt das Kabel. Der Stick braucht seine 5 V von " +
+                 "anderswo; docs/USB.md sagt wie.",
+    ahora: "Gerade jetzt",
+    lbl_modo: "Modus", lbl_teclado: "Tastatur", lbl_red: "USB-Netzwerk",
+    lbl_tarjeta: "Karte", lbl_pendrive: "USB-Stick", lbl_mem: "Interner RAM",
+    teclas: "Tasten",
+    teclas_desc: "Jede Schaltflaeche schickt die Taste an den Computer, an dem die " +
+                 "Uhr haengt.",
+    ph_texto: "Text, der am Computer getippt wird",
+    btn_escribir: "Tippen",
+    host: "An der Uhr angeschlossen",
+    sin_disp: "Noch nichts erkannt.",
+    pendrive_arch: "Dateien auf dem USB-Stick",
+    diag: "Diagnose",
+    lbl_paso: "Letzter Schritt vor dem Neustart",
+    lbl_regs: "OTG-Register",
+    lnk_tusb: "TinyUSB-Protokoll", lnk_core: "Core-Dump der letzten Panik",
+    v_console: "Konsole", v_device: "Tastatur und Netzwerk", v_disk: "Laufwerk", v_host: "Host",
+    v_listo: "bereit", v_esperando: "warte auf den Computer", v_no: "aus",
+    v_red_si: "aktiv unter http://192.168.7.1", v_red_no: "aus",
+    v_tarj_compu: "am Computer", v_tarj_reloj: "in der Uhr",
+    v_pen_si: "%s MB, %s MB frei, eingehaengt unter /usb", v_pen_no: "keiner",
+    v_mem: "%s KB frei, ausfuehrbar %s KB, groesster Block %s KB",
+    v_paso_ok: "der letzte Wechsel ist durchgelaufen (40)", v_paso_none: "nichts aufgezeichnet",
+    cambiando: "Wechselt...", ok_modo: "Erledigt: der Port ist jetzt <b>%s</b>.",
+    err_modo: "Der Port kam in diesem Modus nicht hoch; er ist wieder Konsole.",
+    err: "Die Uhr ist nicht erreichbar: ",
+    tecla_ok: "Gesendet.", tecla_no: "Die Tastatur ist nicht bereit.",
+    escrito: "%s Zeichen getippt."
+  }
+};
+
+/* El espanol vive en el HTML; aca solo lo que arma el JavaScript. */
+const ES = {
+  v_console: "consola", v_device: "teclado y red", v_disk: "disco", v_host: "host",
+  v_listo: "listo", v_esperando: "esperando a la computadora", v_no: "apagado",
+  v_red_si: "levantada en http://192.168.7.1", v_red_no: "apagada",
+  v_tarj_compu: "en la computadora", v_tarj_reloj: "en el reloj",
+  v_pen_si: "%s MB, %s MB libres, montado en /usb", v_pen_no: "ninguno",
+  v_mem: "%s KB libres, ejecutable %s KB, mayor bloque %s KB",
+  v_paso_ok: "el ultimo cambio termino (40)", v_paso_none: "nada anotado",
+  cambiando: "Cambiando...", ok_modo: "Listo: el puerto ahora es <b>%s</b>.",
+  err_modo: "El puerto no levanto en ese modo; volvio a la consola.",
+  err: "No se pudo hablar con el reloj: ",
+  tecla_ok: "Enviada.", tecla_no: "El teclado no esta listo.",
+  escrito: "Escribi %s caracteres."
+};
+
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? ES[k] : v; }
+function fmt(k, ...a) { let s = t(k); for (const x of a) s = s.replace("%s", x); return s; }
+
+/* Las teclas con nombre que entiende /api/usb?key= (aos_usb.c). */
+const TECLAS = [
+  ["prev", "⏮"], ["play", "⏯"], ["next", "⏭"],
+  ["voldown", "vol −"], ["mute", "mute"], ["volup", "vol +"],
+  ["pgup", "◀ diapo"], ["pgdn", "diapo ▶"], ["b", "b"],
+  ["esc", "esc"], ["space", "space"], ["enter", "enter"], ["tab", "tab"],
+  ["cmd+tab", "cmd+tab"], ["up", "↑"], ["down", "↓"],
+  ["left", "←"], ["right", "→"]
+];
+
+let modoActual = null;
+let cambiando = false;
+
+function aviso(html, clase) {
+  const a = $("aviso");
+  a.hidden = false;
+  a.className = "aviso" + (clase ? " " + clase : "");
+  a.innerHTML = html;
+}
+
+function pintar(d) {
+  const s = d.status;
+  modoActual = s.mode;
+  if (!cambiando) {
+    const r = document.querySelector(`input[name=modo][value="${s.mode}"]`);
+    if (r) r.checked = true;
+  }
+  $("e-modo").textContent = t("v_" + s.mode);
+  const teclado = s.mode === "device" ? (s.hid_ready ? t("v_listo") : t("v_esperando")) : t("v_no");
+  $("e-teclado").textContent = teclado;
+  $("e-red").textContent = s.net_up ? t("v_red_si") : t("v_red_no");
+  $("e-tarjeta").textContent = s.card_away ? t("v_tarj_compu") : t("v_tarj_reloj");
+  $("e-tarjeta").className = s.card_away ? "ojo" : "";
+  $("e-pendrive").textContent = s.msc && s.msc.mounted
+      ? fmt("v_pen_si", Math.round(s.msc.kb_total / 1024), Math.round(s.msc.kb_free / 1024))
+      : t("v_pen_no");
+  $("e-mem").textContent = fmt("v_mem", Math.round(s.mem.internal / 1024),
+                               Math.round(s.mem.exec / 1024), Math.round(s.mem.exec_block / 1024));
+  $("e-paso").textContent = s.boot_step === 40 ? t("v_paso_ok")
+                          : s.boot_step ? String(s.boot_step) : t("v_paso_none");
+  const r = s.regs || {};
+  $("e-regs").textContent = s.mode === "console"
+      ? "rtc_usb_conf " + r.rtc_usb_conf
+      : "hprt " + r.hprt + "  gotgctl " + r.gotgctl + "  gintsts " + r.gintsts +
+        "  wrap " + r.wrap_otg_conf + "  rtc " + r.rtc_usb_conf;
+
+  $("sec-teclas").hidden = s.mode !== "device";
+  $("sec-host").hidden = s.mode !== "host";
+  if (s.mode === "host") {
+    const tabla = $("dispositivos");
+    const devs = s.devices || [];
+    $("sin-disp").hidden = devs.length > 0;
+    tabla.innerHTML = devs.length ? "<tr><th>#</th><th>VID:PID</th><th></th><th></th></tr>" : "";
+    for (const dv of devs) {
+      const clases = (dv.itf || []).map(i => i.name).join(", ");
+      tabla.innerHTML += "<tr><td>" + dv.addr + "</td><td class=mono>" + dv.vid + ":" + dv.pid +
+        "</td><td>" + aos.esc(dv.manufacturer) + " " + aos.esc(dv.product) +
+        "</td><td>" + aos.esc(clases) + " (" + dv.speed + ")</td></tr>";
+    }
+    $("pendrive-lista").hidden = !(s.msc && s.msc.mounted);
+  }
+}
+
+async function cargar() {
+  try {
+    const d = await (await fetch("/api/usb")).json();
+    pintar(d);
+    if (d.status.mode === "host" && d.status.msc && d.status.msc.mounted) {
+      const l = await (await fetch("/api/list?dir=usb")).json();
+      $("archivos").innerHTML = (l.files || []).map(f =>
+        "<tr><td>" + aos.esc(f.name) + "</td><td>" + (f.dir ? "" : aos.humano(f.size)) + "</td></tr>").join("");
+    }
+  } catch (e) {
+    aviso(t("err") + e, "mal");
+  }
+}
+
+async function cambiarModo(modo) {
+  if (modo === modoActual || cambiando) return;
+  cambiando = true;
+  for (const r of document.querySelectorAll("input[name=modo]")) r.disabled = true;
+  aviso(t("cambiando"));
+  try {
+    const r = await fetch("/api/usb?mode=" + modo);
+    const d = await r.json();
+    if (d.ok) aviso(fmt("ok_modo", t("v_" + d.status.mode)), "bien");
+    else aviso(t("err_modo"), "mal");
+    pintar(d);
+  } catch (e) {
+    /* Esperable si entraste por la red USB y la acabas de apagar. */
+    aviso(t("err") + e, "mal");
+  }
+  cambiando = false;
+  for (const r of document.querySelectorAll("input[name=modo]")) r.disabled = false;
+  cargar();
+}
+
+async function tecla(nombre) {
+  try {
+    const d = await (await fetch("/api/usb?key=" + encodeURIComponent(nombre))).json();
+    aviso(d.keys && d.keys.sent ? t("tecla_ok") : t("tecla_no"), d.keys && d.keys.sent ? "bien" : "mal");
+  } catch (e) { aviso(t("err") + e, "mal"); }
+}
+
+async function escribir() {
+  const txt = $("texto").value;
+  if (!txt) return;
+  try {
+    const d = await (await fetch("/api/usb?type=" + encodeURIComponent(txt))).json();
+    aviso(fmt("escrito", d.typed || 0), d.typed ? "bien" : "mal");
+  } catch (e) { aviso(t("err") + e, "mal"); }
+}
+
+for (const r of document.querySelectorAll("input[name=modo]")) {
+  r.onchange = () => cambiarModo(r.value);
+}
+for (const [nombre, etiqueta] of TECLAS) {
+  const b = document.createElement("button");
+  b.className = "sec";
+  b.textContent = etiqueta;
+  b.onclick = () => tecla(nombre);
+  $("teclas").appendChild(b);
+}
+$("escribir").onclick = escribir;
+$("aviso-cable").hidden = location.hostname !== "192.168.7.1";
+aos.init(TR).then(() => { cargar(); setInterval(cargar, 3000); });
+</script>
+</body>
+</html>

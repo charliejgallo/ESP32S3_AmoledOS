@@ -522,8 +522,10 @@ do not are in this document with why, and T7/T8 are measured.
 
 ### Phase 4 — into the firmware
 
-* Settings → USB: the mode, what is plugged in, disk-mode eject.
+* Settings → USB: the mode, what is plugged in, disk-mode eject. *Done
+  2026-09-12 (the mode and a status line; eject is the computer's).*
 * The portal: `/usb` page, `/api/usb` documented in [PORTAL.md](PORTAL.md).
+  *Done 2026-09-13.*
 * [HARDWARE.md](HARDWARE.md) gets the connector's facts (section 1);
   [APP-API.md](APP-API.md) the new HAL calls; the README a paragraph and the
   docs table a row; the CHANGELOG each step as it lands.

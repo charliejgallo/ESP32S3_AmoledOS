@@ -1227,11 +1227,12 @@ bool aos_usb_mode_set(aos_usb_mode_t mode)
 int aos_usb_status_json(char *out, size_t len)
 {
     ensure_init();
-    int n = snprintf(out, len, "{\"mode\":\"%s\",\"console_on_cdc\":%s,\"card_away\":%s,\"net_up\":%s,\"net_ip\":\"%s\","
+    int n = snprintf(out, len, "{\"mode\":\"%s\",\"console_on_cdc\":%s,\"card_away\":%s,\"net_up\":%s,\"net_ip\":\"%s\",\"hid_ready\":%s,"
                      "\"boot_step\":%lu,\"seen\":%d,\"devices\":[",
                      aos_usb_mode_name(s_mode), s_console_on_cdc ? "true" : "false",
                      s_card_away ? "true" : "false", aos_usb_net_up() ? "true" : "false",
-                     aos_usb_net_up() ? "192.168.7.1" : "", (unsigned long)s_boot_step, s_seen);
+                     aos_usb_net_up() ? "192.168.7.1" : "", aos_usb_hid_ready() ? "true" : "false",
+                     (unsigned long)s_boot_step, s_seen);
     if (s_lock) xSemaphoreTake(s_lock, portMAX_DELAY);
     bool first = true;
     for (int i = 0; i < AOS_USB_MAX_DEV && n < (int)len; i++) {

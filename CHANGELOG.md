@@ -39,6 +39,13 @@ Newest first. Versions are git tags; what is above the latest tag is on
   the card goes back to the watch on its own. `aos_hal_sd_release/reclaim/
   mark_mounted` move the card between the BSP mount and esp_tinyusb's MSC
   storage. While the computer has it the watch has no card.
+- **`/usb` in the portal**: the four modes as options that apply on click,
+  the state of each side (keyboard, the USB network, whose the card is, a
+  pendrive), a key pad and a text box that type on the computer, the
+  devices seen in host mode with the pendrive's files, and the diagnostics
+  (breadcrumb, OTG registers, TinyUSB's log, the last core dump). `/api/usb`
+  reports `hid_ready`. Verified in a browser: switching modes from the
+  page and pressing its vol+ moved the Mac's volume.
 - **USB network** (D6): in keys mode the watch is also a network interface
   of the computer (CDC-NCM): its DHCP server hands out 192.168.7.2 and the
   portal, the log and the API answer at http://192.168.7.1 over the cable
