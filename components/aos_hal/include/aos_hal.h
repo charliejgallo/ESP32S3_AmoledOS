@@ -1067,6 +1067,41 @@ const char *aos_hal_ota_running_slot(void);
 /* Miscellaneous                                                               */
 /* -------------------------------------------------------------------------- */
 
+/* --------------------------------------------------------------------------
+ * USB (branch usb, docs/USB.md)
+ *
+ * The ESP32-S3 has one USB PHY shared by the console (USB-Serial-JTAG) and
+ * the OTG controller, so the port is one thing at a time. CONSOLE is what it
+ * is at every boot. KEYS makes the watch a keyboard and media controller of
+ * the computer it is plugged into, with the console on a serial port beside
+ * it. DISK hands the microSD to the computer as a removable drive: while it
+ * has it the watch has no card, and ejecting it on the computer gives it
+ * back. HOST is the other way round, a pendrive plugged into the watch, and
+ * needs 5 V from elsewhere (parked, see the document).
+ *
+ * The switch is asynchronous: aos_hal_usb_mode_set() returns at once and
+ * aos_hal_usb_busy() says true until the mode has changed (a second or two
+ * out of HOST, less otherwise). The simulator switches instantly and its
+ * keyboard is always "ready" in KEYS mode, so the screens can be drawn.
+ * -------------------------------------------------------------------------- */
+
+typedef enum {
+    AOS_HAL_USB_CONSOLE = 0,
+    AOS_HAL_USB_KEYS,
+    AOS_HAL_USB_DISK,
+    AOS_HAL_USB_HOST,
+} aos_hal_usb_mode_t;
+
+aos_hal_usb_mode_t aos_hal_usb_mode(void);
+bool aos_hal_usb_mode_set(aos_hal_usb_mode_t mode);   /* false = busy with a previous switch */
+bool aos_hal_usb_busy(void);
+bool aos_hal_usb_keys_ready(void);      /* KEYS mode and the computer has taken the keyboard */
+bool aos_hal_usb_key(const char *name); /* "play", "next", "volup", "mute", "pgdn", "b", "esc",
+                                         * "cmd+tab", "ctrl+shift+t"...: press and release. Blocks
+                                         * ~50 ms; false when the keyboard is not ready. */
+int  aos_hal_usb_type(const char *ascii);   /* types a string as a US keyboard; chars sent */
+bool aos_hal_usb_card_away(void);       /* DISK mode and the computer holds the card */
+
 uint64_t aos_hal_uptime_ms(void);
 void     aos_hal_heap_info(uint32_t *free_internal, uint32_t *free_psram);
 const char *aos_hal_board_name(void);       /* "CO5300 + CST816 (v2)" etc */

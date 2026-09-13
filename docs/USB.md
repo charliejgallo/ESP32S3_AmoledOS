@@ -431,8 +431,25 @@ In this order, each behind the same switch and each measured with T3:
    copied in show up at the next boot (no rescan yet). Cost: 4.8 KB of
    internal RAM while on, +17 KB of flash, 8 KB of static RAM for the
    endpoint buffer.
-2. **D3 HID keyboard + consumer control** as an app: media keys, clicker,
-   macro pad. Composite with D1 (D12).
+2. **D3 HID keyboard + consumer control.** *Running since 2026-09-12.*
+   Device mode is now a CDC + HID composite (PID `0x4005`, the serial is the
+   chip's MAC): a keyboard with a consumer-control page, report IDs 1 and
+   2, the strings "AmoledOS console" / "AmoledOS keys". `aos_usb_hid_named()`
+   takes the names the apps and the portal use (`play`, `next`, `volup`,
+   `mute`, `pgdn`, `b`, `esc`, `cmd+tab`...), `aos_usb_hid_type()` types
+   ASCII as a US keyboard. Measured on the Mac with AppleScript reading the
+   volume: three `volup` in a row moved it three steps (62 → 81), so every
+   press and release lands; `mute` mutes but a second `mute` does not
+   unmute (macOS), a volume key does. In the watch: the **Control PC** app
+   (music, slides with Page Up/Down and "b" for a black screen, cmd+tab,
+   esc / space / enter) and a **USB section in Settings** with the mode as
+   a dropdown and a status line. The HAL side is `aos_hal_usb_*` in
+   `aos_hal.h`, implemented in `aos_usb/aos_usb_hal.c` (aos_usb already
+   depends on aos_hal, so it cannot be the other way round), with the
+   switch in a task of its own so a click never holds LVGL; the simulator
+   switches instantly and its keyboard is always ready in KEYS mode. Cost:
+   device mode 16.5 KB of internal RAM while on (CDC + HID), the app and the
+   section 7 KB of flash.
 3. **D6 USB network (NCM).** The portal over the cable.
 4. **D4/D5/D7** if D3 left the descriptor machinery in place: an afternoon
    each.

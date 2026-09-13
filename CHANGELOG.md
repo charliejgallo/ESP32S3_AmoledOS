@@ -39,6 +39,14 @@ Newest first. Versions are git tags; what is above the latest tag is on
   the card goes back to the watch on its own. `aos_hal_sd_release/reclaim/
   mark_mounted` move the card between the BSP mount and esp_tinyusb's MSC
   storage. While the computer has it the watch has no card.
+- **Keyboard mode** (D3): device mode is a CDC + HID composite, the watch a
+  keyboard and media controller of the computer. `aos_hal_usb_*` in the
+  HAL (mode, a named key, typing, the card's whereabouts), the **Control
+  PC** app (music, slides, cmd+tab, esc/space/enter, and the switch into
+  keyboard mode when the port is something else) and a **USB section in
+  Settings** (the four modes as a dropdown, a status line). Verified on the
+  Mac by reading its volume around the presses. 21 new strings, in English
+  and German.
 - **Host mode** gained the pendrive: `usb_host_msc` mounts it at `/usb`,
   the portal's explorer reaches it as `dir=usb`, and
   `/api/usb?cp=<name>&from=<dir>&to=<dir>` copies files between any two

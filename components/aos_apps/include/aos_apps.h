@@ -18,6 +18,7 @@ void aos_app_flashlight_get(aos_app_t *app);
 void aos_app_power_get(aos_app_t *app);
 void aos_app_music_get(aos_app_t *app);
 void aos_app_remote_get(aos_app_t *app);
+void aos_app_pcremote_get(aos_app_t *app);
 void aos_app_level_get(aos_app_t *app);
 void aos_app_calc_get(aos_app_t *app);
 void aos_app_calendar_get(aos_app_t *app);

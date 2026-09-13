@@ -29,6 +29,8 @@ typedef struct {
     lv_obj_t *ap_box_qr;
     lv_obj_t *ap_box_modo;
     char      ap_box_qr_texto[128];  /* the last thing encoded in the QR       */
+    lv_obj_t *usb_label;        /* what the USB port is right now              */
+    lv_obj_t *usb_dd;           /* its mode                                    */
     lv_obj_t *bt_label;         /* state of the link                           */
     lv_obj_t *bt_forget;        /* forget button, only if something is paired  */
     lv_obj_t *bt_box;           /* second screen: pairing                      */
@@ -862,6 +864,56 @@ static void lang_cb(lv_event_t *event)
 }
 
 /* -------------------------------------------------------------------------- */
+/* USB (docs/USB.md)                                                           */
+/* -------------------------------------------------------------------------- */
+
+/* The dropdown's order IS aos_hal_usb_mode_t's order. */
+static void usb_mode_cb(lv_event_t *event)
+{
+    uint32_t sel = lv_dropdown_get_selected(lv_event_get_target(event));
+    if ((aos_hal_usb_mode_t)sel == aos_hal_usb_mode()) {
+        return;
+    }
+    if (!aos_hal_usb_mode_set((aos_hal_usb_mode_t)sel)) {
+        aos_ui_toast(_("El USB esta cambiando de modo"), 1400);
+        lv_dropdown_set_selected(s_set.usb_dd, (uint32_t)aos_hal_usb_mode());
+    }
+}
+
+static void usb_refresh(void)
+{
+    if (!s_set.usb_label) {
+        return;
+    }
+    const char *txt;
+    if (aos_hal_usb_busy()) {
+        txt = _("cambiando...");
+    } else {
+        switch (aos_hal_usb_mode()) {
+        case AOS_HAL_USB_KEYS:
+            txt = aos_hal_usb_keys_ready() ? _("teclado USB listo")
+                                           : _("esperando a la computadora");
+            break;
+        case AOS_HAL_USB_DISK:
+            txt = aos_hal_usb_card_away() ? _("la computadora tiene la tarjeta")
+                                          : _("la tarjeta volvio al reloj");
+            break;
+        case AOS_HAL_USB_HOST:
+            txt = _("esperando un pendrive");
+            break;
+        default:
+            txt = _("consola y grabacion del firmware");
+            break;
+        }
+        if (!aos_hal_usb_busy() &&
+            lv_dropdown_get_selected(s_set.usb_dd) != (uint32_t)aos_hal_usb_mode()) {
+            lv_dropdown_set_selected(s_set.usb_dd, (uint32_t)aos_hal_usb_mode());
+        }
+    }
+    lv_label_set_text(s_set.usb_label, txt);
+}
+
+/* -------------------------------------------------------------------------- */
 /* Bluetooth and notifications                                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -1216,6 +1268,7 @@ static lv_obj_t *slider(lv_obj_t *parent, int value, lv_event_cb_t cb)
 static void refresh(lv_timer_t *timer)
 {
     (void)timer;
+    usb_refresh();
     if (!s_set.net_label) {
         return;
     }
@@ -1556,6 +1609,30 @@ static void *create(aos_app_t *self, lv_obj_t *root)
         aos_button(page, _("Olvidar red"), AOS_C_CARD2, forget_cb, NULL);
     }
 
+    section(page, _("USB"));
+
+    s_set.usb_dd = lv_dropdown_create(page);
+    lv_obj_set_width(s_set.usb_dd, AOS_SCREEN_W - 90);
+    lv_obj_set_style_text_font(s_set.usb_dd, aos_font_small, 0);
+    lv_obj_set_style_bg_color(s_set.usb_dd, AOS_C_CARD2, 0);
+    lv_obj_set_style_border_width(s_set.usb_dd, 0, 0);
+    {
+        /* Four lines in the order of aos_hal_usb_mode_t. */
+        char opts[200];
+        snprintf(opts, sizeof(opts), "%s\n%s\n%s\n%s",
+                 _("Consola"), _("Teclado para la computadora"),
+                 _("Disco: la tarjeta en la computadora"), _("Host: un pendrive en el reloj"));
+        lv_dropdown_set_options(s_set.usb_dd, opts);
+    }
+    lv_dropdown_set_selected(s_set.usb_dd, (uint32_t)aos_hal_usb_mode());
+    lv_obj_add_event_cb(s_set.usb_dd, usb_mode_cb, LV_EVENT_VALUE_CHANGED, NULL);
+
+    s_set.usb_label = aos_label(page, "", aos_font_small, AOS_C_DIM);
+    lv_obj_set_width(s_set.usb_label, AOS_SCREEN_W - 50);
+    lv_label_set_long_mode(s_set.usb_label, LV_LABEL_LONG_MODE_WRAP);
+    lv_obj_set_style_text_align(s_set.usb_label, LV_TEXT_ALIGN_CENTER, 0);
+    usb_refresh();
+
     section(page, _("BLUETOOTH"));
 
     switch_row(page, _("Bluetooth"), aos_hal_bt_enabled(), bt_toggle_cb);
@@ -1691,6 +1768,8 @@ static void destroy(aos_app_t *self, void *inst)
     cat_box_close();
     s_set.bt_label    = NULL;
     s_set.bt_forget   = NULL;
+    s_set.usb_label   = NULL;
+    s_set.usb_dd      = NULL;
     s_set.net_label   = NULL;
     s_set.ap_label    = NULL;
     s_set.ap_row      = NULL;

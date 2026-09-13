@@ -2077,7 +2077,7 @@ static esp_err_t remoto_entities_handler(httpd_req_t *req)
  * here before anything reaches Settings. */
 static esp_err_t usb_handler(httpd_req_t *req)
 {
-    char query[320] = "", value[16];
+    char query[400] = "", value[16];
     httpd_req_get_url_query_str(req, query, sizeof(query));
     if (httpd_query_key_value(query, "console", value, sizeof(value)) == ESP_OK) {
         aos_usb_console_on_cdc(atoi(value) != 0);
@@ -2105,10 +2105,25 @@ static esp_err_t usb_handler(httpd_req_t *req)
         free(txt);
         return r;
     }
+    /* ?key=<name>[,<name>...] and ?type=<text>: the keyboard (D3), for the
+     * tests; the apps call the HAL. */
+    char copy_note[160] = "", copy_note_keys[64] = "";
+    char keys[128] = "";
+    if (httpd_query_key_value(query, "key", keys, sizeof(keys)) == ESP_OK) {
+        url_decode(keys);
+        int sent = 0, asked = 0;
+        for (char *k = strtok(keys, ","); k; k = strtok(NULL, ",")) {
+            asked++;
+            if (aos_usb_hid_named(k)) sent++;
+        }
+        snprintf(copy_note_keys, sizeof(copy_note_keys), "\"keys\":{\"asked\":%d,\"sent\":%d},", asked, sent);
+    } else if (httpd_query_key_value(query, "type", keys, sizeof(keys)) == ESP_OK) {
+        url_decode(keys);
+        snprintf(copy_note_keys, sizeof(copy_note_keys), "\"typed\":%d,", aos_usb_hid_type(keys));
+    }
     /* ?cp=<name>&from=<dir>&to=<dir>: whole-file copy between any two of
      * the explorer's folders, the pendrive included (H1), timed for T5.
      * The name is the last component only, like every other name here. */
-    char copy_note[160] = "";
     char cp[128];
     if (httpd_query_key_value(query, "cp", cp, sizeof(cp)) == ESP_OK) {
         char from_s[64] = "", to_s[64] = "", name[96];
@@ -2144,7 +2159,7 @@ static esp_err_t usb_handler(httpd_req_t *req)
         httpd_resp_set_status(req, "503 Service Unavailable");
         return httpd_resp_sendstr(req, "sin memoria");
     }
-    int n = snprintf(json, 1536, "{\"ok\":%s,%s\"status\":", ok ? "true" : "false", copy_note);
+    int n = snprintf(json, 1536, "{\"ok\":%s,%s%s\"status\":", ok ? "true" : "false", copy_note, copy_note_keys);
     n += aos_usb_status_json(json + n, 1536 - n);
     if (n < 1534) { json[n++] = '}'; json[n] = 0; }
     httpd_resp_set_type(req, "application/json");

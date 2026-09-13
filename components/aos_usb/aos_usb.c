@@ -45,6 +45,8 @@
 #include "esp_vfs_fat.h"
 #include "tinyusb_msc.h"
 #include "tusb.h"
+#include "class/hid/hid_device.h"
+#include "esp_mac.h"
 #include "driver/sdmmc_host.h"
 #include "sdmmc_cmd.h"
 #include "bsp/esp32_s3_touch_amoled_1_8.h"   /* the SD pins and the mount point */
@@ -306,23 +308,34 @@ static bool stream_to(const char *path)
     return o && e && i;
 }
 
-/* Device mode gets its own configuration: CDC only. esp_tinyusb's default
- * descriptor lists every class that is compiled in, MSC included, and with
- * no MSC driver installed the class callbacks dereference a NULL driver
- * (tinyusb_msc.c, _msc_storage_get_by_lun) the moment the computer asks
- * TEST UNIT READY: a panic seconds after enumeration, measured 2026-09-12.
- * Disk mode installs the driver and keeps the default CDC+MSC descriptor. */
-enum { AOS_ITF_CDC = 0, AOS_ITF_CDC_DATA, AOS_ITF_CDC_ONLY_TOTAL };
+/* Device mode gets its own configuration: CDC + HID (a keyboard and a
+ * consumer-control device, D3). esp_tinyusb's default descriptor lists
+ * every class that is compiled in, MSC included, and with no MSC driver
+ * installed the class callbacks dereference a NULL driver (tinyusb_msc.c,
+ * _msc_storage_get_by_lun) the moment the computer asks TEST UNIT READY: a
+ * panic seconds after enumeration, measured 2026-09-12. And it has no
+ * default for HID at all. Disk mode installs the MSC driver and keeps the
+ * default CDC+MSC descriptor. */
+enum { AOS_ITF_CDC = 0, AOS_ITF_CDC_DATA, AOS_ITF_HID, AOS_ITF_DEVICE_TOTAL };
 #define AOS_EP_CDC_NOTIF   0x81
 #define AOS_EP_CDC_OUT     0x02
 #define AOS_EP_CDC_IN      0x82
-#define AOS_STRID_CDC      4              /* esp_tinyusb's default string table: 4 = the CDC interface */
-static const uint8_t s_cfg_cdc_only[] = {
-    TUD_CONFIG_DESCRIPTOR(1, AOS_ITF_CDC_ONLY_TOTAL, 0, TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN,
-                          TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
-    TUD_CDC_DESCRIPTOR(AOS_ITF_CDC, AOS_STRID_CDC, AOS_EP_CDC_NOTIF, 8, AOS_EP_CDC_OUT, AOS_EP_CDC_IN, 64),
+#define AOS_EP_HID_IN      0x83
+enum { AOS_STR_LANG = 0, AOS_STR_MANUFACTURER, AOS_STR_PRODUCT, AOS_STR_SERIAL, AOS_STR_CDC, AOS_STR_HID, AOS_STR_COUNT };
+enum { AOS_HID_REPORT_KEYBOARD = 1, AOS_HID_REPORT_CONSUMER = 2 };
+
+static const uint8_t s_hid_report_desc[] = {
+    TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(AOS_HID_REPORT_KEYBOARD)),
+    TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(AOS_HID_REPORT_CONSUMER)),
 };
-static const tusb_desc_device_t s_dev_cdc_only = {
+static const uint8_t s_cfg_device[] = {
+    TUD_CONFIG_DESCRIPTOR(1, AOS_ITF_DEVICE_TOTAL, 0, TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_HID_DESC_LEN,
+                          TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
+    TUD_CDC_DESCRIPTOR(AOS_ITF_CDC, AOS_STR_CDC, AOS_EP_CDC_NOTIF, 8, AOS_EP_CDC_OUT, AOS_EP_CDC_IN, 64),
+    TUD_HID_DESCRIPTOR(AOS_ITF_HID, AOS_STR_HID, HID_ITF_PROTOCOL_NONE, sizeof(s_hid_report_desc),
+                       AOS_EP_HID_IN, 16, 10),
+};
+static const tusb_desc_device_t s_dev_device = {
     .bLength = sizeof(tusb_desc_device_t),
     .bDescriptorType = TUSB_DESC_DEVICE,
     .bcdUSB = 0x0200,
@@ -331,11 +344,152 @@ static const tusb_desc_device_t s_dev_cdc_only = {
     .bDeviceProtocol = MISC_PROTOCOL_IAD,
     .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
     .idVendor = 0x303A,                     /* Espressif */
-    .idProduct = 0x4002,                    /* esp_tinyusb's "CDC only" PID; 0x4003 is CDC+MSC (disk mode) */
+    .idProduct = 0x4005,                    /* esp_tinyusb's PID map: CDC | HID; 0x4003 is CDC+MSC (disk mode) */
     .bcdDevice = CONFIG_TINYUSB_DESC_BCD_DEVICE,
-    .iManufacturer = 1, .iProduct = 2, .iSerialNumber = 3,
+    .iManufacturer = AOS_STR_MANUFACTURER, .iProduct = AOS_STR_PRODUCT, .iSerialNumber = AOS_STR_SERIAL,
     .bNumConfigurations = 1,
 };
+static char s_serial[13];                   /* the chip's MAC, so two watches are two devices */
+static const char *s_strings[AOS_STR_COUNT] = {
+    (const char[]) { 0x09, 0x04 },          /* English (US) */
+    "AmoledOS",
+    "AmoledOS watch",
+    s_serial,
+    "AmoledOS console",
+    "AmoledOS keys",
+};
+
+/* TinyUSB's HID class asks for these. */
+uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance)
+{
+    return s_hid_report_desc;
+}
+
+uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type,
+                               uint8_t *buffer, uint16_t reqlen)
+{
+    return 0;
+}
+
+void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type,
+                           uint8_t const *buffer, uint16_t bufsize)
+{
+    /* Keyboard LEDs (caps lock and friends): nothing to light. */
+}
+
+bool aos_usb_hid_ready(void)
+{
+    return s_mode == AOS_USB_DEVICE && tud_mounted() && tud_hid_ready();
+}
+
+static bool hid_wait_ready(void)
+{
+    for (int i = 0; i < 20 && !tud_hid_ready(); i++) {
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+    return tud_hid_ready();
+}
+
+bool aos_usb_hid_key(uint8_t modifier, uint8_t keycode, int hold_ms)
+{
+    if (!aos_usb_hid_ready() || !hid_wait_ready()) {
+        return false;
+    }
+    uint8_t keys[6] = { keycode, 0, 0, 0, 0, 0 };
+    if (!tud_hid_keyboard_report(AOS_HID_REPORT_KEYBOARD, modifier, keys)) {
+        return false;
+    }
+    vTaskDelay(pdMS_TO_TICKS(hold_ms > 0 ? hold_ms : 20));
+    hid_wait_ready();
+    tud_hid_keyboard_report(AOS_HID_REPORT_KEYBOARD, 0, NULL);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    return true;
+}
+
+bool aos_usb_hid_consumer(uint16_t usage, int hold_ms)
+{
+    if (!aos_usb_hid_ready() || !hid_wait_ready()) {
+        return false;
+    }
+    if (!tud_hid_report(AOS_HID_REPORT_CONSUMER, &usage, sizeof(usage))) {
+        return false;
+    }
+    vTaskDelay(pdMS_TO_TICKS(hold_ms > 0 ? hold_ms : 20));
+    hid_wait_ready();
+    uint16_t none = 0;
+    tud_hid_report(AOS_HID_REPORT_CONSUMER, &none, sizeof(none));
+    vTaskDelay(pdMS_TO_TICKS(10));
+    return true;
+}
+
+/* Names the apps and the portal use. "cmd+", "ctrl+", "alt+", "shift+"
+ * prefixes stack on a key: "cmd+tab", "ctrl+shift+t". */
+typedef struct { const char *name; uint16_t code; bool consumer; } aos_hid_name_t;
+static const aos_hid_name_t s_hid_names[] = {
+    { "play",    HID_USAGE_CONSUMER_PLAY_PAUSE,        true },
+    { "pause",   HID_USAGE_CONSUMER_PLAY_PAUSE,        true },
+    { "next",    HID_USAGE_CONSUMER_SCAN_NEXT_TRACK,         true },
+    { "prev",    HID_USAGE_CONSUMER_SCAN_PREVIOUS_TRACK,     true },
+    { "stop",    HID_USAGE_CONSUMER_STOP,              true },
+    { "mute",    HID_USAGE_CONSUMER_MUTE,              true },
+    { "volup",   HID_USAGE_CONSUMER_VOLUME_INCREMENT,  true },
+    { "voldown", HID_USAGE_CONSUMER_VOLUME_DECREMENT,  true },
+    { "brightup",   HID_USAGE_CONSUMER_BRIGHTNESS_INCREMENT, true },
+    { "brightdown", HID_USAGE_CONSUMER_BRIGHTNESS_DECREMENT, true },
+    { "pgup",    HID_KEY_PAGE_UP,     false },
+    { "pgdn",    HID_KEY_PAGE_DOWN,   false },
+    { "up",      HID_KEY_ARROW_UP,    false },
+    { "down",    HID_KEY_ARROW_DOWN,  false },
+    { "left",    HID_KEY_ARROW_LEFT,  false },
+    { "right",   HID_KEY_ARROW_RIGHT, false },
+    { "enter",   HID_KEY_ENTER,       false },
+    { "esc",     HID_KEY_ESCAPE,      false },
+    { "space",   HID_KEY_SPACE,       false },
+    { "tab",     HID_KEY_TAB,         false },
+    { "home",    HID_KEY_HOME,        false },
+    { "end",     HID_KEY_END,         false },
+    { "b",       HID_KEY_B,           false },     /* blank screen, Keynote and PowerPoint */
+    { "f5",      HID_KEY_F5,          false },
+    { "delete",  HID_KEY_BACKSPACE,   false },
+};
+
+bool aos_usb_hid_named(const char *name)
+{
+    uint8_t mod = 0;
+    for (;;) {
+        if      (!strncmp(name, "cmd+",   4)) { mod |= KEYBOARD_MODIFIER_LEFTGUI;   name += 4; }
+        else if (!strncmp(name, "ctrl+",  5)) { mod |= KEYBOARD_MODIFIER_LEFTCTRL;  name += 5; }
+        else if (!strncmp(name, "alt+",   4)) { mod |= KEYBOARD_MODIFIER_LEFTALT;   name += 4; }
+        else if (!strncmp(name, "shift+", 6)) { mod |= KEYBOARD_MODIFIER_LEFTSHIFT; name += 6; }
+        else break;
+    }
+    for (size_t i = 0; i < sizeof(s_hid_names) / sizeof(s_hid_names[0]); i++) {
+        if (!strcmp(name, s_hid_names[i].name)) {
+            return s_hid_names[i].consumer ? aos_usb_hid_consumer(s_hid_names[i].code, 0)
+                                           : aos_usb_hid_key(mod, (uint8_t)s_hid_names[i].code, 0);
+        }
+    }
+    if (name[0] && !name[1]) {              /* a single character: type it */
+        return aos_usb_hid_type(name) == 1;
+    }
+    return false;
+}
+
+int aos_usb_hid_type(const char *ascii)
+{
+    static const uint8_t table[128][2] = { HID_ASCII_TO_KEYCODE };
+    int sent = 0;
+    for (; *ascii; ascii++) {
+        unsigned char c = (unsigned char)*ascii;
+        if (c >= 128) continue;
+        uint8_t mod = table[c][0] ? KEYBOARD_MODIFIER_LEFTSHIFT : 0;
+        uint8_t key = table[c][1];
+        if (!key) continue;
+        if (!aos_usb_hid_key(mod, key, 0)) break;
+        sent++;
+    }
+    return sent;
+}
 
 static bool s_device_with_msc;              /* set by disk_start() before device_start() */
 
@@ -343,8 +497,16 @@ static bool device_start(void)
 {
     tinyusb_config_t cfg = TINYUSB_DEFAULT_CONFIG();
     if (!s_device_with_msc) {
-        cfg.descriptor.device = &s_dev_cdc_only;
-        cfg.descriptor.full_speed_config = s_cfg_cdc_only;
+        if (!s_serial[0]) {
+            uint8_t mac[6] = { 0 };
+            esp_read_mac(mac, ESP_MAC_WIFI_STA);
+            snprintf(s_serial, sizeof(s_serial), "%02X%02X%02X%02X%02X%02X",
+                     mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        }
+        cfg.descriptor.device = &s_dev_device;
+        cfg.descriptor.full_speed_config = s_cfg_device;
+        cfg.descriptor.string = s_strings;
+        cfg.descriptor.string_count = AOS_STR_COUNT;
     }
     esp_err_t e = tinyusb_driver_install(&cfg);
     if (e != ESP_OK) {

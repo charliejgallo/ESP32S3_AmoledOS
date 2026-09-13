@@ -41,6 +41,18 @@ bool aos_usb_mode_set(aos_usb_mode_t mode);
  * true). Takes effect at the next switch into device mode. */
 void aos_usb_console_on_cdc(bool on);
 
+/* D3: the watch as a keyboard and media controller of the computer, in
+ * device mode (CDC + HID composite). Every call blocks for the press and
+ * the release (hold_ms between them, 20 if 0) and returns false when the
+ * computer has not configured the interface yet. Keycodes and usages are
+ * TinyUSB's HID_KEY_* / HID_USAGE_CONSUMER_*; the named ones below cover
+ * what the apps need without including hid.h. */
+bool aos_usb_hid_ready(void);
+bool aos_usb_hid_key(uint8_t modifier, uint8_t keycode, int hold_ms);
+bool aos_usb_hid_consumer(uint16_t usage, int hold_ms);
+bool aos_usb_hid_named(const char *name);    /* "volup", "play", "pgdn", "cmd+tab"... see aos_usb.c */
+int  aos_usb_hid_type(const char *ascii);    /* types text as a US keyboard; returns chars sent */
+
 /* Disk mode: true while the computer holds the card (the watch has no
  * /sdcard meanwhile); false once it ejected it or the mode was left. */
 bool aos_usb_disk_card_away(void);
