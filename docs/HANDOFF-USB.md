@@ -151,9 +151,11 @@ once section 4's symbol step is done:
 
 ## 7. Before the merge
 
-- The three uses still to be checked (2026-09-13): Bluetooth on in KEYS for
-  hours, light sleep on battery in CONSOLE (`/api/pmu?locks=1` must not
-  show the `aos_usb` lock held), disk cycles with big files.
+- The uses still to be checked (2026-09-13): Bluetooth on in KEYS for
+  hours, and disk cycles with big files. **Light sleep on battery in
+  CONSOLE is checked**: the user's log of 2026-09-13 17:31 shows "light
+  sleep on" at the unplug, the display off, and the touch reads dropping
+  from ~90 to ~15 per heartbeat, which is the chip sleeping between them.
 - `sdkconfig` of `main` must be deleted before the first build there (the
   defaults changed; `idf.py fullclean` does not remove it).
 - Decide `CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT` for `main`: the branch
