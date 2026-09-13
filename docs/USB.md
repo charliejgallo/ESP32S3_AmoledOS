@@ -474,6 +474,15 @@ In this order, each behind the same switch and each measured with T3:
    compiled in the free internal heap at boot is 163 K against 179 K
    before them: TinyUSB's `.data` holds 13.7 KB, of which 8 KB is the MSC
    endpoint buffer of disk mode - the price of its 767 KB/s.
+   **`amoledos.local` answers over the cable too** (2026-09-13): the USB
+   netif is registered with the mDNS responder (`aos_hal_mdns_add_netif`,
+   which brings the responder up if WiFi never did), so the Mac's own
+   resolver lists 192.168.7.1 on the USB interface beside 192.168.1.125 on
+   WiFi (`dns-sd -G v4 amoledos.local`, one line per interface). The
+   board has no Ethernet, so its predefined mDNS interface is switched off
+   to free the third of the three slots. Which of the two addresses a
+   browser picks for the name is the computer's choice (macOS took WiFi
+   with both up); the IP is the sure way to the cable.
 4. **D4/D5/D7** if D3 left the descriptor machinery in place: an afternoon
    each.
 

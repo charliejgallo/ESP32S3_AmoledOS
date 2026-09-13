@@ -2105,6 +2105,30 @@ static void mdns_up(void)
     ESP_LOGI(TAG, "portal also at http://amoledos.local/");
 }
 
+bool aos_hal_mdns_add_netif(void *esp_netif)
+{
+    mdns_up();
+    esp_err_t e = mdns_register_netif((esp_netif_t *)esp_netif);
+    if (e != ESP_OK) {
+        ESP_LOGW(TAG, "mdns on the usb interface: register %s", esp_err_to_name(e));
+        return false;
+    }
+    e = mdns_netif_action((esp_netif_t *)esp_netif, MDNS_EVENT_ENABLE_IP4 | MDNS_EVENT_ANNOUNCE_IP4);
+    if (e != ESP_OK) {
+        ESP_LOGW(TAG, "mdns on the usb interface: enable %s", esp_err_to_name(e));
+        mdns_unregister_netif((esp_netif_t *)esp_netif);
+        return false;
+    }
+    ESP_LOGI(TAG, "amoledos.local also answers on the usb interface");
+    return true;
+}
+
+void aos_hal_mdns_remove_netif(void *esp_netif)
+{
+    mdns_netif_action((esp_netif_t *)esp_netif, MDNS_EVENT_DISABLE_IP4);
+    mdns_unregister_netif((esp_netif_t *)esp_netif);
+}
+
 static void wifi_event_handler(void *arg, esp_event_base_t base,
                                int32_t id, void *data)
 {

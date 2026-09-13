@@ -22,12 +22,14 @@
 #include "dhcpserver/dhcpserver.h"
 #include "tinyusb_net.h"
 #include "aos_usb_net.h"
+#include "aos_hal.h"
 
 static const char *TAG = "aos_usb_net";
 
 static esp_netif_t             *s_netif;
 static esp_netif_driver_base_t  s_drv;
 static bool                     s_net_up;
+static bool                     s_mdns;
 
 static esp_err_t usb_tx(void *h, void *buffer, size_t len)
 {
@@ -90,6 +92,13 @@ bool aos_usb_net_start(void)
     if (s_netif) {
         return true;
     }
+    /* lwIP and esp_netif come up with WiFi; with WiFi off at boot they may
+     * not be up yet. INVALID_STATE is "already done". */
+    esp_err_t e0 = esp_netif_init();
+    if (e0 != ESP_OK && e0 != ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(TAG, "esp_netif_init: %s", esp_err_to_name(e0));
+        return false;
+    }
     static esp_netif_ip_info_t ip;
     IP4_ADDR(&ip.ip, 192, 168, 7, 1);
     IP4_ADDR(&ip.netmask, 255, 255, 255, 0);
@@ -148,6 +157,7 @@ bool aos_usb_net_start(void)
     esp_netif_action_start(s_netif, NULL, 0, NULL);
     esp_netif_action_connected(s_netif, NULL, 0, NULL);
     s_net_up = true;
+    s_mdns = aos_hal_mdns_add_netif(s_netif);      /* amoledos.local on this side too */
     ESP_LOGI(TAG, "usb network up: 192.168.7.1, the computer gets .2 with mac %02x:%02x:%02x:%02x:%02x:%02x, ours ends in %02x",
              mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], ours[5]);
     return true;
@@ -159,6 +169,10 @@ void aos_usb_net_stop(void)
         return;
     }
     s_net_up = false;
+    if (s_mdns) {
+        aos_hal_mdns_remove_netif(s_netif);
+        s_mdns = false;
+    }
     esp_netif_action_disconnected(s_netif, NULL, 0, NULL);
     esp_netif_action_stop(s_netif, NULL, 0, NULL);
     tinyusb_net_deinit();

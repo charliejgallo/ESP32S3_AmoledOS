@@ -39,6 +39,10 @@ Newest first. Versions are git tags; what is above the latest tag is on
   the card goes back to the watch on its own. `aos_hal_sd_release/reclaim/
   mark_mounted` move the card between the BSP mount and esp_tinyusb's MSC
   storage. While the computer has it the watch has no card.
+- **`amoledos.local` over USB**: the USB network interface is registered
+  with the mDNS responder (and brings it up when WiFi never did), so the
+  name resolves to 192.168.7.1 on the cable beside the WiFi address. The
+  board's non-existent Ethernet gives up its mDNS slot for it.
 - **`/usb` in the portal**: the four modes as options that apply on click,
   the state of each side (keyboard, the USB network, whose the card is, a
   pendrive), a key pad and a text box that type on the computer, the

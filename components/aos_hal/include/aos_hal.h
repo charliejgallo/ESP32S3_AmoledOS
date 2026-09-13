@@ -1102,6 +1102,13 @@ bool aos_hal_usb_key(const char *name); /* "play", "next", "volup", "mute", "pgd
 int  aos_hal_usb_type(const char *ascii);   /* types a string as a US keyboard; chars sent */
 bool aos_hal_usb_card_away(void);       /* DISK mode and the computer holds the card */
 
+/* mDNS on a network interface of somebody else's (the USB one): the watch
+ * answers "amoledos.local" there too, with that interface's address. The
+ * argument is an esp_netif_t*, kept opaque so this header stays free of
+ * ESP-IDF. Brings the responder up if WiFi never did. */
+bool aos_hal_mdns_add_netif(void *esp_netif);
+void aos_hal_mdns_remove_netif(void *esp_netif);
+
 uint64_t aos_hal_uptime_ms(void);
 void     aos_hal_heap_info(uint32_t *free_internal, uint32_t *free_psram);
 const char *aos_hal_board_name(void);       /* "CO5300 + CST816 (v2)" etc */

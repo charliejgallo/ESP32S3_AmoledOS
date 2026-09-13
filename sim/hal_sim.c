@@ -453,6 +453,8 @@ bool aos_hal_usb_keys_ready(void) { return s_usb_mode == AOS_HAL_USB_KEYS; }
 bool aos_hal_usb_key(const char *name) { if (!aos_hal_usb_keys_ready()) return false; printf("[hal] usb key %s\n", name); return true; }
 int  aos_hal_usb_type(const char *ascii) { return aos_hal_usb_keys_ready() ? (int)strlen(ascii) : 0; }
 bool aos_hal_usb_card_away(void) { return s_usb_mode == AOS_HAL_USB_DISK; }
+bool aos_hal_mdns_add_netif(void *esp_netif) { (void)esp_netif; return false; }
+void aos_hal_mdns_remove_netif(void *esp_netif) { (void)esp_netif; }
 
 bool aos_hal_sd_release(void) { return false; }   /* nothing to lend in the simulator */
 bool aos_hal_sd_reclaim(void) { return true; }

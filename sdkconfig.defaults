@@ -423,3 +423,7 @@ CONFIG_ESP_COREDUMP_CHECKSUM_CRC32=y
 # printing: with the USB port on the OTG side the console is not there, and a
 # panic print into a dead Serial-JTAG FIFO waits on every character.
 CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT=y
+# mDNS: the board has no Ethernet, and its predefined interface took the
+# third of the three slots; the USB network interface (D6) needs one so
+# amoledos.local answers over the cable too.
+CONFIG_MDNS_PREDEF_NETIF_ETH=n
