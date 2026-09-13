@@ -336,6 +336,21 @@ listings skip dot-files, so the watch never sees them. Eject can be refused
 force, or leave the mode anyway — the watch gets the card back regardless,
 the Mac just complains that the disk was not ejected properly.
 
+**T5, the stress run (2026-09-13, the week of use):** 20 small photos
+(600 KB) and then a folder of 31 MP3s, 636 MB in 34 files, copied from
+the Mac in one drag. The watch sat at 184 K of internal RAM throughout,
+no reboot, no warning. After the eject every file was on the card with
+its size (34 of 34; one name with an accented letter compares differently
+between macOS's decomposed UTF-8 and the card's, the bytes are there), the
+42 apps and the 21 photos were where they were, and a 14.9 MB file read
+back over WiFi had the MD5 of the original. **The eject needs the SCSI
+eject**: macOS refused `diskutil eject` because Spotlight's `mds` held
+the volume (`mdutil -i off /Volumes/SDCARD` may need a second try), and
+a forced unmount (`diskutil unmountDisk force`) unmounts without ejecting,
+so the card stayed on the USB side; `diskutil eject /dev/diskN` on the
+unmounted disk afterwards sent the eject and the card came back. Leaving
+disk mode does the same from the watch's side.
+
 **Things measured on the way to T5, all of them costing a reboot each:**
 
 1. **macOS takes 9-15 s to register the device.** The first "it does not

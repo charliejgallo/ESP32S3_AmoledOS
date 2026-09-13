@@ -151,8 +151,11 @@ once section 4's symbol step is done:
 
 ## 7. Before the merge
 
-- The uses still to be checked (2026-09-13): Bluetooth on in KEYS for
-  hours, and disk cycles with big files. **Light sleep on battery in
+- The use still to be checked (2026-09-13): Bluetooth on in KEYS for
+  hours. **Disk cycles with big files are checked**: 636 MB of MP3s in one
+  drag, every file back with its size and a 14.9 MB one with the original's
+  MD5 (USB.md, T5). Mind the eject: a forced unmount on the Mac does not
+  send the SCSI eject, `diskutil eject /dev/diskN` afterwards does. **Light sleep on battery in
   CONSOLE is checked**: the user's log of 2026-09-13 17:31 shows "light
   sleep on" at the unplug, the display off, and the touch reads dropping
   from ~90 to ~15 per heartbeat, which is the chip sleeping between them.
