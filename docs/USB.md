@@ -488,7 +488,11 @@ In this order, each behind the same switch and each measured with T3:
    point was up, so switching WiFi off from the portal over USB killed the
    portal on both sides, with the link itself alive (ping answered) and no
    way back but the watch's Settings. Fixed: the USB network counts as a
-   network for the portal.
+   network for the portal. Measured after the fix, over the cable with
+   WiFi off from the portal itself: `/api/status`, a 494 KB screenshot in
+   2.1 s, `amoledos.local` on the USB interface, and WiFi switched back
+   on the same way. With WiFi off the internal heap has 232 K free and
+   the executable one 184 K: the radio's stack is the 40 K in between.
 4. **D4 mouse by tilt.** *Done 2026-09-13: tried on the wrist - the pitch
    sign needed inverting, which is now the default; clicks and right
    clicks fine; speeds 2 and 3 felt right and a 4 was asked for.* A third report (ID 3, TinyUSB's mouse) in the same
