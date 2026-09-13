@@ -891,7 +891,9 @@ static void usb_refresh(void)
     } else {
         switch (aos_hal_usb_mode()) {
         case AOS_HAL_USB_KEYS:
-            txt = aos_hal_usb_keys_ready() ? _("teclado y red listos: http://192.168.7.1")
+            /* The address on a line of its own: wrapped, it broke after
+             * "http:" and looked like two addresses. */
+            txt = aos_hal_usb_keys_ready() ? _("teclado y red listos\n192.168.7.1")
                                            : _("esperando a la computadora");
             break;
         case AOS_HAL_USB_DISK:
@@ -1619,9 +1621,10 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     {
         /* Four lines in the order of aos_hal_usb_mode_t. */
         char opts[200];
+        /* Short, because the dropdown is 278 px wide and the English of the
+         * long forms was cut ("Keyboard and network for the co..."). */
         snprintf(opts, sizeof(opts), "%s\n%s\n%s\n%s",
-                 _("Consola"), _("Teclado y red para la computadora"),
-                 _("Disco: la tarjeta en la computadora"), _("Host: un pendrive en el reloj"));
+                 _("Consola"), _("Teclado y red"), _("Disco (la tarjeta)"), _("Host (un pendrive)"));
         lv_dropdown_set_options(s_set.usb_dd, opts);
     }
     lv_dropdown_set_selected(s_set.usb_dd, (uint32_t)aos_hal_usb_mode());

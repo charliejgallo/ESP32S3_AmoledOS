@@ -142,6 +142,21 @@ one needs no firmware rebuild.
 | <img src="docs/img/app-flappy.png" width="200"><br>**Flappy** — one button, one bird, the usual pipes. | <img src="docs/img/app-simon.png" width="200"><br>**Simon** — the colour-and-sound memory game, each pad with its own tone. | <img src="docs/img/app-dice.png" width="200"><br>**Dados** — dice of any number of sides, rolled by shaking the watch. |
 | <img src="docs/img/app-pixel.png" width="200"><br>**Pixel Art** — 8x8 and 16x16 drawings with a 32-colour palette, frames that become a looping GIF, exported to the card as PNG and GIF. <img src="docs/img/pixel-kitten.gif" width="96"><br>The kitten is one of the samples it seeds on first run, and this GIF is the watch's own export. | <img src="docs/img/app-pixel-gallery.png" width="200"><br>Its gallery of eight canvases. The same files open in the portal's `/pixel` page, where they are drawn with a mouse and saved back; the watch reloads them on its own. | <img src="docs/img/app-hello.png" width="200"><br>**hello_app** — the 30-line template. It is what you copy to start one of your own; see [docs/APP-API.md](docs/APP-API.md). |
 
+## The USB port
+
+The USB-C port is one thing at a time, chosen in Settings or in the portal:
+the **console** it boots as (the log and `esptool`), a **keyboard and
+network** for the computer, the **card as a disk** of the computer, or a
+**host** for a pendrive. In keyboard mode the watch is a keyboard with media
+keys, a mouse, a gamepad, a MIDI port and a network card at once, and the
+portal answers at `http://192.168.7.1` (and `amoledos.local`) over the cable
+with no WiFi. Everything measured is in [docs/USB.md](docs/USB.md).
+
+| | | |
+| --- | --- | --- |
+| <img src="docs/img/usb-pcremote-keys.png" width="200"><br>**Control PC** — music, volume, slides, cmd+tab and the three keys every dialog wants, on the computer the watch is plugged into. | <img src="docs/img/usb-pcremote-mouse.png" width="200"><br>**Mouse** — the gyroscope moves the pointer, tap clicks, hold right-clicks; four speeds and switches for the wrist. | <img src="docs/img/usb-pcremote-pad.png" width="200"><br>**Pad** — a cross, four buttons, shoulders, select and start; the tilt is the left stick after "Centre". |
+| <img src="docs/img/usb-pcremote-midi.png" width="200"><br>**MIDI** — an octave of keys into any synthesizer, the octave up and down, and the wrist's roll as pitch bend. | <img src="docs/img/usb-settings.png" width="200"><br>**Settings → USB** — the mode as a dropdown and what the port is doing right now. The portal's `/usb` page has the same, plus a key pad and the diagnostics. | |
+
 ## Flash it without building
 
 The [latest release](https://github.com/charliejgallo/ESP32S3_AmoledOS/releases/latest)

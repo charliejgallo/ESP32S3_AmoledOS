@@ -54,7 +54,8 @@ GET  /api/usb                    the USB port (docs/USB.md): mode, hid_ready, ne
                                  the OTG registers and the heap; ?mode=console|device|
                                  disk|host switches, ?key=name[,name] presses keys on the
                                  computer, ?type=text types, ?mouse=dx,dy[,wheel] moves
-                                 its pointer, ?click=1|2 clicks, ?midi=note[,velocity] plays
+                                 its pointer, ?click=1|2 clicks, ?pad=x,y[,hat[,buttons]] a gamepad
+                                 report, ?midi=note[,velocity] plays
                                  a note, ?cp=name&from=dir&to=dir
                                  copies a file between folders (usb included), timed;
                                  ?tusblog=1 TinyUSB's own log

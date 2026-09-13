@@ -22,6 +22,11 @@
  * here too (invert X, invert Y, swap the axes), in preferences. Tap = left
  * click, hold = right click, the side button = left click.
  *
+ * The gamepad (D5) is a fifth face: the tilt is the left stick (an angle
+ * again: a stick is a position, and "Centrar" makes the current rest the
+ * centre), a cross for the hat, four face buttons, shoulders, select and
+ * start. One finger at a time on the glass, plus the tilt.
+ *
  * MIDI (D7) is a fourth face: one octave of keys, press for note on and
  * release for note off, an octave up and down, and the pitch bend from the
  * accelerometer's roll when its switch is on (here an angle IS the right
@@ -42,6 +47,13 @@ typedef struct {
     lv_obj_t   *off;        /* the explanation and the switch, otherwise */
     lv_obj_t   *off_text;
     lv_obj_t   *off_button;
+    lv_obj_t   *pad_face;   /* the gamepad face */
+    lv_timer_t *pad_timer;
+    bool        pad_on, pad_tilt;
+    float       pad_ax0, pad_ay0;   /* the rest, "Centrar" */
+    unsigned    pad_buttons;
+    int         pad_hat;
+    int         pad_x, pad_y;
     lv_obj_t   *midi;       /* the MIDI face */
     lv_obj_t   *midi_oct;   /* "C4" label between the octave buttons */
     lv_timer_t *midi_timer;
@@ -142,6 +154,107 @@ static void mouse_show(bool on)
             lv_obj_remove_flag(s_pc.pad, LV_OBJ_FLAG_HIDDEN);
         }
     }
+}
+
+/* --- the gamepad face ----------------------------------------------------- */
+
+#define PAD_HAT_UP 1
+#define PAD_HAT_RIGHT 3
+#define PAD_HAT_DOWN 5
+#define PAD_HAT_LEFT 7
+
+static void pad_send(void)
+{
+    aos_hal_usb_gamepad(s_pc.pad_x, s_pc.pad_y, s_pc.pad_hat, s_pc.pad_buttons);
+}
+
+/* user data: bit (1 << n) for a button, or 0x100 | hat for the cross */
+static void pad_btn_cb(lv_event_t *event)
+{
+    lv_event_code_t code = lv_event_get_code(event);
+    unsigned what = (unsigned)(uintptr_t)lv_event_get_user_data(event);
+    bool down = code == LV_EVENT_PRESSED;
+    if (what & 0x100) {
+        s_pc.pad_hat = down ? (int)(what & 0xFF) : 0;
+    } else if (down) {
+        s_pc.pad_buttons |= what;
+    } else {
+        s_pc.pad_buttons &= ~what;
+    }
+    if (!aos_hal_usb_gamepad(s_pc.pad_x, s_pc.pad_y, s_pc.pad_hat, s_pc.pad_buttons) && down) {
+        aos_ui_toast(_("Sin gamepad USB"), 1200);
+    }
+}
+
+static void pad_tick(lv_timer_t *timer)
+{
+    (void)timer;
+    aos_imu_t imu;
+    if (!s_pc.pad_on || !s_pc.pad_tilt || !aos_hal_imu_read(&imu)) {
+        return;
+    }
+    /* 0.5 g (30 degrees) past the rest is full deflection; 0.03 g of dead
+     * band; the stick report goes out every tick while tilt is on, as a
+     * real stick's does. */
+    float dx = imu.ax - s_pc.pad_ax0, dy = imu.ay - s_pc.pad_ay0;
+    if (dx > -0.03f && dx < 0.03f) dx = 0;
+    if (dy > -0.03f && dy < 0.03f) dy = 0;
+    s_pc.pad_x = (int)(dx * 127.0f / 0.5f);
+    s_pc.pad_y = (int)(-dy * 127.0f / 0.5f);
+    pad_send();
+}
+
+static void pad_center_cb(lv_event_t *event)
+{
+    (void)event;
+    aos_imu_t imu;
+    if (aos_hal_imu_read(&imu)) {
+        s_pc.pad_ax0 = imu.ax;
+        s_pc.pad_ay0 = imu.ay;
+        aos_hal_beep(1200, 15);
+    }
+}
+
+static void pad_tilt_cb(lv_event_t *event)
+{
+    s_pc.pad_tilt = lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED);
+    if (!s_pc.pad_tilt) {
+        s_pc.pad_x = s_pc.pad_y = 0;
+        pad_send();
+    }
+}
+
+static void pad_show(bool on)
+{
+    s_pc.pad_on = on;
+    if (on) {
+        lv_obj_remove_flag(s_pc.pad_face, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(s_pc.pad, LV_OBJ_FLAG_HIDDEN);
+        if (!s_pc.pad_timer) s_pc.pad_timer = lv_timer_create(pad_tick, 20, NULL);
+    } else {
+        if (s_pc.pad_timer) { lv_timer_delete(s_pc.pad_timer); s_pc.pad_timer = NULL; }
+        s_pc.pad_x = s_pc.pad_y = s_pc.pad_hat = 0;
+        s_pc.pad_buttons = 0;
+        pad_send();                 /* everything released */
+        lv_obj_add_flag(s_pc.pad_face, LV_OBJ_FLAG_HIDDEN);
+        if (s_pc.ready_shown) lv_obj_remove_flag(s_pc.pad, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+static void pad_open_cb(lv_event_t *event)  { (void)event; pad_show(true); }
+static void pad_close_cb(lv_event_t *event) { (void)event; pad_show(false); }
+
+static lv_obj_t *pad_button(lv_obj_t *parent, const char *text, lv_color_t color, unsigned what,
+                            int x, int y, int w, int h)
+{
+    lv_obj_t *b = aos_button(parent, text, color, pad_btn_cb, (void *)(uintptr_t)what);
+    lv_obj_remove_event_cb(b, pad_btn_cb);      /* aos_button hooks CLICKED; a pad wants press and release */
+    lv_obj_add_event_cb(b, pad_btn_cb, LV_EVENT_PRESSED, (void *)(uintptr_t)what);
+    lv_obj_add_event_cb(b, pad_btn_cb, LV_EVENT_RELEASED, (void *)(uintptr_t)what);
+    lv_obj_add_event_cb(b, pad_btn_cb, LV_EVENT_PRESS_LOST, (void *)(uintptr_t)what);
+    lv_obj_set_size(b, w, h);
+    lv_obj_align(b, LV_ALIGN_TOP_LEFT, x, y);
+    return b;
 }
 
 /* --- the MIDI face -------------------------------------------------------- */
@@ -332,11 +445,12 @@ static void refresh(lv_timer_t *timer)
     if (ready != s_pc.ready_shown) {
         s_pc.ready_shown = ready;
         if (ready) {
-            if (!s_pc.mouse_on && !s_pc.midi_on) lv_obj_remove_flag(s_pc.pad, LV_OBJ_FLAG_HIDDEN);
+            if (!s_pc.mouse_on && !s_pc.midi_on && !s_pc.pad_on) lv_obj_remove_flag(s_pc.pad, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(s_pc.off, LV_OBJ_FLAG_HIDDEN);
         } else {
             if (s_pc.mouse_on) mouse_show(false);
             if (s_pc.midi_on) midi_show(false);
+            if (s_pc.pad_on) pad_show(false);
             lv_obj_add_flag(s_pc.pad, LV_OBJ_FLAG_HIDDEN);
             lv_obj_remove_flag(s_pc.off, LV_OBJ_FLAG_HIDDEN);
         }
@@ -391,13 +505,59 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     key_button(s_pc.pad, _("espacio"), AOS_C_CARD2, "space", 136, 216, 96, 46);
     key_button(s_pc.pad, LV_SYMBOL_OK, AOS_C_ACCENT, "enter", 242, 216, 96, 46);
 
-    /* the other two faces */
+    /* the other three faces */
     lv_obj_t *mouse_btn = aos_button(s_pc.pad, "Mouse", AOS_C_CARD2, mouse_open_cb, NULL);
-    lv_obj_set_size(mouse_btn, 150, 46);
+    lv_obj_set_size(mouse_btn, 96, 46);
     lv_obj_align(mouse_btn, LV_ALIGN_TOP_LEFT, 30, 270);
     lv_obj_t *midi_btn = aos_button(s_pc.pad, "MIDI", AOS_C_CARD2, midi_open_cb, NULL);
-    lv_obj_set_size(midi_btn, 150, 46);
-    lv_obj_align(midi_btn, LV_ALIGN_TOP_LEFT, 188, 270);
+    lv_obj_set_size(midi_btn, 96, 46);
+    lv_obj_align(midi_btn, LV_ALIGN_TOP_LEFT, 136, 270);
+    lv_obj_t *pad_btn = aos_button(s_pc.pad, "Pad", AOS_C_CARD2, pad_open_cb, NULL);
+    lv_obj_set_size(pad_btn, 96, 46);
+    lv_obj_align(pad_btn, LV_ALIGN_TOP_LEFT, 242, 270);
+
+    /* --- the gamepad: the cross left, the four buttons right, the rest below --- */
+    s_pc.pad_face = lv_obj_create(page);
+    lv_obj_remove_style_all(s_pc.pad_face);
+    lv_obj_set_size(s_pc.pad_face, lv_pct(100), 320);
+    lv_obj_align(s_pc.pad_face, LV_ALIGN_TOP_MID, 0, 44);
+    lv_obj_remove_flag(s_pc.pad_face, LV_OBJ_FLAG_SCROLLABLE);
+    {
+        lv_color_t g = AOS_C_CARD2;
+        pad_button(s_pc.pad_face, LV_SYMBOL_UP,    g, 0x100 | PAD_HAT_UP,    72,  0, 52, 52);
+        pad_button(s_pc.pad_face, LV_SYMBOL_LEFT,  g, 0x100 | PAD_HAT_LEFT,  16, 56, 52, 52);
+        pad_button(s_pc.pad_face, LV_SYMBOL_RIGHT, g, 0x100 | PAD_HAT_RIGHT, 128, 56, 52, 52);
+        pad_button(s_pc.pad_face, LV_SYMBOL_DOWN,  g, 0x100 | PAD_HAT_DOWN,  72, 112, 52, 52);
+        pad_button(s_pc.pad_face, "Y", lv_color_hex(0xF2C744), 1u << 4, 268,  0, 52, 52);
+        pad_button(s_pc.pad_face, "X", lv_color_hex(0x3D8BFF), 1u << 3, 212, 56, 52, 52);
+        pad_button(s_pc.pad_face, "B", lv_color_hex(0xE4453A), 1u << 1, 324, 56, 52, 52);
+        pad_button(s_pc.pad_face, "A", lv_color_hex(0x34C759), 1u << 0, 268, 112, 52, 52);
+        pad_button(s_pc.pad_face, "L",  g, 1u << 6,  16, 178, 70, 40);
+        pad_button(s_pc.pad_face, "Sel", g, 1u << 10, 96, 178, 82, 40);
+        pad_button(s_pc.pad_face, "Start", g, 1u << 11, 188, 178, 92, 40);
+        pad_button(s_pc.pad_face, "R",  g, 1u << 7, 290, 178, 70, 40);
+    }
+    lv_obj_t *center = aos_button(s_pc.pad_face, _("Centrar"), AOS_C_CARD2, pad_center_cb, NULL);
+    lv_obj_set_size(center, 96, 44);
+    lv_obj_align(center, LV_ALIGN_TOP_LEFT, 16, 236);
+    {
+        lv_obj_t *row = lv_obj_create(s_pc.pad_face);
+        lv_obj_remove_style_all(row);
+        lv_obj_set_size(row, 110, 44);
+        lv_obj_align(row, LV_ALIGN_TOP_LEFT, 122, 236);
+        lv_obj_remove_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_t *lbl = aos_label(row, _("Inclinar"), aos_font_small, AOS_C_TEXT);
+        lv_obj_align(lbl, LV_ALIGN_LEFT_MID, 0, 0);
+        lv_obj_t *sw = lv_switch_create(row);
+        lv_obj_set_size(sw, 44, 24);
+        lv_obj_align(sw, LV_ALIGN_RIGHT_MID, 0, 0);
+        lv_obj_set_style_bg_color(sw, AOS_C_GREEN, LV_PART_INDICATOR | LV_STATE_CHECKED);
+        lv_obj_add_event_cb(sw, pad_tilt_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    }
+    lv_obj_t *pad_back = aos_button(s_pc.pad_face, _("Teclas"), AOS_C_ACCENT, pad_close_cb, NULL);
+    lv_obj_set_size(pad_back, 110, 44);
+    lv_obj_align(pad_back, LV_ALIGN_TOP_LEFT, 242, 236);
+    lv_obj_add_flag(s_pc.pad_face, LV_OBJ_FLAG_HIDDEN);
 
     /* --- MIDI: an octave of keys, the octave buttons, the bend switch --- */
     s_pc.note_held = -1;
@@ -529,6 +689,9 @@ static void destroy(aos_app_t *self, void *inst)
     if (s_pc.midi_on) {
         midi_show(false);       /* the note off, the bend back to centre, the timer */
     }
+    if (s_pc.pad_on) {
+        pad_show(false);        /* everything released, the timer */
+    }
     if (s_pc.timer) {
         lv_timer_delete(s_pc.timer);
         s_pc.timer = NULL;
@@ -540,6 +703,12 @@ static bool button(aos_app_t *self, void *inst, int action)
     (void)self; (void)inst;
     if (s_pc.mouse_on && action == AOS_BUTTON_CLICK) {
         aos_hal_usb_click(1);
+        return true;
+    }
+    if (s_pc.pad_on && (action == AOS_BUTTON_PRESS || action == AOS_BUTTON_CLICK || action == AOS_BUTTON_LONG)) {
+        /* Runs in the HAL's task with the LVGL lock held: note and send. */
+        if (action == AOS_BUTTON_PRESS) s_pc.pad_buttons |= 1u << 0; else s_pc.pad_buttons &= ~(1u << 0);
+        pad_send();
         return true;
     }
     return false;

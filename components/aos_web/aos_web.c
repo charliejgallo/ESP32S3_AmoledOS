@@ -2135,6 +2135,12 @@ static esp_err_t usb_handler(httpd_req_t *req)
         sscanf(keys, "%d,%d,%d", &dx, &dy, &wheel);
         snprintf(copy_note_keys, sizeof(copy_note_keys), "\"mouse\":%s,",
                  aos_hal_usb_mouse(dx, dy, wheel) ? "true" : "false");
+    } else if (httpd_query_key_value(query, "pad", keys, sizeof(keys)) == ESP_OK) {
+        /* ?pad=x,y[,hat[,buttons]]: one gamepad report (D5), for the tests. */
+        int x = 0, y = 0, hat = 0; unsigned b = 0;
+        sscanf(keys, "%d,%d,%d,%u", &x, &y, &hat, &b);
+        snprintf(copy_note_keys, sizeof(copy_note_keys), "\"pad\":%s,",
+                 aos_hal_usb_gamepad(x, y, hat, b) ? "true" : "false");
     } else if (httpd_query_key_value(query, "midi", keys, sizeof(keys)) == ESP_OK) {
         /* ?midi=note[,velocity]: a note, held 150 ms (D7). */
         int note = 60, vel = 100;

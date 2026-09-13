@@ -55,6 +55,8 @@ int  aos_usb_hid_type(const char *ascii);    /* types text as a US keyboard; ret
 bool aos_usb_hid_mouse(int8_t dx, int8_t dy, int8_t wheel);   /* one relative report, no waiting */
 bool aos_usb_hid_mouse_click(uint8_t buttons);               /* 1 left, 2 right: press and release */
 
+bool aos_usb_hid_gamepad(int8_t x, int8_t y, int8_t rx, int8_t ry, uint8_t hat, uint32_t buttons);
+
 /* D7: a MIDI controller (channel 1, cable 0), in device mode. */
 bool aos_usb_midi_ready(void);
 bool aos_usb_midi_note(uint8_t note, uint8_t velocity, bool on);

@@ -343,12 +343,13 @@ enum { AOS_ITF_DISK_CDC = 0, AOS_ITF_DISK_CDC_DATA, AOS_ITF_DISK_MSC, AOS_ITF_DI
  * the MSC interface borrows the product's. */
 enum { AOS_STR_LANG = 0, AOS_STR_MANUFACTURER, AOS_STR_PRODUCT, AOS_STR_SERIAL, AOS_STR_CDC, AOS_STR_HID,
        AOS_STR_NET, AOS_STR_MAC, AOS_STR_COUNT, AOS_STR_MSC = AOS_STR_PRODUCT };
-enum { AOS_HID_REPORT_KEYBOARD = 1, AOS_HID_REPORT_CONSUMER = 2, AOS_HID_REPORT_MOUSE = 3 };
+enum { AOS_HID_REPORT_KEYBOARD = 1, AOS_HID_REPORT_CONSUMER = 2, AOS_HID_REPORT_MOUSE = 3, AOS_HID_REPORT_GAMEPAD = 4 };
 
 static const uint8_t s_hid_report_desc[] = {
     TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(AOS_HID_REPORT_KEYBOARD)),
     TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(AOS_HID_REPORT_CONSUMER)),
     TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(AOS_HID_REPORT_MOUSE)),
+    TUD_HID_REPORT_DESC_GAMEPAD(HID_REPORT_ID(AOS_HID_REPORT_GAMEPAD)),
 };
 /* Keys mode: HID (D3) + NCM (D6) + MIDI (D7). Five interfaces, four IN
  * endpoints: every one the S3 has. The MIDI interface borrows the product's
@@ -492,6 +493,17 @@ bool aos_usb_hid_mouse_click(uint8_t buttons)
     tud_hid_mouse_report(AOS_HID_REPORT_MOUSE, 0, 0, 0, 0, 0);
     vTaskDelay(pdMS_TO_TICKS(10));
     return true;
+}
+
+/* D5: the gamepad. One report, no waiting, like the mouse: two sticks
+ * (-127..127), a hat (0 centred, 1 up, then clockwise to 8) and 32 buttons
+ * as bits, TinyUSB's own layout. */
+bool aos_usb_hid_gamepad(int8_t x, int8_t y, int8_t rx, int8_t ry, uint8_t hat, uint32_t buttons)
+{
+    if (!aos_usb_hid_ready() || !tud_hid_ready()) {
+        return false;
+    }
+    return tud_hid_gamepad_report(AOS_HID_REPORT_GAMEPAD, x, y, 0, 0, rx, ry, hat, buttons);
 }
 
 /* D7: MIDI. Three-byte channel messages on cable 0; TinyUSB packs them into

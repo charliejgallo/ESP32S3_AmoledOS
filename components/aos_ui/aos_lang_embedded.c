@@ -217,6 +217,7 @@ static const char blob_en__sistema_lang[] =
     "Borrar todo\tClear all\n"
     "Sin teclado USB\tNo USB keyboard\n"
     "El USB esta cambiando de modo\tUSB is switching modes\n"
+    "Sin gamepad USB\tNo USB gamepad\n"
     "Sin puerto MIDI\tNo MIDI port\n"
     "Vel.\tSpeed\n"
     "cambiando...\tswitching...\n"
@@ -228,6 +229,8 @@ static const char blob_en__sistema_lang[] =
     "El puerto USB es la consola. Como teclado, el reloj es ademas una red: el portal en http://192.168.7.1\tThe USB port is the console. As a keyboard the watch is a network too: the portal at http://192.168.7.1\n"
     "Pantalla negra\tBlack screen\n"
     "espacio\tspace\n"
+    "Centrar\tCentre\n"
+    "Inclinar\tTilt\n"
     "Teclas\tKeys\n"
     "Inclina el reloj para mover el puntero.\\nToca: clic. Mantene: clic derecho.\tTilt the watch to move the pointer.\\nTap: click. Hold: right click.\n"
     "Inv X\tInv X\n"
@@ -311,7 +314,7 @@ static const char blob_en__sistema_lang[] =
     "Tocá el centro de la cruz\\n%d de %d\tTouch the centre of the cross\\n%d of %d\n"
     "Recorré todo el vidrio con el dedo\tRun a finger over the whole glass\n"
     "crudo %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u lecturas\traw %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u samples\n"
-    "teclado y red listos: http://192.168.7.1\tkeyboard and network ready: http://192.168.7.1\n"
+    "teclado y red listos\\n192.168.7.1\tkeyboard and network ready\\n192.168.7.1\n"
     "la computadora tiene la tarjeta\tthe computer has the card\n"
     "la tarjeta volvio al reloj\tthe card is back on the watch\n"
     "esperando un pendrive\twaiting for a flash drive\n"
@@ -372,9 +375,9 @@ static const char blob_en__sistema_lang[] =
     "Olvidar red\tForget network\n"
     "USB\tUSB\n"
     "Consola\tConsole\n"
-    "Teclado y red para la computadora\tKeyboard and network for the computer\n"
-    "Disco: la tarjeta en la computadora\tDisk: the card on the computer\n"
-    "Host: un pendrive en el reloj\tHost: a flash drive on the watch\n"
+    "Teclado y red\tKeyboard + network\n"
+    "Disco (la tarjeta)\tDisk (the card)\n"
+    "Host (un pendrive)\tHost (a flash drive)\n"
     "BLUETOOTH\tBLUETOOTH\n"
     "Bluetooth\tBluetooth\n"
     "Olvidar telefono\tForget phone\n"
@@ -1687,6 +1690,7 @@ static const char blob_de__sistema_lang[] =
     "Borrar todo\tAlle löschen\n"
     "Sin teclado USB\tKeine USB-Tastatur\n"
     "El USB esta cambiando de modo\tUSB wechselt gerade den Modus\n"
+    "Sin gamepad USB\tKein USB-Gamepad\n"
     "Sin puerto MIDI\tKein MIDI-Port\n"
     "Vel.\tTempo\n"
     "cambiando...\twechselt...\n"
@@ -1698,6 +1702,8 @@ static const char blob_de__sistema_lang[] =
     "El puerto USB es la consola. Como teclado, el reloj es ademas una red: el portal en http://192.168.7.1\tDer USB-Port ist die Konsole. Als Tastatur ist die Uhr auch ein Netzwerk: das Portal unter http://192.168.7.1\n"
     "Pantalla negra\tSchwarz\n"
     "espacio\tLeer\n"
+    "Centrar\tZentrieren\n"
+    "Inclinar\tNeigen\n"
     "Teclas\tTasten\n"
     "Inclina el reloj para mover el puntero.\\nToca: clic. Mantene: clic derecho.\tNeige die Uhr, um den Zeiger zu bewegen.\\nTippen: Klick. Halten: Rechtsklick.\n"
     "Inv X\tInv X\n"
@@ -1781,7 +1787,7 @@ static const char blob_de__sistema_lang[] =
     "Tocá el centro de la cruz\\n%d de %d\tMitte des Kreuzes antippen\\n%d von %d\n"
     "Recorré todo el vidrio con el dedo\tMit dem Finger über das ganze Glas fahren\n"
     "crudo %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u lecturas\troh %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u Messungen\n"
-    "teclado y red listos: http://192.168.7.1\tTastatur und Netzwerk bereit: http://192.168.7.1\n"
+    "teclado y red listos\\n192.168.7.1\tTastatur und Netzwerk bereit\\n192.168.7.1\n"
     "la computadora tiene la tarjeta\tder Computer hat die Karte\n"
     "la tarjeta volvio al reloj\tdie Karte ist wieder in der Uhr\n"
     "esperando un pendrive\twarte auf einen USB-Stick\n"
@@ -1842,9 +1848,9 @@ static const char blob_de__sistema_lang[] =
     "Olvidar red\tNetzwerk vergessen\n"
     "USB\tUSB\n"
     "Consola\tKonsole\n"
-    "Teclado y red para la computadora\tTastatur und Netzwerk für den Computer\n"
-    "Disco: la tarjeta en la computadora\tLaufwerk: die Karte am Computer\n"
-    "Host: un pendrive en el reloj\tHost: ein USB-Stick an der Uhr\n"
+    "Teclado y red\tTastatur + Netzwerk\n"
+    "Disco (la tarjeta)\tLaufwerk (die Karte)\n"
+    "Host (un pendrive)\tHost (ein USB-Stick)\n"
     "BLUETOOTH\tBLUETOOTH\n"
     "Bluetooth\tBluetooth\n"
     "Olvidar telefono\tTelefon vergessen\n"
@@ -2954,7 +2960,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 476, 22, files_en, 23 },
-    { "de", "Deutsch", 476, 22, files_de, 23 },
+    { "en", "English", 479, 22, files_en, 23 },
+    { "de", "Deutsch", 479, 22, files_de, 23 },
 };
 const int aos_lang_pack_count = 2;

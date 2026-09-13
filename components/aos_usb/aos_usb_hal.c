@@ -105,6 +105,11 @@ bool aos_hal_usb_click(int button)
     return !s_busy && aos_usb_hid_mouse_click(button == 2 ? 0x02 : 0x01);
 }
 
+bool aos_hal_usb_gamepad(int x, int y, int hat, unsigned buttons)
+{
+    return !s_busy && aos_usb_hid_gamepad(clamp8(x), clamp8(y), 0, 0, (uint8_t)(hat > 8 ? 0 : hat), buttons);
+}
+
 bool aos_hal_usb_midi_ready(void)
 {
     return !s_busy && aos_usb_midi_ready();

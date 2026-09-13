@@ -521,7 +521,31 @@ In this order, each behind the same switch and each measured with T3:
    API and two keys tapped on the watch arrived as note on / note off with
    their velocities. macOS takes longer to configure the five-interface
    device: the node was still `!registered` at 18 s and done at 30.
-6. **D5** (gamepad) if wanted.
+6. **D5 gamepad.** *Running since 2026-09-13.* A fourth report (ID 4,
+   TinyUSB's gamepad: two sticks, a hat, 32 buttons) in the HID interface;
+   `aos_usb_hid_gamepad()` sends one report with no waiting,
+   `aos_hal_usb_gamepad()` in the HAL, `/api/usb?pad=x,y[,hat[,buttons]]`
+   in the portal. In Control PC a fifth face, "Pad": a cross (the hat),
+   A/B/X/Y, L and R, Select and Start (press and release, one finger at a
+   time), "Centre" to take the current rest as the stick's centre, and a
+   Tilt switch that makes the tilt the left stick, 30 degrees for full
+   deflection, fifty reports a second; the side button is A. macOS parsed
+   the interface with the Game Pad usage beside keyboard, mouse, pointer
+   and consumer control (`ioreg -c IOHIDDevice`, usage page 1 usage 5),
+   and `hidapi` sees the five collections; reading the raw reports needs
+   the Input Monitoring permission macOS gives to apps, not to a script,
+   so the values were not read back from the Mac - the other three
+   reports on the same interface were, and the layout is TinyUSB's.
+
+### Pictures
+
+| | | |
+| --- | --- | --- |
+| ![keys](img/usb-pcremote-keys.png) | ![mouse](img/usb-pcremote-mouse.png) | ![pad](img/usb-pcremote-pad.png) |
+| ![midi](img/usb-pcremote-midi.png) | ![settings](img/usb-settings.png) | |
+
+Control PC's four faces (keys, mouse, pad, MIDI) and Settings → USB, taken
+with `/api/captura` in keyboard mode with the watch on the Mac.
 
 **Done when** disk mode survives ten mount/eject cycles with the apps intact,
 the media keys work on the Mac, and the portal answers at `192.168.7.1` with
