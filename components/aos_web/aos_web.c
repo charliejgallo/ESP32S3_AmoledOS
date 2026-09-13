@@ -9,6 +9,7 @@
 #include "aos_log.h"
 #include "aos_apps.h"   /* aos_alarm_get / set */
 #include "aos_dynapp.h" /* aos_dynapp_is_dynamic, for /api/apps */
+#include "aos_usb.h"    /* /api/usb: the USB port's mode, branch usb */
 #include <time.h>
 
 #include "esp_http_server.h"
@@ -2061,6 +2062,41 @@ static esp_err_t remoto_entities_handler(httpd_req_t *req)
     return httpd_resp_send(req, "", 0);
 }
 
+/* GET /api/usb[?mode=console|device|host][&console=0|1]: which side of
+ * the USB PHY is on, what is plugged in when it is the host, and the heap
+ * figures the switch costs. Phase 1 of docs/USB.md: the tests are driven from
+ * here before anything reaches Settings. */
+static esp_err_t usb_handler(httpd_req_t *req)
+{
+    char query[96] = "", value[16];
+    httpd_req_get_url_query_str(req, query, sizeof(query));
+    if (httpd_query_key_value(query, "console", value, sizeof(value)) == ESP_OK) {
+        aos_usb_console_on_cdc(atoi(value) != 0);
+    }
+    bool ok = true;
+    if (httpd_query_key_value(query, "mode", value, sizeof(value)) == ESP_OK) {
+        if      (!strcmp(value, "console")) ok = aos_usb_mode_set(AOS_USB_CONSOLE);
+        else if (!strcmp(value, "device"))  ok = aos_usb_mode_set(AOS_USB_DEVICE);
+        else if (!strcmp(value, "host"))    ok = aos_usb_mode_set(AOS_USB_HOST);
+        else {
+            httpd_resp_set_status(req, "400 Bad Request");
+            return httpd_resp_sendstr(req, "mode: console, device or host");
+        }
+    }
+    char *json = heap_caps_malloc(1536, MALLOC_CAP_SPIRAM);
+    if (!json) {
+        httpd_resp_set_status(req, "503 Service Unavailable");
+        return httpd_resp_sendstr(req, "sin memoria");
+    }
+    int n = snprintf(json, 1536, "{\"ok\":%s,\"status\":", ok ? "true" : "false");
+    n += aos_usb_status_json(json + n, 1536 - n);
+    if (n < 1534) { json[n++] = '}'; json[n] = 0; }
+    httpd_resp_set_type(req, "application/json");
+    esp_err_t r = httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);
+    free(json);
+    return r;
+}
+
 /* -------------------------------------------------------------------------- */
 /* The routes                                                                  */
 /*                                                                             */
@@ -2485,6 +2521,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/status",  .method = HTTP_GET,  .handler = status_handler },
         { .uri = "/api/pmu",     .method = HTTP_GET,  .handler = pmu_handler },
         { .uri = "/api/mem",     .method = HTTP_GET,  .handler = aos_mem_handler },
+        { .uri = "/api/usb",     .method = HTTP_GET,  .handler = usb_handler },
         { .uri = "/api/list",    .method = HTTP_GET,  .handler = list_handler },
         { .uri = "/api/upload",  .method = HTTP_POST, .handler = upload_handler },
         { .uri = "/api/ota",     .method = HTTP_POST, .handler = ota_handler },

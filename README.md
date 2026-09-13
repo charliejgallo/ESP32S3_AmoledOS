@@ -230,6 +230,7 @@ network survey's report format.
 | [POWER.md](docs/POWER.md) | the AXP2101, the rails, light sleep, and the measurements behind each switch |
 | [PORTAL.md](docs/PORTAL.md) | the web portal: pages, API, what it costs the board, and the dev server |
 | [ROADMAP.md](docs/ROADMAP.md) | what is planned and has no date: Android phones, starting with BLE HID |
+| [USB.md](docs/USB.md) | the USB-C port as a device or a host: what the board allows, the catalogue, the test rigs, and the plan (branch `usb`) |
 
 ## A note on what is written down
 

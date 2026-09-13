@@ -5,6 +5,40 @@ Newest first. Versions are git tags; what is above the latest tag is on
 
 ## Unreleased
 
+### USB (branch `usb`, not merged)
+
+- `docs/USB.md`: what the USB-C port can become. The schematic read (D+/D-
+  straight to GPIO19/20, VBUS only into the charger, 5.1 K pull-downs on CC,
+  a second copy of the data lines on solder pads through 22 Ω), the
+  constraints (one PHY shared by the Serial-JTAG and the OTG controller, no
+  5 V for a peripheral, full speed, internal RAM for transfer buffers, the
+  card has one owner), a catalogue of 12 device-mode and 12 host-mode
+  functions rated by cost and value, three host-mode test rigs, the
+  measurements to take and a plan in four phases.
+- `components/aos_usb`: the switch. Three states, console (boot default),
+  device (TinyUSB, one CDC port with the console on it) and host (the USB
+  Host Library with an inspector that logs every device's descriptors and
+  keeps them for the portal). Holds a `NO_LIGHT_SLEEP` lock while the OTG
+  side is on and flips the PHY mux back to the Serial-JTAG on leaving, with
+  the pad down for 100 ms so the Mac sees a detach (without it the
+  Serial-JTAG never came back). Nothing runs at boot. Measured on the
+  board: device mode costs 4.5 KB of internal RAM, host mode 11.6 KB, both
+  returned in full; the Serial-JTAG is back 0.6 s after leaving either.
+- Two things esp_tinyusb / the host library do not say: `tinyusb_console_deinit()`
+  reopens `/dev/uart/-1` on a Serial-JTAG console and leaves `stdout` NULL
+  (a panic on the next log line; `aos_usb` redirects the streams itself,
+  back to `/dev/console`), and `usb_host_install()` fails with
+  `ESP_ERR_NOT_FOUND` from the httpd task because that core has no free
+  level-1 interrupt (it is installed from a task pinned to core 1).
+- `/api/usb[?mode=console|device|host][&console=0|1]`: drives the switch
+  from the portal and answers the mode, the devices seen in host mode and
+  the heap figures around each switch (tests T1-T4 of the document).
+- `main/idf_component.yml`: `esp_tinyusb` 2.2.1, `usb_host_msc` 1.2.0,
+  `usb_host_hid` 1.2.1, `usb_host_cdc_acm` 2.4.1, `usb_host_uvc` 2.5.2.
+  With the classes off the binary does not move.
+- `sdkconfig.defaults`: `CONFIG_TINYUSB_CDC_ENABLED=y` and the device
+  strings ("AmoledOS", "AmoledOS watch").
+
 ### Also
 
 - `aos_hal_esp32.c`: the unused `s_media_enabled` is gone, together with the

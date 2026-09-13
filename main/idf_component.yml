@@ -19,3 +19,15 @@ dependencies:
   espressif/mdns:
     version: "^1.8.0"
     public: true
+  # USB (branch usb, see docs/USB.md). Device side: TinyUSB through Espressif's
+  # wrapper. Host side: the class drivers from esp-usb.
+  espressif/esp_tinyusb:
+    version: "^2.2.1"
+  espressif/usb_host_msc:
+    version: "^1.2.0"
+  espressif/usb_host_hid:
+    version: "^1.2.1"
+  espressif/usb_host_cdc_acm:
+    version: "^2.4.1"
+  espressif/usb_host_uvc:
+    version: "^2.5.2"

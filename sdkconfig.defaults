@@ -388,3 +388,11 @@ CONFIG_ELF_LOADER_TEXT_PSRAM_MMU=y
 # CONFIG_BT_CTRL_BLE_SCAN=n, CONFIG_BT_CTRL_BLE_MAX_ACT=3
 #   Untested alone (same builds); the coexistence path was where those builds
 #   died, so these two need their own test before being trusted.
+
+# --- USB (branch usb, docs/USB.md) --------------------------------------------
+# The port is the console at boot in every build. These only make the CDC
+# class available to aos_usb for device mode; nothing is installed until
+# /api/usb?mode=device (later Settings) asks for it.
+CONFIG_TINYUSB_CDC_ENABLED=y
+CONFIG_TINYUSB_DESC_MANUFACTURER_STRING="AmoledOS"
+CONFIG_TINYUSB_DESC_PRODUCT_STRING="AmoledOS watch"
