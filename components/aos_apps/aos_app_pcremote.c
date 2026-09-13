@@ -44,7 +44,7 @@ typedef struct {
     bool        ready_shown;
     bool        mouse_on;
     bool        inv_x, inv_y, swap_xy;
-    int         gain;       /* 1..3 */
+    int         gain;       /* 1..4 */
 } pcremote_t;
 
 #define MOUSE_PERIOD_MS 20
@@ -89,9 +89,11 @@ static void mouse_tick(lv_timer_t *timer)
         return;
     }
     /* Yaw (about the axis through the glass) moves left-right, pitch
-     * up-down, when the watch is held like a remote. The switches fix
-     * whatever the wrist does to that. */
-    float rx = imu.gz, ry = imu.gx;
+     * up-down, when the watch is held like a remote. The pitch sign was
+     * measured on the wrist (2026-09-13, "had to invert Y"): the minus is
+     * that measurement, so the switches start off. They fix whatever
+     * another wrist does to it. */
+    float rx = imu.gz, ry = -imu.gx;
     if (s_pc.swap_xy) { float t = rx; rx = ry; ry = t; }
     if (s_pc.inv_x) rx = -rx;
     if (s_pc.inv_y) ry = -ry;
@@ -101,7 +103,8 @@ static void mouse_tick(lv_timer_t *timer)
         return;
     }
     /* 0.06 px per dps per report at speed 1: a lazy 100 dps turn crosses
-     * 300 px a second; speed 3 is a flick across the screen. */
+     * 300 px a second; 2 and 3 are the ones that felt right on the wrist,
+     * 4 is for a big screen far away. */
     float k = 0.06f * s_pc.gain;
     aos_hal_usb_mouse((int)(rx * k), (int)(ry * k), 0);
 }
@@ -152,7 +155,7 @@ static void mouse_gain_label(void)
 static void mouse_gain_cb(lv_event_t *event)
 {
     (void)event;
-    s_pc.gain = s_pc.gain % 3 + 1;
+    s_pc.gain = s_pc.gain % 4 + 1;
     aos_hal_pref_set_i32("pc_mouse_gain", s_pc.gain);
     mouse_gain_label();
 }
@@ -278,7 +281,7 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     s_pc.inv_x   = aos_hal_pref_get_i32("pc_mouse_invx", &v) && v;
     s_pc.inv_y   = aos_hal_pref_get_i32("pc_mouse_invy", &v) && v;
     s_pc.swap_xy = aos_hal_pref_get_i32("pc_mouse_xy",   &v) && v;
-    s_pc.gain    = aos_hal_pref_get_i32("pc_mouse_gain", &v) && v >= 1 && v <= 3 ? (int)v : 2;
+    s_pc.gain    = aos_hal_pref_get_i32("pc_mouse_gain", &v) && v >= 1 && v <= 4 ? (int)v : 2;
 
     s_pc.mouse = lv_obj_create(page);
     lv_obj_remove_style_all(s_pc.mouse);

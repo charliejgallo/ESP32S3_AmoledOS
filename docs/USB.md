@@ -483,8 +483,9 @@ In this order, each behind the same switch and each measured with T3:
    to free the third of the three slots. Which of the two addresses a
    browser picks for the name is the computer's choice (macOS took WiFi
    with both up); the IP is the sure way to the cable.
-4. **D4 mouse by tilt.** *Running since 2026-09-13, the axes to be
-   confirmed by hand.* A third report (ID 3, TinyUSB's mouse) in the same
+4. **D4 mouse by tilt.** *Done 2026-09-13: tried on the wrist - the pitch
+   sign needed inverting, which is now the default; clicks and right
+   clicks fine; speeds 2 and 3 felt right and a 4 was asked for.* A third report (ID 3, TinyUSB's mouse) in the same
    HID interface; `aos_usb_hid_mouse()` sends one relative report with no
    waiting (a report in flight means the pixel is dropped) and
    `aos_usb_hid_mouse_click()` presses and releases. In the HAL,
@@ -497,7 +498,7 @@ In this order, each behind the same switch and each measured with T3:
    angle is a position and a rest angle that is not quite zero drifts the
    pointer into a corner), 3 dps of dead band so a hand at rest sends
    nothing (measured: the cursor stayed put with the watch on the desk),
-   three speeds, and the three switches 2043 has for the wrist (invert X,
+   four speeds, and the three switches 2043 has for the wrist (invert X,
    invert Y, swap the axes), in preferences. Tap = left click, hold =
    right click, the side button = left click. The gyro is requested while
    the face is open. One thing found: `aos_usb_hid_ready()` must not
