@@ -39,6 +39,12 @@ Newest first. Versions are git tags; what is above the latest tag is on
   the card goes back to the watch on its own. `aos_hal_sd_release/reclaim/
   mark_mounted` move the card between the BSP mount and esp_tinyusb's MSC
   storage. While the computer has it the watch has no card.
+- **USB network** (D6): in keys mode the watch is also a network interface
+  of the computer (CDC-NCM): its DHCP server hands out 192.168.7.2 and the
+  portal, the log and the API answer at http://192.168.7.1 over the cable
+  with no WiFi. Ping 1.5 ms, downloads 2.2x faster than over WiFi. The S3's
+  five IN endpoints do not fit CDC + HID + NCM, so keys mode carries the
+  keyboard and the network and the CDC serial port lives in disk mode.
 - **Keyboard mode** (D3): device mode is a CDC + HID composite, the watch a
   keyboard and media controller of the computer. `aos_hal_usb_*` in the
   HAL (mode, a named key, typing, the card's whereabouts), the **Control

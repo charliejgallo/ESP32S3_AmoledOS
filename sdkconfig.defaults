@@ -401,6 +401,16 @@ CONFIG_TINYUSB_MSC_ENABLED=y
 CONFIG_TINYUSB_MSC_BUFSIZE=8192
 # D3: one HID interface (keyboard + consumer control) in device mode.
 CONFIG_TINYUSB_HID_COUNT=1
+# D6: the watch as a network interface of the computer (CDC-NCM), the portal
+# at http://192.168.7.1 over the cable.
+CONFIG_TINYUSB_NET_MODE_NCM=y
+# One NTB each way of 2 KB (a frame is 1514 B): the class keeps them static
+# in internal RAM whether the interface is up or not, and the defaults (3 x
+# 3200 B each way) took 19 KB from the pool the apps' code comes from.
+CONFIG_TINYUSB_NCM_OUT_NTB_BUFFS_COUNT=1
+CONFIG_TINYUSB_NCM_IN_NTB_BUFFS_COUNT=1
+CONFIG_TINYUSB_NCM_OUT_NTB_BUFF_MAX_SIZE=2048
+CONFIG_TINYUSB_NCM_IN_NTB_BUFF_MAX_SIZE=2048
 CONFIG_TINYUSB_DEBUG_LEVEL=1
 CONFIG_TINYUSB_DESC_MANUFACTURER_STRING="AmoledOS"
 CONFIG_TINYUSB_DESC_PRODUCT_STRING="AmoledOS watch"

@@ -46,6 +46,8 @@
 #include "tinyusb_msc.h"
 #include "tusb.h"
 #include "class/hid/hid_device.h"
+#include "class/net/net_device.h"
+#include "aos_usb_net.h"
 #include "esp_mac.h"
 #include "driver/sdmmc_host.h"
 #include "sdmmc_cmd.h"
@@ -316,40 +318,70 @@ static bool stream_to(const char *path)
  * panic seconds after enumeration, measured 2026-09-12. And it has no
  * default for HID at all. Disk mode installs the MSC driver and keeps the
  * default CDC+MSC descriptor. */
-enum { AOS_ITF_CDC = 0, AOS_ITF_CDC_DATA, AOS_ITF_HID, AOS_ITF_DEVICE_TOTAL };
+/* The S3's OTG has FIVE IN endpoints counting EP0 (dwc2_esp32.h, ep_in_count):
+ * four for the classes. CDC takes two (notification + data), NCM two, HID
+ * one, so the three do not fit together - measured 2026-09-13: TinyUSB
+ * asserts opening the NCM, and on the Mac's retry the half-opened CDC
+ * asserts too. Keys mode is HID + NCM: the keyboard and the network, and the
+ * log and the whole portal reach the computer over the cable at
+ * 192.168.7.1, which is what the serial port was for. The CDC port stays in
+ * disk mode, beside the MSC. */
+enum { AOS_ITF_HID = 0, AOS_ITF_NET, AOS_ITF_NET_DATA, AOS_ITF_DEVICE_TOTAL };
+enum { AOS_ITF_DISK_CDC = 0, AOS_ITF_DISK_CDC_DATA, AOS_ITF_DISK_MSC, AOS_ITF_DISK_TOTAL };
+#define AOS_EP_HID_IN      0x81
+#define AOS_EP_NET_NOTIF   0x82
+#define AOS_EP_NET_OUT     0x03
+#define AOS_EP_NET_IN      0x83
 #define AOS_EP_CDC_NOTIF   0x81
 #define AOS_EP_CDC_OUT     0x02
 #define AOS_EP_CDC_IN      0x82
-#define AOS_EP_HID_IN      0x83
-enum { AOS_STR_LANG = 0, AOS_STR_MANUFACTURER, AOS_STR_PRODUCT, AOS_STR_SERIAL, AOS_STR_CDC, AOS_STR_HID, AOS_STR_COUNT };
+#define AOS_EP_MSC_OUT     0x03
+#define AOS_EP_MSC_IN      0x83
+/* esp_tinyusb takes at most 8 string descriptors (USB_STRING_DESCRIPTOR_ARRAY_SIZE):
+ * the MSC interface borrows the product's. */
+enum { AOS_STR_LANG = 0, AOS_STR_MANUFACTURER, AOS_STR_PRODUCT, AOS_STR_SERIAL, AOS_STR_CDC, AOS_STR_HID,
+       AOS_STR_NET, AOS_STR_MAC, AOS_STR_COUNT, AOS_STR_MSC = AOS_STR_PRODUCT };
 enum { AOS_HID_REPORT_KEYBOARD = 1, AOS_HID_REPORT_CONSUMER = 2 };
 
 static const uint8_t s_hid_report_desc[] = {
     TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(AOS_HID_REPORT_KEYBOARD)),
     TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(AOS_HID_REPORT_CONSUMER)),
 };
+/* Keys mode: HID (D3) + NCM (D6). Three interfaces, three IN endpoints. */
 static const uint8_t s_cfg_device[] = {
-    TUD_CONFIG_DESCRIPTOR(1, AOS_ITF_DEVICE_TOTAL, 0, TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_HID_DESC_LEN,
+    TUD_CONFIG_DESCRIPTOR(1, AOS_ITF_DEVICE_TOTAL, 0,
+                          TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN + TUD_CDC_NCM_DESC_LEN,
                           TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
-    TUD_CDC_DESCRIPTOR(AOS_ITF_CDC, AOS_STR_CDC, AOS_EP_CDC_NOTIF, 8, AOS_EP_CDC_OUT, AOS_EP_CDC_IN, 64),
     TUD_HID_DESCRIPTOR(AOS_ITF_HID, AOS_STR_HID, HID_ITF_PROTOCOL_NONE, sizeof(s_hid_report_desc),
                        AOS_EP_HID_IN, 16, 10),
+    TUD_CDC_NCM_DESCRIPTOR(AOS_ITF_NET, AOS_STR_NET, AOS_STR_MAC, AOS_EP_NET_NOTIF, 64,
+                           AOS_EP_NET_OUT, AOS_EP_NET_IN, 64, CFG_TUD_NET_MTU),
+};
+/* Disk mode: CDC + MSC, and nothing else. With HID and NCM compiled in,
+ * esp_tinyusb's default descriptor would list them too, uninitialised. */
+static const uint8_t s_cfg_disk[] = {
+    TUD_CONFIG_DESCRIPTOR(1, AOS_ITF_DISK_TOTAL, 0, TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_MSC_DESC_LEN,
+                          TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
+    TUD_CDC_DESCRIPTOR(AOS_ITF_DISK_CDC, AOS_STR_CDC, AOS_EP_CDC_NOTIF, 8, AOS_EP_CDC_OUT, AOS_EP_CDC_IN, 64),
+    TUD_MSC_DESCRIPTOR(AOS_ITF_DISK_MSC, AOS_STR_MSC, AOS_EP_MSC_OUT, AOS_EP_MSC_IN, 64),
 };
 static const tusb_desc_device_t s_dev_device = {
     .bLength = sizeof(tusb_desc_device_t),
     .bDescriptorType = TUSB_DESC_DEVICE,
     .bcdUSB = 0x0200,
-    .bDeviceClass = TUSB_CLASS_MISC,
+    .bDeviceClass = TUSB_CLASS_MISC,        /* IAD: the NCM (and the CDC of disk mode) are associations */
     .bDeviceSubClass = MISC_SUBCLASS_COMMON,
     .bDeviceProtocol = MISC_PROTOCOL_IAD,
     .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
     .idVendor = 0x303A,                     /* Espressif */
-    .idProduct = 0x4005,                    /* esp_tinyusb's PID map: CDC | HID; 0x4003 is CDC+MSC (disk mode) */
+    .idProduct = 0x4024,                    /* esp_tinyusb's PID map: HID (0x04), plus a bit of our own (0x20) for NCM */
     .bcdDevice = CONFIG_TINYUSB_DESC_BCD_DEVICE,
     .iManufacturer = AOS_STR_MANUFACTURER, .iProduct = AOS_STR_PRODUCT, .iSerialNumber = AOS_STR_SERIAL,
     .bNumConfigurations = 1,
 };
 static char s_serial[13];                   /* the chip's MAC, so two watches are two devices */
+static char s_net_mac[13];                  /* the NCM interface's MAC, as the descriptor wants it */
+static tusb_desc_device_t s_dev_disk;       /* s_dev_device with the disk PID, filled at first use */
 static const char *s_strings[AOS_STR_COUNT] = {
     (const char[]) { 0x09, 0x04 },          /* English (US) */
     "AmoledOS",
@@ -357,6 +389,8 @@ static const char *s_strings[AOS_STR_COUNT] = {
     s_serial,
     "AmoledOS console",
     "AmoledOS keys",
+    "AmoledOS network",
+    s_net_mac,
 };
 
 /* TinyUSB's HID class asks for these. */
@@ -492,48 +526,62 @@ int aos_usb_hid_type(const char *ascii)
 }
 
 static bool s_device_with_msc;              /* set by disk_start() before device_start() */
+static bool s_cdc_up;                       /* the CDC port exists (disk mode only) */
 
 static bool device_start(void)
 {
     tinyusb_config_t cfg = TINYUSB_DEFAULT_CONFIG();
-    if (!s_device_with_msc) {
-        if (!s_serial[0]) {
-            uint8_t mac[6] = { 0 };
-            esp_read_mac(mac, ESP_MAC_WIFI_STA);
-            snprintf(s_serial, sizeof(s_serial), "%02X%02X%02X%02X%02X%02X",
-                     mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-        }
-        cfg.descriptor.device = &s_dev_device;
-        cfg.descriptor.full_speed_config = s_cfg_device;
-        cfg.descriptor.string = s_strings;
-        cfg.descriptor.string_count = AOS_STR_COUNT;
+    if (!s_serial[0]) {
+        uint8_t mac[6] = { 0 };
+        esp_read_mac(mac, ESP_MAC_WIFI_STA);
+        snprintf(s_serial, sizeof(s_serial), "%02X%02X%02X%02X%02X%02X",
+                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        aos_usb_net_mac(mac);
+        snprintf(s_net_mac, sizeof(s_net_mac), "%02X%02X%02X%02X%02X%02X",
+                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        s_dev_disk = s_dev_device;
+        s_dev_disk.idProduct = 0x4003;      /* esp_tinyusb's PID for CDC + MSC */
     }
+    cfg.descriptor.device = s_device_with_msc ? &s_dev_disk : &s_dev_device;
+    cfg.descriptor.full_speed_config = s_device_with_msc ? s_cfg_disk : s_cfg_device;
+    cfg.descriptor.string = s_strings;
+    cfg.descriptor.string_count = AOS_STR_COUNT;
     esp_err_t e = tinyusb_driver_install(&cfg);
     if (e != ESP_OK) {
         ESP_LOGE(TAG, "tinyusb_driver_install: %s", esp_err_to_name(e));
         return false;
     }
-    tinyusb_config_cdcacm_t acm = { .cdc_port = TINYUSB_CDC_ACM_0 };
-    e = tinyusb_cdcacm_init(&acm);
-    if (e != ESP_OK) {
-        ESP_LOGE(TAG, "tinyusb_cdcacm_init: %s", esp_err_to_name(e));
-        tinyusb_driver_uninstall();
-        return false;
+    if (s_device_with_msc) {
+        tinyusb_config_cdcacm_t acm = { .cdc_port = TINYUSB_CDC_ACM_0 };
+        e = tinyusb_cdcacm_init(&acm);
+        if (e != ESP_OK) {
+            ESP_LOGE(TAG, "tinyusb_cdcacm_init: %s", esp_err_to_name(e));
+            tinyusb_driver_uninstall();
+            return false;
+        }
+        s_cdc_up = true;
+        if (s_console_on_cdc) {
+            /* Non-blocking VFS (vfs_tinyusb.c): with nobody reading the port the
+             * output is dropped, never stalls the tasks that log. */
+            s_console_redirected = esp_vfs_tusb_cdc_register(TINYUSB_CDC_ACM_0, NULL) == ESP_OK &&
+                                   stream_to(VFS_TUSB_PATH_DEFAULT);
+        }
     }
-    if (s_console_on_cdc) {
-        /* Non-blocking VFS (vfs_tinyusb.c): with nobody reading the port the
-         * output is dropped, never stalls the tasks that log. */
-        s_console_redirected = esp_vfs_tusb_cdc_register(TINYUSB_CDC_ACM_0, NULL) == ESP_OK &&
-                               stream_to(VFS_TUSB_PATH_DEFAULT);
+    if (s_device_with_msc) {
+        ESP_LOGI(TAG, "disk mode: CDC up, console %s",
+                 s_console_redirected ? "on the CDC port" : "stays on the Serial-JTAG (now silent)");
+    } else if (aos_usb_net_start()) {
+        ESP_LOGI(TAG, "keys mode: keyboard and network up; the log is at http://192.168.7.1/registro");
+    } else {
+        ESP_LOGW(TAG, "keys mode: the USB network did not come up; keyboard only");
     }
-    ESP_LOGI(TAG, "device mode: CDC up, console %s",
-             s_console_redirected ? "on the CDC port" : "stays on the Serial-JTAG (now silent)");
     return true;
 }
 
 static void device_stop(void)
 {
     STEP(20);
+    aos_usb_net_stop();
     if (s_console_redirected) {
         stream_to(ESP_VFS_DEV_CONSOLE);
         STEP(21);
@@ -541,7 +589,10 @@ static void device_stop(void)
         s_console_redirected = false;
     }
     STEP(22);
-    tinyusb_cdcacm_deinit(TINYUSB_CDC_ACM_0);
+    if (s_cdc_up) {
+        tinyusb_cdcacm_deinit(TINYUSB_CDC_ACM_0);
+        s_cdc_up = false;
+    }
     STEP(23);
     esp_err_t e = tinyusb_driver_uninstall();
     STEP(24);
@@ -1176,9 +1227,11 @@ bool aos_usb_mode_set(aos_usb_mode_t mode)
 int aos_usb_status_json(char *out, size_t len)
 {
     ensure_init();
-    int n = snprintf(out, len, "{\"mode\":\"%s\",\"console_on_cdc\":%s,\"card_away\":%s,\"boot_step\":%lu,\"seen\":%d,\"devices\":[",
+    int n = snprintf(out, len, "{\"mode\":\"%s\",\"console_on_cdc\":%s,\"card_away\":%s,\"net_up\":%s,\"net_ip\":\"%s\","
+                     "\"boot_step\":%lu,\"seen\":%d,\"devices\":[",
                      aos_usb_mode_name(s_mode), s_console_on_cdc ? "true" : "false",
-                     s_card_away ? "true" : "false", (unsigned long)s_boot_step, s_seen);
+                     s_card_away ? "true" : "false", aos_usb_net_up() ? "true" : "false",
+                     aos_usb_net_up() ? "192.168.7.1" : "", (unsigned long)s_boot_step, s_seen);
     if (s_lock) xSemaphoreTake(s_lock, portMAX_DELAY);
     bool first = true;
     for (int i = 0; i < AOS_USB_MAX_DEV && n < (int)len; i++) {

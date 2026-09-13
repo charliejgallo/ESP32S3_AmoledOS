@@ -71,7 +71,7 @@ static void refresh(lv_timer_t *timer)
         snprintf(buf, sizeof(buf), LV_SYMBOL_REFRESH "  %s", _("cambiando..."));
         lv_obj_set_style_text_color(s_pc.status, AOS_C_ORANGE, 0);
     } else if (ready) {
-        snprintf(buf, sizeof(buf), LV_SYMBOL_USB "  %s", _("teclado USB listo"));
+        snprintf(buf, sizeof(buf), LV_SYMBOL_USB "  %s", _("teclado y red USB listos"));
         lv_obj_set_style_text_color(s_pc.status, AOS_C_ACCENT, 0);
     } else if (mode == AOS_HAL_USB_KEYS) {
         snprintf(buf, sizeof(buf), LV_SYMBOL_USB "  %s", _("esperando a la computadora"));
@@ -101,7 +101,7 @@ static void refresh(lv_timer_t *timer)
             lv_label_set_text(s_pc.off_text,
                               mode == AOS_HAL_USB_DISK
                                   ? _("El puerto esta en modo disco. Pasarlo a teclado saca la tarjeta de la computadora.")
-                                  : _("El puerto USB es la consola. Como teclado, la consola sigue en un puerto serie."));
+                                  : _("El puerto USB es la consola. Como teclado, el reloj es ademas una red: el portal en http://192.168.7.1"));
             lv_obj_remove_flag(s_pc.off_button, LV_OBJ_FLAG_HIDDEN);
         }
     }

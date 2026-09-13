@@ -450,7 +450,30 @@ In this order, each behind the same switch and each measured with T3:
    switches instantly and its keyboard is always ready in KEYS mode. Cost:
    device mode 16.5 KB of internal RAM while on (CDC + HID), the app and the
    section 7 KB of flash.
-3. **D6 USB network (NCM).** The portal over the cable.
+3. **D6 USB network (NCM).** *Running since 2026-09-13.* Keys mode is a
+   HID + NCM composite (PID `0x4024`): macOS brings up an Ethernet
+   interface (`en7`), the watch's DHCP server gives it 192.168.7.2 with no
+   router and no DNS (the internet stays on the computer's own link), and
+   the portal answers at **http://192.168.7.1** with WiFi playing no part.
+   Measured: ping 1.5 ms; a 494 KB screenshot in 2.2 s over the cable
+   against 4.9 s over WiFi (221 vs 102 KB/s); the keyboard works beside
+   it, driven through the link itself. The glue is `aos_usb_net.c`: an
+   esp_netif of our own on lwIP's Ethernet stack with a driver whose
+   transmit is `tinyusb_net_send_sync` and whose receive copies each frame
+   out of TinyUSB's buffer (reused the moment the callback returns) into
+   PSRAM for lwIP. Two things that cost a build each: **the MAC in the
+   descriptor is the one the computer gives its own interface**, so the
+   watch's side gets it with the last bit flipped (as TinyUSB's own lwIP
+   example does) or the computer talks to itself; and **the S3's OTG has
+   five IN endpoints counting EP0** (`dwc2_esp32.h`), so CDC (2) + HID (1)
+   + NCM (2) do not fit: keys mode dropped the CDC serial port, whose job -
+   the log - the portal does over the cable (`/registro`), and the CDC
+   stays in disk mode beside the MSC. NCM's transfer buffers are static
+   in internal RAM whether the link is up or not: one of 2 KB each way
+   (the defaults, three of 3.2 KB each way, took 19 KB). With HID and NCM
+   compiled in the free internal heap at boot is 163 K against 179 K
+   before them: TinyUSB's `.data` holds 13.7 KB, of which 8 KB is the MSC
+   endpoint buffer of disk mode - the price of its 767 KB/s.
 4. **D4/D5/D7** if D3 left the descriptor machinery in place: an afternoon
    each.
 

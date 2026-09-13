@@ -891,7 +891,7 @@ static void usb_refresh(void)
     } else {
         switch (aos_hal_usb_mode()) {
         case AOS_HAL_USB_KEYS:
-            txt = aos_hal_usb_keys_ready() ? _("teclado USB listo")
+            txt = aos_hal_usb_keys_ready() ? _("teclado y red listos: http://192.168.7.1")
                                            : _("esperando a la computadora");
             break;
         case AOS_HAL_USB_DISK:
@@ -1620,7 +1620,7 @@ static void *create(aos_app_t *self, lv_obj_t *root)
         /* Four lines in the order of aos_hal_usb_mode_t. */
         char opts[200];
         snprintf(opts, sizeof(opts), "%s\n%s\n%s\n%s",
-                 _("Consola"), _("Teclado para la computadora"),
+                 _("Consola"), _("Teclado y red para la computadora"),
                  _("Disco: la tarjeta en la computadora"), _("Host: un pendrive en el reloj"));
         lv_dropdown_set_options(s_set.usb_dd, opts);
     }
