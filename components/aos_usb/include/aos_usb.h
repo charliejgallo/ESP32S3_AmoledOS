@@ -55,6 +55,12 @@ int  aos_usb_hid_type(const char *ascii);    /* types text as a US keyboard; ret
 bool aos_usb_hid_mouse(int8_t dx, int8_t dy, int8_t wheel);   /* one relative report, no waiting */
 bool aos_usb_hid_mouse_click(uint8_t buttons);               /* 1 left, 2 right: press and release */
 
+/* D7: a MIDI controller (channel 1, cable 0), in device mode. */
+bool aos_usb_midi_ready(void);
+bool aos_usb_midi_note(uint8_t note, uint8_t velocity, bool on);
+bool aos_usb_midi_cc(uint8_t control, uint8_t value);
+bool aos_usb_midi_bend(int value);                             /* -8192..8191 */
+
 /* Disk mode: true while the computer holds the card (the watch has no
  * /sdcard meanwhile); false once it ejected it or the mode was left. */
 bool aos_usb_disk_card_away(void);

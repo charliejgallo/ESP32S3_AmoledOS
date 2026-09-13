@@ -105,6 +105,26 @@ bool aos_hal_usb_click(int button)
     return !s_busy && aos_usb_hid_mouse_click(button == 2 ? 0x02 : 0x01);
 }
 
+bool aos_hal_usb_midi_ready(void)
+{
+    return !s_busy && aos_usb_midi_ready();
+}
+
+bool aos_hal_usb_midi_note(int note, int velocity, bool on)
+{
+    return !s_busy && aos_usb_midi_note((uint8_t)note, (uint8_t)velocity, on);
+}
+
+bool aos_hal_usb_midi_cc(int control, int value)
+{
+    return !s_busy && aos_usb_midi_cc((uint8_t)control, (uint8_t)value);
+}
+
+bool aos_hal_usb_midi_bend(int value)
+{
+    return !s_busy && aos_usb_midi_bend(value);
+}
+
 bool aos_hal_usb_card_away(void)
 {
     return aos_usb_disk_card_away();

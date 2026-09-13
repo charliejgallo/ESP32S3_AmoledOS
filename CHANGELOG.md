@@ -39,6 +39,10 @@ Newest first. Versions are git tags; what is above the latest tag is on
   the card goes back to the watch on its own. `aos_hal_sd_release/reclaim/
   mark_mounted` move the card between the BSP mount and esp_tinyusb's MSC
   storage. While the computer has it the watch has no card.
+- **MIDI** (D7): a USB-MIDI port in keys mode, `aos_hal_usb_midi_note/cc/
+  bend` in the HAL, `?midi=` in `/api/usb`, and a "MIDI" face in Control
+  PC: an octave of keys, octave up and down, and the accelerometer's roll
+  as pitch bend behind a switch. Verified with a MIDI listener on the Mac.
 - **Mouse by tilt** (D4): a mouse report in the HID interface,
   `aos_hal_usb_mouse/click` in the HAL, `?mouse=` and `?click=` in
   `/api/usb`, and a "Tilt mouse" face in Control PC: the gyroscope's rates

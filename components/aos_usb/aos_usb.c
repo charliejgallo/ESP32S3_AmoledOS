@@ -326,12 +326,14 @@ static bool stream_to(const char *path)
  * log and the whole portal reach the computer over the cable at
  * 192.168.7.1, which is what the serial port was for. The CDC port stays in
  * disk mode, beside the MSC. */
-enum { AOS_ITF_HID = 0, AOS_ITF_NET, AOS_ITF_NET_DATA, AOS_ITF_DEVICE_TOTAL };
+enum { AOS_ITF_HID = 0, AOS_ITF_NET, AOS_ITF_NET_DATA, AOS_ITF_MIDI, AOS_ITF_MIDI_STREAMING, AOS_ITF_DEVICE_TOTAL };
 enum { AOS_ITF_DISK_CDC = 0, AOS_ITF_DISK_CDC_DATA, AOS_ITF_DISK_MSC, AOS_ITF_DISK_TOTAL };
 #define AOS_EP_HID_IN      0x81
 #define AOS_EP_NET_NOTIF   0x82
 #define AOS_EP_NET_OUT     0x03
 #define AOS_EP_NET_IN      0x83
+#define AOS_EP_MIDI_OUT    0x04
+#define AOS_EP_MIDI_IN     0x84      /* the fourth and last IN endpoint the S3 has for classes */
 #define AOS_EP_CDC_NOTIF   0x81
 #define AOS_EP_CDC_OUT     0x02
 #define AOS_EP_CDC_IN      0x82
@@ -348,15 +350,18 @@ static const uint8_t s_hid_report_desc[] = {
     TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(AOS_HID_REPORT_CONSUMER)),
     TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(AOS_HID_REPORT_MOUSE)),
 };
-/* Keys mode: HID (D3) + NCM (D6). Three interfaces, three IN endpoints. */
+/* Keys mode: HID (D3) + NCM (D6) + MIDI (D7). Five interfaces, four IN
+ * endpoints: every one the S3 has. The MIDI interface borrows the product's
+ * string (eight strings is the ceiling, see AOS_STR_MSC). */
 static const uint8_t s_cfg_device[] = {
     TUD_CONFIG_DESCRIPTOR(1, AOS_ITF_DEVICE_TOTAL, 0,
-                          TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN + TUD_CDC_NCM_DESC_LEN,
+                          TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN + TUD_CDC_NCM_DESC_LEN + TUD_MIDI_DESC_LEN,
                           TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
     TUD_HID_DESCRIPTOR(AOS_ITF_HID, AOS_STR_HID, HID_ITF_PROTOCOL_NONE, sizeof(s_hid_report_desc),
                        AOS_EP_HID_IN, 16, 10),
     TUD_CDC_NCM_DESCRIPTOR(AOS_ITF_NET, AOS_STR_NET, AOS_STR_MAC, AOS_EP_NET_NOTIF, 64,
                            AOS_EP_NET_OUT, AOS_EP_NET_IN, 64, CFG_TUD_NET_MTU),
+    TUD_MIDI_DESCRIPTOR(AOS_ITF_MIDI, AOS_STR_PRODUCT, AOS_EP_MIDI_OUT, AOS_EP_MIDI_IN, 64),
 };
 /* Disk mode: CDC + MSC, and nothing else. With HID and NCM compiled in,
  * esp_tinyusb's default descriptor would list them too, uninitialised. */
@@ -375,7 +380,7 @@ static const tusb_desc_device_t s_dev_device = {
     .bDeviceProtocol = MISC_PROTOCOL_IAD,
     .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
     .idVendor = 0x303A,                     /* Espressif */
-    .idProduct = 0x4024,                    /* esp_tinyusb's PID map: HID (0x04), plus a bit of our own (0x20) for NCM */
+    .idProduct = 0x402C,                    /* esp_tinyusb's PID map: HID (0x04) | MIDI (0x08), plus a bit of our own (0x20) for NCM */
     .bcdDevice = CONFIG_TINYUSB_DESC_BCD_DEVICE,
     .iManufacturer = AOS_STR_MANUFACTURER, .iProduct = AOS_STR_PRODUCT, .iSerialNumber = AOS_STR_SERIAL,
     .bNumConfigurations = 1,
@@ -487,6 +492,41 @@ bool aos_usb_hid_mouse_click(uint8_t buttons)
     tud_hid_mouse_report(AOS_HID_REPORT_MOUSE, 0, 0, 0, 0, 0);
     vTaskDelay(pdMS_TO_TICKS(10));
     return true;
+}
+
+/* D7: MIDI. Three-byte channel messages on cable 0; TinyUSB packs them into
+ * USB-MIDI events and the class's FIFO takes them, so nothing here waits.
+ * Channel 1 (0) always: a DAW picks the channel, not the watch. */
+bool aos_usb_midi_ready(void)
+{
+    return s_mode == AOS_USB_DEVICE && tud_midi_mounted();
+}
+
+static bool midi3(uint8_t status, uint8_t d1, uint8_t d2)
+{
+    if (!aos_usb_midi_ready()) {
+        return false;
+    }
+    uint8_t msg[3] = { status, (uint8_t)(d1 & 0x7F), (uint8_t)(d2 & 0x7F) };
+    return tud_midi_stream_write(0, msg, 3) == 3;
+}
+
+bool aos_usb_midi_note(uint8_t note, uint8_t velocity, bool on)
+{
+    return midi3(on ? 0x90 : 0x80, note, on ? velocity : 0);
+}
+
+bool aos_usb_midi_cc(uint8_t control, uint8_t value)
+{
+    return midi3(0xB0, control, value);
+}
+
+bool aos_usb_midi_bend(int value)     /* -8192..8191, 0 = centre */
+{
+    int v = value + 8192;
+    if (v < 0) v = 0;
+    if (v > 16383) v = 16383;
+    return midi3(0xE0, (uint8_t)(v & 0x7F), (uint8_t)(v >> 7));
 }
 
 /* Names the apps and the portal use. "cmd+", "ctrl+", "alt+", "shift+"

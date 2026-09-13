@@ -21,6 +21,11 @@
  * depends on how the wrist is held, so the three switches 2043 has are
  * here too (invert X, invert Y, swap the axes), in preferences. Tap = left
  * click, hold = right click, the side button = left click.
+ *
+ * MIDI (D7) is a fourth face: one octave of keys, press for note on and
+ * release for note off, an octave up and down, and the pitch bend from the
+ * accelerometer's roll when its switch is on (here an angle IS the right
+ * thing: a bend is a position, the wrist level is the centre).
  */
 #include "aos_apps.h"
 #include "aos_i18n.h"
@@ -37,6 +42,13 @@ typedef struct {
     lv_obj_t   *off;        /* the explanation and the switch, otherwise */
     lv_obj_t   *off_text;
     lv_obj_t   *off_button;
+    lv_obj_t   *midi;       /* the MIDI face */
+    lv_obj_t   *midi_oct;   /* "C4" label between the octave buttons */
+    lv_timer_t *midi_timer;
+    bool        midi_on, midi_bend;
+    int         octave;     /* 0..8: the C of the left key is 12 * octave */
+    int         note_held;  /* -1 when none */
+    int         bend_last;
     lv_obj_t   *mouse;      /* the air-mouse face */
     lv_obj_t   *mouse_gain; /* its speed button, relabelled on each press */
     lv_timer_t *timer;
@@ -132,6 +144,113 @@ static void mouse_show(bool on)
     }
 }
 
+/* --- the MIDI face -------------------------------------------------------- */
+
+static void midi_show(bool on);
+
+static void midi_key_cb(lv_event_t *event)
+{
+    lv_event_code_t code = lv_event_get_code(event);
+    int note = 12 * s_pc.octave + (int)(intptr_t)lv_event_get_user_data(event);
+    if (code == LV_EVENT_PRESSED) {
+        if (s_pc.note_held >= 0) aos_hal_usb_midi_note(s_pc.note_held, 0, false);
+        s_pc.note_held = note;
+        if (!aos_hal_usb_midi_note(note, 100, true)) {
+            aos_ui_toast(_("Sin puerto MIDI"), 1200);
+        }
+    } else if (code == LV_EVENT_RELEASED || code == LV_EVENT_PRESS_LOST) {
+        if (s_pc.note_held == note) {
+            aos_hal_usb_midi_note(note, 0, false);
+            s_pc.note_held = -1;
+        }
+    }
+}
+
+static void midi_oct_label(void)
+{
+    char buf[16];
+    snprintf(buf, sizeof(buf), "C%d", s_pc.octave - 1);   /* MIDI 60 is C4: octave 5 here */
+    lv_label_set_text(s_pc.midi_oct, buf);
+}
+
+static void midi_oct_cb(lv_event_t *event)
+{
+    int d = (int)(intptr_t)lv_event_get_user_data(event);
+    int o = s_pc.octave + d;
+    if (o < 1 || o > 8) return;
+    if (s_pc.note_held >= 0) { aos_hal_usb_midi_note(s_pc.note_held, 0, false); s_pc.note_held = -1; }
+    s_pc.octave = o;
+    aos_hal_pref_set_i32("pc_midi_oct", o);
+    midi_oct_label();
+}
+
+static void midi_bend_cb(lv_event_t *event)
+{
+    s_pc.midi_bend = lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED);
+    if (!s_pc.midi_bend && s_pc.bend_last != 0) {
+        aos_hal_usb_midi_bend(0);
+        s_pc.bend_last = 0;
+    }
+}
+
+static void midi_tick(lv_timer_t *timer)
+{
+    (void)timer;
+    aos_imu_t imu;
+    if (!s_pc.midi_on || !s_pc.midi_bend || !aos_hal_imu_read(&imu)) {
+        return;
+    }
+    /* Roll: the wrist level is the centre, 45 degrees either way is the
+     * whole range. 0.05 g of dead band around level, and only a change of
+     * 1/64 of the range is worth a message. */
+    float a = imu.ax;
+    if (a > -0.05f && a < 0.05f) a = 0;
+    int bend = (int)(a * 8191.0f / 0.7f);
+    if (bend > 8191) bend = 8191;
+    if (bend < -8192) bend = -8192;
+    if (bend / 256 != s_pc.bend_last / 256) {
+        aos_hal_usb_midi_bend(bend);
+        s_pc.bend_last = bend;
+    }
+}
+
+static void midi_show(bool on)
+{
+    s_pc.midi_on = on;
+    if (on) {
+        lv_obj_remove_flag(s_pc.midi, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(s_pc.pad, LV_OBJ_FLAG_HIDDEN);
+        if (!s_pc.midi_timer) s_pc.midi_timer = lv_timer_create(midi_tick, 40, NULL);
+    } else {
+        if (s_pc.midi_timer) { lv_timer_delete(s_pc.midi_timer); s_pc.midi_timer = NULL; }
+        if (s_pc.note_held >= 0) { aos_hal_usb_midi_note(s_pc.note_held, 0, false); s_pc.note_held = -1; }
+        if (s_pc.bend_last) { aos_hal_usb_midi_bend(0); s_pc.bend_last = 0; }
+        lv_obj_add_flag(s_pc.midi, LV_OBJ_FLAG_HIDDEN);
+        if (s_pc.ready_shown) lv_obj_remove_flag(s_pc.pad, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+static void midi_open_cb(lv_event_t *event)  { (void)event; midi_show(true); }
+static void midi_close_cb(lv_event_t *event) { (void)event; midi_show(false); }
+
+static lv_obj_t *midi_key(lv_obj_t *parent, int semitone, bool black, int x, int y, int w, int h)
+{
+    lv_obj_t *k = lv_obj_create(parent);
+    lv_obj_remove_style_all(k);
+    lv_obj_set_size(k, w, h);
+    lv_obj_align(k, LV_ALIGN_TOP_LEFT, x, y);
+    lv_obj_set_style_bg_color(k, black ? lv_color_hex(0x202020) : lv_color_hex(0xF2F2F2), 0);
+    lv_obj_set_style_bg_color(k, AOS_C_ACCENT, LV_STATE_PRESSED);
+    lv_obj_set_style_bg_opa(k, LV_OPA_COVER, 0);
+    lv_obj_set_style_radius(k, 6, 0);
+    lv_obj_remove_flag(k, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(k, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(k, midi_key_cb, LV_EVENT_PRESSED, (void *)(intptr_t)semitone);
+    lv_obj_add_event_cb(k, midi_key_cb, LV_EVENT_RELEASED, (void *)(intptr_t)semitone);
+    lv_obj_add_event_cb(k, midi_key_cb, LV_EVENT_PRESS_LOST, (void *)(intptr_t)semitone);
+    return k;
+}
+
 static void mouse_open_cb(lv_event_t *event)  { (void)event; mouse_show(true); }
 static void mouse_close_cb(lv_event_t *event) { (void)event; mouse_show(false); }
 
@@ -213,10 +332,11 @@ static void refresh(lv_timer_t *timer)
     if (ready != s_pc.ready_shown) {
         s_pc.ready_shown = ready;
         if (ready) {
-            if (!s_pc.mouse_on) lv_obj_remove_flag(s_pc.pad, LV_OBJ_FLAG_HIDDEN);
+            if (!s_pc.mouse_on && !s_pc.midi_on) lv_obj_remove_flag(s_pc.pad, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(s_pc.off, LV_OBJ_FLAG_HIDDEN);
         } else {
             if (s_pc.mouse_on) mouse_show(false);
+            if (s_pc.midi_on) midi_show(false);
             lv_obj_add_flag(s_pc.pad, LV_OBJ_FLAG_HIDDEN);
             lv_obj_remove_flag(s_pc.off, LV_OBJ_FLAG_HIDDEN);
         }
@@ -271,10 +391,64 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     key_button(s_pc.pad, _("espacio"), AOS_C_CARD2, "space", 136, 216, 96, 46);
     key_button(s_pc.pad, LV_SYMBOL_OK, AOS_C_ACCENT, "enter", 242, 216, 96, 46);
 
-    /* the mouse face */
-    lv_obj_t *mouse_btn = aos_button(s_pc.pad, _("Mouse por inclinacion"), AOS_C_CARD2, mouse_open_cb, NULL);
-    lv_obj_set_size(mouse_btn, 308, 46);
+    /* the other two faces */
+    lv_obj_t *mouse_btn = aos_button(s_pc.pad, "Mouse", AOS_C_CARD2, mouse_open_cb, NULL);
+    lv_obj_set_size(mouse_btn, 150, 46);
     lv_obj_align(mouse_btn, LV_ALIGN_TOP_LEFT, 30, 270);
+    lv_obj_t *midi_btn = aos_button(s_pc.pad, "MIDI", AOS_C_CARD2, midi_open_cb, NULL);
+    lv_obj_set_size(midi_btn, 150, 46);
+    lv_obj_align(midi_btn, LV_ALIGN_TOP_LEFT, 188, 270);
+
+    /* --- MIDI: an octave of keys, the octave buttons, the bend switch --- */
+    s_pc.note_held = -1;
+    int32_t oct_pref;
+    s_pc.octave = aos_hal_pref_get_i32("pc_midi_oct", &oct_pref) && oct_pref >= 1 && oct_pref <= 8 ? (int)oct_pref : 5;
+    s_pc.midi = lv_obj_create(page);
+    lv_obj_remove_style_all(s_pc.midi);
+    lv_obj_set_size(s_pc.midi, lv_pct(100), 320);
+    lv_obj_align(s_pc.midi, LV_ALIGN_TOP_MID, 0, 44);
+    lv_obj_remove_flag(s_pc.midi, LV_OBJ_FLAG_SCROLLABLE);
+    {
+        /* Seven white keys of 46 px with 2 px between them, from x 14 to
+         * 350; the five black ones sit on the joints, 28 px wide and 100
+         * tall, created LAST so they are on top. */
+        static const int white[7] = { 0, 2, 4, 5, 7, 9, 11 };
+        static const int black[5] = { 1, 3, 6, 8, 10 };
+        static const int black_after[5] = { 0, 1, 3, 4, 5 };   /* the white key each one follows */
+        for (int i = 0; i < 7; i++) {
+            midi_key(s_pc.midi, white[i], false, 14 + i * 48, 0, 46, 170);
+        }
+        for (int i = 0; i < 5; i++) {
+            midi_key(s_pc.midi, black[i], true, 14 + black_after[i] * 48 + 32, 0, 28, 100);
+        }
+    }
+    lv_obj_t *oct_down = aos_button(s_pc.midi, LV_SYMBOL_MINUS, AOS_C_CARD2, midi_oct_cb, (void *)(intptr_t)-1);
+    lv_obj_set_size(oct_down, 70, 44);
+    lv_obj_align(oct_down, LV_ALIGN_TOP_LEFT, 30, 184);
+    s_pc.midi_oct = aos_label_boxed(s_pc.midi, "", aos_font_body, AOS_C_TEXT, 60, 44);
+    lv_obj_align(s_pc.midi_oct, LV_ALIGN_TOP_LEFT, 104, 184);
+    midi_oct_label();
+    lv_obj_t *oct_up = aos_button(s_pc.midi, LV_SYMBOL_PLUS, AOS_C_CARD2, midi_oct_cb, (void *)(intptr_t)1);
+    lv_obj_set_size(oct_up, 70, 44);
+    lv_obj_align(oct_up, LV_ALIGN_TOP_LEFT, 168, 184);
+    {
+        lv_obj_t *row = lv_obj_create(s_pc.midi);
+        lv_obj_remove_style_all(row);
+        lv_obj_set_size(row, 96, 44);
+        lv_obj_align(row, LV_ALIGN_TOP_LEFT, 246, 184);
+        lv_obj_remove_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_t *lbl = aos_label(row, "Bend", aos_font_small, AOS_C_TEXT);
+        lv_obj_align(lbl, LV_ALIGN_LEFT_MID, 0, 0);
+        lv_obj_t *sw = lv_switch_create(row);
+        lv_obj_set_size(sw, 44, 24);
+        lv_obj_align(sw, LV_ALIGN_RIGHT_MID, 0, 0);
+        lv_obj_set_style_bg_color(sw, AOS_C_GREEN, LV_PART_INDICATOR | LV_STATE_CHECKED);
+        lv_obj_add_event_cb(sw, midi_bend_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    }
+    lv_obj_t *midi_back = aos_button(s_pc.midi, _("Teclas"), AOS_C_ACCENT, midi_close_cb, NULL);
+    lv_obj_set_size(midi_back, 308, 46);
+    lv_obj_align(midi_back, LV_ALIGN_TOP_LEFT, 30, 240);
+    lv_obj_add_flag(s_pc.midi, LV_OBJ_FLAG_HIDDEN);
 
     /* --- the mouse: a touch surface with the switches along the bottom --- */
     int32_t v;
@@ -351,6 +525,9 @@ static void destroy(aos_app_t *self, void *inst)
     (void)self; (void)inst;
     if (s_pc.mouse_on) {
         mouse_show(false);      /* the gyro request and the 20 ms timer */
+    }
+    if (s_pc.midi_on) {
+        midi_show(false);       /* the note off, the bend back to centre, the timer */
     }
     if (s_pc.timer) {
         lv_timer_delete(s_pc.timer);

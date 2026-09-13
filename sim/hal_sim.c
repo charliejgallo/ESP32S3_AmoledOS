@@ -454,6 +454,10 @@ bool aos_hal_usb_key(const char *name) { if (!aos_hal_usb_keys_ready()) return f
 int  aos_hal_usb_type(const char *ascii) { return aos_hal_usb_keys_ready() ? (int)strlen(ascii) : 0; }
 bool aos_hal_usb_mouse(int dx, int dy, int wheel) { (void)wheel; return aos_hal_usb_keys_ready() && (dx || dy || true); }
 bool aos_hal_usb_click(int button) { if (!aos_hal_usb_keys_ready()) return false; printf("[hal] usb click %d\n", button); return true; }
+bool aos_hal_usb_midi_ready(void) { return aos_hal_usb_keys_ready(); }
+bool aos_hal_usb_midi_note(int note, int velocity, bool on) { if (!aos_hal_usb_keys_ready()) return false; printf("[hal] midi note %d %s\n", note, on ? "on" : "off"); return true; }
+bool aos_hal_usb_midi_cc(int control, int value) { (void)control; (void)value; return aos_hal_usb_keys_ready(); }
+bool aos_hal_usb_midi_bend(int value) { (void)value; return aos_hal_usb_keys_ready(); }
 bool aos_hal_usb_card_away(void) { return s_usb_mode == AOS_HAL_USB_DISK; }
 bool aos_hal_mdns_add_netif(void *esp_netif) { (void)esp_netif; return false; }
 void aos_hal_mdns_remove_netif(void *esp_netif) { (void)esp_netif; }

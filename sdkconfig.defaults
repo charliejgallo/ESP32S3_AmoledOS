@@ -401,6 +401,8 @@ CONFIG_TINYUSB_MSC_ENABLED=y
 CONFIG_TINYUSB_MSC_BUFSIZE=8192
 # D3: one HID interface (keyboard + consumer control) in device mode.
 CONFIG_TINYUSB_HID_COUNT=1
+# D7: a MIDI port beside the keyboard and the network.
+CONFIG_TINYUSB_MIDI_COUNT=1
 # D6: the watch as a network interface of the computer (CDC-NCM), the portal
 # at http://192.168.7.1 over the cable.
 CONFIG_TINYUSB_NET_MODE_NCM=y

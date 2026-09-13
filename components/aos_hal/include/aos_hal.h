@@ -1102,6 +1102,10 @@ bool aos_hal_usb_key(const char *name); /* "play", "next", "volup", "mute", "pgd
 int  aos_hal_usb_type(const char *ascii);   /* types a string as a US keyboard; chars sent */
 bool aos_hal_usb_mouse(int dx, int dy, int wheel);   /* moves the computer's pointer; clamped to +-127; no waiting */
 bool aos_hal_usb_click(int button);         /* 1 left, 2 right; blocks ~40 ms */
+bool aos_hal_usb_midi_ready(void);          /* KEYS mode and the computer took the MIDI port */
+bool aos_hal_usb_midi_note(int note, int velocity, bool on);   /* 0..127; channel 1 */
+bool aos_hal_usb_midi_cc(int control, int value);              /* 0..127 */
+bool aos_hal_usb_midi_bend(int value);                         /* -8192..8191 */
 bool aos_hal_usb_card_away(void);       /* DISK mode and the computer holds the card */
 
 /* mDNS on a network interface of somebody else's (the USB one): the watch

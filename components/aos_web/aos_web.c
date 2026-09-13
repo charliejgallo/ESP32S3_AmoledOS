@@ -2135,6 +2135,14 @@ static esp_err_t usb_handler(httpd_req_t *req)
         sscanf(keys, "%d,%d,%d", &dx, &dy, &wheel);
         snprintf(copy_note_keys, sizeof(copy_note_keys), "\"mouse\":%s,",
                  aos_hal_usb_mouse(dx, dy, wheel) ? "true" : "false");
+    } else if (httpd_query_key_value(query, "midi", keys, sizeof(keys)) == ESP_OK) {
+        /* ?midi=note[,velocity]: a note, held 150 ms (D7). */
+        int note = 60, vel = 100;
+        sscanf(keys, "%d,%d", &note, &vel);
+        bool ok = aos_hal_usb_midi_note(note, vel, true);
+        vTaskDelay(pdMS_TO_TICKS(150));
+        if (ok) aos_hal_usb_midi_note(note, vel, false);
+        snprintf(copy_note_keys, sizeof(copy_note_keys), "\"midi\":%s,", ok ? "true" : "false");
     } else if (httpd_query_key_value(query, "click", keys, sizeof(keys)) == ESP_OK) {
         snprintf(copy_note_keys, sizeof(copy_note_keys), "\"click\":%s,",
                  aos_hal_usb_click(atoi(keys)) ? "true" : "false");

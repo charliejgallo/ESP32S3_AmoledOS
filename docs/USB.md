@@ -505,7 +505,23 @@ In this order, each behind the same switch and each measured with T3:
    include `tud_hid_ready()`, which is false for the 10 ms a report is in
    flight - the app's status poll caught it mid-report and closed the
    mouse face on itself.
-5. **D5/D7** (gamepad, MIDI) if wanted: an afternoon each.
+5. **D7 MIDI.** *Running since 2026-09-13.* A USB-MIDI port beside the
+   keyboard and the network (PID `0x402C`; the MIDI interface borrows the
+   product's string, and its IN endpoint is the fourth and last the S3 has
+   for classes). `aos_usb_midi_note/cc/bend()` write three-byte channel
+   messages on cable 0, channel 1; `aos_hal_usb_midi_*` in the HAL;
+   `/api/usb?midi=note[,velocity]` plays one for 150 ms. In Control PC a
+   fourth face, "MIDI": one octave of keys (press = note on, release =
+   note off, one note at a time - the panel is single-touch), the octave
+   up and down (the C shown, C4 = 60), and a Bend switch that turns the
+   accelerometer's roll into pitch bend forty times a second (here an
+   angle IS the right thing: a bend is a position and level is the centre;
+   0.05 g of dead band, a message per 1/64 of the range). Verified with a
+   MIDI listener on the Mac (`mido`): the three notes played through the
+   API and two keys tapped on the watch arrived as note on / note off with
+   their velocities. macOS takes longer to configure the five-interface
+   device: the node was still `!registered` at 18 s and done at 30.
+6. **D5** (gamepad) if wanted.
 
 **Done when** disk mode survives ten mount/eject cycles with the apps intact,
 the media keys work on the Mac, and the portal answers at `192.168.7.1` with
