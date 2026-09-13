@@ -2129,6 +2129,15 @@ static esp_err_t usb_handler(httpd_req_t *req)
     } else if (httpd_query_key_value(query, "type", keys, sizeof(keys)) == ESP_OK) {
         url_decode(keys);
         snprintf(copy_note_keys, sizeof(copy_note_keys), "\"typed\":%d,", aos_usb_hid_type(keys));
+    } else if (httpd_query_key_value(query, "mouse", keys, sizeof(keys)) == ESP_OK) {
+        /* ?mouse=dx,dy[,wheel]: one relative report (D4), for the tests. */
+        int dx = 0, dy = 0, wheel = 0;
+        sscanf(keys, "%d,%d,%d", &dx, &dy, &wheel);
+        snprintf(copy_note_keys, sizeof(copy_note_keys), "\"mouse\":%s,",
+                 aos_hal_usb_mouse(dx, dy, wheel) ? "true" : "false");
+    } else if (httpd_query_key_value(query, "click", keys, sizeof(keys)) == ESP_OK) {
+        snprintf(copy_note_keys, sizeof(copy_note_keys), "\"click\":%s,",
+                 aos_hal_usb_click(atoi(keys)) ? "true" : "false");
     }
     /* ?cp=<name>&from=<dir>&to=<dir>: whole-file copy between any two of
      * the explorer's folders, the pendrive included (H1), timed for T5.

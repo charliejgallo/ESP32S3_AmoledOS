@@ -217,6 +217,7 @@ static const char blob_en__sistema_lang[] =
     "Borrar todo\tClear all\n"
     "Sin teclado USB\tNo USB keyboard\n"
     "El USB esta cambiando de modo\tUSB is switching modes\n"
+    "Vel.\tSpeed\n"
     "cambiando...\tswitching...\n"
     "teclado y red USB listos\tUSB keyboard and network ready\n"
     "esperando a la computadora\twaiting for the computer\n"
@@ -226,6 +227,12 @@ static const char blob_en__sistema_lang[] =
     "El puerto USB es la consola. Como teclado, el reloj es ademas una red: el portal en http://192.168.7.1\tThe USB port is the console. As a keyboard the watch is a network too: the portal at http://192.168.7.1\n"
     "Pantalla negra\tBlack screen\n"
     "espacio\tspace\n"
+    "Mouse por inclinacion\tTilt mouse\n"
+    "Inclina el reloj para mover el puntero.\\nToca: clic. Mantene: clic derecho.\tTilt the watch to move the pointer.\\nTap: click. Hold: right click.\n"
+    "Inv X\tInv X\n"
+    "Inv Y\tInv Y\n"
+    "Ejes\tAxes\n"
+    "Teclas\tKeys\n"
     "Activar teclado USB\tTurn on USB keyboard\n"
     "%s\\n%dx%d no entra en memoria\\n(necesita %u KB)\\nAchicala a %dx%d o menos\t%s\\n%dx%d does not fit in memory\\n(needs %u KB)\\nShrink it to %dx%d or less\n"
     "No hay fotos en\\n%s\tNo photos in\\n%s\n"
@@ -1680,6 +1687,7 @@ static const char blob_de__sistema_lang[] =
     "Borrar todo\tAlle löschen\n"
     "Sin teclado USB\tKeine USB-Tastatur\n"
     "El USB esta cambiando de modo\tUSB wechselt gerade den Modus\n"
+    "Vel.\tTempo\n"
     "cambiando...\twechselt...\n"
     "teclado y red USB listos\tUSB-Tastatur und Netzwerk bereit\n"
     "esperando a la computadora\twarte auf den Computer\n"
@@ -1689,6 +1697,12 @@ static const char blob_de__sistema_lang[] =
     "El puerto USB es la consola. Como teclado, el reloj es ademas una red: el portal en http://192.168.7.1\tDer USB-Port ist die Konsole. Als Tastatur ist die Uhr auch ein Netzwerk: das Portal unter http://192.168.7.1\n"
     "Pantalla negra\tSchwarz\n"
     "espacio\tLeer\n"
+    "Mouse por inclinacion\tNeigungsmaus\n"
+    "Inclina el reloj para mover el puntero.\\nToca: clic. Mantene: clic derecho.\tNeige die Uhr, um den Zeiger zu bewegen.\\nTippen: Klick. Halten: Rechtsklick.\n"
+    "Inv X\tInv X\n"
+    "Inv Y\tInv Y\n"
+    "Ejes\tAchsen\n"
+    "Teclas\tTasten\n"
     "Activar teclado USB\tUSB-Tastatur einschalten\n"
     "%s\\n%dx%d no entra en memoria\\n(necesita %u KB)\\nAchicala a %dx%d o menos\t%s\\n%dx%d passt nicht in den Speicher\\n(braucht %u KB)\\nAuf %dx%d oder kleiner\n"
     "No hay fotos en\\n%s\tKeine Fotos in\\n%s\n"
@@ -2940,7 +2954,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 469, 22, files_en, 23 },
-    { "de", "Deutsch", 469, 22, files_de, 23 },
+    { "en", "English", 476, 22, files_en, 23 },
+    { "de", "Deutsch", 476, 22, files_de, 23 },
 };
 const int aos_lang_pack_count = 2;

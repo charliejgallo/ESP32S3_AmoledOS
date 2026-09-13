@@ -39,6 +39,12 @@ Newest first. Versions are git tags; what is above the latest tag is on
   the card goes back to the watch on its own. `aos_hal_sd_release/reclaim/
   mark_mounted` move the card between the BSP mount and esp_tinyusb's MSC
   storage. While the computer has it the watch has no card.
+- **Mouse by tilt** (D4): a mouse report in the HID interface,
+  `aos_hal_usb_mouse/click` in the HAL, `?mouse=` and `?click=` in
+  `/api/usb`, and a "Tilt mouse" face in Control PC: the gyroscope's rates
+  move the computer's pointer fifty times a second with a dead band, three
+  speeds, invert/swap switches for the wrist, tap for a click and hold for
+  a right click. Verified through the API by reading the Mac's cursor.
 - **`amoledos.local` over USB**: the USB network interface is registered
   with the mDNS responder (and brings it up when WiFi never did), so the
   name resolves to 192.168.7.1 on the cable beside the WiFi address. The

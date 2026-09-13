@@ -483,8 +483,28 @@ In this order, each behind the same switch and each measured with T3:
    to free the third of the three slots. Which of the two addresses a
    browser picks for the name is the computer's choice (macOS took WiFi
    with both up); the IP is the sure way to the cable.
-4. **D4/D5/D7** if D3 left the descriptor machinery in place: an afternoon
-   each.
+4. **D4 mouse by tilt.** *Running since 2026-09-13, the axes to be
+   confirmed by hand.* A third report (ID 3, TinyUSB's mouse) in the same
+   HID interface; `aos_usb_hid_mouse()` sends one relative report with no
+   waiting (a report in flight means the pixel is dropped) and
+   `aos_usb_hid_mouse_click()` presses and releases. In the HAL,
+   `aos_hal_usb_mouse()` / `aos_hal_usb_click()`; in the portal,
+   `/api/usb?mouse=dx,dy[,wheel]` and `?click=1|2`, which is how it was
+   verified: five reports of (40, 0) moved the Mac's cursor 217 px (its
+   acceleration), read back with JXA (`$.NSEvent.mouseLocation`). In
+   Control PC, a third face under "Tilt mouse": the gyroscope's rates
+   become pointer motion fifty times a second (rates, not angles - an
+   angle is a position and a rest angle that is not quite zero drifts the
+   pointer into a corner), 3 dps of dead band so a hand at rest sends
+   nothing (measured: the cursor stayed put with the watch on the desk),
+   three speeds, and the three switches 2043 has for the wrist (invert X,
+   invert Y, swap the axes), in preferences. Tap = left click, hold =
+   right click, the side button = left click. The gyro is requested while
+   the face is open. One thing found: `aos_usb_hid_ready()` must not
+   include `tud_hid_ready()`, which is false for the 10 ms a report is in
+   flight - the app's status poll caught it mid-report and closed the
+   mouse face on itself.
+5. **D5/D7** (gamepad, MIDI) if wanted: an afternoon each.
 
 **Done when** disk mode survives ten mount/eject cycles with the apps intact,
 the media keys work on the Mac, and the portal answers at `192.168.7.1` with

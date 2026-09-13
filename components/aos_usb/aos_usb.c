@@ -341,11 +341,12 @@ enum { AOS_ITF_DISK_CDC = 0, AOS_ITF_DISK_CDC_DATA, AOS_ITF_DISK_MSC, AOS_ITF_DI
  * the MSC interface borrows the product's. */
 enum { AOS_STR_LANG = 0, AOS_STR_MANUFACTURER, AOS_STR_PRODUCT, AOS_STR_SERIAL, AOS_STR_CDC, AOS_STR_HID,
        AOS_STR_NET, AOS_STR_MAC, AOS_STR_COUNT, AOS_STR_MSC = AOS_STR_PRODUCT };
-enum { AOS_HID_REPORT_KEYBOARD = 1, AOS_HID_REPORT_CONSUMER = 2 };
+enum { AOS_HID_REPORT_KEYBOARD = 1, AOS_HID_REPORT_CONSUMER = 2, AOS_HID_REPORT_MOUSE = 3 };
 
 static const uint8_t s_hid_report_desc[] = {
     TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(AOS_HID_REPORT_KEYBOARD)),
     TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(AOS_HID_REPORT_CONSUMER)),
+    TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(AOS_HID_REPORT_MOUSE)),
 };
 /* Keys mode: HID (D3) + NCM (D6). Three interfaces, three IN endpoints. */
 static const uint8_t s_cfg_device[] = {
@@ -411,9 +412,15 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_
     /* Keyboard LEDs (caps lock and friends): nothing to light. */
 }
 
+/* "The computer has taken the keyboard": configured, and nothing more.
+ * tud_hid_ready() is NOT part of it: that one goes false for the 10 ms a
+ * report is in flight, and a screen that polls this while the mouse sends
+ * fifty reports a second would flip to "waiting for the computer" and back
+ * (it did: the mouse face closed itself 600 ms after opening, 2026-09-13).
+ * The senders wait for the endpoint themselves. */
 bool aos_usb_hid_ready(void)
 {
-    return s_mode == AOS_USB_DEVICE && tud_mounted() && tud_hid_ready();
+    return s_mode == AOS_USB_DEVICE && tud_mounted();
 }
 
 static bool hid_wait_ready(void)
@@ -452,6 +459,32 @@ bool aos_usb_hid_consumer(uint16_t usage, int hold_ms)
     hid_wait_ready();
     uint16_t none = 0;
     tud_hid_report(AOS_HID_REPORT_CONSUMER, &none, sizeof(none));
+    vTaskDelay(pdMS_TO_TICKS(10));
+    return true;
+}
+
+/* D4: the mouse. One report, no waiting: the app sends one every 20 ms
+ * while the watch is tilted and a dropped report is a pixel nobody misses.
+ * The click waits, like a key does. */
+bool aos_usb_hid_mouse(int8_t dx, int8_t dy, int8_t wheel)
+{
+    if (!aos_usb_hid_ready() || !tud_hid_ready()) {     /* in flight: this pixel is dropped */
+        return false;
+    }
+    return tud_hid_mouse_report(AOS_HID_REPORT_MOUSE, 0, dx, dy, wheel, 0);
+}
+
+bool aos_usb_hid_mouse_click(uint8_t buttons)
+{
+    if (!aos_usb_hid_ready() || !hid_wait_ready()) {
+        return false;
+    }
+    if (!tud_hid_mouse_report(AOS_HID_REPORT_MOUSE, buttons, 0, 0, 0, 0)) {
+        return false;
+    }
+    vTaskDelay(pdMS_TO_TICKS(30));
+    hid_wait_ready();
+    tud_hid_mouse_report(AOS_HID_REPORT_MOUSE, 0, 0, 0, 0, 0);
     vTaskDelay(pdMS_TO_TICKS(10));
     return true;
 }

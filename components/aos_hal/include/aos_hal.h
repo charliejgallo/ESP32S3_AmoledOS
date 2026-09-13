@@ -1100,6 +1100,8 @@ bool aos_hal_usb_key(const char *name); /* "play", "next", "volup", "mute", "pgd
                                          * "cmd+tab", "ctrl+shift+t"...: press and release. Blocks
                                          * ~50 ms; false when the keyboard is not ready. */
 int  aos_hal_usb_type(const char *ascii);   /* types a string as a US keyboard; chars sent */
+bool aos_hal_usb_mouse(int dx, int dy, int wheel);   /* moves the computer's pointer; clamped to +-127; no waiting */
+bool aos_hal_usb_click(int button);         /* 1 left, 2 right; blocks ~40 ms */
 bool aos_hal_usb_card_away(void);       /* DISK mode and the computer holds the card */
 
 /* mDNS on a network interface of somebody else's (the USB one): the watch

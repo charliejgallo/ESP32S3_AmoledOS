@@ -52,6 +52,8 @@ bool aos_usb_hid_key(uint8_t modifier, uint8_t keycode, int hold_ms);
 bool aos_usb_hid_consumer(uint16_t usage, int hold_ms);
 bool aos_usb_hid_named(const char *name);    /* "volup", "play", "pgdn", "cmd+tab"... see aos_usb.c */
 int  aos_usb_hid_type(const char *ascii);    /* types text as a US keyboard; returns chars sent */
+bool aos_usb_hid_mouse(int8_t dx, int8_t dy, int8_t wheel);   /* one relative report, no waiting */
+bool aos_usb_hid_mouse_click(uint8_t buttons);               /* 1 left, 2 right: press and release */
 
 /* Disk mode: true while the computer holds the card (the watch has no
  * /sdcard meanwhile); false once it ejected it or the mode was left. */

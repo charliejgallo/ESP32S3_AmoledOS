@@ -90,6 +90,21 @@ int aos_hal_usb_type(const char *ascii)
     return s_busy ? 0 : aos_usb_hid_type(ascii);
 }
 
+static int8_t clamp8(int v)
+{
+    return (int8_t)(v > 127 ? 127 : v < -127 ? -127 : v);
+}
+
+bool aos_hal_usb_mouse(int dx, int dy, int wheel)
+{
+    return !s_busy && aos_usb_hid_mouse(clamp8(dx), clamp8(dy), clamp8(wheel));
+}
+
+bool aos_hal_usb_click(int button)
+{
+    return !s_busy && aos_usb_hid_mouse_click(button == 2 ? 0x02 : 0x01);
+}
+
 bool aos_hal_usb_card_away(void)
 {
     return aos_usb_disk_card_away();

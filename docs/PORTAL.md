@@ -53,7 +53,8 @@ GET  /api/usb                    the USB port (docs/USB.md): mode, hid_ready, ne
                                  card_away, the devices seen in host mode, the pendrive,
                                  the OTG registers and the heap; ?mode=console|device|
                                  disk|host switches, ?key=name[,name] presses keys on the
-                                 computer, ?type=text types, ?cp=name&from=dir&to=dir
+                                 computer, ?type=text types, ?mouse=dx,dy[,wheel] moves
+                                 its pointer, ?click=1|2 clicks, ?cp=name&from=dir&to=dir
                                  copies a file between folders (usb included), timed;
                                  ?tusblog=1 TinyUSB's own log
 GET  /api/coredump               the last panic's core dump (ELF); ?erase=1 clears it
