@@ -151,8 +151,9 @@ once section 4's symbol step is done:
 
 ## 7. Before the merge
 
-- The use still to be checked (2026-09-13): Bluetooth on in KEYS for
-  hours. **Disk cycles with big files are checked**: 636 MB of MP3s in one
+- **All three uses are checked** (2026-09-13/14): Bluetooth connected in
+  KEYS for 8 hours (executable heap never below 107 K), light sleep on
+  battery in CONSOLE, and disk cycles with big files: 636 MB of MP3s in one
   drag, every file back with its size and a 14.9 MB one with the original's
   MD5 (USB.md, T5). Mind the eject: a forced unmount on the Mac does not
   send the SCSI eject, `diskutil eject /dev/diskN` afterwards does. **Light sleep on battery in

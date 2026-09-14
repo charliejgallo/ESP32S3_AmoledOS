@@ -351,6 +351,16 @@ so the card stayed on the USB side; `diskutil eject /dev/diskN` on the
 unmounted disk afterwards sent the eject and the card came back. Leaving
 disk mode does the same from the watch's side.
 
+**Hours in keys mode with Bluetooth connected (2026-09-13/14, the week of
+use):** 8.1 h since the last reboot (an OTA), the iPhone paired and its
+battery reported, no core dump, no warning, the 42 apps, keyboard and
+network still ready. RAM with WiFi, Bluetooth and the USB composite up:
+internal 157 K free (minimum since boot 139.6 K), executable 109 K
+(minimum 107.6 K), largest block 100 K. Against `main` at rest (137 K
+executable, 125 K largest), the composite costs about 28 K of executable
+heap while it is on - 16 K of it static - and the apps' code has lived in
+PSRAM since v0.3.4, so a 100 K block is room to spare.
+
 **Things measured on the way to T5, all of them costing a reboot each:**
 
 1. **macOS takes 9-15 s to register the device.** The first "it does not
