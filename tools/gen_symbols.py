@@ -26,7 +26,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # AmoledOS's own API.
 # Note: LVGL's managed component produces liblvgl__lvgl.a, not liblvgl.a.
 DEFAULT_LIBS = ["lvgl__lvgl", "lvgl_port_lib",
-                "aos_hal", "aos_ui", "aos_apps", "aos_board", "aos_fonts"]
+                "aos_hal", "aos_ui", "aos_apps", "aos_board", "aos_fonts",
+                # aos_hal_usb_* and aos_hal_mdns_* are declared in aos_hal.h but
+                # live here (aos_usb depends on aos_hal, not the other way round):
+                # without this line a .so calling the USB port fails only at load.
+                "aos_usb"]
 
 # libc and libm functions nearly any app will need and that the table
 # elf_loader brings does NOT include (snprintf, for instance: there you only

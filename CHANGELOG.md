@@ -11,6 +11,9 @@ for building on it.
 
 ### USB
 
+- The dynamic apps can use the port: `aos_usb` joins the exported libraries
+  of `tools/gen_symbols.py` (2584 → 2646 symbols), since `aos_hal_usb_*`
+  live there and not in `aos_hal`. The ABI did not move.
 - `docs/USB.md`: what the USB-C port can become. The schematic read (D+/D-
   straight to GPIO19/20, VBUS only into the charger, 5.1 K pull-downs on CC,
   a second copy of the data lines on solder pads through 22 Ω), the

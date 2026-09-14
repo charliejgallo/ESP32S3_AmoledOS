@@ -143,6 +143,20 @@ dividing a `uint64_t` drags in `__udivdi3`. Both are exported to apps, but in a
 hot loop they are not free. Most of the games run entirely on integers, with
 positions in 1/16 of a pixel.
 
+## The USB port
+
+Since v0.3.6 an app can use the USB-C port through the HAL, dynamic apps
+included: `aos_hal_usb_mode()` / `aos_hal_usb_mode_set()` (asynchronous),
+`aos_hal_usb_keys_ready()`, `aos_hal_usb_key("volup")`, `aos_hal_usb_type()`,
+`aos_hal_usb_mouse()`, `aos_hal_usb_click()`, `aos_hal_usb_gamepad()`,
+`aos_hal_usb_midi_note/cc/bend()`, `aos_hal_usb_card_away()`. The signatures
+are in `aos_hal.h`; the patterns that work (a 500 ms poll for readiness, a
+20-40 ms timer for the streams, press and release on the buttons, what to
+release in `destroy`) and the hardware's limits are in
+[HANDOFF-USB.md](HANDOFF-USB.md) section 4, and `aos_app_pcremote.c` is the
+worked example. The simulator switches instantly and its keyboard is always
+ready in keys mode, so the screens can be drawn on the Mac.
+
 ## Translation
 
 Strings go through `_()`, and the catalogue key **is the Spanish string

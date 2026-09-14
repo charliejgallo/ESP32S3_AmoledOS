@@ -2,9 +2,9 @@
  * GENERADO POR tools/gen_symbols.py - no editar a mano.
  *
  * Simbolos que el firmware le presta a las apps dinamicas.
- * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts
+ * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 86 funciones de libc/libm agregadas a mano.
- * Total: 2584 simbolos.
+ * Total: 2646 simbolos.
  */
 
 #include <stddef.h>
@@ -41,6 +41,7 @@ extern int aos_app_level_get;
 extern int aos_app_life_get;
 extern int aos_app_music_get;
 extern int aos_app_notifs_get;
+extern int aos_app_pcremote_get;
 extern int aos_app_photos_get;
 extern int aos_app_pomodoro_get;
 extern int aos_app_power_get;
@@ -147,6 +148,8 @@ extern int aos_hal_light_sleep_enable;
 extern int aos_hal_light_sleep_enabled;
 extern int aos_hal_lock;
 extern int aos_hal_log;
+extern int aos_hal_mdns_add_netif;
+extern int aos_hal_mdns_remove_netif;
 extern int aos_hal_media_command;
 extern int aos_hal_media_enable;
 extern int aos_hal_media_enabled;
@@ -253,7 +256,10 @@ extern int aos_hal_rtc_alarm_set;
 extern int aos_hal_scan_start;
 extern int aos_hal_scan_status;
 extern int aos_hal_scan_stop;
+extern int aos_hal_sd_mark_mounted;
 extern int aos_hal_sd_present;
+extern int aos_hal_sd_reclaim;
+extern int aos_hal_sd_release;
 extern int aos_hal_sd_usage;
 extern int aos_hal_set_button_cb;
 extern int aos_hal_set_display_state_cb;
@@ -268,6 +274,20 @@ extern int aos_hal_timezone_set;
 extern int aos_hal_touch_gesture;
 extern int aos_hal_unlock;
 extern int aos_hal_uptime_ms;
+extern int aos_hal_usb_busy;
+extern int aos_hal_usb_card_away;
+extern int aos_hal_usb_click;
+extern int aos_hal_usb_gamepad;
+extern int aos_hal_usb_key;
+extern int aos_hal_usb_keys_ready;
+extern int aos_hal_usb_midi_bend;
+extern int aos_hal_usb_midi_cc;
+extern int aos_hal_usb_midi_note;
+extern int aos_hal_usb_midi_ready;
+extern int aos_hal_usb_mode;
+extern int aos_hal_usb_mode_set;
+extern int aos_hal_usb_mouse;
+extern int aos_hal_usb_type;
 extern int aos_hal_volume_get;
 extern int aos_hal_volume_set;
 extern int aos_hand_create;
@@ -288,6 +308,8 @@ extern int aos_label_scaled;
 extern int aos_lang_pack_count;
 extern int aos_lang_packs;
 extern int aos_launcher_create;
+extern int aos_lvmem_get_psram;
+extern int aos_lvmem_set_psram;
 extern int aos_make_decorative;
 extern int aos_month_name;
 extern int aos_montserrat_14;
@@ -320,10 +342,13 @@ extern int aos_ui_app_at;
 extern int aos_ui_app_count;
 extern int aos_ui_app_find;
 extern int aos_ui_back;
+extern int aos_ui_block_gestures;
 extern int aos_ui_button;
 extern int aos_ui_current_app;
 extern int aos_ui_home;
 extern int aos_ui_init;
+extern int aos_ui_inject_drag;
+extern int aos_ui_inject_tap;
 extern int aos_ui_launcher_get_style;
 extern int aos_ui_launcher_set_style;
 extern int aos_ui_open;
@@ -344,11 +369,41 @@ extern int aos_ui_statusbar_set_visible;
 extern int aos_ui_take_gesture;
 extern int aos_ui_tick;
 extern int aos_ui_toast;
+extern int aos_ui_touch_calibration_get;
 extern int aos_ui_touch_calibration_reset;
 extern int aos_ui_touch_calibration_save;
+extern int aos_ui_touch_map;
 extern int aos_ui_touch_raw;
 extern int aos_ui_touch_stats;
 extern int aos_ui_unregister_app;
+extern int aos_usb_console_on_cdc;
+extern int aos_usb_copy;
+extern int aos_usb_disk_card_away;
+extern int aos_usb_hid_consumer;
+extern int aos_usb_hid_gamepad;
+extern int aos_usb_hid_key;
+extern int aos_usb_hid_mouse;
+extern int aos_usb_hid_mouse_click;
+extern int aos_usb_hid_named;
+extern int aos_usb_hid_ready;
+extern int aos_usb_hid_type;
+extern int aos_usb_init;
+extern int aos_usb_midi_bend;
+extern int aos_usb_midi_cc;
+extern int aos_usb_midi_note;
+extern int aos_usb_midi_ready;
+extern int aos_usb_mode_get;
+extern int aos_usb_mode_name;
+extern int aos_usb_mode_set;
+extern int aos_usb_msc_mounted;
+extern int aos_usb_msc_root;
+extern int aos_usb_net_mac;
+extern int aos_usb_net_relink;
+extern int aos_usb_net_start;
+extern int aos_usb_net_stop;
+extern int aos_usb_net_up;
+extern int aos_usb_status_json;
+extern int aos_usb_tusb_log;
 extern int aos_watchface_at;
 extern int aos_watchface_close_picker;
 extern int aos_watchface_count;
@@ -431,6 +486,7 @@ extern int fwrite;
 extern int getenv;
 extern int gmtime_r;
 extern int hypotf;
+extern int img_cursor;
 extern int jd_decomp;
 extern int jd_mcu_load;
 extern int jd_mcu_output;
@@ -2526,12 +2582,15 @@ extern int lvgl_port_add_disp;
 extern int lvgl_port_add_disp_dsi;
 extern int lvgl_port_add_disp_rgb;
 extern int lvgl_port_add_touch;
+extern int lvgl_port_add_usb_hid_keyboard_input;
+extern int lvgl_port_add_usb_hid_mouse_input;
 extern int lvgl_port_deinit;
 extern int lvgl_port_flush_ready;
 extern int lvgl_port_init;
 extern int lvgl_port_lock;
 extern int lvgl_port_remove_disp;
 extern int lvgl_port_remove_touch;
+extern int lvgl_port_remove_usb_hid_input;
 extern int lvgl_port_resume;
 extern int lvgl_port_rotate_area;
 extern int lvgl_port_stop;
@@ -2594,6 +2653,9 @@ extern int strtol;
 extern int strtoul;
 extern int tanf;
 extern int time;
+extern int tud_hid_descriptor_report_cb;
+extern int tud_hid_get_report_cb;
+extern int tud_hid_set_report_cb;
 extern int unlink;
 extern int vsnprintf;
 #pragma GCC diagnostic pop
@@ -2628,6 +2690,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_app_life_get),
     ESP_ELFSYM_EXPORT(aos_app_music_get),
     ESP_ELFSYM_EXPORT(aos_app_notifs_get),
+    ESP_ELFSYM_EXPORT(aos_app_pcremote_get),
     ESP_ELFSYM_EXPORT(aos_app_photos_get),
     ESP_ELFSYM_EXPORT(aos_app_pomodoro_get),
     ESP_ELFSYM_EXPORT(aos_app_power_get),
@@ -2734,6 +2797,8 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_light_sleep_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_lock),
     ESP_ELFSYM_EXPORT(aos_hal_log),
+    ESP_ELFSYM_EXPORT(aos_hal_mdns_add_netif),
+    ESP_ELFSYM_EXPORT(aos_hal_mdns_remove_netif),
     ESP_ELFSYM_EXPORT(aos_hal_media_command),
     ESP_ELFSYM_EXPORT(aos_hal_media_enable),
     ESP_ELFSYM_EXPORT(aos_hal_media_enabled),
@@ -2840,7 +2905,10 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_scan_start),
     ESP_ELFSYM_EXPORT(aos_hal_scan_status),
     ESP_ELFSYM_EXPORT(aos_hal_scan_stop),
+    ESP_ELFSYM_EXPORT(aos_hal_sd_mark_mounted),
     ESP_ELFSYM_EXPORT(aos_hal_sd_present),
+    ESP_ELFSYM_EXPORT(aos_hal_sd_reclaim),
+    ESP_ELFSYM_EXPORT(aos_hal_sd_release),
     ESP_ELFSYM_EXPORT(aos_hal_sd_usage),
     ESP_ELFSYM_EXPORT(aos_hal_set_button_cb),
     ESP_ELFSYM_EXPORT(aos_hal_set_display_state_cb),
@@ -2855,6 +2923,20 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_touch_gesture),
     ESP_ELFSYM_EXPORT(aos_hal_unlock),
     ESP_ELFSYM_EXPORT(aos_hal_uptime_ms),
+    ESP_ELFSYM_EXPORT(aos_hal_usb_busy),
+    ESP_ELFSYM_EXPORT(aos_hal_usb_card_away),
+    ESP_ELFSYM_EXPORT(aos_hal_usb_click),
+    ESP_ELFSYM_EXPORT(aos_hal_usb_gamepad),
+    ESP_ELFSYM_EXPORT(aos_hal_usb_key),
+    ESP_ELFSYM_EXPORT(aos_hal_usb_keys_ready),
+    ESP_ELFSYM_EXPORT(aos_hal_usb_midi_bend),
+    ESP_ELFSYM_EXPORT(aos_hal_usb_midi_cc),
+    ESP_ELFSYM_EXPORT(aos_hal_usb_midi_note),
+    ESP_ELFSYM_EXPORT(aos_hal_usb_midi_ready),
+    ESP_ELFSYM_EXPORT(aos_hal_usb_mode),
+    ESP_ELFSYM_EXPORT(aos_hal_usb_mode_set),
+    ESP_ELFSYM_EXPORT(aos_hal_usb_mouse),
+    ESP_ELFSYM_EXPORT(aos_hal_usb_type),
     ESP_ELFSYM_EXPORT(aos_hal_volume_get),
     ESP_ELFSYM_EXPORT(aos_hal_volume_set),
     ESP_ELFSYM_EXPORT(aos_hand_create),
@@ -2875,6 +2957,8 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_lang_pack_count),
     ESP_ELFSYM_EXPORT(aos_lang_packs),
     ESP_ELFSYM_EXPORT(aos_launcher_create),
+    ESP_ELFSYM_EXPORT(aos_lvmem_get_psram),
+    ESP_ELFSYM_EXPORT(aos_lvmem_set_psram),
     ESP_ELFSYM_EXPORT(aos_make_decorative),
     ESP_ELFSYM_EXPORT(aos_month_name),
     ESP_ELFSYM_EXPORT(aos_montserrat_14),
@@ -2907,10 +2991,13 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_ui_app_count),
     ESP_ELFSYM_EXPORT(aos_ui_app_find),
     ESP_ELFSYM_EXPORT(aos_ui_back),
+    ESP_ELFSYM_EXPORT(aos_ui_block_gestures),
     ESP_ELFSYM_EXPORT(aos_ui_button),
     ESP_ELFSYM_EXPORT(aos_ui_current_app),
     ESP_ELFSYM_EXPORT(aos_ui_home),
     ESP_ELFSYM_EXPORT(aos_ui_init),
+    ESP_ELFSYM_EXPORT(aos_ui_inject_drag),
+    ESP_ELFSYM_EXPORT(aos_ui_inject_tap),
     ESP_ELFSYM_EXPORT(aos_ui_launcher_get_style),
     ESP_ELFSYM_EXPORT(aos_ui_launcher_set_style),
     ESP_ELFSYM_EXPORT(aos_ui_open),
@@ -2931,11 +3018,41 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_ui_take_gesture),
     ESP_ELFSYM_EXPORT(aos_ui_tick),
     ESP_ELFSYM_EXPORT(aos_ui_toast),
+    ESP_ELFSYM_EXPORT(aos_ui_touch_calibration_get),
     ESP_ELFSYM_EXPORT(aos_ui_touch_calibration_reset),
     ESP_ELFSYM_EXPORT(aos_ui_touch_calibration_save),
+    ESP_ELFSYM_EXPORT(aos_ui_touch_map),
     ESP_ELFSYM_EXPORT(aos_ui_touch_raw),
     ESP_ELFSYM_EXPORT(aos_ui_touch_stats),
     ESP_ELFSYM_EXPORT(aos_ui_unregister_app),
+    ESP_ELFSYM_EXPORT(aos_usb_console_on_cdc),
+    ESP_ELFSYM_EXPORT(aos_usb_copy),
+    ESP_ELFSYM_EXPORT(aos_usb_disk_card_away),
+    ESP_ELFSYM_EXPORT(aos_usb_hid_consumer),
+    ESP_ELFSYM_EXPORT(aos_usb_hid_gamepad),
+    ESP_ELFSYM_EXPORT(aos_usb_hid_key),
+    ESP_ELFSYM_EXPORT(aos_usb_hid_mouse),
+    ESP_ELFSYM_EXPORT(aos_usb_hid_mouse_click),
+    ESP_ELFSYM_EXPORT(aos_usb_hid_named),
+    ESP_ELFSYM_EXPORT(aos_usb_hid_ready),
+    ESP_ELFSYM_EXPORT(aos_usb_hid_type),
+    ESP_ELFSYM_EXPORT(aos_usb_init),
+    ESP_ELFSYM_EXPORT(aos_usb_midi_bend),
+    ESP_ELFSYM_EXPORT(aos_usb_midi_cc),
+    ESP_ELFSYM_EXPORT(aos_usb_midi_note),
+    ESP_ELFSYM_EXPORT(aos_usb_midi_ready),
+    ESP_ELFSYM_EXPORT(aos_usb_mode_get),
+    ESP_ELFSYM_EXPORT(aos_usb_mode_name),
+    ESP_ELFSYM_EXPORT(aos_usb_mode_set),
+    ESP_ELFSYM_EXPORT(aos_usb_msc_mounted),
+    ESP_ELFSYM_EXPORT(aos_usb_msc_root),
+    ESP_ELFSYM_EXPORT(aos_usb_net_mac),
+    ESP_ELFSYM_EXPORT(aos_usb_net_relink),
+    ESP_ELFSYM_EXPORT(aos_usb_net_start),
+    ESP_ELFSYM_EXPORT(aos_usb_net_stop),
+    ESP_ELFSYM_EXPORT(aos_usb_net_up),
+    ESP_ELFSYM_EXPORT(aos_usb_status_json),
+    ESP_ELFSYM_EXPORT(aos_usb_tusb_log),
     ESP_ELFSYM_EXPORT(aos_watchface_at),
     ESP_ELFSYM_EXPORT(aos_watchface_close_picker),
     ESP_ELFSYM_EXPORT(aos_watchface_count),
@@ -3018,6 +3135,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(getenv),
     ESP_ELFSYM_EXPORT(gmtime_r),
     ESP_ELFSYM_EXPORT(hypotf),
+    ESP_ELFSYM_EXPORT(img_cursor),
     ESP_ELFSYM_EXPORT(jd_decomp),
     ESP_ELFSYM_EXPORT(jd_mcu_load),
     ESP_ELFSYM_EXPORT(jd_mcu_output),
@@ -5113,12 +5231,15 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(lvgl_port_add_disp_dsi),
     ESP_ELFSYM_EXPORT(lvgl_port_add_disp_rgb),
     ESP_ELFSYM_EXPORT(lvgl_port_add_touch),
+    ESP_ELFSYM_EXPORT(lvgl_port_add_usb_hid_keyboard_input),
+    ESP_ELFSYM_EXPORT(lvgl_port_add_usb_hid_mouse_input),
     ESP_ELFSYM_EXPORT(lvgl_port_deinit),
     ESP_ELFSYM_EXPORT(lvgl_port_flush_ready),
     ESP_ELFSYM_EXPORT(lvgl_port_init),
     ESP_ELFSYM_EXPORT(lvgl_port_lock),
     ESP_ELFSYM_EXPORT(lvgl_port_remove_disp),
     ESP_ELFSYM_EXPORT(lvgl_port_remove_touch),
+    ESP_ELFSYM_EXPORT(lvgl_port_remove_usb_hid_input),
     ESP_ELFSYM_EXPORT(lvgl_port_resume),
     ESP_ELFSYM_EXPORT(lvgl_port_rotate_area),
     ESP_ELFSYM_EXPORT(lvgl_port_stop),
@@ -5181,6 +5302,9 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(strtoul),
     ESP_ELFSYM_EXPORT(tanf),
     ESP_ELFSYM_EXPORT(time),
+    ESP_ELFSYM_EXPORT(tud_hid_descriptor_report_cb),
+    ESP_ELFSYM_EXPORT(tud_hid_get_report_cb),
+    ESP_ELFSYM_EXPORT(tud_hid_set_report_cb),
     ESP_ELFSYM_EXPORT(unlink),
     ESP_ELFSYM_EXPORT(vsnprintf),
     ESP_ELFSYM_END,

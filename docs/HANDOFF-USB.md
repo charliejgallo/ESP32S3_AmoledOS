@@ -104,14 +104,12 @@ Patterns that work (all in `aos_app_pcremote.c`):
   timers. `mouse_show(false)` / `midi_show(false)` / `pad_show(false)` do it.
 - The panel is single-touch: one key or note at a time, plus the tilt.
 
-**Dynamic (`.so`) apps cannot call any of this yet.** The symbol table
-(`tools/gen_symbols.py`, `DEFAULT_LIBS`) exports `aos_hal` but not
-`aos_usb`, where `aos_hal_usb_*` live. To let a `.so` use the port: add
-`"aos_usb"` to `DEFAULT_LIBS`, `idf.py build` → `python3 tools/gen_symbols.py`
-→ `idf.py build` (the two passes of [BUILDING.md](BUILDING.md)), check the
-count went up, and verify the app with `xtensa-esp-elf-nm -D -u app.so`
-against the table. Adding symbols keeps `AOS_ABI_VERSION` and every
-existing `.so`.
+**Dynamic (`.so`) apps can call all of this** since v0.3.6: `aos_usb` is in
+`tools/gen_symbols.py`'s `DEFAULT_LIBS` (2584 → 2646 symbols), because
+`aos_hal_usb_*` and `aos_hal_mdns_*` live in `libaos_usb.a` and not in
+`libaos_hal.a`. Verify a new app with `xtensa-esp-elf-nm -D -u app.so`
+against the table, as always. `AOS_ABI_VERSION` did not move; every
+existing `.so` still loads.
 
 ## 5. Testing without touching the watch
 
