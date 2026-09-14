@@ -244,7 +244,7 @@ network survey's report format.
 | [I18N.md](docs/I18N.md) | how translation works and why the key is the Spanish string |
 | [POWER.md](docs/POWER.md) | the AXP2101, the rails, light sleep, and the measurements behind each switch |
 | [PORTAL.md](docs/PORTAL.md) | the web portal: pages, API, what it costs the board, and the dev server |
-| [ROADMAP.md](docs/ROADMAP.md) | what is planned and has no date: Android phones, starting with BLE HID |
+| [ROADMAP.md](docs/ROADMAP.md) | what is planned and has no date: Android phones, and USB host (a pendrive on the watch), waiting for a way to power it |
 | [USB.md](docs/USB.md) | the USB-C port as a device or a host: what the board allows, the catalogue, the test rigs, the measurements and what was found |
 
 ## A note on what is written down

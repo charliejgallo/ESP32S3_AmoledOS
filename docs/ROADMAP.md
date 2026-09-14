@@ -164,6 +164,25 @@ right for whichever phone is paired, in the three languages, with
   inside each other's callbacks lost two of ANCS's three characteristics.
 - **Test with a scanner**, not with the phone's settings.
 
+## USB host: a pendrive, a keyboard, a webcam on the watch
+
+**Planned, not scheduled.** The code is in (`usb` modes, v0.3.6): host
+mode enumerates whatever is plugged in, mounts a pendrive at `/usb` and the
+portal's explorer reads it; `usb_host_hid` and `usb_host_uvc` are resolved
+for a keyboard, a mouse, a gamepad and a webcam. What stops it is not
+software: **the board has no 5 V to give a peripheral** — VBUS only goes
+into the charger, there is no boost converter — so every rig that powers a
+pendrive is a powered hub, a Y-adapter with a charger, or wires on the
+solder pads. On a watch, that is the practicality gone. Measured with two
+adapters in [USB.md](USB.md) section 4 and "Where host mode stands": one
+passed nothing, the other negotiated USB-PD and put 16 V on the PMU's
+5 V input.
+
+It comes back when there is a rig worth carrying — a small board with a
+boost converter on the pads, a dock — or a use that beats the
+inconvenience. The functions themselves (H1-H6 in USB.md) are designed and
+the first one is written.
+
 ### Not planned
 
 - **A2DP, AVRCP, HFP**: Bluetooth Classic, which the ESP32-S3 does not have.
