@@ -7,5 +7,6 @@ ota_1,      app,  ota_1,   ,         5M,
 storage,    data, spiffs,  ,         5M,
 # Branch usb (2026-09-12): a panic in an OTG mode has no console to print to, so it
 # goes here and is read after the reboot with `idf.py coredump-info`. Appended in the
-# free tail of the 16 MB flash; nothing above it moved.
-coredump,   data, coredump, ,         256K,
+# free tail of the 16 MB flash; nothing above it moved. 512 K: a dump of this
+# firmware is ~330 KB (64 tasks, their stacks), and 256 K left it invalid.
+coredump,   data, coredump, ,         512K,

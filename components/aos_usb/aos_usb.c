@@ -611,11 +611,40 @@ int aos_usb_hid_type(const char *ascii)
 }
 
 static bool s_device_with_msc;              /* set by disk_start() before device_start() */
+
+/* TinyUSB's device events, from its task. Logged always: the ring of
+ * /registro is what tells afterwards whether the computer slept, reset the
+ * bus or unplugged. On a (re)attach the network is re-armed. */
+static void tusb_event_cb(tinyusb_event_t *ev, void *arg)
+{
+    (void)arg;
+    switch (ev->id) {
+    case TINYUSB_EVENT_ATTACHED:
+        ESP_LOGI(TAG, "usb: configured by the computer");
+        if (!s_device_with_msc) aos_usb_net_relink(true);
+        break;
+    case TINYUSB_EVENT_DETACHED:
+        ESP_LOGI(TAG, "usb: the computer is gone (unplug, reset or sleep)");
+        if (!s_device_with_msc) aos_usb_net_relink(false);
+        break;
+    case TINYUSB_EVENT_SUSPENDED:
+        ESP_LOGI(TAG, "usb: suspended by the computer (remote wakeup %s)",
+                 ev->suspended.remote_wakeup ? "allowed" : "off");
+        break;
+    case TINYUSB_EVENT_RESUMED:
+        ESP_LOGI(TAG, "usb: resumed");
+        break;
+    default:
+        break;
+    }
+}
+
 static bool s_cdc_up;                       /* the CDC port exists (disk mode only) */
 
 static bool device_start(void)
 {
     tinyusb_config_t cfg = TINYUSB_DEFAULT_CONFIG();
+    cfg.event_cb = tusb_event_cb;
     if (!s_serial[0]) {
         uint8_t mac[6] = { 0 };
         esp_read_mac(mac, ESP_MAC_WIFI_STA);

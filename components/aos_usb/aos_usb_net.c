@@ -80,6 +80,38 @@ static esp_err_t usb_rx(void *buffer, uint16_t len, void *ctx)
     return e;
 }
 
+/* The bus came back (the computer re-enumerated us: a wake from sleep, a
+ * replug) or went away. Measured 2026-09-13: after the Mac's clamshell
+ * sleep the keyboard was fine, the host polls it, but the network was
+ * dead for hours - this interface never heard about the bus and the
+ * computer's DHCP renewals fell on a link that had been reset under it.
+ * On attach the netif goes down and up again, which restarts the DHCP
+ * server and lwIP's view of the link; the computer's next DISCOVER gets
+ * its address back. From the TinyUSB task; the actions post to lwIP. */
+void aos_usb_net_relink(bool up)
+{
+    if (!s_netif) {
+        return;
+    }
+    if (up) {
+        esp_netif_action_disconnected(s_netif, NULL, 0, NULL);
+        esp_netif_action_connected(s_netif, NULL, 0, NULL);
+        s_net_up = true;
+        ESP_LOGI(TAG, "usb network re-armed after the bus came back");
+    } else {
+        esp_netif_action_disconnected(s_netif, NULL, 0, NULL);
+        s_net_up = false;
+        ESP_LOGI(TAG, "usb network down: the bus went away");
+    }
+}
+
+static void ncm_init_cb(void *ctx)
+{
+    (void)ctx;
+    /* The host selected the data interface: the class is armed again. */
+    ESP_LOGI(TAG, "ncm data interface (re)initialised by the computer");
+}
+
 void aos_usb_net_mac(uint8_t mac[6])
 {
     /* The S3 derives an Ethernet MAC of its own from the base one (+3): not
@@ -145,6 +177,7 @@ bool aos_usb_net_start(void)
 
     tinyusb_net_config_t nc = {
         .on_recv_callback = usb_rx,
+        .on_init_callback = ncm_init_cb,
     };
     memcpy(nc.mac_addr, mac, 6);
     e = tinyusb_net_init(&nc);

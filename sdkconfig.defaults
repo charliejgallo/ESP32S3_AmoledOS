@@ -401,6 +401,10 @@ CONFIG_TINYUSB_MSC_ENABLED=y
 CONFIG_TINYUSB_MSC_BUFSIZE=8192
 # D3: one HID interface (keyboard + consumer control) in device mode.
 CONFIG_TINYUSB_HID_COUNT=1
+# The suspend and resume events, logged: after the Mac's sleep the network
+# died while the keyboard lived (2026-09-13); the log has to say what the bus did.
+CONFIG_TINYUSB_SUSPEND_CALLBACK=y
+CONFIG_TINYUSB_RESUME_CALLBACK=y
 # D7: a MIDI port beside the keyboard and the network.
 CONFIG_TINYUSB_MIDI_COUNT=1
 # D6: the watch as a network interface of the computer (CDC-NCM), the portal

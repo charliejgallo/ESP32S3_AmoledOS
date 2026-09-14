@@ -361,6 +361,22 @@ executable, 125 K largest), the composite costs about 28 K of executable
 heap while it is on - 16 K of it static - and the apps' code has lived in
 PSRAM since v0.3.4, so a 100 K block is room to spare.
 
+**The Mac's sleep kills the network and not the keyboard (found in the
+same eight hours):** the Mac closed its lid at 18:47 and woke at 18:50;
+afterwards the keyboard still moved its volume (the host polls HID) but
+the USB interface had no address (169.254.x, the lease never renewed),
+mDNS got no answer on it, and the watch believed the network was up. The
+device had been re-enumerated by the wake (the `ioreg` node id changed)
+and the netif never heard about it. Now TinyUSB's device events are logged
+(attached, detached, suspended, resumed - the last two need
+`CONFIG_TINYUSB_SUSPEND_CALLBACK` / `RESUME_CALLBACK`) and on every attach
+the USB netif goes down and up again, which restarts its DHCP server
+(`aos_usb_net_relink`). Whether that is enough after a real sleep is the
+next test. Also found: the core dump of this firmware is ~330 KB and did
+not fit in 256 K ("Incorrect size of core dump image: 327685" at boot),
+which is why no panic ever showed up in `/api/coredump`; the partition is
+512 K now, flashed over USB on 2026-09-14.
+
 **Things measured on the way to T5, all of them costing a reboot each:**
 
 1. **macOS takes 9-15 s to register the device.** The first "it does not
