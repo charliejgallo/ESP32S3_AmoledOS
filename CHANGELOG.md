@@ -3,9 +3,13 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.3.6 — 2026-09-14
 
-### USB (branch `usb`, not merged)
+The USB port. Two days of building, a day and a night of use, and every
+measurement in [docs/USB.md](docs/USB.md); [docs/HANDOFF-USB.md](docs/HANDOFF-USB.md)
+for building on it.
+
+### USB
 
 - `docs/USB.md`: what the USB-C port can become. The schematic read (D+/D-
   straight to GPIO19/20, VBUS only into the charger, 5.1 K pull-downs on CC,
@@ -39,6 +43,10 @@ Newest first. Versions are git tags; what is above the latest tag is on
   the card goes back to the watch on its own. `aos_hal_sd_release/reclaim/
   mark_mounted` move the card between the BSP mount and esp_tinyusb's MSC
   storage. While the computer has it the watch has no card.
+- The Mac's sleep no longer kills the USB network: TinyUSB's device events
+  are logged and the network is re-armed on every attach; survived a night.
+  The core dump partition is 512 K (a dump is ~330 KB); panics print on the
+  console again, and go to flash too.
 - The portal stays up while the USB network is up: `main.c` stopped it
   whenever WiFi was down and no access point was up, so switching WiFi off
   from the portal over the cable took the portal down with it (found in
@@ -109,7 +117,7 @@ Newest first. Versions are git tags; what is above the latest tag is on
 - `sdkconfig.defaults`: `CONFIG_TINYUSB_CDC_ENABLED=y` and the device
   strings ("AmoledOS", "AmoledOS watch").
 
-### Also
+### Also (on `main` before the branch)
 
 - `aos_hal_esp32.c`: the unused `s_media_enabled` is gone, together with the
   "WAITING ON HARDWARE" comment above it, left over from the BLE HID plan.

@@ -1,13 +1,11 @@
 # USB: what the connector can become, and in which order
 
-> **State of this document (2026-09-12).** Theory phase, on the `usb` branch
-> (worktree `ESP32S3_AmoledOS_usb/`, nothing merged). Sections 1 and 2 come
-> from the board's schematic and ESP-IDF's sources; nothing in section 3 has
-> run on the board yet. The dependency graph of section 5 resolves with
-> ESP-IDF v5.5 and the firmware builds with the USB components present.
-> Phase 1 (the switch, `components/aos_usb`, `/api/usb`) runs on the board:
-> T1, T2 and T3 are measured (section 6). T4 onwards wait for a host rig
-> (section 4).
+> **State of this document (2026-09-14).** Merged to `main` as v0.3.6 after
+> two days of building and a day and a night of use. Sections 1 and 2 come
+> from the board's schematic and ESP-IDF's sources; section 6 has every
+> measurement; section 7 says what shipped, what is parked (host mode, for
+> want of 5 V) and what is left (D8). [HANDOFF-USB.md](HANDOFF-USB.md) is
+> the map for building on it.
 
 Today the USB-C port does one thing: it is the console and the flashing port,
 through the ESP32-S3's USB-Serial-JTAG. The chip has a second USB controller,
@@ -376,7 +374,12 @@ the USB netif goes down and up again, which restarts its DHCP server
 wakeup allowed)" and "resumed" 29 s later, the Mac asked for its address
 and got 192.168.7.2 again, the portal and mDNS answered on the USB
 interface, the keyboard moved the volume - no re-enumeration this time,
-so the attach path waits for a longer sleep (a night) to be exercised. Also found: the core dump of this firmware is ~330 KB and did
+so the attach path waited for a longer sleep: **a night of the Mac
+sleeping and waking** (2026-09-13 22:35 to 2026-09-14 09:05, ten
+maintenance wakes) re-enumerated the device (the `ioreg` node id changed
+again) and the link was up in the morning - 192.168.7.2 on the Mac, the
+portal and mDNS on the cable, Bluetooth still connected, no reboot, the
+executable heap never below 103.8 K. Closed. Also found: the core dump of this firmware is ~330 KB and did
 not fit in 256 K ("Incorrect size of core dump image: 327685" at boot),
 which is why no panic ever showed up in `/api/coredump`; the partition is
 512 K now, flashed over USB on 2026-09-14.

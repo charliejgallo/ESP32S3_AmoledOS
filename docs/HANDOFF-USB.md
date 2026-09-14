@@ -1,7 +1,7 @@
 # Handoff: the USB port, for whoever builds on it next
 
-> Written 2026-09-13 at the end of the first USB session (branch `usb`,
-> 17 commits over `main`, none merged). Everything measured is in
+> Written 2026-09-13 at the end of the first USB session; the branch was
+> merged to `main` on 2026-09-14 as v0.3.6. Everything measured is in
 > [USB.md](USB.md); this is the map for continuing the work - a new app
 > that uses the port, the merge, or the parked pieces - without re-reading
 > the session.
@@ -10,7 +10,7 @@
 
 | | |
 | --- | --- |
-| Worktree | `/Users/charlie/Dropbox/ClaudeCode/ESP32S3_AmoledOS_usb`, branch `usb` on `main` 99ae26f |
+| Code | on `main` since v0.3.6 (the `usb` branch and its worktree were removed after the merge) |
 | On the watch | the last build of the branch, over OTA; boots on the console; the `en` and `de` packs on the card are the branch's (`tools/install_lang.sh <ip> en de`) |
 | Partition table on the watch | has a `coredump` entry at 0xF20000 (256 K), flashed over USB on 2026-09-12; `partitions.csv` of the branch matches; OTA never touches it |
 | Board facts | [USB.md](USB.md) section 1: D+/D- on GPIO19/20, VBUS only into the AXP2101 (no 5 V out), one PHY shared by the Serial-JTAG and the OTG, four IN endpoints for classes |
@@ -152,7 +152,8 @@ once section 4's symbol step is done:
 ## 7. Before the merge
 
 - **All three uses are checked** (2026-09-13/14): Bluetooth connected in
-  KEYS for 8 hours (executable heap never below 107 K), light sleep on
+  KEYS for 8 hours and then a night (executable heap never below 103.8 K,
+  the Mac's sleeps survived after the re-arm on attach), light sleep on
   battery in CONSOLE, and disk cycles with big files: 636 MB of MP3s in one
   drag, every file back with its size and a 14.9 MB one with the original's
   MD5 (USB.md, T5). Mind the eject: a forced unmount on the Mac does not
@@ -162,9 +163,9 @@ once section 4's symbol step is done:
   from ~90 to ~15 per heartbeat, which is the chip sleeping between them.
 - `sdkconfig` of `main` must be deleted before the first build there (the
   defaults changed; `idf.py fullclean` does not remove it).
-- Decide `CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT` for `main`: the branch
-  chose silent + core dump to flash because a panic in an OTG mode has no
-  console; for everyday use `PRINT_REBOOT` + core dump gives both.
+- Panics: `main` prints them on the console AND writes the core dump
+  (`PRINT_REBOOT` + core dump to flash); the branch ran silent for its
+  tests. The dump is ~330 KB: the partition is 512 K.
 - Static RAM: the USB classes take 16 KB of internal RAM whether the port
   is used or not (8 KB is the MSC buffer, the price of 767 KB/s in disk
   mode; 4 KB the NCM buffers). If the RAM audit's numbers matter more than

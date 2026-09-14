@@ -245,7 +245,7 @@ network survey's report format.
 | [POWER.md](docs/POWER.md) | the AXP2101, the rails, light sleep, and the measurements behind each switch |
 | [PORTAL.md](docs/PORTAL.md) | the web portal: pages, API, what it costs the board, and the dev server |
 | [ROADMAP.md](docs/ROADMAP.md) | what is planned and has no date: Android phones, starting with BLE HID |
-| [USB.md](docs/USB.md) | the USB-C port as a device or a host: what the board allows, the catalogue, the test rigs, and the plan (branch `usb`) |
+| [USB.md](docs/USB.md) | the USB-C port as a device or a host: what the board allows, the catalogue, the test rigs, the measurements and what was found |
 
 ## A note on what is written down
 
@@ -275,9 +275,11 @@ Where something is a guess, it says so.
 ## Status
 
 Running on hardware. WiFi, BLE against a real iPhone, audio in and out, the
-microSD, the web portal, TLS and over-the-air updates have all been exercised
-on the board — most of the measurements quoted throughout the source were taken
-there.
+microSD, the web portal, TLS, over-the-air updates and the USB port in its
+device modes (keyboard, mouse, gamepad, MIDI, network, disk) have all been
+exercised on the board — most of the measurements quoted throughout the source
+were taken there. USB host mode (a pendrive on the watch) works but is parked:
+the board cannot power a peripheral ([USB.md](docs/USB.md)).
 
 Known gaps: MP3 — the player handles 16-bit PCM WAV only. On the power side,
 the clean power-off at 3 % and the charge-cycle counter are written and

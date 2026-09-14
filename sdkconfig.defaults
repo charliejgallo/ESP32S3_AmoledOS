@@ -425,10 +425,12 @@ CONFIG_TINYUSB_DESC_PRODUCT_STRING="AmoledOS watch"
 CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
 CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF=y
 CONFIG_ESP_COREDUMP_CHECKSUM_CRC32=y
-# The panic goes to the coredump partition and the board reboots without
-# printing: with the USB port on the OTG side the console is not there, and a
-# panic print into a dead Serial-JTAG FIFO waits on every character.
-CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT=y
+# A panic is printed on the console AND written to the coredump partition
+# (docs/USB.md): with the USB port on the OTG side the console is not there,
+# and the dump is what is left; on the console the print is what a developer
+# reads first. The Serial-JTAG print has a timeout per character, it never
+# hangs. The branch ran silent for its tests; main prints.
+CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=y
 # mDNS: the board has no Ethernet, and its predefined interface took the
 # third of the three slots; the USB network interface (D6) needs one so
 # amoledos.local answers over the cable too.
