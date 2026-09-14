@@ -104,6 +104,7 @@ typedef enum {
     AOS_ICON_JUMP,          /* Claude Jump: the critter jumping off its platform */
     AOS_ICON_PIXEL,         /* Pixel Art: a heart of cells on the grid */
     AOS_ICON_MOLE,          /* Topos: a mole peeking out of its hole */
+    AOS_ICON_DUCK,          /* Pato goma: a yellow rubber duck */
 } aos_icon_id_t;
 
 typedef struct {

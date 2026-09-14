@@ -3,6 +3,28 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.3.7 — 2026-09-14
+
+Pato goma — the USB port put to work as a scriptable keyboard and mouse.
+
+### Pato goma
+
+- A new built-in app (`aos.pato`) that plays little keyboard-and-mouse
+  scripts over USB onto the computer the watch is plugged into. You write
+  them in the portal's new `/pato` page — a step builder and a raw
+  DuckyScript-like text view of the same format
+  (`STRING`/`KEY`/`DELAY`/`MOUSE`/`SCROLL`/`CLICK`/`REPEAT`/`#`) — pick one
+  on the watch and confirm, with a preview, before anything is sent.
+- The steps play out one action per LVGL timer tick, so a long script does
+  not freeze the screen and the Stop button always answers. A big mouse move
+  is split into 120-px reports at parse time.
+- The list refreshes itself: a script saved from the portal shows up without
+  leaving and re-entering the app.
+- New `AOS_ICON_DUCK`, English and German strings, a `/pato` portal page.
+- **For education and demonstration only**, to show the HID capabilities of
+  the ESP32-S3 in AmoledOS. We take no responsibility for the scripts third
+  parties run with it, nor for any misuse they may give it.
+
 ## v0.3.6 — 2026-09-14
 
 The USB port. Two days of building, a day and a night of use, and every

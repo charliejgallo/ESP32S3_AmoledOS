@@ -40,6 +40,8 @@ extern const uint8_t clima_html_start[]  asm("_binary_clima_html_start");
 extern const uint8_t clima_html_end[]    asm("_binary_clima_html_end");
 extern const uint8_t pixel_html_start[]  asm("_binary_pixel_html_start");
 extern const uint8_t pixel_html_end[]    asm("_binary_pixel_html_end");
+extern const uint8_t pato_html_start[]   asm("_binary_pato_html_start");
+extern const uint8_t pato_html_end[]     asm("_binary_pato_html_end");
 extern const uint8_t cotiz_html_start[]  asm("_binary_cotiz_html_start");
 extern const uint8_t cotiz_html_end[]    asm("_binary_cotiz_html_end");
 extern const uint8_t sensores_html_start[] asm("_binary_sensores_html_start");
@@ -132,6 +134,15 @@ static const char *resolve_dir(const char *dir)
             return NULL;
         }
         snprintf(path, sizeof(path), "%s/pixel", root);
+    } else if (strcmp(dir, "pato") == 0) {
+        /* The Pato goma app's scripts (.pato), on the card only. Like /pixel:
+         * /api/list, /api/download, /api/upload and /api/delete with dir=pato
+         * are the whole editor; the firmware never learns the format. */
+        const char *root = aos_hal_path_sd_root();
+        if (!root) {
+            return NULL;
+        }
+        snprintf(path, sizeof(path), "%s/pato", root);
     } else if (strcmp(dir, "sd") == 0 || strncmp(dir, "sd/", 3) == 0 ||
                strcmp(dir, "usb") == 0 || strncmp(dir, "usb/", 4) == 0) {
         /* The explorer: any folder of the card, or of the pendrive in host
@@ -537,6 +548,11 @@ static esp_err_t upload_handler(httpd_req_t *req)
     /* Same for /pixel: the first canvas drawn in the browser, before the app
      * was ever opened on the watch, finds no folder. */
     if (strstr(dir_path, "/pixel") != NULL) {
+        mkdir(dir_path, 0777);
+    }
+    /* Same for /pato: the first script saved from the browser finds no folder
+     * if the app has not been opened on the watch yet. */
+    if (strstr(dir_path, "/pato") != NULL) {
         mkdir(dir_path, 0777);
     }
 
@@ -1550,6 +1566,15 @@ static esp_err_t pixel_page_handler(httpd_req_t *req)
     httpd_resp_set_type(req, "text/html; charset=utf-8");
     return httpd_resp_send(req, (const char *)pixel_html_start,
                            pixel_html_end - pixel_html_start - 1);
+}
+
+/* /pato: same idea as /pixel. The page is the whole editor of the Pato goma
+ * scripts (.pato files, dir=pato); the firmware only stores the bytes. */
+static esp_err_t pato_page_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    return httpd_resp_send(req, (const char *)pato_html_start,
+                           pato_html_end - pato_html_start - 1);
 }
 
 static esp_err_t cotiz_page_handler(httpd_req_t *req)
@@ -2693,6 +2718,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/clima",   .method = HTTP_GET,  .handler = clima_get_handler },
         { .uri = "/api/clima",   .method = HTTP_POST, .handler = clima_set_handler },
         { .uri = "/pixel",       .method = HTTP_GET,  .handler = pixel_page_handler },
+        { .uri = "/pato",        .method = HTTP_GET,  .handler = pato_page_handler },
         { .uri = "/cotiz",       .method = HTTP_GET,  .handler = cotiz_page_handler },
         { .uri = "/api/cotiz",   .method = HTTP_GET,  .handler = cotiz_get_handler },
         { .uri = "/api/cotiz",   .method = HTTP_POST, .handler = cotiz_set_handler },

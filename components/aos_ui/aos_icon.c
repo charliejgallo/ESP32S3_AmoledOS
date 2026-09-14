@@ -1194,6 +1194,49 @@ static void draw_vector(lv_obj_t *base, aos_icon_id_t id, int32_t size)
         break;
     }
 
+    case AOS_ICON_DUCK: {
+        /* Pato goma: a yellow rubber duck facing left. Cardinal shapes, like
+         * the rest of the catalogue, but this one keeps its own colour -a
+         * rubber duck that is not yellow is not a rubber duck- so the app's
+         * gradient should be a water blue for it to sit on. Body oval low and
+         * wide, round head up and to the right, an orange beak out the left,
+         * a black eye. */
+        lv_color_t amarillo = lv_color_hex(0xFFD60A);
+
+        lv_obj_t *cuerpo = lv_obj_create(base);
+        lv_obj_remove_style_all(cuerpo);
+        lv_obj_set_size(cuerpo, s * 60 / 100, s * 40 / 100);
+        lv_obj_set_style_radius(cuerpo, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_color(cuerpo, amarillo, 0);
+        lv_obj_set_style_bg_opa(cuerpo, LV_OPA_COVER, 0);
+        lv_obj_align(cuerpo, LV_ALIGN_CENTER, s * 4 / 100, s * 16 / 100);
+
+        lv_obj_t *cabeza = lv_obj_create(base);
+        lv_obj_remove_style_all(cabeza);
+        lv_obj_set_size(cabeza, s * 34 / 100, s * 34 / 100);
+        lv_obj_set_style_radius(cabeza, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_color(cabeza, amarillo, 0);
+        lv_obj_set_style_bg_opa(cabeza, LV_OPA_COVER, 0);
+        lv_obj_align(cabeza, LV_ALIGN_CENTER, -s * 14 / 100, -s * 18 / 100);
+
+        lv_obj_t *pico = lv_obj_create(base);
+        lv_obj_remove_style_all(pico);
+        lv_obj_set_size(pico, s * 18 / 100, LV_MAX(3, s * 9 / 100));
+        lv_obj_set_style_radius(pico, s * 4 / 100, 0);
+        lv_obj_set_style_bg_color(pico, lv_color_hex(0xFF8A1E), 0);
+        lv_obj_set_style_bg_opa(pico, LV_OPA_COVER, 0);
+        lv_obj_align(pico, LV_ALIGN_CENTER, -s * 30 / 100, -s * 18 / 100);
+
+        lv_obj_t *ojo = lv_obj_create(base);
+        lv_obj_remove_style_all(ojo);
+        lv_obj_set_size(ojo, LV_MAX(2, s * 6 / 100), LV_MAX(2, s * 6 / 100));
+        lv_obj_set_style_radius(ojo, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_color(ojo, lv_color_hex(0x000000), 0);
+        lv_obj_set_style_bg_opa(ojo, LV_OPA_COVER, 0);
+        lv_obj_align(ojo, LV_ALIGN_CENTER, -s * 18 / 100, -s * 22 / 100);
+        break;
+    }
+
     default:
         break;
     }

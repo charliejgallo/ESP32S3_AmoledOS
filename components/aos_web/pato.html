@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Pato goma</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  /* La lista de scripts guardados en la tarjeta. */
+  .lista { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+  .fila { background: var(--card); border-radius: 12px; padding: 12px 14px;
+          display: flex; align-items: center; gap: 12px; }
+  .fila b { font-weight: 500; flex: 1; }
+  .fila span.meta { color: var(--dim); font-size: 13px; }
+  .fila button { padding: 8px 12px; font-size: 13.5px; border-radius: 9px; }
+  .vacio { color: var(--dim); font-size: 14px; margin-top: 10px; }
+
+  /* El editor: cabecera, pestañas, y una de las dos vistas. */
+  #editor .cab { display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+                 margin-bottom: 14px; }
+  #editor .cab input { flex: 1 1 200px; padding: 10px 12px; }
+  #editor .cab #estado { color: var(--dim); font-size: 13px; flex-basis: 100%; }
+  #editor .cab #estado.bien { color: var(--green); }
+  #editor .cab #estado.mal  { color: var(--red); }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tabs button { background: var(--card2); color: var(--text); padding: 9px 16px;
+                 border-radius: 10px; font-size: 14px; }
+  .tabs button.on { background: var(--accent); color: #fff; }
+
+  .cuerpo { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+  .principal { flex: 1 1 340px; min-width: 300px; }
+  .ayuda { flex: 1 1 240px; min-width: 220px; background: var(--card); border-radius: 12px;
+           padding: 14px 16px; font-size: 13px; color: var(--dim); }
+  .ayuda h3 { margin: 0 0 8px; font-size: 12px; color: var(--dim); font-weight: 600;
+              text-transform: uppercase; letter-spacing: .05em; }
+  .ayuda code { color: var(--text); font-family: ui-monospace, Menlo, monospace; }
+  .ayuda dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; }
+  .ayuda dt { color: var(--accent); font-family: ui-monospace, Menlo, monospace; white-space: nowrap; }
+  .ayuda dd { margin: 0; }
+
+  /* Constructor: una fila por paso. */
+  .pasos { display: flex; flex-direction: column; gap: 8px; }
+  .paso { background: var(--card); border-radius: 11px; padding: 8px 10px;
+          display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .paso select.op { flex: 0 0 auto; padding: 7px 8px; }
+  .paso input, .paso select { padding: 7px 8px; font-size: 13.5px; }
+  .paso .campo { flex: 1 1 120px; min-width: 90px; }
+  .paso .num { flex: 0 0 88px; width: 88px; }
+  .paso .mover, .paso .quitar { background: var(--card2); color: var(--text);
+                                padding: 6px 10px; border-radius: 8px; font-size: 13px; }
+  .paso .quitar { background: #3a2626; color: var(--red); }
+  .agregar { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .agregar select { flex: 1 1 160px; padding: 9px 10px; }
+
+  /* Texto crudo. */
+  #texto { width: 100%; min-height: 320px; box-sizing: border-box; padding: 12px 14px;
+           font-family: ui-monospace, Menlo, monospace; font-size: 14px; line-height: 1.5;
+           background: var(--card); color: var(--text); border: 1px solid var(--line);
+           border-radius: 12px; resize: vertical; }
+
+  .acciones { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  footer { margin-top: 28px; font-size: 13px; color: var(--dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Pato goma</h1></div>
+  <p class="sub" data-t="bajada">Los scripts de teclado y mouse que el reloj puede
+     ejecutar por USB en la computadora. Se guardan en la tarjeta; en el reloj los
+     elegís y confirmás antes de que se envíe nada.</p>
+
+  <nav class="paginas"></nav>
+
+  <!-- ================= LISTA ================= -->
+  <section id="pantalla-lista">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <h2 data-t="h_scripts" style="flex:1">Scripts</h2>
+      <button id="nuevo" data-t="btn_nuevo">Nuevo script</button>
+    </div>
+    <div class="lista" id="lista"></div>
+    <p class="vacio" id="vacio" data-t="sin_scripts" hidden>Todavía no hay scripts.
+       Creá el primero con "Nuevo script".</p>
+  </section>
+
+  <!-- ================= EDITOR ================= -->
+  <section id="editor" hidden>
+    <div class="cab">
+      <button class="sec" id="volver">← <span data-t="btn_volver">Scripts</span></button>
+      <input id="nombre" data-t-ph="ph_nombre" placeholder="Nombre del script" maxlength="40">
+      <div id="estado"></div>
+    </div>
+
+    <div class="tabs">
+      <button id="tab-const" class="on" data-t="tab_const">Constructor</button>
+      <button id="tab-texto" data-t="tab_texto">Texto</button>
+    </div>
+
+    <div class="cuerpo">
+      <div class="principal">
+        <!-- vista constructor -->
+        <div id="vista-const">
+          <div class="pasos" id="pasos"></div>
+          <div class="agregar">
+            <select id="tipo-nuevo"></select>
+            <button id="add" data-t="btn_agregar">Agregar paso</button>
+          </div>
+        </div>
+        <!-- vista texto -->
+        <div id="vista-texto" hidden>
+          <textarea id="texto" spellcheck="false"></textarea>
+        </div>
+      </div>
+
+      <aside class="ayuda">
+        <h3 data-t="h_ayuda">Comandos</h3>
+        <dl>
+          <dt>STRING</dt><dd data-t="ay_string">escribe el texto</dd>
+          <dt>KEY</dt><dd data-t="ay_key">una tecla o combo: <code>enter</code>, <code>cmd+space</code>, <code>f5</code></dd>
+          <dt>DELAY</dt><dd data-t="ay_delay">espera en milisegundos</dd>
+          <dt>MOUSE</dt><dd data-t="ay_mouse">mueve el puntero <code>dx dy</code></dd>
+          <dt>SCROLL</dt><dd data-t="ay_scroll">rueda (+ arriba, − abajo)</dd>
+          <dt>CLICK</dt><dd data-t="ay_click">clic <code>1</code> izq / <code>2</code> der</dd>
+          <dt>REPEAT</dt><dd data-t="ay_repeat">repite la línea anterior n veces</dd>
+          <dt>#</dt><dd data-t="ay_com">comentario</dd>
+        </dl>
+        <p style="margin-top:12px" data-t="ay_teclas">Combos: <code>cmd+</code> <code>ctrl+</code>
+           <code>alt+</code> <code>shift+</code> se apilan sobre una tecla.</p>
+      </aside>
+    </div>
+
+    <div class="acciones">
+      <button id="guardar" data-t="btn_guardar">Guardar en el reloj</button>
+      <button class="mala" id="borrar" data-t="btn_borrar">Borrar del reloj</button>
+    </div>
+  </section>
+
+  <footer data-t="pie">Los archivos .pato viven en /pato de la tarjeta. La app del reloj
+     los lee al abrir. No pongas contraseñas: cualquier computadora lee lo que escribe
+     un teclado USB.</footer>
+  <footer data-t="descargo" style="margin-top:10px">Esta app es sólo con fines educativos y
+     demostrativos de las capacidades HID del ESP32-S3 en AmoledOS. No nos hacemos responsables
+     de los scripts que ejecuten terceros ni de los malos usos que le puedan dar.</footer>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+/* El formato .pato es el contrato entre esta pagina y el firmware
+   (components/aos_apps/aos_app_pato.c). Escrito en los dos lados a proposito:
+   el firmware solo guarda y devuelve bytes por /api/upload y /api/download. */
+const DIR = "pato";
+const $ = aos.$;
+
+const TR = {
+  en: {
+    titulo: "Pato goma",
+    bajada: "The keyboard-and-mouse scripts the watch can play over USB onto the computer. " +
+            "They live on the card; on the watch you pick one and confirm before anything is sent.",
+    h_scripts: "Scripts", btn_nuevo: "New script",
+    sin_scripts: "No scripts yet. Make the first one with “New script”.",
+    btn_volver: "Scripts", ph_nombre: "Script name",
+    tab_const: "Builder", tab_texto: "Text",
+    btn_agregar: "Add step", btn_guardar: "Save to the watch", btn_borrar: "Delete from the watch",
+    h_ayuda: "Commands",
+    ay_string: "types the text", ay_key: "a key or combo: <code>enter</code>, <code>cmd+space</code>, <code>f5</code>",
+    ay_delay: "waits, in milliseconds", ay_mouse: "moves the pointer <code>dx dy</code>",
+    ay_scroll: "the wheel (+ up, − down)", ay_click: "click <code>1</code> left / <code>2</code> right",
+    ay_repeat: "repeats the previous line n times", ay_com: "comment",
+    ay_teclas: "Combos: <code>cmd+</code> <code>ctrl+</code> <code>alt+</code> <code>shift+</code> stack on a key.",
+    pie: "The .pato files live in /pato on the card. The watch app reads them when it opens. " +
+         "Do not put passwords in them: any computer reads whatever a USB keyboard types.",
+    descargo: "This app is for educational purposes only, to demonstrate the HID capabilities of the " +
+              "ESP32-S3 in AmoledOS. We take no responsibility for the scripts third parties run with it " +
+              "or for any misuse they may put it to.",
+    op_string: "Type", op_key: "Key", op_delay: "Wait", op_mouse: "Mouse",
+    op_scroll: "Scroll", op_click: "Click", op_repeat: "Repeat", op_com: "Comment", op_raw: "Other",
+    ph_string: "text to type", ph_key: "enter, cmd+space...", ph_com: "note",
+    click_izq: "left", click_der: "right",
+    guardando: "Saving...", guardado: "Saved to the watch", err_guardar: "Could not save",
+    borrado: "Deleted", err_placa: "No answer from the watch", err_leer: "Could not read the script",
+    conf_borrar: "Delete this script from the watch?", falta_nombre: "Give the script a name",
+    pasos_n: "steps", ya_existe: "There is already a script with that name"
+  },
+  de: {
+    titulo: "Pato goma",
+    bajada: "Die Tastatur- und Maus-Skripte, die die Uhr per USB auf dem Computer abspielen kann. " +
+            "Sie liegen auf der Karte; auf der Uhr wählst du eines und bestätigst, bevor etwas gesendet wird.",
+    h_scripts: "Skripte", btn_nuevo: "Neues Skript",
+    sin_scripts: "Noch keine Skripte. Erstelle das erste mit „Neues Skript“.",
+    btn_volver: "Skripte", ph_nombre: "Skriptname",
+    tab_const: "Baukasten", tab_texto: "Text",
+    btn_agregar: "Schritt hinzufügen", btn_guardar: "Auf der Uhr speichern", btn_borrar: "Von der Uhr löschen",
+    h_ayuda: "Befehle",
+    ay_string: "tippt den Text", ay_key: "eine Taste oder Kombi: <code>enter</code>, <code>cmd+space</code>, <code>f5</code>",
+    ay_delay: "wartet, in Millisekunden", ay_mouse: "bewegt den Zeiger <code>dx dy</code>",
+    ay_scroll: "das Rad (+ hoch, − runter)", ay_click: "Klick <code>1</code> links / <code>2</code> rechts",
+    ay_repeat: "wiederholt die vorige Zeile n-mal", ay_com: "Kommentar",
+    ay_teclas: "Kombis: <code>cmd+</code> <code>ctrl+</code> <code>alt+</code> <code>shift+</code> stapeln sich auf eine Taste.",
+    pie: "Die .pato-Dateien liegen in /pato auf der Karte. Die Uhr-App liest sie beim Öffnen. " +
+         "Keine Passwörter hineinschreiben: jeder Computer liest, was eine USB-Tastatur tippt.",
+    descargo: "Diese App dient nur zu Bildungs- und Demonstrationszwecken der HID-Fähigkeiten des " +
+              "ESP32-S3 in AmoledOS. Wir übernehmen keine Verantwortung für die Skripte, die Dritte " +
+              "damit ausführen, oder für etwaigen Missbrauch.",
+    op_string: "Tippen", op_key: "Taste", op_delay: "Warten", op_mouse: "Maus",
+    op_scroll: "Scrollen", op_click: "Klick", op_repeat: "Wiederholen", op_com: "Kommentar", op_raw: "Anderes",
+    ph_string: "zu tippender Text", ph_key: "enter, cmd+space...", ph_com: "Notiz",
+    click_izq: "links", click_der: "rechts",
+    guardando: "Speichern...", guardado: "Auf der Uhr gespeichert", err_guardar: "Konnte nicht speichern",
+    borrado: "Gelöscht", err_placa: "Keine Antwort von der Uhr", err_leer: "Konnte das Skript nicht lesen",
+    conf_borrar: "Dieses Skript von der Uhr löschen?", falta_nombre: "Gib dem Skript einen Namen",
+    pasos_n: "Schritte", ya_existe: "Es gibt bereits ein Skript mit diesem Namen"
+  }
+};
+const ES = {
+  op_string: "Escribir", op_key: "Tecla", op_delay: "Esperar", op_mouse: "Mouse",
+  op_scroll: "Rueda", op_click: "Clic", op_repeat: "Repetir", op_com: "Comentario", op_raw: "Otro",
+  ph_string: "texto a escribir", ph_key: "enter, cmd+space...", ph_com: "nota",
+  click_izq: "izq", click_der: "der",
+  guardando: "Guardando...", guardado: "Guardado en el reloj", err_guardar: "No se pudo guardar",
+  borrado: "Borrado", err_placa: "El reloj no responde", err_leer: "No se pudo leer el script",
+  conf_borrar: "¿Borrar este script del reloj?", falta_nombre: "Ponele un nombre al script",
+  pasos_n: "pasos", ya_existe: "Ya hay un script con ese nombre"
+};
+function t(k) { const v = aos.t(k); return v === k ? (ES[k] || k) : v; }
+
+/* --------------------------------------------------------------------------
+ * El modelo: un script es un array de pasos { op, v, v2 }.
+ * op: string | key | delay | mouse | scroll | click | repeat | com | raw | blank
+ * ------------------------------------------------------------------------- */
+const OPS = ["string", "key", "delay", "mouse", "scroll", "click", "repeat", "com"];
+
+function parseTexto(txt) {
+  const pasos = [];
+  txt.split("\n").forEach(linea => {
+    const s = linea.replace(/\s+$/, "");
+    if (s.trim() === "") { pasos.push({ op: "blank" }); return; }
+    if (s.trim()[0] === "#") { pasos.push({ op: "com", v: s.trim().replace(/^#\s?/, "") }); return; }
+    const m = s.trim().match(/^(\S+)\s*(.*)$/);
+    const verbo = m[1].toUpperCase(), arg = m[2];
+    if (verbo === "STRING" || verbo === "TYPE") pasos.push({ op: "string", v: arg });
+    else if (verbo === "KEY" || verbo === "PRESS") pasos.push({ op: "key", v: arg });
+    else if (verbo === "DELAY" || verbo === "WAIT") pasos.push({ op: "delay", v: parseInt(arg) || 0 });
+    else if (verbo === "MOUSE" || verbo === "MOVE") {
+      const p = arg.split(/\s+/); pasos.push({ op: "mouse", v: parseInt(p[0]) || 0, v2: parseInt(p[1]) || 0 });
+    }
+    else if (verbo === "SCROLL") pasos.push({ op: "scroll", v: parseInt(arg) || 0 });
+    else if (verbo === "CLICK") pasos.push({ op: "click", v: (parseInt(arg) === 2) ? 2 : 1 });
+    else if (verbo === "REPEAT") pasos.push({ op: "repeat", v: parseInt(arg) || 1 });
+    else pasos.push({ op: "raw", v: s.trim() });   /* algo que no reconocemos: se conserva tal cual */
+  });
+  return pasos;
+}
+
+function serializar(pasos) {
+  return pasos.map(p => {
+    switch (p.op) {
+      case "blank":  return "";
+      case "com":    return "# " + (p.v || "");
+      case "raw":    return p.v || "";
+      case "string": return "STRING " + (p.v || "");
+      case "key":    return "KEY " + (p.v || "");
+      case "delay":  return "DELAY " + (parseInt(p.v) || 0);
+      case "mouse":  return "MOUSE " + (parseInt(p.v) || 0) + " " + (parseInt(p.v2) || 0);
+      case "scroll": return "SCROLL " + (parseInt(p.v) || 0);
+      case "click":  return "CLICK " + ((parseInt(p.v) === 2) ? 2 : 1);
+      case "repeat": return "REPEAT " + (parseInt(p.v) || 1);
+      default:       return "";
+    }
+  }).join("\n");
+}
+
+/* cuenta los pasos "reales" (lo que el reloj ejecuta), sin comentarios ni blancos */
+function contarPasos(pasos) {
+  let n = 0, prevReal = false;
+  pasos.forEach(p => {
+    if (p.op === "blank" || p.op === "com" || p.op === "raw") return;
+    if (p.op === "repeat") { n += (parseInt(p.v) || 0); return; }
+    n += 1; prevReal = true;
+  });
+  return n;
+}
+
+/* --------------------------------------------------------------------------
+ * Estado del editor
+ * ------------------------------------------------------------------------- */
+let pasos = [];        /* el script en edicion */
+let original = null;   /* nombre de archivo original (para renombrar/borrar) */
+let vistaTexto = false;
+
+function estado(msg, clase) {
+  const e = $("estado");
+  e.textContent = msg || "";
+  e.className = clase || "";
+}
+
+/* ---- constructor ---- */
+function opcionesTipo(sel) {
+  return OPS.map(op => '<option value="' + op + '"' + (op === sel ? " selected" : "") +
+                       ">" + aos.esc(t("op_" + op)) + "</option>").join("");
+}
+
+function pintarPasos() {
+  const cont = $("pasos");
+  cont.innerHTML = "";
+  pasos.forEach((p, i) => {
+    if (p.op === "blank") return;         /* los blancos no se muestran en el constructor */
+    const fila = document.createElement("div");
+    fila.className = "paso";
+    let campos = "";
+    if (p.op === "string")
+      campos = '<input class="campo" data-f="v" placeholder="' + aos.esc(t("ph_string")) + '" value="' + aos.esc(p.v || "") + '">';
+    else if (p.op === "key")
+      campos = '<input class="campo" data-f="v" placeholder="' + aos.esc(t("ph_key")) + '" value="' + aos.esc(p.v || "") + '">';
+    else if (p.op === "delay")
+      campos = '<input class="num" type="number" min="0" max="60000" data-f="v" value="' + (parseInt(p.v) || 0) + '"> ms';
+    else if (p.op === "mouse")
+      campos = 'dx <input class="num" type="number" data-f="v" value="' + (parseInt(p.v) || 0) + '"> ' +
+               'dy <input class="num" type="number" data-f="v2" value="' + (parseInt(p.v2) || 0) + '">';
+    else if (p.op === "scroll")
+      campos = '<input class="num" type="number" data-f="v" value="' + (parseInt(p.v) || 0) + '">';
+    else if (p.op === "click")
+      campos = '<select data-f="v"><option value="1"' + (p.v !== 2 ? " selected" : "") + '>' + aos.esc(t("click_izq")) +
+               '</option><option value="2"' + (p.v === 2 ? " selected" : "") + '>' + aos.esc(t("click_der")) + '</option></select>';
+    else if (p.op === "repeat")
+      campos = '<input class="num" type="number" min="1" max="500" data-f="v" value="' + (parseInt(p.v) || 1) + '">';
+    else if (p.op === "com")
+      campos = '<input class="campo" data-f="v" placeholder="' + aos.esc(t("ph_com")) + '" value="' + aos.esc(p.v || "") + '">';
+    else if (p.op === "raw")
+      campos = '<input class="campo" data-f="v" value="' + aos.esc(p.v || "") + '">';
+
+    fila.innerHTML =
+      '<select class="op" data-i="' + i + '">' + opcionesTipo(p.op === "raw" ? "com" : p.op) + '</select>' +
+      campos +
+      '<button class="mover" data-mv="up" title="↑">↑</button>' +
+      '<button class="mover" data-mv="down" title="↓">↓</button>' +
+      '<button class="quitar" title="✕">✕</button>';
+
+    /* cambiar el tipo */
+    fila.querySelector("select.op").onchange = e => { pasos[i].op = e.target.value; sincronizarDesdeDOM(); pintarPasos(); };
+    /* editar un campo */
+    fila.querySelectorAll("[data-f]").forEach(inp => {
+      inp.oninput = () => { pasos[i][inp.dataset.f] = inp.value; };
+    });
+    /* mover / quitar */
+    fila.querySelector('[data-mv="up"]').onclick = () => { mover(i, -1); };
+    fila.querySelector('[data-mv="down"]').onclick = () => { mover(i, 1); };
+    fila.querySelector(".quitar").onclick = () => { pasos.splice(i, 1); pintarPasos(); };
+
+    cont.appendChild(fila);
+  });
+}
+
+/* lee los valores actuales de los inputs al DOM (por si se cambia el tipo con foco en un campo) */
+function sincronizarDesdeDOM() {
+  $("pasos").querySelectorAll(".paso").forEach(fila => {
+    const i = parseInt(fila.querySelector("select.op").dataset.i);
+    fila.querySelectorAll("[data-f]").forEach(inp => { if (pasos[i]) pasos[i][inp.dataset.f] = inp.value; });
+  });
+}
+
+function mover(i, d) {
+  const j = i + d;
+  if (j < 0 || j >= pasos.length) return;
+  const tmp = pasos[i]; pasos[i] = pasos[j]; pasos[j] = tmp;
+  pintarPasos();
+}
+
+/* ---- alternar vistas ---- */
+function aVistaTexto() {
+  sincronizarDesdeDOM();
+  $("texto").value = serializar(pasos);
+  vistaTexto = true;
+  $("vista-const").hidden = true;
+  $("vista-texto").hidden = false;
+  $("tab-const").classList.remove("on");
+  $("tab-texto").classList.add("on");
+}
+/* Muestra el constructor con los 'pasos' actuales, SIN reparsear el textarea
+   (lo usan nuevo/abrir, que ya tienen los pasos cargados). */
+function mostrarConstructor() {
+  vistaTexto = false;
+  $("vista-texto").hidden = true;
+  $("vista-const").hidden = false;
+  $("tab-texto").classList.remove("on");
+  $("tab-const").classList.add("on");
+  pintarPasos();
+}
+/* Vuelve al constructor DESDE la vista de texto: primero parsea lo escrito. */
+function aVistaConst() {
+  pasos = parseTexto($("texto").value);
+  mostrarConstructor();
+}
+
+/* --------------------------------------------------------------------------
+ * Archivos
+ * ------------------------------------------------------------------------- */
+function limpiarNombre(n) {
+  return n.replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, " ").trim().slice(0, 40);
+}
+async function listar() {
+  const r = await fetch("/api/list?dir=" + DIR);
+  if (!r.ok) throw new Error(r.status);
+  return ((await r.json()).files || []).filter(f => /\.pato$/i.test(f.name));
+}
+
+let archivos = [];
+async function cargarLista() {
+  try { archivos = await listar(); }
+  catch (e) { archivos = []; aos.brindis(t("err_placa")); }
+  const lista = $("lista");
+  lista.innerHTML = "";
+  $("vacio").hidden = archivos.length > 0;
+  archivos.forEach(f => {
+    const nombre = f.name.replace(/\.pato$/i, "");
+    const fila = document.createElement("div");
+    fila.className = "fila";
+    fila.innerHTML = '<b></b><span class="meta">' + aos.humano(f.size) + '</span>' +
+                     '<button class="sec editar">✎</button>' +
+                     '<button class="mala borrar">✕</button>';
+    fila.querySelector("b").textContent = nombre;
+    fila.querySelector(".editar").onclick = () => abrir(f.name);
+    fila.querySelector(".borrar").onclick = () => borrarArchivo(f.name, true);
+    lista.appendChild(fila);
+  });
+}
+
+function mostrarLista() {
+  $("pantalla-lista").hidden = false;
+  $("editor").hidden = true;
+  cargarLista();
+}
+function mostrarEditor() {
+  $("pantalla-lista").hidden = true;
+  $("editor").hidden = false;
+}
+
+function nuevo() {
+  pasos = [{ op: "string", v: "" }];
+  original = null;
+  $("nombre").value = "";
+  estado("");
+  mostrarConstructor();
+  mostrarEditor();
+}
+
+async function abrir(fileName) {
+  try {
+    const r = await fetch("/api/download?dir=" + DIR + "&name=" + encodeURIComponent(fileName) + "&_=" + Date.now(),
+                          { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    const txt = await r.text();
+    pasos = parseTexto(txt);
+    original = fileName;
+    $("nombre").value = fileName.replace(/\.pato$/i, "");
+    estado("");
+    mostrarConstructor();
+    mostrarEditor();
+  } catch (e) { aos.brindis(t("err_leer")); }
+}
+
+async function guardar() {
+  if (vistaTexto) pasos = parseTexto($("texto").value); else sincronizarDesdeDOM();
+  const nombre = limpiarNombre($("nombre").value);
+  if (!nombre) { estado(t("falta_nombre"), "mal"); return; }
+  const fileName = nombre + ".pato";
+  if ((!original || original.toLowerCase() !== fileName.toLowerCase()) &&
+      archivos.some(f => f.name.toLowerCase() === fileName.toLowerCase())) {
+    estado(t("ya_existe"), "mal"); return;
+  }
+  estado(t("guardando"), "");
+  try {
+    const cuerpo = serializar(pasos).replace(/\n+$/, "") + "\n";
+    const r = await fetch("/api/upload?dir=" + DIR + "&name=" + encodeURIComponent(fileName),
+                          { method: "POST", body: cuerpo });
+    if (!r.ok) throw new Error(r.status);
+    /* renombrado: borrar el archivo viejo */
+    if (original && original.toLowerCase() !== fileName.toLowerCase()) {
+      await fetch("/api/delete?dir=" + DIR + "&name=" + encodeURIComponent(original), { method: "POST" });
+    }
+    original = fileName;
+    estado(t("guardado") + " · " + contarPasos(pasos) + " " + t("pasos_n"), "bien");
+    archivos = await listar();
+  } catch (e) { estado(t("err_guardar"), "mal"); }
+}
+
+async function borrarArchivo(fileName, desdeLista) {
+  if (!confirm(t("conf_borrar"))) return;
+  try {
+    const r = await fetch("/api/delete?dir=" + DIR + "&name=" + encodeURIComponent(fileName), { method: "POST" });
+    if (!r.ok) throw new Error(r.status);
+    aos.brindis(t("borrado"));
+    if (desdeLista) { cargarLista(); }
+    else { mostrarLista(); }
+  } catch (e) { aos.brindis(t("err_placa")); }
+}
+
+/* --------------------------------------------------------------------------
+ * Cableado
+ * ------------------------------------------------------------------------- */
+$("nuevo").onclick = nuevo;
+$("volver").onclick = mostrarLista;
+$("tab-const").onclick = () => { if (vistaTexto) aVistaConst(); };
+$("tab-texto").onclick = () => { if (!vistaTexto) aVistaTexto(); };
+$("guardar").onclick = guardar;
+$("borrar").onclick = () => { if (original) borrarArchivo(original, false); else mostrarLista(); };
+$("add").onclick = () => {
+  sincronizarDesdeDOM();
+  const op = $("tipo-nuevo").value;
+  const nuevoPaso = { op: op };
+  if (op === "click") nuevoPaso.v = 1;
+  if (op === "delay") nuevoPaso.v = 500;
+  if (op === "repeat") nuevoPaso.v = 2;
+  if (op === "mouse") { nuevoPaso.v = 0; nuevoPaso.v2 = 0; }
+  pasos.push(nuevoPaso);
+  pintarPasos();
+};
+
+function llenarTipoNuevo() {
+  $("tipo-nuevo").innerHTML = OPS.map(op =>
+    '<option value="' + op + '">' + aos.esc(t("op_" + op)) + "</option>").join("");
+}
+
+aos.init(TR).then(() => {
+  llenarTipoNuevo();
+  mostrarLista();
+});
+</script>
+</body>
+</html>
