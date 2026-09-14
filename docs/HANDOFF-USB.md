@@ -147,26 +147,25 @@ once section 4's symbol step is done:
 - **D8, the screen as a webcam** (`usb_device_uvc`): its own mode, since KEYS
   has no endpoint left; software JPEG of 368x448 at 3-5 fps.
 
-## 7. Before the merge
+## 7. After the merge (2026-09-14)
 
-- **All three uses are checked** (2026-09-13/14): Bluetooth connected in
-  KEYS for 8 hours and then a night (executable heap never below 103.8 K,
-  the Mac's sleeps survived after the re-arm on attach), light sleep on
-  battery in CONSOLE, and disk cycles with big files: 636 MB of MP3s in one
-  drag, every file back with its size and a 14.9 MB one with the original's
-  MD5 (USB.md, T5). Mind the eject: a forced unmount on the Mac does not
-  send the SCSI eject, `diskutil eject /dev/diskN` afterwards does. **Light sleep on battery in
-  CONSOLE is checked**: the user's log of 2026-09-13 17:31 shows "light
-  sleep on" at the unplug, the display off, and the touch reads dropping
-  from ~90 to ~15 per heartbeat, which is the chip sleeping between them.
-- `sdkconfig` of `main` must be deleted before the first build there (the
-  defaults changed; `idf.py fullclean` does not remove it).
-- Panics: `main` prints them on the console AND writes the core dump
-  (`PRINT_REBOOT` + core dump to flash); the branch ran silent for its
-  tests. The dump is ~330 KB: the partition is 512 K.
+- Merged to `main` and published as v0.3.6 (release with `amoledos-full.bin`,
+  `amoledos.bin`, `amoledos-firmware-files.zip`, `apps.zip`). The three uses
+  that gated it were checked: Bluetooth connected in KEYS for 8 hours and a
+  night of the Mac's sleeps (executable heap never below 103.8 K, the
+  re-arm on attach survived a re-enumeration), light sleep on battery in
+  CONSOLE, and disk cycles with big files (636 MB of MP3s in one drag, every
+  file back with its size, a 14.9 MB one with the original's MD5). Mind the
+  eject: a forced unmount on the Mac does not send the SCSI eject,
+  `diskutil eject /dev/diskN` afterwards does.
+- Panics print on the console AND go to the 512 K `coredump` partition; the
+  partition table changed for it (`amoledos-full.bin` carries it, an OTA
+  does not).
 - Static RAM: the USB classes take 16 KB of internal RAM whether the port
   is used or not (8 KB is the MSC buffer, the price of 767 KB/s in disk
   mode; 4 KB the NCM buffers). If the RAM audit's numbers matter more than
   disk speed, `CONFIG_TINYUSB_MSC_BUFSIZE=4096` is the knob.
-- `docs/USB.md` "Where host mode stands" says why host is parked and what
-  rig would unpark it.
+- Host mode is on the roadmap, planned without a date: `docs/USB.md` "Where
+  host mode stands" and [ROADMAP.md](ROADMAP.md) say why and what rig would
+  unpark it.
+- Left: D8 (the screen as a webcam) and the app ideas of section 6.
