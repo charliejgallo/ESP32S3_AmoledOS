@@ -371,8 +371,12 @@ and the netif never heard about it. Now TinyUSB's device events are logged
 (attached, detached, suspended, resumed - the last two need
 `CONFIG_TINYUSB_SUSPEND_CALLBACK` / `RESUME_CALLBACK`) and on every attach
 the USB netif goes down and up again, which restarts its DHCP server
-(`aos_usb_net_relink`). Whether that is enough after a real sleep is the
-next test. Also found: the core dump of this firmware is ~330 KB and did
+(`aos_usb_net_relink`). Measured on a lid-close of one minute
+(2026-09-13 22:34): the watch logged "suspended by the computer (remote
+wakeup allowed)" and "resumed" 29 s later, the Mac asked for its address
+and got 192.168.7.2 again, the portal and mDNS answered on the USB
+interface, the keyboard moved the volume - no re-enumeration this time,
+so the attach path waits for a longer sleep (a night) to be exercised. Also found: the core dump of this firmware is ~330 KB and did
 not fit in 256 K ("Incorrect size of core dump image: 327685" at boot),
 which is why no panic ever showed up in `/api/coredump`; the partition is
 512 K now, flashed over USB on 2026-09-14.
