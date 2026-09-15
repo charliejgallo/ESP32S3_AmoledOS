@@ -70,6 +70,11 @@ void aos_ui_request_watchface_picker(void);
  * whose callback asked for it. Same reason as the watchface picker. */
 void aos_ui_request_language(const char *code);
 
+/* The portal uploaded or deleted an icon file: rescan aos_hal_path_icons()
+ * and rebuild the launcher, on the next tick (the HTTP task must not touch
+ * LVGL objects). See docs/ICONS.md. */
+void aos_ui_request_icons(void);
+
 /* The rest of what the web portal asks for, deferred for the same reason: the
  * server runs in its own task and none of this may touch LVGL from there.
  * Each one is a note that aos_ui_tick() reads and applies with the lock held.

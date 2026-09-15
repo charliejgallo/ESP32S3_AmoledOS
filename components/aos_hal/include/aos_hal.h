@@ -364,6 +364,11 @@ void aos_hal_sd_mark_mounted(bool mounted);
  * to get. See docs/I18N.md. */
 const char *aos_hal_path_lang(void);
 
+/* Icon files, <desc.id>.aic (docs/ICONS.md). Card when there is one, SPIFFS
+ * otherwise, like the app directories: an icon dropped here overrides the
+ * one the app brought, or the firmware's own. */
+const char *aos_hal_path_icons(void);
+
 bool aos_hal_sd_present(void);
 bool aos_hal_sd_usage(uint64_t *total_bytes, uint64_t *free_bytes);
 

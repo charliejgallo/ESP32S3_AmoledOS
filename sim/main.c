@@ -210,10 +210,14 @@ static void icontest_build(void)
         }
     }
     size_t reg_len = 0;
+    aos_icon_source_t src = prod != &desc ? aos_icon_source(prod->id) : AOS_ICON_SRC_NONE;
+    if (src != AOS_ICON_SRC_NONE) {
+        aos_icon_ops_for(prod->id, &reg_len);
+    }
     printf("ICONTEST right column: %s\n",
-           prod != &desc && aos_icon_ops_for(prod->id, &reg_len)
-               ? "the blob Topos registered from its init()"
-               : "the firmware's built-in table (Topos not registered)");
+           src == AOS_ICON_SRC_FILE ? "the file sim_fs/icons/demo.topos.aic (F3 override)"
+         : src == AOS_ICON_SRC_APP  ? "the blob Topos registered from its init()"
+                                    : "the firmware's built-in table (Topos not registered)");
     if (reg_len) {
         printf("ICONTEST registered blob: %zu bytes, %s the built-in table\n", reg_len,
                reg_len == len && memcmp(aos_icon_ops_for(prod->id, NULL), ops, len) == 0

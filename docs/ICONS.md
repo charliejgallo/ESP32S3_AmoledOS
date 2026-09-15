@@ -241,7 +241,7 @@ meaning what they mean.
 | **F0** | This document | **done** |
 | **F1** | Interpreter + `aos_icon_ops.h` + `tools/aic.py`; port ONE icon (`AOS_ICON_MOLE`) to a table next to its `case`; draw both at 66/74/82 in the sim, diff to zero; run the table on the board; measure flash and RAM | **done 2026-09-15**, below |
 | **F2** | `aos_icon_set_ops()` + a registry keyed by `desc.id` + symbol export; `topos` calls it and drops `icon_vec`; the bench's right column takes the production path with the blob Topos registered; on the board, the icon out of the `.so` | **done 2026-09-15**, below |
-| **F3** | `/icons` on card and SPIFFS, boot scan, portal upload + list + JS preview, deferred rebuild after upload; the override of a built-in icon as the test | |
+| **F3** | `/icons` on card and SPIFFS, boot scan, portal upload + list + JS preview, deferred rebuild after upload; the override of a built-in icon as the test | **done 2026-09-15**, below |
 | **F4** | Port the 36 cases to tables, delete the `switch`, measure the flash delta; enum stays as an index | |
 | **F5** | Optional `IMG` opcode for bitmap icons | |
 
@@ -378,6 +378,52 @@ bench-only and should not tempt an app; it goes with the switch in F4.
 the Pato goma commit, because nobody had rerun `gen_symbols.py` after it,
 and this regeneration picked it up.
 
+### 7.3 What F3 measured
+
+Files: `<desc.id>.aic` under `aos_hal_path_icons()`, the card when there is
+one and SPIFFS `/storage/icons` otherwise, like the app directories.
+`aos_icon_scan_files()` reads them at boot (from `aos_ui_init()`, right
+after the language) and whenever the portal asks: `/api/upload?dir=icons`
+and `/api/delete?dir=icons` call `aos_ui_request_icons()`, and the next
+`aos_ui_tick()` rescans and throws the launcher away so it is rebuilt with
+the new icons - the same move as a language change, deferred for the same
+reason (the HTTP task must not touch LVGL objects).
+
+A **second table**, not the apps' one: deleting the file has to bring back
+what the app registered, so the two must not overwrite each other. Lookup is
+file, then app, then the built-in table, then the switch, then the glyph.
+
+| | |
+|---|---|
+| Simulator, `aos.timer.aic` copied from the mole | `2 icon file(s) from sim_fs/icons`; the Timer shows the mole on the honeycomb |
+| Board, `POST /api/upload?dir=icons&name=aos.activity.aic` (64 B) | log: `uploaded`, `1 icon file(s) from /sdcard/icons`, `icons reloaded from files: 1`; Activity's rings become the mole on the list, no restart, no reflash |
+| Board, `POST /api/delete?dir=icons&name=aos.activity.aic` | `icons reloaded from files: 0`; the rings are back |
+| `/api/icons` for `aos.activity` before / during / after | `firmware, 0 B` / `archivo, 64 B` / `firmware, 0 B` |
+
+| Section | F2 | F3 | delta |
+|---|---|---|---|
+| `.flash.text` | 1,971,528 | 1,972,952 | +1,424 (scan, `/api/icons`, the page handler) |
+| `.flash.rodata` | 1,317,828 | 1,338,596 | +20,768 (`iconos.html`, 20 KB, embedded like the other pages) |
+| `.dram0.data` / `.dram0.bss` | 35,132 / 14,256 | **unchanged** | |
+| `.ext_ram.bss` (PSRAM) | 72,176 | 86,480 | **+14,304** = 48 entries x 298 B, the file table |
+| Board, launcher open, `internal free` | 162,067 | 161,967 | noise |
+
+**The page.** `/iconos` lists every app with a canvas that draws the very
+bytes the watch has (`GET /api/icons?id=`), the app's gradient behind it, a
+badge with the source (`archivo` / `app` / `firmware` / `glifo`), and the
+buttons: upload an `.aic` for that app, remove the file, download the blob.
+The canvas renderer is the third implementation of the ten opcodes (after
+`walk_ops()` and `aic.py parse`) and it is a preview, not LVGL: same shapes
+in the same places, but browser anti-aliasing and fonts. The icons still
+drawn by a switch case have no bytes to show and get a dotted ring instead
+of an invented drawing - F4 turns that ring into the real icon for all 36.
+
+<img src="img/icon-portal.png" width="480" alt="/iconos in the browser: the top of the grid, the firmware-drawn icons with their dotted ring">
+
+The page came out at 20 KB, of which the renderer is a third. It follows
+`/pato`: the firmware only stores and returns bytes, the page knows the
+format, and `aos.js` gives it the language of the watch.
+
 ## 8. Risks and things already known
 
 - **`dlsym()` sees functions only.** Designed around it (4.1); nothing to
@@ -418,5 +464,12 @@ and this regeneration picked it up.
   `aos_ui_unregister_app()`, `TOPOS_ICON` in `apps/topos/main/topos.c`, the
   regenerated `aos_symbols.c`, and the "The icon" section of `APP-API.md`.
 
+- F3 added `aos_hal_path_icons()` (both HALs), the file table and
+  `aos_icon_scan_files()` / `aos_icon_source()` in `aos_icon.c`,
+  `aos_ui_request_icons()` with the deferred rescan-and-rebuild in
+  `aos_ui.c`, `dir=icons` in the portal's whitelist with the rescan hooks in
+  upload and delete, `GET /api/icons`, and `components/aos_web/iconos.html`
+  with the canvas renderer.
+
 The `.so` files on the card are untouched and still load: nothing in the
-ABI moved. Next is F3, the `/icons` directory on the card and the portal.
+ABI moved. Next is F4: the 36 switch cases as tables, and the switch gone.

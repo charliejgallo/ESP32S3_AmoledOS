@@ -8,9 +8,11 @@
 #include "aos_theme.h"
 #include "aos_icon_ops.h"
 #include "aos_hal.h"
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 /* Icon hand: the theme's helper with the angle already applied. */
 static lv_obj_t *hand(lv_obj_t *parent, int32_t w, int32_t h, int32_t deg,
@@ -1622,9 +1624,114 @@ void aos_icon_clear_ops(const char *id)
     }
 }
 
+/* --------------------------------------------------------------------------
+ * Icons from files (docs/ICONS.md 4.2)
+ *
+ * A second table, same shape, filled by aos_icon_scan_files() from
+ * <id>.aic files. Separate from the apps' table on purpose: deleting the
+ * file has to bring back what the app registered, so the two must not
+ * overwrite each other. 48 entries because a file can override any app,
+ * built-in ones included (AOS_MAX_APPS). Also PSRAM: 14 KB there.
+ * -------------------------------------------------------------------------- */
+
+#define ICON_FILES_MAX  48
+#define ICON_FILE_EXT   ".aic"
+
+AOS_BSS_PSRAM static icon_reg_t s_files[ICON_FILES_MAX];
+
+static icon_reg_t *files_find(const char *id)
+{
+    if (!id || !id[0]) {
+        return NULL;
+    }
+    for (int i = 0; i < ICON_FILES_MAX; i++) {
+        if (s_files[i].len && strcmp(s_files[i].id, id) == 0) {
+            return &s_files[i];
+        }
+    }
+    return NULL;
+}
+
+int aos_icon_scan_files(void)
+{
+    memset(s_files, 0, sizeof(s_files));
+
+    const char *dir_path = aos_hal_path_icons();
+    DIR *dir = opendir(dir_path);
+    if (!dir) {
+        return 0;       /* no directory is the normal case, not an error */
+    }
+
+    int loaded = 0, refused = 0;
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        const char *name = entry->d_name;
+        size_t n = strlen(name);
+        size_t ext = strlen(ICON_FILE_EXT);
+        if (n <= ext || strcasecmp(name + n - ext, ICON_FILE_EXT) != 0) {
+            continue;
+        }
+        size_t id_len = n - ext;
+        if (id_len >= ICON_REG_ID_MAX) {
+            aos_hal_log("icon", "%s: name too long for an app id, skipped", name);
+            refused++;
+            continue;
+        }
+        if (loaded >= ICON_FILES_MAX) {
+            aos_hal_log("icon", "%s: no room, %d icon files already", name, ICON_FILES_MAX);
+            refused++;
+            continue;
+        }
+
+        char path[192];
+        snprintf(path, sizeof(path), "%s/%s", dir_path, name);
+        FILE *f = fopen(path, "rb");
+        if (!f) {
+            continue;
+        }
+        /* One byte past the cap: a file of 257 bytes is refused as too long
+         * instead of being read as a valid 256-byte prefix. */
+        uint8_t buf[AOS_ICON_OPS_MAX + 1];
+        size_t got = fread(buf, 1, sizeof(buf), f);
+        fclose(f);
+
+        size_t bad_at = 0;
+        int shapes = got > AOS_ICON_OPS_MAX ? -1 : aos_icon_ops_check(buf, got, &bad_at);
+        if (shapes < 0) {
+            aos_hal_log("icon", "%s: refused (%u bytes, fault at %u)", name,
+                        (unsigned)got, (unsigned)bad_at);
+            refused++;
+            continue;
+        }
+
+        icon_reg_t *e = &s_files[loaded++];
+        memcpy(e->id, name, id_len);
+        e->id[id_len] = '\0';
+        memcpy(e->ops, buf, got);
+        e->len = (uint16_t)got;
+    }
+    closedir(dir);
+
+    if (loaded || refused) {
+        aos_hal_log("icon", "%d icon file(s) from %s%s", loaded, dir_path,
+                    refused ? " (some refused, see above)" : "");
+    }
+    return loaded;
+}
+
+aos_icon_source_t aos_icon_source(const char *id)
+{
+    if (files_find(id)) return AOS_ICON_SRC_FILE;
+    if (reg_find(id))   return AOS_ICON_SRC_APP;
+    return AOS_ICON_SRC_NONE;
+}
+
 const uint8_t *aos_icon_ops_for(const char *id, size_t *len)
 {
-    icon_reg_t *e = reg_find(id);
+    icon_reg_t *e = files_find(id);
+    if (!e) {
+        e = reg_find(id);
+    }
     if (!e) {
         if (len) *len = 0;
         return NULL;

@@ -159,8 +159,25 @@ bool aos_icon_set_ops(const aos_app_t *app, const uint8_t *ops, size_t len);
 /* Forgets the icon of an app that is being unregistered. */
 void aos_icon_clear_ops(const char *id);
 
-/* The blob an app registered with aos_icon_set_ops(), or NULL. */
+/* The blob that will be drawn for this id: a file from the card first, then
+ * what the app registered with aos_icon_set_ops(). NULL if neither. */
 const uint8_t *aos_icon_ops_for(const char *id, size_t *len);
+
+/* Icon files on the card (or SPIFFS), <desc.id>.aic under
+ * aos_hal_path_icons(). Reads them all again, replacing whatever the last
+ * scan found; a file that fails validation is logged and skipped. Called at
+ * boot and after the portal uploads or deletes one. Returns how many
+ * loaded. */
+int aos_icon_scan_files(void);
+
+/* Where an id's icon comes from, for the portal's listing. */
+typedef enum {
+    AOS_ICON_SRC_NONE = 0,      /* icon_vec / glyph from the descriptor */
+    AOS_ICON_SRC_APP,           /* aos_icon_set_ops() from the app       */
+    AOS_ICON_SRC_FILE,          /* a file under aos_hal_path_icons()     */
+} aos_icon_source_t;
+
+aos_icon_source_t aos_icon_source(const char *id);
 
 /* Circular icon with the descriptor's gradient and, on top, the shapes in
  * 'ops'. Same object as aos_icon_create() builds, drawn from data instead of
