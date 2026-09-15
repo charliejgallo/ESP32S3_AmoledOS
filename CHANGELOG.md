@@ -3,7 +3,7 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.3.8 — 2026-09-15
 
 Icons as data — a dynamic app no longer needs a firmware reflash to have an
 icon of its own.
