@@ -3,6 +3,39 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+Icons as data — a dynamic app no longer needs a firmware reflash to have an
+icon of its own.
+
+### Icons
+
+- **Why.** An icon was a `switch` case in `aos_icon.c`, picked by an enum
+  baked into the firmware. Every new `.so` app that wanted a proper icon
+  meant a firmware build and a reflash for that alone, which defeated the
+  point of loading apps from the card. Now the icon travels with the app.
+- **AIC**, a byte format for icons (`aos_icon_ops.h`): a few dozen bytes of
+  shapes with percent coordinates, an append-only palette, a 256-byte cap,
+  written in C with `AIC_*` macros. One interpreter in `aos_icon.c` turns a
+  blob into the same LVGL objects the hand-written code created.
+- **Three sources, one format, in this order:** a file `/sdcard/icons/<id>.aic`
+  (SPIFFS without a card), the blob the app registered from `init()` with
+  `aos_icon_set_ops()`, the firmware's own table. Then the glyph, as before.
+  `AOS_ABI_VERSION` stays at 2: every `.so` on the card keeps loading.
+- **The firmware's 36 icons are tables now** (`aos_icon_tables.c`), derived
+  by `tools/aic_gen.py` from what the old switch drew at 66, 74 and 82 px:
+  34 pixel-identical, 9 within a pixel at one size. The switch is gone:
+  −20.5 KB of `.flash.text`, 2.5 KB of tables. `tools/icon_golden/` keeps the
+  original pixels and `tools/icon_bench.sh --golden` checks against them.
+- **Portal:** `/iconos` draws every icon in the browser from the watch's own
+  bytes, shows where each comes from, and uploads, removes or downloads the
+  `.aic` per app; the launcher redraws on the next tick, no restart.
+  `GET /api/icons[?id=]`.
+- Topos is the first app that brings its icon. The Pato goma symbol
+  `aos_app_pato_get` was missing from the symbol table and is back.
+- Internal RAM unchanged in every phase; the two registries take 26 KB of
+  PSRAM. The whole feature, page included, is 8.3 KB of binary.
+
 ## v0.3.7 — 2026-09-14
 
 Pato goma — the USB port put to work as a scriptable keyboard and mouse.

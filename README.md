@@ -128,7 +128,11 @@ Eighteen ship inside the binary. They are the ones the watch cannot be without
 Twenty-three more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
 `.so` files at startup. The same source builds into the simulator, so they are
 designed on a laptop and copied to the card without changing a line — and a new
-one needs no firmware rebuild.
+one needs no firmware rebuild. That includes its **launcher icon**: an app
+describes it as a few dozen bytes of shapes and hands them over at load, or an
+`.aic` file dropped on the card does; the firmware's own icons are the same
+tables. Until v0.3.7 an icon was a switch case in the firmware, and every new
+app meant a reflash for that alone. See [docs/ICONS.md](docs/ICONS.md).
 
 | | | |
 |---|---|---|
@@ -243,6 +247,7 @@ network survey's report format.
 | [BUILDING.md](docs/BUILDING.md) | firmware, simulator, dynamic apps, and every tool |
 | [APP-API.md](docs/APP-API.md) | writing an app, and the things that will bite you |
 | [I18N.md](docs/I18N.md) | how translation works and why the key is the Spanish string |
+| [ICONS.md](docs/ICONS.md) | icons as data: the AIC format, how a `.so` or a file on the card brings one, how the 36 hand-drawn ones became tables, and what it saved |
 | [POWER.md](docs/POWER.md) | the AXP2101, the rails, light sleep, and the measurements behind each switch |
 | [PORTAL.md](docs/PORTAL.md) | the web portal: pages, API, what it costs the board, and the dev server |
 | [ROADMAP.md](docs/ROADMAP.md) | what is planned and has no date: Android phones, and USB host (a pendrive on the watch), waiting for a way to power it |
