@@ -5,6 +5,7 @@
 #include "aos_hal.h"
 #include "aos_i18n.h"   /* AOS_LANG_CODE_MAX */
 #include "aos_ui.h"     /* aos_ui_request_language and the rest of the notes */
+#include "aos_icon_ops.h" /* /api/icons: where each icon comes from, and its blob */
 #include "aos_watchface.h"
 #include "aos_log.h"
 #include "aos_apps.h"   /* aos_alarm_get / set */
@@ -42,6 +43,8 @@ extern const uint8_t pixel_html_start[]  asm("_binary_pixel_html_start");
 extern const uint8_t pixel_html_end[]    asm("_binary_pixel_html_end");
 extern const uint8_t pato_html_start[]   asm("_binary_pato_html_start");
 extern const uint8_t pato_html_end[]     asm("_binary_pato_html_end");
+extern const uint8_t iconos_html_start[] asm("_binary_iconos_html_start");
+extern const uint8_t iconos_html_end[]   asm("_binary_iconos_html_end");
 extern const uint8_t cotiz_html_start[]  asm("_binary_cotiz_html_start");
 extern const uint8_t cotiz_html_end[]    asm("_binary_cotiz_html_end");
 extern const uint8_t sensores_html_start[] asm("_binary_sensores_html_start");
@@ -134,6 +137,11 @@ static const char *resolve_dir(const char *dir)
             return NULL;
         }
         snprintf(path, sizeof(path), "%s/pixel", root);
+    } else if (strcmp(dir, "icons") == 0) {
+        /* Icon files, <app.id>.aic (docs/ICONS.md). Card or SPIFFS, like the
+         * apps: the /iconos page lists, uploads and deletes through the
+         * generic handlers, and each write asks the UI to rescan. */
+        snprintf(path, sizeof(path), "%s", aos_hal_path_icons());
     } else if (strcmp(dir, "pato") == 0) {
         /* The Pato goma app's scripts (.pato), on the card only. Like /pixel:
          * /api/list, /api/download, /api/upload and /api/delete with dir=pato
@@ -555,6 +563,11 @@ static esp_err_t upload_handler(httpd_req_t *req)
     if (strstr(dir_path, "/pato") != NULL) {
         mkdir(dir_path, 0777);
     }
+    /* And /icons: the first icon dropped from /iconos creates the folder. */
+    bool is_icons = strcmp(dir_path, aos_hal_path_icons()) == 0;
+    if (is_icons) {
+        mkdir(dir_path, 0777);
+    }
 
     FILE *file = fopen(path, "wb");
     if (!file) {
@@ -598,6 +611,9 @@ static esp_err_t upload_handler(httpd_req_t *req)
     free(buffer);
     fclose(file);
     ESP_LOGI(TAG, "uploaded %s (%d bytes)", path, req->content_len);
+    if (is_icons) {
+        aos_ui_request_icons();
+    }
 
     char json[96];
     snprintf(json, sizeof(json), "{\"ok\":true,\"size\":%d}", req->content_len);
@@ -814,6 +830,9 @@ static esp_err_t delete_handler(httpd_req_t *req)
     }
     if (ok) {
         ESP_LOGI(TAG, "deleted %s", path);
+        if (strcmp(dir_path, aos_hal_path_icons()) == 0) {
+            aos_ui_request_icons();     /* the app's own icon comes back */
+        }
     }
 
     httpd_resp_set_type(req, "application/json");
@@ -2581,6 +2600,87 @@ static esp_err_t apps_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+/* GET /api/icons: every app with where its icon comes from, for /iconos.
+ *   {"dir":"/sdcard/icons","apps":[{"id","nombre","origen":"archivo|app|firmware|glifo",
+ *                                    "bytes":N,"color_a":"RRGGBB","color_b":"RRGGBB","glifo":"..."}]}
+ * GET /api/icons?id=<app.id>: the AIC blob that WOULD be drawn for that app
+ * (file, then the app's own, then the firmware's table), as octet-stream;
+ * 404 if the icon is a switch case or a glyph and has no bytes to give.
+ * The page's canvas renderer draws it, so what the browser shows is the
+ * blob the watch has and not a copy of the page's own. */
+static esp_err_t icons_handler(httpd_req_t *req)
+{
+    char query[96] = "", id[48] = "";
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) == ESP_OK) {
+        httpd_query_key_value(query, "id", id, sizeof(id));
+    }
+
+    if (id[0]) {
+        size_t len = 0;
+        const uint8_t *ops = aos_icon_ops_for(id, &len);
+        if (!ops) {
+            int n = aos_ui_app_count();
+            for (int i = 0; i < n && !ops; i++) {
+                const aos_app_t *a = aos_ui_app_at(i);
+                if (a && a->desc.id && strcmp(a->desc.id, id) == 0) {
+                    ops = aos_icon_ops_builtin(a->desc.icon_vec, &len);
+                }
+            }
+        }
+        if (!ops) {
+            httpd_resp_set_status(req, "404 Not Found");
+            return httpd_resp_sendstr(req, "no blob for that icon");
+        }
+        httpd_resp_set_type(req, "application/octet-stream");
+        return httpd_resp_send(req, (const char *)ops, (ssize_t)len);
+    }
+
+    char item[224];
+    httpd_resp_set_type(req, "application/json");
+    snprintf(item, sizeof(item), "{\"dir\":\"%s\",\"apps\":[", aos_hal_path_icons());
+    httpd_resp_sendstr_chunk(req, item);
+
+    int n = aos_ui_app_count();
+    for (int i = 0; i < n; i++) {
+        const aos_app_t *a = aos_ui_app_at(i);
+        if (!a || !a->desc.id) continue;
+        char nombre[64], glifo[24];
+        json_escape(nombre, sizeof(nombre), a->desc.name ? _(a->desc.name) : a->desc.id);
+        json_escape(glifo, sizeof(glifo), a->desc.icon ? a->desc.icon : "");
+
+        size_t len = 0;
+        const char *origen;
+        switch (aos_icon_source(a->desc.id)) {
+        case AOS_ICON_SRC_FILE: origen = "archivo"; break;
+        case AOS_ICON_SRC_APP:  origen = "app";     break;
+        default:
+            origen = a->desc.icon_vec != AOS_ICON_NONE ? "firmware" : "glifo";
+            break;
+        }
+        if (!aos_icon_ops_for(a->desc.id, &len)) {
+            aos_icon_ops_builtin(a->desc.icon_vec, &len);
+        }
+        snprintf(item, sizeof(item),
+                 "%s{\"id\":\"%s\",\"nombre\":\"%s\",\"origen\":\"%s\",\"bytes\":%u,"
+                 "\"color_a\":\"%06X\",\"color_b\":\"%06X\",\"glifo\":\"%s\"}",
+                 i ? "," : "", a->desc.id, nombre, origen, (unsigned)len,
+                 (unsigned)(a->desc.color_a & 0xFFFFFF),
+                 (unsigned)((a->desc.color_b ? a->desc.color_b : a->desc.color_a) & 0xFFFFFF),
+                 glifo);
+        httpd_resp_sendstr_chunk(req, item);
+    }
+    httpd_resp_sendstr_chunk(req, "]}");
+    httpd_resp_sendstr_chunk(req, NULL);
+    return ESP_OK;
+}
+
+static esp_err_t iconos_page_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    return httpd_resp_send(req, (const char *)iconos_html_start,
+                           iconos_html_end - iconos_html_start - 1);
+}
+
 /* GET /api/log?desde=N: the ring from offset N to the end, as text. The
  * offsets travel in two headers so the page can ask only for what is new. The
  * end is fixed before sending: the log keeps growing meanwhile and a chunked
@@ -2719,6 +2819,8 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/clima",   .method = HTTP_POST, .handler = clima_set_handler },
         { .uri = "/pixel",       .method = HTTP_GET,  .handler = pixel_page_handler },
         { .uri = "/pato",        .method = HTTP_GET,  .handler = pato_page_handler },
+        { .uri = "/iconos",      .method = HTTP_GET,  .handler = iconos_page_handler },
+        { .uri = "/api/icons",   .method = HTTP_GET,  .handler = icons_handler },
         { .uri = "/cotiz",       .method = HTTP_GET,  .handler = cotiz_page_handler },
         { .uri = "/api/cotiz",   .method = HTTP_GET,  .handler = cotiz_get_handler },
         { .uri = "/api/cotiz",   .method = HTTP_POST, .handler = cotiz_set_handler },

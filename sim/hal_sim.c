@@ -63,6 +63,7 @@ bool aos_hal_init(void)
     mkdir("sim_fs/recordings", 0755);
     mkdir("sim_fs/redes", 0755);
     mkdir("sim_fs/lang", 0755);
+    mkdir("sim_fs/icons", 0755);
 
     tone_init();
 
@@ -438,6 +439,7 @@ const char *aos_hal_path_photos(void) { return "sim_fs/photos"; }
 const char *aos_hal_path_music(void)  { return "sim_fs/music";  }
 const char *aos_hal_path_data(void)   { return "sim_fs/data";   }
 const char *aos_hal_path_lang(void)   { return "sim_fs/lang";   }
+const char *aos_hal_path_icons(void)  { return "sim_fs/icons";  }
 const char *aos_hal_path_recordings(void) { return "sim_fs/recordings"; }
 const char *aos_hal_path_scans(void)  { return "sim_fs/redes";  }
 const char *aos_hal_path_sd_root(void) { return "sim_fs"; }

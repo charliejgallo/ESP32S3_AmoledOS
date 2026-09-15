@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 86 funciones de libc/libm agregadas a mano.
- * Total: 2646 simbolos.
+ * Total: 2658 simbolos.
  */
 
 #include <stddef.h>
@@ -41,6 +41,7 @@ extern int aos_app_level_get;
 extern int aos_app_life_get;
 extern int aos_app_music_get;
 extern int aos_app_notifs_get;
+extern int aos_app_pato_get;
 extern int aos_app_pcremote_get;
 extern int aos_app_photos_get;
 extern int aos_app_pomodoro_get;
@@ -214,6 +215,7 @@ extern int aos_hal_panel_sleep_enable;
 extern int aos_hal_panel_sleep_enabled;
 extern int aos_hal_path_apps;
 extern int aos_hal_path_data;
+extern int aos_hal_path_icons;
 extern int aos_hal_path_lang;
 extern int aos_hal_path_music;
 extern int aos_hal_path_photos;
@@ -300,7 +302,16 @@ extern int aos_i18n_current;
 extern int aos_i18n_init;
 extern int aos_i18n_scan;
 extern int aos_i18n_set;
+extern int aos_icon_clear_ops;
 extern int aos_icon_create;
+extern int aos_icon_create_ops;
+extern int aos_icon_ops_builtin;
+extern int aos_icon_ops_check;
+extern int aos_icon_ops_for;
+extern int aos_icon_scan_files;
+extern int aos_icon_set_ops;
+extern int aos_icon_source;
+extern int aos_icon_tables;
 extern int aos_imu_start;
 extern int aos_label;
 extern int aos_label_boxed;
@@ -353,6 +364,7 @@ extern int aos_ui_launcher_get_style;
 extern int aos_ui_launcher_set_style;
 extern int aos_ui_open;
 extern int aos_ui_register_app;
+extern int aos_ui_request_icons;
 extern int aos_ui_request_language;
 extern int aos_ui_request_launcher_style;
 extern int aos_ui_request_nav;
@@ -2690,6 +2702,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_app_life_get),
     ESP_ELFSYM_EXPORT(aos_app_music_get),
     ESP_ELFSYM_EXPORT(aos_app_notifs_get),
+    ESP_ELFSYM_EXPORT(aos_app_pato_get),
     ESP_ELFSYM_EXPORT(aos_app_pcremote_get),
     ESP_ELFSYM_EXPORT(aos_app_photos_get),
     ESP_ELFSYM_EXPORT(aos_app_pomodoro_get),
@@ -2863,6 +2876,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_panel_sleep_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_path_apps),
     ESP_ELFSYM_EXPORT(aos_hal_path_data),
+    ESP_ELFSYM_EXPORT(aos_hal_path_icons),
     ESP_ELFSYM_EXPORT(aos_hal_path_lang),
     ESP_ELFSYM_EXPORT(aos_hal_path_music),
     ESP_ELFSYM_EXPORT(aos_hal_path_photos),
@@ -2949,7 +2963,16 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_i18n_init),
     ESP_ELFSYM_EXPORT(aos_i18n_scan),
     ESP_ELFSYM_EXPORT(aos_i18n_set),
+    ESP_ELFSYM_EXPORT(aos_icon_clear_ops),
     ESP_ELFSYM_EXPORT(aos_icon_create),
+    ESP_ELFSYM_EXPORT(aos_icon_create_ops),
+    ESP_ELFSYM_EXPORT(aos_icon_ops_builtin),
+    ESP_ELFSYM_EXPORT(aos_icon_ops_check),
+    ESP_ELFSYM_EXPORT(aos_icon_ops_for),
+    ESP_ELFSYM_EXPORT(aos_icon_scan_files),
+    ESP_ELFSYM_EXPORT(aos_icon_set_ops),
+    ESP_ELFSYM_EXPORT(aos_icon_source),
+    ESP_ELFSYM_EXPORT(aos_icon_tables),
     ESP_ELFSYM_EXPORT(aos_imu_start),
     ESP_ELFSYM_EXPORT(aos_label),
     ESP_ELFSYM_EXPORT(aos_label_boxed),
@@ -3002,6 +3025,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_ui_launcher_set_style),
     ESP_ELFSYM_EXPORT(aos_ui_open),
     ESP_ELFSYM_EXPORT(aos_ui_register_app),
+    ESP_ELFSYM_EXPORT(aos_ui_request_icons),
     ESP_ELFSYM_EXPORT(aos_ui_request_language),
     ESP_ELFSYM_EXPORT(aos_ui_request_launcher_style),
     ESP_ELFSYM_EXPORT(aos_ui_request_nav),

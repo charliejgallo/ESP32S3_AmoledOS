@@ -16,6 +16,7 @@
  */
 #include "aos_ui.h"
 #include "aos_theme.h"
+#include "aos_icon_ops.h"
 #include "aos_hal.h"
 #include "aos_internal.h"
 #include "aos_watchface.h"
@@ -359,6 +360,7 @@ bool aos_ui_unregister_app(const char *id)
     if (app->root) {
         lv_obj_delete(app->root);
     }
+    aos_icon_clear_ops(id);     /* the icon it brought with aos_icon_set_ops() */
     memmove(&s_apps[index], &s_apps[index + 1],
             (size_t)(s_app_count - index - 1) * sizeof(aos_app_t));
     s_app_count--;
@@ -709,6 +711,33 @@ void aos_ui_request_open(const char *id)
     snprintf(s_open_requested, sizeof(s_open_requested), "%s", id ? id : "");
 }
 
+static volatile bool s_icons_requested;
+
+void aos_ui_request_icons(void)
+{
+    s_icons_requested = true;
+}
+
+/* Reads the icon files again and throws the launcher away so that it is
+ * built afresh, with the new icons, the next time it shows - or right now
+ * if it was on screen. Same move as apply_language(): the icons are LVGL
+ * objects inside the launcher, and rebuilding the whole thing is simpler
+ * and safer than swapping one icon in place while it may be animating. */
+static void apply_icons(void)
+{
+    int n = aos_icon_scan_files();
+    bool was_visible = s_launcher_visible;
+    if (s_launcher) {
+        lv_obj_delete(s_launcher);
+        s_launcher = NULL;
+        s_launcher_visible = false;
+    }
+    if (was_visible) {
+        aos_ui_show_launcher();
+    }
+    aos_hal_log("icon", "icons reloaded from files: %d", n);
+}
+
 void aos_ui_request_nav(aos_ui_nav_t nav)
 {
     s_nav_requested = (int)nav;
@@ -763,6 +792,11 @@ static void portal_requests_tick(void)
     if (style >= 0) {
         s_launcher_requested = -1;
         aos_ui_launcher_set_style((aos_launcher_style_t)style);
+    }
+
+    if (s_icons_requested) {
+        s_icons_requested = false;
+        apply_icons();
     }
 
     if (s_toast_requested[0]) {
@@ -1634,6 +1668,7 @@ void aos_ui_init(void)
 {
     aos_theme_init();
     aos_i18n_init();
+    aos_icon_scan_files();      /* <id>.aic files on the card, docs/ICONS.md */
 
     lv_obj_t *screen = lv_screen_active();
     lv_obj_remove_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
