@@ -3,6 +3,19 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.3.10 — 2026-09-15
+
+Two more apps bring their own icon, and `apps.zip` is fresh.
+
+- **`hello_app`**, the template every new app starts from, draws a speech
+  bubble with a face: RECTs, INTO/OUT and an ARC, none of it in the firmware.
+  Copy the template and the pattern comes with it.
+- **`escaner`** carries its radar as the very bytes of the firmware's
+  `ICON_RADAR` table, so it no longer depends on `AOS_ICON_RADAR` being there.
+  Verified byte for byte on the board through `/api/icons?id=aos.netscan`.
+- `APP-API.md`'s "The icon" example is now the template's real code.
+- Firmware identical to v0.3.9 but for the version string.
+
 ## v0.3.9 — 2026-09-15
 
 - **A panic on the idle timeout, fixed.** The housekeeping task turning the
