@@ -59,18 +59,29 @@ Three ways, in the order the launcher tries them:
    ```c
    #include "aos_icon_ops.h"
 
-   static const uint8_t HELLO_ICON[] = {
+   static const uint8_t HELLO_ICON[] = {          /* a speech bubble with a face */
        AIC_HEADER,
-       AIC_RECT(AIC_CENTER, 0, 0, 50, 50, AIC_CIRCLE, AIC_C_TEXT, 255),   /* a disc      */
-       AIC_INTO,                                                          /* ...with     */
-       AIC_RECT(AIC_CENTER, 0, 0, 20, 20, AIC_CIRCLE, AIC_C_LIT(0x0A84FF), 255), /* a dot */
+       AIC_RECT(AIC_CENTER, -16,  20, 14, 12,  3,         AIC_C_TEXT, 255),  /* tail   */
+       AIC_RECT(AIC_CENTER,   0,  -6, 62, 46, 14,         AIC_C_TEXT, 255),  /* bubble */
+       AIC_INTO,                                                             /* inside it: */
+       AIC_RECT(AIC_TOP_MID, -11, 11,  8,  8, AIC_CIRCLE, AIC_C_BG,   255),  /* eyes   */
+       AIC_RECT(AIC_TOP_MID,  11, 11,  8,  8, AIC_CIRCLE, AIC_C_BG,   255),
+       AIC_ARC(AIC_CENTER, 0, 6, 30, 0, 4, 0, 360, 25, 155, 0,               /* smile  */
+               AIC_C_BG, 0, AIC_C_BG, 255),
        AIC_OUT,
        AIC_END
    };
 
-   app->desc.id = "demo.hello";
+   app->desc.id       = "demo.hello";     /* before the icon: it is keyed by id */
+   app->desc.icon     = LV_SYMBOL_OK;     /* the fallback */
+   app->desc.icon_vec = AOS_ICON_NONE;
    aos_icon_set_ops(app, HELLO_ICON, sizeof HELLO_ICON);
    ```
+
+   This is exactly what `apps/hello_app` does, so the template already
+   shows the pattern. `apps/escaner` is the other kind of example: an icon
+   the firmware also has (`AOS_ICON_RADAR`), carried by the `.so` as the same
+   bytes, so the app does not depend on that enum value being there.
 
    Coordinates are percent of the icon size, so the one drawing serves the
    list, the grid and the honeycomb. The runtime validates and copies the

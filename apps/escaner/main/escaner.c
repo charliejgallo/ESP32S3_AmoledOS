@@ -19,6 +19,7 @@
 #include "aos_theme.h"
 #include "aos_hal.h"
 #include "aos_i18n.h"
+#include "aos_icon_ops.h"
 #include "aos_ui.h"
 
 #include <stdio.h>
@@ -301,12 +302,32 @@ static void destroy(aos_app_t *self, void *inst)
     memset(&s_esc, 0, sizeof(s_esc));
 }
 
+/* The launcher icon: three concentric rings and an echo, top right. Rings
+ * are RECTs with no fill and a border; the hairlines are size / n, which no
+ * percent reproduces at 66, 74 and 82 px (docs/ICONS.md). */
+static const uint8_t ESCANER_ICON[] = {
+    AIC_HEADER,
+    AIC_RECT(AIC_CENTER,  0,   0, 78, 78, AIC_CIRCLE, AIC_C_TEXT, 0),
+    AIC_BORDER(AIC_DIV(28), AIC_C_TEXT, 255),
+    AIC_RECT(AIC_CENTER,  0,   0, 52, 52, AIC_CIRCLE, AIC_C_TEXT, 0),
+    AIC_BORDER(3, AIC_C_TEXT, 255),
+    AIC_RECT(AIC_CENTER,  0,   0, 26, 26, AIC_CIRCLE, AIC_C_TEXT, 0),
+    AIC_BORDER(AIC_DIV(38), AIC_C_TEXT, 255),
+    AIC_RECT(AIC_CENTER, 20, -20, 13, 13, AIC_CIRCLE, AIC_C_TEXT, 255),
+    AIC_END
+};
+
 static bool escaner_init(aos_app_t *app)
 {
     app->desc.id       = "aos.netscan";
     app->desc.name     = "Escaner";
     app->desc.icon     = "red";
-    app->desc.icon_vec = AOS_ICON_RADAR;
+    /* The radar travels with the app since v0.3.9+: the same bytes as the
+     * firmware's AOS_ICON_RADAR table (aos_icon_tables.c), so this .so draws
+     * the same icon on a firmware that has never heard of it. icon_vec stays
+     * NONE so that the two-letter glyph above is the only fallback. */
+    app->desc.icon_vec = AOS_ICON_NONE;
+    aos_icon_set_ops(app, ESCANER_ICON, sizeof ESCANER_ICON);
     app->desc.color_a  = 0x30D158;
     app->desc.color_b  = 0x0B5227;
     app->desc.order    = 79;
