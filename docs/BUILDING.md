@@ -53,6 +53,12 @@ idf.py -DAOS_AUDIT_PSRAM_STACKS=0 build   # the tone task's stack internal
 idf.py -DAOS_AUDIT_PSRAM_BSS=0 build      # our .bss back in internal RAM
 ```
 
+One more, test-only and OFF by default: `-DAOS_TEST_UNLOCKED_BRIGHTNESS=1`
+builds the brightness write without the LVGL lock, the way it was before
+2026-09-15, so that `/api/mem?spin=N` reproduces the SPI bus race of
+[POWER.md](POWER.md) 5.9 on the A side of an A/B. Never for a release, and
+build with `=0` afterwards - it sticks like the others.
+
 `sdkconfig.defaults` is only read when `sdkconfig` does not exist. After
 pulling a change to it, delete `sdkconfig` before building: a stale one builds
 the old configuration without a word. (`idf.py fullclean` does not remove it.)

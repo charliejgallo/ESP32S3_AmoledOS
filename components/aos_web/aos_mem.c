@@ -226,6 +226,33 @@ esp_err_t aos_mem_handler(httpd_req_t *req)
         outf(&o, "lvgl allocations to psram: %s\n", aos_lvmem_get_psram() ? "on" : "off");
     }
 
+    /* ?spin=N: N brightness writes from THIS task, one per tick, while the
+     * UI goes on drawing. Every write is an esp_lcd tx_param on the panel's
+     * SPI device, the same one the LVGL flush uses, so this is the race that
+     * panicked the housekeeping task on 2026-09-15 (docs/POWER.md 5.9) run at
+     * full speed: on a firmware whose brightness path does not take the LVGL
+     * lock it asserts in spi_device_release_bus() within a few hundred
+     * writes; on one that does, it just runs. Leaves the brightness where it
+     * found it. */
+    {
+        char q[64] = "", v[8];
+        if (httpd_req_get_url_query_str(req, q, sizeof(q)) == ESP_OK &&
+            httpd_query_key_value(q, "spin", v, sizeof(v)) == ESP_OK) {
+            int n = atoi(v);
+            if (n < 1) n = 1;
+            if (n > 5000) n = 5000;
+            int keep = aos_hal_brightness_get();
+            int64_t t0 = esp_timer_get_time();
+            for (int i = 0; i < n; i++) {
+                aos_hal_brightness_set((i & 1) ? 30 : 90);
+                vTaskDelay(1);
+            }
+            aos_hal_brightness_set(keep);
+            outf(&o, "== spin ==\n%d brightness writes in %lld ms, still here\n\n",
+                 n, (long long)((esp_timer_get_time() - t0) / 1000));
+        }
+    }
+
     /* ?bench=1: full render of the CURRENT screen, 8 times, average. Unlike
      * the startup benchmark (one rectangle) this walks the real object tree
      * and styles, which is what moving LVGL's memory changes. */

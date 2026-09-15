@@ -32,3 +32,12 @@ endif()
 if(AOS_AUDIT_PSRAM_STACKS)
     target_compile_definitions(${COMPONENT_LIB} PRIVATE AOS_AUDIT_PSRAM_STACKS=1)
 endif()
+
+# Test-only, OFF by default and never for a release: the brightness write
+# WITHOUT the LVGL lock, the way it was before 2026-09-15, so that
+# /api/mem?spin=N reproduces the SPI bus assert on the A side of an A/B
+# (docs/POWER.md 5.9). Like the switches above it sticks in the CMake cache:
+# build with -DAOS_TEST_UNLOCKED_BRIGHTNESS=0 afterwards.
+if(AOS_TEST_UNLOCKED_BRIGHTNESS)
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE AOS_TEST_UNLOCKED_BRIGHTNESS=1)
+endif()

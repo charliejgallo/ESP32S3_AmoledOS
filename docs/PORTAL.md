@@ -71,7 +71,9 @@ GET  /api/mem                    the RAM audit's report (docs/RAM-AUDIT.md): hea
                                  biggest blocks; ?bench=1 renders the screen 8 times,
                                  ?fps=N counts frames for N s, ?tap=x,y,ms injects a
                                  touch (?tap=x,y,ms,x2,y2 a drag: slow ones scroll),
-                                 ?lvpsram=0|1 switches LVGL's allocations live
+                                 ?lvpsram=0|1 switches LVGL's allocations live,
+                                 ?spin=N writes the brightness N times from the
+                                 server's task (the SPI race of POWER.md 5.9)
 ```
 
 ## What it costs the board
@@ -85,7 +87,12 @@ and a few pointers to internal RAM. Moving the PM dump of `/api/pmu` from a
 static array to PSRAM took 2 KB *off* the static internal footprint.
 
 What is NOT free: the server itself (one task with an 8 KB stack and its
-sockets) — that already existed, and it stops when there is no network.
+sockets) — that already existed, and it stops when there is no network. The
+sockets are finite, too: a script that opens a few hundred connections
+back-to-back (450 `curl` calls with no pause, 2026-09-15) leaves the server
+refusing every new connection at the TCP level while the board goes on
+running, until a restart. Space scripted requests out - `tools/spi_stress.sh`
+uses 150 ms - or reuse one connection.
 `/api/captura` borrows 322 KB of PSRAM while the capture is taken, and the
 Screen page's automatic refresh asks for one every few seconds; cut it when
 nobody is looking.

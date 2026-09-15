@@ -3,6 +3,21 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+- **A panic on the idle timeout, fixed.** The housekeeping task turning the
+  screen off wrote the panel's brightness register while the LVGL task was
+  flushing pixels over the same SPI device; esp_lcd's bus lock is per device,
+  not per task, and the second releaser tripped `assert` in
+  `spi_device_release_bus()` - or, under load, lost the flush's completion
+  and the LVGL task hung until the task watchdog. Every brightness write now
+  takes the LVGL lock, as the panel sleep commands already did. Reproduced
+  and closed with an A/B (`/api/mem?spin=N`, `tools/spi_stress.sh`): the
+  unlocked build reboots in 5,000 writes while the launcher scrolls, the
+  locked one runs clean. `POWER.md` 5.9.
+- The portal's server can be starved of sockets by a few hundred
+  back-to-back connections; documented in `PORTAL.md`, not fixed.
+
 ## v0.3.8 — 2026-09-15
 
 Icons as data — a dynamic app no longer needs a firmware reflash to have an

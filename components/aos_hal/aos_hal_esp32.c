@@ -326,6 +326,41 @@ void aos_hal_unlock(void)
     bsp_display_unlock();
 }
 
+/* --------------------------------------------------------------------------
+ * The panel's SPI bus is one device, and esp_lcd is not thread-safe
+ *
+ * bsp_display_brightness_set() is an esp_lcd tx_param on the same SPI device
+ * the LVGL flush uses for its pixels. esp_lcd acquires the bus around every
+ * transaction, and the bus lock is per DEVICE: a second task acquiring the
+ * same device while the first holds it is let through as if it already owned
+ * the bus, and whichever of the two releases second trips
+ * `assert(ret == ESP_OK)` in spi_device_release_bus() (spi_master.c, the
+ * acquire_end of a lock it does not hold). Measured on 2026-09-15: the
+ * housekeeping task turning the panel off on the idle timeout while LVGL was
+ * flushing, and reproduced in ten cycles of wake / menu / off over the portal.
+ *
+ * So every brightness write goes through here, under the LVGL lock: the flush
+ * runs inside lv_timer_handler() under that same (recursive) mutex, and a
+ * tx_param taken with it held finds the bus idle or waits for the queued
+ * colour transfers itself, which is the one order esp_lcd supports.
+ * panel_sleep() already did this for its own commands; brightness did not.
+ * -------------------------------------------------------------------------- */
+static void panel_brightness(int percent)
+{
+#if AOS_TEST_UNLOCKED_BRIGHTNESS
+    /* The pre-fix behaviour, for the A side of the A/B with /api/mem?spin=N.
+     * idf.py -DAOS_TEST_UNLOCKED_BRIGHTNESS=1 build; never ship it. */
+    bsp_display_brightness_set(percent);
+#else
+    if (!aos_hal_lock(2000)) {
+        ESP_LOGW(TAG, "brightness %d: could not take the LVGL lock, skipped", percent);
+        return;
+    }
+    bsp_display_brightness_set(percent);
+    aos_hal_unlock();
+#endif
+}
+
 int aos_hal_brightness_get(void)
 {
     return s_brightness;
@@ -336,7 +371,7 @@ void aos_hal_brightness_set(int percent)
     if (percent < 0)   percent = 0;
     if (percent > 100) percent = 100;
     s_brightness = percent;
-    bsp_display_brightness_set(percent);
+    panel_brightness(percent);
     aos_hal_pref_set_i32("bright", percent);
 }
 
@@ -358,14 +393,14 @@ void aos_hal_display_set_state(aos_display_state_t state)
     switch (state) {
     case AOS_DISPLAY_ACTIVE:
         panel_sleep(false);
-        bsp_display_brightness_set(s_brightness);
+        panel_brightness(s_brightness);
         break;
     case AOS_DISPLAY_AOD:
         panel_sleep(false);
-        bsp_display_brightness_set(s_aod_brightness);
+        panel_brightness(s_aod_brightness);
         break;
     case AOS_DISPLAY_OFF:
-        bsp_display_brightness_set(0);
+        panel_brightness(0);
         panel_sleep(true);
         break;
     }
@@ -407,7 +442,7 @@ void aos_hal_aod_brightness_set(int percent)
     s_aod_brightness = percent;
     aos_hal_pref_set_i32("aod_bright", percent);
     if (s_display_state == AOS_DISPLAY_AOD) {
-        bsp_display_brightness_set(s_aod_brightness);
+        panel_brightness(s_aod_brightness);
     }
 }
 
