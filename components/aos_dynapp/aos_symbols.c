@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 86 funciones de libc/libm agregadas a mano.
- * Total: 2646 simbolos.
+ * Total: 2654 simbolos.
  */
 
 #include <stddef.h>
@@ -41,6 +41,7 @@ extern int aos_app_level_get;
 extern int aos_app_life_get;
 extern int aos_app_music_get;
 extern int aos_app_notifs_get;
+extern int aos_app_pato_get;
 extern int aos_app_pcremote_get;
 extern int aos_app_photos_get;
 extern int aos_app_pomodoro_get;
@@ -300,7 +301,14 @@ extern int aos_i18n_current;
 extern int aos_i18n_init;
 extern int aos_i18n_scan;
 extern int aos_i18n_set;
+extern int aos_icon_clear_ops;
 extern int aos_icon_create;
+extern int aos_icon_create_ops;
+extern int aos_icon_create_switch;
+extern int aos_icon_ops_builtin;
+extern int aos_icon_ops_check;
+extern int aos_icon_ops_for;
+extern int aos_icon_set_ops;
 extern int aos_imu_start;
 extern int aos_label;
 extern int aos_label_boxed;
@@ -2690,6 +2698,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_app_life_get),
     ESP_ELFSYM_EXPORT(aos_app_music_get),
     ESP_ELFSYM_EXPORT(aos_app_notifs_get),
+    ESP_ELFSYM_EXPORT(aos_app_pato_get),
     ESP_ELFSYM_EXPORT(aos_app_pcremote_get),
     ESP_ELFSYM_EXPORT(aos_app_photos_get),
     ESP_ELFSYM_EXPORT(aos_app_pomodoro_get),
@@ -2949,7 +2958,14 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_i18n_init),
     ESP_ELFSYM_EXPORT(aos_i18n_scan),
     ESP_ELFSYM_EXPORT(aos_i18n_set),
+    ESP_ELFSYM_EXPORT(aos_icon_clear_ops),
     ESP_ELFSYM_EXPORT(aos_icon_create),
+    ESP_ELFSYM_EXPORT(aos_icon_create_ops),
+    ESP_ELFSYM_EXPORT(aos_icon_create_switch),
+    ESP_ELFSYM_EXPORT(aos_icon_ops_builtin),
+    ESP_ELFSYM_EXPORT(aos_icon_ops_check),
+    ESP_ELFSYM_EXPORT(aos_icon_ops_for),
+    ESP_ELFSYM_EXPORT(aos_icon_set_ops),
     ESP_ELFSYM_EXPORT(aos_imu_start),
     ESP_ELFSYM_EXPORT(aos_label),
     ESP_ELFSYM_EXPORT(aos_label_boxed),

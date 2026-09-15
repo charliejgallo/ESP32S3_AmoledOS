@@ -49,6 +49,42 @@ it defines the `.so`'s two exported functions; in the simulator (which compiles
 startup. **You design it on the Mac and copy it to the microSD without changing
 a line.**
 
+## The icon
+
+Three ways, in the order the launcher tries them:
+
+1. **Bring your own.** Describe it as shapes with the macros of
+   `aos_icon_ops.h` and hand it over from `init()`, after `desc.id`:
+
+   ```c
+   #include "aos_icon_ops.h"
+
+   static const uint8_t HELLO_ICON[] = {
+       AIC_HEADER,
+       AIC_RECT(AIC_CENTER, 0, 0, 50, 50, AIC_CIRCLE, AIC_C_TEXT, 255),   /* a disc      */
+       AIC_INTO,                                                          /* ...with     */
+       AIC_RECT(AIC_CENTER, 0, 0, 20, 20, AIC_CIRCLE, AIC_C_LIT(0x0A84FF), 255), /* a dot */
+       AIC_OUT,
+       AIC_END
+   };
+
+   app->desc.id = "demo.hello";
+   aos_icon_set_ops(app, HELLO_ICON, sizeof HELLO_ICON);
+   ```
+
+   Coordinates are percent of the icon size, so the one drawing serves the
+   list, the grid and the honeycomb. The runtime validates and copies the
+   bytes, so no firmware change and no reflash: the icon travels inside the
+   `.so`. Format, opcodes and palette: [ICONS.md](ICONS.md).
+2. `desc.icon_vec`, one of the firmware's `AOS_ICON_*` - for an icon that
+   already exists there.
+3. `desc.icon`, an LVGL glyph or two letters. Keep one as the fallback even
+   with 1 or 2: it is what shows if the blob is ever refused.
+
+`aos_icon_set_ops()` is a firmware symbol: a `.so` that calls it will not
+load on a firmware older than the one that introduced it (`build_apps.sh`
+reports the missing symbol at build time rather than at load).
+
 ## The callbacks
 
 | Callback | When |

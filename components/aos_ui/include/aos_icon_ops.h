@@ -136,6 +136,32 @@ extern "C" {
 
 /* ---- runtime ---------------------------------------------------------------- */
 
+/* An app hands the runtime its icon, from init(), AFTER setting desc.id:
+ *
+ *     app->desc.id = "demo.topos";
+ *     aos_icon_set_ops(app, MY_ICON, sizeof MY_ICON);
+ *
+ * The bytes are validated and COPIED into a table of the runtime's own keyed
+ * by desc.id, so the blob may live in the .so's rodata, which is gone once
+ * the boot probe closes the module - the same reason aos_dynapp copies id
+ * and name. init() runs twice for a dynamic app (probe, then open) and the
+ * second call overwrites the entry with the same bytes. Returns false, with
+ * a log line, for a blob the interpreter would refuse; the app then falls
+ * back to desc.icon_vec / desc.icon as before.
+ *
+ * Why a call and not a field in aos_app_desc_t: a field bumps
+ * AOS_ABI_VERSION and every .so on the card stops loading until rebuilt; a
+ * call is one new symbol in the firmware's table, and a .so that uses it on
+ * an older firmware fails loudly at load instead of silently losing its icon
+ * (docs/ICONS.md, 4.1). */
+bool aos_icon_set_ops(const aos_app_t *app, const uint8_t *ops, size_t len);
+
+/* Forgets the icon of an app that is being unregistered. */
+void aos_icon_clear_ops(const char *id);
+
+/* The blob an app registered with aos_icon_set_ops(), or NULL. */
+const uint8_t *aos_icon_ops_for(const char *id, size_t *len);
+
 /* Circular icon with the descriptor's gradient and, on top, the shapes in
  * 'ops'. Same object as aos_icon_create() builds, drawn from data instead of
  * from the switch. A malformed blob stops where the fault is, with a log

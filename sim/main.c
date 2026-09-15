@@ -194,12 +194,38 @@ static void icontest_build(void)
     lv_obj_set_style_bg_color(scr, lv_color_hex(0x000000), 0);
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
 
+    /* The right column takes the PRODUCTION path, aos_icon_create(), with
+     * the descriptor Topos itself registered: since F2 that app brings its
+     * icon with aos_icon_set_ops() and has icon_vec = NONE, so what is drawn
+     * comes out of the runtime's copy of the .so's blob - the very bytes the
+     * board will use. Without Topos registered (it is compiled into the
+     * simulator, so that would be a build problem) it falls back to the
+     * firmware's own table for the mole. */
+    const aos_app_desc_t *prod = &desc;
+    for (int i = 0, n = aos_ui_app_count(); i < n; i++) {
+        const aos_app_t *a = aos_ui_app_at(i);
+        if (a && a->desc.id && strcmp(a->desc.id, "demo.topos") == 0) {
+            prod = &a->desc;
+            break;
+        }
+    }
+    size_t reg_len = 0;
+    printf("ICONTEST right column: %s\n",
+           prod != &desc && aos_icon_ops_for(prod->id, &reg_len)
+               ? "the blob Topos registered from its init()"
+               : "the firmware's built-in table (Topos not registered)");
+    if (reg_len) {
+        printf("ICONTEST registered blob: %zu bytes, %s the built-in table\n", reg_len,
+               reg_len == len && memcmp(aos_icon_ops_for(prod->id, NULL), ops, len) == 0
+                   ? "byte-identical to" : "DIFFERENT from");
+    }
+
     int mismatches = 0;
     for (int i = 0; i < 3; i++) {
         int32_t s = sizes[i];
         lv_obj_t *by_case = aos_icon_create_switch(scr, &desc, s);
         lv_obj_set_pos(by_case, ICONTEST_SPLIT / 2 - s / 2, rows[i] - s / 2);
-        lv_obj_t *by_ops = aos_icon_create_ops(scr, &desc, ops, len, s);
+        lv_obj_t *by_ops = aos_icon_create(scr, prod, s);
         lv_obj_set_pos(by_ops, ICONTEST_SPLIT + ICONTEST_SPLIT / 2 - s / 2, rows[i] - s / 2);
         lv_obj_update_layout(scr);
         int bad = icontest_compare(by_case, by_ops, 0);

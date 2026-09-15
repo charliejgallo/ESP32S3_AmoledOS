@@ -18,6 +18,7 @@
 #include "aos_fonts.h"
 #include "aos_hal.h"
 #include "aos_i18n.h"
+#include "aos_icon_ops.h"
 #include "aos_ui.h"
 
 #include "topos.h"
@@ -1057,12 +1058,31 @@ static void topos_destroy(aos_app_t *self, void *inst)
     lv_free(a);
 }
 
+/* The launcher icon: a mole peeking out of its hole. Percent coordinates,
+ * cardinal shapes, the pink nose the only colour of its own. */
+static const uint8_t TOPOS_ICON[] = {
+    AIC_HEADER,
+    AIC_RECT(AIC_CENTER,   0,  -4, 44, 52, 22,         AIC_C_TEXT,          255),
+    AIC_INTO,
+    AIC_RECT(AIC_TOP_MID, -8,  12,  6,  8, AIC_CIRCLE, AIC_C_LIT(0x000000), 255),
+    AIC_RECT(AIC_TOP_MID,  8,  12,  6,  8, AIC_CIRCLE, AIC_C_LIT(0x000000), 255),
+    AIC_RECT(AIC_TOP_MID,  0,  22, 13,  9, AIC_CIRCLE, AIC_C_LIT(0xFF8FA6), 255),
+    AIC_OUT,
+    AIC_RECT(AIC_CENTER,   0,  25, 76, 20, AIC_CIRCLE, AIC_C_LIT(0xDDA05E), 255),
+    AIC_END
+};
+
 static bool topos_init(aos_app_t *app)
 {
     app->desc.id       = "demo.topos";
     app->desc.name     = "Topos";
     app->desc.icon     = LV_SYMBOL_PLAY;
-    app->desc.icon_vec = AOS_ICON_MOLE;
+    /* The icon travels with the app (docs/ICONS.md): the same mole the
+     * firmware drew as AOS_ICON_MOLE, now described here and copied by the
+     * runtime at load. icon_vec stays NONE so that the glyph above is the
+     * only fallback, should the blob ever be refused. */
+    app->desc.icon_vec = AOS_ICON_NONE;
+    aos_icon_set_ops(app, TOPOS_ICON, sizeof TOPOS_ICON);
     /* Lawn over dirt. Darkish at both ends: the icon's shape is drawn in
      * white and the colour is the app's. */
     app->desc.color_a  = 0x3E8E2E;

@@ -16,6 +16,7 @@
  */
 #include "aos_ui.h"
 #include "aos_theme.h"
+#include "aos_icon_ops.h"
 #include "aos_hal.h"
 #include "aos_internal.h"
 #include "aos_watchface.h"
@@ -359,6 +360,7 @@ bool aos_ui_unregister_app(const char *id)
     if (app->root) {
         lv_obj_delete(app->root);
     }
+    aos_icon_clear_ops(id);     /* the icon it brought with aos_icon_set_ops() */
     memmove(&s_apps[index], &s_apps[index + 1],
             (size_t)(s_app_count - index - 1) * sizeof(aos_app_t));
     s_app_count--;

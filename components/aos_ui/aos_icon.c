@@ -8,6 +8,7 @@
 #include "aos_theme.h"
 #include "aos_icon_ops.h"
 #include "aos_hal.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -1541,6 +1542,97 @@ int aos_icon_ops_check(const uint8_t *ops, size_t len, size_t *bad_at)
     return walk_ops(NULL, ops, len, 100, bad_at);
 }
 
+/* --------------------------------------------------------------------------
+ * Icons brought by the apps themselves (aos_icon_set_ops)
+ *
+ * One entry per app id, the blob copied. In PSRAM: 40 entries of ~300 bytes
+ * is 12 KB, which is nothing there and would be a tenth of what is left in
+ * internal RAM. Only dynamic apps use this today (the built-in ones have
+ * their tables in flash), so the size follows MAX_DYNAPPS with some room.
+ * -------------------------------------------------------------------------- */
+
+#define ICON_REG_MAX    40
+#define ICON_REG_ID_MAX 40      /* as dynapp_t.id */
+
+typedef struct {
+    char     id[ICON_REG_ID_MAX];
+    uint16_t len;               /* 0 = free entry; a blob is never shorter than its header */
+    uint8_t  ops[AOS_ICON_OPS_MAX];
+} icon_reg_t;
+
+AOS_BSS_PSRAM static icon_reg_t s_reg[ICON_REG_MAX];
+
+static icon_reg_t *reg_find(const char *id)
+{
+    if (!id || !id[0]) {
+        return NULL;
+    }
+    for (int i = 0; i < ICON_REG_MAX; i++) {
+        if (s_reg[i].len && strcmp(s_reg[i].id, id) == 0) {
+            return &s_reg[i];
+        }
+    }
+    return NULL;
+}
+
+bool aos_icon_set_ops(const aos_app_t *app, const uint8_t *ops, size_t len)
+{
+    const char *id = app ? app->desc.id : NULL;
+    if (!id || !id[0]) {
+        aos_hal_log("icon", "aos_icon_set_ops: set desc.id before the icon");
+        return false;
+    }
+    if (strlen(id) >= ICON_REG_ID_MAX) {
+        aos_hal_log("icon", "%s: id too long for the icon table", id);
+        return false;
+    }
+    size_t bad_at = 0;
+    int shapes = aos_icon_ops_check(ops, len, &bad_at);
+    if (shapes < 0) {
+        aos_hal_log("icon", "%s: icon blob refused at byte %u of %u",
+                    id, (unsigned)bad_at, (unsigned)len);
+        return false;
+    }
+
+    icon_reg_t *e = reg_find(id);
+    if (!e) {
+        for (int i = 0; i < ICON_REG_MAX; i++) {
+            if (s_reg[i].len == 0) {
+                e = &s_reg[i];
+                break;
+            }
+        }
+    }
+    if (!e) {
+        aos_hal_log("icon", "%s: no room for its icon (%d apps already)", id, ICON_REG_MAX);
+        return false;
+    }
+    snprintf(e->id, sizeof(e->id), "%s", id);
+    memcpy(e->ops, ops, len);
+    e->len = (uint16_t)len;
+    aos_hal_log("icon", "%s brought its icon: %u bytes, %d shapes", id, (unsigned)len, shapes);
+    return true;
+}
+
+void aos_icon_clear_ops(const char *id)
+{
+    icon_reg_t *e = reg_find(id);
+    if (e) {
+        memset(e, 0, sizeof(*e));
+    }
+}
+
+const uint8_t *aos_icon_ops_for(const char *id, size_t *len)
+{
+    icon_reg_t *e = reg_find(id);
+    if (!e) {
+        if (len) *len = 0;
+        return NULL;
+    }
+    if (len) *len = e->len;
+    return e->ops;
+}
+
 /* The circle with the gradient every icon sits on, shared by both builders. */
 static lv_obj_t *make_base(lv_obj_t *parent, const aos_app_desc_t *desc, int32_t size)
 {
@@ -1583,16 +1675,18 @@ lv_obj_t *aos_icon_create(lv_obj_t *parent, const aos_app_desc_t *desc, int32_t 
 {
     lv_obj_t *base = make_base(parent, desc, size);
 
+    /* Precedence (docs/ICONS.md 4.3): the blob the app registered, then a
+     * built-in table, then the switch, then the glyph. */
     size_t ops_len = 0;
-    const uint8_t *ops = desc->icon_vec != AOS_ICON_NONE
-                       ? aos_icon_ops_builtin(desc->icon_vec, &ops_len) : NULL;
+    const uint8_t *ops = aos_icon_ops_for(desc->id, &ops_len);
+    if (!ops && desc->icon_vec != AOS_ICON_NONE) {
+        ops = aos_icon_ops_builtin(desc->icon_vec, &ops_len);
+    }
 
     if (ops) {
-        /* Ported to a table: the switch case stays only for the simulator's
-         * diff, so on the board this IS the path the icon takes. */
         size_t bad_at = 0;
         if (walk_ops(base, ops, ops_len, size, &bad_at) < 0) {
-            aos_hal_log("icon", "%s: bad built-in blob at byte %u",
+            aos_hal_log("icon", "%s: bad icon blob at byte %u",
                         desc->id ? desc->id : "?", (unsigned)bad_at);
         }
     } else if (desc->icon_vec != AOS_ICON_NONE) {

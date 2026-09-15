@@ -240,7 +240,7 @@ meaning what they mean.
 |---|---|---|
 | **F0** | This document | **done** |
 | **F1** | Interpreter + `aos_icon_ops.h` + `tools/aic.py`; port ONE icon (`AOS_ICON_MOLE`) to a table next to its `case`; draw both at 66/74/82 in the sim, diff to zero; run the table on the board; measure flash and RAM | **done 2026-09-15**, below |
-| **F2** | `aos_icon_set_ops()` + pending copy in `register_stub()` + symbol export; `topos` calls it and drops `icon_vec`; verify with an old firmware that the load fails loudly and with the new one that the icon matches | |
+| **F2** | `aos_icon_set_ops()` + a registry keyed by `desc.id` + symbol export; `topos` calls it and drops `icon_vec`; the bench's right column takes the production path with the blob Topos registered; on the board, the icon out of the `.so` | **done 2026-09-15**, below |
 | **F3** | `/icons` on card and SPIFFS, boot scan, portal upload + list + JS preview, deferred rebuild after upload; the override of a built-in icon as the test | |
 | **F4** | Port the 36 cases to tables, delete the `switch`, measure the flash delta; enum stays as an index | |
 | **F5** | Optional `IMG` opcode for bitmap icons | |
@@ -315,6 +315,69 @@ Two things learnt on the way, about the tools and not the icons:
   the face opens the watchface picker. A scripted scroll has to be one
   uninterrupted sequence, from `que=menu` to the capture.
 
+### 7.2 What F2 measured
+
+The registry turned out simpler than the "pending copy in `register_stub()`"
+sketched in 4.1: `aos_icon_set_ops()` validates and copies the blob into a
+table of its own **keyed by `desc.id`**, right there in the call, so
+`aos_dynapp` needed no change at all - the id is set before the call, the
+probe's `init()` fills the entry, the real open's `init()` overwrites it
+with the same bytes, and `aos_ui_unregister_app()` clears it. Topos sets
+`icon_vec = AOS_ICON_NONE` and hands over `TOPOS_ICON`, the same 64 bytes
+the firmware's table holds.
+
+| | |
+|---|---|
+| Simulator bench, right column now `aos_icon_create()` with Topos' registered descriptor | `the blob Topos registered from its init()`, byte-identical to the built-in table, trees identical, **0 differing pixels** |
+| `build_apps.sh topos` | `ok topos.so 48K ABI 2 75 symbols` - the new call resolved against the regenerated table |
+| Board log at load | `icon: demo.topos brought its icon: 64 bytes, 5 shapes` |
+| Board launcher | Whack-a-Mole drawn from the `.so`'s bytes (the `AOS_ICON_MOLE` value is no longer in that `.so`) |
+
+<img src="img/icon-bench-board-f2.png" width="220" alt="The board's launcher, the mole now out of topos.so">
+
+**Flash and RAM, F2 against F1:**
+
+| Section | F1 | F2 | delta |
+|---|---|---|---|
+| `.flash.text` | 1,970,944 | 1,971,528 | +584 (the registry code) |
+| `.flash.rodata` | 1,317,380 | 1,317,828 | +448 (eight new rows in `aos_symbols.c`) |
+| `.dram0.data` / `.dram0.bss` | 35,132 / 14,256 | **unchanged** | |
+| `.ext_ram.bss` (PSRAM) | 60,256 | 72,176 | **+11,920** = 40 entries x (40 id + 2 len + 256 ops) |
+| Board, launcher open, `internal free` | 162,043 | 162,067 | noise |
+
+The registry is `AOS_BSS_PSRAM`, so the 11.9 KB land where there are 7.5 MB
+free and not one byte in internal RAM. Sized at 40 entries because only
+dynamic apps register (32 is `MAX_DYNAPPS`); the built-in ones keep their
+tables in flash.
+
+**A panic seen on the way, not caused by this.** While F1 ran on the board,
+`/api/status` reported `boot_reason: PANIC` with a reboot at about 14:27.
+The dump in the `coredump` partition, symbolised with a rebuild of the F1
+commit (`esp-coredump` refuses it - the rebuilt ELF's SHA differs - but
+`xtensa-esp32s3-elf-gdb` on the ELF extracted at byte 24 of `/api/coredump`
+does not care):
+
+```
+assert failed (spi_master.c:1400, spi_device_release_bus)
+  panel_io_spi_tx_param  <-  esp_lcd_panel_io_tx_param
+  bsp_display_brightness_set        managed_components/waveshare.../esp32_s3_touch_amoled_1_8.c:371
+  aos_hal_display_set_state(OFF)    components/aos_hal/aos_hal_esp32.c:368
+  housekeeping_task                 components/aos_hal/aos_hal_esp32.c:3314
+```
+
+The housekeeping task turned the panel off on the idle timeout while another
+task held the panel's SPI bus - the LVGL flush, most likely, since the screen
+had just been captured and scrolled by script. It is a race between the HAL's
+display-off path and the BSP that predates this branch; the icons are not in
+the trace. Worth its own fix: take the LVGL lock (or the port's) around
+`bsp_display_brightness_set()` when it is called from housekeeping.
+
+Two of the eight new symbols are worth a note. `aos_icon_create_switch` is
+bench-only and should not tempt an app; it goes with the switch in F4.
+`aos_app_pato_get` is unrelated: it had been missing from the table since
+the Pato goma commit, because nobody had rerun `gen_symbols.py` after it,
+and this regeneration picked it up.
+
 ## 8. Risks and things already known
 
 - **`dlsym()` sees functions only.** Designed around it (4.1); nothing to
@@ -350,5 +413,10 @@ Two things learnt on the way, about the tools and not the icons:
   will scan.
 - `tools/aic.py` - `lint`, `dump`, `halves`.
 
+- F2 added the registry (`aos_icon_set_ops`, `aos_icon_clear_ops`,
+  `aos_icon_ops_for`) in `aos_icon.c`, the clear in
+  `aos_ui_unregister_app()`, `TOPOS_ICON` in `apps/topos/main/topos.c`, the
+  regenerated `aos_symbols.c`, and the "The icon" section of `APP-API.md`.
+
 The `.so` files on the card are untouched and still load: nothing in the
-ABI moved. Next is F2, `aos_icon_set_ops()` from `init()`.
+ABI moved. Next is F3, the `/icons` directory on the card and the portal.
