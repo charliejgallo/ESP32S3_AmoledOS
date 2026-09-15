@@ -246,6 +246,7 @@ network survey's report format.
 | [HARDWARE.md](docs/HARDWARE.md) | the board, the pinout, and the quirks the datasheets do not mention |
 | [BUILDING.md](docs/BUILDING.md) | firmware, simulator, dynamic apps, and every tool |
 | [APP-API.md](docs/APP-API.md) | writing an app, and the things that will bite you |
+| [APP-GUIDE.md](docs/APP-GUIDE.md) | the long form: how the apps were actually written - workflow, the four drawing techniques with their costs, data from the internet, configuration from the portal, testing without the board, and every trap that bit |
 | [I18N.md](docs/I18N.md) | how translation works and why the key is the Spanish string |
 | [ICONS.md](docs/ICONS.md) | icons as data: the AIC format, how a `.so` or a file on the card brings one, how the 36 hand-drawn ones became tables, and what it saved |
 | [POWER.md](docs/POWER.md) | the AXP2101, the rails, light sleep, and the measurements behind each switch |

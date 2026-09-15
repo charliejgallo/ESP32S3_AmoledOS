@@ -9,6 +9,11 @@ The full contract is
 The smallest complete example is
 [`apps/hello_app/`](../apps/hello_app/main/hello_app.c).
 
+This page is the contract. [APP-GUIDE.md](APP-GUIDE.md) is the long form: the
+workflow, the drawing techniques and what each costs on the board, fetching
+data, being configured from the portal, testing without the watch, and every
+trap that bit while the apps in `apps/` were written.
+
 ## The shape of an app
 
 ```c
