@@ -371,8 +371,9 @@ The housekeeping task turned the panel off on the idle timeout while another
 task held the panel's SPI bus - the LVGL flush, most likely, since the screen
 had just been captured and scrolled by script. It is a race between the HAL's
 display-off path and the BSP that predates this branch; the icons are not in
-the trace. Worth its own fix: take the LVGL lock (or the port's) around
-`bsp_display_brightness_set()` when it is called from housekeeping.
+the trace. Fixed on the branch that followed: every brightness write goes
+through the LVGL lock now, and the race is reproduced and closed in
+`POWER.md` 5.9.
 
 Two of the eight new symbols are worth a note. `aos_icon_create_switch` is
 bench-only and should not tempt an app; it goes with the switch in F4.

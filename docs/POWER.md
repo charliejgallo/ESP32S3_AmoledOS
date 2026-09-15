@@ -216,6 +216,68 @@ lifetime minutes on battery and completed charge cycles (both in NVS), the CPU
 clock right now, whether the panel is asleep, whether saving is active, and why
 the PMU last powered off.
 
+### 5.9 One SPI device, two tasks: the panel-off race (2026-09-15)
+
+While the icons branch was being tested, the board rebooted once on its own
+with `boot_reason: PANIC`. The dump in the `coredump` partition, symbolised
+with `xtensa-esp32s3-elf-gdb`:
+
+```
+assert failed: spi_device_release_bus (spi_master.c:1400)
+    "Cannot release bus when a polling transaction is in progress."
+  panel_io_spi_tx_param  <-  esp_lcd_panel_io_tx_param
+  bsp_display_brightness_set              the BSP, command 0x51
+  aos_hal_display_set_state(AOS_DISPLAY_OFF)   aos_hal_esp32.c
+  housekeeping_task                       the idle timeout
+```
+
+**What happened.** The panel is one SPI device, and both the LVGL flush
+(`tx_color`, the pixels) and the brightness register (`tx_param`, 0x51)
+go through it. esp_lcd wraps each transaction in
+`spi_device_acquire_bus()` / `release_bus()`, and the bus lock behind those
+is **per device, not per task**: a second task acquiring the device the
+first one already holds is let straight through (`spi_bus_lock.c`,
+`req_core`: "if we are the acquiring processor"). So the housekeeping task,
+turning the screen off on the idle timeout, sent the brightness command in
+the middle of a flush the LVGL task was polling on the same device. The
+first of the two to release hit the assert. esp_lcd's documentation says
+the panel IO is not thread-safe; this is what that looks like.
+
+`panel_sleep()` already took the LVGL lock around its own commands (5.4),
+precisely for this. `bsp_display_brightness_set()` did not: it was called
+bare from `aos_hal_display_set_state()` (three of its four paths), from
+`aos_hal_brightness_set()` and `aos_hal_aod_brightness_set()` - and those
+run on the housekeeping task and on the web server's task, not on LVGL's.
+
+**The fix.** Every brightness write goes through `panel_brightness()`, which
+takes the LVGL lock (recursive, so the LVGL task's own calls from Settings
+are unchanged), writes, and releases. The flush runs inside
+`lv_timer_handler()` under that same mutex, so with it held the bus is
+either idle or has only queued colour transfers, which `tx_param` itself
+waits for. That is the one order esp_lcd supports.
+
+**Measured, A/B, same firmware otherwise.** `/api/mem?spin=N` writes the
+brightness N times from the HTTP task while the UI draws, and
+`tools/spi_stress.sh` runs three rounds: 1,500 writes with Vida
+(Game of Life) redrawing, 5,000 writes while the launcher list is scrolled
+by injected drags, and 120 cycles of `apagar` / `despertar` over the portal
+with Vida up.
+
+| Build | Vida x 1,500 | launcher x 5,000 | off/on x 120 |
+|---|---|---|---|
+| A - `AOS_TEST_UNLOCKED_BRIGHTNESS=1`, the old bare call | 2,773 ms, survived | **task watchdog reboot**: the LVGL task stuck in `wait_for_flushing()` for a flush whose completion the interleaved command had lost | not reached |
+| B - the fix | 8,850 ms, clean | 13,084 ms, clean | clean |
+
+The A side shows the same race with the other face: instead of the assert,
+a lost flush and a watchdog. The B side takes longer because each write now
+waits its turn behind the frame being drawn - which is the point. The
+original trigger, the idle timeout with a flush in flight, is not something
+a script can time; the spin is that window opened wide.
+
+The switch `AOS_TEST_UNLOCKED_BRIGHTNESS` is for reproducing this and
+nothing else; it is off by default and sticks in the CMake cache like the
+audit switches (BUILDING.md).
+
 ## 6. Measured on the board (2026-09-09, v2, USB-powered, WiFi + BLE up)
 
 * **Boot programme confirmed in the PMU's own dump**: cc 150 mA, pre 50 mA,
