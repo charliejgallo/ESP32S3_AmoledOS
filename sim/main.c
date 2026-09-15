@@ -13,6 +13,9 @@
 #include "aos_apps.h"
 #include "aos_hal.h"
 #include "aos_watchface.h"
+#include "aos_theme.h"
+#include "aos_icon_ops.h"
+#include <sys/stat.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,6 +108,136 @@ static void sim_register_dynamic_apps(void)
     if (s_sim_app_count > 0) {
         printf("[sim] %d apps from apps/ preloaded\n", s_sim_app_count);
     }
+}
+
+/* --------------------------------------------------------------------------
+ * Icon test bench (docs/ICONS.md, phase F1)
+ *
+ * AOS_SIM_VIEW=icontest draws one icon twice at the launcher's three sizes:
+ * by its switch case on the left, from its AIC table on the right, on a
+ * black screen with the right column exactly ICONTEST_SPLIT px to the right
+ * of the left one. `tools/aic.py halves` then compares the two halves of the
+ * AOS_SIM_SHOT dump pixel by pixel. Before that, the two object trees are
+ * walked side by side here and any mismatch in geometry or style is printed,
+ * which points at the op that is wrong instead of just saying "differs".
+ *
+ * The icon under test is AOS_ICON_MOLE (Topos), the one ported so far.
+ * -------------------------------------------------------------------------- */
+
+#define ICONTEST_SPLIT  (AOS_SCREEN_W / 2)
+
+static int icontest_compare(lv_obj_t *a, lv_obj_t *b, int depth)
+{
+    int bad = 0;
+    uint32_t na = lv_obj_get_child_count(a), nb = lv_obj_get_child_count(b);
+    if (na != nb) {
+        printf("ICONTEST depth %d: %u children by case, %u by ops\n", depth, na, nb);
+        return 1;
+    }
+    for (uint32_t i = 0; i < na; i++) {
+        lv_obj_t *ca = lv_obj_get_child(a, i), *cb = lv_obj_get_child(b, i);
+        int32_t xa = lv_obj_get_x(ca), ya = lv_obj_get_y(ca);
+        int32_t wa = lv_obj_get_width(ca), ha = lv_obj_get_height(ca);
+        int32_t xb = lv_obj_get_x(cb), yb = lv_obj_get_y(cb);
+        int32_t wb = lv_obj_get_width(cb), hb = lv_obj_get_height(cb);
+        int32_t ra = lv_obj_get_style_radius(ca, 0), rb = lv_obj_get_style_radius(cb, 0);
+        lv_opa_t oa = lv_obj_get_style_bg_opa(ca, 0), ob = lv_obj_get_style_bg_opa(cb, 0);
+        bool color_ok = lv_color_eq(lv_obj_get_style_bg_color(ca, 0),
+                                    lv_obj_get_style_bg_color(cb, 0));
+        int32_t bwa = lv_obj_get_style_border_width(ca, 0);
+        int32_t bwb = lv_obj_get_style_border_width(cb, 0);
+        if (xa != xb || ya != yb || wa != wb || ha != hb || ra != rb || oa != ob ||
+            !color_ok || bwa != bwb) {
+            printf("ICONTEST depth %d child %u: case x%d y%d %dx%d r%d opa%d bw%d | "
+                   "ops x%d y%d %dx%d r%d opa%d bw%d%s\n", depth, i,
+                   xa, ya, wa, ha, ra, oa, bwa, xb, yb, wb, hb, rb, ob, bwb,
+                   color_ok ? "" : " | colour differs");
+            bad++;
+        }
+        bad += icontest_compare(ca, cb, depth + 1);
+    }
+    return bad;
+}
+
+static void icontest_build(void)
+{
+    static const aos_app_desc_t desc = {
+        .id = "demo.topos", .name = "Topos", .icon = LV_SYMBOL_PLAY,
+        .icon_vec = AOS_ICON_MOLE, .color_a = 0x3E8E2E, .color_b = 0x6B4020,
+    };
+    static const int32_t sizes[3] = { 66, 74, 82 };   /* list, honeycomb, grid */
+    static const int32_t rows[3]  = { 90, 224, 358 };
+
+    size_t len = 0;
+    const uint8_t *ops = aos_icon_ops_builtin(desc.icon_vec, &len);
+    if (!ops) {
+        printf("ICONTEST: AOS_ICON_MOLE has no table\n");
+        exit(1);
+    }
+
+    size_t bad_at = 0;
+    int shapes = aos_icon_ops_check(ops, len, &bad_at);
+    printf("ICONTEST blob: %zu bytes, %d shapes%s\n", len, shapes,
+           shapes < 0 ? " (INVALID)" : "");
+
+    /* The blob as a file, for tools/aic.py and as the first tenant of the
+     * /icons directory phase F3 will scan. */
+    mkdir("sim_fs/icons", 0755);
+    FILE *f = fopen("sim_fs/icons/demo.topos.aic", "wb");
+    if (f) {
+        fwrite(ops, 1, len, f);
+        fclose(f);
+    }
+
+    lv_obj_t *scr = lv_obj_create(NULL);
+    lv_obj_remove_style_all(scr);
+    lv_obj_set_style_bg_color(scr, lv_color_hex(0x000000), 0);
+    lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
+
+    int mismatches = 0;
+    for (int i = 0; i < 3; i++) {
+        int32_t s = sizes[i];
+        lv_obj_t *by_case = aos_icon_create_switch(scr, &desc, s);
+        lv_obj_set_pos(by_case, ICONTEST_SPLIT / 2 - s / 2, rows[i] - s / 2);
+        lv_obj_t *by_ops = aos_icon_create_ops(scr, &desc, ops, len, s);
+        lv_obj_set_pos(by_ops, ICONTEST_SPLIT + ICONTEST_SPLIT / 2 - s / 2, rows[i] - s / 2);
+        lv_obj_update_layout(scr);
+        int bad = icontest_compare(by_case, by_ops, 0);
+        printf("ICONTEST %d px: %s\n", s, bad ? "trees DIFFER" : "trees identical");
+        mismatches += bad;
+    }
+    printf("ICONTEST trees: %d mismatch(es)\n", mismatches);
+    lv_screen_load(scr);
+}
+
+/* AOS_SIM_SHOT=<file.ppm> dumps the active screen after AOS_SIM_SHOT_MS
+ * (default 1500) and exits. RGB888 P6, so tools/ppm2png.py and
+ * tools/aic.py halves read it with no dependencies. */
+static void shot_dump(const char *path)
+{
+    lv_draw_buf_t *buf = lv_snapshot_take(lv_screen_active(), LV_COLOR_FORMAT_RGB888);
+    if (!buf) {
+        printf("[shot] snapshot failed\n");
+        exit(1);
+    }
+    FILE *f = fopen(path, "wb");
+    if (!f) {
+        printf("[shot] cannot write %s\n", path);
+        exit(1);
+    }
+    uint32_t w = buf->header.w, h = buf->header.h;
+    fprintf(f, "P6\n%u %u\n255\n", w, h);
+    for (uint32_t y = 0; y < h; y++) {
+        const uint8_t *row = (const uint8_t *)buf->data + y * buf->header.stride;
+        for (uint32_t x = 0; x < w; x++) {
+            /* LVGL's RGB888 is B, G, R in memory */
+            uint8_t px[3] = { row[x * 3 + 2], row[x * 3 + 1], row[x * 3 + 0] };
+            fwrite(px, 1, 3, f);
+        }
+    }
+    fclose(f);
+    lv_draw_buf_destroy(buf);
+    printf("[shot] %s: %ux%u\n", path, w, h);
 }
 
 /* --------------------------------------------------------------------------
@@ -1045,9 +1178,19 @@ int main(void)
         } else if (strcmp(view, "honeycomb") == 0) {
             aos_ui_launcher_set_style(AOS_LAUNCHER_HONEYCOMB);
             aos_ui_show_launcher();
+        } else if (strcmp(view, "icontest") == 0) {
+            icontest_build();
         } else {
             aos_ui_open(view);
         }
+    }
+
+    const char *shot_env = getenv("AOS_SIM_SHOT");
+    uint64_t shot_at = 0;
+    if (shot_env && *shot_env) {
+        const char *ms = getenv("AOS_SIM_SHOT_MS");
+        long value = ms ? atol(ms) : 0;
+        shot_at = (value > 100) ? (uint64_t)value : 1500;
     }
 
     const char *script = getenv("AOS_SIM_KEYS");
@@ -1115,6 +1258,11 @@ int main(void)
 
         uint64_t now = aos_hal_uptime_ms();
         script_tick(now);
+
+        if (shot_at && now >= shot_at && lv_anim_count_running() == 0) {
+            shot_dump(shot_env);
+            exit(0);
+        }
 
         if (layout_at && now >= layout_at) {
             layout_at = 0;

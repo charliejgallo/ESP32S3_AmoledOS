@@ -6,7 +6,10 @@
  * scales to any size without looking pixelated.
  */
 #include "aos_theme.h"
+#include "aos_icon_ops.h"
+#include "aos_hal.h"
 #include <stdlib.h>
+#include <string.h>
 
 /* Icon hand: the theme's helper with the angle already applied. */
 static lv_obj_t *hand(lv_obj_t *parent, int32_t w, int32_t h, int32_t deg,
@@ -1242,7 +1245,304 @@ static void draw_vector(lv_obj_t *base, aos_icon_id_t id, int32_t size)
     }
 }
 
-lv_obj_t *aos_icon_create(lv_obj_t *parent, const aos_app_desc_t *desc, int32_t size)
+/* --------------------------------------------------------------------------
+ * Icons as data (aos_icon_ops.h, docs/ICONS.md)
+ *
+ * The same shapes the switch above builds, read from a blob of bytes. Every
+ * coordinate is a percent of the size, computed as 'size * pct / 100' with
+ * int32 arithmetic - the very expression the cases use - so a ported icon
+ * lands on the same pixels. Any non-zero dimension is clamped to 2 px, which
+ * is what the cases do by hand with LV_MAX(2, ...).
+ * -------------------------------------------------------------------------- */
+
+/* Topos, as a table. The same drawing as 'case AOS_ICON_MOLE' above, kept
+ * side by side with it on purpose: the simulator's AOS_SIM_VIEW=icontest
+ * draws both and diffs them, and that diff is the gate for porting the rest
+ * (phase F1 of docs/ICONS.md). */
+static const uint8_t ICON_MOLE_OPS[] = {
+    AIC_HEADER,
+    /* body: white, tall rounded box, a touch above centre */
+    AIC_RECT(AIC_CENTER,   0,  -4, 44, 52, 22,         AIC_C_TEXT,          255),
+    AIC_INTO,
+    /* two eyes and the nose live inside the body, hung from its top edge */
+    AIC_RECT(AIC_TOP_MID, -8,  12,  6,  8, AIC_CIRCLE, AIC_C_LIT(0x000000), 255),
+    AIC_RECT(AIC_TOP_MID,  8,  12,  6,  8, AIC_CIRCLE, AIC_C_LIT(0x000000), 255),
+    AIC_RECT(AIC_TOP_MID,  0,  22, 13,  9, AIC_CIRCLE, AIC_C_LIT(0xFF8FA6), 255),
+    AIC_OUT,
+    /* the mound of dirt in front */
+    AIC_RECT(AIC_CENTER,   0,  25, 76, 20, AIC_CIRCLE, AIC_C_LIT(0xDDA05E), 255),
+    AIC_END
+};
+
+const uint8_t *aos_icon_ops_builtin(aos_icon_id_t id, size_t *len)
+{
+    switch (id) {
+    case AOS_ICON_MOLE:
+        if (len) *len = sizeof(ICON_MOLE_OPS);
+        return ICON_MOLE_OPS;
+    default:
+        if (len) *len = 0;
+        return NULL;
+    }
+}
+
+/* The palette, in the order of aos_icon_ops.h. Append-only. */
+static const uint32_t AIC_PALETTE[AIC_C_COUNT] = {
+    0xFFFFFF, 0x000000, 0x1C1C1E, 0x2C2C2E, 0x8E8E93, 0x0A84FF, 0x30D158,
+    0xFF453A, 0xFF9F0A, 0xFFD60A, 0xBF5AF2, 0xFF375F, 0x40C8E0,
+};
+
+/* A reader over the blob. 'bad' is set at the first fault and every read
+ * after that yields zeros, so the caller checks once at the end of each op
+ * instead of after every byte. */
+typedef struct {
+    const uint8_t *p;
+    size_t         len;
+    size_t         at;
+    bool           bad;
+} aic_rd_t;
+
+static uint8_t rd_u8(aic_rd_t *r)
+{
+    if (r->bad || r->at >= r->len) {
+        r->bad = true;
+        return 0;
+    }
+    return r->p[r->at++];
+}
+
+static int8_t rd_i8(aic_rd_t *r)
+{
+    return (int8_t)rd_u8(r);
+}
+
+static int16_t rd_i16(aic_rd_t *r)
+{
+    uint16_t lo = rd_u8(r);
+    uint16_t hi = rd_u8(r);
+    return (int16_t)(lo | (hi << 8));
+}
+
+static lv_color_t rd_color(aic_rd_t *r)
+{
+    uint8_t idx = rd_u8(r);
+    if (idx == AIC_C_LITERAL) {
+        uint32_t cr = rd_u8(r), cg = rd_u8(r), cb = rd_u8(r);
+        return lv_color_make((uint8_t)cr, (uint8_t)cg, (uint8_t)cb);
+    }
+    if (idx >= AIC_C_COUNT) {
+        r->bad = true;
+        return lv_color_hex(0xFF00FF);   /* loud, so a bad index is seen */
+    }
+    return lv_color_hex(AIC_PALETTE[idx]);
+}
+
+/* 'size * pct / 100', the idiom of every case above, then the 2 px floor. */
+static int32_t pct(int32_t size, int8_t p)
+{
+    return size * p / 100;
+}
+
+static int32_t dim(int32_t size, int8_t p)
+{
+    int32_t v = size * p / 100;
+    return v > 0 ? LV_MAX(2, v) : 0;
+}
+
+static int32_t radius_px(int32_t size, uint8_t r)
+{
+    return r == AIC_CIRCLE ? LV_RADIUS_CIRCLE : size * r / 100;
+}
+
+static bool aic_header_ok(const uint8_t *ops, size_t len)
+{
+    return ops && len >= 4 && len <= AOS_ICON_OPS_MAX &&
+           ops[0] == 'A' && ops[1] == 'I' && ops[2] == 'C' && ops[3] == AIC_VERSION;
+}
+
+#define AIC_DEPTH   4
+
+/* Walks the blob. With 'base' it draws; with NULL it only validates, which
+ * is how aos_icon_ops_check() shares the one parser instead of keeping two
+ * in step. Returns the shape count, or -1 with *bad_at at the fault. */
+static int walk_ops(lv_obj_t *base, const uint8_t *ops, size_t len,
+                    int32_t size, size_t *bad_at)
+{
+    if (!aic_header_ok(ops, len)) {
+        if (bad_at) *bad_at = 0;
+        return -1;
+    }
+
+    aic_rd_t r = { .p = ops, .len = len, .at = 4, .bad = false };
+    lv_obj_t *stack[AIC_DEPTH];
+    int       depth = 0;
+    lv_obj_t *parent = base;
+    lv_obj_t *last = NULL;
+    int shapes = 0;
+    const bool draw = base != NULL;
+
+    for (;;) {
+        size_t op_at = r.at;
+        uint8_t op = rd_u8(&r);
+        if (r.bad) {
+            /* ran off the end without an END */
+            if (bad_at) *bad_at = op_at;
+            return -1;
+        }
+
+        switch (op) {
+        case AIC_OP_END:
+            return shapes;
+
+        case AIC_OP_RECT: {
+            uint8_t align = rd_u8(&r);
+            int8_t x = rd_i8(&r), y = rd_i8(&r), w = rd_i8(&r), h = rd_i8(&r);
+            uint8_t rad = rd_u8(&r);
+            lv_color_t c = rd_color(&r);
+            uint8_t opa = rd_u8(&r);
+            if (r.bad || align > LV_ALIGN_CENTER) { r.bad = true; break; }
+            if (draw) {
+                lv_obj_t *o = lv_obj_create(parent);
+                lv_obj_remove_style_all(o);
+                lv_obj_set_size(o, dim(size, w), dim(size, h));
+                lv_obj_set_style_radius(o, radius_px(size, rad), 0);
+                lv_obj_set_style_bg_color(o, c, 0);
+                lv_obj_set_style_bg_opa(o, opa, 0);
+                lv_obj_align(o, (lv_align_t)align, pct(size, x), pct(size, y));
+                last = o;
+            }
+            shapes++;
+            break;
+        }
+
+        case AIC_OP_RING: {
+            int8_t d = rd_i8(&r), b = rd_i8(&r);
+            lv_color_t c = rd_color(&r);
+            uint8_t opa = rd_u8(&r);
+            if (r.bad) break;
+            if (draw) {
+                last = ring(parent, dim(size, d), dim(size, b), c);
+                lv_obj_set_style_border_opa(last, opa, 0);
+            }
+            shapes++;
+            break;
+        }
+
+        case AIC_OP_ARC: {
+            int8_t d = rd_i8(&r), w = rd_i8(&r);
+            uint8_t value = rd_u8(&r);
+            int16_t rot = rd_i16(&r);
+            lv_color_t c = rd_color(&r);
+            if (r.bad) break;
+            if (draw) {
+                last = activity_arc(parent, dim(size, d), dim(size, w),
+                                    LV_MIN(value, 100), c);
+                lv_arc_set_rotation(last, rot);
+            }
+            shapes++;
+            break;
+        }
+
+        case AIC_OP_HAND: {
+            int8_t w = rd_i8(&r), l = rd_i8(&r);
+            int16_t angle = rd_i16(&r);
+            lv_color_t c = rd_color(&r);
+            if (r.bad) break;
+            if (draw) {
+                last = aos_hand_create(parent, dim(size, w), dim(size, l), c);
+                aos_hand_set_angle(last, angle);
+            }
+            shapes++;
+            break;
+        }
+
+        case AIC_OP_TEXT: {
+            uint8_t font = rd_u8(&r);
+            uint8_t n = rd_u8(&r);
+            size_t text_at = r.at;
+            for (uint8_t i = 0; i < n; i++) rd_u8(&r);
+            if (r.bad || n == 0 || n > 15) { r.bad = true; break; }
+            if (draw) {
+                char text[16];
+                memcpy(text, ops + text_at, n);
+                text[n] = '\0';
+                lv_obj_t *glyph = lv_label_create(parent);
+                lv_label_set_text(glyph, text);
+                lv_obj_set_style_text_color(glyph, AOS_C_TEXT, 0);
+                lv_obj_set_style_text_font(glyph, font == AIC_FONT_TITLE ? aos_font_title
+                                                                         : aos_font_body, 0);
+                lv_obj_center(glyph);
+                last = glyph;
+            }
+            shapes++;
+            break;
+        }
+
+        case AIC_OP_ROT: {
+            int16_t angle = rd_i16(&r);
+            if (r.bad) break;
+            if (draw && last) {
+                lv_obj_set_style_transform_rotation(last, angle, 0);
+                lv_obj_set_style_transform_pivot_x(last, lv_pct(50), 0);
+                lv_obj_set_style_transform_pivot_y(last, lv_pct(50), 0);
+            }
+            break;
+        }
+
+        case AIC_OP_BORDER: {
+            int8_t w = rd_i8(&r);
+            lv_color_t c = rd_color(&r);
+            uint8_t opa = rd_u8(&r);
+            if (r.bad) break;
+            if (draw && last) {
+                lv_obj_set_style_border_width(last, dim(size, w), 0);
+                lv_obj_set_style_border_color(last, c, 0);
+                lv_obj_set_style_border_opa(last, opa, 0);
+            }
+            break;
+        }
+
+        case AIC_OP_GRAD: {
+            lv_color_t c = rd_color(&r);
+            uint8_t dir = rd_u8(&r);
+            if (r.bad || dir > AIC_GRAD_HOR) { r.bad = true; break; }
+            if (draw && last) {
+                lv_obj_set_style_bg_grad_color(last, c, 0);
+                lv_obj_set_style_bg_grad_dir(last, (lv_grad_dir_t)dir, 0);
+            }
+            break;
+        }
+
+        case AIC_OP_INTO:
+            if (depth >= AIC_DEPTH || (draw && !last)) { r.bad = true; break; }
+            stack[depth++] = parent;
+            if (draw) parent = last;
+            break;
+
+        case AIC_OP_OUT:
+            if (depth == 0) { r.bad = true; break; }
+            parent = stack[--depth];
+            break;
+
+        default:
+            r.bad = true;
+            break;
+        }
+
+        if (r.bad) {
+            if (bad_at) *bad_at = op_at;
+            return -1;
+        }
+    }
+}
+
+int aos_icon_ops_check(const uint8_t *ops, size_t len, size_t *bad_at)
+{
+    return walk_ops(NULL, ops, len, 100, bad_at);
+}
+
+/* The circle with the gradient every icon sits on, shared by both builders. */
+static lv_obj_t *make_base(lv_obj_t *parent, const aos_app_desc_t *desc, int32_t size)
 {
     lv_obj_t *base = lv_obj_create(parent);
     lv_obj_remove_style_all(base);
@@ -1255,8 +1555,47 @@ lv_obj_t *aos_icon_create(lv_obj_t *parent, const aos_app_desc_t *desc, int32_t 
     lv_obj_set_style_bg_grad_dir(base, LV_GRAD_DIR_VER, 0);
     lv_obj_remove_flag(base, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_remove_flag(base, LV_OBJ_FLAG_CLICKABLE);
+    return base;
+}
 
-    if (desc->icon_vec != AOS_ICON_NONE) {
+lv_obj_t *aos_icon_create_ops(lv_obj_t *parent, const aos_app_desc_t *desc,
+                              const uint8_t *ops, size_t len, int32_t size)
+{
+    lv_obj_t *base = make_base(parent, desc, size);
+    size_t bad_at = 0;
+    if (walk_ops(base, ops, len, size, &bad_at) < 0) {
+        aos_hal_log("icon", "%s: bad icon blob at byte %u of %u",
+                    desc->id ? desc->id : "?", (unsigned)bad_at, (unsigned)len);
+    }
+    aos_make_decorative(base);
+    return base;
+}
+
+lv_obj_t *aos_icon_create_switch(lv_obj_t *parent, const aos_app_desc_t *desc, int32_t size)
+{
+    lv_obj_t *base = make_base(parent, desc, size);
+    draw_vector(base, desc->icon_vec, size);
+    aos_make_decorative(base);
+    return base;
+}
+
+lv_obj_t *aos_icon_create(lv_obj_t *parent, const aos_app_desc_t *desc, int32_t size)
+{
+    lv_obj_t *base = make_base(parent, desc, size);
+
+    size_t ops_len = 0;
+    const uint8_t *ops = desc->icon_vec != AOS_ICON_NONE
+                       ? aos_icon_ops_builtin(desc->icon_vec, &ops_len) : NULL;
+
+    if (ops) {
+        /* Ported to a table: the switch case stays only for the simulator's
+         * diff, so on the board this IS the path the icon takes. */
+        size_t bad_at = 0;
+        if (walk_ops(base, ops, ops_len, size, &bad_at) < 0) {
+            aos_hal_log("icon", "%s: bad built-in blob at byte %u",
+                        desc->id ? desc->id : "?", (unsigned)bad_at);
+        }
+    } else if (desc->icon_vec != AOS_ICON_NONE) {
         draw_vector(base, desc->icon_vec, size);
     } else if (desc->icon && desc->icon[0]) {
         lv_obj_t *glyph = lv_label_create(base);

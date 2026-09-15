@@ -108,6 +108,7 @@ key script, so they have switches of their own:
 | --- | --- |
 | `AOS_SIM_AP=1` / `=2` | the setup access point up / its password-and-QR screen |
 | `AOS_SIM_BT=1` / `=2` / `=3` | Settings' pairing screen / category filter / the pairing overlay |
+| `AOS_SIM_VIEW=icontest` | the icon bench of [ICONS.md](ICONS.md): one icon by its switch case (left) and from its AIC table (right) at 66, 74 and 82 px, with the two object trees compared on stdout |
 
 ### Scripted navigation
 
@@ -167,6 +168,17 @@ know where to look — and the first suspect is the calibration, not the layout.
 
 `AOS_SIM_POS=x,y` pins the window at a known place; the simulator prints the
 exact `screencapture -R` command to crop it.
+
+`AOS_SIM_SHOT=<file.ppm>` dumps the active screen (via `lv_snapshot`, so it
+is LVGL's own pixels and not a window grab) after `AOS_SIM_SHOT_MS`
+(default 1500) and exits. `tools/ppm2png.py` turns it into a PNG and
+`tools/aic.py halves` diffs its two halves, which is how the icon bench is
+judged:
+
+```bash
+AOS_SIM_VIEW=icontest AOS_SIM_SHOT=/tmp/icons.ppm ./build/amoledos_sim
+python3 ../tools/aic.py halves /tmp/icons.ppm       # 0 differing pixel(s)
+```
 
 ## Dynamic apps
 

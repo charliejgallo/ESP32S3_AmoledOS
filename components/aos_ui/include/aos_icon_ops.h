@@ -1,0 +1,161 @@
+/*
+ * AmoledOS - Icons as data ("AIC").
+ *
+ * Every launcher icon is a circle with a gradient and, on top, a handful of
+ * shapes. aos_icon.c drew them with C code, one switch case per icon, and a
+ * dynamic app could only pick one of those by number: adding an icon meant
+ * flashing the firmware. This header describes the same drawings as a short
+ * blob of bytes that one interpreter turns into the same LVGL objects, so a
+ * .so can carry its icon - or a file on the card can - and the firmware does
+ * not need to know it. The study is in docs/ICONS.md.
+ *
+ * The blob is written in C with the macros below, in the app's source:
+ *
+ *     static const uint8_t MY_ICON[] = {
+ *         AIC_HEADER,
+ *         AIC_RECT(AIC_CENTER,  0, -4, 44, 52, 22,   AIC_C_TEXT,          255),
+ *         AIC_INTO,                                    // children of the last shape
+ *         AIC_RECT(AIC_TOP_MID, -8, 12,  6,  8, AIC_CIRCLE, AIC_C_LIT(0x000000), 255),
+ *         AIC_OUT,
+ *         AIC_END
+ *     };
+ *
+ * Every coordinate and dimension is a PERCENT of the icon size, as a signed
+ * byte: it is exactly the 's * N / 100' the hand-written drawings used, so
+ * the same blob draws at 66, 74 and 82 px. Angles are int16 in tenths of a
+ * degree, as LVGL takes them. Any non-zero dimension is clamped to at least
+ * 2 px by the interpreter, which is what the code did by hand with LV_MAX.
+ *
+ * Colours are one byte: an index into the palette below, or AIC_C_LIT(rgb)
+ * for a literal, which expands to four bytes. The palette is APPEND-ONLY:
+ * a .so has the indexes baked in, the same way it has the enum values baked
+ * in. That lesson is written at the top of aos_icon_id_t; here it is again.
+ */
+#pragma once
+
+#include "lvgl.h"
+#include "aos_app.h"
+#include <stdint.h>
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define AIC_VERSION         1
+#define AOS_ICON_OPS_MAX    256     /* bytes per icon, header included */
+
+/* ---- opcodes --------------------------------------------------------------
+ * Byte layout after the opcode. 'c' is a colour (1 or 4 bytes), 'i16' two
+ * bytes little-endian.
+ */
+#define AIC_OP_END      0x00    /*                                          */
+#define AIC_OP_RECT     0x01    /* align x y w h radius c opa               */
+#define AIC_OP_RING     0x02    /* d border c opa                           */
+#define AIC_OP_ARC      0x03    /* d width value rot(i16) c                 */
+#define AIC_OP_HAND     0x04    /* w len angle(i16, tenths) c               */
+#define AIC_OP_TEXT     0x05    /* font n utf8[n]                           */
+#define AIC_OP_ROT      0x06    /* angle(i16, tenths)  -> on the last shape */
+#define AIC_OP_BORDER   0x07    /* width c opa         -> on the last shape */
+#define AIC_OP_GRAD     0x08    /* c dir               -> on the last shape */
+#define AIC_OP_INTO     0x09    /* next shapes are children of the last one */
+#define AIC_OP_OUT      0x0A    /* back to the previous parent              */
+
+/* ---- palette (append-only) ----------------------------------------------- */
+#define AIC_C_TEXT      0       /* AOS_C_TEXT   0xFFFFFF */
+#define AIC_C_BG        1       /* AOS_C_BG     0x000000 */
+#define AIC_C_CARD      2       /* AOS_C_CARD   0x1C1C1E */
+#define AIC_C_CARD2     3       /* AOS_C_CARD2  0x2C2C2E */
+#define AIC_C_DIM       4       /* AOS_C_DIM    0x8E8E93 */
+#define AIC_C_ACCENT    5       /* AOS_C_ACCENT 0x0A84FF */
+#define AIC_C_GREEN     6       /* AOS_C_GREEN  0x30D158 */
+#define AIC_C_RED       7       /* AOS_C_RED    0xFF453A */
+#define AIC_C_ORANGE    8       /* AOS_C_ORANGE 0xFF9F0A */
+#define AIC_C_YELLOW    9       /* AOS_C_YELLOW 0xFFD60A */
+#define AIC_C_PURPLE    10      /* AOS_C_PURPLE 0xBF5AF2 */
+#define AIC_C_PINK      11      /* AOS_C_PINK   0xFF375F */
+#define AIC_C_TEAL      12      /* AOS_C_TEAL   0x40C8E0 */
+#define AIC_C_COUNT     13
+#define AIC_C_LITERAL   0xFF    /* followed by R, G, B */
+
+#define AIC_C_LIT(rgb)  AIC_C_LITERAL, (uint8_t)(((rgb) >> 16) & 0xFF), \
+                        (uint8_t)(((rgb) >> 8) & 0xFF), (uint8_t)((rgb) & 0xFF)
+
+/* ---- values ---------------------------------------------------------------- */
+#define AIC_CIRCLE      0xFF    /* radius: LV_RADIUS_CIRCLE                 */
+#define AIC_FONT_BODY   0       /* aos_font_body  (~20 px)                  */
+#define AIC_FONT_TITLE  1       /* aos_font_title (~28 px)                  */
+#define AIC_GRAD_VER    1       /* LV_GRAD_DIR_VER                          */
+#define AIC_GRAD_HOR    2       /* LV_GRAD_DIR_HOR                          */
+
+/* Alignment of a shape inside its parent: LVGL's own lv_align_t values. */
+#define AIC_CENTER      LV_ALIGN_CENTER
+#define AIC_TOP_MID     LV_ALIGN_TOP_MID
+#define AIC_BOTTOM_MID  LV_ALIGN_BOTTOM_MID
+#define AIC_LEFT_MID    LV_ALIGN_LEFT_MID
+#define AIC_RIGHT_MID   LV_ALIGN_RIGHT_MID
+#define AIC_TOP_LEFT    LV_ALIGN_TOP_LEFT
+#define AIC_TOP_RIGHT   LV_ALIGN_TOP_RIGHT
+#define AIC_BOTTOM_LEFT LV_ALIGN_BOTTOM_LEFT
+#define AIC_BOTTOM_RIGHT LV_ALIGN_BOTTOM_RIGHT
+
+/* ---- authoring macros -------------------------------------------------------- */
+#define AIC_I8(v)       ((uint8_t)((v) & 0xFF))
+#define AIC_I16(v)      ((uint8_t)((v) & 0xFF)), ((uint8_t)(((v) >> 8) & 0xFF))
+
+#define AIC_HEADER      'A', 'I', 'C', AIC_VERSION
+#define AIC_END         AIC_OP_END
+
+/* Rounded rectangle, 'align'ed in its parent with an (x, y) offset. */
+#define AIC_RECT(align, x, y, w, h, radius, color, opa) \
+        AIC_OP_RECT, (uint8_t)(align), AIC_I8(x), AIC_I8(y), AIC_I8(w), AIC_I8(h), \
+        (uint8_t)(radius), color, (uint8_t)(opa)
+
+/* Circle of diameter 'd' with a 'border' and no fill, centred. */
+#define AIC_RING(d, border, color, opa) \
+        AIC_OP_RING, AIC_I8(d), AIC_I8(border), color, (uint8_t)(opa)
+
+/* Arc of diameter 'd', 'value' 0..100 lit, over a dim track; 'rot' in degrees. */
+#define AIC_ARC(d, width, value, rot, color) \
+        AIC_OP_ARC, AIC_I8(d), AIC_I8(width), (uint8_t)(value), AIC_I16(rot), color
+
+/* Clock hand: pivot at the parent's centre, 'angle' in tenths of a degree,
+ * 0 = twelve o'clock. */
+#define AIC_HAND(w, len, angle, color) \
+        AIC_OP_HAND, AIC_I8(w), AIC_I8(len), AIC_I16(angle), color
+
+/* A glyph or short text, centred. 'n' is the byte count of the UTF-8 that
+ * follows, written out by hand: { AIC_OP_TEXT, AIC_FONT_TITLE, 3, 0xEF, 0xA0, 0x81 } */
+#define AIC_TEXT(font, n)   AIC_OP_TEXT, (uint8_t)(font), (uint8_t)(n)
+
+#define AIC_ROT(angle)              AIC_OP_ROT, AIC_I16(angle)
+#define AIC_BORDER(width, color, opa) AIC_OP_BORDER, AIC_I8(width), color, (uint8_t)(opa)
+#define AIC_GRAD(color, dir)        AIC_OP_GRAD, color, (uint8_t)(dir)
+#define AIC_INTO                    AIC_OP_INTO
+#define AIC_OUT                     AIC_OP_OUT
+
+/* ---- runtime ---------------------------------------------------------------- */
+
+/* Circular icon with the descriptor's gradient and, on top, the shapes in
+ * 'ops'. Same object as aos_icon_create() builds, drawn from data instead of
+ * from the switch. A malformed blob stops where the fault is, with a log
+ * line, and what was drawn so far stays. */
+lv_obj_t *aos_icon_create_ops(lv_obj_t *parent, const aos_app_desc_t *desc,
+                              const uint8_t *ops, size_t len, int32_t size);
+
+/* The old path: the icon drawn by its switch case, ignoring any table. Only
+ * for the simulator's icontest, which diffs it against aos_icon_create_ops();
+ * it goes away with the switch in phase F4. */
+lv_obj_t *aos_icon_create_switch(lv_obj_t *parent, const aos_app_desc_t *desc, int32_t size);
+
+/* Checks the header and walks the ops without drawing. Returns the number of
+ * shapes, or -1 with the offending offset in *bad_at (may be NULL). */
+int aos_icon_ops_check(const uint8_t *ops, size_t len, size_t *bad_at);
+
+/* The built-in icons that have already been ported to a table (docs/ICONS.md,
+ * phase F4 will move them all). NULL if this one is still a switch case. */
+const uint8_t *aos_icon_ops_builtin(aos_icon_id_t id, size_t *len);
+
+#ifdef __cplusplus
+}
+#endif
