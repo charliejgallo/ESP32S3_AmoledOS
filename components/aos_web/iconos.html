@@ -49,9 +49,9 @@
   </div>
   <div class="grilla" id="grilla"></div>
 
-  <p class="nota" id="nota-fw" data-t="nota_fw">Los iconos marcados <b>firmware</b> todavía se dibujan
-     con código dentro del reloj y no tienen bytes que mostrar: el círculo sale igual, el dibujo no.
-     Se pueden pisar con un archivo como cualquier otro.</p>
+  <p class="nota" id="nota-fw" data-t="nota_fw">Los iconos marcados <b>firmware</b> son las tablas
+     propias del reloj; los marcados <b>glifo</b> no tienen bytes (son una letra de la fuente) y se
+     muestran como un anillo punteado. Unos y otros se pueden pisar con un archivo.</p>
   <p class="nota" data-t="nota_formato">Formato: <code>aos_icon_ops.h</code> en el firmware y
      <code>docs/ICONS.md</code>. Un <code>.aic</code> es un blob de hasta 256 bytes que se escribe en C
      con las macros <code>AIC_*</code>; <code>tools/aic.py dump</code> lo lee de vuelta. El archivo se
@@ -73,8 +73,8 @@ const TR = {
     f_todas: "All", f_archivo: "With a file", f_sin: "No preview",
     o_archivo: "file", o_app: "app", o_firmware: "firmware", o_glifo: "glyph",
     btn_subir: "Upload .aic", btn_quitar: "Remove file", btn_bajar: "Download",
-    nota_fw: "Icons marked firmware are still drawn by code inside the watch and have no bytes to " +
-             "show: the circle is right, the drawing is not. They can be overridden with a file like any other.",
+    nota_fw: "Icons marked firmware are the watch's own tables; those marked glyph have no bytes " +
+             "(they are a letter of the font) and show as a dotted ring. Either can be overridden with a file.",
     nota_formato: "Format: aos_icon_ops.h in the firmware and docs/ICONS.md. An .aic is a blob of up to " +
                   "256 bytes written in C with the AIC_* macros; tools/aic.py dump reads it back. The " +
                   "file is named after the app's id, and the watch reads it at boot and whenever one is " +
@@ -91,8 +91,8 @@ const TR = {
     f_todas: "Alle", f_archivo: "Mit Datei", f_sin: "Ohne Vorschau",
     o_archivo: "Datei", o_app: "App", o_firmware: "Firmware", o_glifo: "Glyphe",
     btn_subir: ".aic hochladen", btn_quitar: "Datei entfernen", btn_bajar: "Herunterladen",
-    nota_fw: "Als Firmware markierte Icons werden noch von Code in der Uhr gezeichnet und haben keine " +
-             "Bytes zum Anzeigen: der Kreis stimmt, die Zeichnung nicht. Sie lassen sich wie jedes andere " +
+    nota_fw: "Als Firmware markierte Icons sind die eigenen Tabellen der Uhr; als Glyphe markierte haben " +
+             "keine Bytes (ein Buchstabe der Schrift) und erscheinen als gepunkteter Ring. Beide lassen sich " +
              "mit einer Datei ersetzen.",
     nota_formato: "Format: aos_icon_ops.h in der Firmware und docs/ICONS.md. Eine .aic ist ein Blob von " +
                   "bis zu 256 Bytes, in C mit den AIC_*-Makros geschrieben; tools/aic.py dump liest ihn " +
@@ -113,7 +113,7 @@ const ES = { o_archivo: "archivo", o_app: "app", o_firmware: "firmware", o_glifo
 function t(k) { const v = aos.t(k); return v === k && ES[k] !== undefined ? ES[k] : v; }
 
 /* --------------------------------------------------------------------------
- * The AIC interpreter, for the browser. Same ten opcodes as walk_ops() in
+ * The AIC interpreter, for the browser. Same opcodes as walk_ops() in
  * components/aos_ui/aos_icon.c: percent coordinates, the palette, INTO/OUT.
  * Not pixel-identical to LVGL (fonts, anti-aliasing) but the same shapes in
  * the same places, which is what a preview is for.
@@ -136,7 +136,8 @@ function parse(b) {
       case 0: return ops;
       case 1: ops.push({ op: "rect", align: u8(), x: i8(), y: i8(), w: i8(), h: i8(), r: u8(), c: col(), opa: u8() }); break;
       case 2: ops.push({ op: "ring", d: i8(), bw: i8(), c: col(), opa: u8() }); break;
-      case 3: ops.push({ op: "arc", d: i8(), w: i8(), v: u8(), rot: i16(), c: col() }); break;
+      case 3: ops.push({ op: "arc", align: u8(), x: i8(), y: i8(), d: i8(), wt: i8(), wi: i8(), bs: i16(), be: i16(), is: i16(), ie: i16(),
+                         rot: i16(), ct: col(), ot: u8(), ci: col(), oi: u8() }); break;
       case 4: ops.push({ op: "hand", w: i8(), l: i8(), a: i16(), c: col() }); break;
       case 5: { const f = u8(), n = u8(); const s = new TextDecoder().decode(b.slice(at, at + n)); at += n;
                 ops.push({ op: "text", font: f, s: s }); break; }
@@ -206,8 +207,10 @@ function render(canvas, app, bytes) {
     return;
   }
 
+  /* offsets are percent; a negative dimension is size / n (AIC_DIV) */
   const pct = v => Math.trunc(S * v / 100);
-  const dim = v => { const p = Math.trunc(S * v / 100); return p > 0 ? Math.max(2, p) : 0; };
+  const dim = v => { if (!v) return 0; const p = v > 0 ? Math.trunc(S * v / 100) : Math.trunc(S / -v); return Math.max(1, p); };
+  const rad = v => v === 0xFF ? 1e9 : (v > 127 ? dim(v - 256) : dim(v));
   const root = { x: 0, y: 0, w: S, h: S };
   const stack = []; let parent = root; let last = null;
 
@@ -219,7 +222,7 @@ function render(canvas, app, bytes) {
       ctx.translate(-(shape.x + shape.w / 2), -(shape.y + shape.h / 2));
     }
     if (shape.kind === "rect") {
-      const r = shape.r === 0xFF ? Math.min(shape.w, shape.h) / 2 : pct(shape.r);
+      const r = Math.min(rad(shape.r), Math.min(shape.w, shape.h) / 2);
       if (shape.grad) {
         const gg = shape.grad.dir === 2 ? ctx.createLinearGradient(shape.x, 0, shape.x + shape.w, 0)
                                         : ctx.createLinearGradient(0, shape.y, 0, shape.y + shape.h);
@@ -237,13 +240,16 @@ function render(canvas, app, bytes) {
         ctx.stroke();
       }
     } else if (shape.kind === "arc") {
-      const cx = shape.x + shape.w / 2, cy = shape.y + shape.h / 2, r = shape.w / 2 - shape.aw / 2;
-      ctx.lineWidth = shape.aw; ctx.lineCap = "round";
-      ctx.strokeStyle = "rgba(32,32,32,.5)";
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
-      ctx.strokeStyle = shape.c;
-      const a0 = shape.rot * Math.PI / 180, a1 = a0 + shape.v * 3.6 * Math.PI / 180;
-      ctx.beginPath(); ctx.arc(cx, cy, r, a0, a1); ctx.stroke();
+      const cx = shape.x + shape.w / 2, cy = shape.y + shape.h / 2, deg = Math.PI / 180;
+      ctx.lineCap = "round";
+      if (shape.wt && shape.ot) {
+        ctx.lineWidth = shape.wt; ctx.strokeStyle = rgba(shape.ct, shape.ot);
+        ctx.beginPath(); ctx.arc(cx, cy, shape.w / 2 - shape.wt / 2, (shape.rot + shape.bs) * deg, (shape.rot + shape.be) * deg); ctx.stroke();
+      }
+      if (shape.wi && shape.oi && shape.ie !== shape.is) {
+        ctx.lineWidth = shape.wi; ctx.strokeStyle = rgba(shape.ci, shape.oi);
+        ctx.beginPath(); ctx.arc(cx, cy, shape.w / 2 - shape.wi / 2, (shape.rot + shape.is) * deg, (shape.rot + shape.ie) * deg); ctx.stroke();
+      }
     } else if (shape.kind === "hand") {
       /* pivot at the parent's centre, 0 = twelve o'clock, clockwise */
       const cx = shape.px, cy = shape.py;
@@ -282,8 +288,9 @@ function render(canvas, app, bytes) {
       }
       case "arc": {
         flush();
-        const d = dim(o.d), b = place(parent, 9, 0, 0, d, d);
-        pending = Object.assign({ kind: "arc", aw: dim(o.w), v: Math.min(o.v, 100), rot: o.rot, c: o.c }, b);
+        const d = dim(o.d), b = place(parent, o.align, pct(o.x), pct(o.y), d, d);
+        pending = Object.assign({ kind: "arc", wt: dim(o.wt), wi: dim(o.wi), bs: o.bs, be: o.be, is: o.is, ie: o.ie,
+                                  rot: o.rot, ct: o.ct, ot: o.ot, ci: o.ci, oi: o.oi }, b);
         last = pending; break;
       }
       case "hand": {

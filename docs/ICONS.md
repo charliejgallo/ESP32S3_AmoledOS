@@ -5,8 +5,10 @@ can a dynamic app (`.so` on the card) bring its own launcher icon, so that
 adding an app never again means compiling and flashing the firmware?
 
 Short answer: **yes, and the drawings we have are already halfway there.**
-Phase F1 (the interpreter, one icon ported, the diff to zero) is built and
-measured; see section 7 for the numbers and section 9 for what it left.
+All four phases are built and measured - the interpreter, the `.so` bringing
+its icon, files on the card with the portal page, and the 36 switch cases
+turned into tables with the switch gone; see section 7 for the numbers and
+section 9 for where the code is.
 
 ## 1. The problem, measured
 
@@ -198,7 +200,7 @@ written from a computer.
 ### 4.3 Precedence
 
 ```
-file on card/SPIFFS  >  blob from the .so  >  desc.icon_vec (enum)  >  desc.icon (glyph)
+file on card/SPIFFS  >  blob from the .so  >  desc.icon_vec (the firmware's table)  >  desc.icon (glyph)
 ```
 
 The enum stays forever - append-only, as today - but nothing new is added to
@@ -227,12 +229,12 @@ prevents it.
 
 ## 6. What it does to the firmware itself
 
-Once the interpreter exists, the 36 `case` blocks are tables too. Rough
-budget: 36 x ~100 B of rodata plus a ~2 KB interpreter, against 25.7 KB of
-code now. That is a **~20 KB** saving of flash *and* the end of the enum as a
-growing thing - measured, not estimated, in F4 below. The enum values become
-indexes into the built-in table, so the numbers the `.so` files carry keep
-meaning what they mean.
+Once the interpreter exists, the 36 `case` blocks are tables too. The
+estimate was 36 x ~100 B of rodata plus a ~2 KB interpreter against 25.7 KB
+of code; measured in F4 (7.4): 2,484 B of tables, a 5.9 KB `aos_icon.c`
+that also holds the registries and the file scan, and **20.5 KB of flash
+back**. The enum values become indexes into the built-in table, so the
+numbers the `.so` files carry keep meaning what they mean.
 
 ## 7. Phases
 
@@ -242,7 +244,7 @@ meaning what they mean.
 | **F1** | Interpreter + `aos_icon_ops.h` + `tools/aic.py`; port ONE icon (`AOS_ICON_MOLE`) to a table next to its `case`; draw both at 66/74/82 in the sim, diff to zero; run the table on the board; measure flash and RAM | **done 2026-09-15**, below |
 | **F2** | `aos_icon_set_ops()` + a registry keyed by `desc.id` + symbol export; `topos` calls it and drops `icon_vec`; the bench's right column takes the production path with the blob Topos registered; on the board, the icon out of the `.so` | **done 2026-09-15**, below |
 | **F3** | `/icons` on card and SPIFFS, boot scan, portal upload + list + JS preview, deferred rebuild after upload; the override of a built-in icon as the test | **done 2026-09-15**, below |
-| **F4** | Port the 36 cases to tables, delete the `switch`, measure the flash delta; enum stays as an index | |
+| **F4** | Port the 36 cases to tables, delete the `switch`, measure the flash delta; enum stays as an index | **done 2026-09-15**, below |
 | **F5** | Optional `IMG` opcode for bitmap icons | |
 
 F1 is the gate: if the interpreter cannot reproduce the mole pixel for pixel,
@@ -424,6 +426,65 @@ The page came out at 20 KB, of which the renderer is a third. It follows
 `/pato`: the firmware only stores and returns bytes, the page knows the
 format, and `aos.js` gives it the language of the watch.
 
+### 7.4 What F4 measured
+
+The 36 cases were not transcribed. The simulator draws each icon by its case
+at 66, 74 and 82 px and dumps every LVGL object (`AOS_SIM_ICONDUMP`:
+class, position, size, radius, colours, border, gradient, rotation, the
+arc's angles, the label's text), and `tools/aic_gen.py` solves every value
+as the percent or the divisor of the size that gives the SAME pixels at all
+three sizes, then writes `aos_icon_tables.c`. Exact by construction where it
+can be, and where it cannot it says so.
+
+Three things the port taught the format, all before anything shipped:
+
+- **Divisors.** The hairlines were `s / 26` and the small radii `s / 40`,
+  and no percent reproduces those at all three sizes. A negative dimension
+  now means `size / n` (`AIC_DIV(26)`).
+- **The whole arc.** The timer's track is 30 % opaque where the activity
+  rings' is 50 %, and the microphone's cradle is an arc with explicit angles
+  and no rotation, aligned off-centre. `ARC` now carries alignment, offset,
+  both widths, both angle pairs, rotation and both colour/opacity pairs.
+- **LVGL centres as `pw/2 - w/2`**, each half truncated, not `(pw - w)/2`,
+  and a child aligns to its parent's *content* area, which a border shrinks.
+  Two off-by-ones the dump caught and a hand transcription would not have.
+
+What it could not express: 33 values in 9 icons, compositions like
+`bw - 2*border`, `(2*i + 1)*u` or `dy - d/2 - s*4/100` that truncate twice.
+For those the generator takes the nearest encoding and reports it, and the
+result is within a pixel at one of the three sizes (two, for one arrowhead
+step in Conversor). Side by side they cannot be told apart.
+
+| | |
+|---|---|
+| `tools/icon_bench.sh`, every icon, case vs table | **34 of 43 with 0 differing pixels** |
+| The other 9 (Calendario, Cartas, Gráfico, Conversor, Globo, Laberinto, Pomodoro, Remoto, Clima) | 10 to 288 pixels over the three sizes, all the approximated values above |
+| Generator on a dump of the *tables* | the same file back, one alignment written the equivalent other way |
+| `tools/icon_golden/` | the left halves of that last run, gzipped (43 files, 320 KB), so `icon_bench.sh --golden` keeps checking the interpreter against the original drawings now that they are gone |
+
+**The switch is gone.** `draw_vector()`, its 36 cases, the `hand()` and
+`activity_arc()` helpers and the bench-only builder: 56 KB of source,
+1271 lines down to 590.
+
+| Section | F3 | F4 | delta | vs `main` |
+|---|---|---|---|---|
+| `.flash.text` | 1,972,952 | 1,952,448 | **−20,504** | **−16,156** |
+| `.flash.rodata` | 1,338,596 | 1,341,652 | +3,056 (the tables, 2,484 B for 43 icons) | +24,464 (mostly the 20 KB page) |
+| `aos_icon.c` `.text` | 28,657 (F1) | 5,912 | | 25,707 in `main` |
+| `.dram0.data` / `.dram0.bss` | 35,132 / 14,256 | **unchanged** | | unchanged |
+| `.ext_ram.bss` (PSRAM) | 86,480 | 86,480 | | +26,224 (the two registries) |
+| `amoledos.bin` | 3,423,216 | 3,405,760 | | +8,304 for the whole feature, page included |
+| Board, launcher open, `internal free` | 161,967 | 161,959 | | |
+
+An icon went from ~700 bytes of code to ~58 bytes of data. The 44 enum
+values stay, as the index into the table; `/api/icons` now reports every
+built-in icon with its bytes and the page draws them all.
+
+<img src="img/icon-portal.png" width="480" alt="/iconos after F4: every icon drawn from its bytes">
+
+**On the board:** OTA, `boot_reason: software`, no `bad icon blob` in the
+log, the launcher's list and its icons as before, internal RAM as before.
+
 ## 8. Risks and things already known
 
 - **`dlsym()` sees functions only.** Designed around it (4.1); nothing to
@@ -471,5 +532,11 @@ format, and `aos.js` gives it the language of the watch.
   upload and delete, `GET /api/icons`, and `components/aos_web/iconos.html`
   with the canvas renderer.
 
+- F4 replaced the switch with `components/aos_ui/aos_icon_tables.c`
+  (generated), added `AOS_ICON_COUNT`, `AIC_DIV()` and the full `ARC` to the
+  format, `AOS_SIM_ICONDUMP` and `AOS_SIM_ICON` to the simulator,
+  `tools/aic_gen.py`, `tools/icon_bench.sh` and `tools/icon_golden/`.
+
 The `.so` files on the card are untouched and still load: nothing in the
-ABI moved. Next is F4: the 36 switch cases as tables, and the switch gone.
+ABI moved. What is left is the optional F5, an `IMG` opcode for bitmap
+icons, and the merge.

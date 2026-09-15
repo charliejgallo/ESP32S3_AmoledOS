@@ -22,9 +22,12 @@
  *
  * Every coordinate and dimension is a PERCENT of the icon size, as a signed
  * byte: it is exactly the 's * N / 100' the hand-written drawings used, so
- * the same blob draws at 66, 74 and 82 px. Angles are int16 in tenths of a
- * degree, as LVGL takes them. Any non-zero dimension is clamped to at least
- * 2 px by the interpreter, which is what the code did by hand with LV_MAX.
+ * the same blob draws at 66, 74 and 82 px. A NEGATIVE dimension (width,
+ * height, radius, border, diameter, length - never an offset) means
+ * 'size / N' instead: AIC_DIV(26) is the 's / 26' border the old drawings
+ * used for a hairline, which no percent reproduces at all three sizes.
+ * Angles are int16 in tenths of a degree, as LVGL takes them. A dimension
+ * that comes out at 0 px but was not written as 0 is drawn at 1 px.
  *
  * Colours are one byte: an index into the palette below, or AIC_C_LIT(rgb)
  * for a literal, which expands to four bytes. The palette is APPEND-ONLY:
@@ -52,7 +55,8 @@ extern "C" {
 #define AIC_OP_END      0x00    /*                                          */
 #define AIC_OP_RECT     0x01    /* align x y w h radius c opa               */
 #define AIC_OP_RING     0x02    /* d border c opa                           */
-#define AIC_OP_ARC      0x03    /* d width value rot(i16) c                 */
+#define AIC_OP_ARC      0x03    /* align x y d w_track w_ind bg_start bg_end ind_start
+                                 * ind_end rot (i16 degrees) c_track opa_track c_ind opa_ind */
 #define AIC_OP_HAND     0x04    /* w len angle(i16, tenths) c               */
 #define AIC_OP_TEXT     0x05    /* font n utf8[n]                           */
 #define AIC_OP_ROT      0x06    /* angle(i16, tenths)  -> on the last shape */
@@ -115,9 +119,20 @@ extern "C" {
 #define AIC_RING(d, border, color, opa) \
         AIC_OP_RING, AIC_I8(d), AIC_I8(border), color, (uint8_t)(opa)
 
-/* Arc of diameter 'd', 'value' 0..100 lit, over a dim track; 'rot' in degrees. */
-#define AIC_ARC(d, width, value, rot, color) \
-        AIC_OP_ARC, AIC_I8(d), AIC_I8(width), (uint8_t)(value), AIC_I16(rot), color
+/* A dimension as 'size / n' rather than a percent (see the top of the file). */
+#define AIC_DIV(n)      (-(n))
+
+/* Arc of diameter 'd', 'align'ed like a RECT. The track runs bg_start..bg_end
+ * and the lit part ind_start..ind_end, degrees clockwise from three o'clock
+ * plus 'rot'; each has its own width, colour and opacity. The outer activity
+ * ring of the old drawings is AIC_ARC(AIC_CENTER, 0, 0, 76, 6, 6, 0, 360, 0, 281,
+ * 270, AIC_C_LIT(0x202020), 128, AIC_C_PINK, 255): a dim full track and 78 % of
+ * it lit from twelve o'clock. */
+#define AIC_ARC(align, x, y, d, w_track, w_ind, bg_start, bg_end, ind_start, ind_end, rot, \
+                c_track, opa_track, c_ind, opa_ind) \
+        AIC_OP_ARC, (uint8_t)(align), AIC_I8(x), AIC_I8(y), AIC_I8(d), AIC_I8(w_track), \
+        AIC_I8(w_ind), AIC_I16(bg_start), AIC_I16(bg_end), AIC_I16(ind_start), \
+        AIC_I16(ind_end), AIC_I16(rot), c_track, (uint8_t)(opa_track), c_ind, (uint8_t)(opa_ind)
 
 /* Clock hand: pivot at the parent's centre, 'angle' in tenths of a degree,
  * 0 = twelve o'clock. */
@@ -186,17 +201,21 @@ aos_icon_source_t aos_icon_source(const char *id);
 lv_obj_t *aos_icon_create_ops(lv_obj_t *parent, const aos_app_desc_t *desc,
                               const uint8_t *ops, size_t len, int32_t size);
 
-/* The old path: the icon drawn by its switch case, ignoring any table. Only
- * for the simulator's icontest, which diffs it against aos_icon_create_ops();
- * it goes away with the switch in phase F4. */
-lv_obj_t *aos_icon_create_switch(lv_obj_t *parent, const aos_app_desc_t *desc, int32_t size);
-
 /* Checks the header and walks the ops without drawing. Returns the number of
  * shapes, or -1 with the offending offset in *bad_at (may be NULL). */
 int aos_icon_ops_check(const uint8_t *ops, size_t len, size_t *bad_at);
 
-/* The built-in icons that have already been ported to a table (docs/ICONS.md,
- * phase F4 will move them all). NULL if this one is still a switch case. */
+/* The firmware's own icons, one blob per aos_icon_id_t, generated into
+ * aos_icon_tables.c by tools/aic_gen.py from what the old switch drew
+ * (docs/ICONS.md, F4). An id with nothing to draw has an empty blob. */
+typedef struct {
+    const uint8_t *ops;
+    uint16_t       len;
+} aos_icon_table_t;
+
+extern const aos_icon_table_t aos_icon_tables[AOS_ICON_COUNT];
+
+/* The blob for a built-in id, or NULL for AOS_ICON_NONE / out of range. */
 const uint8_t *aos_icon_ops_builtin(aos_icon_id_t id, size_t *len);
 
 #ifdef __cplusplus

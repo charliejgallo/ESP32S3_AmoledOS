@@ -108,7 +108,8 @@ key script, so they have switches of their own:
 | --- | --- |
 | `AOS_SIM_AP=1` / `=2` | the setup access point up / its password-and-QR screen |
 | `AOS_SIM_BT=1` / `=2` / `=3` | Settings' pairing screen / category filter / the pairing overlay |
-| `AOS_SIM_VIEW=icontest` | the icon bench of [ICONS.md](ICONS.md): one icon by its switch case (left) and from its AIC table (right) at 66, 74 and 82 px, with the two object trees compared on stdout |
+| `AOS_SIM_VIEW=icontest` | the icon bench of [ICONS.md](ICONS.md): one icon from its built-in AIC table (left) and through the production path (right) at 66, 74 and 82 px, the two object trees compared on stdout; `AOS_SIM_ICON=<n>` picks the icon. `tools/icon_bench.sh --golden` runs it for every icon against the pixels the old switch drew |
+| `AOS_SIM_ICONDUMP=<file>` | every built-in icon's object tree at the three sizes, the input of `tools/aic_gen.py`, which writes `aos_icon_tables.c` |
 
 ### Scripted navigation
 

@@ -159,12 +159,118 @@ static int icontest_compare(lv_obj_t *a, lv_obj_t *b, int depth)
     return bad;
 }
 
+/* AOS_SIM_ICONDUMP=<file>: every built-in icon drawn by its switch case at
+ * 66, 74 and 82 px, and every LVGL object of each written out - class,
+ * position, size, radius, colours, border, gradient, rotation, the arc's
+ * angles, the label's text. tools/aic_gen.py turns that into
+ * aos_icon_tables.c, solving each value as a percent or a divisor of the
+ * size that reproduces all three. It is how the 36 cases were ported
+ * without transcribing 1271 lines by hand (docs/ICONS.md, F4). */
+static const char *class_name(const lv_obj_t *o)
+{
+    const lv_obj_class_t *c = lv_obj_get_class(o);
+    if (c == &lv_arc_class)   return "arc";
+    if (c == &lv_label_class) return "label";
+    return "obj";
+}
+
+static uint32_t color_hex(lv_color_t c)
+{
+    return ((uint32_t)c.red << 16) | ((uint32_t)c.green << 8) | c.blue;
+}
+
+static void icondump_obj(FILE *f, lv_obj_t *o, int depth)
+{
+    fprintf(f, "o depth=%d class=%s x=%d y=%d w=%d h=%d r=%d bg=%06X opa=%d "
+               "bw=%d bc=%06X bo=%d gc=%06X gd=%d rot=%d px=%d py=%d",
+            depth, class_name(o),
+            (int)lv_obj_get_x(o), (int)lv_obj_get_y(o),
+            (int)lv_obj_get_width(o), (int)lv_obj_get_height(o),
+            (int)lv_obj_get_style_radius(o, 0),
+            (unsigned)color_hex(lv_obj_get_style_bg_color(o, 0)),
+            (int)lv_obj_get_style_bg_opa(o, 0),
+            (int)lv_obj_get_style_border_width(o, 0),
+            (unsigned)color_hex(lv_obj_get_style_border_color(o, 0)),
+            (int)lv_obj_get_style_border_opa(o, 0),
+            (unsigned)color_hex(lv_obj_get_style_bg_grad_color(o, 0)),
+            (int)lv_obj_get_style_bg_grad_dir(o, 0),
+            (int)lv_obj_get_style_transform_rotation(o, 0),
+            (int)lv_obj_get_style_transform_pivot_x(o, 0),
+            (int)lv_obj_get_style_transform_pivot_y(o, 0));
+    if (lv_obj_get_class(o) == &lv_arc_class) {
+        fprintf(f, " arot=%d bs=%d be=%d is=%d ie=%d wt=%d wi=%d ct=%06X ot=%d ci=%06X oi=%d",
+                (int)lv_arc_get_rotation(o),
+                (int)lv_arc_get_bg_angle_start(o), (int)lv_arc_get_bg_angle_end(o),
+                (int)lv_arc_get_angle_start(o), (int)lv_arc_get_angle_end(o),
+                (int)lv_obj_get_style_arc_width(o, LV_PART_MAIN),
+                (int)lv_obj_get_style_arc_width(o, LV_PART_INDICATOR),
+                (unsigned)color_hex(lv_obj_get_style_arc_color(o, LV_PART_MAIN)),
+                (int)lv_obj_get_style_arc_opa(o, LV_PART_MAIN),
+                (unsigned)color_hex(lv_obj_get_style_arc_color(o, LV_PART_INDICATOR)),
+                (int)lv_obj_get_style_arc_opa(o, LV_PART_INDICATOR));
+    }
+    if (lv_obj_get_class(o) == &lv_label_class) {
+        const lv_font_t *font = lv_obj_get_style_text_font(o, 0);
+        fprintf(f, " font=%s text=%s",
+                font == aos_font_title ? "title" : font == aos_font_body ? "body" : "other",
+                lv_label_get_text(o));
+    }
+    fprintf(f, "\n");
+    uint32_t n = lv_obj_get_child_count(o);
+    for (uint32_t i = 0; i < n; i++) {
+        icondump_obj(f, lv_obj_get_child(o, i), depth + 1);
+    }
+}
+
+static void icondump(const char *path)
+{
+    FILE *f = fopen(path, "w");
+    if (!f) {
+        printf("ICONDUMP: cannot write %s\n", path);
+        exit(1);
+    }
+    static const int32_t sizes[3] = { 66, 74, 82 };
+    lv_obj_t *scr = lv_obj_create(NULL);
+    int icons = 0;
+    for (int id = AOS_ICON_NONE + 1; id < AOS_ICON_COUNT; id++) {
+        aos_app_desc_t desc = { .id = "dump", .icon_vec = (aos_icon_id_t)id,
+                                .color_a = 0x000000, .color_b = 0x000000 };
+        for (int i = 0; i < 3; i++) {
+            fprintf(f, "icon id=%d size=%d\n", id, (int)sizes[i]);
+            /* Since F4 this draws the TABLE (the switch is gone): running
+             * the generator on this dump reproduces aos_icon_tables.c, which
+             * is the check that dump, generator and interpreter agree. */
+            lv_obj_t *base = aos_icon_create(scr, &desc, sizes[i]);
+            lv_obj_update_layout(scr);
+            uint32_t n = lv_obj_get_child_count(base);
+            for (uint32_t k = 0; k < n; k++) {
+                icondump_obj(f, lv_obj_get_child(base, k), 0);
+            }
+            lv_obj_delete(base);
+        }
+        icons++;
+    }
+    fclose(f);
+    lv_obj_delete(scr);
+    printf("ICONDUMP: %d icons x 3 sizes -> %s\n", icons, path);
+    exit(0);
+}
+
 static void icontest_build(void)
 {
-    static const aos_app_desc_t desc = {
+    /* AOS_SIM_ICON=<n> picks the icon under test; the mole otherwise. Since
+     * F4 the left column is the switch case and the right one the generated
+     * table, so every built-in icon can be put through the same gate. */
+    const char *pick = getenv("AOS_SIM_ICON");
+    aos_icon_id_t which = pick ? (aos_icon_id_t)atoi(pick) : AOS_ICON_MOLE;
+    static aos_app_desc_t desc = {
         .id = "demo.topos", .name = "Topos", .icon = LV_SYMBOL_PLAY,
         .icon_vec = AOS_ICON_MOLE, .color_a = 0x3E8E2E, .color_b = 0x6B4020,
     };
+    desc.icon_vec = which;
+    if (which != AOS_ICON_MOLE) {
+        desc.id = "bench";      /* no file, no registry: the built-in table */
+    }
     static const int32_t sizes[3] = { 66, 74, 82 };   /* list, honeycomb, grid */
     static const int32_t rows[3]  = { 90, 224, 358 };
 
@@ -180,10 +286,14 @@ static void icontest_build(void)
     printf("ICONTEST blob: %zu bytes, %d shapes%s\n", len, shapes,
            shapes < 0 ? " (INVALID)" : "");
 
-    /* The blob as a file, for tools/aic.py and as the first tenant of the
-     * /icons directory phase F3 will scan. */
-    mkdir("sim_fs/icons", 0755);
-    FILE *f = fopen("sim_fs/icons/demo.topos.aic", "wb");
+    /* The blob as a file, for tools/aic.py to read back. In the bench's own
+     * folder and NOT in sim_fs/icons: a file there is an F3 override, and
+     * the bench once wrote the icon under test over demo.topos.aic and then
+     * spent a run comparing every icon against the mole. */
+    mkdir("sim_fs/bench", 0755);
+    char blob_path[64];
+    snprintf(blob_path, sizeof(blob_path), "sim_fs/bench/icon_%d.aic", (int)which);
+    FILE *f = fopen(blob_path, "wb");
     if (f) {
         fwrite(ops, 1, len, f);
         fclose(f);
@@ -202,7 +312,7 @@ static void icontest_build(void)
      * simulator, so that would be a build problem) it falls back to the
      * firmware's own table for the mole. */
     const aos_app_desc_t *prod = &desc;
-    for (int i = 0, n = aos_ui_app_count(); i < n; i++) {
+    for (int i = 0, n = aos_ui_app_count(); which == AOS_ICON_MOLE && i < n; i++) {
         const aos_app_t *a = aos_ui_app_at(i);
         if (a && a->desc.id && strcmp(a->desc.id, "demo.topos") == 0) {
             prod = &a->desc;
@@ -227,7 +337,11 @@ static void icontest_build(void)
     int mismatches = 0;
     for (int i = 0; i < 3; i++) {
         int32_t s = sizes[i];
-        lv_obj_t *by_case = aos_icon_create_switch(scr, &desc, s);
+        /* Left: the built-in table through aos_icon_create_ops(). Right: the
+         * production path. With the switch gone (F4) the pixel gate against
+         * the ORIGINAL drawings is icon_bench.sh --golden, which compares the
+         * right half with the halves kept from the last run that had it. */
+        lv_obj_t *by_case = aos_icon_create_ops(scr, &desc, ops, len, s);
         lv_obj_set_pos(by_case, ICONTEST_SPLIT / 2 - s / 2, rows[i] - s / 2);
         lv_obj_t *by_ops = aos_icon_create(scr, prod, s);
         lv_obj_set_pos(by_ops, ICONTEST_SPLIT + ICONTEST_SPLIT / 2 - s / 2, rows[i] - s / 2);
@@ -1198,6 +1312,11 @@ int main(void)
     /* AOS_SIM_VIEW=launcher|grid|honeycomb|<app.id> starts straight on that
      * screen, to iterate on the design without having to navigate every
      * time. */
+    const char *dump = getenv("AOS_SIM_ICONDUMP");
+    if (dump && *dump) {
+        icondump(dump);         /* writes the file and exits */
+    }
+
     const char *view = getenv("AOS_SIM_VIEW");
     if (view) {
         if (strcmp(view, "launcher") == 0) {

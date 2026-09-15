@@ -4,12 +4,22 @@
     python3 tools/aic.py lint  demo.topos.aic        # parse, size cap, palette, ROT warning
     python3 tools/aic.py dump  demo.topos.aic        # one line per op, as the C macros
     python3 tools/aic.py halves shot.ppm [x_split]   # icontest: left column == right column?
+    python3 tools/aic.py golden shot.ppm out.gz       # keep the LEFT half (the old switch's pixels)
+    python3 tools/aic.py cmp shot.ppm golden.gz       # the RIGHT half of a new shot vs that golden
+
+'golden' and 'cmp' exist because the switch that drew the icons is gone (F4):
+the left halves of the last bench run with it are kept in tools/icon_golden/,
+gzipped, and any later change to the interpreter or the tables is checked
+against them with tools/icon_bench.sh --golden.
 
 'halves' is the gate of docs/ICONS.md phase F1: the simulator's
 AOS_SIM_VIEW=icontest draws the same icon by switch case (left) and by blob
 (right) at 66, 74 and 82 px, AOS_SIM_SHOT dumps the screen to PPM, and this
 compares pixel (x, y) with (x + split, y) for the whole left half. Zero
 differing pixels means the interpreter reproduces the case exactly.
+
+A negative width, height, radius, border or diameter is 'size / n' (AIC_DIV);
+offsets are always percent.
 
 No dependencies, like the rest of tools/.
 """
@@ -21,7 +31,7 @@ OPS = {
     0x00: ("END", ""),
     0x01: ("RECT", "align i8 i8 i8 i8 u8 color u8"),
     0x02: ("RING", "i8 i8 color u8"),
-    0x03: ("ARC", "i8 i8 u8 i16 color"),
+    0x03: ("ARC", "align i8 i8 i8 i8 i8 i16 i16 i16 i16 i16 color u8 color u8"),
     0x04: ("HAND", "i8 i8 i16 color"),
     0x05: ("TEXT", "text"),
     0x06: ("ROT", "i16"),
@@ -194,6 +204,43 @@ def cmd_halves(path, split=None):
     return 1 if diff else 0
 
 
+def half(px, w, h, split, right):
+    out = bytearray()
+    for y in range(h):
+        row = y * w * 3
+        x0 = split if right else 0
+        out += px[row + x0 * 3: row + (x0 + split) * 3]
+    return bytes(out)
+
+
+def cmd_golden(path, out):
+    import gzip
+    w, h, px = read_ppm(path)
+    split = w // 2
+    with gzip.open(out, "wb") as f:
+        f.write(("%d %d\n" % (split, h)).encode())
+        f.write(half(px, w, h, split, False))
+    print(f"{out}: left half {split}x{h} kept")
+    return 0
+
+
+def cmd_cmp(path, golden):
+    import gzip
+    w, h, px = read_ppm(path)
+    split = w // 2
+    with gzip.open(golden, "rb") as f:
+        head = f.readline().split()
+        gw, gh = int(head[0]), int(head[1])
+        gpx = f.read()
+    if (gw, gh) != (split, h):
+        print(f"{golden}: {gw}x{gh} does not match the shot's half {split}x{h}")
+        return 2
+    mine = half(px, w, h, split, True)
+    diff = sum(1 for i in range(0, len(mine), 3) if mine[i:i + 3] != gpx[i:i + 3])
+    print(f"{path} vs {golden}: {diff} differing pixel(s)")
+    return 1 if diff else 0
+
+
 def main(argv):
     if len(argv) < 3:
         print(__doc__)
@@ -205,6 +252,10 @@ def main(argv):
         return cmd_dump(args[0])
     if cmd == "halves":
         return cmd_halves(*args)
+    if cmd == "golden":
+        return cmd_golden(*args)
+    if cmd == "cmp":
+        return cmd_cmp(*args)
     print(__doc__)
     return 2
 

@@ -305,13 +305,13 @@ extern int aos_i18n_set;
 extern int aos_icon_clear_ops;
 extern int aos_icon_create;
 extern int aos_icon_create_ops;
-extern int aos_icon_create_switch;
 extern int aos_icon_ops_builtin;
 extern int aos_icon_ops_check;
 extern int aos_icon_ops_for;
 extern int aos_icon_scan_files;
 extern int aos_icon_set_ops;
 extern int aos_icon_source;
+extern int aos_icon_tables;
 extern int aos_imu_start;
 extern int aos_label;
 extern int aos_label_boxed;
@@ -2966,13 +2966,13 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_icon_clear_ops),
     ESP_ELFSYM_EXPORT(aos_icon_create),
     ESP_ELFSYM_EXPORT(aos_icon_create_ops),
-    ESP_ELFSYM_EXPORT(aos_icon_create_switch),
     ESP_ELFSYM_EXPORT(aos_icon_ops_builtin),
     ESP_ELFSYM_EXPORT(aos_icon_ops_check),
     ESP_ELFSYM_EXPORT(aos_icon_ops_for),
     ESP_ELFSYM_EXPORT(aos_icon_scan_files),
     ESP_ELFSYM_EXPORT(aos_icon_set_ops),
     ESP_ELFSYM_EXPORT(aos_icon_source),
+    ESP_ELFSYM_EXPORT(aos_icon_tables),
     ESP_ELFSYM_EXPORT(aos_imu_start),
     ESP_ELFSYM_EXPORT(aos_label),
     ESP_ELFSYM_EXPORT(aos_label_boxed),
