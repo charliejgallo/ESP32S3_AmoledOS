@@ -3,7 +3,7 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.3.9 — 2026-09-15
 
 - **A panic on the idle timeout, fixed.** The housekeeping task turning the
   screen off wrote the panel's brightness register while the LVGL task was
