@@ -28,6 +28,14 @@ the board is worth 1000 in the endless modes and ends the level in Levels.
 special into the pipe: a bomb clears everything within a bubble and a half of
 where it lands, and a rainbow one takes the colour of whatever it touches.
 
+**And a long chain sounds like one.** The same six-or-four also plays a
+seven-note flourish instead of one note per bubble. It replaces those notes
+rather than adding to them, which is not a style choice: `aos_hal_beep()`
+enqueues into a queue sixteen notes deep and **drops what does not fit**, so a
+chain of twenty bubbles playing a note each would eat the queue and leave the
+next shot silent. `AOS_SIM_BEEP_LOG=1` prints the notes instead of sounding
+them, which is how this was checked.
+
 ## The levels are generated, not written down
 
 The level number is the seed, so level 12 is the same board today and in a

@@ -3,6 +3,20 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.3.12 — 2026-09-16
+
+Small on purpose: the firmware is identical to v0.3.11 but for the version
+string, and the release exists so that `apps.zip` matches the source.
+
+- **Burbujas: a long chain sounds like one.** Six bubbles burst at once, or
+  four dropped, now play a seven-note flourish that climbs two octaves and
+  holds, with the falling ones answering underneath. It replaces the note per
+  bubble rather than adding to it: the HAL's tone queue is sixteen notes deep
+  and drops what does not fit, so a chain of twenty would eat the queue and
+  leave the next shot silent.
+- The README's table of dynamic apps gained the row it was missing, with the
+  title, the aiming guide and time attack.
+
 ## v0.3.11 — 2026-09-15
 
 - **Burbujas**, a bubble shooter, as a dynamic app (`apps/burbujas/`, 40 KB,
