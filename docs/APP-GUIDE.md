@@ -107,6 +107,16 @@ not say:
 
 **All of LVGL**: widgets, styles, animations, timers, `lv_malloc` / `lv_free`.
 
+**A background task**, one per app, for work bigger than a frame:
+`aos_hal_worker_start/stop/should_stop/sleep`. The contract is in
+[APP-API.md](APP-API.md) and the app that needed it, with the ring of frames
+it builds on it, in [VIDEO.md](VIDEO.md). Until then everything ran in LVGL's
+task, and it still does for every app but Video.
+
+**The JPEG decoder** the firmware carries (`esp_jpeg_dec.h`, Espressif's
+`esp_new_jpeg`): 4:2:0 and 4:2:2 JPEGs to RGB565, three times faster than
+LVGL's TJPGD, 8.5 KB of internal RAM while open. Numbers in VIDEO.md.
+
 **The HAL** (`aos_hal.h`), some 80 entry points:
 
 | Area | Examples |

@@ -60,6 +60,7 @@
     <button data-dir="apps" class="on" data-t="car_apps">Apps</button>
     <button data-dir="photos" data-t="car_fotos">Fotos</button>
     <button data-dir="music" data-t="car_musica">Musica</button>
+    <button data-dir="videos" data-t="car_video">Videos</button>
     <button data-dir="recordings" data-t="car_grab">Grabaciones</button>
     <button data-dir="sd" data-t="car_sd">Tarjeta</button>
   </div>
@@ -88,10 +89,10 @@ const TR = {
     titulo: "Files",
     bajada: "What is on the microSD, by folder. Drag to upload; tap a photo to see it.",
     act_ver: "view", tarjeta_libre: "%f free of %t", cerrar: "close",
-    car_apps: "Apps", car_fotos: "Photos", car_musica: "Music",
+    car_apps: "Apps", car_fotos: "Photos", car_musica: "Music", car_video: "Videos",
     car_grab: "Recordings",
     car_sd: "Card", d_sd: "any file, into the folder you are looking at",
-    h_sd: "The whole card. The four tabs on the left are the folders the watch uses; the rest is yours. A folder only goes when it is empty.",
+    h_sd: "The whole card. The five tabs on the left are the folders the watch uses; the rest is yours. A folder only goes when it is empty.",
     act_abrir: "open", b_nueva: "New folder", ph_carpeta: "Name of the new folder", carpeta_creada: "folder created",
     no_borrar: "could not delete: is the folder empty?", raiz: "card",
     soltar_aca: "Drop files here or",
@@ -107,6 +108,8 @@ const TR = {
     h_fotos: "They look best at 368x448. Bigger ones are rescaled on the fly.",
     d_musica: ".wav or .mp3",
     h_musica: "16-bit PCM WAV is the one that costs the least CPU.",
+    d_video: ".avi of MJPEG at 368x448, and its .wav",
+    h_video: "Made by tools/video_convert.sh: the pictures in the .avi, the sound in a .wav of the same name. Upload both.",
     d_grab: ".wav you want to keep on the watch",
     h_grab: "What the Recorder app makes: 16-bit mono PCM WAV at 16 kHz. " +
             "Listening opens them in the browser player; to seek, download it."
@@ -115,10 +118,10 @@ const TR = {
     titulo: "Dateien",
     bajada: "Was auf der microSD ist, nach Ordner. Ziehen zum Hochladen; ein Foto antippen, um es zu sehen.",
     act_ver: "ansehen", tarjeta_libre: "%f frei von %t", cerrar: "schliessen",
-    car_apps: "Apps", car_fotos: "Fotos", car_musica: "Musik",
+    car_apps: "Apps", car_fotos: "Fotos", car_musica: "Musik", car_video: "Videos",
     car_grab: "Aufnahmen",
     car_sd: "Karte", d_sd: "jede Datei, in den Ordner, den du gerade siehst",
-    h_sd: "Die ganze Karte. Die vier Reiter links sind die Ordner der Uhr; der Rest gehoert dir. Ein Ordner geht nur weg, wenn er leer ist.",
+    h_sd: "Die ganze Karte. Die fünf Reiter links sind die Ordner der Uhr; der Rest gehoert dir. Ein Ordner geht nur weg, wenn er leer ist.",
     act_abrir: "oeffnen", b_nueva: "Neuer Ordner", ph_carpeta: "Name des neuen Ordners", carpeta_creada: "Ordner angelegt",
     no_borrar: "konnte nicht loeschen: ist der Ordner leer?", raiz: "Karte",
     soltar_aca: "Dateien hierher ziehen oder",
@@ -134,6 +137,8 @@ const TR = {
     h_fotos: "Am besten in 368x448. Groessere werden im Flug skaliert.",
     d_musica: ".wav oder .mp3",
     h_musica: "16-Bit-PCM-WAV braucht am wenigsten CPU.",
+    d_video: ".avi mit MJPEG in 368x448, und seine .wav",
+    h_video: "Aus tools/video_convert.sh: die Bilder in der .avi, der Ton in einer .wav gleichen Namens. Beide hochladen.",
     d_grab: ".wav, die du auf der Uhr behalten willst",
     h_grab: "Was die Recorder-App aufnimmt: 16-Bit-PCM-WAV mono mit 16 kHz. " +
             "Anhoeren oeffnet sie im Browser-Player; zum Spulen herunterladen."
@@ -149,7 +154,7 @@ const ES = {
   borrado: "borrado", listo: "listo", fallo: "falló ",
   act_ver: "ver", tarjeta_libre: "%f libres de %t", cerrar: "cerrar",
   d_sd: "cualquier archivo, a la carpeta que estás mirando",
-  h_sd: "La tarjeta entera. Las cuatro pestañas de la izquierda son las carpetas que usa el reloj; el resto es tuyo. Una carpeta sólo se borra vacía.",
+  h_sd: "La tarjeta entera. Las cinco pestañas de la izquierda son las carpetas que usa el reloj; el resto es tuyo. Una carpeta sólo se borra vacía.",
   act_abrir: "abrir", b_nueva: "Nueva carpeta", ph_carpeta: "Nombre de la carpeta nueva",
   carpeta_creada: "carpeta creada", no_borrar: "no se pudo borrar: ¿la carpeta está vacía?", raiz: "tarjeta",
   d_apps: ".so compilados para ESP32-S3",
@@ -158,6 +163,8 @@ const ES = {
   h_fotos: "Se ven mejor a 368x448. Las más grandes se reescalan al vuelo.",
   d_musica: ".wav o .mp3",
   h_musica: "WAV PCM 16 bits es lo que menos CPU consume.",
+  d_video: ".avi de MJPEG a 368x448, y su .wav",
+  h_video: "Los hace tools/video_convert.sh: la imagen en el .avi y el sonido en un .wav del mismo nombre. Subí los dos.",
   d_grab: ".wav que quieras dejar en el reloj",
   h_grab: "Lo que graba la app Grabadora: WAV PCM 16 bits mono a 16 kHz. " +
           "Escucharlas las abre en el reproductor del navegador; para adelantar, bajala."
@@ -171,6 +178,7 @@ const PISTAS = {
   apps:       { soltar: "d_apps",   pie: "h_apps"   },
   photos:     { soltar: "d_fotos",  pie: "h_fotos"  },
   music:      { soltar: "d_musica", pie: "h_musica" },
+  videos:     { soltar: "d_video",  pie: "h_video"  },
   recordings: { soltar: "d_grab",   pie: "h_grab"   },
   sd:         { soltar: "d_sd",     pie: "h_sd"     }
 };

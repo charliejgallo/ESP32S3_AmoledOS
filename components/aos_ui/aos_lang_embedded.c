@@ -492,6 +492,7 @@ static const char blob_en__sistema_lang[] =
     "Afinador\tTuner\n"
     "ARKANOS\tARKANOS\n"
     "Atasco\tTraffic Jam\n"
+    "Burbujas\tBubbles\n"
     "Buscaminas\tMinesweeper\n"
     "Chatarra\tChatarra\n"
     "Claude Jump\tClaude Jump\n"
@@ -512,6 +513,7 @@ static const char blob_en__sistema_lang[] =
     "Simon\tSimon\n"
     "Topos\tWhack-a-Mole\n"
     "Truco\tTruco\n"
+    "Video\tVideo\n"
     ;
 
 static const char blob_en_aos_clima_lang[] =
@@ -762,6 +764,16 @@ static const char blob_en_aos_tuner_lang[] =
     "RUIDO\tNOISE\n"
     ;
 
+static const char blob_en_aos_video_lang[] =
+    "Sin memoria para el cuadro\tNo memory for the frame\n"
+    "%s\\nno es un AVI de MJPEG\t%s\\nis not an MJPEG AVI\n"
+    "%s\\nes de %dx%d y no de %dx%d\\n(tools/video_convert.sh)\t%s\\nis %dx%d, not %dx%d\\n(tools/video_convert.sh)\n"
+    "El decodificador no abrió\tThe decoder did not open\n"
+    "No hay lugar para la tarea de video\tNo room for the video task\n"
+    "Videos\tVideos\n"
+    "No hay videos en\\n%s\\n\\nConvertilos con\\ntools/video_convert.sh\tNo videos in\\n%s\\n\\nConvert them with\\ntools/video_convert.sh\n"
+    ;
+
 static const char blob_en_app_recorder_lang[] =
     "sin fecha\tno date\n"
     "grabacion\trecording\n"
@@ -900,6 +912,38 @@ static const char blob_en_demo_atasco_lang[] =
     "Desliza los autos para sacar al rojo\tSlide the cars to free the red one\n"
     "Menu\tMenu\n"
     "Siguiente\tNext\n"
+    ;
+
+static const char blob_en_demo_burbujas_lang[] =
+    "Clásico\tClassic\n"
+    "Niveles\tLevels\n"
+    "Contrarreloj\tTime attack\n"
+    "Sin fin\tEndless\n"
+    "Despejá el tablero\tClear the board\n"
+    "Dos minutos\tTwo minutes\n"
+    "Nivel\tLevel\n"
+    "Sonido\tSound\n"
+    "¡Un color más!\tOne more colour!\n"
+    "¡Tablero limpio!\tBoard cleared!\n"
+    "¡Bomba!\tBomb!\n"
+    "¡Comodín!\tRainbow!\n"
+    "¡Últimos 10 segundos!\tLast 10 seconds!\n"
+    "¡Tiempo!\tTime's up!\n"
+    "¡Nivel superado!\tLevel cleared!\n"
+    "¡Se acabó!\tGame over!\n"
+    "¡Nuevo récord!\tNew best!\n"
+    "Reventadas\tBurst\n"
+    "Mejor caída\tBest drop\n"
+    "Mejor nivel\tBest level\n"
+    "Récord\tBest\n"
+    "Siguiente\tNext\n"
+    "Otra vez\tAgain\n"
+    "Burbujas\tBubbles\n"
+    "Arrastrá para apuntar y soltá para tirar. Tocá abajo para cambiar la burbuja.\tDrag to aim and let go to shoot. Tap the bottom to swap the bubble.\n"
+    "Pausa\tPaused\n"
+    "Seguir\tResume\n"
+    "Menú\tMenu\n"
+    "Salir\tExit\n"
     ;
 
 static const char blob_en_demo_chatarra_lang[] =
@@ -1492,10 +1536,12 @@ static const aos_lang_file_t files_en[] = {
     { "aos.sensores.lang", blob_en_aos_sensores_lang },
     { "aos.simon.lang", blob_en_aos_simon_lang },
     { "aos.tuner.lang", blob_en_aos_tuner_lang },
+    { "aos.video.lang", blob_en_aos_video_lang },
     { "app.recorder.lang", blob_en_app_recorder_lang },
     { "demo.2043.lang", blob_en_demo_2043_lang },
     { "demo.arkanos.lang", blob_en_demo_arkanos_lang },
     { "demo.atasco.lang", blob_en_demo_atasco_lang },
+    { "demo.burbujas.lang", blob_en_demo_burbujas_lang },
     { "demo.chatarra.lang", blob_en_demo_chatarra_lang },
     { "demo.cjump.lang", blob_en_demo_cjump_lang },
     { "demo.claudito.lang", blob_en_demo_claudito_lang },
@@ -1984,6 +2030,7 @@ static const char blob_de__sistema_lang[] =
     "Afinador\tStimmgerät\n"
     "ARKANOS\tARKANOS\n"
     "Atasco\tStau\n"
+    "Burbujas\tBlasen\n"
     "Buscaminas\tMinesweeper\n"
     "Chatarra\tChatarra\n"
     "Claude Jump\tClaude Jump\n"
@@ -2004,6 +2051,7 @@ static const char blob_de__sistema_lang[] =
     "Simon\tSimon\n"
     "Topos\tMaulwürfe\n"
     "Truco\tTruco\n"
+    "Video\tVideo\n"
     ;
 
 static const char blob_de_aos_clima_lang[] =
@@ -2254,6 +2302,16 @@ static const char blob_de_aos_tuner_lang[] =
     "RUIDO\tLÄRM\n"
     ;
 
+static const char blob_de_aos_video_lang[] =
+    "Sin memoria para el cuadro\tKein Speicher für das Bild\n"
+    "%s\\nno es un AVI de MJPEG\t%s\\nist keine MJPEG-AVI\n"
+    "%s\\nes de %dx%d y no de %dx%d\\n(tools/video_convert.sh)\t%s\\nhat %dx%d statt %dx%d\\n(tools/video_convert.sh)\n"
+    "El decodificador no abrió\tDer Decoder ging nicht auf\n"
+    "No hay lugar para la tarea de video\tKein Platz für die Video-Aufgabe\n"
+    "Videos\tVideos\n"
+    "No hay videos en\\n%s\\n\\nConvertilos con\\ntools/video_convert.sh\tKeine Videos in\\n%s\\n\\nUmwandeln mit\\ntools/video_convert.sh\n"
+    ;
+
 static const char blob_de_app_recorder_lang[] =
     "sin fecha\tkein Datum\n"
     "grabacion\tAufnahme\n"
@@ -2392,6 +2450,38 @@ static const char blob_de_demo_atasco_lang[] =
     "Desliza los autos para sacar al rojo\tAutos schieben, um das rote zu befreien\n"
     "Menu\tMenü\n"
     "Siguiente\tWeiter\n"
+    ;
+
+static const char blob_de_demo_burbujas_lang[] =
+    "Clásico\tKlassisch\n"
+    "Niveles\tLevel\n"
+    "Contrarreloj\tZeitrennen\n"
+    "Sin fin\tEndlos\n"
+    "Despejá el tablero\tFeld leerräumen\n"
+    "Dos minutos\tZwei Minuten\n"
+    "Nivel\tLevel\n"
+    "Sonido\tTon\n"
+    "¡Un color más!\tEine Farbe mehr!\n"
+    "¡Tablero limpio!\tFeld leer!\n"
+    "¡Bomba!\tBombe!\n"
+    "¡Comodín!\tJoker!\n"
+    "¡Últimos 10 segundos!\tLetzte 10 Sekunden!\n"
+    "¡Tiempo!\tZeit um!\n"
+    "¡Nivel superado!\tLevel geschafft!\n"
+    "¡Se acabó!\tVorbei!\n"
+    "¡Nuevo récord!\tNeuer Rekord!\n"
+    "Reventadas\tGeplatzt\n"
+    "Mejor caída\tBester Sturz\n"
+    "Mejor nivel\tBestes Level\n"
+    "Récord\tRekord\n"
+    "Siguiente\tWeiter\n"
+    "Otra vez\tNochmal\n"
+    "Burbujas\tBlasen\n"
+    "Arrastrá para apuntar y soltá para tirar. Tocá abajo para cambiar la burbuja.\tZum Zielen ziehen, zum Schießen loslassen. Unten tippen zum Tauschen.\n"
+    "Pausa\tPause\n"
+    "Seguir\tWeiter\n"
+    "Menú\tMenü\n"
+    "Salir\tBeenden\n"
     ;
 
 static const char blob_de_demo_chatarra_lang[] =
@@ -2984,10 +3074,12 @@ static const aos_lang_file_t files_de[] = {
     { "aos.sensores.lang", blob_de_aos_sensores_lang },
     { "aos.simon.lang", blob_de_aos_simon_lang },
     { "aos.tuner.lang", blob_de_aos_tuner_lang },
+    { "aos.video.lang", blob_de_aos_video_lang },
     { "app.recorder.lang", blob_de_app_recorder_lang },
     { "demo.2043.lang", blob_de_demo_2043_lang },
     { "demo.arkanos.lang", blob_de_demo_arkanos_lang },
     { "demo.atasco.lang", blob_de_demo_atasco_lang },
+    { "demo.burbujas.lang", blob_de_demo_burbujas_lang },
     { "demo.chatarra.lang", blob_de_demo_chatarra_lang },
     { "demo.cjump.lang", blob_de_demo_cjump_lang },
     { "demo.claudito.lang", blob_de_demo_claudito_lang },
@@ -2998,7 +3090,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 498, 22, files_en, 23 },
-    { "de", "Deutsch", 498, 22, files_de, 23 },
+    { "en", "English", 500, 24, files_en, 25 },
+    { "de", "Deutsch", 500, 24, files_de, 25 },
 };
 const int aos_lang_pack_count = 2;

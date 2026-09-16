@@ -3,8 +3,8 @@
  *
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
- * Mas 86 funciones de libc/libm agregadas a mano.
- * Total: 2658 simbolos.
+ * Mas 94 funciones de libc/libm agregadas a mano.
+ * Total: 2672 simbolos.
  */
 
 #include <stddef.h>
@@ -126,6 +126,7 @@ extern int aos_hal_bt_pair_confirm;
 extern int aos_hal_bt_peer;
 extern int aos_hal_bt_phone_battery;
 extern int aos_hal_bt_state;
+extern int aos_hal_display_blit;
 extern int aos_hal_display_is_on;
 extern int aos_hal_display_on;
 extern int aos_hal_display_set_state;
@@ -292,6 +293,11 @@ extern int aos_hal_usb_mouse;
 extern int aos_hal_usb_type;
 extern int aos_hal_volume_get;
 extern int aos_hal_volume_set;
+extern int aos_hal_worker_running;
+extern int aos_hal_worker_should_stop;
+extern int aos_hal_worker_sleep;
+extern int aos_hal_worker_start;
+extern int aos_hal_worker_stop;
 extern int aos_hand_create;
 extern int aos_hand_set_angle;
 extern int aos_i18n_app_count;
@@ -504,6 +510,14 @@ extern int jd_mcu_load;
 extern int jd_mcu_output;
 extern int jd_prepare;
 extern int jd_restart;
+extern int jpeg_calloc_align;
+extern int jpeg_dec_close;
+extern int jpeg_dec_get_outbuf_len;
+extern int jpeg_dec_get_process_count;
+extern int jpeg_dec_open;
+extern int jpeg_dec_parse_header;
+extern int jpeg_dec_process;
+extern int jpeg_free_align;
 extern int labs;
 extern int load_kern;
 extern int localtime_r;
@@ -2787,6 +2801,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_bt_peer),
     ESP_ELFSYM_EXPORT(aos_hal_bt_phone_battery),
     ESP_ELFSYM_EXPORT(aos_hal_bt_state),
+    ESP_ELFSYM_EXPORT(aos_hal_display_blit),
     ESP_ELFSYM_EXPORT(aos_hal_display_is_on),
     ESP_ELFSYM_EXPORT(aos_hal_display_on),
     ESP_ELFSYM_EXPORT(aos_hal_display_set_state),
@@ -2953,6 +2968,11 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_usb_type),
     ESP_ELFSYM_EXPORT(aos_hal_volume_get),
     ESP_ELFSYM_EXPORT(aos_hal_volume_set),
+    ESP_ELFSYM_EXPORT(aos_hal_worker_running),
+    ESP_ELFSYM_EXPORT(aos_hal_worker_should_stop),
+    ESP_ELFSYM_EXPORT(aos_hal_worker_sleep),
+    ESP_ELFSYM_EXPORT(aos_hal_worker_start),
+    ESP_ELFSYM_EXPORT(aos_hal_worker_stop),
     ESP_ELFSYM_EXPORT(aos_hand_create),
     ESP_ELFSYM_EXPORT(aos_hand_set_angle),
     ESP_ELFSYM_EXPORT(aos_i18n_app_count),
@@ -3165,6 +3185,14 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(jd_mcu_output),
     ESP_ELFSYM_EXPORT(jd_prepare),
     ESP_ELFSYM_EXPORT(jd_restart),
+    ESP_ELFSYM_EXPORT(jpeg_calloc_align),
+    ESP_ELFSYM_EXPORT(jpeg_dec_close),
+    ESP_ELFSYM_EXPORT(jpeg_dec_get_outbuf_len),
+    ESP_ELFSYM_EXPORT(jpeg_dec_get_process_count),
+    ESP_ELFSYM_EXPORT(jpeg_dec_open),
+    ESP_ELFSYM_EXPORT(jpeg_dec_parse_header),
+    ESP_ELFSYM_EXPORT(jpeg_dec_process),
+    ESP_ELFSYM_EXPORT(jpeg_free_align),
     ESP_ELFSYM_EXPORT(labs),
     ESP_ELFSYM_EXPORT(load_kern),
     ESP_ELFSYM_EXPORT(localtime_r),

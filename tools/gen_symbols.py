@@ -52,6 +52,13 @@ EXTRA_SYMBOLS = [
     # the same binary that goes onto the SD without costing anything or
     # changing the behaviour.
     "getenv",
+    # esp_new_jpeg (branch video): a prebuilt library, so it never shows up as
+    # a lib*.a under build/ for the loop below to walk. Naming its decoder
+    # entry points here is also what links them into the firmware: nothing
+    # else references them, and the table's ESP_ELFSYM_EXPORT() does.
+    "jpeg_dec_open", "jpeg_dec_parse_header", "jpeg_dec_get_outbuf_len",
+    "jpeg_dec_get_process_count", "jpeg_dec_process", "jpeg_dec_close",
+    "jpeg_calloc_align", "jpeg_free_align",
     # math
     "sinf", "cosf", "tanf", "atan2f", "sqrtf", "fabsf",
     "floorf", "ceilf", "roundf", "powf", "fmodf",

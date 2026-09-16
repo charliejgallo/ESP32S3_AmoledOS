@@ -1137,6 +1137,75 @@ bool aos_hal_init(void);
 bool aos_hal_lock(uint32_t timeout_ms);
 void aos_hal_unlock(void);
 
+/* --------------------------------------------------------------------------
+ * Worker: one background task for an app
+ *
+ * Everything an app does runs from LVGL's task, and until the Video app that
+ * was enough. Video is the first app whose work is bigger than a frame: reading
+ * and decoding a JPEG is 50 ms on the board, and doing it in the LVGL task made
+ * the touch, the back swipe and the portal's capture wait behind it. This is
+ * the way out, and it is deliberately small: ONE task per app, no queues, no
+ * semaphores handed out. The app's function loops on its own, polls
+ * aos_hal_worker_should_stop() and returns; the handshake with the UI side is
+ * whatever the app builds on top of plain flags in its own memory.
+ *
+ * Rules, all of them measured or bitten:
+ *   - The function must not touch LVGL. Not one call. It runs on the other
+ *     core and LVGL has one lock, held by the task that draws.
+ *   - It must return promptly once should_stop() says so: stop() waits for it
+ *     (a couple of seconds at most, then the HAL logs and gives up on it).
+ *   - Call stop() from destroy(). An app that exits with its worker running
+ *     leaves a task reading a buffer that is about to be freed.
+ *   - The stack is internal RAM (a task that reads the card goes through the
+ *     filesystem, which may reach the flash driver; see AOS_XTASKCREATE).
+ *     8 KB is enough for the video decoder; do not ask for more than needed.
+ *   - It is pinned to the second core, at the player's priority, one above
+ *     LVGL's. Below LVGL's it read the card four times slower (the measure
+ *     is next to AOS_WORKER_PRIO); LVGL floats between the cores and keeps
+ *     the first one while the worker is busy, so the UI does not feel it.
+ * -------------------------------------------------------------------------- */
+
+typedef void (*aos_worker_fn_t)(void *arg);
+
+/* Starts the task. false if one is already running or if there is no memory
+ * for the stack. In the simulator it is a pthread. */
+bool aos_hal_worker_start(const char *name, aos_worker_fn_t fn, void *arg,
+                          uint32_t stack_bytes);
+
+/* Asks the function to return and waits for it. Safe to call with no worker. */
+void aos_hal_worker_stop(void);
+
+bool aos_hal_worker_running(void);
+
+/* For the function: true once stop() was called. */
+bool aos_hal_worker_should_stop(void);
+
+/* For the function: sleeps without burning the core. */
+void aos_hal_worker_sleep(uint32_t ms);
+
+/* --------------------------------------------------------------------------
+ * Direct blit to the panel
+ *
+ * Pushes a rectangle of RGB565 pixels, BIG-ENDIAN (the panel's byte order,
+ * what esp_new_jpeg's JPEG_PIXEL_FORMAT_RGB565_BE produces), straight to the
+ * panel over the same QSPI the LVGL port flushes through, skipping LVGL's
+ * render. Measured with the Video app: rendering a full-screen canvas
+ * through LVGL cost about 95 ms a frame, which capped playback at 10 fps
+ * with the decoder idle a third of the time; the push alone is 16.5 ms.
+ *
+ * Call it with the LVGL lock held, from a timer or an event, never from a
+ * worker: it shares the SPI device with LVGL's flush, and the panic of
+ * v0.3.9 was exactly two callers on that device. It returns once the
+ * transfer is queued, so the buffer must stay untouched until the next call
+ * (the Video app keeps the frame on screen in its own slot for that reason).
+ * LVGL knows nothing about what was pushed: whatever it draws next over
+ * that area wins, so an app that wants labels on top invalidates them after
+ * each call. In the simulator there is no panel: it returns false, and the
+ * app draws through LVGL instead.
+ * -------------------------------------------------------------------------- */
+bool aos_hal_display_blit(int x, int y, int w, int h, const void *rgb565_be);
+
 #ifdef __cplusplus
 }
+
 #endif
