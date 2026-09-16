@@ -3,6 +3,28 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.3.11 — 2026-09-15
+
+- **Burbujas**, a bubble shooter, as a dynamic app (`apps/burbujas/`, 40 KB,
+  ABI 2). A hexagonal board hangs from the ceiling, you aim by dragging -the
+  dotted guide is the shot itself, run ahead of time through the same
+  stepping function- and three of a colour burst, taking down whatever was
+  hanging from them. Three modes: endless, generated levels where the ceiling
+  comes down instead, and two minutes against the clock. Bombs and rainbow
+  bubbles are earned by bursting six or dropping four.
+- **It is the first app that needed nothing from the firmware at all**: the
+  icon travels inside the `.so` (v0.3.8) and the name is translated by one
+  line in the card's `_sistema.lang`. Installing it is copying one file.
+- The still board lives in the BACKGROUND rather than in a slot per bubble,
+  which is what keeps a full field cheap: 9-18 % of the field pushed per
+  frame. Written up in `APP-GUIDE.md` 6.3.
+- Level 1 starts with three rows and not four. Measured on the watch and
+  reproduced on the bench (`bb_harness poke`, which shoots at four fixed
+  points): shots that burst nothing stack downwards 19 px at a time, and with
+  four rows a bad streak reached the line in seven shots without the ceiling
+  coming down once. The level you play before knowing how the thing aims now
+  has a row of headroom.
+
 ## v0.3.10 — 2026-09-15
 
 Two more apps bring their own icon, and `apps.zip` is fresh.
