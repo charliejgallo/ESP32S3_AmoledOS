@@ -347,7 +347,9 @@ static void present(vd_t *v, int idx)
     /* Straight to the panel, past LVGL's render (aos_hal.h says why: 95 ms a
      * frame through the canvas, 16.5 ms this way). The label and the bar
      * are LVGL's, so they are invalidated to be drawn back on top. */
-    aos_hal_display_blit(0, 0, VD_W, VD_H, slot->frame);
+    if (!aos_hal_display_blit(0, 0, VD_W, VD_H, slot->frame)) {
+        v->errors++;
+    }
     lv_obj_invalidate(v->stats);
     lv_obj_invalidate(v->bar);
 #else

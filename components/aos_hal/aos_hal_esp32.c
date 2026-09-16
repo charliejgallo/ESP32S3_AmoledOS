@@ -4215,5 +4215,19 @@ bool aos_hal_display_blit(int x, int y, int w, int h, const void *rgb565_be)
         esp_cache_msync((void *)rgb565_be, bytes,
                         ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
     }
-    return esp_lcd_panel_draw_bitmap(s_panel, x, y, x + w, y + h, rgb565_be) == ESP_OK;
+    /* In strips of AOS_DRAW_ROWS, the size the LVGL port flushes in: the
+     * SPI bus was created for that transfer size and a whole frame in one
+     * call fails ("spi transmit (queue) color failed") after the first
+     * chunk: the first 55 rows of the video reached the panel and the rest
+     * stayed black, 2026-09-16. Each strip is queued and the next call
+     * waits for it, the same as the port's own flush. */
+    const uint8_t *px = rgb565_be;
+    for (int row = 0; row < h; row += AOS_DRAW_ROWS) {
+        int rows = h - row < AOS_DRAW_ROWS ? h - row : AOS_DRAW_ROWS;
+        if (esp_lcd_panel_draw_bitmap(s_panel, x, y + row, x + w, y + row + rows, px) != ESP_OK) {
+            return false;
+        }
+        px += (size_t)w * (size_t)rows * 2u;
+    }
+    return true;
 }

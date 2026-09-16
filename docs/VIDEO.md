@@ -190,6 +190,14 @@ works during playback too, now that the LVGL task is free.
   two files; the reader itself never seeks. Not understood yet. The
   experiment to run: a bigger read in `player_task` (16 KB instead of 4),
   which quarters the interleaving, measured with the same clip.
+- **A whole frame in one `esp_lcd_panel_draw_bitmap` call fails.** The SPI
+  bus is created for the LVGL port's strip (20 rows, 14.7 KB), and a 330 KB
+  transaction fails after its first chunk: `spi transmit (queue) color
+  failed` per frame, the first 55 rows on the panel and the rest black. Worse,
+  the board later panicked inside the SPI driver's interrupt (`spi_intr` →
+  `spi_bus_lock_bg_exit`), with the failed queue attempts the only unusual
+  thing going on. The blit now goes in strips of `AOS_DRAW_ROWS`, like the
+  port's flush, and the app counts a failed blit as an error in its stats.
 - **`lv_snapshot` does not see the panel.** The portal's capture, and the
   simulator's `AOS_SIM_SHOT`, take LVGL's own pixels; a frame blitted past
   LVGL is black in both. The pictures on the README are from the simulator,
