@@ -2,7 +2,7 @@
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
 368x448 AMOLED you can hold in your hand. Seven watchfaces, eighteen built-in
-apps, twenty-three more loaded from the microSD as shared objects, a web portal,
+apps, twenty-four more loaded from the microSD as shared objects, a web portal,
 iPhone notifications over BLE, and a desktop simulator that runs the same UI
 code so you can build the whole thing without the board.
 
@@ -225,7 +225,7 @@ components/
   aos_dynapp/         .so loader and symbol table
   aos_ble/            NimBLE: ANCS, AMS, pairing
   aos_web/            the web portal, embedded in the binary
-apps/                 23 dynamic apps
+apps/                 24 dynamic apps
 tools/                generators, test benches, board utilities
 ```
 

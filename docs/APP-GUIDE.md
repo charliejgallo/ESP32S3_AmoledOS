@@ -289,6 +289,29 @@ instead of painting: `pen_t` in `apps/topos/main/tp_draw.c`), so it cannot
 miss a pixel. `apps/topos/tools/tp_harness.c` checks every frame against a
 full redraw.
 
+**And if what is still is MOST of the screen, make it the background.** In
+`burbujas` the board is up to sixty bubbles hanging there, and none of them is
+a slot: they live in the background buffer, like Arkanos's sky. When a cell
+changes, the game records *that cell's* rectangle in a list of its own and the
+compositor repaints that patch of the background — the tiled backdrop plus
+every bubble that reaches into it, clipped — before composing the slots on
+top. Slots are left for what actually moves: the shot, the aiming guide, the
+bursts, the falls and the launcher. Measured: 9 % of the field pushed per
+frame in one mode and 18 % in another.
+
+Two conditions make it exact, and both are easy to break:
+
+- **The background must repaint per rectangle to the same pixels a full
+  repaint gives.** That is why the backdrop is procedural; drawn at random it
+  would leave a seam around every burst.
+- **Repainting a rectangle must redraw everything that touches it**, not just
+  the cell that changed: with 22 px bubbles 19 px apart, the neighbours reach
+  three pixels in.
+
+When the whole board does move — a row coming in, the ceiling coming down —
+there is nothing to save: mark the entire background for the ten or so frames
+the slide lasts and pay a full screen per frame while it does.
+
 ### 6.4 An ARGB8888 canvas, when the piece has to blend with the background
 
 The three techniques above give opaque pieces. Rounded corners, a shadow, any
