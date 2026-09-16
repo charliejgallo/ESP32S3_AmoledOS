@@ -547,18 +547,47 @@ static uint8_t rainbow_color(bb_game_t *g, int kind, int hr, int hc, int r, int 
     return pick_color(g);
 }
 
-static void chain_sound(bb_game_t *g, int n, bool drops)
+/* What a burst sounds like.
+ *
+ * A short chain is one note per bubble, climbing. A LONG one -six or more, or
+ * four dropped at once, which is also what earns a special- gets a flourish
+ * instead: an arpeggio that climbs two octaves and holds the last note, with
+ * the falling bubbles answering underneath. It REPLACES the per-bubble notes
+ * rather than adding to them, and that is not a style choice: the HAL's tone
+ * queue is sixteen notes deep and a full queue DROPS what does not fit
+ * (aos_hal_beep in aos_hal_esp32.c), so a chain of twenty bubbles playing a
+ * note each would eat the queue and the next shot would be silent. The codec
+ * stays open between notes, so these do play as a melody and not as clicks. */
+#define BB_LONG_CHAIN   6
+#define BB_LONG_DROP    4
+
+static void chain_sound(bb_game_t *g, int n, int dropped)
 {
-    static const int NOTE[5] = { 523, 659, 784, 988, 1175 };
+    static const int STEP[5]  = { 523, 659, 784, 988, 1175 };
+    static const int FLOUR[7] = { 523, 659, 784, 1047, 1319, 1568, 2093 };
+
+    (void)g;
+
+    if (n >= BB_LONG_CHAIN || dropped >= BB_LONG_DROP) {
+        for (int i = 0; i < 6; i++) {
+            bb_sfx(FLOUR[i], 55);
+        }
+        bb_sfx(FLOUR[6], 200);              /* the one it lands on */
+        if (dropped) {
+            bb_sfx(392, 70);                /* and the fall, underneath */
+            bb_sfx(262, 120);
+        }
+        return;
+    }
+
     int k = n < 5 ? n : 5;
     for (int i = 0; i < k; i++) {
-        bb_sfx(NOTE[i], 40);
+        bb_sfx(STEP[i], 40);
     }
-    if (drops) {
+    if (dropped) {
         bb_sfx(392, 60);
         bb_sfx(294, 90);
     }
-    (void)g;
 }
 
 static void lose(bb_game_t *g)
