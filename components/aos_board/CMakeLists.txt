@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "aos_board.c" "axp2101.c" "pcf85063.c" "qmi8658.c"
+    SRCS "aos_board.c" "axp2101.c" "pcf85063.c" "qmi8658.c" "aos_step_detect.c"
     INCLUDE_DIRS "include"
     REQUIRES waveshare__esp32_s3_touch_amoled_1_8
              waveshare__qmi8658

@@ -6,8 +6,10 @@
  */
 #include "aos_board.h"
 #include "qmi8658.h"
+#include "aos_step_detect.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_heap_caps.h"
 
 #include <math.h>
 
@@ -17,18 +19,14 @@ static qmi8658_dev_t s_imu;
 static bool          s_present;
 
 /* --- step counter --------------------------------------------------------
- * Peak detection over the magnitude of the acceleration, with hysteresis and a
- * 250 ms dead time so bounces are not counted. It is simple but behaves
- * reasonably well on the wrist; if more accuracy is needed, the QMI8658 has a
- * hardware pedometer that can be enabled later.
+ * The detector is aos_step_detect.c: pure C, tuned on the desktop against
+ * /api/imu dumps of counted walks (tools/steps/). It replaced a fixed
+ * 1.18 g / 1.02 g threshold on the magnitude that counted 124 for 100
+ * steps with the watch in a pocket (the impact and the toe-off of a stride
+ * both crossed it) and needed the screen on to see anything.
  * ------------------------------------------------------------------------ */
-#define STEP_HIGH_G     1.18f
-#define STEP_LOW_G      1.02f
-#define STEP_DEAD_US    250000
-
+static aos_step_detect_t s_detector;
 static uint32_t s_steps;
-static bool     s_above;
-static int64_t  s_last_step_us;
 
 static int      s_orientation;
 static bool     s_wrist_raised;
@@ -65,6 +63,7 @@ bool aos_imu_start(i2c_master_bus_handle_t bus)
     s_gyro_on = true;
 
     s_present = true;
+    aos_step_detect_init(&s_detector);
     ESP_LOGI(TAG, "QMI8658 ready at 0x%02X", address);
     return true;
 }
@@ -97,28 +96,55 @@ bool aos_board_imu_read(aos_imu_sample_t *out)
     return true;
 }
 
+/* --- sample ring ----------------------------------------------------------
+ * The last AOS_IMU_RING samples, as the poll saw them (every 40 ms, so a
+ * minute), in PSRAM. It is what /api/imu serves: the raw material for
+ * tuning the step detector against a walk of counted steps, instead of
+ * against a feeling. Milli-g, and the poll's timestamp in ms.
+ * ------------------------------------------------------------------------ */
+static aos_imu_ring_sample_t *s_ring;
+static uint32_t s_ring_head;       /* next slot to write */
+static uint32_t s_ring_count;
+
+void aos_board_imu_ring_get(aos_imu_ring_sample_t *out, uint32_t max, uint32_t *count)
+{
+    uint32_t n = s_ring_count < max ? s_ring_count : max;
+    uint32_t start = (s_ring_head + AOS_IMU_RING - n) % AOS_IMU_RING;
+    for (uint32_t i = 0; i < n; i++) {
+        out[i] = s_ring[(start + i) % AOS_IMU_RING];
+    }
+    *count = s_ring ? n : 0;
+}
+
 void aos_board_imu_poll(void)
 {
     aos_imu_sample_t sample;
     if (!aos_board_imu_read(&sample) || !sample.valid) {
         return;
     }
+    if (!s_ring) {
+        s_ring = heap_caps_calloc(AOS_IMU_RING, sizeof *s_ring, MALLOC_CAP_SPIRAM);
+    }
+    if (s_ring) {
+        aos_imu_ring_sample_t *slot = &s_ring[s_ring_head];
+        slot->t_ms = (uint32_t)(esp_timer_get_time() / 1000);
+        slot->ax = (int16_t)(sample.ax * 1000.0f);
+        slot->ay = (int16_t)(sample.ay * 1000.0f);
+        slot->az = (int16_t)(sample.az * 1000.0f);
+        slot->steps = s_steps;
+        s_ring_head = (s_ring_head + 1) % AOS_IMU_RING;
+        if (s_ring_count < AOS_IMU_RING) {
+            s_ring_count++;
+        }
+    }
 
     /* --- steps --- */
     float magnitude = sqrtf(sample.ax * sample.ax +
                             sample.ay * sample.ay +
                             sample.az * sample.az);
-    int64_t now = esp_timer_get_time();
-
-    if (!s_above && magnitude > STEP_HIGH_G) {
-        s_above = true;
-        if (now - s_last_step_us > STEP_DEAD_US) {
-            s_steps++;
-            s_last_step_us = now;
-        }
-    } else if (s_above && magnitude < STEP_LOW_G) {
-        s_above = false;
-    }
+    s_steps += (uint32_t)aos_step_detect_feed(&s_detector,
+                                              (uint32_t)(esp_timer_get_time() / 1000),
+                                              magnitude);
 
     /* --- orientation --- */
     /* Mapping MEASURED on the board on 2026-08-28, with the four postures:

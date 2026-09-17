@@ -3299,6 +3299,7 @@ static void housekeeping_task(void *arg)
         if (++hk_ticks % 125 == 0) {        /* 125 * 40 ms = 5 s */
             touch_keep_awake();
             power_watch();
+            aos_steps_tick();
         }
         if (hk_ticks % 5 == 0) {            /* 200 ms */
             pmu_irq_service();

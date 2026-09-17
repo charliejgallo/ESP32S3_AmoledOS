@@ -56,6 +56,8 @@ static const char blob_en__sistema_lang[] =
     "Esfera cambiada\tWatch face changed\n"
     "boca arriba\tface up\n"
     "boca abajo\tface down\n"
+    "de %u\tof %u\n"
+    "%.1f km\t%.1f km\n"
     "acel  %+.2f  %+.2f  %+.2f g\taccel  %+.2f  %+.2f  %+.2f g\n"
     "giro  %+.0f  %+.0f  %+.0f dps\tgyro  %+.0f  %+.0f  %+.0f dps\n"
     "pasos\tsteps\n"
@@ -1594,6 +1596,8 @@ static const char blob_de__sistema_lang[] =
     "Esfera cambiada\tZifferblatt gewechselt\n"
     "boca arriba\tnach oben\n"
     "boca abajo\tnach unten\n"
+    "de %u\tvon %u\n"
+    "%.1f km\t%.1f km\n"
     "acel  %+.2f  %+.2f  %+.2f g\tBeschl.  %+.2f  %+.2f  %+.2f g\n"
     "giro  %+.0f  %+.0f  %+.0f dps\tKreisel  %+.0f  %+.0f  %+.0f dps\n"
     "pasos\tSchritte\n"
@@ -3090,7 +3094,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 500, 24, files_en, 25 },
-    { "de", "Deutsch", 500, 24, files_de, 25 },
+    { "en", "English", 502, 24, files_en, 25 },
+    { "de", "Deutsch", 502, 24, files_de, 25 },
 };
 const int aos_lang_pack_count = 2;

@@ -1205,6 +1205,31 @@ void aos_hal_worker_sleep(uint32_t ms);
  * -------------------------------------------------------------------------- */
 bool aos_hal_display_blit(int x, int y, int w, int h, const void *rgb565_be);
 
+/* --------------------------------------------------------------------------
+ * Steps: today, the last seven days, the goal (aos_steps.c, both HALs)
+ *
+ * The raw counter (aos_hal_imu_steps) only grows since boot. This is the
+ * watch's view of it: today's steps kept across restarts, cut at midnight
+ * by the clock, seven days of history, and a goal. Written to NVS every
+ * five minutes and at every day change.
+ * -------------------------------------------------------------------------- */
+#define AOS_STEPS_DAYS 7
+
+typedef struct {
+    uint32_t today;
+    uint32_t goal;
+    uint32_t history[AOS_STEPS_DAYS];   /* [0] = yesterday ... [6] = a week ago */
+    bool     day_known;                 /* false until the clock was set once */
+} aos_steps_info_t;
+
+bool aos_hal_steps_get(aos_steps_info_t *out);
+void aos_hal_steps_set_goal(uint32_t goal);    /* 1000..50000, kept in NVS */
+void aos_hal_steps_reset_today(void);
+
+/* HAL-internal: the board's housekeeping and the simulator's loop call it
+ * every few seconds; it folds the raw counter in and watches the date. */
+void aos_steps_tick(void);
+
 #ifdef __cplusplus
 }
 
