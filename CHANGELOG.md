@@ -3,7 +3,7 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased — branch video, 2026-09-16
+## v0.3.13 — 2026-09-16
 
 - **Video**, a player of MJPEG AVIs from the card with sound, as a dynamic
   app (`apps/video/`, 14 KB, ABI 2). `tools/video_convert.sh` turns anything

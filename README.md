@@ -167,7 +167,7 @@ with no WiFi. Everything measured is in [docs/USB.md](docs/USB.md).
 ## Flash it without building
 
 The [latest release](https://github.com/charliejgallo/ESP32S3_AmoledOS/releases/latest)
-carries the firmware and the twenty-three dynamic apps already built, for the
+carries the firmware and the twenty-five dynamic apps already built, for the
 Waveshare ESP32-S3-Touch-AMOLED-1.8.
 
 ```bash
