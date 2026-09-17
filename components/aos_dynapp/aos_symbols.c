@@ -3,8 +3,8 @@
  *
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
- * Mas 94 funciones de libc/libm agregadas a mano.
- * Total: 2672 simbolos.
+ * Mas 117 funciones de libc/libm agregadas a mano.
+ * Total: 2702 simbolos.
  */
 
 #include <stddef.h>
@@ -16,18 +16,23 @@ extern int LODEPNG_VERSION_STRING;
 extern int __addsf3;
 extern int __divdi3;
 extern int __divsf3;
+extern int __errno;
 extern int __extendsfdf2;
 extern int __fixsfsi;
 extern int __fixunssfsi;
 extern int __floatsisf;
 extern int __floatunsisf;
+extern int __getreent;
 extern int __moddi3;
 extern int __mulsf3;
 extern int __subsf3;
 extern int __truncdfsf2;
 extern int __udivdi3;
 extern int __umoddi3;
+extern int _ctype_;
+extern int abort;
 extern int abs;
+extern int acosf;
 extern int aos_alarm_get;
 extern int aos_alarm_service_tick;
 extern int aos_alarm_set;
@@ -57,6 +62,7 @@ extern int aos_board_imu_gyro_enabled;
 extern int aos_board_imu_orientation;
 extern int aos_board_imu_poll;
 extern int aos_board_imu_read;
+extern int aos_board_imu_ring_get;
 extern int aos_board_imu_steps;
 extern int aos_board_imu_steps_reset;
 extern int aos_board_imu_wrist_raised;
@@ -269,6 +275,9 @@ extern int aos_hal_set_display_state_cb;
 extern int aos_hal_set_power_event_cb;
 extern int aos_hal_shutdown;
 extern int aos_hal_sleep;
+extern int aos_hal_steps_get;
+extern int aos_hal_steps_reset_today;
+extern int aos_hal_steps_set_goal;
 extern int aos_hal_time_is_valid;
 extern int aos_hal_time_now;
 extern int aos_hal_time_set;
@@ -350,6 +359,9 @@ extern int aos_pair_ui_suppress;
 extern int aos_pair_ui_tick;
 extern int aos_pair_ui_visible;
 extern int aos_rtc_start;
+extern int aos_step_detect_feed;
+extern int aos_step_detect_init;
+extern int aos_steps_tick;
 extern int aos_text_font_has;
 extern int aos_text_safe;
 extern int aos_theme_init;
@@ -436,6 +448,7 @@ extern int aos_watchface_select;
 extern int aos_watchface_set_aod;
 extern int aos_watchfaces_register_builtin;
 extern int aos_wifi_qr_text;
+extern int asinf;
 extern int atan2f;
 extern int atoi;
 extern int atol;
@@ -485,22 +498,30 @@ extern int axp2101_vbus_current_limit_set;
 extern int axp2101_vbus_voltage;
 extern int calloc;
 extern int ceilf;
+extern int clock;
 extern int closedir;
 extern int cosf;
 extern int exp2f;
 extern int expf;
 extern int fabsf;
 extern int fclose;
+extern int feof;
+extern int ferror;
 extern int fflush;
 extern int floorf;
 extern int fmodf;
 extern int fopen;
+extern int fputc;
+extern int fputs;
 extern int fread;
 extern int free;
+extern int freopen;
+extern int frexpf;
 extern int frogfs_decomp_raw;
 extern int fseek;
 extern int ftell;
 extern int fwrite;
+extern int getc;
 extern int getenv;
 extern int gmtime_r;
 extern int hypotf;
@@ -519,7 +540,9 @@ extern int jpeg_dec_parse_header;
 extern int jpeg_dec_process;
 extern int jpeg_free_align;
 extern int labs;
+extern int ldexpf;
 extern int load_kern;
+extern int localeconv;
 extern int localtime_r;
 extern int lodepng_add_itext;
 extern int lodepng_add_text;
@@ -600,6 +623,7 @@ extern int lodepng_zlib_decompress;
 extern int log10f;
 extern int log2f;
 extern int logf;
+extern int longjmp;
 extern int lv_anim_core_deinit;
 extern int lv_anim_core_init;
 extern int lv_anim_count_running;
@@ -2624,6 +2648,7 @@ extern int lvgl_port_task_notify;
 extern int lvgl_port_task_wake;
 extern int lvgl_port_unlock;
 extern int malloc;
+extern int memchr;
 extern int memcmp;
 extern int memcpy;
 extern int memmove;
@@ -2656,6 +2681,7 @@ extern int remove;
 extern int rename;
 extern int rewind;
 extern int roundf;
+extern int setjmp;
 extern int sinf;
 extern int snprintf;
 extern int sprintf;
@@ -2666,12 +2692,16 @@ extern int strcasecmp;
 extern int strcat;
 extern int strchr;
 extern int strcmp;
+extern int strcoll;
 extern int strcpy;
+extern int strerror;
 extern int strlen;
 extern int strncmp;
 extern int strncpy;
 extern int strnlen;
+extern int strpbrk;
 extern int strrchr;
+extern int strspn;
 extern int strstr;
 extern int strtod;
 extern int strtof;
@@ -2691,18 +2721,23 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(__addsf3),
     ESP_ELFSYM_EXPORT(__divdi3),
     ESP_ELFSYM_EXPORT(__divsf3),
+    ESP_ELFSYM_EXPORT(__errno),
     ESP_ELFSYM_EXPORT(__extendsfdf2),
     ESP_ELFSYM_EXPORT(__fixsfsi),
     ESP_ELFSYM_EXPORT(__fixunssfsi),
     ESP_ELFSYM_EXPORT(__floatsisf),
     ESP_ELFSYM_EXPORT(__floatunsisf),
+    ESP_ELFSYM_EXPORT(__getreent),
     ESP_ELFSYM_EXPORT(__moddi3),
     ESP_ELFSYM_EXPORT(__mulsf3),
     ESP_ELFSYM_EXPORT(__subsf3),
     ESP_ELFSYM_EXPORT(__truncdfsf2),
     ESP_ELFSYM_EXPORT(__udivdi3),
     ESP_ELFSYM_EXPORT(__umoddi3),
+    ESP_ELFSYM_EXPORT(_ctype_),
+    ESP_ELFSYM_EXPORT(abort),
     ESP_ELFSYM_EXPORT(abs),
+    ESP_ELFSYM_EXPORT(acosf),
     ESP_ELFSYM_EXPORT(aos_alarm_get),
     ESP_ELFSYM_EXPORT(aos_alarm_service_tick),
     ESP_ELFSYM_EXPORT(aos_alarm_set),
@@ -2732,6 +2767,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_board_imu_orientation),
     ESP_ELFSYM_EXPORT(aos_board_imu_poll),
     ESP_ELFSYM_EXPORT(aos_board_imu_read),
+    ESP_ELFSYM_EXPORT(aos_board_imu_ring_get),
     ESP_ELFSYM_EXPORT(aos_board_imu_steps),
     ESP_ELFSYM_EXPORT(aos_board_imu_steps_reset),
     ESP_ELFSYM_EXPORT(aos_board_imu_wrist_raised),
@@ -2944,6 +2980,9 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_set_power_event_cb),
     ESP_ELFSYM_EXPORT(aos_hal_shutdown),
     ESP_ELFSYM_EXPORT(aos_hal_sleep),
+    ESP_ELFSYM_EXPORT(aos_hal_steps_get),
+    ESP_ELFSYM_EXPORT(aos_hal_steps_reset_today),
+    ESP_ELFSYM_EXPORT(aos_hal_steps_set_goal),
     ESP_ELFSYM_EXPORT(aos_hal_time_is_valid),
     ESP_ELFSYM_EXPORT(aos_hal_time_now),
     ESP_ELFSYM_EXPORT(aos_hal_time_set),
@@ -3025,6 +3064,9 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_pair_ui_tick),
     ESP_ELFSYM_EXPORT(aos_pair_ui_visible),
     ESP_ELFSYM_EXPORT(aos_rtc_start),
+    ESP_ELFSYM_EXPORT(aos_step_detect_feed),
+    ESP_ELFSYM_EXPORT(aos_step_detect_init),
+    ESP_ELFSYM_EXPORT(aos_steps_tick),
     ESP_ELFSYM_EXPORT(aos_text_font_has),
     ESP_ELFSYM_EXPORT(aos_text_safe),
     ESP_ELFSYM_EXPORT(aos_theme_init),
@@ -3111,6 +3153,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_watchface_set_aod),
     ESP_ELFSYM_EXPORT(aos_watchfaces_register_builtin),
     ESP_ELFSYM_EXPORT(aos_wifi_qr_text),
+    ESP_ELFSYM_EXPORT(asinf),
     ESP_ELFSYM_EXPORT(atan2f),
     ESP_ELFSYM_EXPORT(atoi),
     ESP_ELFSYM_EXPORT(atol),
@@ -3160,22 +3203,30 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(axp2101_vbus_voltage),
     ESP_ELFSYM_EXPORT(calloc),
     ESP_ELFSYM_EXPORT(ceilf),
+    ESP_ELFSYM_EXPORT(clock),
     ESP_ELFSYM_EXPORT(closedir),
     ESP_ELFSYM_EXPORT(cosf),
     ESP_ELFSYM_EXPORT(exp2f),
     ESP_ELFSYM_EXPORT(expf),
     ESP_ELFSYM_EXPORT(fabsf),
     ESP_ELFSYM_EXPORT(fclose),
+    ESP_ELFSYM_EXPORT(feof),
+    ESP_ELFSYM_EXPORT(ferror),
     ESP_ELFSYM_EXPORT(fflush),
     ESP_ELFSYM_EXPORT(floorf),
     ESP_ELFSYM_EXPORT(fmodf),
     ESP_ELFSYM_EXPORT(fopen),
+    ESP_ELFSYM_EXPORT(fputc),
+    ESP_ELFSYM_EXPORT(fputs),
     ESP_ELFSYM_EXPORT(fread),
     ESP_ELFSYM_EXPORT(free),
+    ESP_ELFSYM_EXPORT(freopen),
+    ESP_ELFSYM_EXPORT(frexpf),
     ESP_ELFSYM_EXPORT(frogfs_decomp_raw),
     ESP_ELFSYM_EXPORT(fseek),
     ESP_ELFSYM_EXPORT(ftell),
     ESP_ELFSYM_EXPORT(fwrite),
+    ESP_ELFSYM_EXPORT(getc),
     ESP_ELFSYM_EXPORT(getenv),
     ESP_ELFSYM_EXPORT(gmtime_r),
     ESP_ELFSYM_EXPORT(hypotf),
@@ -3194,7 +3245,9 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(jpeg_dec_process),
     ESP_ELFSYM_EXPORT(jpeg_free_align),
     ESP_ELFSYM_EXPORT(labs),
+    ESP_ELFSYM_EXPORT(ldexpf),
     ESP_ELFSYM_EXPORT(load_kern),
+    ESP_ELFSYM_EXPORT(localeconv),
     ESP_ELFSYM_EXPORT(localtime_r),
     ESP_ELFSYM_EXPORT(lodepng_add_itext),
     ESP_ELFSYM_EXPORT(lodepng_add_text),
@@ -3275,6 +3328,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(log10f),
     ESP_ELFSYM_EXPORT(log2f),
     ESP_ELFSYM_EXPORT(logf),
+    ESP_ELFSYM_EXPORT(longjmp),
     ESP_ELFSYM_EXPORT(lv_anim_core_deinit),
     ESP_ELFSYM_EXPORT(lv_anim_core_init),
     ESP_ELFSYM_EXPORT(lv_anim_count_running),
@@ -5299,6 +5353,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(lvgl_port_task_wake),
     ESP_ELFSYM_EXPORT(lvgl_port_unlock),
     ESP_ELFSYM_EXPORT(malloc),
+    ESP_ELFSYM_EXPORT(memchr),
     ESP_ELFSYM_EXPORT(memcmp),
     ESP_ELFSYM_EXPORT(memcpy),
     ESP_ELFSYM_EXPORT(memmove),
@@ -5331,6 +5386,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(rename),
     ESP_ELFSYM_EXPORT(rewind),
     ESP_ELFSYM_EXPORT(roundf),
+    ESP_ELFSYM_EXPORT(setjmp),
     ESP_ELFSYM_EXPORT(sinf),
     ESP_ELFSYM_EXPORT(snprintf),
     ESP_ELFSYM_EXPORT(sprintf),
@@ -5341,12 +5397,16 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(strcat),
     ESP_ELFSYM_EXPORT(strchr),
     ESP_ELFSYM_EXPORT(strcmp),
+    ESP_ELFSYM_EXPORT(strcoll),
     ESP_ELFSYM_EXPORT(strcpy),
+    ESP_ELFSYM_EXPORT(strerror),
     ESP_ELFSYM_EXPORT(strlen),
     ESP_ELFSYM_EXPORT(strncmp),
     ESP_ELFSYM_EXPORT(strncpy),
     ESP_ELFSYM_EXPORT(strnlen),
+    ESP_ELFSYM_EXPORT(strpbrk),
     ESP_ELFSYM_EXPORT(strrchr),
+    ESP_ELFSYM_EXPORT(strspn),
     ESP_ELFSYM_EXPORT(strstr),
     ESP_ELFSYM_EXPORT(strtod),
     ESP_ELFSYM_EXPORT(strtof),

@@ -92,6 +92,32 @@ EXTRA_SYMBOLS = [
     # prints the accelerometer's three readings, and it will happen to the next
     # app that shows a number with a decimal point.
     "__extendsfdf2", "__truncdfsf2",
+    # --------------------------------------------------------------------
+    # What an interpreter needs (branch lua). Every one of these came out of
+    # build_apps.sh's own check on lua.so: the list is not a guess.
+    #
+    # setjmp/longjmp are the ones that cannot be worked around. Lua raises
+    # errors by longjmp-ing back to the pcall that is holding the fort, and on
+    # Xtensa that is not portable C: it has to spill the register windows,
+    # which only libc's routine knows how to do. They are also the reason the
+    # interpreter cannot be "just an app": these two are the firmware's to
+    # lend. The rest could have been written inside the .so -memchr and
+    # strspn are four lines each- but they are plain libc that was missing
+    # from the table anyway, and a copy inside every .so is a copy to keep.
+    #
+    # __errno and __getreent are newlib's per-task errno, dragged in by
+    # strtof and by anything that opens a file; _ctype_ is the table behind
+    # isalpha() and toupper(), which string.upper() uses. The three start
+    # with an underscore, so collect() would refuse them: EXTRA_SYMBOLS does
+    # not go through that filter, which is exactly why they can be here.
+    "setjmp", "longjmp",
+    "__errno", "__getreent", "_ctype_",
+    "abort", "clock", "localeconv", "strerror",
+    "memchr", "strpbrk", "strspn", "strcoll",
+    "acosf", "asinf", "frexpf", "ldexpf",
+    # stdio beyond what was already lent: lauxlib reads a script with
+    # freopen/getc/feof/ferror, and print() writes with fputs/fputc.
+    "feof", "ferror", "fputc", "fputs", "freopen", "getc",
 ]
 
 # Symbols that are never exported: internals of the compiler, of the linker or

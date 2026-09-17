@@ -55,6 +55,22 @@ file(GLOB AOS_FONT_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../componen
 # lugar de exportar el simbolo de entrada del .so.
 file(GLOB AOS_DYNAPP_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../apps/*/main/*.c)
 
+# El interprete de apps/lua vive un nivel mas abajo que ese glob, que no es
+# recursivo. Se compila como biblioteca aparte y no dentro del ejecutable
+# porque es codigo de terceros: no le caben nuestras -Wall -Wextra (Lua sale
+# con decenas de avisos que no vamos a arreglar) ni nos interesa releerlos en
+# cada build. En la placa no hace falta nada de esto: project_so() junta el
+# arbol entero con GLOB_RECURSE.
+file(GLOB AOS_LUA_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../apps/lua/main/lua/*.c)
+if(AOS_LUA_SRC)
+    add_library(aos_lua STATIC ${AOS_LUA_SRC})
+    # PUBLIC: lua_app.c y lua_init.c entran por el glob de arriba, o sea que
+    # los compila el ejecutable, y necesitan ver los headers y el LUA_32BITS.
+    target_include_directories(aos_lua PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../apps/lua/main/lua)
+    target_compile_definitions(aos_lua PUBLIC LUA_32BITS=1)
+    target_compile_options(aos_lua PRIVATE -w)
+endif()
+
 add_executable(amoledos_sim
     main.c
     hal_sim.c
@@ -80,5 +96,6 @@ target_include_directories(amoledos_sim PRIVATE
 target_compile_options(amoledos_sim PRIVATE -Wall -Wextra -Wno-unused-parameter)
 target_compile_definitions(amoledos_sim PRIVATE AOS_SIM_BUILTIN AOS_SIM)
 target_link_libraries(amoledos_sim PRIVATE lvgl ${SDL2_LIBRARIES} m
+    $<$<BOOL:${AOS_LUA_SRC}>:aos_lua>
     ${MBEDTLS_LIB} ${MBEDX509_LIB} ${MBEDCRYPTO_LIB})
 target_link_directories(amoledos_sim PRIVATE ${SDL2_LIBRARY_DIRS})
