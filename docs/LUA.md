@@ -57,7 +57,15 @@ Burbujas and Pixel Art reads like a mistake.
 
 And an **icon**: a `.aic` file next to the script with the same name
 (`cubo.lua` → `cubo.aic`) becomes its launcher icon, with no firmware and no
-reflashing. `docs/ICONS.md` has the format; `/sdcard/icons/lua.cubo.aic` works
+reflashing. You write it as a handful of shapes in a text file and assemble it
+with the tool — no toolchain involved:
+
+```bash
+python3 tools/aic.py asm cubo.aic.txt        # -> cubo.aic
+```
+
+`apps/lua/scripts/cubo.aic.txt` is the one in the screenshot, four lines long,
+and [ICONS.md](ICONS.md) has the format. `/sdcard/icons/lua.cubo.aic` works
 too and wins, because that is the firmware's own override. Without either, the
 script gets a play glyph and a colour picked from its name, so that fifteen
 scripts are not fifteen identical tiles.

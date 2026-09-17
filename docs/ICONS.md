@@ -120,7 +120,8 @@ static const uint8_t MOLE_ICON[] = {
 };
 ```
 
-`tools/aic.py` reads a blob back: `lint` (header, size cap, palette range,
+`tools/aic.py` reads a blob back — and, since 3.3, writes one: `asm` (the
+macros to the blob), `lint` (header, size cap, palette range,
 nesting, and **a warning on `ROT`**, because `ARCHITECTURE.md` measured that
 rotation costs a layer per frame and the launcher redraws every visible icon
 while scrolling - two of the 36 icons use it today; that stays allowed, and
@@ -128,6 +129,58 @@ flagged), `dump` (one line per op, written as the C macros), and `halves`
 (the pixel diff of section 7). It does not render: the pixels that matter
 are LVGL's, and the simulator produces those. A browser renderer of the
 same ten opcodes comes with the portal preview in F3.
+
+### 3.3 The same macros from a text file, with no toolchain
+
+Written in C, the blob is compiled with the app. That left a hole nobody
+noticed until the Lua interpreter arrived: from v0.3.8 the firmware has read
+`.aic` files from the card, and from v0.3.15 a `.lua` script is an app of the
+launcher — but **there was no way to make one of those files**. `aic_gen.py`
+derives the firmware's tables from the drawings and `aic.py` only read blobs
+back. Somebody with a script and no ESP-IDF could not give their app an icon.
+
+`aic.py asm` closes it. The input is the same macros the header documents:
+
+```
+$ cat cubo.aic.txt
+AIC_RECT(AIC_CENTER,  11, -11, 38, 38, 4, AIC_C_BG, 0),     /* far face  */
+AIC_BORDER(AIC_DIV(24), AIC_C_TEXT, 255),
+AIC_RECT(AIC_CENTER, -11,  11, 38, 38, 4, AIC_C_BG, 200),   /* near face */
+AIC_BORDER(AIC_DIV(24), AIC_C_TEXT, 255)
+
+$ python3 tools/aic.py asm cubo.aic.txt
+cubo.aic: 31 bytes, 2 shapes
+```
+
+`AIC_HEADER` and `AIC_END` are added if they are not there, the C wrapper and
+the comments are skipped — so a `.c` file with an icon in it is valid input as
+it stands — and the prefixes are optional, because `dump` prints without them:
+`AIC_C_TEXT` and `TEXT` are the same token, and so are `AIC_DIV(24)` and `-24`.
+
+**The two commands are inverses**, and that is a claim with a test behind it.
+`aic.py selftest` walks the tree, takes every `.aic` file and every icon
+written as C macros inside an app or in `aos_icon_tables.c`, dumps each one,
+assembles the dump, and compares the bytes:
+
+```
+$ python3 tools/aic.py selftest
+  ok   components/aos_ui/aos_icon_tables.c[0]  (57 bytes)
+  ...
+  ok   apps/burbujas/main/burbujas.c[0]  (88 bytes)
+49 blobs, 0 failing
+```
+
+Writing it turned up a real one. `aic.py` had the RECT radius as an unsigned
+byte, but `radius_px()` in `aos_icon.c` reads 255 as `LV_RADIUS_CIRCLE` and
+everything else back as `int8_t` — positive a percent, negative `size/-p`. So
+`dump` printed the `AIC_DIV(38)` of six icons as `218`: the right byte, the
+wrong reading, and a round trip that only closed by accident. Both sides say
+signed now.
+
+What the assembler does **not** do is render. The pixels that matter are
+LVGL's, and the simulator draws those; a blob that assembles is put straight
+through `parse()` before it reaches a file, so the reader is still the
+authority on what is valid.
 
 ## 4. Where the blob lives: two sources, one format
 
@@ -519,7 +572,7 @@ log, the launcher's list and its icons as before, internal RAM as before.
 - `sim/main.c` - `AOS_SIM_VIEW=icontest`, `AOS_SIM_SHOT`, and the bench
   writes `sim_fs/icons/demo.topos.aic`, the first tenant of the directory F3
   will scan.
-- `tools/aic.py` - `lint`, `dump`, `halves`.
+- `tools/aic.py` - `asm`, `lint`, `dump`, `halves`, `selftest`.
 
 - F2 added the registry (`aos_icon_set_ops`, `aos_icon_clear_ops`,
   `aos_icon_ops_for`) in `aos_icon.c`, the clear in

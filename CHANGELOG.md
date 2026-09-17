@@ -3,6 +3,23 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## On `main`, not yet released
+
+- **`tools/aic.py asm`**: the assembler for icons. The firmware has read
+  `.aic` files from the card since v0.3.8 and a Lua script has been a launcher
+  app since v0.3.15, but there was no way to *make* one of those files without
+  ESP-IDF — the icon had to be C macros compiled into a `.so`. It now takes
+  the same macros from a text file, so a `.c` with an icon in it is valid
+  input as it stands, and it accepts what `dump` prints as well.
+- **`aic.py selftest`** checks that the two are inverses: every `.aic` in the
+  tree and every icon written as C macros, dumped, assembled and compared byte
+  for byte. 49 blobs, 0 failing.
+- Writing it found a bug in `aic.py`: the RECT radius was read as unsigned,
+  but `radius_px()` in the firmware reads 255 as `LV_RADIUS_CIRCLE` and the
+  rest back as `int8_t`, so `dump` printed the `AIC_DIV(38)` of six icons as
+  `218`. Both sides say signed now.
+- `cubo.lua` gets an icon of its own (`apps/lua/scripts/cubo.aic.txt`).
+
 ## v0.3.15 — 2026-09-17
 
 - **Lua on the watch.** A Lua 5.4.8 interpreter as a dynamic app

@@ -1,0 +1,19 @@
+/* The icon of cubo.lua: a box drawn as two squares, the near one covering
+ * the far one. Assembled with
+ *
+ *     python3 tools/aic.py asm apps/lua/scripts/cubo.aic.txt
+ *
+ * No AIC_ROT: a rotated object costs LVGL a layer per frame and the launcher
+ * redraws every visible icon while it scrolls, so the diagonals a wireframe
+ * cube would want are paid for in the wrong place. Two offset squares read as
+ * a box at 66, 74 and 82 px, which is all three sizes this is ever drawn at.
+ *
+ * Percentages of the icon size, so one drawing serves them all. */
+
+AIC_RECT(AIC_CENTER,  11, -11, 38, 38, 4, AIC_C_BG, 0),     /* far face, empty */
+AIC_BORDER(AIC_DIV(24), AIC_C_TEXT, 255),
+
+AIC_RECT(AIC_CENTER, -11,  11, 38, 38, 4, AIC_C_BG, 200),   /* near face, opaque
+                                                             * enough to hide the
+                                                             * far one's edges  */
+AIC_BORDER(AIC_DIV(24), AIC_C_TEXT, 255)
