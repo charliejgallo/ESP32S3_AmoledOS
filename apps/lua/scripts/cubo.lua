@@ -77,7 +77,10 @@ function draw()
     local script_ms, screen_ms, frame_ms = aos.stats()
     aos.text(4, aos.H - 20, string.format("%d CUBOS  %d FPS  %d VERT/S",
              cubes, fps, vps), 0x9FA8DA, 1)
-    aos.text(4, aos.H - 10, string.format("GUION %d MS  PANTALLA %d MS  CUADRO %d MS",
+    -- The 5x7 font fits about 30 characters across 184 pixels at scale 1:
+    -- anything longer is simply cut, which is how the first version of this
+    -- line lost its last word.
+    aos.text(4, aos.H - 10, string.format("MS: GUION %d  PANT %d  TOTAL %d",
              script_ms, screen_ms, frame_ms), 0x6F7A99, 1)
 end
 
