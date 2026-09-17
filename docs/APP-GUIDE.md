@@ -47,6 +47,29 @@ apps/
       my_app.c
 ```
 
+### Before you write any of this: does it have to be C?
+
+Since v0.3.15 there is a Lua interpreter on the card, and a `.lua` file in
+`/sdcard/lua` is an app of the launcher like any other — its own name, its own
+icon, opened from the same grid. No toolchain, no symbol table, no reboot to
+install, and a mistake is a message with a line number instead of a watchdog
+reset.
+
+What you give up is reach: a script draws into a 184x224 buffer through about
+a dozen primitives and has no LVGL, no network and no files of its own. What
+you gain is the edit loop — the portal's `/lua` page saves and the watch
+reloads the running script by itself.
+
+The speed is usually not the reason to choose C. Measured on the board, the
+interpreter does some 1.9 M loop turns a second and a frame of the cube bench
+is 3 ms of script against 26 of pushing pixels at the panel. If your app is a
+small game or a visual, try it in Lua first; if it needs LVGL widgets, HTTP, a
+worker task or the microSD, it is a `.so`. [LUA.md](LUA.md) has the whole API.
+
+A module can also bring **several apps** (`AOS_APP_ENTRY_MANY`), which is how
+one `.so` turns every script on the card into a launcher entry; the contract
+and its two traps are in [APP-API.md](APP-API.md).
+
 ## 2. Start from the template
 
 ```bash

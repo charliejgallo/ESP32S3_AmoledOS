@@ -54,6 +54,42 @@ it defines the `.so`'s two exported functions; in the simulator (which compiles
 startup. **You design it on the Mac and copy it to the microSD without changing
 a line.**
 
+### More than one app in a module
+
+A `.so` may bring several apps instead of one. Use `AOS_APP_ENTRY_MANY` and
+answer two questions instead of filling one descriptor:
+
+```c
+static uint32_t my_count(void)                        { return n; }
+static bool     my_describe(aos_app_t *app, uint32_t index) { ... }
+
+AOS_APP_ENTRY_MANY(my_count, my_describe);
+```
+
+The loader asks the count once, reads one descriptor per app from a single
+`dlopen`, and registers them all. The ABI does not move for this: a module
+without it has exactly one app, as every one of them did before v0.3.15, and a
+module **with** it still loads on a firmware that has never heard of it,
+because the macro also defines the old `aos_app_init()` as index 0.
+
+Two things to get right, and the second one bit:
+
+- **The index is not the identity.** The loader writes down which app of the
+  module a slot is and asks for that index again when it reopens the module,
+  but by then the thing the apps are made of may have changed and the indices
+  moved. Decide what an app *is* from `self->desc.id` in `create()`, which the
+  runtime keeps. If the descriptors come from files, sort them, so the same
+  card gives the same answer twice.
+- **The descriptor's strings must outlive the call, one buffer per app.**
+  `aos_ui_register_app()` does a struct copy and keeps the *pointers*. On the
+  board the loader copies id and name into a slot of its own straight away, so
+  a single shared buffer looks fine; in the simulator it does not, and every
+  app ends up pointing at the last name written. The symptom is one line,
+  `duplicate app: <id>`, and the apps missing from the launcher.
+
+`apps/lua/main/lua_app.c` is the only user today: one app per `.lua` file on
+the card.
+
 ## The icon
 
 Three ways, in the order the launcher tries them:

@@ -2,7 +2,8 @@
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
 368x448 AMOLED you can hold in your hand. Seven watchfaces, twenty built-in
-apps, twenty-five more loaded from the microSD as shared objects, a web portal,
+apps, twenty-six more loaded from the microSD as shared objects — one of them a
+Lua interpreter, so a text file on the card is an app too — a web portal,
 iPhone notifications over BLE, and a desktop simulator that runs the same UI
 code so you can build the whole thing without the board.
 
@@ -98,7 +99,9 @@ are miserable to type on a 368 px screen: WiFi, the Home Assistant address and
 token, the weather location, which exchange rates to watch, which sensors to
 plot, and the whole remote-control profile. It also carries every switch of the
 Settings app, a live view of the screen with the controls to drive it from the
-browser, and the log tailed over wifi. See [docs/PORTAL.md](docs/PORTAL.md).
+browser, and the log tailed over wifi. Two of its pages are editors rather than
+forms: `/pixel` for the drawings and `/lua` for the scripts, both writing the
+same files the apps read. See [docs/PORTAL.md](docs/PORTAL.md).
 
 | Notification | Setup AP |
 |---|---|
@@ -106,8 +109,9 @@ browser, and the log tailed over wifi. See [docs/PORTAL.md](docs/PORTAL.md).
 
 ## The apps
 
-Forty-five of them, in two families that differ in where the code lives, not
-in what they are allowed to do.
+Forty-six of them, plus one for every Lua script on the card, in three
+families that differ in where the code lives — not in what they are allowed
+to do.
 
 ### Built into the firmware
 
@@ -126,7 +130,7 @@ Twenty ship inside the binary. They are the ones the watch cannot be without
 
 ### Loaded from the microSD
 
-Twenty-five more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
+Twenty-six more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
 `.so` files at startup. The same source builds into the simulator, so they are
 designed on a laptop and copied to the card without changing a line — and a new
 one needs no firmware rebuild. That includes its **launcher icon**: an app
@@ -148,6 +152,34 @@ app meant a reflash for that alone. See [docs/ICONS.md](docs/ICONS.md).
 | <img src="docs/img/app-maze.png" width="200"><br>**Laberinto** — a ball rolling through a generated maze, driven by tilting the board. | <img src="docs/img/app-cotiz.png" width="200"><br>**Cotizaciones** — exchange rates, configured from the portal. | <img src="docs/img/app-scanner.png" width="200"><br>**Escáner** — a WiFi and LAN survey: networks around you, hosts and open ports, written to the card as NDJSON. |
 | <img src="docs/img/app-flappy.png" width="200"><br>**Flappy** — one button, one bird, the usual pipes. | <img src="docs/img/app-simon.png" width="200"><br>**Simon** — the colour-and-sound memory game, each pad with its own tone. | <img src="docs/img/app-dice.png" width="200"><br>**Dados** — dice of any number of sides, rolled by shaking the watch. |
 | <img src="docs/img/app-pixel.png" width="200"><br>**Pixel Art** — 8x8 and 16x16 drawings with a 32-colour palette, frames that become a looping GIF, exported to the card as PNG and GIF. <img src="docs/img/pixel-kitten.gif" width="96"><br>The kitten is one of the samples it seeds on first run, and this GIF is the watch's own export. | <img src="docs/img/app-pixel-gallery.png" width="200"><br>Its gallery of eight canvases. The same files open in the portal's `/pixel` page, where they are drawn with a mouse and saved back; the watch reloads them on its own. | <img src="docs/img/app-hello.png" width="200"><br>**hello_app** — the 30-line template. It is what you copy to start one of your own; see [docs/APP-API.md](docs/APP-API.md). |
+
+### Written in Lua, on the watch
+
+One of those `.so` files is a **Lua 5.4 interpreter**, and with it a script is
+not code you compile but a file you drop on the card. Put `cubo.lua` in
+`/sdcard/lua`, open it, and it runs. Get it wrong and you get a message with
+a line number on a black screen — never a reboot, which is the whole point.
+
+| | | |
+|---|---|---|
+| <img src="docs/img/app-lua-cube.png" width="200"><br>**The bench** — a wireframe cube whose two rotations, perspective divide and twelve lines are all done in Lua, per vertex, per frame. Tap for another cube. | <img src="docs/img/app-lua-error.png" width="200"><br>A mistake is a message, with the file, the line and the name of the variable. The watch carries on: every call into Lua goes through `lua_pcall`, and a script that will not come back is cut by an instruction hook before the watchdog notices. | <img src="docs/img/app-lua-hello.png" width="200"><br>The whole of that one: `function draw()`, a circle and two lines of text. All four callbacks — `init`, `tick`, `draw`, `touch` — are optional. |
+| <img src="docs/img/app-lua-list.png" width="200"><br>The scripts on the card, listed by the Lua app. | <img src="docs/img/app-lua-launcher.png" width="200"><br>And each one is an entry in the launcher of its own, beside the apps written in C: a script names itself with `-- @name Cubo` and takes an icon from a `.aic` beside it. The module declares one app per script, which is a thing a `.so` could not do before v0.3.15. | |
+
+**It is not the interpreter that is slow.** Measured on the board: 200,000
+turns of a loop in 105 ms, about 1.9 M a second, with the code running from
+PSRAM through the MMU. A frame of the cube is 3 ms of script, 8 of upscaling
+and 26 of pushing 368x448 pixels at the panel — so the panel is the ceiling,
+and a script has some 30 ms a frame to spend before it becomes the slower
+half. That is around 57,000 VM instructions.
+
+And it costs **52 bytes of internal RAM**, the scarce kind, because Lua's heap
+is allocated straight out of PSRAM; with the default allocator the same state
+took 50 KB of it. The whole story, with the numbers and the two build flags
+without which none of this works, is in [docs/LUA.md](docs/LUA.md).
+
+The loop is short on purpose: the portal's `/lua` page is an editor with a
+console, and while a script is running the watch watches the file it came from
+and reloads it when it changes. You save in the browser and look at the watch.
 
 ## The USB port
 
@@ -251,6 +283,7 @@ network survey's report format.
 | [APP-API.md](docs/APP-API.md) | writing an app, and the things that will bite you |
 | [APP-GUIDE.md](docs/APP-GUIDE.md) | the long form: how the apps were actually written - workflow, the four drawing techniques with their costs, data from the internet, configuration from the portal, testing without the board, and every trap that bit |
 | [I18N.md](docs/I18N.md) | how translation works and why the key is the Spanish string |
+| [LUA.md](docs/LUA.md) | scripts on the watch: what a script is, everything it can reach, the rules the app enforces and why, and what a frame actually costs |
 | [ICONS.md](docs/ICONS.md) | icons as data: the AIC format, how a `.so` or a file on the card brings one, how the 36 hand-drawn ones became tables, and what it saved |
 | [POWER.md](docs/POWER.md) | the AXP2101, the rails, light sleep, and the measurements behind each switch |
 | [PORTAL.md](docs/PORTAL.md) | the web portal: pages, API, what it costs the board, and the dev server |
