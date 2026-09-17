@@ -201,6 +201,13 @@ works during playback too, now that the LVGL task is free.
   `spi_bus_lock_bg_exit`), with the failed queue attempts the only unusual
   thing going on. The blit now goes in strips of `AOS_DRAW_ROWS`, like the
   port's flush, and the app counts a failed blit as an error in its stats.
+- **The ring holds two laps at once at the end of the file**: the last
+  frames of one next to the first of the next. Picking the "oldest ready"
+  frame by index alone took frame 0 of the new lap, restarted the clock, and
+  then sat waiting for frame 142 of the old lap to come due, twelve seconds
+  later: one lap in two played with the sound and a frozen picture. Ready
+  frames are ordered by lap first, then index, and a slot from a new lap is
+  what restarts the clock.
 - **`lv_snapshot` does not see the panel.** The portal's capture, and the
   simulator's `AOS_SIM_SHOT`, take LVGL's own pixels; a frame blitted past
   LVGL is black in both. The pictures on the README are from the simulator,

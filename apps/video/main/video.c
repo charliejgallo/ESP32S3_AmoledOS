@@ -141,6 +141,7 @@ typedef struct {
     uint64_t  t_paused;
     uint32_t  last_pos_s;
     int32_t   shown;            /* index of the frame on screen, -1 before the first */
+    uint32_t  shown_lap;        /* its lap: a slot from the next lap restarts the clock */
     bool      leave;
 
     /* the worker's side */
@@ -591,6 +592,7 @@ static void play(vd_t *v, int index)
     v->skip_to   = 0;
     v->skip_lap  = 0;
     v->lap       = 0;
+    v->shown_lap = 0;
     v->skipped   = 0;
     v->errors    = 0;
     v->log_every = 0;
@@ -624,11 +626,20 @@ static void frame_cb(lv_timer_t *timer)
         return;
     }
 
-    /* The oldest ready frame, if any. */
+    /* The oldest ready frame, if any: by lap first, then by index. At the
+     * end of the file the ring holds the last frames of one lap next to the
+     * first of the next; picking by index alone took frame 0 of the new lap
+     * before 142 and 143 of the old one, restarted the clock, and then
+     * waited twelve seconds for 142's turn to come round: one lap in two
+     * played frozen (2026-09-16). */
     int idx = -1;
     for (int i = 0; i < VD_SLOTS; i++) {
-        if (v->slots[i].state == SLOT_READY &&
-            (idx < 0 || v->slots[i].index < v->slots[idx].index)) {
+        const vd_slot_t *c = &v->slots[i];
+        if (c->state != SLOT_READY) {
+            continue;
+        }
+        if (idx < 0 || c->lap < v->slots[idx].lap ||
+            (c->lap == v->slots[idx].lap && c->index < v->slots[idx].index)) {
             idx = i;
         }
     }
@@ -638,8 +649,11 @@ static void frame_cb(lv_timer_t *timer)
     __sync_synchronize();
     vd_slot_t *slot = &v->slots[idx];
 
-    if (slot->index < v->shown) {
+    if (slot->lap != v->shown_lap) {
         /* The worker went back to the start: so does everything else. */
+        aos_hal_log("video", "lap %u after frame %d, skipped %u",
+                    (unsigned)slot->lap, (int)v->shown, (unsigned)v->skipped);
+        v->shown_lap = slot->lap;
         restart_clock(v);
     }
     int64_t t = clock_ms(v);
