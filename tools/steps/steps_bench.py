@@ -15,7 +15,7 @@ def load(path):
     fw=[int(r['steps']) for r in rows]
     return t,mag,fw
 
-def detect(t, mag, tau_g=2.0, tau_lp=0.16, thr_min=0.04, thr_frac=0.35,
+def detect(t, mag, tau_g=2.0, tau_lp=0.16, thr_min=0.03, thr_frac=0.30,
            min_ms=330, max_ms=1500, need=4, trace=None):
     # defaults = the board's AOS_STEP_* (aos_step_detect.h); keep them equal
     """Steps in the signal. Time-based filters, so 10 Hz and 25 Hz behave alike.

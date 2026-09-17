@@ -34,7 +34,7 @@ acceleration. Time-based, because the poll runs at 25 Hz or 10 Hz.
 2. **The dynamic part**, magnitude minus gravity, is smoothed (0.16 s) so a
    stride is one hump. In a pocket the impact and the toe-off are two peaks
    a hundred milliseconds apart; the old fixed threshold counted both.
-3. **A step** is a hump higher than `max(0.04 g, 0.35 × the recent hump
+3. **A step** is a hump higher than `max(0.03 g, 0.30 × the recent hump
    height)`, at least 330 ms after the previous. The adaptive part is what
    serves both places: a pocket signal is 0.25 g of swing and a wrist one
    0.13 g, and a threshold that fits one misses or doubles the other.
@@ -55,9 +55,16 @@ grid). The two agree to the step.
 
 | recording | steps | old detector | new detector |
 | --- | --- | --- | --- |
-| `walk_pocket_100.csv`, watch in a trouser pocket | 100, counted | 124 | 98 |
-| `walk_wrist_approx100.csv`, on the wrist, brisk | about 100 | 108 | 102 |
+| `walk_pocket_100.csv`, watch in a trouser pocket | 100, counted | 124 | 105 |
+| `walk_wrist_100.csv`, on the wrist, arm loose | 100, counted | — (the new one ran live: 87 before this tuning) | 98 |
+| `walk_wrist_approx100.csv`, on the wrist, brisk, first recording | about 100 | 108 | 110 |
 | `quiet_pocket_desk.csv`, a minute at the desk, then picked up and pocketed | 0 | 0 | 0 |
+
+The wrist walk was recorded with the first tuning running on the board
+(0.04 g, 35 %): it counted 87 live, and the bench replaying the recording
+said 87 too, which is the proof that the desktop bench is the board. The
+second tuning came from adding that walk to the grid: within 5 % on both
+places, still 0 at the desk.
 
 Outside the walks both recordings are flat: nothing is counted at the desk
 or while the watch is being handled. The grid over `tau_lp`, `thr_min`,

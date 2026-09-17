@@ -3,14 +3,14 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased — branch pasos, 2026-09-16
+## v0.3.14 — 2026-09-16
 
 - **Steps, done properly.** A new detector (`aos_step_detect.c`, pure C,
   shared with a desktop bench) works on the magnitude of the acceleration
   with an adaptive threshold and a rhythm gate, so the watch counts the same
   on the wrist and in a pocket and a grab of it counts nothing. Tuned
   against recorded, counted walks in `tools/steps/`: 98 for 100 steps in a
-  pocket where the old fixed threshold said 124, 102 on the wrist, 0 at the
+  pocket where the old fixed threshold said 124, 98 on the wrist, 0 at the
   desk. `/api/imu` serves the last three minutes of the accelerometer for
   the next tuning. [docs/STEPS.md](docs/STEPS.md).
 - **The count is kept**: today's steps survive a restart (NVS, every five

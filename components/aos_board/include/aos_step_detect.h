@@ -24,8 +24,8 @@
 
 #define AOS_STEP_TAU_G_MS    2000
 #define AOS_STEP_TAU_LP_MS   160
-#define AOS_STEP_THR_MIN     0.04f
-#define AOS_STEP_THR_FRAC    0.35f
+#define AOS_STEP_THR_MIN     0.03f
+#define AOS_STEP_THR_FRAC    0.30f
 #define AOS_STEP_MIN_MS      330
 #define AOS_STEP_MAX_MS      1500
 #define AOS_STEP_NEED        4
