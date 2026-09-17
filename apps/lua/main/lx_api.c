@@ -37,54 +37,94 @@ static lx_ctx_t *ctx_of(lua_State *L)
     return (lx_ctx_t *)lua_touserdata(L, lua_upvalueindex(1));
 }
 
+/* What this call is about to change, so the app knows which rows to push.
+ *
+ * Deliberately the bounding box and not the pixels: a diagonal line marks the
+ * rectangle it crosses, which is more than it dirties. Being generous here is
+ * free -a row pushed twice looks the same- and being mean is a bug you see as
+ * a stripe of the previous frame left on the panel. The clip is not consulted
+ * either, for the same reason: lx_dirty_add clamps to the buffer anyway. */
+static void mark(lx_ctx_t *c, int x, int y, int w, int h)
+{
+    if (c->dirty) {
+        lx_dirty_add(c->dirty, x, y, w, h);
+    }
+}
+
+static void mark_all(lx_ctx_t *c)
+{
+    if (c->dirty) {
+        lx_dirty_all(c->dirty);
+    }
+}
+
 /* --------------------------------------------------------------------------
  * Drawing
  * -------------------------------------------------------------------------- */
 
 static int l_clear(lua_State *L)
 {
-    lx_fill(ctx_of(L)->buf, arg_color(L, 1));
+    lx_ctx_t *c = ctx_of(L);
+    lx_fill(c->buf, arg_color(L, 1));
+    mark_all(c);
     return 0;
 }
 
 static int l_pixel(lua_State *L)
 {
-    lx_px(ctx_of(L)->buf, arg_coord(L, 1), arg_coord(L, 2), arg_color(L, 3));
+    lx_ctx_t *c = ctx_of(L);
+    int x = arg_coord(L, 1), y = arg_coord(L, 2);
+    lx_px(c->buf, x, y, arg_color(L, 3));
+    mark(c, x, y, 1, 1);
     return 0;
 }
 
 static int l_rect(lua_State *L)
 {
-    lx_rect(ctx_of(L)->buf, arg_coord(L, 1), arg_coord(L, 2),
-            arg_coord(L, 3), arg_coord(L, 4), arg_color(L, 5));
+    lx_ctx_t *c = ctx_of(L);
+    int x = arg_coord(L, 1), y = arg_coord(L, 2);
+    int w = arg_coord(L, 3), h = arg_coord(L, 4);
+    lx_rect(c->buf, x, y, w, h, arg_color(L, 5));
+    mark(c, x, y, w, h);
     return 0;
 }
 
 static int l_frame(lua_State *L)
 {
-    lx_frame(ctx_of(L)->buf, arg_coord(L, 1), arg_coord(L, 2),
-             arg_coord(L, 3), arg_coord(L, 4), arg_color(L, 5));
+    lx_ctx_t *c = ctx_of(L);
+    int x = arg_coord(L, 1), y = arg_coord(L, 2);
+    int w = arg_coord(L, 3), h = arg_coord(L, 4);
+    lx_frame(c->buf, x, y, w, h, arg_color(L, 5));
+    mark(c, x, y, w, h);
     return 0;
 }
 
 static int l_line(lua_State *L)
 {
-    lx_line(ctx_of(L)->buf, arg_coord(L, 1), arg_coord(L, 2),
-            arg_coord(L, 3), arg_coord(L, 4), arg_color(L, 5));
+    lx_ctx_t *c = ctx_of(L);
+    int x0 = arg_coord(L, 1), y0 = arg_coord(L, 2);
+    int x1 = arg_coord(L, 3), y1 = arg_coord(L, 4);
+    lx_line(c->buf, x0, y0, x1, y1, arg_color(L, 5));
+    mark(c, x0 < x1 ? x0 : x1, y0 < y1 ? y0 : y1,
+         (x0 < x1 ? x1 - x0 : x0 - x1) + 1, (y0 < y1 ? y1 - y0 : y0 - y1) + 1);
     return 0;
 }
 
 static int l_disc(lua_State *L)
 {
-    lx_disc(ctx_of(L)->buf, arg_coord(L, 1), arg_coord(L, 2),
-            arg_coord(L, 3), arg_color(L, 4));
+    lx_ctx_t *c = ctx_of(L);
+    int cx = arg_coord(L, 1), cy = arg_coord(L, 2), r = arg_coord(L, 3);
+    lx_disc(c->buf, cx, cy, r, arg_color(L, 4));
+    mark(c, cx - r, cy - r, 2 * r + 1, 2 * r + 1);
     return 0;
 }
 
 static int l_ring(lua_State *L)
 {
-    lx_ring(ctx_of(L)->buf, arg_coord(L, 1), arg_coord(L, 2),
-            arg_coord(L, 3), arg_color(L, 4));
+    lx_ctx_t *c = ctx_of(L);
+    int cx = arg_coord(L, 1), cy = arg_coord(L, 2), r = arg_coord(L, 3);
+    lx_ring(c->buf, cx, cy, r, arg_color(L, 4));
+    mark(c, cx - r, cy - r, 2 * r + 1, 2 * r + 1);
     return 0;
 }
 
@@ -96,8 +136,12 @@ static int l_text(lua_State *L)
     int scale = (int)luaL_optinteger(L, 5, 1);
     if (scale < 1) scale = 1;
     if (scale > 8) scale = 8;
-    lx_text(ctx_of(L)->buf, arg_coord(L, 1), arg_coord(L, 2),
-            luaL_checkstring(L, 3), arg_color(L, 4), scale);
+    lx_ctx_t *c = ctx_of(L);
+    int x = arg_coord(L, 1), y = arg_coord(L, 2);
+    size_t n = 0;
+    const char *str = luaL_checklstring(L, 3, &n);
+    lx_text(c->buf, x, y, str, arg_color(L, 4), scale);
+    mark(c, x, y, (int)n * LX_CH_ADV * scale, LX_CH_H * scale);
     return 0;
 }
 
@@ -106,8 +150,11 @@ static int l_shade(lua_State *L)
     lua_Integer f = luaL_checkinteger(L, 5);
     if (f >  16) f =  16;
     if (f < -16) f = -16;
-    lx_shade(ctx_of(L)->buf, arg_coord(L, 1), arg_coord(L, 2),
-             arg_coord(L, 3), arg_coord(L, 4), (int)f);
+    lx_ctx_t *c = ctx_of(L);
+    int x = arg_coord(L, 1), y = arg_coord(L, 2);
+    int w = arg_coord(L, 3), h = arg_coord(L, 4);
+    lx_shade(c->buf, x, y, w, h, (int)f);
+    mark(c, x, y, w, h);
     return 0;
 }
 
@@ -135,16 +182,22 @@ static int l_ms(lua_State *L)
     return 1;
 }
 
-/* script_ms, screen_ms, frame_ms of the LAST frame. One millisecond of
- * resolution, which is lv_tick's: a script that draws four lines reads 0 and
- * that is the right answer. */
+/* script_ms, screen_ms, frame_ms and the rows pushed, of the LAST frame. One
+ * millisecond of resolution, which is lv_tick's: a script that draws four
+ * lines reads 0 and that is the right answer.
+ *
+ * The fourth is out of aos.H, and it is the one a script can do something
+ * about: it is what the frame cost, in the only currency the panel charges
+ * in. Every primitive marks the box it touched, so a script that stops
+ * clearing sees this fall and the milliseconds fall with it. */
 static int l_stats(lua_State *L)
 {
     lx_ctx_t *c = ctx_of(L);
     lua_pushinteger(L, c->ms_script);
     lua_pushinteger(L, c->ms_screen);
     lua_pushinteger(L, c->ms_frame);
-    return 3;
+    lua_pushinteger(L, c->rows);
+    return 4;
 }
 
 static int l_beep(lua_State *L)

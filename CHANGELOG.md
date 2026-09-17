@@ -5,6 +5,24 @@ Newest first. Versions are git tags; what is above the latest tag is on
 
 ## On `main`, not yet released
 
+- **Dirty rows for the Lua blit.** The frame buffer survives between frames
+  and the app now pushes only the rows the script touched: every primitive
+  marks the box it draws into, the boxes are merged into full-width bands, and
+  only those go to the panel. A script does not call anything for this. A
+  script that calls `aos.clear()` marks everything and costs exactly what it
+  did before (`cubo.lua`: 224/224 rows, 40 ms, 25 fps); one that erases its own
+  old positions pays for those (`pelota.lua`: 67/224, 20 ms, 50 fps — which is
+  the frame timer's period, so it is really 12 ms of work). `aos.stats()`
+  returns the row count as a fourth value, and `pelota.lua` is the example.
+- **`AOS_MAX_APPS` 48 → 80, and it says so when it fills up.** Since a module
+  can declare several apps, twenty built-in plus a full card came to exactly
+  48 and the forty-ninth — a Lua script — was refused by
+  `aos_ui_register_app()` **with no message at all**, which looked from the
+  outside like an app that had failed to build. The same shape of bug as
+  `MAX_DYNAPPS` at 16 with 17 apps and `MAX_SIM_APPS` at 12 with 14. Both the
+  launcher and the loader log the refusal now, and the Lua app logs how many
+  scripts the boot scan found.
+
 - `hola.lua` gets an icon too (`apps/lua/scripts/hola.aic.txt`): the cyan disc
   the script itself draws, with two rings around it for the pulse. It is the
   first blob written with the assembler that uses `AIC_RING` and a literal

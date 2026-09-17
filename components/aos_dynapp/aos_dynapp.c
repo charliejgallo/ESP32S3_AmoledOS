@@ -664,6 +664,10 @@ static bool register_stub(const char *filename)
             aos_hal_unlock();
         }
         if (!ok) {
+            /* aos_ui_register_app says why in its own log line; this one
+             * names the file, which is what tells you which .so to look at. */
+            ESP_LOGE(TAG, "%s[%u] -> %s was refused by the launcher",
+                     filename, (unsigned)i, slot->id);
             slot->in_use = false;
             s_count--;
             continue;

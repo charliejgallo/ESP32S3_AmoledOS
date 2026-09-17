@@ -163,7 +163,7 @@ a line number on a black screen — never a reboot, which is the whole point.
 | | | |
 |---|---|---|
 | <img src="docs/img/app-lua-cube.png" width="200"><br>**The bench** — a wireframe cube whose two rotations, perspective divide and twelve lines are all done in Lua, per vertex, per frame. Tap for another cube. | <img src="docs/img/app-lua-error.png" width="200"><br>A mistake is a message, with the file, the line and the name of the variable. The watch carries on: every call into Lua goes through `lua_pcall`, and a script that will not come back is cut by an instruction hook before the watchdog notices. | <img src="docs/img/app-lua-hello.png" width="200"><br>The whole of that one: `function draw()`, a circle and two lines of text. All four callbacks — `init`, `tick`, `draw`, `touch` — are optional. |
-| <img src="docs/img/app-lua-list.png" width="200"><br>The scripts on the card, listed by the Lua app. | <img src="docs/img/app-lua-launcher.png" width="200"><br>And each one is an entry in the launcher of its own, beside the apps written in C: a script names itself with `-- @name Cubo` and takes an icon from a `.aic` beside it — four lines of shapes assembled with `tools/aic.py asm`, no toolchain involved. The module declares one app per script, which is a thing a `.so` could not do before v0.3.15. | |
+| <img src="docs/img/app-lua-list.png" width="200"><br>The scripts on the card, listed by the Lua app. | <img src="docs/img/app-lua-launcher.png" width="200"><br>And each one is an entry in the launcher of its own, beside the apps written in C: a script names itself with `-- @name Cubo` and takes an icon from a `.aic` beside it — four lines of shapes assembled with `tools/aic.py asm`, no toolchain involved. The module declares one app per script, which is a thing a `.so` could not do before v0.3.15. | <img src="docs/img/app-lua-balls.png" width="200"><br>**Pelotas** — the other way of drawing: nothing is cleared, each ball erases its own old position, and the app notices and pushes only the rows that changed. 67 of 224, and the frame goes from 40 ms to 20. |
 
 **It is not the interpreter that is slow.** Measured on the board: 200,000
 turns of a loop in 105 ms, about 1.9 M a second, with the code running from
@@ -171,6 +171,12 @@ PSRAM through the MMU. A frame of the cube is 3 ms of script, 8 of upscaling
 and 26 of pushing 368x448 pixels at the panel — so the panel is the ceiling,
 and a script has some 30 ms a frame to spend before it becomes the slower
 half. That is around 57,000 VM instructions.
+
+And it only pays for what it moves: the app pushes **only the rows the script
+touched**, which it works out on its own from the boxes the primitives mark.
+The cube clears every frame, so it pushes all 224 rows and costs what it
+always did; the bouncing balls erase their own old positions and push 67,
+which takes the frame from 40 ms to 20.
 
 And it costs **52 bytes of internal RAM**, the scarce kind, because Lua's heap
 is allocated straight out of PSRAM; with the default allocator the same state

@@ -11,7 +11,19 @@
 extern "C" {
 #endif
 
-#define AOS_MAX_APPS    48
+/* Slots in the launcher's table, built-in and dynamic together.
+ *
+ * It was 48, which was also MAX_DYNAPPS, and that is how it bit: a module can
+ * declare several apps since v0.3.15, the twenty built-in ones plus the
+ * dynamic apps of a full card came to exactly 48, and the forty-ninth -a Lua
+ * script- was refused with no message at all. The same shape of bug as
+ * MAX_DYNAPPS at 16 with 17 apps, and MAX_SIM_APPS at 12 with 14. So: above
+ * what a full card can produce (20 built-in + MAX_DYNAPPS), and
+ * aos_ui_register_app now SAYS SO when it fills up.
+ *
+ * The table is in PSRAM (aos_ui.c), so a slot is about 100 bytes of the
+ * plentiful kind. */
+#define AOS_MAX_APPS    80
 
 /* Starts the runtime on LVGL's active screen. Registers the built-in apps and
  * shows the watchface. Call with the LVGL lock held. */

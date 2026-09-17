@@ -94,6 +94,8 @@ typedef struct {
     lv_obj_t  *hud;             /* the frame's cost, an LVGL label on top  */
     uint32_t   hud_at;          /* when it was last written                */
     uint16_t   ms_push;         /* of ms_screen, what the panel took       */
+    uint16_t   rows;            /* of LX_H, how many were pushed           */
+    lx_dirty_t dirty;           /* what the script touched this frame      */
 
     uint16_t  *small;           /* LX_W x LX_H, what the script draws on  */
     uint16_t  *big;             /* 368x448, what LVGL shows               */
@@ -139,10 +141,10 @@ typedef struct {
  * push alone is 16.5 ms.
  */
 #ifndef AOS_SIM
-static void expand_be(const uint16_t *src, uint16_t *dst)
+static void expand_be(const uint16_t *src, uint16_t *dst, int from, int to)
 {
     const int dw = LX_W * LX_SCALE;
-    for (int y = 0; y < LX_H; y++) {
+    for (int y = from; y < to; y++) {
         uint16_t       *row = dst + (size_t)y * LX_SCALE * dw;
         const uint16_t *s   = src + (size_t)y * LX_W;
         /* One 32-bit store per source pixel instead of two 16-bit ones: at
@@ -162,6 +164,85 @@ static void expand_be(const uint16_t *src, uint16_t *dst)
     }
 }
 #endif
+
+/* The dirty rectangles, reduced to bands of rows.
+ *
+ * aos_hal_display_blit() takes a PACKED w*h buffer, and a sub-rectangle of a
+ * 368-wide frame is not packed: its rows sit 368 pixels apart. A full-width
+ * band is, so it goes out straight from 'big' with no staging copy and no
+ * extra memory.
+ *
+ * What that costs is width: a ball in the middle of the screen pushes its
+ * whole rows, 368 pixels wide instead of 40. What it saves is everything
+ * else, and the cost of a frame is bytes over SPI - the rows nothing touched
+ * are not sent at all. Arbitrary rectangles would need a staging buffer and a
+ * copy per rectangle; the number in docs/LUA.md is what says whether that is
+ * ever worth writing.
+ *
+ * Returns how many bands, with their row ranges in the script's coordinates.
+ */
+#define LUA_MAX_BANDS   LX_MAX_DIRTY
+
+static int bands_of(const lx_dirty_t *d, int16_t *y0, int16_t *y1)
+{
+    if (d->all) {
+        y0[0] = 0;
+        y1[0] = LX_H;
+        return 1;
+    }
+    if (d->n == 0) {
+        return 0;
+    }
+
+    int n = 0;
+    for (int i = 0; i < d->n; i++) {
+        y0[n] = d->r[i].y0;
+        y1[n] = d->r[i].y1;
+        n++;
+    }
+    /* Insertion sort by the top edge: n is at most LX_MAX_DIRTY, which is 18,
+     * and this runs once a frame. */
+    for (int i = 1; i < n; i++) {
+        int16_t a = y0[i], b = y1[i];
+        int j = i - 1;
+        while (j >= 0 && y0[j] > a) {
+            y0[j + 1] = y0[j];
+            y1[j + 1] = y1[j];
+            j--;
+        }
+        y0[j + 1] = a;
+        y1[j + 1] = b;
+    }
+    /* Merge what overlaps or touches: two bands a row apart are cheaper as
+     * one push than as two windows. */
+    int out = 0;
+    for (int i = 1; i < n; i++) {
+        if (y0[i] <= y1[out]) {
+            if (y1[i] > y1[out]) {
+                y1[out] = y1[i];
+            }
+        } else {
+            out++;
+            y0[out] = y0[i];
+            y1[out] = y1[i];
+        }
+    }
+    out++;
+
+    /* Above three quarters of the screen, one push beats several: each band
+     * is a window the panel has to be told about, and the rows saved no
+     * longer pay for the telling. */
+    int rows = 0;
+    for (int i = 0; i < out; i++) {
+        rows += y1[i] - y0[i];
+    }
+    if (rows * 4 > LX_H * 3) {
+        y0[0] = 0;
+        y1[0] = LX_H;
+        return 1;
+    }
+    return out;
+}
 
 /* ==========================================================================
  * The script's side
@@ -297,19 +378,51 @@ static void frame_cb(lv_timer_t *t)
      * are timed together. The flush itself happens after this returns, inside
      * LVGL: what is measured here is the part we can move. */
     uint32_t t_screen = lv_tick_get();
+    int16_t y0[LUA_MAX_BANDS], y1[LUA_MAX_BANDS];
+    int bands = bands_of(&ctx->dirty, y0, y1);
+    ctx->rows = 0;
+    for (int b = 0; b < bands; b++) {
+        ctx->rows += y1[b] - y0[b];
+    }
+    ctx->api.rows = ctx->rows;
+
 #ifdef AOS_SIM
-    lx_rect_t all = { 0, 0, LX_W, LX_H };
-    lx_expand(ctx->small, ctx->big, &all);
-    lv_obj_invalidate(ctx->surface);
+    for (int b = 0; b < bands; b++) {
+        lx_rect_t r = { 0, y0[b], LX_W, y1[b] };
+        lx_expand(ctx->small, ctx->big, &r);
+    }
+    if (bands) {
+        lv_obj_invalidate(ctx->surface);
+    }
 #else
     lv_area_t a;
     lv_obj_get_coords(ctx->surface, &a);
-    expand_be(ctx->small, ctx->big);
-    uint32_t t_push = lv_tick_get();
-    aos_hal_display_blit(a.x1, a.y1, LX_W * LX_SCALE, LX_H * LX_SCALE, ctx->big);
-    ctx->ms_push = (uint16_t)lv_tick_elaps(t_push);
+    uint32_t push = 0;
+    for (int b = 0; b < bands; b++) {
+        expand_be(ctx->small, ctx->big, y0[b], y1[b]);
+        /* A band is full width, so its rows ARE contiguous in 'big' and the
+         * pointer into it is what the blit wants: no staging buffer. */
+        const uint16_t *rows = ctx->big +
+            (size_t)y0[b] * LX_SCALE * LX_W * LX_SCALE;
+        uint32_t t_push = lv_tick_get();
+        aos_hal_display_blit(a.x1, a.y1 + y0[b] * LX_SCALE,
+                             LX_W * LX_SCALE, (y1[b] - y0[b]) * LX_SCALE, rows);
+        push += lv_tick_elaps(t_push);
+    }
+    ctx->ms_push = (uint16_t)push;
 #endif
     ctx->api.ms_screen = (uint16_t)lv_tick_elaps(t_screen);
+
+    /* Reset AFTER the push, not before the script draws.
+     *
+     * Before, it threw away what init() had marked -the whole screen, from
+     * its aos.clear()- so the first frame pushed only the balls and the rest
+     * of the frame buffer was whatever malloc had left there. On the board it
+     * does not show, because the panel only ever gets what is pushed; in the
+     * simulator, where the same buffer is an LVGL canvas, it came out as
+     * bands of garbage. This way a mark made by a touch between two frames
+     * survives into the next one as well. */
+    lx_dirty_reset(&ctx->dirty);
 
     /* The cost of the frame, as a label and not as pixels in the buffer,
      * because what the blit pushed is invisible to /api/captura and to the
@@ -320,9 +433,10 @@ static void frame_cb(lv_timer_t *t)
      * itself. LVGL draws it AFTER the blit, which is why it survives. */
     if (ctx->hud && lv_tick_elaps(ctx->hud_at) > 500) {
         ctx->hud_at = lv_tick_get();
-        lv_label_set_text_fmt(ctx->hud, "%d = %d+%d+%d  %d fps",
+        lv_label_set_text_fmt(ctx->hud, "%d = %d+%d+%d  %d/%d  %d fps",
                               ctx->api.ms_frame, ctx->api.ms_script,
                               ctx->api.ms_screen - ctx->ms_push, ctx->ms_push,
+                              ctx->rows, LX_H,
                               ctx->api.ms_frame ? 1000 / ctx->api.ms_frame : 0);
     }
 }
@@ -494,7 +608,8 @@ static void run_script(lua_ctx_t *ctx, const char *name)
 
     memset(ctx->small, 0, (size_t)LX_W * LX_H * 2);
     lx_buf_init(&ctx->buf, ctx->small, LX_W, LX_H);
-    ctx->api.buf = &ctx->buf;
+    ctx->api.buf   = &ctx->buf;
+    ctx->api.dirty = &ctx->dirty;
     ctx->api.t0  = lv_tick_get();
 
 #ifdef AOS_SIM
@@ -539,6 +654,7 @@ static void run_script(lua_ctx_t *ctx, const char *name)
         lua_pop(ctx->L, 1);
     }
 
+    lx_dirty_all(&ctx->dirty);      /* the first frame pushes everything */
     write_state(ctx, NULL);         /* it loaded: the console goes quiet */
     ctx->last_frame = lv_tick_get();
     ctx->timer = lv_timer_create(frame_cb, LUA_FRAME_MS, ctx);
@@ -818,6 +934,13 @@ static void app_scan(void)
     }
     closedir(d);
     qsort(s_apps_names, (size_t)s_apps_count, sizeof(s_apps_names[0]), by_name);
+
+    /* Said out loud because the launcher is built once, at boot: a script
+     * copied to the card afterwards is in the list inside this app straight
+     * away and in the launcher only after a restart, and without this line
+     * there is no way to tell that from a script the scan refused. */
+    aos_hal_log("lua", "%s: %d script%s for the launcher",
+                dir, s_apps_count, s_apps_count == 1 ? "" : "s");
 }
 
 /* The name shown in the launcher. A script may give itself one with a comment

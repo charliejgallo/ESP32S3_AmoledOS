@@ -324,7 +324,16 @@ static void sort_apps(void)
 
 bool aos_ui_register_app(const aos_app_t *app)
 {
-    if (!app || !app->desc.id || s_app_count >= AOS_MAX_APPS) {
+    if (!app || !app->desc.id) {
+        return false;
+    }
+    if (s_app_count >= AOS_MAX_APPS) {
+        /* Saying so, because the silence is the bug. An app refused here
+         * simply does not appear in the launcher, and from the other side
+         * that looks like an app that failed to build. */
+        aos_hal_log("ui", "%s does not fit: the launcher holds %d apps and "
+                          "they are all taken. Raise AOS_MAX_APPS.",
+                    app->desc.id, AOS_MAX_APPS);
         return false;
     }
     if (app_index(app->desc.id) >= 0) {

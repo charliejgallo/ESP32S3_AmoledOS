@@ -24,6 +24,13 @@
 
 typedef struct {
     lx_buf_t *buf;              /* where the script draws        */
+
+    /* What the script touched this frame, in its own coordinates. Every
+     * primitive marks its own bounding box, so a script gets this for
+     * nothing: it does not call anything and does not know it exists, and
+     * the app pushes only those rows at the panel. A script that clears
+     * every frame marks everything, which is what used to happen always. */
+    lx_dirty_t *dirty;
     int16_t   touch_x;
     int16_t   touch_y;
     bool      touch_down;
@@ -37,6 +44,7 @@ typedef struct {
     uint16_t  ms_script;
     uint16_t  ms_screen;
     uint16_t  ms_frame;
+    uint16_t  rows;             /* of LX_H, how many went to the panel */
 } lx_ctx_t;
 
 /* Creates the global table 'aos' bound to this context. The context lives in

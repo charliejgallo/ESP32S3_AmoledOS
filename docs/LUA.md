@@ -102,7 +102,7 @@ all there.
 | `aos.touch()` | `x, y, down` — where the finger is, now |
 | `aos.ms()` | milliseconds since the script started |
 | `aos.beep(hz, ms)` | |
-| `aos.stats()` | `script_ms, screen_ms, frame_ms` of the last frame |
+| `aos.stats()` | `script_ms, screen_ms, frame_ms, rows` of the last frame |
 
 Colours are `0xRRGGBB`, which is readable in a script; the buffer's RGB565 is
 not the script's problem.
@@ -152,11 +152,61 @@ frame. Tap to add another cube.
 | 16 | 128 | 13 ms | 8 ms | 26 ms | 50 ms | 20 |
 | 24 | 192 | 19 ms | 8 ms | 26 ms | 55 ms | 18 |
 
-**The screen costs about 34 ms whatever the script does**, and 26 of those are
-the panel: the frame is pushed with `aos_hal_display_blit()`, the same way the
-Video app pushes its frames, because a full-screen canvas through LVGL costs
-about 95 ms. Going through LVGL instead measured 83 ms a frame — 12 fps
-against 25.
+**For a script that clears, the screen costs about 34 ms whatever else it
+does**, and 26 of those are the panel: the frame is pushed with
+`aos_hal_display_blit()`, the same way the Video app pushes its frames,
+because a full-screen canvas through LVGL costs about 95 ms. Going through
+LVGL instead measured 83 ms a frame — 12 fps against 25.
+
+### Not clearing is the other half
+
+The frame buffer survives between frames, and the app pushes **only the rows
+that changed**. It works out which ones by itself: every primitive marks the
+box it touched, the boxes are merged into bands of rows, and only those go to
+the panel. A script does not call anything and does not know it is happening.
+
+`aos.clear()` marks everything, so a script that clears every frame pays what
+it always did — that is `cubo.lua`, and nothing about it changed. A script
+that instead erases its own old positions pays for those:
+
+| | rows | script | upscale | push | frame | fps |
+|---|---|---|---|---|---|---|
+| `cubo.lua`, clears every frame | 224/224 | 3 ms | 8 ms | 27 ms | 40 ms | 25 |
+| `pelota.lua`, erases four balls | 67/224 | 1 ms | 2 ms | 9 ms | **20 ms** | **50** |
+
+Both measured on the board. The 20 ms is the frame timer's own period, so the
+second one is really 12 ms of work and could go faster if the timer let it.
+
+The bands are **full width**. `aos_hal_display_blit()` takes a packed buffer,
+and a sub-rectangle of a 368-wide frame is not packed — its rows sit 368
+pixels apart — so a band goes out straight from the frame buffer with no
+staging copy and no extra memory. What that costs is width: a ball in the
+middle pushes its whole rows, 368 pixels wide instead of 40. What it saves is
+every row nothing touched, and since the cost is bytes over SPI, that is most
+of it.
+
+The pattern, then:
+
+```lua
+function init()
+    aos.clear(0x05050C)          -- the fixed world, once
+    aos.text(6, 8, "PELOTAS", 0x3E4A63, 1)
+end
+
+function tick(dt)
+    aos.disc(old_x, old_y, r + 1, 0x05050C)   -- erase where it was
+    ...move...
+end
+
+function draw()
+    aos.disc(x, y, r, 0x00E5FF)               -- draw where it is
+end
+```
+
+Its limit is that erasing this way needs a flat colour underneath: over a
+drawn background you would be painting a hole. `pelota.lua` keeps its title
+above the field for exactly that reason. A background buffer to restore from
+is the obvious next step and is not written yet.
 
 So **the interpreter is not the ceiling, the panel is**. At 20 fps a script
 has some 30 ms a frame before it becomes the slower half, and 30 ms is around
