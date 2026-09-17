@@ -200,7 +200,7 @@ with no WiFi. Everything measured is in [docs/USB.md](docs/USB.md).
 ## Flash it without building
 
 The [latest release](https://github.com/charliejgallo/ESP32S3_AmoledOS/releases/latest)
-carries the firmware and the twenty-five dynamic apps already built, for the
+carries the firmware and the twenty-six dynamic apps already built, for the
 Waveshare ESP32-S3-Touch-AMOLED-1.8.
 
 ```bash
@@ -209,6 +209,9 @@ esptool --chip esp32s3 -p <PORT> -b 460800 write_flash 0x0 amoledos-full.bin
 
 # 2. the apps: unzip onto the microSD, in a folder called apps/
 unzip apps.zip -d /Volumes/<sd>/apps/
+
+# 3. the example Lua scripts, in a folder called lua/ (optional)
+unzip lua-scripts.zip -d /Volumes/<sd>/lua/
 ```
 
 > `amoledos-full.bin` is a **factory image**: it spans the flash from 0x0, so it
