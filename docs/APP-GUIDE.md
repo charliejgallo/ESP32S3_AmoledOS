@@ -47,6 +47,29 @@ apps/
       my_app.c
 ```
 
+### Before you write any of this: does it have to be C?
+
+Since v0.3.15 there is a Lua interpreter on the card, and a `.lua` file in
+`/sdcard/lua` is an app of the launcher like any other — its own name, its own
+icon, opened from the same grid. No toolchain, no symbol table, no reboot to
+install, and a mistake is a message with a line number instead of a watchdog
+reset.
+
+What you give up is reach: a script draws into a 184x224 buffer through about
+a dozen primitives and has no LVGL, no network and no files of its own. What
+you gain is the edit loop — the portal's `/lua` page saves and the watch
+reloads the running script by itself.
+
+The speed is usually not the reason to choose C. Measured on the board, the
+interpreter does some 1.9 M loop turns a second and a frame of the cube bench
+is 3 ms of script against 26 of pushing pixels at the panel. If your app is a
+small game or a visual, try it in Lua first; if it needs LVGL widgets, HTTP, a
+worker task or the microSD, it is a `.so`. [LUA.md](LUA.md) has the whole API.
+
+A module can also bring **several apps** (`AOS_APP_ENTRY_MANY`), which is how
+one `.so` turns every script on the card into a launcher entry; the contract
+and its two traps are in [APP-API.md](APP-API.md).
+
 ## 2. Start from the template
 
 ```bash
@@ -718,7 +741,12 @@ anywhere between y = 24 and y = 410 (x 16..352); between y = 56 and 390 the
 precision is the calibration's, outside it a finger against the rim lands
 exactly on the edge row. Put nothing you must be able to tap - the back
 button above all - beyond that, and use the bottom strip for text that is
-only read (a score, a status line). In the simulator the mouse reaches
+only read (a score, a status line) - but keep that text away from the two
+ends, because the corner takes its bite there too: a status line drawn ten
+pixels above the bottom edge lost about two characters at each end on the
+board and was perfect in the simulator (the Lua bench, whose last word was
+missing in a photograph of the watch). Twelve rows further up and ten pixels
+in from each side clears it. In the simulator the mouse reaches
 everywhere, so this is invisible there; `tools/audit_layout.sh` flags any
 clickable that ends beyond the limit. And at the **top** the problem is the
 glass: 38 px corner radius plus bezel eat ~10 px each side of the first rows

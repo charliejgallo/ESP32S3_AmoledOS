@@ -3,6 +3,45 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.3.15 — 2026-09-17
+
+- **Lua on the watch.** A Lua 5.4.8 interpreter as a dynamic app
+  (`apps/lua/`, 148 KB): a `.lua` file in `/sdcard/lua` runs when you open it,
+  with no toolchain, no symbol table and no reboot to install it. A mistake is
+  a message with the file, the line and the name of the variable — never a
+  reset. [docs/LUA.md](docs/LUA.md).
+- **A script is an app.** `aos_app.h` gains two OPTIONAL entry points,
+  `aos_app_count()` and `aos_app_init_at()`, with the macro
+  `AOS_APP_ENTRY_MANY`: a module can declare several apps and the loader
+  registers them all from one `dlopen`. The Lua module declares one per
+  script, so each `.lua` is a launcher entry with its own name (`-- @name`)
+  and its own icon (an `.aic` beside it). The ABI does not move — the 26
+  existing `.so` load untouched — and a multi-app module still works on a
+  firmware that predates this. `MAX_DYNAPPS` 32 → 48.
+- **The `/lua` page** in the portal: the scripts on the card, an editor, and a
+  console with the running script and its error. While a script runs the app
+  watches the file it came from and reloads it when it changes, so saving in
+  the browser is the whole step.
+- **What it costs, measured on the board.** 1.9 M loop turns a second with the
+  code running from PSRAM, and **52 bytes** of internal RAM for a state whose
+  heap is 77 KB, because `lua_Alloc` allocates out of PSRAM; with the default
+  allocator the same state took 50 KB of the scarce kind. A frame of the cube
+  bench is 3 ms of script, 8 of upscaling and 26 of pushing pixels: the panel
+  is the ceiling, not the interpreter.
+- **Two flags without which none of it works**, both with the measurement in
+  the CMakeLists: `LUA_32BITS` (the S3 has no double-precision FPU, and
+  without it 45 symbols were missing) and `LUAI_MAXCCALLS=40` (the factory
+  guard of 200 asks for ~21 KB of C stack and the LVGL task has 16 — measured,
+  66 levels of nested parentheses survived and 68 panicked the board).
+- Symbol table 2672 → 2705, the new ones being `setjmp`/`longjmp` — which are
+  the reason an interpreter cannot be "just an app" — the `heap_caps_*`
+  allocator and a handful of libc that was missing anyway.
+- `aos.js` gains `data-t-html` for translated strings that carry markup: the
+  `<code>` tags in several help panels came out as literal text in English and
+  German, which `/pato` had been doing since it existed.
+- APP-GUIDE: the bottom strip of the screen loses about ten pixels at each end
+  to the corner radius, the same bite already written down for the top.
+
 ## v0.3.14 — 2026-09-16
 
 - **Steps, done properly.** A new detector (`aos_step_detect.c`, pure C,

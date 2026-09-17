@@ -43,6 +43,8 @@ extern const uint8_t pixel_html_start[]  asm("_binary_pixel_html_start");
 extern const uint8_t pixel_html_end[]    asm("_binary_pixel_html_end");
 extern const uint8_t pato_html_start[]   asm("_binary_pato_html_start");
 extern const uint8_t pato_html_end[]     asm("_binary_pato_html_end");
+extern const uint8_t lua_html_start[]    asm("_binary_lua_html_start");
+extern const uint8_t lua_html_end[]      asm("_binary_lua_html_end");
 extern const uint8_t iconos_html_start[] asm("_binary_iconos_html_start");
 extern const uint8_t iconos_html_end[]   asm("_binary_iconos_html_end");
 extern const uint8_t cotiz_html_start[]  asm("_binary_cotiz_html_start");
@@ -161,6 +163,18 @@ static const char *resolve_dir(const char *dir)
             return NULL;
         }
         snprintf(path, sizeof(path), "%s/pato", root);
+    } else if (strcmp(dir, "lua") == 0) {
+        /* The Lua scripts (.lua), on the card only. Same arrangement as
+         * /pato and /pixel: /api/list, /api/download, /api/upload and
+         * /api/delete with dir=lua are the whole editor, and the firmware
+         * never learns what is inside a script. It answered as "sd/lua"
+         * before this branch existed, through the explorer; the name of its
+         * own is what lets the page and the app agree on one spelling. */
+        const char *root = aos_hal_path_sd_root();
+        if (!root) {
+            return NULL;
+        }
+        snprintf(path, sizeof(path), "%s/lua", root);
     } else if (strcmp(dir, "sd") == 0 || strncmp(dir, "sd/", 3) == 0 ||
                strcmp(dir, "usb") == 0 || strncmp(dir, "usb/", 4) == 0) {
         /* The explorer: any folder of the card, or of the pendrive in host
@@ -575,6 +589,11 @@ static esp_err_t upload_handler(httpd_req_t *req)
     /* Same for /pato: the first script saved from the browser finds no folder
      * if the app has not been opened on the watch yet. */
     if (strstr(dir_path, "/pato") != NULL) {
+        mkdir(dir_path, 0777);
+    }
+    /* Same for /lua: a script written in the browser before the app has ever
+     * been opened on the watch. */
+    if (strstr(dir_path, "/lua") != NULL) {
         mkdir(dir_path, 0777);
     }
     /* And /icons: the first icon dropped from /iconos creates the folder. */
@@ -1603,6 +1622,17 @@ static esp_err_t pixel_page_handler(httpd_req_t *req)
 
 /* /pato: same idea as /pixel. The page is the whole editor of the Pato goma
  * scripts (.pato files, dir=pato); the firmware only stores the bytes. */
+/* /lua: the same idea again. The page is the editor of the Lua scripts
+ * (dir=lua) and the console where their errors land; what runs them is the
+ * app on the watch, and neither this handler nor any other knows a single
+ * thing about Lua. */
+static esp_err_t lua_page_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html");
+    return httpd_resp_send(req, (const char *)lua_html_start,
+                           lua_html_end - lua_html_start - 1);
+}
+
 static esp_err_t pato_page_handler(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "text/html; charset=utf-8");
@@ -2837,6 +2867,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/clima",   .method = HTTP_POST, .handler = clima_set_handler },
         { .uri = "/pixel",       .method = HTTP_GET,  .handler = pixel_page_handler },
         { .uri = "/pato",        .method = HTTP_GET,  .handler = pato_page_handler },
+        { .uri = "/lua",         .method = HTTP_GET,  .handler = lua_page_handler },
         { .uri = "/iconos",      .method = HTTP_GET,  .handler = iconos_page_handler },
         { .uri = "/api/icons",   .method = HTTP_GET,  .handler = icons_handler },
         { .uri = "/cotiz",       .method = HTTP_GET,  .handler = cotiz_page_handler },

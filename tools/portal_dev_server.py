@@ -38,6 +38,7 @@ CLIMA_PAGE  = os.path.join(ROOT, "components", "aos_web", "clima.html")
 COTIZ_PAGE  = os.path.join(ROOT, "components", "aos_web", "cotiz.html")
 PIXEL_PAGE  = os.path.join(ROOT, "components", "aos_web", "pixel.html")
 SENSO_PAGE  = os.path.join(ROOT, "components", "aos_web", "sensores.html")
+LUA_PAGE    = os.path.join(ROOT, "components", "aos_web", "lua.html")
 CSS_FILE    = os.path.join(ROOT, "components", "aos_web", "aos.css")
 JS_FILE     = os.path.join(ROOT, "components", "aos_web", "aos.js")
 
@@ -47,7 +48,7 @@ JS_FILE     = os.path.join(ROOT, "components", "aos_web", "aos.js")
 AP_SSID_AUTO = "AmoledOS-5IM"
 AP_PASS_FABRICA = "amoledos"
 AP_ALFABETO = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-DIRS = ("apps", "photos", "music", "recordings", "redes", "pixel")
+DIRS = ("apps", "photos", "music", "recordings", "redes", "pixel", "lua")
 
 CONTENT_TYPES = {
     ".wav": "audio/wav", ".mp3": "audio/mpeg",
@@ -302,6 +303,13 @@ class Handler(BaseHTTPRequestHandler):
 
         elif url.path == "/sensores":
             with open(SENSO_PAGE, "rb") as page:
+                self._send(200, page.read(), "text/html; charset=utf-8")
+
+        # /lua writes into the SAME folder the simulator reads, so the page in
+        # the browser and the simulator beside it behave as the page and the
+        # watch do: save here and the app picks the script up.
+        elif url.path == "/lua":
+            with open(LUA_PAGE, "rb") as page:
                 self._send(200, page.read(), "text/html; charset=utf-8")
 
         # The two shared ones. Deliberately no caching here: in development you
