@@ -125,6 +125,36 @@ One consequence to know about: what the blit pushes is invisible to
 the top right of a running script is an LVGL label the app draws after the
 blit, which is why it does show up in a capture.
 
+## The `/lua` page
+
+The portal has an editor, which is what makes the loop short. It lists the
+scripts on the card, opens one, saves it back, and below the text it shows a
+console with what the watch is doing:
+
+    on the watch: cubo.lua
+    running, no errors
+
+or, when something broke,
+
+    on the watch: hola.lua
+    hola.lua:8: attempt to index a nil value (global 'LETRERO')
+
+**Saving is the whole step.** While a script is running, the app watches the
+file it came from and reloads it when it changes — so you save in the browser
+and look at the watch. No backing out, no tapping again. It is checked once a
+second; FAT keeps the time to the nearest two seconds, so the size counts too,
+and a save that changes neither the length nor the second is missed. Saving
+again picks it up.
+
+The console is a file, not an endpoint: the app writes `_estado.txt` into the
+same folder, with the running script on the first line and its error on the
+rest, and the page reads it with the same `/api/download` that serves the
+scripts. The firmware never learns what a Lua error looks like — the same
+arrangement as the `.pato` scripts and the `.pix` drawings.
+
+`Ctrl`/`Cmd`+`S` saves, because that is the key one presses without thinking
+when the file lives on another machine.
+
 ## Writing one
 
 The simulator runs the same interpreter and the same scripts, and there the

@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Lua</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  .lista { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+  .fila { background: var(--card); border-radius: 12px; padding: 12px 14px;
+          display: flex; align-items: center; gap: 12px; }
+  .fila b { font-weight: 500; flex: 1; font-family: ui-monospace, Menlo, monospace; }
+  .fila span.meta { color: var(--dim); font-size: 13px; }
+  .fila button { padding: 8px 12px; font-size: 13.5px; border-radius: 9px; }
+  .fila.corriendo { outline: 1px solid var(--accent); }
+  .vacio { color: var(--dim); font-size: 14px; margin-top: 10px; }
+
+  #editor .cab { display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+                 margin-bottom: 14px; }
+  #editor .cab input { flex: 1 1 200px; padding: 10px 12px;
+                       font-family: ui-monospace, Menlo, monospace; }
+  #editor .cab #estado { color: var(--dim); font-size: 13px; flex-basis: 100%; }
+  #editor .cab #estado.bien { color: var(--green); }
+  #editor .cab #estado.mal  { color: var(--red); }
+
+  .cuerpo { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+  /* El editor se queda con el doble de lo que sobra: el codigo se lee en
+     lineas largas y la ayuda es una columna de pares. */
+  .principal { flex: 2 1 420px; min-width: 300px; }
+  .ayuda { flex: 1 1 250px; min-width: 230px; background: var(--card); border-radius: 12px;
+           padding: 14px 16px; font-size: 13px; color: var(--dim); }
+  .ayuda h3 { margin: 0 0 8px; font-size: 12px; color: var(--dim); font-weight: 600;
+              text-transform: uppercase; letter-spacing: .05em; }
+  .ayuda h3 + dl { margin-bottom: 14px; }
+  .ayuda code { color: var(--text); font-family: ui-monospace, Menlo, monospace; }
+  .ayuda dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; }
+  .ayuda dt { color: var(--accent); font-family: ui-monospace, Menlo, monospace; white-space: nowrap; }
+  .ayuda dd { margin: 0; }
+
+  #texto { width: 100%; min-height: 420px; box-sizing: border-box; padding: 12px 14px;
+           font-family: ui-monospace, Menlo, monospace; font-size: 14px; line-height: 1.5;
+           background: var(--card); color: var(--text); border: 1px solid var(--line);
+           border-radius: 12px; resize: vertical; tab-size: 4; }
+
+  /* La consola: lo que el reloj dice del guion que esta corriendo. */
+  .consola { margin-top: 14px; background: #14100f; border: 1px solid var(--line);
+             border-radius: 12px; padding: 12px 14px; font-family: ui-monospace, Menlo, monospace;
+             font-size: 13px; line-height: 1.5; min-height: 46px; white-space: pre-wrap;
+             word-break: break-word; color: var(--dim); }
+  .consola.mal { color: var(--red); border-color: #4a2626; background: #1a0f0f; }
+  .consola.bien { color: var(--green); }
+  .consola .cual { color: var(--dim); font-size: 12px; display: block; margin-bottom: 4px; }
+
+  .acciones { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .acciones .borrar { background: #3a2626; color: var(--red); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Lua</h1></div>
+  <p class="sub" data-t="bajada">Guiones que el reloj corre sin compilar nada. Se guardan en
+     la tarjeta y la app los lista; si el que estás editando es el que está corriendo, el
+     reloj lo vuelve a cargar solo al guardar.</p>
+
+  <nav class="paginas"></nav>
+
+  <!-- ================= LISTA ================= -->
+  <section id="pantalla-lista">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <h2 data-t="h_guiones" style="flex:1">Guiones</h2>
+      <button class="sec" id="abrir-reloj" data-t="btn_abrir">Abrir la app en el reloj</button>
+      <button id="nuevo" data-t="btn_nuevo">Nuevo guión</button>
+    </div>
+    <div class="lista" id="lista"></div>
+    <p class="vacio" id="vacio" data-t="sin_guiones" hidden>Todavía no hay guiones.
+       Creá el primero con "Nuevo guión".</p>
+    <div class="consola" id="consola-lista"></div>
+  </section>
+
+  <!-- ================= EDITOR ================= -->
+  <section id="editor" hidden>
+    <div class="cab">
+      <button class="sec" id="volver">← <span data-t="btn_volver">Guiones</span></button>
+      <input id="nombre" data-t-ph="ph_nombre" placeholder="nombre.lua" maxlength="40">
+      <div id="estado"></div>
+    </div>
+
+    <div class="cuerpo">
+      <div class="principal">
+        <textarea id="texto" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+        <div class="consola" id="consola"></div>
+        <div class="acciones">
+          <button id="guardar" data-t="btn_guardar">Guardar en el reloj</button>
+          <button class="sec" id="correr" data-t="btn_correr">Abrir la app en el reloj</button>
+          <button class="borrar" id="borrar" data-t="btn_borrar">Borrar del reloj</button>
+        </div>
+      </div>
+
+      <aside class="ayuda">
+        <h3 data-t="h_cb">Funciones</h3>
+        <dl>
+          <dt>init()</dt><dd data-t="cb_init">una vez, antes del primer cuadro</dd>
+          <dt>tick(dt)</dt><dd data-t="cb_tick">cada cuadro; dt en milisegundos</dd>
+          <dt>draw()</dt><dd data-t="cb_draw">cada cuadro, después de tick</dd>
+          <dt>touch(x,y,ev)</dt><dd data-t="cb_touch">ev es "down", "move" o "up"</dd>
+        </dl>
+        <h3 data-t="h_aos">La tabla aos</h3>
+        <dl>
+          <dt>aos.W, aos.H</dt><dd>184, 224</dd>
+          <dt>clear(c)</dt><dd data-t="f_clear">llena todo</dd>
+          <dt>pixel(x,y,c)</dt><dd>&nbsp;</dd>
+          <dt>rect(x,y,w,h,c)</dt><dd data-t="f_rect">relleno</dd>
+          <dt>frame(x,y,w,h,c)</dt><dd data-t="f_frame">contorno</dd>
+          <dt>line(x0,y0,x1,y1,c)</dt><dd>&nbsp;</dd>
+          <dt>disc(cx,cy,r,c)</dt><dd data-t="f_disc">relleno</dd>
+          <dt>ring(cx,cy,r,c)</dt><dd data-t="f_ring">contorno</dd>
+          <dt>text(x,y,s,c[,esc])</dt><dd data-t="f_text">5x7, mayúsculas y dígitos</dd>
+          <dt>shade(x,y,w,h,f)</dt><dd data-t="f_shade">oscurece o aclara, en dieciseisavos</dd>
+          <dt>touch()</dt><dd data-t="f_touch">x, y, apoyado</dd>
+          <dt>ms()</dt><dd data-t="f_ms">desde que arrancó el guión</dd>
+          <dt>beep(hz,ms)</dt><dd>&nbsp;</dd>
+          <dt>stats()</dt><dd data-t="f_stats">guión, pantalla y cuadro, en ms</dd>
+        </dl>
+        <p data-t-html="ay_color">Los colores son <code>0xRRGGBB</code>. Están <code>string</code>,
+           <code>table</code>, <code>math</code>, <code>utf8</code> y <code>coroutine</code>;
+           no están <code>io</code>, <code>os</code>, <code>package</code> ni <code>debug</code>.</p>
+      </aside>
+    </div>
+  </section>
+
+  <p class="pie" data-t="pie">Los .lua viven en /lua de la tarjeta. El reloj vigila el archivo
+     del guión que está corriendo y lo recarga cuando cambia, así que guardar acá alcanza.
+     Un error no reinicia nada: sale en la pantalla del reloj y acá abajo, con su número de línea.</p>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+/* El firmware no sabe nada de Lua: guarda y devuelve bytes por /api/upload y
+   /api/download con dir=lua, igual que con los .pato y los .pix. La consola
+   lee _estado.txt, que escribe la app del reloj: primera linea el guion que
+   corre, el resto su error si lo hubo. */
+const DIR = "lua";
+const ESTADO = "_estado.txt";
+const $ = aos.$;
+
+const PLANTILLA =
+  "-- " + "nombre del guion\n" +
+  "--\n" +
+  "-- Las cuatro funciones son opcionales. Lo que sobreviva entre cuadros va\n" +
+  "-- aca afuera, como local.\n" +
+  "\n" +
+  "local n = 0\n" +
+  "\n" +
+  "function draw()\n" +
+  "    n = n + 1\n" +
+  "    aos.clear(0x001018)\n" +
+  "    aos.disc(aos.W // 2, aos.H // 2, 30, 0x00E5FF)\n" +
+  "    aos.text(10, 10, \"HOLA\", 0xFFFFFF, 2)\n" +
+  "end\n" +
+  "\n" +
+  "function touch(x, y, ev)\n" +
+  "    if ev == \"down\" then aos.beep(1200, 25) end\n" +
+  "end\n";
+
+const TR = {
+  en: {
+    titulo: "Lua",
+    bajada: "Scripts the watch runs with nothing to compile. They live on the card and the app " +
+            "lists them; if the one you are editing is the one running, the watch reloads it by " +
+            "itself when you save.",
+    h_guiones: "Scripts", btn_nuevo: "New script", btn_abrir: "Open the app on the watch",
+    sin_guiones: "No scripts yet. Make the first one with “New script”.",
+    btn_volver: "Scripts", ph_nombre: "name.lua",
+    btn_guardar: "Save to the watch", btn_correr: "Open the app on the watch",
+    btn_borrar: "Delete from the watch",
+    h_cb: "Functions", h_aos: "The aos table",
+    cb_init: "once, before the first frame", cb_tick: "every frame; dt in milliseconds",
+    cb_draw: "every frame, after tick", cb_touch: "ev is \"down\", \"move\" or \"up\"",
+    f_clear: "fills everything", f_rect: "filled", f_frame: "outline",
+    f_disc: "filled", f_ring: "outline", f_text: "5x7, upper case and digits",
+    f_shade: "darkens or lightens, in sixteenths", f_touch: "x, y, down",
+    f_ms: "since the script started", f_stats: "script, screen and frame, in ms",
+    ay_color: "Colours are <code>0xRRGGBB</code>. You have <code>string</code>, <code>table</code>, " +
+              "<code>math</code>, <code>utf8</code> and <code>coroutine</code>; there is no " +
+              "<code>io</code>, <code>os</code>, <code>package</code> or <code>debug</code>.",
+    pie: "The .lua files live in /lua on the card. The watch watches the file the running script " +
+         "came from and reloads it when it changes, so saving here is the whole step. An error " +
+         "reboots nothing: it comes out on the watch and down here, with its line number.",
+    guardando: "Saving...", guardado: "Saved to the watch", guardado_vivo: "Saved — the watch is reloading it",
+    err_guardar: "Could not save", borrado: "Deleted", err_placa: "No answer from the watch",
+    err_leer: "Could not read the script", conf_borrar: "Delete this script from the watch?",
+    falta_nombre: "Give the script a name", ya_existe: "There is already a script with that name",
+    corriendo: "running", con_nada: "The watch has not run a script yet.",
+    con_ok: "running, no errors", con_cual: "on the watch:", btn_editar: "Edit"
+  },
+  de: {
+    titulo: "Lua",
+    bajada: "Skripte, die die Uhr ausführt, ohne dass etwas kompiliert wird. Sie liegen auf der " +
+            "Karte und die App listet sie; wenn das bearbeitete gerade läuft, lädt die Uhr es beim " +
+            "Speichern von selbst neu.",
+    h_guiones: "Skripte", btn_nuevo: "Neues Skript", btn_abrir: "App auf der Uhr öffnen",
+    sin_guiones: "Noch keine Skripte. Erstelle das erste mit „Neues Skript“.",
+    btn_volver: "Skripte", ph_nombre: "name.lua",
+    btn_guardar: "Auf der Uhr speichern", btn_correr: "App auf der Uhr öffnen",
+    btn_borrar: "Von der Uhr löschen",
+    h_cb: "Funktionen", h_aos: "Die Tabelle aos",
+    cb_init: "einmal, vor dem ersten Bild", cb_tick: "jedes Bild; dt in Millisekunden",
+    cb_draw: "jedes Bild, nach tick", cb_touch: "ev ist \"down\", \"move\" oder \"up\"",
+    f_clear: "füllt alles", f_rect: "gefüllt", f_frame: "Umriss",
+    f_disc: "gefüllt", f_ring: "Umriss", f_text: "5x7, Großbuchstaben und Ziffern",
+    f_shade: "dunkelt ab oder hellt auf, in Sechzehnteln", f_touch: "x, y, gedrückt",
+    f_ms: "seit dem Start des Skripts", f_stats: "Skript, Bildschirm und Bild, in ms",
+    ay_color: "Farben sind <code>0xRRGGBB</code>. Vorhanden sind <code>string</code>, <code>table</code>, " +
+              "<code>math</code>, <code>utf8</code> und <code>coroutine</code>; nicht vorhanden sind " +
+              "<code>io</code>, <code>os</code>, <code>package</code> und <code>debug</code>.",
+    pie: "Die .lua-Dateien liegen in /lua auf der Karte. Die Uhr überwacht die Datei des laufenden " +
+         "Skripts und lädt sie bei Änderung neu, Speichern hier genügt also. Ein Fehler startet " +
+         "nichts neu: er erscheint auf der Uhr und hier unten, mit seiner Zeilennummer.",
+    guardando: "Speichere...", guardado: "Auf der Uhr gespeichert",
+    guardado_vivo: "Gespeichert — die Uhr lädt es neu",
+    err_guardar: "Konnte nicht speichern", borrado: "Gelöscht", err_placa: "Keine Antwort von der Uhr",
+    err_leer: "Konnte das Skript nicht lesen", conf_borrar: "Dieses Skript von der Uhr löschen?",
+    falta_nombre: "Gib dem Skript einen Namen", ya_existe: "Es gibt schon ein Skript mit diesem Namen",
+    corriendo: "läuft", con_nada: "Die Uhr hat noch kein Skript ausgeführt.",
+    con_ok: "läuft, keine Fehler", con_cual: "auf der Uhr:", btn_editar: "Bearbeiten"
+  }
+};
+
+const t = k => aos.t(k);
+
+let archivos = [];
+let original = "";        /* el nombre con el que se abrio, para renombrar */
+let corriendo = "";       /* el guion que el reloj dice estar corriendo   */
+let reloj = null;         /* el temporizador de la consola                */
+
+/* ---------------------------------------------------------------- lista -- */
+
+async function mostrarLista() {
+  $("pantalla-lista").hidden = false;
+  $("editor").hidden = true;
+  pararConsola();
+  try {
+    const r = await fetch("/api/list?dir=" + DIR + "&_=" + Date.now());
+    const j = await r.json();
+    archivos = (j.files || []).filter(f => !f.dir && /\.lua$/i.test(f.name));
+  } catch (e) { archivos = []; aos.brindis(t("err_placa")); }
+
+  $("vacio").hidden = archivos.length > 0;
+  $("lista").innerHTML = "";
+  for (const f of archivos) {
+    const fila = document.createElement("div");
+    fila.className = "fila" + (f.name === corriendo ? " corriendo" : "");
+    fila.innerHTML = '<b></b><span class="meta">' + aos.humano(f.size) +
+                     (f.name === corriendo ? " · " + aos.esc(t("corriendo")) : "") +
+                     '</span><button class="sec"></button>';
+    fila.querySelector("b").textContent = f.name;
+    const b = fila.querySelector("button");
+    b.textContent = t("btn_editar");
+    b.onclick = () => abrir(f.name);
+    $("lista").appendChild(fila);
+  }
+  await pintarConsola($("consola-lista"));
+}
+
+/* --------------------------------------------------------------- editor -- */
+
+async function abrir(nombre) {
+  original = nombre;
+  $("nombre").value = nombre;
+  $("estado").textContent = "";
+  $("estado").className = "";
+  try {
+    const r = await fetch("/api/download?dir=" + DIR + "&name=" + encodeURIComponent(nombre) +
+                          "&_=" + Date.now(), { cache: "no-store" });
+    $("texto").value = await r.text();
+  } catch (e) { aos.brindis(t("err_leer")); return; }
+  $("pantalla-lista").hidden = true;
+  $("editor").hidden = false;
+  arrancarConsola();
+}
+
+function nuevo() {
+  original = "";
+  $("nombre").value = "";
+  $("texto").value = PLANTILLA;
+  $("estado").textContent = "";
+  $("estado").className = "";
+  $("pantalla-lista").hidden = true;
+  $("editor").hidden = false;
+  arrancarConsola();
+  $("nombre").focus();
+}
+
+function decir(texto, clase) {
+  $("estado").textContent = texto;
+  $("estado").className = clase || "";
+}
+
+async function guardar() {
+  let nombre = $("nombre").value.trim();
+  if (!nombre) { decir(t("falta_nombre"), "mal"); return; }
+  if (!/\.lua$/i.test(nombre)) nombre += ".lua";
+  if (nombre !== original && archivos.some(f => f.name === nombre)) {
+    decir(t("ya_existe"), "mal"); return;
+  }
+
+  decir(t("guardando"));
+  try {
+    const r = await fetch("/api/upload?dir=" + DIR + "&name=" + encodeURIComponent(nombre),
+                          { method: "POST", body: $("texto").value });
+    if (!r.ok) throw new Error(r.status);
+    /* Renombrar es guardar con el nombre nuevo y borrar el viejo. */
+    if (original && original !== nombre) {
+      await fetch("/api/delete?dir=" + DIR + "&name=" + encodeURIComponent(original),
+                  { method: "POST" });
+      if (corriendo === original) corriendo = nombre;
+    }
+    original = nombre;
+    /* Si es el que esta corriendo, el reloj lo va a recargar solo dentro de
+       un segundo: vale la pena decirlo, porque es la gracia de todo esto. */
+    decir(nombre === corriendo ? t("guardado_vivo") : t("guardado"), "bien");
+  } catch (e) { decir(t("err_guardar"), "mal"); }
+}
+
+async function borrar() {
+  if (!original) { mostrarLista(); return; }
+  if (!confirm(t("conf_borrar"))) return;
+  try {
+    await fetch("/api/delete?dir=" + DIR + "&name=" + encodeURIComponent(original),
+                { method: "POST" });
+    aos.brindis(t("borrado"));
+    mostrarLista();
+  } catch (e) { aos.brindis(t("err_placa")); }
+}
+
+/* -------------------------------------------------------------- consola -- */
+
+/* _estado.txt lo escribe la app: primera linea el guion, el resto el error.
+   Se pide cada tres segundos y solo con la pestana a la vista, porque el
+   portal del reloj se queda sordo si se lo ametralla. */
+async function pintarConsola(caja) {
+  if (!caja) return;
+  let cual = "", error = "";
+  try {
+    const r = await fetch("/api/download?dir=" + DIR + "&name=" + ESTADO +
+                          "&_=" + Date.now(), { cache: "no-store" });
+    if (r.ok) {
+      const lineas = (await r.text()).split("\n");
+      cual  = (lineas.shift() || "").trim();
+      error = lineas.join("\n").trim();
+    }
+  } catch (e) { /* sin tarjeta o sin reloj: la consola se queda como esta */ }
+
+  corriendo = cual;
+  caja.className = "consola" + (error ? " mal" : cual ? " bien" : "");
+  if (!cual) { caja.textContent = t("con_nada"); return; }
+  caja.innerHTML = '<span class="cual">' + aos.esc(t("con_cual")) + " " + aos.esc(cual) +
+                   "</span>" + aos.esc(error || t("con_ok"));
+}
+
+function arrancarConsola() {
+  pararConsola();
+  pintarConsola($("consola"));
+  reloj = setInterval(() => {
+    if (!document.hidden) pintarConsola($("consola"));
+  }, 3000);
+}
+
+function pararConsola() {
+  if (reloj) { clearInterval(reloj); reloj = null; }
+}
+
+/* ----------------------------------------------------------------- atar -- */
+
+$("nuevo").onclick   = nuevo;
+$("volver").onclick  = mostrarLista;
+$("guardar").onclick = guardar;
+$("borrar").onclick  = borrar;
+const abrirApp = () => aos.post("/api/accion", { que: "abrir", id: "aos.lua" })
+                          .catch(() => aos.brindis(t("err_placa")));
+$("abrir-reloj").onclick = abrirApp;
+$("correr").onclick      = abrirApp;
+
+/* Ctrl/Cmd+S guarda, que es el gesto que uno hace sin pensar cuando el
+   archivo esta en otra maquina. */
+$("texto").addEventListener("keydown", e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); guardar(); }
+});
+
+aos.init(TR).then(mostrarLista);
+</script>
+</body>
+</html>

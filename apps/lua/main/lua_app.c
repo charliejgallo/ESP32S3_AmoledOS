@@ -43,6 +43,7 @@
 #include "lx_pixel.h"
 
 #include <dirent.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -91,6 +92,16 @@ typedef struct {
 
     char       names[LUA_MAX_SCRIPTS][48];
     int        count;
+
+    /* The script that is running, and what it looked like on disk when it
+     * was loaded: the app watches those two numbers and reloads itself when
+     * the file changes. That is what makes the browser's Save the only step
+     * -write it on the Mac, look at the watch- instead of save, walk over,
+     * back out, tap again. */
+    char       running[48];
+    uint32_t   watch_at;
+    time_t     watch_mtime;
+    long       watch_size;
 } lua_ctx_t;
 
 /* The upscale, with the bytes swapped on the way.
@@ -170,6 +181,32 @@ static void budget_hook(lua_State *L, lua_Debug *ar)
     }
 }
 
+/* What the portal's console reads: one file with the running script on the
+ * first line and its error, if any, on the rest.
+ *
+ * A file and not an endpoint, on purpose. /api/download and /api/upload
+ * already serve dir=lua, so the page gets this for free and the firmware
+ * still knows nothing about Lua -the same arrangement as the .pato scripts
+ * and the .pix drawings. The name starts with an underscore and not a dot
+ * because safe_name() in the portal refuses dot-files, and it does not end
+ * in .lua so neither the list on the watch nor the one in the browser shows
+ * it as a script. */
+static void write_state(lua_ctx_t *ctx, const char *error)
+{
+    const char *sd = aos_hal_path_sd_root();
+    if (!sd) {
+        return;
+    }
+    char path[160];
+    snprintf(path, sizeof(path), "%s/lua/_estado.txt", sd);
+    FILE *f = fopen(path, "wb");
+    if (!f) {
+        return;
+    }
+    fprintf(f, "%s\n%s\n", ctx->running, error ? error : "");
+    fclose(f);
+}
+
 static void show_error(lua_ctx_t *ctx, const char *what)
 {
     if (ctx->timer) {
@@ -193,6 +230,7 @@ static void show_error(lua_ctx_t *ctx, const char *what)
     lv_label_set_text(ctx->message, what);
     lv_obj_remove_flag(ctx->message, LV_OBJ_FLAG_HIDDEN);
     aos_hal_beep(220, 120);
+    write_state(ctx, what);
 }
 
 /* Every call into Lua goes through here: the budget is reset, the error is
@@ -358,6 +396,20 @@ static void run_script(lua_ctx_t *ctx, const char *name)
     const char *sd = aos_hal_path_sd_root();
     snprintf(path, sizeof(path), "%s/lua/%s", sd ? sd : "/sdcard", name);
 
+    /* Copied first: 'name' may be ctx->running itself when this is a reload,
+     * and unload() does not touch it but a future one might. */
+    char wanted[sizeof(ctx->running)];
+    snprintf(wanted, sizeof(wanted), "%s", name);
+    snprintf(ctx->running, sizeof(ctx->running), "%s", wanted);
+    name = wanted;
+
+    struct stat st;
+    if (stat(path, &st) == 0) {
+        ctx->watch_mtime = st.st_mtime;
+        ctx->watch_size  = (long)st.st_size;
+    }
+    ctx->watch_at = lv_tick_get();
+
     /* Read it whole and hand it to luaL_loadbuffer instead of using
      * luaL_loadfile: the file is small, this way the chunk name is ours, and
      * the reader never sits inside the parser holding the card open. */
@@ -467,6 +519,7 @@ static void run_script(lua_ctx_t *ctx, const char *name)
         lua_pop(ctx->L, 1);
     }
 
+    write_state(ctx, NULL);         /* it loaded: the console goes quiet */
     ctx->last_frame = lv_tick_get();
     ctx->timer = lv_timer_create(frame_cb, LUA_FRAME_MS, ctx);
 }
@@ -624,6 +677,47 @@ static void lua_destroy(aos_app_t *self, void *inst)
     lv_free(ctx);
 }
 
+/* Called about five times a second by the runtime. It watches the file the
+ * running script came from and reloads when it changes on the card.
+ *
+ * Checked once a second and not on every call: a stat() goes through FatFs to
+ * the card. FAT keeps the time to the nearest two seconds, which is why the
+ * size counts too -two edits within the same second usually change the
+ * length- and why a save that changes neither is missed. That is the price of
+ * doing this with no help from the firmware, and it is cheap: saving again
+ * picks it up. */
+static void lua_watch(aos_app_t *self, void *inst)
+{
+    (void)self;
+    lua_ctx_t *ctx = (lua_ctx_t *)inst;
+    if (!ctx->running[0] || !ctx->surface) {
+        return;
+    }
+    if (lv_tick_elaps(ctx->watch_at) < 1000) {
+        return;
+    }
+    ctx->watch_at = lv_tick_get();
+
+    const char *sd = aos_hal_path_sd_root();
+    if (!sd) {
+        return;
+    }
+    char path[160];
+    snprintf(path, sizeof(path), "%s/lua/%s", sd, ctx->running);
+    struct stat st;
+    if (stat(path, &st) != 0) {
+        return;                 /* deleted while running: leave it alone */
+    }
+    if (st.st_mtime == ctx->watch_mtime && (long)st.st_size == ctx->watch_size) {
+        return;
+    }
+
+    char again[sizeof(ctx->running)];
+    snprintf(again, sizeof(again), "%s", ctx->running);
+    unload(ctx);
+    run_script(ctx, again);
+}
+
 /* Back goes from a script to the list, and only then out of the app. */
 static bool lua_back(aos_app_t *self, void *inst)
 {
@@ -631,6 +725,7 @@ static bool lua_back(aos_app_t *self, void *inst)
     lua_ctx_t *ctx = (lua_ctx_t *)inst;
     if (ctx->surface || ctx->L) {
         unload(ctx);
+        ctx->running[0] = '\0';
         build_list(ctx);
         return true;
     }
@@ -651,6 +746,7 @@ static bool lua_app_init(aos_app_t *app)
     app->create  = lua_create;
     app->destroy = lua_destroy;
     app->back    = lua_back;
+    app->tick    = lua_watch;
     return true;
 }
 

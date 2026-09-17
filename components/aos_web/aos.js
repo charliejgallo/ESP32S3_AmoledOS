@@ -50,6 +50,7 @@
       { url: "/remoto",   t: "nav_remoto"   },
       { url: "/pixel",    t: "nav_pixel"    },
       { url: "/pato",     t: "nav_pato"     },
+      { url: "/lua",      t: "nav_lua"      },
       { url: "/iconos",   t: "nav_iconos"   }
     ]}
   ];
@@ -62,7 +63,7 @@
           nav_archivos: "Archivos", nav_registro: "Registro", nav_usb: "USB",
           nav_wifi: "Conectar", nav_ap: "Punto de acceso", nav_red: "Escaneos",
           nav_clima: "Clima", nav_cotiz: "Cotizaciones",
-          nav_sensores: "Sensores", nav_remoto: "Remoto", nav_pixel: "Pixel Art", nav_pato: "Pato goma", nav_iconos: "Iconos",
+          nav_sensores: "Sensores", nav_remoto: "Remoto", nav_pixel: "Pixel Art", nav_pato: "Pato goma", nav_lua: "Lua", nav_iconos: "Iconos",
           viv_cargando: "cargando", viv_usb: "USB", viv_sin: "sin conexión con el reloj",
           viv_ram: "RAM", viv_activa: "pantalla activa", viv_aod: "atenuada",
           viv_off: "pantalla apagada", viv_ap: "modo AP", viv_prueba: "a prueba" },
@@ -71,7 +72,7 @@
           nav_archivos: "Files", nav_registro: "Log", nav_usb: "USB",
           nav_wifi: "Connect", nav_ap: "Access point", nav_red: "Scans",
           nav_clima: "Weather", nav_cotiz: "Exchange rates",
-          nav_sensores: "Sensors", nav_remoto: "Remote", nav_pixel: "Pixel Art", nav_pato: "Pato goma", nav_iconos: "Icons",
+          nav_sensores: "Sensors", nav_remoto: "Remote", nav_pixel: "Pixel Art", nav_pato: "Pato goma", nav_lua: "Lua", nav_iconos: "Icons",
           viv_cargando: "loading", viv_usb: "USB", viv_sin: "no connection to the watch",
           viv_ram: "RAM", viv_activa: "screen on", viv_aod: "dimmed",
           viv_off: "screen off", viv_ap: "AP mode", viv_prueba: "on trial" },
@@ -80,7 +81,7 @@
           nav_archivos: "Dateien", nav_registro: "Protokoll", nav_usb: "USB",
           nav_wifi: "Verbinden", nav_ap: "Zugangspunkt", nav_red: "Scans",
           nav_clima: "Wetter", nav_cotiz: "Wechselkurse",
-          nav_sensores: "Sensoren", nav_remoto: "Fernbedienung", nav_pixel: "Pixel Art", nav_pato: "Pato goma", nav_iconos: "Icons",
+          nav_sensores: "Sensoren", nav_remoto: "Fernbedienung", nav_pixel: "Pixel Art", nav_pato: "Pato goma", nav_lua: "Lua", nav_iconos: "Icons",
           viv_cargando: "laedt", viv_usb: "USB", viv_sin: "keine Verbindung zur Uhr",
           viv_ram: "RAM", viv_activa: "Bildschirm an", viv_aod: "gedimmt",
           viv_off: "Bildschirm aus", viv_ap: "AP-Modus", viv_prueba: "auf Probe" }
@@ -112,6 +113,25 @@
       if (v === undefined && NAV[codigo]) v = NAV[codigo][nodos[i].dataset.t];
       if (v !== undefined) nodos[i].textContent = v;
     }
+    /* data-t-html, para los textos que llevan marcado.
+     *
+     * data-t escapa, y tiene que escapar: es lo correcto para todo lo que sea
+     * una frase. Pero varias ayudas nombran comandos con <code>, y en espanol
+     * se veian bien -el marcado esta en el HTML- mientras que en ingles y en
+     * aleman salia "<code>enter</code>" escrito tal cual, porque el texto
+     * traducido entraba por textContent. Le pasaba a /pato desde que existe y
+     * lo heredó /lua.
+     *
+     * Estos textos no vienen de la red: estan en el mismo archivo que la
+     * pagina, embebido en el firmware. Aun asi va por un atributo aparte y no
+     * cambiando data-t, para que quede escrito cuales son los que confian. */
+    var htmls = (raiz || document).querySelectorAll("[data-t-html]");
+    for (var h = 0; h < htmls.length; h++) {
+      var w = dic[htmls[h].dataset.tHtml];
+      if (w === undefined && NAV[codigo]) w = NAV[codigo][htmls[h].dataset.tHtml];
+      if (w !== undefined) htmls[h].innerHTML = w;
+    }
+
     /* El placeholder no es contenido, asi que lleva su propio atributo. */
     var phs = (raiz || document).querySelectorAll("[data-t-ph]");
     for (var j = 0; j < phs.length; j++) {
