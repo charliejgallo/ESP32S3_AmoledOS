@@ -60,6 +60,7 @@ add_executable(amoledos_sim
     hal_sim.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_http.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_notif.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_steps.c
     ${AOS_UI_SRC}
     ${AOS_APPS_SRC}
     ${AOS_FONT_SRC}

@@ -27,6 +27,7 @@
 #include "esp_jpeg_dec.h"
 
 #include "aos_hal.h"
+#include "aos_board.h"
 
 #define BENCH_MAX_ITER   50
 #define BENCH_MAX_BYTES  (1024 * 1024)
@@ -234,5 +235,31 @@ esp_err_t aos_jpegbench_handler(httpd_req_t *req)
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, out, len);
+    return ESP_OK;
+}
+
+/* GET /api/imu: the last minute of the accelerometer as CSV
+ * (t_ms,ax,ay,az,steps), 25 Hz, milli-g. Walk a counted number of steps
+ * with the watch on, fetch this, and tune the step detector against it. */
+esp_err_t aos_imu_dump_handler(httpd_req_t *req)
+{
+    aos_imu_ring_sample_t *buf = heap_caps_malloc(AOS_IMU_RING * sizeof *buf, MALLOC_CAP_SPIRAM);
+    if (!buf) {
+        httpd_resp_sendstr(req, "no memory");
+        return ESP_OK;
+    }
+    uint32_t n = 0;
+    aos_board_imu_ring_get(buf, AOS_IMU_RING, &n);
+    httpd_resp_set_type(req, "text/csv");
+    httpd_resp_sendstr_chunk(req, "t_ms,ax,ay,az,steps\n");
+    char line[64];
+    for (uint32_t i = 0; i < n; i++) {
+        int len = snprintf(line, sizeof(line), "%lu,%d,%d,%d,%lu\n",
+                           (unsigned long)buf[i].t_ms, buf[i].ax, buf[i].ay, buf[i].az,
+                           (unsigned long)buf[i].steps);
+        httpd_resp_send_chunk(req, line, len);
+    }
+    httpd_resp_send_chunk(req, NULL, 0);
+    heap_caps_free(buf);
     return ESP_OK;
 }

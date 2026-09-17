@@ -116,6 +116,17 @@ typedef struct {
 
 bool     aos_board_imu_read(aos_imu_sample_t *out);
 void     aos_board_imu_poll(void);      /* step counter and orientation */
+
+/* The last three minutes of accelerometer samples, as the poll saw them (25 Hz),
+ * for /api/imu: milli-g, the poll's ms timestamp, and the step count at
+ * that moment, so a detector can be tuned offline against a counted walk. */
+#define AOS_IMU_RING 4500       /* three minutes at 25 Hz, 72 KB of PSRAM */
+typedef struct {
+    uint32_t t_ms;
+    int16_t  ax, ay, az;
+    uint32_t steps;
+} aos_imu_ring_sample_t;
+void     aos_board_imu_ring_get(aos_imu_ring_sample_t *out, uint32_t max, uint32_t *count);
 uint32_t aos_board_imu_steps(void);
 void     aos_board_imu_steps_reset(void);
 int      aos_board_imu_orientation(void);   /* maps to aos_orientation_t */

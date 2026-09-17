@@ -8,6 +8,7 @@
 #include "qmi8658.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_heap_caps.h"
 
 #include <math.h>
 
@@ -97,11 +98,46 @@ bool aos_board_imu_read(aos_imu_sample_t *out)
     return true;
 }
 
+/* --- sample ring ----------------------------------------------------------
+ * The last AOS_IMU_RING samples, as the poll saw them (every 40 ms, so a
+ * minute), in PSRAM. It is what /api/imu serves: the raw material for
+ * tuning the step detector against a walk of counted steps, instead of
+ * against a feeling. Milli-g, and the poll's timestamp in ms.
+ * ------------------------------------------------------------------------ */
+static aos_imu_ring_sample_t *s_ring;
+static uint32_t s_ring_head;       /* next slot to write */
+static uint32_t s_ring_count;
+
+void aos_board_imu_ring_get(aos_imu_ring_sample_t *out, uint32_t max, uint32_t *count)
+{
+    uint32_t n = s_ring_count < max ? s_ring_count : max;
+    uint32_t start = (s_ring_head + AOS_IMU_RING - n) % AOS_IMU_RING;
+    for (uint32_t i = 0; i < n; i++) {
+        out[i] = s_ring[(start + i) % AOS_IMU_RING];
+    }
+    *count = s_ring ? n : 0;
+}
+
 void aos_board_imu_poll(void)
 {
     aos_imu_sample_t sample;
     if (!aos_board_imu_read(&sample) || !sample.valid) {
         return;
+    }
+    if (!s_ring) {
+        s_ring = heap_caps_calloc(AOS_IMU_RING, sizeof *s_ring, MALLOC_CAP_SPIRAM);
+    }
+    if (s_ring) {
+        aos_imu_ring_sample_t *slot = &s_ring[s_ring_head];
+        slot->t_ms = (uint32_t)(esp_timer_get_time() / 1000);
+        slot->ax = (int16_t)(sample.ax * 1000.0f);
+        slot->ay = (int16_t)(sample.ay * 1000.0f);
+        slot->az = (int16_t)(sample.az * 1000.0f);
+        slot->steps = s_steps;
+        s_ring_head = (s_ring_head + 1) % AOS_IMU_RING;
+        if (s_ring_count < AOS_IMU_RING) {
+            s_ring_count++;
+        }
     }
 
     /* --- steps --- */

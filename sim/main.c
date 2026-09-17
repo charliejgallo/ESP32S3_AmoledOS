@@ -1407,6 +1407,13 @@ int main(void)
 
         uint64_t now = aos_hal_uptime_ms();
         script_tick(now);
+        {
+            static uint64_t last_steps_tick;
+            if (now - last_steps_tick >= 5000) {
+                last_steps_tick = now;
+                aos_steps_tick();
+            }
+        }
 
         if (shot_at && now >= shot_at && lv_anim_count_running() == 0) {
             shot_dump(shot_env);

@@ -434,7 +434,7 @@ static esp_err_t status_handler(httpd_req_t *req)
     if (n > 1 && json[n - 1] == '}') {
         json[--n] = '\0';
     }
-    char extra[520];
+    char extra[640];
     char ssid[68] = "", peer[68] = "";
     if (aos_hal_net_state() == AOS_NET_CONNECTED) {
         json_escape(ssid, sizeof(ssid), aos_hal_net_ssid());
@@ -459,10 +459,13 @@ static esp_err_t status_handler(httpd_req_t *req)
      * off, and this is the only way to tell without the watch on the wrist. */
     float cal_ax = 1.0f, cal_bx = 0.0f, cal_ay = 1.0f, cal_by = 0.0f;
     bool calibrated = aos_ui_touch_calibration_get(&cal_ax, &cal_bx, &cal_ay, &cal_by);
+    aos_steps_info_t steps = {0};
+    aos_hal_steps_get(&steps);
     snprintf(extra, sizeof(extra),
              ",\"ssid\":\"%s\",\"rssi\":%d,\"ip\":\"%s\",\"wifi_on\":%s,"
              "\"ap\":%s,\"ap_ip\":\"%s\",\"bt\":\"%s\",\"bt_peer\":\"%s\","
              "\"phone_batt\":%d,\"exec\":%u,\"sd_total\":%llu,\"sd_free\":%llu,"
+             "\"steps\":%u,\"steps_goal\":%u,"
              "\"app\":\"%s\",\"time_ok\":%s,\"tz\":\"%s\",\"now\":%lld,"
              "\"touch_cal\":%s,\"cal_ax\":%.4f,\"cal_bx\":%.2f,"
              "\"cal_ay\":%.4f,\"cal_by\":%.2f}",
@@ -476,6 +479,7 @@ static esp_err_t status_handler(httpd_req_t *req)
              peer, phone,
              (unsigned)heap_caps_get_free_size(MALLOC_CAP_EXEC),
              (unsigned long long)sd_total, (unsigned long long)sd_free,
+             (unsigned)steps.today, (unsigned)steps.goal,
              app ? app : "",
              aos_hal_time_is_valid() ? "true" : "false", tz,
              (long long)time(NULL),
@@ -2784,6 +2788,7 @@ static esp_err_t alarmas_post_handler(httpd_req_t *req)
 /* aos_mem.c: the RAM audit endpoint (branch ram-audit). */
 esp_err_t aos_mem_handler(httpd_req_t *req);
 esp_err_t aos_jpegbench_handler(httpd_req_t *req);
+esp_err_t aos_imu_dump_handler(httpd_req_t *req);
 
 static const httpd_uri_t ROUTES[] = {
         { .uri = "/",            .method = HTTP_GET,  .handler = inicio_page_handler },
@@ -2803,6 +2808,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/pmu",     .method = HTTP_GET,  .handler = pmu_handler },
         { .uri = "/api/mem",     .method = HTTP_GET,  .handler = aos_mem_handler },
         { .uri = "/api/jpegbench", .method = HTTP_GET, .handler = aos_jpegbench_handler },
+        { .uri = "/api/imu",     .method = HTTP_GET,  .handler = aos_imu_dump_handler },
         { .uri = "/api/usb",     .method = HTTP_GET,  .handler = usb_handler },
         { .uri = "/usb",         .method = HTTP_GET,  .handler = usb_page_handler },
         { .uri = "/api/coredump",.method = HTTP_GET,  .handler = coredump_handler },
