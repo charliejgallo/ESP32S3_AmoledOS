@@ -3,37 +3,44 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## On `main`, not yet released
+## v0.3.17 — 2026-09-17
 
-- **Dirty rows for the Lua blit.** The frame buffer survives between frames
-  and the app now pushes only the rows the script touched: every primitive
-  marks the box it draws into, the boxes are merged into full-width bands, and
-  only those go to the panel. A script does not call anything for this. A
-  script that calls `aos.clear()` marks everything and costs exactly what it
-  did before (`cubo.lua`: 224/224 rows, 40 ms, 25 fps); one that erases its own
-  old positions pays for those (`pelota.lua`: 67/224, 20 ms, 50 fps — which is
-  the frame timer's period, so it is really 12 ms of work). `aos.stats()`
-  returns the row count as a fourth value, and `pelota.lua` is the example.
+- **A Lua frame only pays for what it moves.** The frame buffer survives
+  between frames and the app now pushes only the rows the script touched:
+  every primitive marks the box it draws into, the boxes are merged into
+  full-width bands, and only those go to the panel. A script does not call
+  anything for this and does not know it is happening. `aos.clear()` marks
+  everything, so a script that clears every frame costs exactly what it did
+  before.
 - **`aos.background()`**, so a script never has to erase. It freezes what is
   drawn, and from then on the app puts back whatever the last frame drew,
   copying those rectangles out of the frozen copy. Erasing by painting the
   background colour over the old position only works over a flat colour; a
-  DRAWN background can only be restored, which is why `pelota.lua` now runs
-  over a grid. 82 KB of PSRAM, allocated on first use, nothing if unused.
+  DRAWN background can only be restored, which is why `pelota.lua` runs over a
+  grid it could not have had before. 82 KB of PSRAM, allocated on first use,
+  nothing if unused, and internal RAM does not move.
+- Measured on the board, and both are right:
+
+  | | rows | script | upscale | push | frame | fps |
+  |---|---|---|---|---|---|---|
+  | `cubo.lua`, clears every frame | 224/224 | 4 ms | 9 ms | 24 ms | 40 ms | 25 |
+  | `pelota.lua`, over a background | 76/224 | 0 ms | 2 ms | 9 ms | 21 ms | 47 |
+
+  `aos.stats()` returns the row count as a fourth value, so a script can see
+  this for itself.
 - **`AOS_MAX_APPS` 48 → 80, and it says so when it fills up.** Since a module
   can declare several apps, twenty built-in plus a full card came to exactly
   48 and the forty-ninth — a Lua script — was refused by
   `aos_ui_register_app()` **with no message at all**, which looked from the
   outside like an app that had failed to build. The same shape of bug as
-  `MAX_DYNAPPS` at 16 with 17 apps and `MAX_SIM_APPS` at 12 with 14. Both the
+  `MAX_DYNAPPS` at 16 with 17 apps and `MAX_SIM_APPS` at 12 with 14. The
   launcher and the loader log the refusal now, and the Lua app logs how many
   scripts the boot scan found.
-
 - `hola.lua` gets an icon too (`apps/lua/scripts/hola.aic.txt`): the cyan disc
   the script itself draws, with two rings around it for the pulse. It is the
   first blob written with the assembler that uses `AIC_RING` and a literal
-  colour, so between it and the cube the four opcodes a script is likely to
-  want are exercised.
+  colour, so between it and the cube the opcodes a script is likely to want
+  are exercised.
 
 ## v0.3.16 — 2026-09-17
 
