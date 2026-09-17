@@ -106,9 +106,12 @@ Four things in that table:
    panel** (`aos_hal_display_blit`, big-endian RGB565 as the decoder can
    write it), over the same QSPI the LVGL port flushes through, under the
    LVGL lock; the push is the 16.5 ms already measured for a full screen. The
-   stats label and the progress bar are LVGL's and are invalidated after each
-   blit so they come back on top. The portal's capture shows black during
-   playback for the same reason: it snapshots LVGL's pixels, not the panel.
+   stats line and the progress bar travel INSIDE the frame: LVGL renders the
+   text into a small hidden canvas when it changes, and the app copies it
+   into each frame (byte-swapped) before the blit. As LVGL objects they were
+   wiped by every blit and redrawn a refresh later, a visible flicker. The
+   portal's capture shows black during playback for the same reason: it
+   snapshots LVGL's pixels, not the panel.
 
 So reading and decoding moved to a **worker**: the one background task an
 app may have, new to the HAL with this branch (`aos_hal_worker_start`,

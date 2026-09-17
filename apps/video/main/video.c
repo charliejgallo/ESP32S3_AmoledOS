@@ -62,6 +62,12 @@
 #define VD_TICK_MS      4                   /* how often the timer looks at the clock */
 #define VD_STATS_MS     500
 #define VD_WORKER_STACK 8192
+#define VD_STATS_W      300                 /* the overlay rendered into the frame */
+#define VD_STATS_H      26
+#define VD_STATS_X      ((VD_W - VD_STATS_W) / 2)
+#define VD_STATS_Y      30
+#define VD_BAR_H        4
+#define VD_BAR_BE       0x0C, 0x3F          /* AOS_C_ACCENT 0x0A84FF as RGB565, big-endian */
 
 /* A strip of film: a rounded card with the perforations along both edges. */
 static const uint8_t VIDEO_ICON[] = {
@@ -110,6 +116,16 @@ typedef struct {
     lv_timer_t *timer;
 #ifdef AOS_SIM
     uint8_t  *sim_frame;        /* the canvas draws into this one on the desktop */
+#else
+    /* On the board the stats line is rendered by LVGL into this small
+     * canvas and copied INTO each frame before the blit, so the frame
+     * carries its own overlay and LVGL draws nothing while it plays. With
+     * the label as an LVGL object it was wiped by every blit and redrawn a
+     * refresh later: a visible flicker. */
+    lv_obj_t *stats_canvas;
+    uint16_t *stats_px;         /* VD_STATS_W x VD_STATS_H, RGB565 native */
+    bool      stats_dirty;
+    int32_t   bar_px;           /* progress, in pixels of width */
 #endif
 
     vd_slot_t slots[VD_SLOTS];
@@ -329,6 +345,23 @@ static void update_stats(vd_t *v, uint64_t now)
              (unsigned)(v->shown < 0 ? 0 : v->shown + 1),
              (unsigned)v->avi.total_frames);
     lv_label_set_text(v->stats, buf);
+#ifndef AOS_SIM
+    if (v->stats_canvas) {
+        lv_canvas_fill_bg(v->stats_canvas, AOS_C_BG, LV_OPA_COVER);
+        lv_layer_t layer;
+        lv_canvas_init_layer(v->stats_canvas, &layer);
+        lv_draw_label_dsc_t dsc;
+        lv_draw_label_dsc_init(&dsc);
+        dsc.font  = aos_font_small;
+        dsc.color = AOS_C_TEXT;
+        dsc.text  = buf;
+        dsc.align = LV_TEXT_ALIGN_CENTER;
+        lv_area_t area = { 0, 4, VD_STATS_W - 1, VD_STATS_H - 1 };
+        lv_draw_label(&layer, &dsc, &area);
+        lv_canvas_finish_layer(v->stats_canvas, &layer);
+        v->stats_dirty = true;
+    }
+#endif
     /* The same line to the log every 2 s: on the board /api/log is where
      * the numbers get read from. */
     if (++v->log_every % 4 == 0) {
@@ -336,9 +369,40 @@ static void update_stats(vd_t *v, uint64_t now)
     }
     if (v->avi.total_frames) {
         uint32_t frame = v->shown < 0 ? 0 : (uint32_t)v->shown;
-        lv_obj_set_width(v->bar, (int32_t)((uint64_t)VD_W * frame / v->avi.total_frames));
+        int32_t px = (int32_t)((uint64_t)VD_W * frame / v->avi.total_frames);
+        lv_obj_set_width(v->bar, px);
+#ifndef AOS_SIM
+        v->bar_px = px;
+#endif
     }
 }
+
+#ifndef AOS_SIM
+/* Paints the stats line and the progress bar into the frame, in the
+ * panel's byte order, before it goes out. Cheap: 8 K pixels. */
+static void overlay_into(vd_t *v, uint8_t *frame)
+{
+    if (v->stats_px) {
+        for (int y = 0; y < VD_STATS_H; y++) {
+            const uint16_t *src = v->stats_px + y * VD_STATS_W;
+            uint8_t *dst = frame + ((size_t)(VD_STATS_Y + y) * VD_W + VD_STATS_X) * 2;
+            for (int x = 0; x < VD_STATS_W; x++) {
+                uint16_t c = src[x];
+                dst[2 * x]     = (uint8_t)(c >> 8);
+                dst[2 * x + 1] = (uint8_t)c;
+            }
+        }
+    }
+    static const uint8_t blue[2] = { VD_BAR_BE };
+    for (int y = VD_H - VD_BAR_H; y < VD_H; y++) {
+        uint8_t *dst = frame + (size_t)y * VD_W * 2;
+        for (int x = 0; x < v->bar_px && x < VD_W; x++) {
+            dst[2 * x]     = blue[0];
+            dst[2 * x + 1] = blue[1];
+        }
+    }
+}
+#endif
 
 static void present(vd_t *v, int idx)
 {
@@ -347,11 +411,10 @@ static void present(vd_t *v, int idx)
     /* Straight to the panel, past LVGL's render (aos_hal.h says why: 95 ms a
      * frame through the canvas, 16.5 ms this way). The label and the bar
      * are LVGL's, so they are invalidated to be drawn back on top. */
+    overlay_into(v, slot->frame);
     if (!aos_hal_display_blit(0, 0, VD_W, VD_H, slot->frame)) {
         v->errors++;
     }
-    lv_obj_invalidate(v->stats);
-    lv_obj_invalidate(v->bar);
 #else
     /* The desktop draws the JPEG through LVGL, the way the photo viewer
      * does: a RAW image whose data is the compressed frame. */
@@ -472,6 +535,12 @@ static void play(vd_t *v, int index)
     lv_obj_add_flag(v->message, LV_OBJ_FLAG_HIDDEN);
     lv_label_set_text(v->stats, "");
     lv_obj_set_width(v->bar, 0);
+#ifndef AOS_SIM
+    v->bar_px = 0;
+    if (v->stats_canvas) {
+        lv_canvas_fill_bg(v->stats_canvas, AOS_C_BG, LV_OPA_COVER);
+    }
+#endif
 
     if (!alloc_slots(v)) {
         show_message(v, _("Sin memoria para el cuadro"));
@@ -733,6 +802,21 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     lv_obj_add_flag(v->message, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(v->message, LV_OBJ_FLAG_CLICKABLE);
 
+#ifndef AOS_SIM
+    /* The LVGL label and bar would flicker under the blit: on the board
+     * they stay hidden and the frame carries the overlay instead. The
+     * canvas is LVGL's text renderer for it, never shown. */
+    lv_obj_add_flag(v->stats, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(v->bar, LV_OBJ_FLAG_HIDDEN);
+    v->stats_px = malloc((size_t)VD_STATS_W * VD_STATS_H * 2);
+    if (v->stats_px) {
+        v->stats_canvas = lv_canvas_create(v->play_view);
+        lv_canvas_set_buffer(v->stats_canvas, v->stats_px, VD_STATS_W, VD_STATS_H,
+                             LV_COLOR_FORMAT_RGB565);
+        lv_obj_add_flag(v->stats_canvas, LV_OBJ_FLAG_HIDDEN);
+        lv_canvas_fill_bg(v->stats_canvas, AOS_C_BG, LV_OPA_COVER);
+    }
+#endif
     v->cur_slot = -1;
     v->timer = lv_timer_create(frame_cb, VD_TICK_MS, v);
     return v;
@@ -761,6 +845,13 @@ static void destroy(aos_app_t *self, void *inst)
 #ifdef AOS_SIM
     free(v->sim_frame);
     v->sim_frame = NULL;
+#else
+    if (v->stats_canvas) {
+        lv_obj_delete(v->stats_canvas);     /* before its buffer goes */
+        v->stats_canvas = NULL;
+    }
+    free(v->stats_px);
+    v->stats_px = NULL;
 #endif
 }
 
