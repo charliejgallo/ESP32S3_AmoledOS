@@ -2,7 +2,7 @@
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
 368x448 AMOLED you can hold in your hand. Seven watchfaces, eighteen built-in
-apps, twenty-four more loaded from the microSD as shared objects, a web portal,
+apps, twenty-five more loaded from the microSD as shared objects, a web portal,
 iPhone notifications over BLE, and a desktop simulator that runs the same UI
 code so you can build the whole thing without the board.
 
@@ -106,7 +106,7 @@ browser, and the log tailed over wifi. See [docs/PORTAL.md](docs/PORTAL.md).
 
 ## The apps
 
-Forty-one of them, in two families that differ in where the code lives, not
+Forty-three of them, in two families that differ in where the code lives, not
 in what they are allowed to do.
 
 ### Built into the firmware
@@ -125,7 +125,7 @@ Eighteen ship inside the binary. They are the ones the watch cannot be without
 
 ### Loaded from the microSD
 
-Twenty-four more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
+Twenty-five more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
 `.so` files at startup. The same source builds into the simulator, so they are
 designed on a laptop and copied to the card without changing a line — and a new
 one needs no firmware rebuild. That includes its **launcher icon**: an app
@@ -138,6 +138,7 @@ app meant a reflash for that alone. See [docs/ICONS.md](docs/ICONS.md).
 |---|---|---|
 | <img src="docs/img/app-chatarra-map.png" width="200"><br>**Chatarra** — a turn-based robot RPG. Eight zones, 51 rooms, 64 parts drawn from descriptors rather than sprites. | <img src="docs/img/app-chatarra-battle.png" width="200"><br>Its combat: six elemental types, an effectiveness table, and the robot you fight with is one you built from parts torn off others. | <img src="docs/img/app-cjump.png" width="200"><br>**Claude Jump** — a vertical platformer with five zones, coins and sixteen costumes. |
 | <img src="docs/img/app-topos.png" width="200"><br>**Topos** — whack-a-mole in three modes. A mole in a hard hat takes two taps, a golden one is worth a lot, and a bomb must not be touched. | <img src="docs/img/app-topos-frenzy.png" width="200"><br>Frenzy: several at once and combos up to ×5. The lawn never moves, so only what comes out of the holes is redrawn — about a tenth of the screen per frame. | <img src="docs/img/app-topos-survival.png" width="200"><br>Survival: three hearts and a level every eight moles. Every state has its own sprite — peeking, glancing about, taunting, dizzy, the hat flying off. |
+| <img src="docs/img/app-video-list.png" width="200"><br>**Video** — plays MJPEG AVIs from the card at the screen's size, with sound, at 15 fps. `tools/video_convert.sh` makes the pair of files from anything ffmpeg reads. | <img src="docs/img/app-video.png" width="200"><br>The sound is the clock: the frames follow the player's position and a late one is skipped, never the other way round. Reading and decoding run in a background task on the second core, the first app to have one, and the frame goes straight to the panel past LVGL's render. The numbers are in [docs/VIDEO.md](docs/VIDEO.md). | |
 | <img src="docs/img/app-burbujas.png" width="200"><br>**Burbujas** — a bubble shooter in three modes: endless, generated levels where the ceiling comes down, and two minutes against the clock. | <img src="docs/img/app-burbujas-guide.png" width="200"><br>You aim by dragging: the dotted line is the shot itself, run ahead of time through the same stepping function, so it cannot promise a bounce the bubble will not make. The dashed circle is where it would stick. | <img src="docs/img/app-burbujas-timed.png" width="200"><br>Time attack: two minutes, and the rows arrive by the clock rather than by your misses. The still board is the background rather than a sprite per bubble, so sixty bubbles hanging there cost nothing per frame: 9-18 % of the field is redrawn, and the watch holds 29 fps. |
 | <img src="docs/img/app-gemas.png" width="200"><br>**Gemas** — match-three. The jewels are traced in code as convex polygons with facets, not stored as bitmaps. | <img src="docs/img/app-2043.png" width="200"><br>**2043** — a vertical shooter, an homage to Capcom's 1943, with a different boss per planet. | <img src="docs/img/app-arkanos.png" width="200"><br>**Arkanos** — brick breaking, twelve walls, and the app that introduced dirty-rectangle drawing. |
 | <img src="docs/img/app-claudito.png" width="200"><br>**Claudito** — a virtual pet, entirely hand-drawn pixel art on a 92x112 grid. | <img src="docs/img/app-truco.png" width="200"><br>**Truco** — Argentine truco against the machine, with cards drawn in code and a matchstick scoreboard. | <img src="docs/img/app-atasco.png" width="200"><br>**Atasco** — a sliding block puzzle. 25 levels, each with a BFS-verified minimum move count. |
@@ -166,7 +167,7 @@ with no WiFi. Everything measured is in [docs/USB.md](docs/USB.md).
 ## Flash it without building
 
 The [latest release](https://github.com/charliejgallo/ESP32S3_AmoledOS/releases/latest)
-carries the firmware and the twenty-three dynamic apps already built, for the
+carries the firmware and the twenty-five dynamic apps already built, for the
 Waveshare ESP32-S3-Touch-AMOLED-1.8.
 
 ```bash

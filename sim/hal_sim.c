@@ -2103,3 +2103,74 @@ int aos_hal_pm_dump_text(char *out, size_t len) { return snprintf(out, len, "sim
 void aos_hal_panel_hw_reset(void) {}
 
 const char *aos_hal_boot_reason(void) { return "sim"; }
+
+/* -------------------------------------------------------------------------- */
+/* Worker: a pthread on the desktop (see aos_hal.h)                            */
+/* -------------------------------------------------------------------------- */
+
+#include <pthread.h>
+#include <unistd.h>
+
+static pthread_t        s_worker_thread;
+static bool             s_worker_alive;
+static volatile bool    s_worker_stop;
+static aos_worker_fn_t  s_worker_fn;
+static void            *s_worker_arg;
+
+static void *worker_main(void *arg)
+{
+    (void)arg;
+    s_worker_fn(s_worker_arg);
+    return NULL;
+}
+
+bool aos_hal_worker_start(const char *name, aos_worker_fn_t fn, void *arg,
+                          uint32_t stack_bytes)
+{
+    (void)name;
+    (void)stack_bytes;
+    if (!fn || s_worker_alive) {
+        return false;
+    }
+    s_worker_stop = false;
+    s_worker_fn   = fn;
+    s_worker_arg  = arg;
+    if (pthread_create(&s_worker_thread, NULL, worker_main, NULL) != 0) {
+        return false;
+    }
+    s_worker_alive = true;
+    printf("[hal] worker %s started\n", name ? name : "?");
+    return true;
+}
+
+void aos_hal_worker_stop(void)
+{
+    if (!s_worker_alive) {
+        return;
+    }
+    s_worker_stop = true;
+    pthread_join(s_worker_thread, NULL);
+    s_worker_alive = false;
+    printf("[hal] worker stopped\n");
+}
+
+bool aos_hal_worker_running(void)
+{
+    return s_worker_alive;
+}
+
+bool aos_hal_worker_should_stop(void)
+{
+    return s_worker_stop;
+}
+
+void aos_hal_worker_sleep(uint32_t ms)
+{
+    usleep((ms ? ms : 1) * 1000);
+}
+
+bool aos_hal_display_blit(int x, int y, int w, int h, const void *rgb565_be)
+{
+    (void)x; (void)y; (void)w; (void)h; (void)rgb565_be;
+    return false;               /* no panel here: the app draws through LVGL */
+}

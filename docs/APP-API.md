@@ -118,6 +118,35 @@ note it down and act on the next frame.
 `tick` keeps being called for a backgrounded app, which is how the timer, the
 pomodoro and the sensor panel keep working with the screen off.
 
+## A background task
+
+Everything above runs in LVGL's task, and for every app before Video that
+was enough. When the work is bigger than a frame (reading and decoding a JPEG
+is 50 ms on the board) an app may have **one** background task:
+
+```c
+static void worker(void *arg)
+{
+    my_ctx_t *c = arg;
+    while (!aos_hal_worker_should_stop()) {
+        if (nothing_to_do(c)) { aos_hal_worker_sleep(2); continue; }
+        produce_one(c);                 /* files, decoding, arithmetic */
+    }
+}
+/* in create() or when playback starts */
+aos_hal_worker_start("my_worker", worker, ctx, 8192);
+/* in destroy(), before anything the worker touches is freed */
+aos_hal_worker_stop();
+```
+
+The rules are in the comment block of `aos_hal.h`, and they are short: the
+function never touches LVGL; it returns promptly once `should_stop()` says
+so, because `stop()` waits for it; the handshake with the UI side is plain
+flags in the app's own memory, one writer each; and `stop()` is called from
+`destroy()`. It is pinned to the second core and does not take the UI's
+turn. [VIDEO.md](VIDEO.md) has the ring of frames the Video app builds on it
+and the numbers that made it necessary.
+
 ## Flags
 
 | Flag | Effect |

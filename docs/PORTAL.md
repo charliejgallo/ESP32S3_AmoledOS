@@ -13,7 +13,7 @@ shared script, and `aos_web.c` with the handlers.
 | `/ajustes` | **Settings.** The same controls as the watch's Settings app: brightness, watchface, launcher style, always-on and its brightness, volume, the four power switches, time zone, set the time, language, wifi / Bluetooth, notifications. Each control applies on release. |
 | `/alarmas` | **Alarms.** The six slots of the Alarms app: time, on/off, the days of the week (with weekdays / weekend / every day shortcuts), delete, add. A change is stored in NVS and the alarm service reloads on its next tick, redrawing the app if it is open. |
 | `/pantalla` | **Screen.** A live capture of the panel, with the controls to drive it from the browser: wake, off, back, watchface, menu, a toast, and a button per app to open it. For testing without the watch on the wrist. |
-| `/archivos` | **Files.** The card by folder (apps, photos, music, recordings): upload by drag, download, delete, listen, and a preview for photos. Shows the free space. A fifth tab, **Card**, is an explorer of the whole card: any folder, breadcrumbs, new folder, delete an empty one. |
+| `/archivos` | **Files.** The card by folder (apps, photos, music, videos, recordings): upload by drag, download, delete, listen, and a preview for photos. Shows the free space. A fifth tab, **Card**, is an explorer of the whole card: any folder, breadcrumbs, new folder, delete an empty one. |
 | `/registro` | **Log.** The ESP_LOG output, tailed over wifi from a 16 KB ring in PSRAM. Filter, pause, save as text. |
 | `/wifi` `/ap` `/red` | Connect to a network, configure the setup access point, read the network surveys. |
 | `/clima` `/cotiz` `/sensores` `/remoto` | Per-app configuration: weather location, exchange rates, Home Assistant sensors, the remote-control profile. |
@@ -49,7 +49,7 @@ GET  /api/log?desde=N            the ring from offset N; X-Desde / X-Hasta heade
 GET  /api/captura[?sin_despertar=1]   the screen, as BMP
 GET  /api/lang   POST /api/lang  language
 GET  /api/list?dir=  POST /api/upload  GET /api/download  POST /api/delete  POST /api/mkdir
-                                 dir is one of apps photos music recordings redes lang icons,
+                                 dir is one of apps photos music videos recordings redes lang icons,
                                  or sd / sd/<path> for the explorer (validated piece by
                                  piece: no dot-files, plain ASCII, nothing FAT forbids);
                                  the list flags folders with "dir":true

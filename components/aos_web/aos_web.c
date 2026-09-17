@@ -102,6 +102,16 @@ static const char *resolve_dir(const char *dir)
         snprintf(path, sizeof(path), "%s", aos_hal_path_photos());
     } else if (strcmp(dir, "music") == 0) {
         snprintf(path, sizeof(path), "%s", aos_hal_path_music());
+    } else if (strcmp(dir, "videos") == 0) {
+        /* The Video app's folder (branch video): MJPEG AVIs at 368x448 and
+         * the WAV beside each one, written by tools/video_convert.sh. It is
+         * composed here and in the app from the card's root, like the
+         * app's own data folders, so it needs no path helper of its own. */
+        const char *root = aos_hal_path_sd_root();
+        if (!root) {
+            return NULL;
+        }
+        snprintf(path, sizeof(path), "%s/videos", root);
     } else if (strcmp(dir, "recordings") == 0) {
         snprintf(path, sizeof(path), "%s", aos_hal_path_recordings());
     } else if (strcmp(dir, "redes") == 0) {
@@ -2773,6 +2783,7 @@ static esp_err_t alarmas_post_handler(httpd_req_t *req)
 
 /* aos_mem.c: the RAM audit endpoint (branch ram-audit). */
 esp_err_t aos_mem_handler(httpd_req_t *req);
+esp_err_t aos_jpegbench_handler(httpd_req_t *req);
 
 static const httpd_uri_t ROUTES[] = {
         { .uri = "/",            .method = HTTP_GET,  .handler = inicio_page_handler },
@@ -2791,6 +2802,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/status",  .method = HTTP_GET,  .handler = status_handler },
         { .uri = "/api/pmu",     .method = HTTP_GET,  .handler = pmu_handler },
         { .uri = "/api/mem",     .method = HTTP_GET,  .handler = aos_mem_handler },
+        { .uri = "/api/jpegbench", .method = HTTP_GET, .handler = aos_jpegbench_handler },
         { .uri = "/api/usb",     .method = HTTP_GET,  .handler = usb_handler },
         { .uri = "/usb",         .method = HTTP_GET,  .handler = usb_page_handler },
         { .uri = "/api/coredump",.method = HTTP_GET,  .handler = coredump_handler },

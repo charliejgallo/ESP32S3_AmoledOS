@@ -17,6 +17,8 @@
 #include "esp_timer.h"
 #include "esp_system.h"
 #include "esp_heap_caps.h"
+#include "esp_cache.h"
+#include "esp_memory_utils.h"
 #include "esp_mac.h"
 #include "esp_random.h"
 #include "esp_wifi.h"
@@ -4010,6 +4012,12 @@ bool aos_hal_init(void)
     /* The recordings folder has to exist before anybody records: fopen() does
      * not create directories. */
     mkdir(aos_hal_path_recordings(), 0777);
+    /* Same for the videos folder: the portal's upload has to find it. */
+    if (aos_hal_path_sd_root()) {
+        char videos[64];
+        snprintf(videos, sizeof(videos), "%s/videos", aos_hal_path_sd_root());
+        mkdir(videos, 0777);
+    }
 
     const gpio_config_t boot_button = {
         .pin_bit_mask = 1ULL << BOOT_BUTTON_GPIO,
@@ -4088,6 +4096,138 @@ bool aos_hal_init(void)
         }
     } else {
         ESP_LOGI(TAG, "bluetooth off by preference");
+    }
+    return true;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Worker: one background task for an app (see aos_hal.h)                     */
+/* -------------------------------------------------------------------------- */
+
+/* Measured with the Video app (2026-09-16, 12 KB frames): at priority 3,
+ * below LVGL's 4, a 12 KB read took 100 ms instead of 27, sound or no sound.
+ * Every SDMMC transaction ends in a wait, and when the data arrived the
+ * worker had to wait for LVGL to finish rendering on its core before it
+ * could take the next one. At 5, level with the player, the same read is
+ * 37 ms and the UI stays responsive, because the worker is pinned to core 1
+ * and LVGL, which floats, takes core 0 while it is busy. */
+#define AOS_WORKER_PRIO      5      /* level with the player (5); LVGL is 4, the mic 6 */
+#define AOS_WORKER_CORE      1      /* WiFi and BT live on core 0 */
+#define AOS_WORKER_STOP_MS   3000
+
+static TaskHandle_t     s_worker_task;
+static volatile bool    s_worker_stop;
+static volatile bool    s_worker_done;
+static aos_worker_fn_t  s_worker_fn;
+static void            *s_worker_arg;
+
+static void worker_task(void *arg)
+{
+    (void)arg;
+    s_worker_fn(s_worker_arg);
+    s_worker_done = true;
+    vTaskDelete(NULL);
+}
+
+bool aos_hal_worker_start(const char *name, aos_worker_fn_t fn, void *arg,
+                          uint32_t stack_bytes)
+{
+    if (!fn || s_worker_task) {
+        ESP_LOGW(TAG, "worker: %s", fn ? "one is already running" : "no function");
+        return false;
+    }
+    if (stack_bytes < 4096) {
+        stack_bytes = 4096;
+    }
+    s_worker_stop = false;
+    s_worker_done = false;
+    s_worker_fn   = fn;
+    s_worker_arg  = arg;
+    if (xTaskCreatePinnedToCore(worker_task, name ? name : "aos_worker", stack_bytes,
+                                NULL, AOS_WORKER_PRIO, &s_worker_task,
+                                AOS_WORKER_CORE) != pdPASS) {
+        s_worker_task = NULL;
+        ESP_LOGE(TAG, "worker: no memory for a %lu B stack", (unsigned long)stack_bytes);
+        return false;
+    }
+    ESP_LOGI(TAG, "worker %s started: %lu B stack, core %d, prio %d",
+             name ? name : "aos_worker", (unsigned long)stack_bytes,
+             AOS_WORKER_CORE, AOS_WORKER_PRIO);
+    return true;
+}
+
+void aos_hal_worker_stop(void)
+{
+    if (!s_worker_task) {
+        return;
+    }
+    s_worker_stop = true;
+    int waited = 0;
+    while (!s_worker_done && waited < AOS_WORKER_STOP_MS) {
+        vTaskDelay(pdMS_TO_TICKS(10));
+        waited += 10;
+    }
+    if (!s_worker_done) {
+        /* It did not come back: it is not killed (its stack may be mid-call
+         * into the filesystem), it is disowned. The app's buffers must then
+         * stay allocated, which is the app's problem to have avoided. */
+        ESP_LOGE(TAG, "worker did not stop in %d ms; abandoned", AOS_WORKER_STOP_MS);
+    } else {
+        /* vTaskDelete(NULL) frees the TCB from the idle task; a moment for it. */
+        vTaskDelay(pdMS_TO_TICKS(20));
+        ESP_LOGI(TAG, "worker stopped after %d ms", waited);
+    }
+    s_worker_task = NULL;
+}
+
+bool aos_hal_worker_running(void)
+{
+    return s_worker_task != NULL && !s_worker_done;
+}
+
+bool aos_hal_worker_should_stop(void)
+{
+    return s_worker_stop;
+}
+
+void aos_hal_worker_sleep(uint32_t ms)
+{
+    vTaskDelay(pdMS_TO_TICKS(ms ? ms : 1));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Direct blit to the panel (see aos_hal.h)                                    */
+/* -------------------------------------------------------------------------- */
+
+bool aos_hal_display_blit(int x, int y, int w, int h, const void *rgb565_be)
+{
+    if (!s_panel || s_panel_asleep || !rgb565_be || w <= 0 || h <= 0) {
+        return false;
+    }
+    if (aos_hal_display_state() == AOS_DISPLAY_OFF) {
+        return false;
+    }
+    /* The decoder wrote the frame through the CPU's cache; the SPI DMA reads
+     * PSRAM behind it. Write the lines back first, or the panel shows a
+     * mixture of this frame and the previous one. */
+    size_t bytes = (size_t)w * (size_t)h * 2u;
+    if (esp_ptr_external_ram(rgb565_be)) {
+        esp_cache_msync((void *)rgb565_be, bytes,
+                        ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
+    }
+    /* In strips of AOS_DRAW_ROWS, the size the LVGL port flushes in: the
+     * SPI bus was created for that transfer size and a whole frame in one
+     * call fails ("spi transmit (queue) color failed") after the first
+     * chunk: the first 55 rows of the video reached the panel and the rest
+     * stayed black, 2026-09-16. Each strip is queued and the next call
+     * waits for it, the same as the port's own flush. */
+    const uint8_t *px = rgb565_be;
+    for (int row = 0; row < h; row += AOS_DRAW_ROWS) {
+        int rows = h - row < AOS_DRAW_ROWS ? h - row : AOS_DRAW_ROWS;
+        if (esp_lcd_panel_draw_bitmap(s_panel, x, y + row, x + w, y + row + rows, px) != ESP_OK) {
+            return false;
+        }
+        px += (size_t)w * (size_t)rows * 2u;
     }
     return true;
 }

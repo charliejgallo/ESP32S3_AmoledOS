@@ -3,6 +3,38 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.3.13 — 2026-09-16
+
+- **Video**, a player of MJPEG AVIs from the card with sound, as a dynamic
+  app (`apps/video/`, 14 KB, ABI 2). `tools/video_convert.sh` turns anything
+  ffmpeg reads into a 368x448 AVI plus a mono WAV; the portal's Files page
+  got a Videos folder for the pair. The sound goes to the firmware's player
+  and is the clock the frames follow: a late frame is skipped with a seek, a
+  click in the sound is never traded for a picture. Tap to pause, swipe back
+  to stop. The numbers and the design are in [docs/VIDEO.md](docs/VIDEO.md).
+- **The firmware carries Espressif's `esp_new_jpeg`** (77 KB of flash, 8.5 KB
+  of internal RAM while open) and exports its decoder to the apps through the
+  symbol table: 4:2:0 JPEGs to RGB565 three times faster than LVGL's TJPGD.
+  `/api/jpegbench?file=<photo>&n=5` measures it on any photo on the card. The
+  photo viewer keeps TJPGD, which decodes the 4:4:4 JPEGs the new one refuses.
+- **One background task per app**: `aos_hal_worker_start/stop/should_stop/
+  sleep`, pinned to the second core at the player's priority, a pthread in
+  the simulator. Reading and decoding a frame is 50-90 ms on the board, and
+  in LVGL's task that starved the touch, the back swipe and the portal's
+  capture; in the worker the UI does not feel it. The contract is short and
+  in `aos_hal.h`.
+- **A direct blit to the panel**, `aos_hal_display_blit`: big-endian RGB565
+  straight over the QSPI, past LVGL's render, under the LVGL lock. Through
+  a canvas a full frame cost about 95 ms of LVGL's time and the video was
+  stuck at 10 fps with the decoder idle; blitted, it plays at 15 with nothing
+  skipped. LVGL's snapshot (the portal's capture) does not see it.
+- **LVGL pinned to 9.5.0** in the firmware's manifest and every app's.
+  `idf.py reconfigure` had re-solved it to 9.6.0 on its own when the manifest
+  changed, with the apps and the simulator still on 9.5.0: the silent
+  corruption `build_apps.sh` warns about, caught this time at link.
+- The reader of AVIs seeks only when the file is not already where it wants
+  it: an `fseek` to the current position is not free on FatFS.
+
 ## v0.3.12 — 2026-09-16
 
 Small on purpose: the firmware is identical to v0.3.11 but for the version
