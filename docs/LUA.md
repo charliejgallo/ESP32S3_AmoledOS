@@ -102,6 +102,7 @@ all there.
 | `aos.touch()` | `x, y, down` — where the finger is, now |
 | `aos.ms()` | milliseconds since the script started |
 | `aos.beep(hz, ms)` | |
+| `aos.background()` | freezes what is drawn as the background; see below |
 | `aos.stats()` | `script_ms, screen_ms, frame_ms, rows` of the last frame |
 
 Colours are `0xRRGGBB`, which is readable in a script; the buffer's RGB565 is
@@ -172,7 +173,7 @@ that instead erases its own old positions pays for those:
 | | rows | script | upscale | push | frame | fps |
 |---|---|---|---|---|---|---|
 | `cubo.lua`, clears every frame | 224/224 | 3 ms | 8 ms | 27 ms | 40 ms | 25 |
-| `pelota.lua`, erases four balls | 67/224 | 1 ms | 2 ms | 9 ms | **20 ms** | **50** |
+| `pelota.lua`, four balls over a background | 76/224 | 0 ms | 2 ms | 9 ms | **21 ms** | **47** |
 
 Both measured on the board. The 20 ms is the frame timer's own period, so the
 second one is really 12 ms of work and could go faster if the timer let it.
@@ -185,28 +186,40 @@ middle pushes its whole rows, 368 pixels wide instead of 40. What it saves is
 every row nothing touched, and since the cost is bytes over SPI, that is most
 of it.
 
-The pattern, then:
+### `aos.background()`, so you never erase
+
+The script does not have to un-draw anything. Paint the world once, freeze it,
+and from then on the app puts back whatever the script drew in the frame
+before — copying those rectangles out of the frozen copy at the start of the
+next one:
 
 ```lua
 function init()
-    aos.clear(0x05050C)          -- the fixed world, once
-    aos.text(6, 8, "PELOTAS", 0x3E4A63, 1)
-end
-
-function tick(dt)
-    aos.disc(old_x, old_y, r + 1, 0x05050C)   -- erase where it was
-    ...move...
+    aos.clear(0x05050C)
+    for y = 22, aos.H - 1, 16 do aos.rect(0, y, aos.W, 1, 0x121A2A) end
+    for x = 0, aos.W - 1, 16 do aos.rect(x, 22, 1, aos.H - 22, 0x121A2A) end
+    aos.background()                       -- this is the world
 end
 
 function draw()
-    aos.disc(x, y, r, 0x00E5FF)               -- draw where it is
+    aos.disc(x, y, r, 0x00E5FF)            -- and this is transient
 end
 ```
 
-Its limit is that erasing this way needs a flat colour underneath: over a
-drawn background you would be painting a hole. `pelota.lua` keeps its title
-above the field for exactly that reason. A background buffer to restore from
-is the obvious next step and is not written yet.
+That is `pelota.lua`, and the grid is the point: erasing by painting the
+background colour over the old position — which is the other way of doing it,
+and what that script did before — would leave rectangular holes in it. A drawn
+background can only be restored, not repainted.
+
+The contract it brings: **after the call, anything drawn lasts one frame**.
+Something meant to stay goes on the buffer before the call, or the call is
+made again to freeze it in — which is also how a script changes its world
+between levels.
+
+It costs 82 KB of PSRAM, allocated the first time it is asked for, so a script
+that never calls it pays nothing; internal RAM does not move. It returns
+`false` if there is no memory, and a script can carry on without one by
+erasing for itself.
 
 So **the interpreter is not the ceiling, the panel is**. At 20 fps a script
 has some 30 ms a frame before it becomes the slower half, and 30 ms is around

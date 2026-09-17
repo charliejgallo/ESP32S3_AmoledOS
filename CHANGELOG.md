@@ -14,6 +14,12 @@ Newest first. Versions are git tags; what is above the latest tag is on
   old positions pays for those (`pelota.lua`: 67/224, 20 ms, 50 fps — which is
   the frame timer's period, so it is really 12 ms of work). `aos.stats()`
   returns the row count as a fourth value, and `pelota.lua` is the example.
+- **`aos.background()`**, so a script never has to erase. It freezes what is
+  drawn, and from then on the app puts back whatever the last frame drew,
+  copying those rectangles out of the frozen copy. Erasing by painting the
+  background colour over the old position only works over a flat colour; a
+  DRAWN background can only be restored, which is why `pelota.lua` now runs
+  over a grid. 82 KB of PSRAM, allocated on first use, nothing if unused.
 - **`AOS_MAX_APPS` 48 → 80, and it says so when it fills up.** Since a module
   can declare several apps, twenty built-in plus a full card came to exactly
   48 and the forty-ninth — a Lua script — was refused by

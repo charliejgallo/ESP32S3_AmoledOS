@@ -200,6 +200,27 @@ static int l_stats(lua_State *L)
     return 4;
 }
 
+/* Freezes what is on the buffer right now as the background.
+ *
+ * From then on the app UNDOES, at the start of every frame, whatever the
+ * script drew in the one before: it copies those rectangles back from the
+ * frozen copy. So a script stops having to erase, and -the point of it- the
+ * background may be drawn rather than a flat colour, which is what erasing
+ * by painting over could never handle.
+ *
+ * The contract it brings: after this, anything drawn is transient and lasts
+ * one frame. Something meant to stay goes on the buffer before the call, or
+ * the call is made again to freeze it in.
+ *
+ * Returns false if there is no memory for the copy (82 KB of PSRAM), and a
+ * script can carry on without one: it just has to erase for itself. */
+static int l_background(lua_State *L)
+{
+    lx_ctx_t *c = ctx_of(L);
+    lua_pushboolean(L, c->freeze && c->freeze(c->app));
+    return 1;
+}
+
 static int l_beep(lua_State *L)
 {
     lua_Integer hz = luaL_checkinteger(L, 1);
@@ -230,6 +251,7 @@ static const luaL_Reg lx_funcs[] = {
     {"touch", l_touch},
     {"ms",    l_ms},
     {"stats", l_stats},
+    {"background", l_background},
     {"beep",  l_beep},
     {NULL, NULL},
 };

@@ -95,7 +95,24 @@ typedef struct {
     uint32_t   hud_at;          /* when it was last written                */
     uint16_t   ms_push;         /* of ms_screen, what the panel took       */
     uint16_t   rows;            /* of LX_H, how many were pushed           */
-    lx_dirty_t dirty;           /* what the script touched this frame      */
+
+    /* Two lists, and the difference matters.
+     *
+     * 'drawn' is what the SCRIPT touched: the primitives mark it, and it is
+     * what has to be undone next frame. 'dirty' is what goes to the panel,
+     * which is that plus whatever was undone at the start of this one.
+     *
+     * With one list the undo marks fed back into themselves: the first frame
+     * is a whole screen -init() clears- so the second undid the whole screen
+     * and marked it, and it stayed at 224 of 224 rows for ever. */
+    lx_dirty_t drawn;
+    lx_dirty_t dirty;
+
+    /* The frozen background and what was pushed last time. With a background,
+     * the app undoes the previous frame at the start of this one instead of
+     * making the script erase: aos.background() in lx_api.c says why. */
+    uint16_t  *back;
+    lx_dirty_t prev;
 
     uint16_t  *small;           /* LX_W x LX_H, what the script draws on  */
     uint16_t  *big;             /* 368x448, what LVGL shows               */
@@ -361,6 +378,24 @@ static void frame_cb(lv_timer_t *t)
 
     uint32_t t_script = lv_tick_get();
 
+    /* Undo the previous frame, if the script froze a background: copy back
+     * what it drew, and mark those rows so they go out again. Without this a
+     * script has to erase for itself, which only works over a flat colour. */
+    lx_dirty_reset(&ctx->dirty);
+    if (ctx->back) {
+        if (ctx->prev.all) {
+            memcpy(ctx->small, ctx->back, (size_t)LX_W * LX_H * 2);
+            lx_dirty_all(&ctx->dirty);
+        } else {
+            for (int i = 0; i < ctx->prev.n; i++) {
+                const lx_rect_t *r = &ctx->prev.r[i];
+                lx_restore(ctx->small, ctx->back, r);
+                lx_dirty_add(&ctx->dirty, r->x0, r->y0,
+                             r->x1 - r->x0, r->y1 - r->y0);
+            }
+        }
+    }
+
     if (ctx->ref_tick != LUA_NOREF) {
         lua_rawgeti(ctx->L, LUA_REGISTRYINDEX, ctx->ref_tick);
         lua_pushinteger(ctx->L, (lua_Integer)dt);
@@ -372,6 +407,17 @@ static void frame_cb(lv_timer_t *t)
     }
 
     ctx->api.ms_script = (uint16_t)lv_tick_elaps(t_script);
+
+    /* What the script drew joins what was undone: together they are the rows
+     * the panel has to be told about. */
+    if (ctx->drawn.all) {
+        lx_dirty_all(&ctx->dirty);
+    } else {
+        for (int i = 0; i < ctx->drawn.n; i++) {
+            const lx_rect_t *r = &ctx->drawn.r[i];
+            lx_dirty_add(&ctx->dirty, r->x0, r->y0, r->x1 - r->x0, r->y1 - r->y0);
+        }
+    }
 
     /* The upscale is ours and the flush is LVGL's, but from the script's
      * point of view they are the same thing -what the screen costs- so they
@@ -422,7 +468,8 @@ static void frame_cb(lv_timer_t *t)
      * simulator, where the same buffer is an LVGL canvas, it came out as
      * bands of garbage. This way a mark made by a touch between two frames
      * survives into the next one as well. */
-    lx_dirty_reset(&ctx->dirty);
+    ctx->prev = ctx->drawn;     /* what to undo next frame */
+    lx_dirty_reset(&ctx->drawn);
 
     /* The cost of the frame, as a label and not as pixels in the buffer,
      * because what the blit pushed is invisible to /api/captura and to the
@@ -481,6 +528,24 @@ static void touch_cb(lv_event_t *e)
     call_lua(ctx, 3);
 }
 
+/* aos.background(): the copy is made here, where the buffers live. Allocated
+ * the first time it is asked for, so a script that never calls this costs
+ * nothing; called again, it re-freezes, which is how a script changes its
+ * world between levels. */
+static bool freeze_background(void *arg)
+{
+    lua_ctx_t *ctx = (lua_ctx_t *)arg;
+    if (!ctx->back) {
+        ctx->back = (uint16_t *)malloc((size_t)LX_W * LX_H * 2);
+        if (!ctx->back) {
+            return false;
+        }
+    }
+    memcpy(ctx->back, ctx->small, (size_t)LX_W * LX_H * 2);
+    lx_dirty_reset(&ctx->prev);     /* nothing of the old world to undo */
+    return true;
+}
+
 /* ==========================================================================
  * Loading and unloading a script
  * ========================================================================== */
@@ -497,6 +562,14 @@ static void unload(lua_ctx_t *ctx)
     }
     ctx->ref_tick = ctx->ref_draw = ctx->ref_touch = LUA_NOREF;
     ctx->stopped = false;
+    /* The background belongs to the script that froze it. Leaving the buffer
+     * behind would have the next script's first frames restored from the
+     * previous script's world, which is a ghost that would be very hard to
+     * read. It goes, and a script that wants one asks again. */
+    free(ctx->back);
+    ctx->back = NULL;
+    lx_dirty_reset(&ctx->prev);
+    lx_dirty_reset(&ctx->drawn);
     if (ctx->surface) {
         lv_obj_delete(ctx->surface);
         ctx->surface = NULL;
@@ -608,8 +681,10 @@ static void run_script(lua_ctx_t *ctx, const char *name)
 
     memset(ctx->small, 0, (size_t)LX_W * LX_H * 2);
     lx_buf_init(&ctx->buf, ctx->small, LX_W, LX_H);
-    ctx->api.buf   = &ctx->buf;
-    ctx->api.dirty = &ctx->dirty;
+    ctx->api.buf    = &ctx->buf;
+    ctx->api.dirty  = &ctx->drawn;
+    ctx->api.freeze = freeze_background;
+    ctx->api.app    = ctx;
     ctx->api.t0  = lv_tick_get();
 
 #ifdef AOS_SIM
@@ -654,7 +729,7 @@ static void run_script(lua_ctx_t *ctx, const char *name)
         lua_pop(ctx->L, 1);
     }
 
-    lx_dirty_all(&ctx->dirty);      /* the first frame pushes everything */
+    lx_dirty_all(&ctx->drawn);      /* the first frame pushes everything */
     write_state(ctx, NULL);         /* it loaded: the console goes quiet */
     ctx->last_frame = lv_tick_get();
     ctx->timer = lv_timer_create(frame_cb, LUA_FRAME_MS, ctx);
@@ -810,6 +885,7 @@ static void lua_destroy(aos_app_t *self, void *inst)
     }
     free(ctx->small);
     free(ctx->big);
+    free(ctx->back);
     lv_free(ctx);
 }
 

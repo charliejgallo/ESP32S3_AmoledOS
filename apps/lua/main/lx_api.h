@@ -31,6 +31,11 @@ typedef struct {
      * the app pushes only those rows at the panel. A script that clears
      * every frame marks everything, which is what used to happen always. */
     lx_dirty_t *dirty;
+
+    /* The frozen background, and the app's hook to freeze it. NULL until the
+     * script asks for one; see aos.background() in lx_api.c. */
+    bool      (*freeze)(void *app);
+    void       *app;
     int16_t   touch_x;
     int16_t   touch_y;
     bool      touch_down;

@@ -163,7 +163,7 @@ a line number on a black screen — never a reboot, which is the whole point.
 | | | |
 |---|---|---|
 | <img src="docs/img/app-lua-cube.png" width="200"><br>**The bench** — a wireframe cube whose two rotations, perspective divide and twelve lines are all done in Lua, per vertex, per frame. Tap for another cube. | <img src="docs/img/app-lua-error.png" width="200"><br>A mistake is a message, with the file, the line and the name of the variable. The watch carries on: every call into Lua goes through `lua_pcall`, and a script that will not come back is cut by an instruction hook before the watchdog notices. | <img src="docs/img/app-lua-hello.png" width="200"><br>The whole of that one: `function draw()`, a circle and two lines of text. All four callbacks — `init`, `tick`, `draw`, `touch` — are optional. |
-| <img src="docs/img/app-lua-list.png" width="200"><br>The scripts on the card, listed by the Lua app. | <img src="docs/img/app-lua-launcher.png" width="200"><br>And each one is an entry in the launcher of its own, beside the apps written in C: a script names itself with `-- @name Cubo` and takes an icon from a `.aic` beside it — four lines of shapes assembled with `tools/aic.py asm`, no toolchain involved. The module declares one app per script, which is a thing a `.so` could not do before v0.3.15. | <img src="docs/img/app-lua-balls.png" width="200"><br>**Pelotas** — the other way of drawing: nothing is cleared, each ball erases its own old position, and the app notices and pushes only the rows that changed. 67 of 224, and the frame goes from 40 ms to 20. |
+| <img src="docs/img/app-lua-list.png" width="200"><br>The scripts on the card, listed by the Lua app. | <img src="docs/img/app-lua-launcher.png" width="200"><br>And each one is an entry in the launcher of its own, beside the apps written in C: a script names itself with `-- @name Cubo` and takes an icon from a `.aic` beside it — four lines of shapes assembled with `tools/aic.py asm`, no toolchain involved. The module declares one app per script, which is a thing a `.so` could not do before v0.3.15. | <img src="docs/img/app-lua-balls.png" width="200"><br>**Pelotas** — the other way of drawing: the world is painted once and frozen, the app puts back what the last frame drew, and only the rows that changed go to the panel. 76 of 224, and the frame goes from 40 ms to 21. The grid is the point: erasing by painting over it would leave holes. |
 
 **It is not the interpreter that is slow.** Measured on the board: 200,000
 turns of a loop in 105 ms, about 1.9 M a second, with the code running from
@@ -175,8 +175,8 @@ half. That is around 57,000 VM instructions.
 And it only pays for what it moves: the app pushes **only the rows the script
 touched**, which it works out on its own from the boxes the primitives mark.
 The cube clears every frame, so it pushes all 224 rows and costs what it
-always did; the bouncing balls erase their own old positions and push 67,
-which takes the frame from 40 ms to 20.
+always did; the bouncing balls, over a background the app puts back for them,
+push 76 and take the frame from 40 ms to 21.
 
 And it costs **52 bytes of internal RAM**, the scarce kind, because Lua's heap
 is allocated straight out of PSRAM; with the default allocator the same state
