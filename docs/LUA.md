@@ -64,8 +64,9 @@ with the tool — no toolchain involved:
 python3 tools/aic.py asm cubo.aic.txt        # -> cubo.aic
 ```
 
-`apps/lua/scripts/cubo.aic.txt` is the one in the screenshot, four lines long,
-and [ICONS.md](ICONS.md) has the format. `/sdcard/icons/lua.cubo.aic` works
+`apps/lua/scripts/cubo.aic.txt` and `hola.aic.txt` are the two in the
+screenshot — four and three shapes, written by hand — and [ICONS.md](ICONS.md)
+has the format. `/sdcard/icons/lua.cubo.aic` works
 too and wins, because that is the firmware's own override. Without either, the
 script gets a play glyph and a colour picked from its name, so that fifteen
 scripts are not fifteen identical tiles.

@@ -1,0 +1,17 @@
+/* The icon of hola.lua: what the script itself draws, which is a cyan disc
+ * that breathes. Two rings around it at falling opacity read as the pulse.
+ *
+ *     python3 tools/aic.py asm apps/lua/scripts/hola.aic.txt
+ *
+ * AIC_RING is centred by construction -it takes a diameter and a border and
+ * nothing else- so the three shapes share a centre without any arithmetic.
+ * The borders are AIC_DIV(28), the hairline the hand-drawn icons used: no
+ * percentage reproduces a one-pixel line at 66, 74 and 82 px alike.
+ *
+ * The cyan is the literal the script passes to aos.disc(), not a palette
+ * entry, so the two stay the same colour if either is edited.
+ */
+
+AIC_RING(78, AIC_DIV(28), AIC_C_LIT(0x00E5FF), 70),
+AIC_RING(56, AIC_DIV(28), AIC_C_LIT(0x00E5FF), 140),
+AIC_RECT(AIC_CENTER, 0, 0, 32, 32, AIC_CIRCLE, AIC_C_LIT(0x00E5FF), 255)

@@ -3,6 +3,14 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## On `main`, not yet released
+
+- `hola.lua` gets an icon too (`apps/lua/scripts/hola.aic.txt`): the cyan disc
+  the script itself draws, with two rings around it for the pulse. It is the
+  first blob written with the assembler that uses `AIC_RING` and a literal
+  colour, so between it and the cube the four opcodes a script is likely to
+  want are exercised.
+
 ## v0.3.16 — 2026-09-17
 
 Tools and documentation only: nothing under `components/`, `main/` or any
