@@ -3,7 +3,11 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## On `main`, not yet released
+## v0.3.16 — 2026-09-17
+
+Tools and documentation only: nothing under `components/`, `main/` or any
+app's sources moved, so the firmware is v0.3.15's code with a different
+version string and `apps.zip` is the same one.
 
 - **`tools/aic.py asm`**: the assembler for icons. The firmware has read
   `.aic` files from the card since v0.3.8 and a Lua script has been a launcher
@@ -13,7 +17,7 @@ Newest first. Versions are git tags; what is above the latest tag is on
   input as it stands, and it accepts what `dump` prints as well.
 - **`aic.py selftest`** checks that the two are inverses: every `.aic` in the
   tree and every icon written as C macros, dumped, assembled and compared byte
-  for byte. 49 blobs, 0 failing.
+  for byte. 50 blobs, 0 failing.
 - Writing it found a bug in `aic.py`: the RECT radius was read as unsigned,
   but `radius_px()` in the firmware reads 255 as `LV_RADIUS_CIRCLE` and the
   rest back as `int8_t`, so `dump` printed the `AIC_DIV(38)` of six icons as
