@@ -118,6 +118,14 @@ EXTRA_SYMBOLS = [
     # stdio beyond what was already lent: lauxlib reads a script with
     # freopen/getc/feof/ferror, and print() writes with fputs/fputc.
     "feof", "ferror", "fputc", "fputs", "freopen", "getc",
+    # The allocator with a choice of RAM. Measured on the board on
+    # 2026-09-17: with plain malloc, a Lua state that grew to 77 KB pulled
+    # the free executable RAM from 107 K down to 56.8 K, because
+    # CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=1024 sends anything smaller than
+    # 1 KB to internal RAM and Lua allocates in crumbs. With these three an
+    # app can say where its heap goes, which is the only way an interpreter
+    # fits without eating the scarce RAM.
+    "heap_caps_malloc", "heap_caps_realloc", "heap_caps_free",
 ]
 
 # Symbols that are never exported: internals of the compiler, of the linker or

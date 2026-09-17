@@ -33,6 +33,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifndef AOS_SIM
+#include "esp_heap_caps.h"
+#endif
+
 #define LUA_BENCH_ITERS  200000
 
 typedef struct {
@@ -40,6 +44,32 @@ typedef struct {
     char      text[1024];
     lua_State *L;
 } lua_ctx_t;
+
+/* Lua's heap, in PSRAM.
+ *
+ * Without this, lua_newstate uses realloc, and realloc on this board obeys
+ * CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=1024: anything under a kilobyte goes to
+ * INTERNAL RAM. Lua allocates in crumbs -a table header, a string, a stack
+ * slot- so every one of them lands in the scarce memory. Measured before
+ * this function existed: a state grown to 77 KB took the free executable RAM
+ * from 107 K down to 56.8 K.
+ *
+ * heap_caps_realloc(NULL, n, caps) behaves as malloc, and with nsize == 0
+ * Lua means free. The .text of this .so already runs from PSRAM through the
+ * MMU, so with this the interpreter costs internal RAM only for what the HAL
+ * hands it. */
+#ifndef AOS_SIM
+static void *lua_psram_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
+{
+    (void)ud;
+    (void)osize;
+    if (nsize == 0) {
+        heap_caps_free(ptr);
+        return NULL;
+    }
+    return heap_caps_realloc(ptr, nsize, MALLOC_CAP_SPIRAM);
+}
+#endif
 
 static void say(lua_ctx_t *ctx, const char *fmt, ...) LV_FORMAT_ATTRIBUTE(2, 3);
 
@@ -95,7 +125,11 @@ static void *lua_create(aos_app_t *self, lv_obj_t *root)
     lv_obj_set_style_text_font(ctx->out, &aos_montserrat_14, 0);
     lv_label_set_text(ctx->out, "");
 
+#ifdef AOS_SIM
     ctx->L = luaL_newstate();
+#else
+    ctx->L = lua_newstate(lua_psram_alloc, NULL);
+#endif
     if (!ctx->L) {
         say(ctx, "luaL_newstate() -> NULL: no RAM");
         return ctx;
@@ -121,6 +155,82 @@ static void *lua_create(aos_app_t *self, lv_obj_t *root)
          * of anything but itself; what it answers is the order of magnitude. */
         say(ctx, "%d ms -> ~%d k ops/s", (int)ms,
             (int)((uint64_t)LUA_BENCH_ITERS * 4 / (ms > 0 ? ms : 1)));
+    }
+
+    /* The parser's stack, which is what decides where the VM can live.
+     *
+     * Lua compiles by recursive descent: every level of nesting is another C
+     * frame, and the task of LVGL has 16 KB with about 6 KB to spare. Lua
+     * guards itself with LUAI_MAXCCALLS, 200 by default, so the question is
+     * whether those 200 levels fit or whether a script with enough
+     * parentheses takes the watch down.
+     *
+     * Measured the hard way on 2026-09-17: the answer is that it takes it
+     * down. Ramping 20, 60, 120, 190 panicked the board, which came back on
+     * its own with boot_reason=PANIC.
+     *
+     * So the depth is READ FROM THE CARD instead of being compiled in:
+     * /sdcard/lua_depth.txt, one number. That way the threshold is bisected
+     * over the portal -upload a number, open the app, read the screen- with
+     * no rebuild and no cable, and the app that is installed is not a trap
+     * that panics every time somebody opens it.
+     */
+    int depth = 20;
+    {
+        const char *root = aos_hal_path_sd_root();
+        char path[96];
+        snprintf(path, sizeof(path), "%s/lua_depth.txt", root ? root : "/sdcard");
+        FILE *f = fopen(path, "r");
+        if (f) {
+            char buf[16] = "";
+            if (fread(buf, 1, sizeof(buf) - 1, f) > 0) {
+                int value = atoi(buf);
+                if (value > 0 && value < 5000) {
+                    depth = value;
+                }
+            }
+            fclose(f);
+        }
+    }
+
+    char *deep = lv_malloc(2 * depth + 16);
+    if (deep) {
+        char *w = deep;
+        w += sprintf(w, "return ");
+        for (int k = 0; k < depth; k++) *w++ = '(';
+        *w++ = '1';
+        for (int k = 0; k < depth; k++) *w++ = ')';
+        *w = 0;
+        say(ctx, "depth %d: about to compile", depth);
+        run(ctx, "deep", deep);
+        lv_free(deep);
+    }
+
+    /* And how deep a script may legitimately recurse, which is the price of
+     * the guard above: the same counter limits both. */
+    run(ctx, "rec 30",
+        "local function f(n) if n == 0 then return 0 end return 1 + f(n-1) end return f(30)");
+    run(ctx, "rec 100",
+        "local function f(n) if n == 0 then return 0 end return 1 + f(n-1) end return f(100)");
+
+    run(ctx, "rec 1000",
+        "local function f(n) if n == 0 then return 0 end return 1 + f(n-1) end return f(1000)");
+
+    /* A long script is a different thing from a deep one: 300 statements do
+     * not nest, they just make the parser hold a bigger function. */
+    {
+        size_t len = 300 * 24 + 32;
+        char *big = lv_malloc(len);
+        if (big) {
+            char *w = big;
+            w += sprintf(w, "local s = 0\n");
+            for (int k = 0; k < 300; k++) {
+                w += sprintf(w, "s = s + %d\n", k);
+            }
+            sprintf(w, "return s");
+            run(ctx, "300 lines", big);
+            lv_free(big);
+        }
     }
 
     say(ctx, "lua heap: %d KB", lua_gc(ctx->L, LUA_GCCOUNT));

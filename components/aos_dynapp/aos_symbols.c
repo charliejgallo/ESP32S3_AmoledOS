@@ -3,8 +3,8 @@
  *
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
- * Mas 117 funciones de libc/libm agregadas a mano.
- * Total: 2702 simbolos.
+ * Mas 120 funciones de libc/libm agregadas a mano.
+ * Total: 2705 simbolos.
  */
 
 #include <stddef.h>
@@ -524,6 +524,9 @@ extern int fwrite;
 extern int getc;
 extern int getenv;
 extern int gmtime_r;
+extern int heap_caps_free;
+extern int heap_caps_malloc;
+extern int heap_caps_realloc;
 extern int hypotf;
 extern int img_cursor;
 extern int jd_decomp;
@@ -3229,6 +3232,9 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(getc),
     ESP_ELFSYM_EXPORT(getenv),
     ESP_ELFSYM_EXPORT(gmtime_r),
+    ESP_ELFSYM_EXPORT(heap_caps_free),
+    ESP_ELFSYM_EXPORT(heap_caps_malloc),
+    ESP_ELFSYM_EXPORT(heap_caps_realloc),
     ESP_ELFSYM_EXPORT(hypotf),
     ESP_ELFSYM_EXPORT(img_cursor),
     ESP_ELFSYM_EXPORT(jd_decomp),

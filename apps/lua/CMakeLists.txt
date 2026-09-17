@@ -23,5 +23,23 @@ include(${CMAKE_CURRENT_LIST_DIR}/../common.cmake)
 # siendo el de lua.org salvo el #ifndef que hace posible este -D.
 idf_build_set_property(COMPILE_DEFINITIONS "LUA_32BITS=1" APPEND)
 
+# LUAI_MAXCCALLS es la guarda de Lua contra su propia recursion, y por omision
+# vale 200. Medido en la placa el 2026-09-17: el parser gasta ~105 bytes de
+# pila C por nivel de anidamiento, o sea que 200 niveles son ~21 KB. El task
+# de LVGL tiene 16384 en total y le quedan unos 7 KB libres. La cuenta no da:
+# con la guarda de fabrica, un guion con 68 parentesis anidados NO da error de
+# Lua, pisa la pila y el reloj panica y se reinicia solo (verificado: 66
+# sobrevive, 68 mata).
+#
+# Con 40, la guarda salta antes que la pila: 1000 parentesis anidados le dan
+# al guion un "C stack overflow" como cualquier otro error de Lua, y el reloj
+# sigue. Verificado en placa.
+#
+# Y no cuesta lo que parecia: este contador cuenta niveles de C, no llamadas
+# de Lua. Una funcion que se llama a si misma 100 veces sigue andando con la
+# guarda en 40, porque esas llamadas se resuelven adentro del bucle del VM
+# sin apilar marcos de C. Medido, no supuesto.
+idf_build_set_property(COMPILE_DEFINITIONS "LUAI_MAXCCALLS=40" APPEND)
+
 include(elf_loader)
 project_so(lua)
