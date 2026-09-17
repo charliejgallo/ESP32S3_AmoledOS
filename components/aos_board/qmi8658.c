@@ -6,6 +6,7 @@
  */
 #include "aos_board.h"
 #include "qmi8658.h"
+#include "aos_step_detect.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "esp_heap_caps.h"
@@ -18,18 +19,14 @@ static qmi8658_dev_t s_imu;
 static bool          s_present;
 
 /* --- step counter --------------------------------------------------------
- * Peak detection over the magnitude of the acceleration, with hysteresis and a
- * 250 ms dead time so bounces are not counted. It is simple but behaves
- * reasonably well on the wrist; if more accuracy is needed, the QMI8658 has a
- * hardware pedometer that can be enabled later.
+ * The detector is aos_step_detect.c: pure C, tuned on the desktop against
+ * /api/imu dumps of counted walks (tools/steps/). It replaced a fixed
+ * 1.18 g / 1.02 g threshold on the magnitude that counted 124 for 100
+ * steps with the watch in a pocket (the impact and the toe-off of a stride
+ * both crossed it) and needed the screen on to see anything.
  * ------------------------------------------------------------------------ */
-#define STEP_HIGH_G     1.18f
-#define STEP_LOW_G      1.02f
-#define STEP_DEAD_US    250000
-
+static aos_step_detect_t s_detector;
 static uint32_t s_steps;
-static bool     s_above;
-static int64_t  s_last_step_us;
 
 static int      s_orientation;
 static bool     s_wrist_raised;
@@ -66,6 +63,7 @@ bool aos_imu_start(i2c_master_bus_handle_t bus)
     s_gyro_on = true;
 
     s_present = true;
+    aos_step_detect_init(&s_detector);
     ESP_LOGI(TAG, "QMI8658 ready at 0x%02X", address);
     return true;
 }
@@ -144,17 +142,9 @@ void aos_board_imu_poll(void)
     float magnitude = sqrtf(sample.ax * sample.ax +
                             sample.ay * sample.ay +
                             sample.az * sample.az);
-    int64_t now = esp_timer_get_time();
-
-    if (!s_above && magnitude > STEP_HIGH_G) {
-        s_above = true;
-        if (now - s_last_step_us > STEP_DEAD_US) {
-            s_steps++;
-            s_last_step_us = now;
-        }
-    } else if (s_above && magnitude < STEP_LOW_G) {
-        s_above = false;
-    }
+    s_steps += (uint32_t)aos_step_detect_feed(&s_detector,
+                                              (uint32_t)(esp_timer_get_time() / 1000),
+                                              magnitude);
 
     /* --- orientation --- */
     /* Mapping MEASURED on the board on 2026-08-28, with the four postures:

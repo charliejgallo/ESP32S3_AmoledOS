@@ -168,6 +168,15 @@ reset nor switching its five rails off and on recovers it, because its logic
 is on DCDC1. The firmware pulls EXIO0 low for 20 ms before every display
 init; `/api/pmu?panelreset=1` does it on demand.
 
+### The QMI8658 is a C, and its interrupt goes to the expander
+
+The part is a **QMI8658C** (schematic, U5). Its datasheet lists Wake on
+Motion and no other motion engine: no hardware pedometer, no tap detection.
+INT1 is wired to the TCA9554's P6 (EXIO6) and INT2 to nothing, and the
+expander's own interrupt line does not reach the ESP32 (see the PMU above),
+so no IMU event can wake the chip. Steps are counted in software from the
+polled accelerometer: [STEPS.md](STEPS.md).
+
 ### The QMI8658 does not survive accel-only mode
 
 Writing CTRL7 with only the accelerometer enabled (to save the gyro's ~1 mA)
