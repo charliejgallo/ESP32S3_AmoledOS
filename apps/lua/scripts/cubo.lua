@@ -73,14 +73,22 @@ function draw()
     end
     frames = frames + 1
 
-    aos.rect(0, aos.H - 24, aos.W, 24, 0x000000)
+    -- Not against the bottom edge, and not against the sides.
+    --
+    -- The panel has a 38-pixel corner radius and a bezel on top of it, which
+    -- on the last rows eats about ten pixels -nearly two characters- from
+    -- each end of a line. Claude Jump's score read "_9M" on the board for
+    -- this reason and was perfect in the simulator; so was this line, until
+    -- a photograph of the watch showed it ending at "TOTAL" with no number.
+    -- Twelve rows up and ten pixels in, it clears the corner.
+    --
+    -- The 5x7 font also fits about 28 characters across 184 pixels at
+    -- scale 1, and anything longer is simply cut.
     local script_ms, screen_ms, frame_ms = aos.stats()
-    aos.text(4, aos.H - 20, string.format("%d CUBOS  %d FPS  %d VERT/S",
+    aos.rect(0, aos.H - 40, aos.W, 26, 0x000000)
+    aos.text(10, aos.H - 36, string.format("%d CUBOS  %d FPS  %d V/S",
              cubes, fps, vps), 0x9FA8DA, 1)
-    -- The 5x7 font fits about 30 characters across 184 pixels at scale 1:
-    -- anything longer is simply cut, which is how the first version of this
-    -- line lost its last word.
-    aos.text(4, aos.H - 10, string.format("MS: GUION %d  PANT %d  TOTAL %d",
+    aos.text(10, aos.H - 24, string.format("MS: GUION %d PANT %d TOT %d",
              script_ms, screen_ms, frame_ms), 0x6F7A99, 1)
 end
 

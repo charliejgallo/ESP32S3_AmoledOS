@@ -718,7 +718,12 @@ anywhere between y = 24 and y = 410 (x 16..352); between y = 56 and 390 the
 precision is the calibration's, outside it a finger against the rim lands
 exactly on the edge row. Put nothing you must be able to tap - the back
 button above all - beyond that, and use the bottom strip for text that is
-only read (a score, a status line). In the simulator the mouse reaches
+only read (a score, a status line) - but keep that text away from the two
+ends, because the corner takes its bite there too: a status line drawn ten
+pixels above the bottom edge lost about two characters at each end on the
+board and was perfect in the simulator (the Lua bench, whose last word was
+missing in a photograph of the watch). Twelve rows further up and ten pixels
+in from each side clears it. In the simulator the mouse reaches
 everywhere, so this is invisible there; `tools/audit_layout.sh` flags any
 clickable that ends beyond the limit. And at the **top** the problem is the
 glass: 38 px corner radius plus bezel eat ~10 px each side of the first rows
