@@ -1,7 +1,7 @@
 # AmoledOS
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
-368x448 AMOLED you can hold in your hand. Seven watchfaces, eighteen built-in
+368x448 AMOLED you can hold in your hand. Seven watchfaces, twenty built-in
 apps, twenty-five more loaded from the microSD as shared objects, a web portal,
 iPhone notifications over BLE, and a desktop simulator that runs the same UI
 code so you can build the whole thing without the board.
@@ -106,12 +106,12 @@ browser, and the log tailed over wifi. See [docs/PORTAL.md](docs/PORTAL.md).
 
 ## The apps
 
-Forty-three of them, in two families that differ in where the code lives, not
+Forty-five of them, in two families that differ in where the code lives, not
 in what they are allowed to do.
 
 ### Built into the firmware
 
-Eighteen ship inside the binary. They are the ones the watch cannot be without
+Twenty ship inside the binary. They are the ones the watch cannot be without
 — if the microSD is out, these still work.
 
 | | | |
@@ -122,6 +122,7 @@ Eighteen ship inside the binary. They are the ones the watch cannot be without
 | <img src="docs/img/int-music.png" width="200"><br>**Música** — plays WAV from the card through the ES8311 codec. | <img src="docs/img/int-photos.png" width="200"><br>**Fotos** — JPEG, PNG and BMP from the card, decoded and scaled to the screen. | <img src="docs/img/int-flashlight.png" width="200"><br>**Linterna** — the panel at full white, which on an AMOLED is the only way to make light. |
 | <img src="docs/img/int-level.png" width="200"><br>**Nivel** — a spirit level off the accelerometer, with the bubble and the angle in degrees. | <img src="docs/img/int-calc.png" width="200"><br>**Calculadora** — four operations, sized for a thumb rather than for density. | <img src="docs/img/int-convert.png" width="200"><br>**Conversor** — units across several families, with the keypad shared with the calculator. |
 | <img src="docs/img/int-battery.png" width="200"><br>**Batería** — what the AXP2101 reports: charge, voltage and whether it is charging. | <img src="docs/img/app-life.png" width="200"><br>**Vida** — Conway's Game of Life and Langton's ant on a 92x92 grid. | <img src="docs/img/settings-en.png" width="200"><br>**Ajustes** — brightness, always-on, language, wifi, bluetooth, watchface and the touch calibration. |
+| <img src="docs/img/usb-pcremote-keys.png" width="200"><br>**Control PC** — the watch as a keyboard with media keys, a mouse, a gamepad and a MIDI port for the computer on the USB cable, one screen per role. | <img src="docs/img/usb-pato-list.png" width="200"><br>**Pato goma** — runs keyboard-and-mouse scripts on the computer, DuckyScript-style, picked and confirmed on the watch and edited from the portal's `/pato` page. | |
 
 ### Loaded from the microSD
 
@@ -223,7 +224,7 @@ components/
   aos_hal/            the single contract with the platform
   aos_board/          AXP2101, PCF85063A, QMI8658
   aos_ui/             launcher, watchfaces, navigation, theme, i18n
-  aos_apps/           the 18 built-in apps
+  aos_apps/           the 20 built-in apps
   aos_dynapp/         .so loader and symbol table
   aos_ble/            NimBLE: ANCS, AMS, pairing
   aos_web/            the web portal, embedded in the binary
