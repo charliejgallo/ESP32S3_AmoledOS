@@ -38,6 +38,40 @@ A script draws into **184 x 224**, which the app scales x2 onto the watch's
 368 x 448. Coordinates are always the script's, the finger's included: a
 script never learns the screen is twice its buffer.
 
+## A script is an app
+
+A `.lua` on the card is also an entry in the launcher of its own, beside the
+apps written in C. The module tells the loader how many apps it brings and
+describes each one, so the interpreter is paid for once and every script after
+that is data — the same bargain CHATARRA made with its `.rodata`.
+
+Two things a script can say about itself:
+
+```lua
+-- @name Cubo
+```
+
+anywhere in its first few lines, which is the name the launcher shows. Without
+it the file name is used, minus the extension, which in a launcher full of
+Burbujas and Pixel Art reads like a mistake.
+
+And an **icon**: a `.aic` file next to the script with the same name
+(`cubo.lua` → `cubo.aic`) becomes its launcher icon, with no firmware and no
+reflashing. `docs/ICONS.md` has the format; `/sdcard/icons/lua.cubo.aic` works
+too and wins, because that is the firmware's own override. Without either, the
+script gets a play glyph and a colour picked from its name, so that fifteen
+scripts are not fifteen identical tiles.
+
+The entries are read **at boot**, like the `.so` apps: a script saved now is
+in the list inside the Lua app immediately, and in the launcher after a
+restart. The first sixteen scripts get an entry; the rest still run, from the
+list.
+
+One curiosity worth knowing: the launcher translates app names through the
+same catalogue the system uses, so a `@name` that happens to match one of its
+strings gets translated. A script called `Hola` shows as `Hello` on an English
+watch, because `Hola` is `hello_app`'s name.
+
 ## The `aos` table
 
 This is all of it. There is no `io`, no `os`, no `package` and no `debug` —

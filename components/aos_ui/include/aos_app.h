@@ -179,16 +179,47 @@ struct aos_app_s {
  *     AOS_APP_ENTRY(my_app_init);
  * -------------------------------------------------------------------------- */
 
+/* --------------------------------------------------------------------------
+ * A module with several apps
+ *
+ * A .so may also export TWO MORE functions, and then the loader asks it how
+ * many apps it brings and reads one descriptor per app:
+ *
+ *     uint32_t aos_app_count(void);
+ *     bool     aos_app_init_at(aos_app_t *app, uint32_t index);
+ *
+ * It exists for the Lua module, where the apps are not code: each .lua on the
+ * card is an app of its own in the launcher, with its name and its icon, and
+ * the number of them is only known on the watch.
+ *
+ * Both are OPTIONAL and the ABI does not move for them. A .so without them
+ * loads exactly as before -that is the 26 apps of today, untouched- and a .so
+ * WITH them still works on a firmware that has never heard of them, because
+ * AOS_APP_ENTRY_MANY also defines the old aos_app_init() as index 0. That is
+ * why the index is not the identity: on reopening, a module is asked for the
+ * index the loader wrote down, but what the app IS must be decided from
+ * self->desc.id, which the runtime keeps and which does not move when a file
+ * appears on the card.
+ * -------------------------------------------------------------------------- */
+
 #ifdef AOS_SIM_BUILTIN
 
 /* In the simulator the app registers itself at startup, so the same source is
  * tested on the desktop without the board. */
 void aos_sim_register_app(bool (*init)(aos_app_t *app));
+void aos_sim_register_app_many(uint32_t (*count)(void),
+                               bool (*init_at)(aos_app_t *app, uint32_t index));
 
 #define AOS_APP_ENTRY(init_fn)                                       \
     __attribute__((constructor)) static void aos__autoregister(void) \
     {                                                                \
         aos_sim_register_app(init_fn);                               \
+    }
+
+#define AOS_APP_ENTRY_MANY(count_fn, init_at_fn)                     \
+    __attribute__((constructor)) static void aos__autoregister(void) \
+    {                                                                \
+        aos_sim_register_app_many(count_fn, init_at_fn);             \
     }
 
 #else
@@ -204,6 +235,31 @@ void aos_sim_register_app(bool (*init)(aos_app_t *app));
     bool aos_app_init(aos_app_t *app)                                \
     {                                                                \
         return (init_fn)(app);                                       \
+    }
+
+/* aos_app_init() is defined here too, as index 0: that is what makes a
+ * multi-app module load -with its first app only- on a firmware that does not
+ * know about aos_app_count. */
+#define AOS_APP_ENTRY_MANY(count_fn, init_at_fn)                     \
+    __attribute__((visibility("default")))                           \
+    uint32_t aos_app_abi(void)                                       \
+    {                                                                \
+        return AOS_ABI_VERSION;                                      \
+    }                                                                \
+    __attribute__((visibility("default")))                           \
+    uint32_t aos_app_count(void)                                     \
+    {                                                                \
+        return (count_fn)();                                         \
+    }                                                                \
+    __attribute__((visibility("default")))                           \
+    bool aos_app_init_at(aos_app_t *app, uint32_t index)             \
+    {                                                                \
+        return (init_at_fn)(app, index);                             \
+    }                                                                \
+    __attribute__((visibility("default")))                           \
+    bool aos_app_init(aos_app_t *app)                                \
+    {                                                                \
+        return (init_at_fn)(app, 0);                                 \
     }
 
 #endif

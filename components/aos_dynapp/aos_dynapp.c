@@ -35,9 +35,14 @@ static const char *TAG = "aos_dynapp";
  * looked like an app that simply did not show up in the menu. It is exactly
  * the same bug that had already happened in the simulator with MAX_SIM_APPS
  * (12 slots, 14 apps), so now it is 32 -like over there- and the limit also
- * SAYS SO when it fills up. Each slot is ~230 bytes of .bss, so the 32 cost
- * 7 KB. */
-#define MAX_DYNAPPS     32
+ * SAYS SO when it fills up. Each slot is ~230 bytes of .bss, so they are
+ * cheap, and they live in PSRAM anyway.
+ *
+ * It went from 32 to 48 when a module stopped meaning an app: lua.so declares
+ * one app per .lua on the card, so 26 .so files can now be forty-something
+ * entries. The ceiling has to be above what a card can hold, because the ones
+ * that do not fit are whatever readdir happened to return last. */
+#define MAX_DYNAPPS     48
 
 /* The descriptor's strings point into the .so's rodata, which disappears when
  * it is closed: a copy of our own has to be kept. */
@@ -51,6 +56,12 @@ typedef struct {
     void     *handle;
     bool      pending_close;
     bool      in_use;
+
+    /* Which app of the module this slot is. Zero for the 26 .so that bring
+     * one app each, which is every one of them but lua.so. It is only used
+     * to ask the module for the right descriptor when it is reopened: what
+     * the app IS, is its id, and the module decides from there. */
+    uint16_t  index;
 } dynapp_t;
 
 AOS_BSS_PSRAM static dynapp_t s_apps[MAX_DYNAPPS];
@@ -340,7 +351,8 @@ bool aos_dynapp_is_dynamic(const char *app_id)
  * -------------------------------------------------------------------------- */
 
 /* Opens the module and returns the aos_app_t its init() builds. */
-static bool module_open(const char *filename, void **out_handle, aos_app_t *out_app)
+static bool module_open(const char *filename, uint32_t index,
+                        void **out_handle, aos_app_t *out_app)
 {
     char relative[160];
     snprintf(relative, sizeof(relative), "/%s/%s", AOS_DYNAPP_RELATIVE, filename);
@@ -389,6 +401,12 @@ static bool module_open(const char *filename, void **out_handle, aos_app_t *out_
     uint32_t (*abi_fn)(void)            = dlsym(handle, "aos_app_abi");
     bool     (*init_fn)(aos_app_t *app) = dlsym(handle, "aos_app_init");
 
+    /* Optional, and only lua.so has them today: a module that brings several
+     * apps (see aos_app.h). Without them the module has exactly one, which is
+     * what every other .so on the card is. */
+    bool (*init_at_fn)(aos_app_t *app, uint32_t index) =
+        dlsym(handle, "aos_app_init_at");
+
     if (!abi_fn || !init_fn) {
         ESP_LOGE(TAG, "%s does not export aos_app_abi/aos_app_init", filename);
         dlclose(handle);
@@ -404,8 +422,9 @@ static bool module_open(const char *filename, void **out_handle, aos_app_t *out_
     }
 
     memset(out_app, 0, sizeof(*out_app));
-    if (!init_fn(out_app)) {
-        ESP_LOGE(TAG, "%s failed to initialise", filename);
+    bool ok = init_at_fn ? init_at_fn(out_app, index) : (index == 0 && init_fn(out_app));
+    if (!ok) {
+        ESP_LOGE(TAG, "%s failed to initialise app %u", filename, (unsigned)index);
         dlclose(handle);
         return false;
     }
@@ -465,14 +484,14 @@ static bool module_ensure_open(dynapp_t *app)
         app->pending_close = false;     /* it was reopened before being closed */
         return true;
     }
-    if (module_open(app->file, &app->handle, &app->loaded)) {
+    if (module_open(app->file, app->index, &app->handle, &app->loaded)) {
         return true;
     }
 
     /* One retry, after recovering whatever can be recovered without breaking
      * anything. */
     if (liberar_ejecutable(app) &&
-        module_open(app->file, &app->handle, &app->loaded)) {
+        module_open(app->file, app->index, &app->handle, &app->loaded)) {
         ESP_LOGI(TAG, "%s loaded on the second attempt", app->file);
         return true;
     }
@@ -583,50 +602,80 @@ static bool register_stub(const char *filename)
 
     void *handle = NULL;
     aos_app_t probe;
-    if (!module_open(filename, &handle, &probe)) {
+    if (!module_open(filename, 0, &handle, &probe)) {
         return false;
     }
 
-    dynapp_t *slot = &s_apps[s_count];
-    memset(slot, 0, sizeof(*slot));
-    snprintf(slot->file, sizeof(slot->file), "%s", filename);
-    snprintf(slot->id,   sizeof(slot->id),   "%s", probe.desc.id   ? probe.desc.id   : filename);
-    snprintf(slot->name, sizeof(slot->name), "%s", probe.desc.name ? probe.desc.name : filename);
-    snprintf(slot->icon, sizeof(slot->icon), "%s", probe.desc.icon ? probe.desc.icon : "");
+    /* How many apps this module brings. Only lua.so answers; for everything
+     * else the symbol is absent and the answer is one. The module stays open
+     * for the whole loop: the alternative is a dlopen per app, and lua.so is
+     * 144 KB. */
+    uint32_t (*count_fn)(void) = dlsym(handle, "aos_app_count");
+    bool (*init_at_fn)(aos_app_t *app, uint32_t index) =
+        dlsym(handle, "aos_app_init_at");
+    uint32_t total = (count_fn && init_at_fn) ? count_fn() : 1;
+    if (total < 1) {
+        total = 1;
+    }
 
-    aos_app_t stub = {0};
-    stub.desc = probe.desc;
-    stub.desc.id   = slot->id;      /* pointing at OUR copies */
-    stub.desc.name = slot->name;
-    stub.desc.icon = slot->icon[0] ? slot->icon : NULL;
+    int registered = 0;
+    for (uint32_t i = 0; i < total; i++) {
+        if (s_count >= MAX_DYNAPPS) {
+            ESP_LOGE(TAG, "%s app %u does not fit: the limit is %d",
+                     filename, (unsigned)i, MAX_DYNAPPS);
+            break;
+        }
+        if (i > 0) {
+            memset(&probe, 0, sizeof(probe));
+            if (!init_at_fn(&probe, i)) {
+                ESP_LOGE(TAG, "%s failed to describe app %u", filename, (unsigned)i);
+                continue;
+            }
+        }
 
-    stub.create  = dyn_create;
-    stub.destroy = dyn_destroy;
-    stub.show    = dyn_show;
-    stub.hide    = dyn_hide;
-    stub.back    = dyn_back;
-    stub.button  = dyn_button;
-    stub.tick    = dyn_tick;
+        dynapp_t *slot = &s_apps[s_count];
+        memset(slot, 0, sizeof(*slot));
+        snprintf(slot->file, sizeof(slot->file), "%s", filename);
+        snprintf(slot->id,   sizeof(slot->id),   "%s", probe.desc.id   ? probe.desc.id   : filename);
+        snprintf(slot->name, sizeof(slot->name), "%s", probe.desc.name ? probe.desc.name : filename);
+        snprintf(slot->icon, sizeof(slot->icon), "%s", probe.desc.icon ? probe.desc.icon : "");
+        slot->index = (uint16_t)i;
 
-    /* descriptor read, the code goes away: it comes back in when it is opened */
+        aos_app_t stub = {0};
+        stub.desc = probe.desc;
+        stub.desc.id   = slot->id;      /* pointing at OUR copies */
+        stub.desc.name = slot->name;
+        stub.desc.icon = slot->icon[0] ? slot->icon : NULL;
+
+        stub.create  = dyn_create;
+        stub.destroy = dyn_destroy;
+        stub.show    = dyn_show;
+        stub.hide    = dyn_hide;
+        stub.back    = dyn_back;
+        stub.button  = dyn_button;
+        stub.tick    = dyn_tick;
+
+        slot->in_use = true;
+        s_count++;
+
+        bool ok = false;
+        if (aos_hal_lock(1000)) {
+            ok = aos_ui_register_app(&stub);
+            aos_hal_unlock();
+        }
+        if (!ok) {
+            slot->in_use = false;
+            s_count--;
+            continue;
+        }
+        registered++;
+        ESP_LOGI(TAG, "registered %s[%u] -> %s (%s)",
+                 filename, (unsigned)i, slot->id, slot->name);
+    }
+
+    /* descriptors read, the code goes away: it comes back in when it is opened */
     dlclose(handle);
-
-    slot->in_use = true;
-    s_count++;
-
-    bool ok = false;
-    if (aos_hal_lock(1000)) {
-        ok = aos_ui_register_app(&stub);
-        aos_hal_unlock();
-    }
-    if (!ok) {
-        slot->in_use = false;
-        s_count--;
-        return false;
-    }
-
-    ESP_LOGI(TAG, "registered %s -> %s (%s)", filename, slot->id, slot->name);
-    return true;
+    return registered > 0;
 }
 
 bool aos_dynapp_load(const char *filename)

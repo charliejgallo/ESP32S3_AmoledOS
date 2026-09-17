@@ -1,8 +1,13 @@
 /*
  * LUA - scripts on the watch
  *
- * A list of .lua files from /sdcard/lua, and a canvas for the one you tap.
- * The script says what it wants to happen by defining functions:
+ * Two ways in, the same script either way: a list of the .lua files in
+ * /sdcard/lua, and -because this module declares one app per script- an entry
+ * of its own in the launcher, with its name, its colour and its icon, beside
+ * the apps written in C. The interpreter is paid for once; every script after
+ * that is data.
+ *
+ * A script says what it wants to happen by defining functions:
  *
  *     function init()            once, before the first frame
  *     function tick(dt)          every frame, dt in milliseconds
@@ -25,14 +30,18 @@
  *   - The parser's own recursion is bounded by LUAI_MAXCCALLS=40, set in the
  *     CMakeLists with the measurement that explains the number.
  *
- * Drawing follows the house recipe: the script works in 184x224, this
- * upscales x2 into a 368x448 canvas that LVGL copies flat. Never
- * LV_IMAGE_ALIGN_STRETCH (129 ms a frame, measured in 2043).
+ * Drawing: the script works in 184x224 and this upscales x2 to the panel's
+ * 368x448. On the board the frame goes out with aos_hal_display_blit(),
+ * because a full-screen canvas through LVGL costs about 95 ms (measured by
+ * the Video app and again here: 12 fps against 25). In the simulator there is
+ * no panel, so the same buffer is an LVGL canvas and everything is visible on
+ * the Mac.
  */
 #include "aos_app.h"
 #include "aos_fonts.h"
 #include "aos_hal.h"
 #include "aos_i18n.h"
+#include "aos_icon_ops.h"
 #include "aos_ui.h"
 
 #include "lua.h"
@@ -53,6 +62,16 @@
 #endif
 
 #define LUA_MAX_SCRIPTS     24
+
+/* How many scripts also become apps of their own in the launcher.
+ *
+ * Lower than LUA_MAX_SCRIPTS on purpose: the list inside this app can show
+ * everything on the card, but every launcher entry takes a slot of the
+ * firmware's MAX_DYNAPPS, which the 26 .so files already share. Sixteen plus
+ * those 26 plus this app's own entry leaves room under the 48 there are. A
+ * script past the sixteenth still runs: it is in the list, it just does not
+ * get its own icon. */
+#define LUA_MAX_APPS        16
 #define LUA_MAX_SOURCE      (48 * 1024)     /* a script bigger than this is
                                              * not a script, it is a mistake */
 #define LUA_FRAME_MS        20              /* the timer's period; the frame
@@ -98,6 +117,7 @@ typedef struct {
      * the file changes. That is what makes the browser's Save the only step
      * -write it on the Mac, look at the watch- instead of save, walk over,
      * back out, tap again. */
+    bool       standalone;      /* opened as its own app, not from the list */
     char       running[48];
     uint32_t   watch_at;
     time_t     watch_mtime;
@@ -723,6 +743,11 @@ static bool lua_back(aos_app_t *self, void *inst)
 {
     (void)self;
     lua_ctx_t *ctx = (lua_ctx_t *)inst;
+    /* A script opened from the launcher has no list behind it: back leaves
+     * the app, which is what every other app does. */
+    if (ctx->standalone) {
+        return false;
+    }
     if (ctx->surface || ctx->L) {
         unload(ctx);
         ctx->running[0] = '\0';
@@ -732,7 +757,191 @@ static bool lua_back(aos_app_t *self, void *inst)
     return false;
 }
 
-static bool lua_app_init(aos_app_t *app)
+/* ==========================================================================
+ * One app per script
+ *
+ * The module tells the loader how many apps it brings and describes each one,
+ * so a .lua on the card is an entry in the launcher with its name, its colour
+ * and its icon, beside the apps written in C. The interpreter is paid for
+ * once and every script after that is data.
+ *
+ * The index is NOT the identity. The loader writes down which app of the
+ * module a slot is and asks for that index again when it reopens it, but by
+ * then a script may have been added or deleted and the indices will have
+ * moved. What an app IS comes from its id -"lua.cubo" is cubo.lua- which the
+ * runtime keeps and which does not move. The scan is sorted for the same
+ * reason the id exists: so that the same card gives the same answer twice.
+ * ========================================================================== */
+
+/* The scripts, sorted, as of the last time anyone asked. Filled by
+ * app_scan(), which is called from aos_app_count() -the loader's first
+ * question- and again from each describe, because on the board the module is
+ * opened, asked, and closed. */
+static char s_apps_names[LUA_MAX_APPS][48];
+static int  s_apps_count;
+
+static int by_name(const void *a, const void *b)
+{
+    return strcmp((const char *)a, (const char *)b);
+}
+
+static void app_scan(void)
+{
+    s_apps_count = 0;
+    const char *sd = aos_hal_path_sd_root();
+    if (!sd) {
+        return;
+    }
+    char dir[128];
+    snprintf(dir, sizeof(dir), "%s/lua", sd);
+    DIR *d = opendir(dir);
+    if (!d) {
+        return;
+    }
+    struct dirent *e;
+    while ((e = readdir(d)) != NULL && s_apps_count < LUA_MAX_APPS) {
+        const char *dot = strrchr(e->d_name, '.');
+        if (!dot || strcasecmp(dot, ".lua") != 0 || e->d_name[0] == '.') {
+            continue;
+        }
+        /* Short enough that "lua." plus the name still fits in the loader's
+         * 40-byte id. If it did not, the id would be TRUNCATED there and
+         * create() would look for a file that does not exist -an app in the
+         * launcher that opens onto an error. A long name is still in the
+         * list inside this app, where nothing depends on its length. */
+        size_t n = strlen(e->d_name);
+        if (n >= sizeof(s_apps_names[0]) || n + 4 >= 40) {
+            continue;
+        }
+        memcpy(s_apps_names[s_apps_count], e->d_name, n + 1);
+        s_apps_count++;
+    }
+    closedir(d);
+    qsort(s_apps_names, (size_t)s_apps_count, sizeof(s_apps_names[0]), by_name);
+}
+
+/* The name shown in the launcher. A script may give itself one with a comment
+ * on any of its first lines:
+ *
+ *     -- @name Cubo giratorio
+ *
+ * and without it the file name, minus the extension, is used. It is worth the
+ * fifteen lines: otherwise every entry in the launcher is a lower-case file
+ * name among apps that are called Burbujas and Pixel Art. */
+static void app_label(const char *file, char *out, size_t out_len)
+{
+    snprintf(out, out_len, "%s", file);
+    char *dot = strrchr(out, '.');
+    if (dot) {
+        *dot = '\0';
+    }
+
+    const char *sd = aos_hal_path_sd_root();
+    if (!sd) {
+        return;
+    }
+    char path[160];
+    snprintf(path, sizeof(path), "%s/lua/%s", sd, file);
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        return;
+    }
+    char head[256];
+    size_t got = fread(head, 1, sizeof(head) - 1, f);
+    fclose(f);
+    head[got] = '\0';
+
+    const char *tag = strstr(head, "@name");
+    if (!tag) {
+        return;
+    }
+    tag += 5;
+    while (*tag == ' ' || *tag == '\t') tag++;
+    size_t n = 0;
+    while (tag[n] && tag[n] != '\n' && tag[n] != '\r' && n < out_len - 1) n++;
+    while (n > 0 && (tag[n - 1] == ' ' || tag[n - 1] == '\t')) n--;
+    if (n > 0) {
+        memcpy(out, tag, n);
+        out[n] = '\0';
+    }
+}
+
+/* A colour per script, from its name. Not decoration: fifteen identical tiles
+ * in the launcher are fifteen tiles you have to read one by one. */
+static uint32_t app_hue(const char *name, bool second)
+{
+    static const uint32_t PAIRS[][2] = {
+        { 0x0A84FF, 0x0050A0 }, { 0x30D158, 0x1A7F36 }, { 0xFF9F0A, 0xB36A00 },
+        { 0xFF375F, 0xA61E3A }, { 0xBF5AF2, 0x7A2FA0 }, { 0x64D2FF, 0x2E8FB0 },
+        { 0xFFD60A, 0xB39400 }, { 0x5E5CE6, 0x3A38A0 },
+    };
+    uint32_t h = 2166136261u;
+    for (const char *c = name; *c; c++) {
+        h = (h ^ (uint8_t)*c) * 16777619u;
+    }
+    return PAIRS[h % (sizeof(PAIRS) / sizeof(PAIRS[0]))][second ? 1 : 0];
+}
+
+/* An .aic beside the script gives it an icon, with no firmware and no
+ * reflashing (docs/ICONS.md). /sdcard/icons/<id>.aic still works too and wins,
+ * because that is the firmware's own override. */
+static void app_icon(aos_app_t *app, const char *file)
+{
+    const char *sd = aos_hal_path_sd_root();
+    if (!sd) {
+        return;
+    }
+    char path[176];
+    snprintf(path, sizeof(path), "%s/lua/%s", sd, file);
+    char *dot = strrchr(path, '.');
+    if (!dot) {
+        return;
+    }
+    snprintf(dot, sizeof(path) - (size_t)(dot - path), ".aic");
+
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        return;
+    }
+    fseek(f, 0, SEEK_END);
+    long len = ftell(f);
+    rewind(f);
+    if (len > 0 && len <= 2048) {
+        uint8_t *blob = (uint8_t *)malloc((size_t)len);
+        if (blob) {
+            if (fread(blob, 1, (size_t)len, f) == (size_t)len) {
+                aos_icon_set_ops(app, blob, (size_t)len);   /* it copies it */
+            }
+            free(blob);
+        }
+    }
+    fclose(f);
+}
+
+/* The script this app is, from its id: "lua.cubo" -> "cubo.lua". */
+static void app_file_of(const char *id, char *out, size_t out_len)
+{
+    const char *base = id && strncmp(id, "lua.", 4) == 0 ? id + 4 : id;
+    snprintf(out, out_len, "%s.lua", base ? base : "");
+}
+
+static void *script_create(aos_app_t *self, lv_obj_t *root)
+{
+    lua_ctx_t *ctx = (lua_ctx_t *)lua_create(self, root);
+    if (!ctx) {
+        return NULL;
+    }
+    ctx->standalone = true;
+
+    char file[sizeof(ctx->running)];
+    app_file_of(self->desc.id, file, sizeof(file));
+    run_script(ctx, file);
+    return ctx;
+}
+
+/* ========================================================================== */
+
+static bool describe_list(aos_app_t *app)
 {
     app->desc.id       = "aos.lua";
     app->desc.name     = "Lua";
@@ -750,4 +959,71 @@ static bool lua_app_init(aos_app_t *app)
     return true;
 }
 
-AOS_APP_ENTRY(lua_app_init);
+/* The strings of a descriptor have to outlive this call, and one set of
+ * statics is NOT enough.
+ *
+ * aos_ui_register_app() does `s_apps[n] = *app`, a struct copy: it keeps the
+ * POINTERS. On the board that is harmless, because the loader copies the
+ * strings into a slot of its own first; but the simulator registers what the
+ * module hands it, and with one shared buffer every script app ended up
+ * pointing at the last name written. The symptom was a single line -"duplicate
+ * app: lua.hola"- and the scripts missing from the launcher.
+ *
+ * One buffer per app, then. Sixteen of each is 1.6 KB.
+ *
+ * The id is 52: four for "lua." plus the longest file name app_scan() lets
+ * through. The loader copies it into a 40-byte field of its own, and the scan
+ * refuses anything that would not fit there -truncating the id is how you get
+ * an app in the launcher that opens onto a file that does not exist. */
+static char s_ids[LUA_MAX_APPS][52];
+static char s_names[LUA_MAX_APPS][48];
+
+static uint32_t lua_count(void)
+{
+    app_scan();
+    return 1u + (uint32_t)s_apps_count;
+}
+
+static bool lua_describe(aos_app_t *app, uint32_t index)
+{
+    if (index == 0) {
+        return describe_list(app);
+    }
+    if (s_apps_count == 0) {
+        app_scan();             /* reopened on the board: scan again */
+    }
+    uint32_t i = index - 1;
+    if (i >= (uint32_t)s_apps_count) {
+        return false;
+    }
+    const char *file = s_apps_names[i];
+
+    char *id   = s_ids[i];
+    char *name = s_names[i];
+
+    snprintf(id, sizeof(s_ids[0]), "lua.%s", file);
+    char *dot = strrchr(id, '.');
+    if (dot && strcasecmp(dot, ".lua") == 0) {
+        *dot = '\0';
+    }
+    app_label(file, name, sizeof(s_names[0]));
+
+    app->desc.id       = id;
+    app->desc.name     = name;
+    app->desc.icon     = LV_SYMBOL_PLAY;
+    app->desc.icon_vec = AOS_ICON_NONE;
+    app->desc.color_a  = app_hue(file, false);
+    app->desc.color_b  = app_hue(file, true);
+    app->desc.flags    = AOS_APP_FLAG_KEEP_AWAKE | AOS_APP_FLAG_FULLSCREEN;
+    app->desc.order    = 901 + (int32_t)i;
+
+    app->create  = script_create;
+    app->destroy = lua_destroy;
+    app->back    = lua_back;
+    app->tick    = lua_watch;
+
+    app_icon(app, file);
+    return true;
+}
+
+AOS_APP_ENTRY_MANY(lua_count, lua_describe);

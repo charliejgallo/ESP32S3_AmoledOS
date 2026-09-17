@@ -1,4 +1,5 @@
 -- CUBO - the bench
+-- @name Cubo
 --
 -- A wireframe cube with the maths done per vertex in Lua: two rotations, a
 -- perspective divide and twelve lines, every frame. That is the thing worth

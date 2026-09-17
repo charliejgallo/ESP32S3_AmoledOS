@@ -83,30 +83,63 @@ static void dim_veil_update(void)
  * AOS_MAX_APPS and AOS_MAX_WATCHFACES have in the firmware. */
 #define MAX_SIM_APPS    32
 
-static bool (*s_sim_app_inits[MAX_SIM_APPS])(aos_app_t *);
-static int    s_sim_app_count;
+/* One entry per registration, not per app: a module that brings several -only
+ * the Lua one today- registers once and says how many when it is asked, which
+ * is the same thing the loader does on the board. */
+typedef struct {
+    bool     (*init)(aos_app_t *);                      /* one app        */
+    uint32_t (*count)(void);                            /* or many...     */
+    bool     (*init_at)(aos_app_t *, uint32_t);
+} sim_reg_t;
+
+static sim_reg_t s_sim_regs[MAX_SIM_APPS];
+static int       s_sim_app_count;
+
+static sim_reg_t *sim_slot(void)
+{
+    if (s_sim_app_count >= MAX_SIM_APPS) {
+        printf("[sim] WARNING: no room for another app from apps/ (max %d)\n",
+               MAX_SIM_APPS);
+        return NULL;
+    }
+    return &s_sim_regs[s_sim_app_count++];
+}
 
 void aos_sim_register_app(bool (*init)(aos_app_t *app))
 {
-    if (s_sim_app_count < MAX_SIM_APPS) {
-        s_sim_app_inits[s_sim_app_count++] = init;
-    } else {
-        printf("[sim] WARNING: no room for another app from apps/ (max %d)\n",
-               MAX_SIM_APPS);
+    sim_reg_t *r = sim_slot();
+    if (r) {
+        r->init = init;
+    }
+}
+
+void aos_sim_register_app_many(uint32_t (*count)(void),
+                               bool (*init_at)(aos_app_t *app, uint32_t index))
+{
+    sim_reg_t *r = sim_slot();
+    if (r) {
+        r->count   = count;
+        r->init_at = init_at;
     }
 }
 
 static void sim_register_dynamic_apps(void)
 {
+    int total = 0;
     for (int i = 0; i < s_sim_app_count; i++) {
-        aos_app_t app;
-        memset(&app, 0, sizeof(app));
-        if (s_sim_app_inits[i](&app)) {
-            aos_ui_register_app(&app);
+        sim_reg_t *r = &s_sim_regs[i];
+        uint32_t n = r->init_at ? r->count() : 1;
+        for (uint32_t k = 0; k < n; k++) {
+            aos_app_t app;
+            memset(&app, 0, sizeof(app));
+            bool ok = r->init_at ? r->init_at(&app, k) : r->init(&app);
+            if (ok && aos_ui_register_app(&app)) {
+                total++;
+            }
         }
     }
-    if (s_sim_app_count > 0) {
-        printf("[sim] %d apps from apps/ preloaded\n", s_sim_app_count);
+    if (total > 0) {
+        printf("[sim] %d apps from apps/ preloaded\n", total);
     }
 }
 

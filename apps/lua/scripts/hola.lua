@@ -1,4 +1,5 @@
 -- HOLA - the smallest thing that is still a script
+-- @name Hola
 --
 -- Every callback is optional: this one only has draw(), and a variable that
 -- survives between frames because it lives in the chunk.
