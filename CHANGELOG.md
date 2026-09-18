@@ -3,6 +3,28 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+- **Blackjack**, a new app that lives on the card and touches no firmware
+  (`apps/blackjack`, `blackjack.so`, 42 KB; needs v0.3.8 or later for its
+  icon). Against the house: a six-deck shoe with a cut card, the dealer
+  stands on every 17, blackjack pays 3 to 2, insurance 2 to 1 with the dealer
+  peeking, double on any two cards and after a split, one split per round.
+  Chips of 10 to 500, a bank kept between sessions, and a **Hint** switch that
+  rings the button basic strategy would press.
+- The cards are drawn in code, not stored: suits as implicit curves sampled
+  into masks, indices in a stroke font, the court figures as pixel art turned
+  180 degrees for the other half. Each card is an ARGB8888 canvas moved as an
+  object, animated by the app's own timer - no `lv_anim`, whose ready callback
+  is not in the firmware's symbol table.
+- `apps/blackjack/tools/bj_harness.c` lays out the deck on a sheet and plays a
+  million hands recomputing every payout from the cards; with basic strategy
+  alone the house edge comes out at 0.46 %, the published figure for these
+  rules.
+- Measured on the board: the app opens in 729 ms (the felt, drawn once) and
+  does not move internal RAM.
+- English and German catalogues (`demo.blackjack.lang`).
+
 ## v0.3.17 — 2026-09-17
 
 - **A Lua frame only pays for what it moves.** The frame buffer survives

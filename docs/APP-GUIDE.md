@@ -652,6 +652,12 @@ faces, `i` posture, **space = the physical button**. Tilt comes from the mouse
 position. Posture 3, "in the hand", is the one derived from axes measured on
 the board and the one to use for anything driven by moving the watch.
 
+**`AOS_SIM_SHOT_MS` counts from the start of the process**, and the
+simulator takes about four seconds to boot: a shot at 3500 ms comes out
+before the app has done anything, and shots at several times under that are
+identical. Ask for 8000 or more to see a state the app reaches by itself, and
+double it under AddressSanitizer.
+
 **Give your app development switches.** On the board `getenv()` always returns
 NULL, so they are free and harmless: `GEMAS_TEST=5` serves a five-in-a-row,
 `CLIMA_DEMO=1` invents data across the eight icons without the network,
@@ -871,6 +877,16 @@ primitives you can skip *drawing* what did not change, not *flushing* it. For
 an app that only redraws on a tap that is fine; for one that animates, the
 only way to bound the flush is to write pixels into the buffer yourself and
 `lv_obj_invalidate_area()`, as Arkanos and Laberinto do.
+
+**`lv_draw_letter()` subtracts its own pivot.** To write along a curve - the
+words on Blackjack's felt - draw each glyph with `lv_draw_letter()` and a
+`rotation`. The point you pass is not the glyph box's corner: LVGL moves the
+glyph back by its pivot, the middle of the baseline, and turns it about that
+point. Pass the point on the curve as it is; subtracting half the advance and
+the baseline yourself puts the text some 20 px off (`apps/blackjack`,
+`arc_text()`). There is no `lv_anim_set_ready_cb` in the symbol table either:
+an app that needs to know when a motion ends moves the object from its own
+timer.
 
 **A JPEG in an `lv_image` is re-decoded EVERY frame.** LVGL's decoder streams
 it as `LV_COLOR_FORMAT_RAW`, rewinding the file each time: **2950 ms per
