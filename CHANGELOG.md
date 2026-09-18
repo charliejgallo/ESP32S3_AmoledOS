@@ -3,7 +3,7 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.3.18 — 2026-09-18
 
 - **Blackjack**, a new app that lives on the card and touches no firmware
   (`apps/blackjack`, `blackjack.so`, 42 KB; needs v0.3.8 or later for its
