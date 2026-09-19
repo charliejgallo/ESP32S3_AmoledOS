@@ -168,10 +168,39 @@ page as they land.
 - **Done when** two people play a game on two watches, and the fps and the
   state rate are on this page. *Done: see Measured, phase 4.*
 
+### Phase 5 — Truco for two, and v0.4.1
+
+The existing Truco against the machine gets a second seat over the reliable
+channel. Nothing new in the HAL: it is the first app written entirely on
+top of the link as released in v0.4.0, and the proof that the reliable
+channel is enough for a game by turns.
+
+**Host-ordered lockstep.** The engine (`apps/truco/main/tr_game.c`) is
+deterministic given its seed: the deal comes from the state's own random
+generator and nothing else. So both watches run the same engine from the
+same seed and only the *moves* travel. The watch with the lower MAC is the
+host; it picks the seed, takes every move (its own taps and the guest's
+proposals), applies it and echoes it. The guest applies nothing on its own,
+not even its own taps: it sends them and waits for the echo. Moves that
+arrive wait in an inbox until the table is quiet (nothing moving, no event
+pending), exactly where the machine used to think its move, so the
+animations keep their pace on both screens even when one is behind, and a
+hand that ends on one watch while the other is still gathering its cards
+does not desynchronise anything: the next hand is dealt by the same
+generator on both sides.
+
+Three messages, all on the reliable channel: a hello (MAC, seed, a nonce
+for this run of the app) twice a second until the other answers, a move
+(seat, call, argument) from guest to host, and the same move echoed from
+host to guest. A hello with a new nonce mid-game means the partner
+re-entered Truco: both start over. The link is lost when the reliable
+channel gives up, when the partner's beacons stop, or when its beacon
+starts offering another app. The seat is a variable of the UI (`ME`/`THEM`,
+never `TR_YO`/`TR_EL`), which is what puts the guest at the bottom of its
+own table.
+
 ### v0.4.x — the rest
 
-- Truco for two (reliable channel; the existing Truco against the machine
-  gets a second seat).
 - Send a drawing from Pixel Art.
 - The walkie-talkie: the first thing that needs a streaming speaker API in
   the HAL (`aos_hal_spk_open/write/close`), which the player of WAV files
@@ -326,6 +355,35 @@ Played for a while on the two boards: the ball crosses without a stutter,
 the paddle follows the finger, the score and the end of the game show on
 both. v0.4.0.
 
+### Phase 5 (2026-09-19)
+
+Truco for two (`apps/truco/`, the same `.so` as the game against the
+machine; with a partner paired in Enlace the table asks "contra quién?"
+first). Tested first with two simulators on one Mac, then on the two
+boards, driven from the portal (`/api/accion que=abrir`, `/api/mem?tap=`,
+`tools/captura.py`) so both screens could be captured at every step.
+
+| | |
+| --- | --- |
+| hello to roles decided, on the boards | 0.7 s (host), 0.5 s (guest) |
+| a hand's first four moves: play, envido, quiero, and the answer | host 6 frames out / 3 in, guest 3 / 6; 0 retransmits, 0 lost |
+| what travels per move | 5 bytes of payload in a 13-byte frame |
+| RAM the mode adds to the app | 16 moves of inbox, 80 bytes |
+
+Both tables agree at every capture: the same cards on the table, the trick
+won by the same side, the envido counted the same (24 against 1, two points
+to the host) and the scoreboard's matchsticks on the right side of each
+watch. The banners name the other watch ("AMOLEDOS: ENVIDO", "ESPERANDO A
+CHARLIE") from the partner's device name.
+
+Two simulators: `TRUCO_LINK=1` skips the question, and
+`AOS_SIM_LINK_PORT=47000 AOS_SIM_LINK_PARTNER=47001` on one with the ports
+swapped on the other. `TRUCO_SHOWALL=1` shows both hands face up, which is
+how the captures were compared. Trap: with two simulators on one Mac the
+script's clock (`AOS_SIM_KEYS`) runs at about half speed while the
+screenshot's (`AOS_SIM_SHOT_MS`) keeps wall time, so a script that reads
+as 12 s needs a capture at 45 s.
+
 ## Traps expected, to be confirmed or struck out
 
 - A watch that leaves its access point loses the portal and the phone's
@@ -342,3 +400,9 @@ both. v0.4.0.
   is open.
 - With the iPhone connected, ANCS traffic and ESP-NOW share the air;
   measured before it is designed around.
+- Lockstep only holds while the engine is deterministic: a move decided by
+  `tr_ai_decide()` on one side, or anything that reads the state's random
+  generator outside the deal, would fork the two games silently. In link
+  mode the machine never moves and the generator is only read by the deal.
+  If a future rule needs randomness, the host must send the result, not the
+  question.
