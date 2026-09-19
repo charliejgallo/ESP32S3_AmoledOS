@@ -33,12 +33,14 @@ typedef struct {
 
 static link_app_t s_link;
 
+/* A four-step meter in plain ASCII: the fonts in the firmware have no
+ * block glyphs (they came out as boxes on the watch, 2026-09-19). */
 static const char *bars(int rssi)
 {
-    if (rssi >= -35) return "\xe2\x96\x88\xe2\x96\x88\xe2\x96\x88\xe2\x96\x88";   /* four blocks */
-    if (rssi >= -50) return "\xe2\x96\x88\xe2\x96\x88\xe2\x96\x88\xe2\x96\x91";
-    if (rssi >= -65) return "\xe2\x96\x88\xe2\x96\x88\xe2\x96\x91\xe2\x96\x91";
-    return "\xe2\x96\x88\xe2\x96\x91\xe2\x96\x91\xe2\x96\x91";
+    if (rssi >= -35) return "||||";
+    if (rssi >= -50) return "|||.";
+    if (rssi >= -65) return "||..";
+    return "|...";
 }
 
 static void refresh(lv_timer_t *timer)
