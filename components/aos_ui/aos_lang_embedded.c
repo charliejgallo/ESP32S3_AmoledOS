@@ -212,6 +212,16 @@ static const char blob_en__sistema_lang[] =
     "ANT\tANT\n"
     "VIDA\tLIFE\n"
     "Sin memoria\tOut of memory\n"
+    "El enlace no arrancó: la radio tiene que estar encendida\tThe link did not start: the radio has to be on\n"
+    "pareja guardada, no está cerca\tpartner saved, not around\n"
+    "pareja cerca, canal cifrado listo\tpartner around, encrypted channel ready\n"
+    "pareja cerca\tpartner around\n"
+    "sin pareja\tno partner\n"
+    "Chocá los dos relojes para aparearlos\tBump the two watches together to pair them\n"
+    "nadie cerca\tnobody around\n"
+    "pareja\tpartner\n"
+    "cerca\taround\n"
+    "Olvidar pareja\tForget partner\n"
     "No se pudo reproducir\tCould not play\n"
     "No hay musica en\\n%s\\n\\nse aceptan .wav y .mp3\tNo music in\\n%s\\n\\n.wav and .mp3 accepted\n"
     "No hay notificaciones\tNo notifications\n"
@@ -481,6 +491,7 @@ static const char blob_en__sistema_lang[] =
     "Linterna\tFlashlight\n"
     "Nivel\tLevel\n"
     "Vida\tLife\n"
+    "Enlace\tLink\n"
     "Musica\tMusic\n"
     "Pato goma\tPato goma\n"
     "Control PC\tPC Control\n"
@@ -494,6 +505,7 @@ static const char blob_en__sistema_lang[] =
     "Afinador\tTuner\n"
     "ARKANOS\tARKANOS\n"
     "Atasco\tTraffic Jam\n"
+    "Blackjack\tBlackjack\n"
     "Burbujas\tBubbles\n"
     "Buscaminas\tMinesweeper\n"
     "Chatarra\tChatarra\n"
@@ -508,6 +520,7 @@ static const char blob_en__sistema_lang[] =
     "Gemas\tGems\n"
     "Hola\tHello\n"
     "Laberinto\tMaze\n"
+    "Lua\tLua\n"
     "Pixel Art\tPixel Art\n"
     "Grabadora\tRecorder\n"
     "Remoto\tRemote\n"
@@ -597,6 +610,10 @@ static const char blob_en_aos_cotiz_lang[] =
 static const char blob_en_aos_dice_lang[] =
     "agita la placa para tirar\tshake the board to roll\n"
     "TIRAR\tROLL\n"
+    ;
+
+static const char blob_en_aos_lua_lang[] =
+    "No hay guiones en /lua de la tarjeta\tNo hay guiones en /lua de la tarjeta\n"
     ;
 
 static const char blob_en_aos_maze_lang[] =
@@ -914,6 +931,43 @@ static const char blob_en_demo_atasco_lang[] =
     "Desliza los autos para sacar al rojo\tSlide the cars to free the red one\n"
     "Menu\tMenu\n"
     "Siguiente\tNext\n"
+    ;
+
+static const char blob_en_demo_blackjack_lang[] =
+    "BLACKJACK PAGA 3 A 2\tBLACKJACK PAYS 3 TO 2\n"
+    "LA BANCA SE PLANTA EN 17\tDEALER STANDS ON ALL 17S\n"
+    "Blackjack\tBlackjack\n"
+    "Ganás\tWin\n"
+    "Empate\tPush\n"
+    "Perdés\tLose\n"
+    "Te pasaste\tBust\n"
+    "Banca\tBank\n"
+    "Seguro\tInsure\n"
+    "La banca muestra un as. ¿Seguro?\tThe dealer shows an ace. Insurance?\n"
+    "Apuesta\tBet\n"
+    "Mezclando el sabot\tShuffling the shoe\n"
+    "El seguro paga\tInsurance pays\n"
+    "Seguro perdido\tInsurance lost\n"
+    "Banca nueva: 1000\tNew bank: 1000\n"
+    "Manos\tHands\n"
+    "Ganadas\tWon\n"
+    "Blackjacks\tBlackjacks\n"
+    "Mejor banca\tBest bank\n"
+    "Sonido\tSound\n"
+    "Mudo\tMuted\n"
+    "Consejo\tHint\n"
+    "Borrar\tClear\n"
+    "Repartir\tDeal\n"
+    "No\tNo\n"
+    "Pedir\tHit\n"
+    "Plantarse\tStand\n"
+    "Doblar\tDouble\n"
+    "Dividir\tSplit\n"
+    "Otra mano\tDeal again\n"
+    "Banca nueva\tNew bank\n"
+    "Seguir\tResume\n"
+    "Salir\tExit\n"
+    "La estrategia básica marca en dorado la jugada que sugiere.\tBasic strategy rings its suggested play in gold.\n"
     ;
 
 static const char blob_en_demo_burbujas_lang[] =
@@ -1530,6 +1584,7 @@ static const aos_lang_file_t files_en[] = {
     { "aos.clima.lang", blob_en_aos_clima_lang },
     { "aos.cotiz.lang", blob_en_aos_cotiz_lang },
     { "aos.dice.lang", blob_en_aos_dice_lang },
+    { "aos.lua.lang", blob_en_aos_lua_lang },
     { "aos.maze.lang", blob_en_aos_maze_lang },
     { "aos.mines.lang", blob_en_aos_mines_lang },
     { "aos.netscan.lang", blob_en_aos_netscan_lang },
@@ -1543,6 +1598,7 @@ static const aos_lang_file_t files_en[] = {
     { "demo.2043.lang", blob_en_demo_2043_lang },
     { "demo.arkanos.lang", blob_en_demo_arkanos_lang },
     { "demo.atasco.lang", blob_en_demo_atasco_lang },
+    { "demo.blackjack.lang", blob_en_demo_blackjack_lang },
     { "demo.burbujas.lang", blob_en_demo_burbujas_lang },
     { "demo.chatarra.lang", blob_en_demo_chatarra_lang },
     { "demo.cjump.lang", blob_en_demo_cjump_lang },
@@ -1752,6 +1808,16 @@ static const char blob_de__sistema_lang[] =
     "ANT\tAMEISE\n"
     "VIDA\tLEBEN\n"
     "Sin memoria\tKein Speicher\n"
+    "El enlace no arrancó: la radio tiene que estar encendida\tDie Verbindung startete nicht: das Funkmodul muss an sein\n"
+    "pareja guardada, no está cerca\tPartner gespeichert, nicht in der Nähe\n"
+    "pareja cerca, canal cifrado listo\tPartner in der Nähe, verschlüsselter Kanal bereit\n"
+    "pareja cerca\tPartner in der Nähe\n"
+    "sin pareja\tkein Partner\n"
+    "Chocá los dos relojes para aparearlos\tDie beiden Uhren aneinanderstoßen, um sie zu koppeln\n"
+    "nadie cerca\tniemand in der Nähe\n"
+    "pareja\tPartner\n"
+    "cerca\tin der Nähe\n"
+    "Olvidar pareja\tPartner vergessen\n"
     "No se pudo reproducir\tWiedergabe fehlgeschlagen\n"
     "No hay musica en\\n%s\\n\\nse aceptan .wav y .mp3\tKeine Musik in\\n%s\\n\\n.wav und .mp3 möglich\n"
     "No hay notificaciones\tKeine Mitteilungen\n"
@@ -2021,6 +2087,7 @@ static const char blob_de__sistema_lang[] =
     "Linterna\tLampe\n"
     "Nivel\tWasserwaage\n"
     "Vida\tLeben\n"
+    "Enlace\tVerbindung\n"
     "Musica\tMusik\n"
     "Pato goma\tPato goma\n"
     "Control PC\tPC-Steuerung\n"
@@ -2034,6 +2101,7 @@ static const char blob_de__sistema_lang[] =
     "Afinador\tStimmgerät\n"
     "ARKANOS\tARKANOS\n"
     "Atasco\tStau\n"
+    "Blackjack\tBlackjack\n"
     "Burbujas\tBlasen\n"
     "Buscaminas\tMinesweeper\n"
     "Chatarra\tChatarra\n"
@@ -2048,6 +2116,7 @@ static const char blob_de__sistema_lang[] =
     "Gemas\tJuwelen\n"
     "Hola\tHallo\n"
     "Laberinto\tLabyrinth\n"
+    "Lua\tLua\n"
     "Pixel Art\tPixel Art\n"
     "Grabadora\tRekorder\n"
     "Remoto\tFernbedienung\n"
@@ -2137,6 +2206,10 @@ static const char blob_de_aos_cotiz_lang[] =
 static const char blob_de_aos_dice_lang[] =
     "agita la placa para tirar\tBoard schütteln zum Würfeln\n"
     "TIRAR\tWÜRFELN\n"
+    ;
+
+static const char blob_de_aos_lua_lang[] =
+    "No hay guiones en /lua de la tarjeta\tNo hay guiones en /lua de la tarjeta\n"
     ;
 
 static const char blob_de_aos_maze_lang[] =
@@ -2454,6 +2527,43 @@ static const char blob_de_demo_atasco_lang[] =
     "Desliza los autos para sacar al rojo\tAutos schieben, um das rote zu befreien\n"
     "Menu\tMenü\n"
     "Siguiente\tWeiter\n"
+    ;
+
+static const char blob_de_demo_blackjack_lang[] =
+    "BLACKJACK PAGA 3 A 2\tBLACKJACK ZAHLT 3 ZU 2\n"
+    "LA BANCA SE PLANTA EN 17\tDIE BANK STEHT AB 17\n"
+    "Blackjack\tBlackjack\n"
+    "Ganás\tGewonnen\n"
+    "Empate\tUnentschieden\n"
+    "Perdés\tVerloren\n"
+    "Te pasaste\tÜberkauft\n"
+    "Banca\tBank\n"
+    "Seguro\tVersichern\n"
+    "La banca muestra un as. ¿Seguro?\tDie Bank zeigt ein Ass. Versicherung?\n"
+    "Apuesta\tEinsatz\n"
+    "Mezclando el sabot\tDer Schlitten wird gemischt\n"
+    "El seguro paga\tVersicherung zahlt\n"
+    "Seguro perdido\tVersicherung verloren\n"
+    "Banca nueva: 1000\tNeue Bank: 1000\n"
+    "Manos\tHände\n"
+    "Ganadas\tGewonnen\n"
+    "Blackjacks\tBlackjacks\n"
+    "Mejor banca\tBeste Bank\n"
+    "Sonido\tTon\n"
+    "Mudo\tStumm\n"
+    "Consejo\tTipp\n"
+    "Borrar\tLöschen\n"
+    "Repartir\tGeben\n"
+    "No\tNein\n"
+    "Pedir\tKarte\n"
+    "Plantarse\tHalten\n"
+    "Doblar\tVerdoppeln\n"
+    "Dividir\tTeilen\n"
+    "Otra mano\tNochmal\n"
+    "Banca nueva\tNeue Bank\n"
+    "Seguir\tWeiter\n"
+    "Salir\tBeenden\n"
+    "La estrategia básica marca en dorado la jugada que sugiere.\tDie Grundstrategie markiert ihren Zug in Gold.\n"
     ;
 
 static const char blob_de_demo_burbujas_lang[] =
@@ -3070,6 +3180,7 @@ static const aos_lang_file_t files_de[] = {
     { "aos.clima.lang", blob_de_aos_clima_lang },
     { "aos.cotiz.lang", blob_de_aos_cotiz_lang },
     { "aos.dice.lang", blob_de_aos_dice_lang },
+    { "aos.lua.lang", blob_de_aos_lua_lang },
     { "aos.maze.lang", blob_de_aos_maze_lang },
     { "aos.mines.lang", blob_de_aos_mines_lang },
     { "aos.netscan.lang", blob_de_aos_netscan_lang },
@@ -3083,6 +3194,7 @@ static const aos_lang_file_t files_de[] = {
     { "demo.2043.lang", blob_de_demo_2043_lang },
     { "demo.arkanos.lang", blob_de_demo_arkanos_lang },
     { "demo.atasco.lang", blob_de_demo_atasco_lang },
+    { "demo.blackjack.lang", blob_de_demo_blackjack_lang },
     { "demo.burbujas.lang", blob_de_demo_burbujas_lang },
     { "demo.chatarra.lang", blob_de_demo_chatarra_lang },
     { "demo.cjump.lang", blob_de_demo_cjump_lang },
@@ -3094,7 +3206,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 502, 24, files_en, 25 },
-    { "de", "Deutsch", 502, 24, files_de, 25 },
+    { "en", "English", 515, 26, files_en, 27 },
+    { "de", "Deutsch", 515, 26, files_de, 27 },
 };
 const int aos_lang_pack_count = 2;

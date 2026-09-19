@@ -342,6 +342,22 @@ esp_err_t aos_link_handler(httpd_req_t *req)
             result = xTaskCreate(park_task, "aos_park", 4096, j, 4, NULL) == pdPASS
                      ? "parking" : "no task";
         }
+    } else if (strcmp(what, "pair") == 0) {
+        int on = 1;
+        query_int(req, "on", &on);
+        aos_hal_link_pair_enable(on != 0);
+        result = on ? "pairing" : "pairing off";
+    } else if (strcmp(what, "bump") == 0) {
+        aos_hal_link_bump();
+        result = "bumped";
+    } else if (strcmp(what, "unpair") == 0) {
+        aos_hal_link_unpair();
+        result = "unpaired";
+    } else if (strcmp(what, "offer") == 0) {
+        char app[32] = "";
+        query_str(req, "app", app, sizeof(app));
+        aos_hal_link_offer(app);
+        result = "offer set";
     } else if (strcmp(what, "test") == 0) {
         int n = 100, gap = 10, echo = 0, len = 32;
         query_int(req, "n", &n);
@@ -378,6 +394,32 @@ esp_err_t aos_link_handler(httpd_req_t *req)
         (unsigned long)st.rtt_min_us, (unsigned long)st.rtt_max_us, (unsigned long)st.test_ms,
         aos_hal_link_parked() ? "true" : "false", (unsigned long)aos_hal_link_rejoin_ms());
     httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, out, n);
+    /* the counters, then the neighbours and the partner, in chunks */
+    out[n - 1] = ',';                       /* reopen the object */
+    httpd_resp_send_chunk(req, out, n);
+    aos_link_partner_t partner;
+    aos_hal_link_partner(&partner);
+    n = snprintf(out, sizeof(out),
+        "\"pairing\":%s,\"pair_events\":%lu,"
+        "\"partner\":{\"valid\":%s,\"seen\":%s,\"confirmed\":%s,\"name\":\"%s\","
+        "\"mac\":\"%02x:%02x:%02x:%02x:%02x:%02x\",\"rssi\":%d,\"age_ms\":%lu},\"neighbours\":[",
+        aos_hal_link_pairing() ? "true" : "false", (unsigned long)aos_hal_link_pair_events(),
+        partner.valid ? "true" : "false", partner.seen ? "true" : "false",
+        partner.confirmed ? "true" : "false", partner.name,
+        partner.mac[0], partner.mac[1], partner.mac[2], partner.mac[3], partner.mac[4], partner.mac[5],
+        partner.rssi, (unsigned long)partner.age_ms);
+    httpd_resp_send_chunk(req, out, n);
+    aos_link_neighbour_t nb[AOS_LINK_NEIGHBOURS];
+    int count = aos_hal_link_neighbours(nb, AOS_LINK_NEIGHBOURS);
+    for (int i = 0; i < count; i++) {
+        n = snprintf(out, sizeof(out),
+            "%s{\"name\":\"%s\",\"app\":\"%s\",\"mac\":\"%02x:%02x:%02x:%02x:%02x:%02x\",\"rssi\":%d,\"age_ms\":%lu}",
+            i ? "," : "", nb[i].name, nb[i].app,
+            nb[i].mac[0], nb[i].mac[1], nb[i].mac[2], nb[i].mac[3], nb[i].mac[4], nb[i].mac[5],
+            nb[i].rssi, (unsigned long)nb[i].age_ms);
+        httpd_resp_send_chunk(req, out, n);
+    }
+    httpd_resp_sendstr_chunk(req, "]}");
+    httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }

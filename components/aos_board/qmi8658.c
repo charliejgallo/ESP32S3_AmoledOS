@@ -27,6 +27,12 @@ static bool          s_present;
  * ------------------------------------------------------------------------ */
 static aos_step_detect_t s_detector;
 static uint32_t s_steps;
+static aos_bump_cb_t s_bump_cb;
+
+void aos_board_imu_set_bump_cb(aos_bump_cb_t cb)
+{
+    s_bump_cb = cb;
+}
 
 static int      s_orientation;
 static bool     s_wrist_raised;
@@ -142,9 +148,11 @@ void aos_board_imu_poll(void)
     float magnitude = sqrtf(sample.ax * sample.ax +
                             sample.ay * sample.ay +
                             sample.az * sample.az);
-    s_steps += (uint32_t)aos_step_detect_feed(&s_detector,
-                                              (uint32_t)(esp_timer_get_time() / 1000),
-                                              magnitude);
+    uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
+    s_steps += (uint32_t)aos_step_detect_feed(&s_detector, now_ms, magnitude);
+    if (s_bump_cb && fabsf(magnitude - 1.0f) > AOS_BUMP_G) {
+        s_bump_cb(now_ms, magnitude);
+    }
 
     /* --- orientation --- */
     /* Mapping MEASURED on the board on 2026-08-28, with the four postures:

@@ -1287,6 +1287,46 @@ void aos_hal_link_stats_reset(void);
  * task; the counters tell the story. */
 bool aos_hal_link_test(const uint8_t mac[6], uint32_t n, uint32_t gap_ms, bool echo, uint16_t len);
 bool aos_hal_link_test_running(void);
+/* Phase 2: who is around, and the one we are paired with.
+ *
+ * While the link is up the watch beacons once a second (its name, the app
+ * it offers); neighbours are whoever beaconed in the last five seconds.
+ * Pairing is the bump: with pairing enabled, a bump on this watch and a
+ * bump frame from a neighbour within 400 ms of each other, close by (RSSI),
+ * make them partners: a key derived from both nonces, an encrypted peer,
+ * and the partner kept in NVS so any link app finds it without pairing
+ * again. One partner at a time. */
+#define AOS_LINK_NAME_MAX  24
+#define AOS_LINK_NEIGHBOURS 8
+
+typedef struct {
+    uint8_t  mac[6];
+    char     name[AOS_LINK_NAME_MAX + 1];
+    char     app[AOS_LINK_NAME_MAX + 1];    /* what it offers, "" if nothing */
+    int8_t   rssi;
+    uint32_t age_ms;                        /* since its last beacon */
+} aos_link_neighbour_t;
+
+typedef struct {
+    bool     valid;                         /* there is a partner in NVS */
+    bool     seen;                          /* it beaconed in the last 5 s */
+    bool     confirmed;                     /* it answered on the encrypted peer this session */
+    uint8_t  mac[6];
+    char     name[AOS_LINK_NAME_MAX + 1];
+    int8_t   rssi;
+    uint32_t age_ms;
+} aos_link_partner_t;
+
+void aos_hal_link_offer(const char *app);          /* what the beacon says we offer */
+int  aos_hal_link_neighbours(aos_link_neighbour_t *out, int max);
+void aos_hal_link_pair_enable(bool on);            /* listen for bumps */
+bool aos_hal_link_pairing(void);
+void aos_hal_link_bump(void);                      /* a bump, from the IMU or from /api/link for tests */
+bool aos_hal_link_partner(aos_link_partner_t *out);
+void aos_hal_link_unpair(void);
+bool aos_hal_link_send_partner(const void *data, size_t len);   /* encrypted, to the partner */
+uint32_t aos_hal_link_pair_events(void);           /* how many times it paired, for the stats */
+
 /* The channel policy (LINK.md): leave the access point and sit on 'channel'
  * so two watches on different networks meet; unpark reconnects and
  * measures the time back to an address. While parked the portal is off

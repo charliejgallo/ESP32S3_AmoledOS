@@ -17,6 +17,7 @@
  */
 #include "aos_hal.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "esp_log.h"
@@ -27,8 +28,61 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+#include "esp_random.h"
+#include "mbedtls/sha256.h"
+#include "aos_board.h"
 
 static const char *TAG = "aos_link";
+
+/* ---- phase 2: beacons, neighbours, the bump, the partner ----------------- */
+
+#define LINK_MAGIC          "AOSL"
+#define LINK_PROTO          1
+#define LINK_T_BEACON       'B'
+#define LINK_T_BUMP         'P'
+#define LINK_T_CONFIRM      'C'
+#define LINK_T_CONFIRM_ACK  'K'
+#define LINK_BEACON_MS      1000
+#define LINK_NEIGHBOUR_TTL  5000
+#define LINK_BUMP_WINDOW_MS 400
+#define LINK_RSSI_NEAR      (-50)
+#define LINK_PMK            "AmoledOS-link-01"   /* 16 bytes; the per-partner key is derived */
+
+typedef struct {
+    bool     used;
+    uint8_t  mac[6];
+    char     name[AOS_LINK_NAME_MAX + 1];
+    char     app[AOS_LINK_NAME_MAX + 1];
+    int8_t   rssi;
+    uint32_t seen_ms;
+} neighbour_t;
+
+static char        s_offer[AOS_LINK_NAME_MAX + 1];
+static neighbour_t s_neighbours[AOS_LINK_NEIGHBOURS];
+static bool        s_pairing;
+static uint32_t    s_pair_events;
+static uint32_t    s_last_beacon_ms;
+static uint32_t    s_last_confirm_ms;
+
+/* my bump, and the last bump frame that came in */
+static uint32_t    s_my_bump_ms;
+static uint32_t    s_my_nonce;
+static struct {
+    bool     valid;
+    uint8_t  mac[6];
+    char     name[AOS_LINK_NAME_MAX + 1];
+    uint32_t nonce;
+    uint32_t at_ms;
+    int8_t   rssi;
+} s_their_bump;
+
+static struct {
+    bool     valid;
+    bool     confirmed;
+    uint8_t  mac[6];
+    char     name[AOS_LINK_NAME_MAX + 1];
+    uint8_t  lmk[16];
+} s_partner;
 
 #define LINK_QUEUE_LEN     16
 #define LINK_RING_LEN      16
@@ -121,6 +175,233 @@ static bool ensure_peer(const uint8_t mac[6])
     return e == ESP_OK;
 }
 
+static uint32_t now_ms(void)
+{
+    return (uint32_t)(esp_timer_get_time() / 1000);
+}
+
+static void hex_of(const uint8_t *b, size_t n, char *out)
+{
+    static const char *d = "0123456789abcdef";
+    for (size_t i = 0; i < n; i++) {
+        out[2 * i]     = d[b[i] >> 4];
+        out[2 * i + 1] = d[b[i] & 15];
+    }
+    out[2 * n] = '\0';
+}
+
+static bool unhex(const char *in, uint8_t *out, size_t n)
+{
+    for (size_t i = 0; i < n; i++) {
+        unsigned v;
+        if (sscanf(in + 2 * i, "%2x", &v) != 1) {
+            return false;
+        }
+        out[i] = (uint8_t)v;
+    }
+    return true;
+}
+
+static neighbour_t *neighbour_slot(const uint8_t mac[6])
+{
+    neighbour_t *free_slot = NULL, *oldest = NULL;
+    for (int i = 0; i < AOS_LINK_NEIGHBOURS; i++) {
+        neighbour_t *n = &s_neighbours[i];
+        if (n->used && memcmp(n->mac, mac, 6) == 0) {
+            return n;
+        }
+        if (!n->used && !free_slot) {
+            free_slot = n;
+        }
+        if (n->used && (!oldest || n->seen_ms < oldest->seen_ms)) {
+            oldest = n;
+        }
+    }
+    neighbour_t *n = free_slot ? free_slot : oldest;
+    memset(n, 0, sizeof *n);
+    n->used = true;
+    memcpy(n->mac, mac, 6);
+    return n;
+}
+
+static void send_beacon(void)
+{
+    uint8_t f[4 + 2 + AOS_LINK_NAME_MAX + AOS_LINK_NAME_MAX];
+    memcpy(f, LINK_MAGIC, 4);
+    f[4] = LINK_PROTO;
+    f[5] = LINK_T_BEACON;
+    memset(f + 6, 0, sizeof f - 6);
+    memcpy(f + 6, aos_hal_device_name(), strnlen(aos_hal_device_name(), AOS_LINK_NAME_MAX));
+    memcpy(f + 6 + AOS_LINK_NAME_MAX, s_offer, strnlen(s_offer, AOS_LINK_NAME_MAX));
+    aos_hal_link_send(NULL, f, sizeof f);
+}
+
+/* The key both sides compute alike: the two MACs in order, and the two
+ * nonces combined so the order does not matter. Sixteen bytes of SHA-256. */
+static void derive_lmk(const uint8_t a[6], const uint8_t b[6], uint32_t na, uint32_t nb, uint8_t out[16])
+{
+    uint8_t material[6 + 6 + 4 + 8];
+    const uint8_t *lo = memcmp(a, b, 6) < 0 ? a : b;
+    const uint8_t *hi = lo == a ? b : a;
+    memcpy(material, lo, 6);
+    memcpy(material + 6, hi, 6);
+    uint32_t mix = na ^ nb;
+    memcpy(material + 12, &mix, 4);
+    memcpy(material + 16, LINK_PMK, 8);
+    uint8_t digest[32];
+    mbedtls_sha256(material, sizeof material, digest, 0);
+    memcpy(out, digest, 16);
+}
+
+static bool partner_peer_install(void)
+{
+    if (!s_partner.valid) {
+        return false;
+    }
+    esp_now_peer_info_t peer = {0};
+    memcpy(peer.peer_addr, s_partner.mac, 6);
+    peer.ifidx   = WIFI_IF_STA;
+    peer.channel = 0;
+    peer.encrypt = true;
+    memcpy(peer.lmk, s_partner.lmk, 16);
+    esp_err_t e = esp_now_is_peer_exist(s_partner.mac) ? esp_now_mod_peer(&peer) : esp_now_add_peer(&peer);
+    if (e != ESP_OK) {
+        ESP_LOGW(TAG, "partner peer: %s", esp_err_to_name(e));
+    }
+    return e == ESP_OK;
+}
+
+static void partner_save(void)
+{
+    char hex[33];
+    hex_of(s_partner.mac, 6, hex);
+    aos_hal_pref_set_str("lk_peer", s_partner.valid ? hex : "");
+    hex_of(s_partner.lmk, 16, hex);
+    aos_hal_pref_set_str("lk_lmk", s_partner.valid ? hex : "");
+    aos_hal_pref_set_str("lk_pname", s_partner.valid ? s_partner.name : "");
+}
+
+static void partner_load(void)
+{
+    char hex[40], name[AOS_LINK_NAME_MAX + 1];
+    memset(&s_partner, 0, sizeof s_partner);
+    if (aos_hal_pref_get_str("lk_peer", hex, sizeof hex) && strlen(hex) == 12 &&
+        unhex(hex, s_partner.mac, 6) &&
+        aos_hal_pref_get_str("lk_lmk", hex, sizeof hex) && strlen(hex) == 32 &&
+        unhex(hex, s_partner.lmk, 16)) {
+        s_partner.valid = true;
+        if (aos_hal_pref_get_str("lk_pname", name, sizeof name)) {
+            snprintf(s_partner.name, sizeof s_partner.name, "%s", name);
+        }
+    }
+}
+
+static void send_confirm(uint8_t type)
+{
+    uint8_t f[6] = { 'A', 'O', 'S', 'L', LINK_PROTO, type };
+    aos_hal_link_send(s_partner.mac, f, sizeof f);
+}
+
+static void pair_with(const uint8_t mac[6], const char *name, uint32_t their_nonce)
+{
+    if (esp_now_is_peer_exist(s_partner.mac) && s_partner.valid &&
+        memcmp(s_partner.mac, mac, 6) != 0) {
+        esp_now_del_peer(s_partner.mac);   /* one partner at a time */
+    }
+    memset(&s_partner, 0, sizeof s_partner);
+    s_partner.valid = true;
+    memcpy(s_partner.mac, mac, 6);
+    snprintf(s_partner.name, sizeof s_partner.name, "%s", name);
+    derive_lmk(s_stats.own_mac, mac, s_my_nonce, their_nonce, s_partner.lmk);
+    partner_peer_install();
+    partner_save();
+    s_pair_events++;
+    s_their_bump.valid = false;
+    s_my_bump_ms = 0;
+    ESP_LOGI(TAG, "paired with %s (%02x:%02x:%02x:%02x:%02x:%02x)", name,
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    send_confirm(LINK_T_CONFIRM);
+}
+
+static bool bumps_match(uint32_t mine, uint32_t theirs)
+{
+    uint32_t d = mine > theirs ? mine - theirs : theirs - mine;
+    return mine && theirs && d <= LINK_BUMP_WINDOW_MS;
+}
+
+static void handle_link_frame(const link_frame_t *f)
+{
+    if (f->len < 6 || f->data[4] != LINK_PROTO) {
+        return;
+    }
+    switch (f->data[5]) {
+    case LINK_T_BEACON: {
+        if (f->len < 6 + 2 * AOS_LINK_NAME_MAX) {
+            return;
+        }
+        neighbour_t *n = neighbour_slot(f->mac);
+        memcpy(n->name, f->data + 6, AOS_LINK_NAME_MAX);
+        n->name[AOS_LINK_NAME_MAX] = '\0';
+        memcpy(n->app, f->data + 6 + AOS_LINK_NAME_MAX, AOS_LINK_NAME_MAX);
+        n->app[AOS_LINK_NAME_MAX] = '\0';
+        n->rssi    = f->rssi;
+        n->seen_ms = now_ms();
+        if (s_partner.valid && memcmp(f->mac, s_partner.mac, 6) == 0) {
+            if (n->name[0]) {
+                snprintf(s_partner.name, sizeof s_partner.name, "%s", n->name);
+            }
+            /* The partner is back in range: prove the key still matches on
+             * both sides, once per session, before any app needs it. */
+            if (!s_partner.confirmed && now_ms() - s_last_confirm_ms > 2000) {
+                s_last_confirm_ms = now_ms();
+                send_confirm(LINK_T_CONFIRM);
+            }
+        }
+        break;
+    }
+    case LINK_T_BUMP: {
+        if (f->len < 6 + 4 + AOS_LINK_NAME_MAX || !s_pairing) {
+            return;
+        }
+        s_their_bump.valid = true;
+        memcpy(s_their_bump.mac, f->mac, 6);
+        memcpy(&s_their_bump.nonce, f->data + 6, 4);
+        memcpy(s_their_bump.name, f->data + 10, AOS_LINK_NAME_MAX);
+        s_their_bump.name[AOS_LINK_NAME_MAX] = '\0';
+        s_their_bump.at_ms = now_ms();
+        s_their_bump.rssi  = f->rssi;
+        if (f->rssi < LINK_RSSI_NEAR) {
+            ESP_LOGI(TAG, "bump from %s too far away (%d dBm)", s_their_bump.name, f->rssi);
+            return;
+        }
+        if (bumps_match(s_my_bump_ms, s_their_bump.at_ms)) {
+            pair_with(f->mac, s_their_bump.name, s_their_bump.nonce);
+        }
+        break;
+    }
+    case LINK_T_CONFIRM:
+        /* It arrived on the encrypted peer: only the right key decrypts. */
+        if (s_partner.valid && memcmp(f->mac, s_partner.mac, 6) == 0) {
+            s_partner.confirmed = true;
+            send_confirm(LINK_T_CONFIRM_ACK);
+        }
+        break;
+    case LINK_T_CONFIRM_ACK:
+        if (s_partner.valid && memcmp(f->mac, s_partner.mac, 6) == 0) {
+            s_partner.confirmed = true;
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+static void bump_cb(uint32_t t_ms, float magnitude_g)
+{
+    (void)t_ms; (void)magnitude_g;
+    aos_hal_link_bump();
+}
+
 static void ring_push(const link_frame_t *f)
 {
     uint32_t next = (s_ring_head + 1) % LINK_RING_LEN;
@@ -191,6 +472,16 @@ static void link_task(void *arg)
     (void)arg;
     link_frame_t f;
     while (!s_stop) {
+        uint32_t now = now_ms();
+        if (now - s_last_beacon_ms >= LINK_BEACON_MS) {
+            s_last_beacon_ms = now;
+            send_beacon();
+            for (int i = 0; i < AOS_LINK_NEIGHBOURS; i++) {
+                if (s_neighbours[i].used && now - s_neighbours[i].seen_ms > LINK_NEIGHBOUR_TTL) {
+                    s_neighbours[i].used = false;
+                }
+            }
+        }
         if (xQueueReceive(s_queue, &f, pdMS_TO_TICKS(100)) != pdTRUE) {
             continue;
         }
@@ -203,6 +494,8 @@ static void link_task(void *arg)
             (f.data[1] == LINK_TEST_SEND || f.data[1] == LINK_TEST_ECHO_REQ ||
              f.data[1] == LINK_TEST_ECHO)) {
             handle_test(&f);
+        } else if (f.len >= 6 && memcmp(f.data, LINK_MAGIC, 4) == 0) {
+            handle_link_frame(&f);
         } else {
             ring_push(&f);
         }
@@ -236,13 +529,21 @@ bool aos_hal_link_start(void)
     }
     esp_now_register_recv_cb(on_recv);
     esp_now_register_send_cb(on_sent);
+    esp_now_set_pmk((const uint8_t *)LINK_PMK);
     ensure_peer(BROADCAST);
+    memset(s_neighbours, 0, sizeof s_neighbours);
+    s_their_bump.valid = false;
+    s_my_bump_ms = 0;
+    s_last_beacon_ms = 0;
 
     memset(&s_stats, 0, sizeof s_stats);
     s_test_have_seq = false;
     s_ring_head = s_ring_tail = 0;
     esp_now_get_version(&s_stats.version);
     esp_read_mac(s_stats.own_mac, ESP_MAC_WIFI_STA);
+    partner_load();
+    partner_peer_install();
+    aos_board_imu_set_bump_cb(bump_cb);
 
     s_stop = false;
     if (xTaskCreate(link_task, "aos_link", 4096, NULL, 5, &s_task) != pdPASS) {
@@ -264,6 +565,8 @@ void aos_hal_link_stop(void)
     if (!s_started) {
         return;
     }
+    aos_board_imu_set_bump_cb(NULL);
+    s_pairing = false;
     s_stop = true;
     for (int i = 0; i < 30 && s_task; i++) {
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -431,4 +734,117 @@ bool aos_hal_link_test(const uint8_t mac[6], uint32_t n, uint32_t gap_ms, bool e
 bool aos_hal_link_test_running(void)
 {
     return s_test_running;
+}
+
+/* ---- phase 2 public --------------------------------------------------- */
+
+void aos_hal_link_offer(const char *app)
+{
+    snprintf(s_offer, sizeof s_offer, "%s", app ? app : "");
+}
+
+int aos_hal_link_neighbours(aos_link_neighbour_t *out, int max)
+{
+    int n = 0;
+    uint32_t now = now_ms();
+    for (int i = 0; i < AOS_LINK_NEIGHBOURS && n < max; i++) {
+        const neighbour_t *nb = &s_neighbours[i];
+        if (!nb->used || now - nb->seen_ms > LINK_NEIGHBOUR_TTL) {
+            continue;
+        }
+        memcpy(out[n].mac, nb->mac, 6);
+        snprintf(out[n].name, sizeof out[n].name, "%s", nb->name);
+        snprintf(out[n].app, sizeof out[n].app, "%s", nb->app);
+        out[n].rssi   = nb->rssi;
+        out[n].age_ms = now - nb->seen_ms;
+        n++;
+    }
+    return n;
+}
+
+void aos_hal_link_pair_enable(bool on)
+{
+    s_pairing = on && s_started;
+    if (!on) {
+        s_their_bump.valid = false;
+        s_my_bump_ms = 0;
+    }
+}
+
+bool aos_hal_link_pairing(void)
+{
+    return s_pairing;
+}
+
+void aos_hal_link_bump(void)
+{
+    if (!s_started || !s_pairing) {
+        return;
+    }
+    uint32_t now = now_ms();
+    if (now - s_my_bump_ms < LINK_BUMP_WINDOW_MS) {
+        return;                         /* the same knock ringing on */
+    }
+    s_my_bump_ms = now;
+    s_my_nonce   = esp_random();
+    uint8_t f[6 + 4 + AOS_LINK_NAME_MAX];
+    memcpy(f, LINK_MAGIC, 4);
+    f[4] = LINK_PROTO;
+    f[5] = LINK_T_BUMP;
+    memcpy(f + 6, &s_my_nonce, 4);
+    memset(f + 10, 0, AOS_LINK_NAME_MAX);
+    memcpy(f + 10, aos_hal_device_name(), strnlen(aos_hal_device_name(), AOS_LINK_NAME_MAX));
+    aos_hal_link_send(NULL, f, sizeof f);
+    if (s_their_bump.valid && s_their_bump.rssi >= LINK_RSSI_NEAR &&
+        bumps_match(s_my_bump_ms, s_their_bump.at_ms)) {
+        pair_with(s_their_bump.mac, s_their_bump.name, s_their_bump.nonce);
+    }
+}
+
+bool aos_hal_link_partner(aos_link_partner_t *out)
+{
+    if (!out) {
+        return false;
+    }
+    memset(out, 0, sizeof *out);
+    if (!s_partner.valid && s_started == false) {
+        partner_load();                 /* the app may ask before the link is up */
+    }
+    out->valid     = s_partner.valid;
+    out->confirmed = s_partner.confirmed;
+    memcpy(out->mac, s_partner.mac, 6);
+    snprintf(out->name, sizeof out->name, "%s", s_partner.name);
+    uint32_t now = now_ms();
+    for (int i = 0; i < AOS_LINK_NEIGHBOURS; i++) {
+        const neighbour_t *nb = &s_neighbours[i];
+        if (nb->used && memcmp(nb->mac, s_partner.mac, 6) == 0 && now - nb->seen_ms <= LINK_NEIGHBOUR_TTL) {
+            out->seen   = true;
+            out->rssi   = nb->rssi;
+            out->age_ms = now - nb->seen_ms;
+        }
+    }
+    return out->valid;
+}
+
+void aos_hal_link_unpair(void)
+{
+    if (s_started && s_partner.valid && esp_now_is_peer_exist(s_partner.mac)) {
+        esp_now_del_peer(s_partner.mac);
+    }
+    memset(&s_partner, 0, sizeof s_partner);
+    partner_save();
+    ESP_LOGI(TAG, "partner forgotten");
+}
+
+bool aos_hal_link_send_partner(const void *data, size_t len)
+{
+    if (!s_partner.valid) {
+        return false;
+    }
+    return aos_hal_link_send(s_partner.mac, data, len);
+}
+
+uint32_t aos_hal_link_pair_events(void)
+{
+    return s_pair_events;
 }

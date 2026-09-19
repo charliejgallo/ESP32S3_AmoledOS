@@ -2194,3 +2194,12 @@ bool     aos_hal_link_park(uint8_t channel) { (void)channel; return false; }
 void     aos_hal_link_unpark(void) {}
 bool     aos_hal_link_parked(void) { return false; }
 uint32_t aos_hal_link_rejoin_ms(void) { return 0; }
+void aos_hal_link_offer(const char *app) { (void)app; }
+int  aos_hal_link_neighbours(aos_link_neighbour_t *out, int max) { (void)out; (void)max; return 0; }
+void aos_hal_link_pair_enable(bool on) { (void)on; }
+bool aos_hal_link_pairing(void) { return false; }
+void aos_hal_link_bump(void) {}
+bool aos_hal_link_partner(aos_link_partner_t *out) { if (out) memset(out, 0, sizeof *out); return false; }
+void aos_hal_link_unpair(void) {}
+bool aos_hal_link_send_partner(const void *data, size_t len) { (void)data; (void)len; return false; }
+uint32_t aos_hal_link_pair_events(void) { return 0; }

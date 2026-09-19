@@ -127,6 +127,14 @@ typedef struct {
     uint32_t steps;
 } aos_imu_ring_sample_t;
 void     aos_board_imu_ring_get(aos_imu_ring_sample_t *out, uint32_t max, uint32_t *count);
+
+/* A bump: the magnitude of the acceleration left 1 g by more than
+ * AOS_BUMP_G in one sample. The link's pairing gesture (two watches knocked
+ * together) rides on it; whoever registers hears every one, from the
+ * housekeeping task. */
+#define AOS_BUMP_G 0.7f
+typedef void (*aos_bump_cb_t)(uint32_t t_ms, float magnitude_g);
+void     aos_board_imu_set_bump_cb(aos_bump_cb_t cb);
 uint32_t aos_board_imu_steps(void);
 void     aos_board_imu_steps_reset(void);
 int      aos_board_imu_orientation(void);   /* maps to aos_orientation_t */
