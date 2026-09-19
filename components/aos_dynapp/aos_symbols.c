@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 120 funciones de libc/libm agregadas a mano.
- * Total: 2760 simbolos.
+ * Total: 2765 simbolos.
  */
 
 #include <stddef.h>
@@ -319,6 +319,11 @@ extern int aos_hal_set_display_state_cb;
 extern int aos_hal_set_power_event_cb;
 extern int aos_hal_shutdown;
 extern int aos_hal_sleep;
+extern int aos_hal_spk_close;
+extern int aos_hal_spk_is_open;
+extern int aos_hal_spk_open;
+extern int aos_hal_spk_queued;
+extern int aos_hal_spk_write;
 extern int aos_hal_steps_get;
 extern int aos_hal_steps_reset_today;
 extern int aos_hal_steps_set_goal;
@@ -3082,6 +3087,11 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_set_power_event_cb),
     ESP_ELFSYM_EXPORT(aos_hal_shutdown),
     ESP_ELFSYM_EXPORT(aos_hal_sleep),
+    ESP_ELFSYM_EXPORT(aos_hal_spk_close),
+    ESP_ELFSYM_EXPORT(aos_hal_spk_is_open),
+    ESP_ELFSYM_EXPORT(aos_hal_spk_open),
+    ESP_ELFSYM_EXPORT(aos_hal_spk_queued),
+    ESP_ELFSYM_EXPORT(aos_hal_spk_write),
     ESP_ELFSYM_EXPORT(aos_hal_steps_get),
     ESP_ELFSYM_EXPORT(aos_hal_steps_reset_today),
     ESP_ELFSYM_EXPORT(aos_hal_steps_set_goal),

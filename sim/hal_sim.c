@@ -2361,6 +2361,14 @@ void     aos_hal_link_unpark(void) {}
 bool     aos_hal_link_parked(void) { return false; }
 uint32_t aos_hal_link_rejoin_ms(void) { return 0; }
 
+/* The streaming speaker: the simulator swallows the samples. */
+static bool s_spk_open_sim;
+bool aos_hal_spk_open(uint32_t sample_rate) { (void)sample_rate; s_spk_open_sim = true; return true; }
+int  aos_hal_spk_write(const int16_t *pcm, int n) { (void)pcm; return s_spk_open_sim ? n : 0; }
+int  aos_hal_spk_queued(void) { return 0; }
+bool aos_hal_spk_is_open(void) { return s_spk_open_sim; }
+void aos_hal_spk_close(void) { s_spk_open_sim = false; }
+
 /* FTM needs a radio: the simulator has none. */
 bool aos_hal_ftm_supported(void) { return false; }
 bool aos_hal_ftm_responder(bool on) { (void)on; return false; }

@@ -228,14 +228,32 @@ screens show it. `CONFIG_ESP_WIFI_FTM_ENABLE=y` and four HAL calls
 (`aos_hal_ftm_responder/responder_info/measure/result`); the simulator
 says "sin soporte".
 
+### Phase 7 — the walkie-talkie (v0.4.3)
+
+Push to talk, half duplex, and the half is the hardware's: the speaker and
+the microphone are the same ES8311 and the HAL already treats them as
+exclusive (the tuner cannot play its reference tone and listen at once).
+Hold the button and the microphone is open: every 464 samples at 16 kHz
+(29 ms) go out as one frame on the fast channel, IMA ADPCM at 4 bits a
+sample, 232 bytes of audio plus the coder's state (predictor and step
+index) so a lost frame costs its 29 ms and nothing after it; 34 frames
+and 8.3 KB a second, a seventh of what the channel carries. Let go and the
+speaker takes the codec back.
+
+What the HAL lacked was a speaker for audio that is not a file. The
+streaming speaker (`aos_hal_spk_open/write/queued/close`) is a ring of one
+second in PSRAM and a task that feeds the codec 20 ms at a time and plays
+silence when the ring is empty, so the amplifier never has to wake up
+mid-word; write() never blocks. It takes the codec like the recorder does
+and waits, bounded, for the microphone to let go of it: that wait plus the
+codec's open is the release-to-listen cost, about 200 ms, and the app says
+"un momento..." for it. The tone task stays off the codec while the
+streaming speaker holds it.
+
 ### v0.4.x — the rest
 
-- The walkie-talkie: the first thing that needs a streaming speaker API in
-  the HAL (`aos_hal_spk_open/write/close`), which the player of WAV files
-  does not offer today. That API is its own small piece of work, and the
-  video's clock problem (VIDEO.md) says it should carry a sample counter.
-- Radar: RSSI first; FTM behind `ESP_WIFI_FTM_ENABLE`, measured against a
-  tape measure.
+- Radar: the walk with a tape measure (the calibration point is measured,
+  the slope is not).
 - The watch as an ESP-NOW remote for the other ESP32 projects on the bench.
 
 ## Measured
@@ -451,6 +469,24 @@ Trap found on the way: an app without `KEEP_AWAKE` is closed when the
 screen times out (30 s), which makes a test driven from the portal with a
 pause in the middle look like a crash. Pixel Art is such an app; the
 tests had to be scripted without gaps.
+
+### Phase 7 (2026-09-19)
+
+The walkie on the two boards, driven from the portal: the talk button held
+for three seconds on one watch with the other listening, both ways.
+
+| | |
+| --- | --- |
+| frames while the button is held | 100 in 3 s, 34/s, as designed |
+| frames received on the other watch | 100 of 100, 0 lost |
+| on the air | 8.3 KB/s, 240-byte frames on the fast channel |
+| IMA ADPCM round trip (tools, on the Mac) | 30 dB SNR on a two-tone test signal |
+| release to listening | the microphone's task lets go of the codec a little after close(); the speaker waits for it (bounded at 800 ms) and opens |
+
+Trap found on the way: the first version opened the speaker right after
+closing the microphone and lost every time, because the capture task
+releases the codec when it ends, not when close() returns. The HAL's
+open() now waits for it; the app retries from its tick as well.
 
 ## Traps expected, to be confirmed or struck out
 

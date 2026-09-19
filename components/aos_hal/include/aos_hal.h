@@ -398,6 +398,24 @@ void aos_hal_volume_set(int percent);
 int  aos_hal_mic_level(void);
 
 /* --------------------------------------------------------------------------
+ * Streaming speaker
+ *
+ * PCM in, sound out, for audio that is not a file: the walkie-talkie's
+ * frames off the air. open() takes the codec (it fails while the microphone
+ * holds it: they are the same ES8311 and it does one thing at a time; the
+ * switch costs ~200 ms) and starts a task; write() drops samples into a ring
+ * of one second in PSRAM and never blocks; the task feeds the codec 20 ms at
+ * a time and plays silence when the ring is empty, so the amplifier stays
+ * warm between frames. queued() is what is waiting, for whoever wants a
+ * jitter buffer. close() stops the task and gives the codec back.
+ * -------------------------------------------------------------------------- */
+bool aos_hal_spk_open(uint32_t sample_rate);        /* mono, 16-bit */
+int  aos_hal_spk_write(const int16_t *pcm, int n);  /* samples accepted */
+int  aos_hal_spk_queued(void);
+bool aos_hal_spk_is_open(void);
+void aos_hal_spk_close(void);
+
+/* --------------------------------------------------------------------------
  * Raw microphone
  *
  * PCM samples straight out of the ES8311, recording nothing. Needed by

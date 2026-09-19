@@ -531,6 +531,7 @@ static const char blob_en__sistema_lang[] =
     "Topos\tWhack-a-Mole\n"
     "Truco\tTruco\n"
     "Video\tVideo\n"
+    "Walkie\tWalkie\n"
     ;
 
 static const char blob_en_aos_clima_lang[] =
@@ -719,12 +720,12 @@ static const char blob_en_aos_radar_lang[] =
     "el otro reloj no lo tiene\tthe other watch lacks it\n"
     "respondo, esperando la medida\tresponding, waiting for the measurement\n"
     "esperando al respondedor\twaiting for the responder\n"
+    "crudo\traw\n"
     "sin respuesta\tno answer\n"
     "midiendo...\tmeasuring...\n"
     "Un metro\tOne metre\n"
     "Radar\tRadar\n"
     "Calibrar a 1 m\tCalibrate at 1 m\n"
-    "crudo\traw\n"
     ;
 
 static const char blob_en_aos_remoto_lang[] =
@@ -828,6 +829,22 @@ static const char blob_en_aos_video_lang[] =
     "No hay lugar para la tarea de video\tNo room for the video task\n"
     "Videos\tVideos\n"
     "No hay videos en\\n%s\\n\\nConvertilos con\\ntools/video_convert.sh\tNo videos in\\n%s\\n\\nConvert them with\\ntools/video_convert.sh\n"
+    ;
+
+static const char blob_en_aos_walkie_lang[] =
+    "El enlace no arrancó: la radio tiene que estar encendida\tThe link did not start: the radio has to be on\n"
+    "Sin pareja: apareá los relojes en Enlace\tNo partner: pair the watches in Link\n"
+    "un momento...\tone moment...\n"
+    "HABLÁS\tYOU TALK\n"
+    "soltá para escuchar\tlet go to listen\n"
+    "habla\tis talking\n"
+    "Buscando a\tLooking for\n"
+    "escucha\tis listening\n"
+    "mantené para hablar\thold to talk\n"
+    "enviados\tsent\n"
+    "recibidos\treceived\n"
+    "perdidos\tlost\n"
+    "Walkie\tWalkie\n"
     ;
 
 static const char blob_en_app_recorder_lang[] =
@@ -1633,6 +1650,7 @@ static const aos_lang_file_t files_en[] = {
     { "aos.simon.lang", blob_en_aos_simon_lang },
     { "aos.tuner.lang", blob_en_aos_tuner_lang },
     { "aos.video.lang", blob_en_aos_video_lang },
+    { "aos.walkie.lang", blob_en_aos_walkie_lang },
     { "app.recorder.lang", blob_en_app_recorder_lang },
     { "demo.2043.lang", blob_en_demo_2043_lang },
     { "demo.arkanos.lang", blob_en_demo_arkanos_lang },
@@ -2166,6 +2184,7 @@ static const char blob_de__sistema_lang[] =
     "Topos\tMaulwürfe\n"
     "Truco\tTruco\n"
     "Video\tVideo\n"
+    "Walkie\tWalkie\n"
     ;
 
 static const char blob_de_aos_clima_lang[] =
@@ -2354,12 +2373,12 @@ static const char blob_de_aos_radar_lang[] =
     "el otro reloj no lo tiene\tdie andere Uhr hat es nicht\n"
     "respondo, esperando la medida\tantworte, warte auf die Messung\n"
     "esperando al respondedor\twarte auf den Antwortenden\n"
+    "crudo\troh\n"
     "sin respuesta\tkeine Antwort\n"
     "midiendo...\tmesse...\n"
     "Un metro\tEin Meter\n"
     "Radar\tRadar\n"
     "Calibrar a 1 m\tAuf 1 m kalibrieren\n"
-    "crudo\troh\n"
     ;
 
 static const char blob_de_aos_remoto_lang[] =
@@ -2463,6 +2482,22 @@ static const char blob_de_aos_video_lang[] =
     "No hay lugar para la tarea de video\tKein Platz für die Video-Aufgabe\n"
     "Videos\tVideos\n"
     "No hay videos en\\n%s\\n\\nConvertilos con\\ntools/video_convert.sh\tKeine Videos in\\n%s\\n\\nUmwandeln mit\\ntools/video_convert.sh\n"
+    ;
+
+static const char blob_de_aos_walkie_lang[] =
+    "El enlace no arrancó: la radio tiene que estar encendida\tDie Verbindung startete nicht: das Funkmodul muss an sein\n"
+    "Sin pareja: apareá los relojes en Enlace\tKein Partner: Uhren in Verbindung koppeln\n"
+    "un momento...\teinen Moment...\n"
+    "HABLÁS\tDU SPRICHST\n"
+    "soltá para escuchar\tloslassen zum Hören\n"
+    "habla\tspricht\n"
+    "Buscando a\tSuche\n"
+    "escucha\thört zu\n"
+    "mantené para hablar\thalten zum Sprechen\n"
+    "enviados\tgesendet\n"
+    "recibidos\tempfangen\n"
+    "perdidos\tverloren\n"
+    "Walkie\tWalkie\n"
     ;
 
 static const char blob_de_app_recorder_lang[] =
@@ -3268,6 +3303,7 @@ static const aos_lang_file_t files_de[] = {
     { "aos.simon.lang", blob_de_aos_simon_lang },
     { "aos.tuner.lang", blob_de_aos_tuner_lang },
     { "aos.video.lang", blob_de_aos_video_lang },
+    { "aos.walkie.lang", blob_de_aos_walkie_lang },
     { "app.recorder.lang", blob_de_app_recorder_lang },
     { "demo.2043.lang", blob_de_demo_2043_lang },
     { "demo.arkanos.lang", blob_de_demo_arkanos_lang },
@@ -3284,7 +3320,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 517, 28, files_en, 29 },
-    { "de", "Deutsch", 517, 28, files_de, 29 },
+    { "en", "English", 518, 29, files_en, 30 },
+    { "de", "Deutsch", 518, 29, files_de, 30 },
 };
 const int aos_lang_pack_count = 2;

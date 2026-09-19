@@ -209,6 +209,14 @@ static bool                 s_battery_care = true;      /* preference          *
 static bool                 s_low_battery_saving;       /* forced under 20%    */
 static bool                 s_light_sleep_enabled = true;   /* preference       */
 static volatile bool        s_speaker_open;             /* held by tone_task   */
+/* the streaming speaker (aos_hal_spk_*) */
+static TaskHandle_t         s_spk_task;
+static volatile bool        s_spk_stop;
+static volatile bool        s_spk_running;
+static int16_t             *s_spk_ring;                 /* one second, PSRAM */
+static volatile uint32_t    s_spk_head, s_spk_tail;     /* samples */
+static uint32_t             s_spk_ring_n;
+static uint32_t             s_spk_rate;
 static volatile bool        s_mic_holds_codec;          /* the capture took the codec */
 static bool                 s_light_sleep_on;           /* what esp_pm has now */
 static esp_pm_lock_handle_t s_pm_max_lock;
@@ -1100,8 +1108,8 @@ static void tone_task(void *arg)
         /* while music is playing the speaker belongs to the player, and while
          * recording it belongs to nobody: a 40 ms note is not worth breaking
          * the capture for */
-        if (!s_speaker || aos_hal_audio_is_playing() || s_mic_holds_codec) {
-            continue;
+        if (!s_speaker || aos_hal_audio_is_playing() || s_mic_holds_codec || s_spk_task) {
+            continue;                   /* the streaming speaker holds the codec: no note */
         }
         if (note.freq == 0) {
             continue;       /* empty note: it only served to wake the queue */
@@ -2633,6 +2641,135 @@ bool aos_hal_net_ap_start(void)
     ESP_LOGI(TAG, "access point up: %s / %s -> http://%s/",
              s_ap_ssid, s_ap_pass, s_ap_ip);
     return true;
+}
+
+/* ---- streaming speaker ------------------------------------------------------ */
+
+#define SPK_BLOCK_MS    20
+
+static void spk_task(void *arg)
+{
+    (void)arg;
+    esp_codec_dev_sample_info_t fs = {
+        .bits_per_sample = 16,
+        .channel         = 1,
+        .sample_rate     = s_spk_rate,
+    };
+    s_speaker_open = true;              /* the tone task and the mic see it taken */
+    if (!s_speaker || esp_codec_dev_open(s_speaker, &fs) != ESP_OK) {
+        ESP_LOGE(TAG, "streaming speaker: the codec did not accept %lu Hz", (unsigned long)s_spk_rate);
+        s_speaker_open = false;
+        s_spk_running = false;
+        s_spk_task = NULL;
+        vTaskDelete(NULL);
+        return;
+    }
+    esp_codec_dev_set_out_vol(s_speaker, s_volume);
+    const int block = (int)(s_spk_rate * SPK_BLOCK_MS / 1000);
+    int16_t *buf = heap_caps_malloc((size_t)block * sizeof(int16_t), MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
+    s_spk_running = buf != NULL;
+    while (buf && !s_spk_stop && !s_mic_holds_codec) {
+        uint32_t avail = s_spk_head - s_spk_tail;
+        int n = 0;
+        while (n < block && avail) {
+            buf[n++] = s_spk_ring[s_spk_tail % s_spk_ring_n];
+            s_spk_tail++;
+            avail--;
+        }
+        if (n < block) {
+            memset(buf + n, 0, (size_t)(block - n) * sizeof(int16_t));   /* silence keeps the amp awake */
+        }
+        if (esp_codec_dev_write(s_speaker, buf, block * (int)sizeof(int16_t)) != ESP_OK) {
+            break;
+        }
+    }
+    free(buf);
+    esp_codec_dev_close(s_speaker);
+    s_speaker_open = false;
+    s_spk_running = false;
+    s_spk_task = NULL;
+    vTaskDelete(NULL);
+}
+
+bool aos_hal_spk_open(uint32_t sample_rate)
+{
+    if (s_spk_task) {
+        return true;
+    }
+    if (!s_speaker || s_player_task) {
+        return false;
+    }
+    /* The microphone that was just closed lets go of the codec when its task
+     * ends, a little after the close; and the tone task may still hold it for
+     * a note. Wait for both, bounded: the walkie's release-to-listen is this
+     * wait plus the codec's open. */
+    for (int i = 0; i < 80 && (s_mic_holds_codec || s_speaker_open); i++) {
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+    if (s_mic_holds_codec || s_speaker_open) {
+        return false;
+    }
+    if (!s_spk_ring) {
+        s_spk_ring_n = sample_rate ? sample_rate : 16000;
+        s_spk_ring = heap_caps_malloc(s_spk_ring_n * sizeof(int16_t), MALLOC_CAP_SPIRAM);
+        if (!s_spk_ring) {
+            return false;
+        }
+    } else if (s_spk_ring_n != (sample_rate ? sample_rate : 16000)) {
+        free(s_spk_ring);
+        s_spk_ring_n = sample_rate ? sample_rate : 16000;
+        s_spk_ring = heap_caps_malloc(s_spk_ring_n * sizeof(int16_t), MALLOC_CAP_SPIRAM);
+        if (!s_spk_ring) {
+            return false;
+        }
+    }
+    s_spk_rate = sample_rate ? sample_rate : 16000;
+    s_spk_head = s_spk_tail = 0;
+    s_spk_stop = false;
+    s_spk_running = true;               /* until the task says otherwise */
+    if (xTaskCreate(spk_task, "aos_spk", 4096, NULL, 6, &s_spk_task) != pdPASS) {
+        s_spk_running = false;
+        return false;
+    }
+    return true;
+}
+
+int aos_hal_spk_write(const int16_t *pcm, int n)
+{
+    if (!s_spk_task || !pcm || n <= 0) {
+        return 0;
+    }
+    uint32_t used = s_spk_head - s_spk_tail;
+    uint32_t room = s_spk_ring_n - used;
+    if ((uint32_t)n > room) {
+        n = (int)room;
+    }
+    for (int i = 0; i < n; i++) {
+        s_spk_ring[s_spk_head % s_spk_ring_n] = pcm[i];
+        s_spk_head++;
+    }
+    return n;
+}
+
+int aos_hal_spk_queued(void)
+{
+    return s_spk_task ? (int)(s_spk_head - s_spk_tail) : 0;
+}
+
+bool aos_hal_spk_is_open(void)
+{
+    return s_spk_task && s_spk_running;
+}
+
+void aos_hal_spk_close(void)
+{
+    if (!s_spk_task) {
+        return;
+    }
+    s_spk_stop = true;
+    for (int i = 0; i < 60 && s_spk_task; i++) {
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
 }
 
 /* ---- FTM ------------------------------------------------------------------ */
