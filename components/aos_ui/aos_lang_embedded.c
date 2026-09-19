@@ -523,6 +523,7 @@ static const char blob_en__sistema_lang[] =
     "Lua\tLua\n"
     "Pixel Art\tPixel Art\n"
     "Pong\tPong\n"
+    "Radar\tRadar\n"
     "Grabadora\tRecorder\n"
     "Remoto\tRemote\n"
     "Sensores\tSensors\n"
@@ -706,6 +707,24 @@ static const char blob_en_aos_pong_lang[] =
     "Ganaste\tYou won\n"
     "Perdiste\tYou lost\n"
     "Sin señal del otro reloj\tNo signal from the other watch\n"
+    ;
+
+static const char blob_en_aos_radar_lang[] =
+    "El enlace no arrancó: la radio tiene que estar encendida\tThe link did not start: the radio has to be on\n"
+    "Sin pareja: apareá los relojes en Enlace\tNo partner: pair the watches in Link\n"
+    "Buscando a\tLooking for\n"
+    "te ve a\tsees you at\n"
+    "sin soporte en esta placa\tnot supported on this board\n"
+    "respondo\tresponding\n"
+    "el otro reloj no lo tiene\tthe other watch lacks it\n"
+    "respondo, esperando la medida\tresponding, waiting for the measurement\n"
+    "esperando al respondedor\twaiting for the responder\n"
+    "sin respuesta\tno answer\n"
+    "midiendo...\tmeasuring...\n"
+    "Un metro\tOne metre\n"
+    "Radar\tRadar\n"
+    "Calibrar a 1 m\tCalibrate at 1 m\n"
+    "crudo\traw\n"
     ;
 
 static const char blob_en_aos_remoto_lang[] =
@@ -1608,6 +1627,7 @@ static const aos_lang_file_t files_en[] = {
     { "aos.netscan.lang", blob_en_aos_netscan_lang },
     { "aos.pixel.lang", blob_en_aos_pixel_lang },
     { "aos.pong.lang", blob_en_aos_pong_lang },
+    { "aos.radar.lang", blob_en_aos_radar_lang },
     { "aos.remoto.lang", blob_en_aos_remoto_lang },
     { "aos.sensores.lang", blob_en_aos_sensores_lang },
     { "aos.simon.lang", blob_en_aos_simon_lang },
@@ -2138,6 +2158,7 @@ static const char blob_de__sistema_lang[] =
     "Lua\tLua\n"
     "Pixel Art\tPixel Art\n"
     "Pong\tPong\n"
+    "Radar\tRadar\n"
     "Grabadora\tRekorder\n"
     "Remoto\tFernbedienung\n"
     "Sensores\tSensoren\n"
@@ -2321,6 +2342,24 @@ static const char blob_de_aos_pong_lang[] =
     "Ganaste\tGewonnen\n"
     "Perdiste\tVerloren\n"
     "Sin señal del otro reloj\tKein Signal von der anderen Uhr\n"
+    ;
+
+static const char blob_de_aos_radar_lang[] =
+    "El enlace no arrancó: la radio tiene que estar encendida\tDie Verbindung startete nicht: das Funkmodul muss an sein\n"
+    "Sin pareja: apareá los relojes en Enlace\tKein Partner: Uhren in Verbindung koppeln\n"
+    "Buscando a\tSuche\n"
+    "te ve a\tsieht dich bei\n"
+    "sin soporte en esta placa\tauf dieser Platine nicht unterstützt\n"
+    "respondo\tantworte\n"
+    "el otro reloj no lo tiene\tdie andere Uhr hat es nicht\n"
+    "respondo, esperando la medida\tantworte, warte auf die Messung\n"
+    "esperando al respondedor\twarte auf den Antwortenden\n"
+    "sin respuesta\tkeine Antwort\n"
+    "midiendo...\tmesse...\n"
+    "Un metro\tEin Meter\n"
+    "Radar\tRadar\n"
+    "Calibrar a 1 m\tAuf 1 m kalibrieren\n"
+    "crudo\troh\n"
     ;
 
 static const char blob_de_aos_remoto_lang[] =
@@ -3223,6 +3262,7 @@ static const aos_lang_file_t files_de[] = {
     { "aos.netscan.lang", blob_de_aos_netscan_lang },
     { "aos.pixel.lang", blob_de_aos_pixel_lang },
     { "aos.pong.lang", blob_de_aos_pong_lang },
+    { "aos.radar.lang", blob_de_aos_radar_lang },
     { "aos.remoto.lang", blob_de_aos_remoto_lang },
     { "aos.sensores.lang", blob_de_aos_sensores_lang },
     { "aos.simon.lang", blob_de_aos_simon_lang },
@@ -3244,7 +3284,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 516, 27, files_en, 28 },
-    { "de", "Deutsch", 516, 27, files_de, 28 },
+    { "en", "English", 517, 28, files_en, 29 },
+    { "de", "Deutsch", 517, 28, files_de, 29 },
 };
 const int aos_lang_pack_count = 2;

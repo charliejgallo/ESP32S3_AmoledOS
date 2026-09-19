@@ -252,6 +252,9 @@ static uint32_t s_rejoin_ms;
 static char            s_net_ssid[33];
 static esp_netif_t    *s_netif_ap;
 static bool            s_ap_active;
+static bool            s_ftm_resp;          /* the softAP goes up as FTM responder */
+static bool            s_ftm_ap_mine;       /* the responder brought the AP up, so it takes it down */
+static aos_ftm_result_t s_ftm;
 static char            s_ap_ssid[33];
 static char            s_ap_pass[65];
 static char            s_ap_ip[16] = "192.168.4.1";
@@ -2213,6 +2216,27 @@ static void wifi_event_handler(void *arg, esp_event_base_t base,
         }
         mdns_up();
     }
+#if CONFIG_ESP_WIFI_FTM_ENABLE
+    else if (base == WIFI_EVENT && id == WIFI_EVENT_FTM_REPORT) {
+        const wifi_event_ftm_report_t *r = (const wifi_event_ftm_report_t *)data;
+        s_ftm.busy   = false;
+        s_ftm.status = (uint8_t)r->status;
+        s_ftm.ms     = (uint32_t)(esp_timer_get_time() / 1000);
+        if (r->status == FTM_STATUS_SUCCESS) {
+            s_ftm.valid   = true;
+            s_ftm.rtt_ns  = r->rtt_est;
+            s_ftm.dist_cm = r->dist_est;
+            s_ftm.sessions++;
+            ESP_LOGI(TAG, "ftm: %lu cm, rtt %lu ns (raw %lu), %u entries",
+                     (unsigned long)r->dist_est, (unsigned long)r->rtt_est,
+                     (unsigned long)r->rtt_raw, (unsigned)r->ftm_report_num_entries);
+        } else {
+            s_ftm.failures++;
+            ESP_LOGW(TAG, "ftm: status %d", (int)r->status);
+        }
+        esp_wifi_ftm_get_report(NULL, 0);       /* frees the driver's report */
+    }
+#endif
 }
 
 /* Parking (docs/LINK.md, the channel policy): the link needs both watches
@@ -2567,6 +2591,9 @@ bool aos_hal_net_ap_start(void)
     ap.ap.password[n_pass] = 0;
     ap.ap.authmode       = WIFI_AUTH_WPA2_PSK;
     ap.ap.max_connection = 4;
+#if CONFIG_ESP_WIFI_FTM_ENABLE
+    ap.ap.ftm_responder  = s_ftm_resp;
+#endif
 
     /* The channel: the STA's if there is a connection, and 1 if there is
      * none.
@@ -2605,6 +2632,101 @@ bool aos_hal_net_ap_start(void)
     s_ap_active = true;
     ESP_LOGI(TAG, "access point up: %s / %s -> http://%s/",
              s_ap_ssid, s_ap_pass, s_ap_ip);
+    return true;
+}
+
+/* ---- FTM ------------------------------------------------------------------ */
+
+bool aos_hal_ftm_supported(void)
+{
+#if CONFIG_ESP_WIFI_FTM_ENABLE
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool aos_hal_ftm_responder(bool on)
+{
+#if CONFIG_ESP_WIFI_FTM_ENABLE
+    if (on) {
+        if (s_ftm_resp && s_ap_active) {
+            return true;
+        }
+        s_ftm_resp = true;
+        if (s_ap_active) {
+            aos_hal_net_ap_stop();          /* up again, this time with the flag */
+        }
+        s_ftm_ap_mine = aos_hal_net_ap_start();
+        if (s_ftm_ap_mine) {
+            esp_wifi_ftm_resp_set_offset(0);
+        }
+        return s_ftm_ap_mine;
+    }
+    s_ftm_resp = false;
+    if (s_ftm_ap_mine) {
+        s_ftm_ap_mine = false;
+        aos_hal_net_ap_stop();
+    }
+    return true;
+#else
+    (void)on;
+    return false;
+#endif
+}
+
+bool aos_hal_ftm_responder_info(uint8_t mac[6], uint8_t *channel)
+{
+#if CONFIG_ESP_WIFI_FTM_ENABLE
+    if (!s_ftm_resp || !s_ap_active || !mac) {
+        return false;
+    }
+    if (esp_wifi_get_mac(WIFI_IF_AP, mac) != ESP_OK) {
+        return false;
+    }
+    uint8_t primary = 0;
+    wifi_second_chan_t second;
+    if (channel && esp_wifi_get_channel(&primary, &second) == ESP_OK) {
+        *channel = primary;
+    }
+    return true;
+#else
+    (void)mac; (void)channel;
+    return false;
+#endif
+}
+
+bool aos_hal_ftm_measure(const uint8_t mac[6], uint8_t channel, uint8_t frames)
+{
+#if CONFIG_ESP_WIFI_FTM_ENABLE
+    if (!mac || s_ftm.busy) {
+        return false;
+    }
+    wifi_ftm_initiator_cfg_t cfg = {
+        .channel = channel,
+        .frm_count = frames ? frames : 16,
+        .burst_period = 2,
+        .use_get_report_api = true,
+    };
+    memcpy(cfg.resp_mac, mac, 6);
+    if (esp_wifi_ftm_initiate_session(&cfg) != ESP_OK) {
+        s_ftm.failures++;
+        return false;
+    }
+    s_ftm.busy = true;
+    return true;
+#else
+    (void)mac; (void)channel; (void)frames;
+    return false;
+#endif
+}
+
+bool aos_hal_ftm_result(aos_ftm_result_t *out)
+{
+    if (!out) {
+        return false;
+    }
+    *out = s_ftm;
     return true;
 }
 

@@ -1362,6 +1362,32 @@ void     aos_hal_link_unpark(void);
 bool     aos_hal_link_parked(void);
 uint32_t aos_hal_link_rejoin_ms(void);
 
+/* --------------------------------------------------------------------------
+ * FTM: distance by time of flight (IEEE 802.11mc), for the radar
+ *
+ * One watch answers (the internal softAP brought up with the FTM responder
+ * flag, on the station's channel so the portal stays up) and the other asks
+ * (a session of N frames against that BSSID; the driver averages them and
+ * gives a round trip in ns and a distance in cm). Asynchronous: measure()
+ * returns at once and result() says when the report came. Only on the board
+ * with CONFIG_ESP_WIFI_FTM_ENABLE; elsewhere supported() is false.
+ * -------------------------------------------------------------------------- */
+typedef struct {
+    bool     busy;              /* a session is in the air */
+    bool     valid;             /* the numbers below come from a session that succeeded */
+    uint8_t  status;            /* 0 ok, else the driver's wifi_ftm_status_t */
+    uint32_t rtt_ns;            /* estimated round trip */
+    uint32_t dist_cm;           /* estimated one-way distance */
+    uint32_t sessions, failures;
+    uint32_t ms;                /* uptime of the last report */
+} aos_ftm_result_t;
+
+bool aos_hal_ftm_supported(void);
+bool aos_hal_ftm_responder(bool on);                          /* softAP up/down as responder */
+bool aos_hal_ftm_responder_info(uint8_t mac[6], uint8_t *channel); /* what the initiator needs */
+bool aos_hal_ftm_measure(const uint8_t mac[6], uint8_t channel, uint8_t frames);
+bool aos_hal_ftm_result(aos_ftm_result_t *out);
+
 #ifdef __cplusplus
 }
 

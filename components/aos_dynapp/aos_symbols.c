@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 120 funciones de libc/libm agregadas a mano.
- * Total: 2755 simbolos.
+ * Total: 2760 simbolos.
  */
 
 #include <stddef.h>
@@ -144,6 +144,11 @@ extern int aos_hal_display_on;
 extern int aos_hal_display_set_state;
 extern int aos_hal_display_state;
 extern int aos_hal_firmware_version;
+extern int aos_hal_ftm_measure;
+extern int aos_hal_ftm_responder;
+extern int aos_hal_ftm_responder_info;
+extern int aos_hal_ftm_result;
+extern int aos_hal_ftm_supported;
 extern int aos_hal_heap_info;
 extern int aos_hal_http_body;
 extern int aos_hal_http_get;
@@ -2902,6 +2907,11 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_display_set_state),
     ESP_ELFSYM_EXPORT(aos_hal_display_state),
     ESP_ELFSYM_EXPORT(aos_hal_firmware_version),
+    ESP_ELFSYM_EXPORT(aos_hal_ftm_measure),
+    ESP_ELFSYM_EXPORT(aos_hal_ftm_responder),
+    ESP_ELFSYM_EXPORT(aos_hal_ftm_responder_info),
+    ESP_ELFSYM_EXPORT(aos_hal_ftm_result),
+    ESP_ELFSYM_EXPORT(aos_hal_ftm_supported),
     ESP_ELFSYM_EXPORT(aos_hal_heap_info),
     ESP_ELFSYM_EXPORT(aos_hal_http_body),
     ESP_ELFSYM_EXPORT(aos_hal_http_get),

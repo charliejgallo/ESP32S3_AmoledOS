@@ -2360,3 +2360,10 @@ bool     aos_hal_link_park(uint8_t channel) { (void)channel; return false; }
 void     aos_hal_link_unpark(void) {}
 bool     aos_hal_link_parked(void) { return false; }
 uint32_t aos_hal_link_rejoin_ms(void) { return 0; }
+
+/* FTM needs a radio: the simulator has none. */
+bool aos_hal_ftm_supported(void) { return false; }
+bool aos_hal_ftm_responder(bool on) { (void)on; return false; }
+bool aos_hal_ftm_responder_info(uint8_t mac[6], uint8_t *channel) { (void)mac; (void)channel; return false; }
+bool aos_hal_ftm_measure(const uint8_t mac[6], uint8_t channel, uint8_t frames) { (void)mac; (void)channel; (void)frames; return false; }
+bool aos_hal_ftm_result(aos_ftm_result_t *out) { if (out) memset(out, 0, sizeof *out); return false; }

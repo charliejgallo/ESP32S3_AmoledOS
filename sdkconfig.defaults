@@ -435,3 +435,6 @@ CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=y
 # third of the three slots; the USB network interface (D6) needs one so
 # amoledos.local answers over the cable too.
 CONFIG_MDNS_PREDEF_NETIF_ETH=n
+
+# FTM (fine timing measurement) for the radar between two watches (docs/LINK.md)
+CONFIG_ESP_WIFI_FTM_ENABLE=y
