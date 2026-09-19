@@ -2174,3 +2174,8 @@ bool aos_hal_display_blit(int x, int y, int w, int h, const void *rgb565_be)
     (void)x; (void)y; (void)w; (void)h; (void)rgb565_be;
     return false;               /* no panel here: the app draws through LVGL */
 }
+
+void aos_hal_device_name_applied(const char *name)
+{
+    printf("[hal] the watch is now %s.local\n", name);
+}

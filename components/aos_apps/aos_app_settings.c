@@ -1277,8 +1277,9 @@ static void refresh(lv_timer_t *timer)
     char buf[96];
     switch (aos_hal_net_state()) {
     case AOS_NET_CONNECTED:
-        snprintf(buf, sizeof(buf), LV_SYMBOL_WIFI "  %s  (%d dBm)\n%s",
-                 aos_hal_net_ssid(), aos_hal_net_rssi(), aos_hal_net_ip());
+        snprintf(buf, sizeof(buf), LV_SYMBOL_WIFI "  %s  (%d dBm)\n%s  ·  %s.local",
+                 aos_hal_net_ssid(), aos_hal_net_rssi(), aos_hal_net_ip(),
+                 aos_hal_device_name());
         break;
     case AOS_NET_CONNECTING:
         /* The icon goes as an argument and not glued to the literal. Glued,

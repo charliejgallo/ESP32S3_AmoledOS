@@ -2130,21 +2130,34 @@ int aos_hal_mic_level(void)
  * changes. With this, http://amoledos.local/ is enough from any device on the
  * network (macOS and iOS resolve .local out of the box; on Android an app is
  * usually needed). */
+static bool s_mdns_started;
+
 static void mdns_up(void)
 {
-    static bool arrancado = false;
-    if (arrancado) {
+    if (s_mdns_started) {
         return;
     }
     if (mdns_init() != ESP_OK) {
         ESP_LOGW(TAG, "mdns did not start");
         return;
     }
-    mdns_hostname_set("amoledos");
-    mdns_instance_name_set("AmoledOS");
+    mdns_hostname_set(aos_hal_device_name());
+    mdns_instance_name_set(aos_hal_device_name());
     mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0);
-    arrancado = true;
-    ESP_LOGI(TAG, "portal also at http://amoledos.local/");
+    s_mdns_started = true;
+    ESP_LOGI(TAG, "portal also at http://%s.local/", aos_hal_device_name());
+}
+
+/* The name changed (aos_device_name.c): mDNS takes it live, no restart.
+ * The BLE name stays "AmoledOS" (the advertising packet is 31 of 31 bytes,
+ * see ROADMAP.md) and the USB strings are fixed when the port starts. */
+void aos_hal_device_name_applied(const char *name)
+{
+    if (s_mdns_started) {
+        mdns_hostname_set(name);
+        mdns_instance_name_set(name);
+        ESP_LOGI(TAG, "the watch is now %s.local", name);
+    }
 }
 
 bool aos_hal_mdns_add_netif(void *esp_netif)
@@ -2161,7 +2174,7 @@ bool aos_hal_mdns_add_netif(void *esp_netif)
         mdns_unregister_netif((esp_netif_t *)esp_netif);
         return false;
     }
-    ESP_LOGI(TAG, "amoledos.local also answers on the usb interface");
+    ESP_LOGI(TAG, "%s.local also answers on the usb interface", aos_hal_device_name());
     return true;
 }
 

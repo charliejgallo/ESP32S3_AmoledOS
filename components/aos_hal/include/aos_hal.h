@@ -1118,6 +1118,17 @@ bool aos_hal_usb_card_away(void);       /* DISK mode and the computer holds the 
  * answers "amoledos.local" there too, with that interface's address. The
  * argument is an esp_netif_t*, kept opaque so this header stays free of
  * ESP-IDF. Brings the responder up if WiFi never did. */
+/* The watch's name: what answers as <name>.local, what the portal shows in
+ * its header and the browser's tab, so two watches on one network can be
+ * told apart. 1 to AOS_DEVICE_NAME_MAX characters of [a-z0-9-] (a hostname,
+ * so no spaces or accents), kept in NVS, default "amoledos". Setting it
+ * re-announces mDNS at once; the BLE name and the USB strings do not follow
+ * (the advertising packet is full and the USB descriptors are fixed at boot). */
+#define AOS_DEVICE_NAME_MAX 24
+const char *aos_hal_device_name(void);
+bool aos_hal_device_name_valid(const char *name);
+bool aos_hal_device_name_set(const char *name);
+
 bool aos_hal_mdns_add_netif(void *esp_netif);
 void aos_hal_mdns_remove_netif(void *esp_netif);
 

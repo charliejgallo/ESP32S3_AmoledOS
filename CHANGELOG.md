@@ -3,6 +3,18 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.3.19 — 2026-09-19
+
+- **The watch has a name.** Settings in the portal (and `POST /api/ajustes
+  nombre=`) set it: lowercase letters, digits and hyphens, up to 24. It is
+  the mDNS hostname, re-announced at once without a restart, so
+  `charlie.local` and `amigo.local` are two watches on one network; the
+  portal shows it next to the logo and in the browser's tab, `/api/status`
+  publishes it as `name`, and the watch's network screen prints it under the
+  IP. Default `amoledos`, as before. The BLE name stays `AmoledOS` (the
+  advertising packet is full, see ROADMAP.md) and the USB strings are fixed
+  at boot.
+
 ## v0.3.18 — 2026-09-18
 
 - **Blackjack**, a new app that lives on the card and touches no firmware

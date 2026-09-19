@@ -150,6 +150,7 @@
     if (!cinta) return;
     var aca = location.pathname.replace(/\/$/, "") || "/";
     var html = '<div class="marca"><a href="/" class="logo">AmoledOS</a>' +
+               '<span class="quien" id="quien"></span>' +
                '<span class="viva" id="viva"><span class="chip dim">' +
                esc(t("viv_cargando")) + '</span></span></div><div class="pills">';
     for (var g = 0; g < GRUPOS.length; g++) {
@@ -215,6 +216,13 @@
       .then(function (s) {
         ultimo = s;
         pintarViva(s);
+        /* Which watch this is: its name next to the logo and in the tab, so
+           two of them on one network are told apart at a glance. */
+        var q = document.getElementById("quien");
+        var nombre = s && s.name && s.name !== "amoledos" ? s.name : "";
+        if (q) q.textContent = nombre;
+        if (!document.__tituloBase) document.__tituloBase = document.title;
+        document.title = nombre ? nombre + " \u00b7 " + document.__tituloBase : document.__tituloBase;
         for (var i = 0; i < oyentes.length; i++) { try { oyentes[i](s); } catch (e) {} }
         return s;
       })

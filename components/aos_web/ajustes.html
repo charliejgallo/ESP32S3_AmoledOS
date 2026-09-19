@@ -19,6 +19,17 @@
 
   <nav class="paginas"></nav>
 
+  <h2 data-t="h_reloj">Reloj</h2>
+  <div class="ajuste columna">
+    <div class="cabeza"><div class="texto"><b data-t="nombre">Nombre</b>
+      <span data-t="nombre_pie">Es lo que responde en la red: con dos relojes, cada uno el suyo. Letras minúsculas, números y guiones, hasta 24.</span></div></div>
+    <div class="fila" style="margin-top:6px">
+      <input type="text" id="nombre" style="flex:1" maxlength="24" placeholder="amoledos" autocapitalize="none" spellcheck="false">
+      <button class="sec chica" id="b-nombre" data-t="b_aplicar">Aplicar</button>
+    </div>
+    <div class="texto" style="margin-top:6px"><span id="nombre-local"></span></div>
+  </div>
+
   <h2 data-t="h_pantalla">Pantalla</h2>
   <div class="ajuste columna">
     <div class="cabeza">
@@ -153,6 +164,9 @@ const TR = {
   en: {
     titulo: "Settings",
     bajada: "The same as the watch's Settings app, without having to hit a 30-pixel switch. Each change applies when you release the control and is saved.",
+    h_reloj: "Watch", nombre: "Name",
+    nombre_pie: "What it answers to on the network: with two watches, each its own. Lowercase letters, digits and hyphens, up to 24.",
+    nombre_malo: "not a valid name: lowercase letters, digits and hyphens only",
     h_pantalla: "Screen", brillo: "Brightness", esfera: "Watchface",
     esfera_pie: "Changes right away, without going through the picker.",
     menu: "App menu", menu_lista: "List", menu_grilla: "Grid", menu_panal: "Honeycomb",
@@ -183,6 +197,9 @@ const TR = {
   de: {
     titulo: "Einstellungen",
     bajada: "Dasselbe wie die Einstellungen-App der Uhr, ohne einen 30-Pixel-Schalter treffen zu muessen. Jede Aenderung gilt beim Loslassen und wird gespeichert.",
+    h_reloj: "Uhr", nombre: "Name",
+    nombre_pie: "Darunter antwortet sie im Netz: bei zwei Uhren jede ihren eigenen. Kleinbuchstaben, Ziffern und Bindestriche, bis 24.",
+    nombre_malo: "kein gueltiger Name: nur Kleinbuchstaben, Ziffern und Bindestriche",
     h_pantalla: "Bildschirm", brillo: "Helligkeit", esfera: "Zifferblatt",
     esfera_pie: "Wechselt sofort, ohne die Auswahl.",
     menu: "App-Menue", menu_lista: "Liste", menu_grilla: "Raster", menu_panal: "Wabe",
@@ -212,6 +229,7 @@ const TR = {
   }
 };
 const ES = {
+  nombre_malo: "nombre inválido: minúsculas, números y guiones nada más",
   tz_otra: "Otra (POSIX)...", guardado: "guardado", fallo: "falló: ",
   confirmar_wifi: "¿Apagar la wifi? Esta página va a dejar de responder.",
   hora_puesta: "hora puesta", sincronizando: "pidiendo la hora por internet...",
@@ -296,6 +314,8 @@ function pintar(s) {
   $("fila-tz-libre").hidden = conocida;
   $("tz-libre").value = s.tz || "";
   $("tz-actual").textContent = s.tz || "";
+  $("nombre").value = s.nombre || "";
+  $("nombre-local").textContent = "http://" + (s.nombre || "amoledos") + ".local/";
 }
 
 async function cargar() {
@@ -364,6 +384,18 @@ $("tz").onchange = e => {
   $("fila-tz-libre").hidden = true;
   $("tz-actual").textContent = e.target.value;
   guardar({ tz: e.target.value });
+};
+$("b-nombre").onclick = async () => {
+  const v = $("nombre").value.trim().toLowerCase();
+  if (!/^[a-z0-9]([a-z0-9-]{0,22}[a-z0-9])?$/.test(v)) { aos.brindis(t("nombre_malo")); return; }
+  $("nombre").value = v;
+  try {
+    const r = await aos.post("/api/ajustes", { nombre: v });
+    if (r && r.nombre_invalido) { aos.brindis(t("nombre_malo")); return; }
+    $("nombre-local").textContent = "http://" + v + ".local/";
+    aos.brindis(t("guardado"));
+    aos.estado();
+  } catch (e) { aos.brindis(t("fallo") + e.message); }
 };
 $("b-tz").onclick = () => {
   const v = $("tz-libre").value.trim();

@@ -479,7 +479,7 @@ static esp_err_t status_handler(httpd_req_t *req)
              ",\"ssid\":\"%s\",\"rssi\":%d,\"ip\":\"%s\",\"wifi_on\":%s,"
              "\"ap\":%s,\"ap_ip\":\"%s\",\"bt\":\"%s\",\"bt_peer\":\"%s\","
              "\"phone_batt\":%d,\"exec\":%u,\"sd_total\":%llu,\"sd_free\":%llu,"
-             "\"steps\":%u,\"steps_goal\":%u,"
+             "\"steps\":%u,\"steps_goal\":%u,\"name\":\"%s\","
              "\"app\":\"%s\",\"time_ok\":%s,\"tz\":\"%s\",\"now\":%lld,"
              "\"touch_cal\":%s,\"cal_ax\":%.4f,\"cal_bx\":%.2f,"
              "\"cal_ay\":%.4f,\"cal_by\":%.2f}",
@@ -493,7 +493,7 @@ static esp_err_t status_handler(httpd_req_t *req)
              peer, phone,
              (unsigned)heap_caps_get_free_size(MALLOC_CAP_EXEC),
              (unsigned long long)sd_total, (unsigned long long)sd_free,
-             (unsigned)steps.today, (unsigned)steps.goal,
+             (unsigned)steps.today, (unsigned)steps.goal, aos_hal_device_name(),
              app ? app : "",
              aos_hal_time_is_valid() ? "true" : "false", tz,
              (long long)time(NULL),
@@ -2422,11 +2422,11 @@ static esp_err_t ajustes_get_handler(httpd_req_t *req)
 
     snprintf(item, sizeof(item),
              "\"tz\":\"%s\",\"hora_ok\":%s,\"wifi\":%d,\"bt\":%d,"
-             "\"notif\":%d,\"notif_sonido\":%d,\"llamadas\":%d,",
+             "\"notif\":%d,\"notif_sonido\":%d,\"llamadas\":%d,\"nombre\":\"%s\",",
              tz, aos_hal_time_is_valid() ? "true" : "false",
              aos_hal_net_enabled() ? 1 : 0, aos_hal_bt_enabled() ? 1 : 0,
              aos_hal_notif_enabled() ? 1 : 0, aos_hal_notif_sound() ? 1 : 0,
-             aos_hal_notif_calls_always() ? 1 : 0);
+             aos_hal_notif_calls_always() ? 1 : 0, aos_hal_device_name());
     httpd_resp_sendstr_chunk(req, item);
 
     const char *actual = aos_watchface_current();
@@ -2460,6 +2460,7 @@ static esp_err_t ajustes_post_handler(httpd_req_t *req)
 
     char v[64];
     int aplicados = 0;
+    bool nombre_invalido = false;
 
     if (!aos_hal_lock(500)) {
         httpd_resp_set_status(req, "503 Service Unavailable");
@@ -2522,6 +2523,14 @@ static esp_err_t ajustes_post_handler(httpd_req_t *req)
             aplicados++;
         }
     }
+    if (httpd_query_key_value(body, "nombre", v, sizeof(v)) == ESP_OK) {
+        url_decode(v);
+        if (aos_hal_device_name_set(v)) {
+            aplicados++;
+        } else {
+            nombre_invalido = true;
+        }
+    }
     aos_hal_unlock();
 
     /* Deferred: these rebuild LVGL objects and must run on the UI tick. */
@@ -2546,8 +2555,9 @@ static esp_err_t ajustes_post_handler(httpd_req_t *req)
         aplicados++;
     }
 
-    char json[48];
-    snprintf(json, sizeof(json), "{\"ok\":true,\"aplicados\":%d}", aplicados);
+    char json[96];
+    snprintf(json, sizeof(json), "{\"ok\":true,\"aplicados\":%d,\"nombre_invalido\":%s,\"nombre\":\"%s\"}",
+             aplicados, nombre_invalido ? "true" : "false", aos_hal_device_name());
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, json);
 

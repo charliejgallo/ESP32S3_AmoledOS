@@ -195,7 +195,7 @@ the **console** it boots as (the log and `esptool`), a **keyboard and
 network** for the computer, the **card as a disk** of the computer, or a
 **host** for a pendrive. In keyboard mode the watch is a keyboard with media
 keys, a mouse, a gamepad, a MIDI port and a network card at once, and the
-portal answers at `http://192.168.7.1` (and `amoledos.local`) over the cable
+portal answers at `http://192.168.7.1` (and `<name>.local`, `amoledos` unless you name the watch in Settings) over the cable
 with no WiFi. Everything measured is in [docs/USB.md](docs/USB.md).
 
 | | | |
