@@ -199,9 +199,37 @@ starts offering another app. The seat is a variable of the UI (`ME`/`THEM`,
 never `TR_YO`/`TR_EL`), which is what puts the guest at the bottom of its
 own table.
 
+### Phase 6 — a drawing, and where the other watch is (v0.4.2)
+
+Two small apps on the link as released, no new protocol in the HAL for the
+first and a thin one for the second.
+
+**Pixel Art sends a drawing.** With a partner paired, the editor's menu gets
+"Enviar a <name>". The `.pix` file goes as it is on the card (a 16x16
+document with four frames is 1132 bytes), in 236-byte chunks over the
+reliable channel; the other watch, also in Pixel Art, writes it into its
+first empty slot, validates the header, refreshes its gallery and answers
+with the slot number (or that it has no room). Both sides keep the link up
+only while a partner exists: the app costs nothing on a watch that is alone.
+
+**Radar.** Two answers to "where is the other watch". The cheap one:
+both watches ping each other ten times a second over the fast channel and
+every ping carries the RSSI the radio saw it at; a smoothed value through a
+path-loss model (`d = 10^((P0 - rssi) / 10n)`, n = 2.2, P0 calibrated by
+holding the watches one metre apart and tapping the button) puts the
+partner as a dot on three rings. RSSI is a poor ruler -a hand over the
+antenna is worth metres- but it says "closer" and "further" well. The
+exact one: FTM, fine timing measurement (IEEE 802.11mc). The watch with
+the lower MAC brings its softAP up as FTM responder, on the station's
+channel so the portal stays up, and tells the other its BSSID and channel
+in the pings; the other runs a 16-frame session every 1.5 s and the driver
+gives a distance in centimetres, which goes back in the pings so both
+screens show it. `CONFIG_ESP_WIFI_FTM_ENABLE=y` and four HAL calls
+(`aos_hal_ftm_responder/responder_info/measure/result`); the simulator
+says "sin soporte".
+
 ### v0.4.x — the rest
 
-- Send a drawing from Pixel Art.
 - The walkie-talkie: the first thing that needs a streaming speaker API in
   the HAL (`aos_hal_spk_open/write/close`), which the player of WAV files
   does not offer today. That API is its own small piece of work, and the
@@ -386,6 +414,43 @@ how the captures were compared. Trap: with two simulators on one Mac the
 script's clock (`AOS_SIM_KEYS`) runs at about half speed while the
 screenshot's (`AOS_SIM_SHOT_MS`) keeps wall time, so a script that reads
 as 12 s needs a capture at 45 s.
+
+### Phase 6 (2026-09-19)
+
+Pixel Art, on the two boards driven from the portal: the kitten (1132
+bytes) from charlie's slot 1 to amoledos's slot 5.
+
+| | |
+| --- | --- |
+| frames on the reliable channel | 6 out (start + 5 chunks), 1 back with the slot |
+| retransmits / lost | 0 / 0 |
+| from the tap to the toast on the other watch | under a second |
+
+Radar, on the two boards side by side on the desk (about 10 cm apart),
+amoledos the initiator and charlie the responder:
+
+| | |
+| --- | --- |
+| RSSI seen at 10 cm | -8 to -10 dBm, both ways |
+| pings | 10/s each way; the initiator's arrive at 60-70 % while its FTM sessions run, the responder's at 100 % |
+| FTM session | 16 frames asked, 12-14 valid readings out of 12-14 received, two bursts of 8, 200 ms apart; a session ends in about 300 ms |
+| FTM raw distance, 20 sessions at 10 cm | 105 to 240 cm, mean about 170 cm |
+| FTM resolution | the driver reports whole nanoseconds of RTT: one step is 15 cm |
+
+So the driver's number carries an offset of about a metre and a half on
+these boards and jumps by three or four steps from one session to the
+next; the app averages the last five sessions and the calibration at one
+metre takes the offset out (`radar_ftm0` in the preferences, alongside
+`radar_p0` for the RSSI). What is not measured yet, because it needs
+someone walking with a watch and a tape measure: the slope. FTM should be
+right to about a metre from two to twenty metres indoors; RSSI is expected
+to be useless past a few metres. Both boards on a desk say nothing about
+that, and the table above is the calibration point, not the verdict.
+
+Trap found on the way: an app without `KEEP_AWAKE` is closed when the
+screen times out (30 s), which makes a test driven from the portal with a
+pause in the middle look like a crash. Pixel Art is such an app; the
+tests had to be scripted without gaps.
 
 ## Traps expected, to be confirmed or struck out
 

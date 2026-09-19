@@ -93,6 +93,8 @@ typedef struct {
     uint16_t    ftm_cm_theirs;
     uint8_t     ftm_state_theirs;
     uint32_t    ftm_sessions, ftm_failures, ftm_raw_cm;
+    uint16_t    ftm_hist[5];            /* the last sessions, averaged: one is 15 cm of RTT quantum */
+    uint8_t     ftm_hist_n, ftm_hist_i;
     /* animation */
     uint32_t    pulse_ms;
     uint32_t    log_ms;
@@ -189,7 +191,16 @@ static void ftm_tick(uint32_t now)
         /* the driver's number carries a fixed offset of about a metre on
          * these boards (side by side they read 90-135 cm): the calibration
          * at one metre takes it out */
-        int cm = (int)r.dist_cm - s_r.ftm0;
+        /* one session is quantised to 1 ns of RTT (15 cm) and jumps by
+         * three or four of those side by side: the mean of the last five
+         * sessions (7.5 s) is what the screen shows */
+        s_r.ftm_hist[s_r.ftm_hist_i] = r.dist_cm > 0xFFFE ? 0xFFFE : (uint16_t)r.dist_cm;
+        s_r.ftm_hist_i = (uint8_t)((s_r.ftm_hist_i + 1) % 5);
+        if (s_r.ftm_hist_n < 5) s_r.ftm_hist_n++;
+        uint32_t sum = 0;
+        for (int i = 0; i < s_r.ftm_hist_n; i++) sum += s_r.ftm_hist[i];
+        s_r.ftm_raw_cm = sum / s_r.ftm_hist_n;
+        int cm = (int)s_r.ftm_raw_cm - s_r.ftm0;
         if (cm < 0) cm = 0;
         s_r.ftm_cm    = cm > 0xFFFE ? 0xFFFE : (uint16_t)cm;
         s_r.ftm_state = 1;
