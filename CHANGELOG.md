@@ -3,6 +3,38 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.4.0 — 2026-09-19
+
+Two watches talk. The whole of [docs/LINK.md](docs/LINK.md) is the record:
+the plan written before the code, then each phase measured on the two
+boards and between two simulators.
+
+- **The link** (`aos_hal_link_*`): ESP-NOW between watches, the same common
+  layer on the board and in the simulator (UDP on loopback, one port per
+  window) over a raw layer per platform. Beacons with the watch's name,
+  neighbours with their RSSI, and **pairing by bumping the two watches
+  together**: a knock on each within 400 ms, close by, a key from both
+  nonces, an encrypted peer, the partner kept in NVS. Two channels on top:
+  fast (send and forget, the last one wins) and reliable (go-back-N, window
+  4, in order, resent, with a sync so a restarted sender is understood).
+  Measured: nothing lost on the air in 6000 frames, 3-5 ms round trip,
+  60 KB/s raw and 32 over the reliable channel, 100 KB whole with 30 % of
+  the frames dropped on purpose, 4.5 KB of internal RAM while the link is
+  up, and 1.1 s to rejoin the network after parking on a fixed channel.
+- **Enlace**, a built-in app: this watch's name, the partner (around?
+  encrypted channel confirmed?), the neighbours, "bump to pair", forget.
+- **Pong**, a dynamic app and the first on the link: the field is two
+  screens glued top to top, the host simulates at 30 Hz and the guest draws
+  the last state; 30 states a second each way with an iPhone connected.
+- **`/api/link`** drives and measures all of it from a laptop: start,
+  test frames with an echo, park on a channel, pair with simulated bumps,
+  the bulk transfer with forced losses.
+- Traps written down: a real knock paired seventeen times until three
+  seconds of deafness after a pairing; mismatched keys drop every frame
+  silently with the MAC ack saying all is well (the "canal cifrado listo"
+  line is the proof); the fonts have no block glyphs; a sender that
+  restarts its numbering must say so.
+
 ## v0.3.19 — 2026-09-19
 
 - **The watch has a name.** Settings in the portal (and `POST /api/ajustes

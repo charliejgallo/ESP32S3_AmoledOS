@@ -7,9 +7,9 @@ a card table, a walkie-talkie. Written before the first line of code, on
 what was planned against what was measured, phase by phase, the way
 [VIDEO.md](VIDEO.md) and [STEPS.md](STEPS.md) were.
 
-Branch `espnow`. The merge is v0.4.0: the link, its HAL, the simulator's
-version of it, and the first two-player app. The rest of the apps come as
-v0.4.x on top.
+Branch `espnow`, merged as **v0.4.0** on 2026-09-19: the link, its HAL, the
+simulator's version of it, and the first two-player app. The rest of the
+apps come as v0.4.x on top.
 
 ## What ESP-NOW is, and what it costs here
 
@@ -162,7 +162,7 @@ page as they land.
 - CHANGELOG, README (a "two watches" section), this page with the numbers,
   release with both watches on it.
 - **Done when** two people play a game on two watches, and the fps and the
-  state rate are on this page.
+  state rate are on this page. *Done: see Measured, phase 4.*
 
 ### v0.4.x — the rest
 
@@ -303,6 +303,24 @@ makes the receiver lose that percent on purpose.
   all was well. The confirm exchange over the encrypted peer is the only
   proof the keys match; the Link app shows it as "canal cifrado listo", and
   that is the line to look at before playing.
+
+### Phase 4 (2026-09-19)
+
+Pong (`apps/pong/`), a `.so` like the other games now that the link is in
+the symbol table. The field is two screens glued top to top; the watch
+with the lower MAC is the host, simulates at 30 Hz from both paddles and
+sends the state over the fast channel; the guest sends its paddle and draws
+the last state it got. Roles from a hello exchange, the paddle from the
+finger, `NO_SWIPE` and `LONG_DRAG` so a drag is a drag.
+
+| | states in / out per second |
+| --- | --- |
+| two simulators on one Mac | 31 / 31 |
+| two watches, iPhone connected to the host | 30 / 30, "29 or 31 now and then, never lower" (the player) |
+
+Played for a while on the two boards: the ball crosses without a stutter,
+the paddle follows the finger, the score and the end of the game show on
+both. v0.4.0.
 
 ## Traps expected, to be confirmed or struck out
 
