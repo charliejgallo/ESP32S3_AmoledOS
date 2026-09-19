@@ -522,6 +522,7 @@ static const char blob_en__sistema_lang[] =
     "Laberinto\tMaze\n"
     "Lua\tLua\n"
     "Pixel Art\tPixel Art\n"
+    "Pong\tPong\n"
     "Grabadora\tRecorder\n"
     "Remoto\tRemote\n"
     "Sensores\tSensors\n"
@@ -688,6 +689,15 @@ static const char blob_en_aos_pixel_lang[] =
     "Limpiar cuadro\tClear frame\n"
     "No se pudo abrir\tCould not open\n"
     "Actualizado desde el portal\tUpdated from the portal\n"
+    ;
+
+static const char blob_en_aos_pong_lang[] =
+    "El enlace no arrancó\tThe link did not start\n"
+    "Sin pareja: apareá los relojes en Enlace\tNo partner: pair the watches in Link\n"
+    "Esperando al otro reloj...\tWaiting for the other watch...\n"
+    "Ganaste\tYou won\n"
+    "Perdiste\tYou lost\n"
+    "Sin señal del otro reloj\tNo signal from the other watch\n"
     ;
 
 static const char blob_en_aos_remoto_lang[] =
@@ -1589,6 +1599,7 @@ static const aos_lang_file_t files_en[] = {
     { "aos.mines.lang", blob_en_aos_mines_lang },
     { "aos.netscan.lang", blob_en_aos_netscan_lang },
     { "aos.pixel.lang", blob_en_aos_pixel_lang },
+    { "aos.pong.lang", blob_en_aos_pong_lang },
     { "aos.remoto.lang", blob_en_aos_remoto_lang },
     { "aos.sensores.lang", blob_en_aos_sensores_lang },
     { "aos.simon.lang", blob_en_aos_simon_lang },
@@ -2118,6 +2129,7 @@ static const char blob_de__sistema_lang[] =
     "Laberinto\tLabyrinth\n"
     "Lua\tLua\n"
     "Pixel Art\tPixel Art\n"
+    "Pong\tPong\n"
     "Grabadora\tRekorder\n"
     "Remoto\tFernbedienung\n"
     "Sensores\tSensoren\n"
@@ -2284,6 +2296,15 @@ static const char blob_de_aos_pixel_lang[] =
     "Limpiar cuadro\tBild leeren\n"
     "No se pudo abrir\tÖffnen fehlgeschlagen\n"
     "Actualizado desde el portal\tVom Portal aktualisiert\n"
+    ;
+
+static const char blob_de_aos_pong_lang[] =
+    "El enlace no arrancó\tDie Verbindung startete nicht\n"
+    "Sin pareja: apareá los relojes en Enlace\tKein Partner: die Uhren in Verbindung koppeln\n"
+    "Esperando al otro reloj...\tWarte auf die andere Uhr...\n"
+    "Ganaste\tGewonnen\n"
+    "Perdiste\tVerloren\n"
+    "Sin señal del otro reloj\tKein Signal von der anderen Uhr\n"
     ;
 
 static const char blob_de_aos_remoto_lang[] =
@@ -3185,6 +3206,7 @@ static const aos_lang_file_t files_de[] = {
     { "aos.mines.lang", blob_de_aos_mines_lang },
     { "aos.netscan.lang", blob_de_aos_netscan_lang },
     { "aos.pixel.lang", blob_de_aos_pixel_lang },
+    { "aos.pong.lang", blob_de_aos_pong_lang },
     { "aos.remoto.lang", blob_de_aos_remoto_lang },
     { "aos.sensores.lang", blob_de_aos_sensores_lang },
     { "aos.simon.lang", blob_de_aos_simon_lang },
@@ -3206,7 +3228,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 515, 26, files_en, 27 },
-    { "de", "Deutsch", 515, 26, files_de, 27 },
+    { "en", "English", 516, 27, files_en, 28 },
+    { "de", "Deutsch", 516, 27, files_de, 28 },
 };
 const int aos_lang_pack_count = 2;
