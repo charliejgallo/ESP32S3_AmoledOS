@@ -131,12 +131,52 @@ typedef struct {
     bool       save_failed;
     bool       playing;
     uint32_t   play_next_ms;
+
+    /* Sending a drawing to the other watch (docs/LINK.md, v0.4.2). The
+     * link is only up while there is a partner paired in Enlace; the file
+     * goes as it is on the card, in chunks over the reliable channel, and
+     * the other side answers with the slot it landed in. */
+    bool       link_up;
+    char       pname[AOS_LINK_NAME_MAX + 1];
+    uint8_t    partner_mac[6];
+    uint8_t   *tx_buf, *rx_buf;
+    uint32_t   tx_total, tx_off, tx_ms;
+    uint32_t   rx_total, rx_got, rx_ms;
+    bool       tx_active, rx_active;
+    lv_obj_t  *mi_send;
 } app_t;
+
+#define PXL_PROTO       1
+#define PXL_CHUNK       236                 /* 4 of header in a 242-byte reliable payload */
+#define PXL_MAX_FILE    (12 + PX_COLORS * 3 + PX_MAX_FRAMES * PX_CELLS + 64)
+#define PXL_TX_TIMEOUT  8000
+#define PXL_RX_TIMEOUT  5000
+
+enum { PXL_START = 1, PXL_DATA = 2, PXL_DONE = 3 };
+
+typedef struct __attribute__((packed)) {
+    uint8_t  type, proto;
+    uint8_t  pad[2];
+    uint32_t total;
+} pxl_start_t;
+
+typedef struct __attribute__((packed)) {
+    uint8_t  type, proto;
+    uint16_t off;
+    uint8_t  data[PXL_CHUNK];
+} pxl_data_t;
+
+typedef struct __attribute__((packed)) {
+    uint8_t type, proto;
+    int8_t  slot;                           /* 0-based; -1 no room, -2 unreadable */
+    uint8_t pad;
+} pxl_done_t;
 
 static void go_gallery(app_t *a);
 static void go_editor(app_t *a, int slot);
 static void editor_refresh(app_t *a);
 static void menu_close(app_t *a);
+static void mi_send_cb(lv_event_t *e);
 
 /* --------------------------------------------------------------------------
  * Paths
@@ -1065,6 +1105,11 @@ static void build_menu(app_t *a)
                       menu_item(a, a->menu, _("Cuadro en blanco"),   mi_blank_cb,     w, h, AOS_C_CARD2);
                       menu_item(a, a->menu, _("Exportar GIF"),       mi_gif_cb,       w, h, lv_color_hex(0x0A5A9E));
                       menu_item(a, a->menu, _("Exportar PNG"),       mi_png_cb,       w, h, lv_color_hex(0x0A5A9E));
+    if (a->link_up) {
+        char t[64];
+        lv_snprintf(t, sizeof t, _("Enviar a %s"), a->pname);
+        a->mi_send  = menu_item(a, a->menu, t,                       mi_send_cb,      w, h, lv_color_hex(0x0A5A9E));
+    }
     a->mi_undo      = menu_item(a, a->menu, _("Deshacer"),           mi_undo_cb,      w, h, AOS_C_CARD2);
     a->mi_speed     = menu_item(a, a->menu, "",                      mi_speed_cb,     w, h, AOS_C_CARD2);
     a->mi_del_frame = menu_item(a, a->menu, _("Borrar cuadro"),      mi_del_frame_cb, w, h, AOS_C_CARD2);
@@ -1181,6 +1226,174 @@ static void go_editor(app_t *a, int slot)
  * The timer: deferred exit, playback, autosave, and watching the portal
  * -------------------------------------------------------------------------- */
 
+/* --------------------------------------------------------------------------
+ * The other watch
+ * -------------------------------------------------------------------------- */
+
+static bool partner_in_pixel(const app_t *a)
+{
+    aos_link_neighbour_t nb[AOS_LINK_NEIGHBOURS];
+    int n = aos_hal_link_neighbours(nb, AOS_LINK_NEIGHBOURS);
+    for (int i = 0; i < n; i++) {
+        if (memcmp(nb[i].mac, a->partner_mac, 6) == 0) {
+            return strcmp(nb[i].app, "pixel") == 0;
+        }
+    }
+    return false;
+}
+
+static void link_send_done(int8_t slot)
+{
+    pxl_done_t d = { .type = PXL_DONE, .proto = PXL_PROTO, .slot = slot };
+    aos_hal_link_send_reliable(&d, sizeof d);
+}
+
+/* The whole file arrived: into the first empty slot, then the gallery. */
+static void link_rx_finish(app_t *a)
+{
+    int slot = -1;
+    char path[160];
+    for (int i = 0; i < PX_SLOTS; i++) {
+        slot_path(i, path, sizeof(path));
+        struct stat st;
+        if (stat(path, &st) != 0) {
+            slot = i;
+            break;
+        }
+    }
+    if (slot < 0) {
+        aos_hal_log(TAG, "drawing from %s: no empty slot", a->pname);
+        link_send_done(-1);
+        return;
+    }
+    slot_path(slot, path, sizeof(path));
+    FILE *f = fopen(path, "wb");
+    bool ok = f && fwrite(a->rx_buf, 1, a->rx_total, f) == a->rx_total;
+    if (f) fclose(f);
+    int size = 0, frames = 0;
+    if (!ok || !px_doc_peek(path, &size, &frames)) {
+        remove(path);
+        aos_hal_log(TAG, "drawing from %s: %lu bytes, not a .pix", a->pname, (unsigned long)a->rx_total);
+        link_send_done(-2);
+        return;
+    }
+    aos_hal_log(TAG, "drawing from %s: %dx%d, %d frames, slot %d", a->pname, size, size, frames, slot + 1);
+    link_send_done((int8_t)slot);
+    char msg[96];
+    lv_snprintf(msg, sizeof msg, _("Dibujo de %s en el lienzo %d"), a->pname, slot + 1);
+    aos_ui_toast(msg, 2500);
+    aos_hal_beep(880, 60);
+    if (a->slot < 0) gallery_refresh(a);
+}
+
+static void link_tick(app_t *a)
+{
+    uint32_t now = now_ms();
+    if (!a->pname[0]) {
+        aos_link_partner_t p;
+        if (aos_hal_link_partner(&p) && p.valid) {
+            memcpy(a->partner_mac, p.mac, 6);
+            snprintf(a->pname, sizeof a->pname, "%s", p.name[0] ? p.name : "?");
+        }
+    }
+    aos_link_frame_t f;
+    while (aos_hal_link_recv_reliable(&f) > 0) {
+        if (f.len < 4 || f.data[1] != PXL_PROTO) continue;
+        if (f.data[0] == PXL_START && f.len >= sizeof(pxl_start_t)) {
+            const pxl_start_t *st = (const pxl_start_t *)f.data;
+            a->rx_active = st->total > 0 && st->total <= PXL_MAX_FILE;
+            a->rx_total  = st->total;
+            a->rx_got    = 0;
+            a->rx_ms     = now;
+        } else if (f.data[0] == PXL_DATA && a->rx_active) {
+            const pxl_data_t *d = (const pxl_data_t *)f.data;
+            uint32_t len = f.len - 4;
+            if ((uint32_t)d->off + len > a->rx_total) {
+                a->rx_active = false;
+                continue;
+            }
+            memcpy(a->rx_buf + d->off, d->data, len);
+            a->rx_got += len;
+            a->rx_ms   = now;
+            if (a->rx_got >= a->rx_total) {
+                a->rx_active = false;
+                link_rx_finish(a);
+            }
+        } else if (f.data[0] == PXL_DONE && a->tx_active) {
+            const pxl_done_t *d = (const pxl_done_t *)f.data;
+            a->tx_active = false;
+            char msg[96];
+            if (d->slot >= 0) {
+                lv_snprintf(msg, sizeof msg, _("Llegó al lienzo %d de %s"), d->slot + 1, a->pname);
+                aos_hal_beep(660, 40);
+            } else if (d->slot == -1) {
+                lv_snprintf(msg, sizeof msg, _("%s no tiene lugar"), a->pname);
+            } else {
+                lv_snprintf(msg, sizeof msg, _("%s no pudo guardarlo"), a->pname);
+            }
+            aos_ui_toast(msg, 2500);
+        }
+    }
+    if (a->tx_active) {
+        /* as many chunks as the queue takes; the rest next tick */
+        while (a->tx_off < a->tx_total) {
+            pxl_data_t d = { .type = PXL_DATA, .proto = PXL_PROTO, .off = (uint16_t)a->tx_off };
+            uint32_t len = a->tx_total - a->tx_off;
+            if (len > PXL_CHUNK) len = PXL_CHUNK;
+            memcpy(d.data, a->tx_buf + a->tx_off, len);
+            if (!aos_hal_link_send_reliable(&d, 4 + len)) break;
+            a->tx_off += len;
+        }
+        if (aos_hal_link_reliable_lost() || now - a->tx_ms > PXL_TX_TIMEOUT) {
+            a->tx_active = false;
+            aos_hal_link_reliable_reset();
+            aos_ui_toast(_("No se pudo enviar"), 2000);
+        }
+    }
+    if (a->rx_active && now - a->rx_ms > PXL_RX_TIMEOUT) {
+        a->rx_active = false;
+    }
+}
+
+static void mi_send_cb(lv_event_t *e)
+{
+    app_t *a = (app_t *)lv_event_get_user_data(e);
+    menu_close(a);
+    if (a->slot < 0 || !a->link_up || a->tx_active) return;
+    if (a->dirty) save_doc(a);
+    char msg[96];
+    if (!partner_in_pixel(a)) {
+        lv_snprintf(msg, sizeof msg, _("%s no está en Pixel Art"), a->pname);
+        aos_ui_toast(msg, 2500);
+        return;
+    }
+    char path[160];
+    slot_path(a->slot, path, sizeof(path));
+    FILE *f = fopen(path, "rb");
+    long n = 0;
+    if (f) {
+        n = (long)fread(a->tx_buf, 1, PXL_MAX_FILE, f);
+        fclose(f);
+    }
+    if (n <= 0) {
+        aos_ui_toast(_("No se pudo enviar"), 2000);
+        return;
+    }
+    if (aos_hal_link_reliable_lost()) aos_hal_link_reliable_reset();
+    pxl_start_t st = { .type = PXL_START, .proto = PXL_PROTO, .total = (uint32_t)n };
+    if (!aos_hal_link_send_reliable(&st, sizeof st)) {
+        aos_ui_toast(_("No se pudo enviar"), 2000);
+        return;
+    }
+    a->tx_total  = (uint32_t)n;
+    a->tx_off    = 0;
+    a->tx_ms     = now_ms();
+    a->tx_active = true;
+    aos_hal_log(TAG, "sending %s (%ld bytes) to %s", path, n, a->pname);
+    lv_snprintf(msg, sizeof msg, _("Enviando a %s..."), a->pname);
+    aos_ui_toast(msg, 1500);
+}
+
 static void timer_cb(lv_timer_t *t)
 {
     app_t *a = (app_t *)lv_timer_get_user_data(t);
@@ -1206,6 +1419,9 @@ static void timer_cb(lv_timer_t *t)
         a->menu_del_req = false;
         lv_obj_delete(a->menu);
         a->menu = NULL;
+    }
+    if (a->link_up) {
+        link_tick(a);
     }
 
     if (a->dirty && a->slot >= 0 && now - a->changed_ms > AUTOSAVE_MS && !a->stroke &&
@@ -1398,6 +1614,22 @@ static void *px_create(aos_app_t *self, lv_obj_t *root)
     a->big     = malloc((size_t)CV_PX * CV_PX * sizeof(uint16_t));
     a->palbuf  = malloc((size_t)PAL_W * SWATCH * sizeof(uint16_t));
     bool ok = a->doc && a->scratch && a->big && a->palbuf;
+
+    /* The other watch, only if one is paired: the link costs radio time and
+     * 4.5 KB of internal RAM, nothing to spend on a watch that is alone. */
+    aos_link_partner_t partner;
+    const char *lk_env = getenv("PX_LINK");     /* the simulator has no partner until the link is up */
+    if ((aos_hal_link_partner(&partner) && partner.valid) || (lk_env && lk_env[0])) {
+        a->tx_buf = malloc(PXL_MAX_FILE);
+        a->rx_buf = malloc(PXL_MAX_FILE);
+        if (a->tx_buf && a->rx_buf && aos_hal_link_start()) {
+            a->link_up = true;
+            aos_hal_link_offer("pixel");
+            aos_hal_link_reliable_reset();
+            memcpy(a->partner_mac, partner.mac, 6);
+            snprintf(a->pname, sizeof a->pname, "%s", partner.name);
+        }
+    }
     for (int i = 0; i < PX_SLOTS; i++) {
         a->thumb[i] = malloc((size_t)TH_PX * TH_PX * sizeof(uint16_t));
         ok = ok && a->thumb[i];
@@ -1494,6 +1726,12 @@ static void px_destroy(aos_app_t *self, void *inst)
     if (a->root) {
         lv_obj_clean(a->root);
     }
+    if (a->link_up) {
+        aos_hal_link_offer("");
+        aos_hal_link_stop();
+    }
+    free(a->tx_buf);
+    free(a->rx_buf);
     free(a->doc);
     free(a->scratch);
     free(a->big);
