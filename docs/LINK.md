@@ -134,8 +134,7 @@ page as they land.
   notification arriving.
 - **Done when** 1000 frames go one way with the loss rate, the round trip
   and the RSSI in this page, on the same channel and on the parked one, with
-  Bluetooth connected and with it off. *Done, but for the Bluetooth half:
-  see Measured, phase 1.*
+  Bluetooth connected and with it off. *Done: see Measured, phase 1.*
 
 ### Phase 2 — discovery and the bump
 
@@ -231,8 +230,23 @@ RAM** while up (the queue and the task).
 its channel and nothing else happens; parking is the fallback for two
 watches on different networks, and it is measured, not just planned.
 
-Not yet measured: the same tests with the iPhone connected over BLE and
-notifications arriving. It needs the phone paired to one of the watches.
+**With the iPhone connected over BLE** to the sending watch (ANCS, AMS and
+the rest up, the phone idle in a pocket):
+
+| test | frames | on the air | lost | round trip avg / min / max | rate |
+| --- | --- | --- | --- | --- | --- |
+| unicast echo, 32 B, 20 ms apart | 200 | 200 | 0 | 5.1 / 3.1 / 22.1 ms | — |
+| unicast echo, 250 B, 5 ms apart | 500 | 449 | 0 | **146.7** / 9.0 / 194.5 ms | the sender refused 51 (NO_MEM) |
+| unicast, 250 B, wait for the send callback | 1000 | 1000 | 0 | — | 202 frames/s, **50 KB/s** |
+
+So Bluetooth takes about a sixth of the air (60 → 50 KB/s) and adds half a
+millisecond to a small frame, and nothing is lost on the air either way.
+What it does punish is a sender that does not wait: full frames pushed
+every 5 ms queue up behind the phone's connection events, the round trip
+balloons to 150 ms and the driver starts refusing. Same conclusion as
+before, only louder: **the sender waits for the send callback**, and a game
+at 30 Hz with 20-byte states does not notice the phone at all. Not measured:
+a notification arriving mid-test (it needs the phone to be sent one).
 
 ## Traps expected, to be confirmed or struck out
 
