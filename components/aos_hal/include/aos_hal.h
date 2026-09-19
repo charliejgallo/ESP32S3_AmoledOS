@@ -1241,6 +1241,127 @@ void aos_hal_steps_reset_today(void);
  * every few seconds; it folds the raw counter in and watches the date. */
 void aos_steps_tick(void);
 
+/* --------------------------------------------------------------------------
+ * Link: raw ESP-NOW frames between watches (phase 1 of docs/LINK.md)
+ *
+ * No discovery, no pairing, no retries yet: a frame to a MAC (or to
+ * everyone), what came in, and counters. The receive side runs in the
+ * HAL's own task and leaves the frames in a ring the app drains from its
+ * tick (aos_hal_link_recv), like the microphone. Frames are at most 250
+ * bytes (ESP-NOW v1) in this phase. The radio must be on: the link rides on
+ * the station interface, connected or not.
+ * -------------------------------------------------------------------------- */
+#define AOS_LINK_MAX_FRAME 250
+
+typedef struct {
+    uint8_t  mac[6];
+    int8_t   rssi;
+    uint16_t len;
+    uint8_t  data[AOS_LINK_MAX_FRAME];
+} aos_link_frame_t;
+
+typedef struct {
+    bool     running;
+    uint32_t version;           /* ESP-NOW version the controller supports */
+    uint8_t  channel;
+    uint8_t  own_mac[6];
+    uint32_t sent, ack_ok, ack_fail, send_err;
+    uint32_t received, dropped;
+    int8_t   last_rssi;
+    uint8_t  last_mac[6];
+    /* the test protocol (/api/link) */
+    uint32_t test_tx, test_rx, test_lost, echo_rx;
+    uint32_t rtt_sum_us, rtt_min_us, rtt_max_us;
+    uint32_t test_ms;           /* how long the last test took to send */
+    /* the reliable channel */
+    uint32_t rel_tx, rel_acked, rel_retx, rel_rx, rel_lost, rel_pending;
+    bool     rel_synced;        /* the receiver knows where my numbering starts */
+    /* the bulk test over it */
+    uint32_t bulk_ms, bulk_rx_bytes, bulk_rx_bad, drop_count;
+} aos_link_stats_t;
+
+bool aos_hal_link_start(void);
+void aos_hal_link_stop(void);
+bool aos_hal_link_running(void);
+bool aos_hal_link_send(const uint8_t mac[6], const void *data, size_t len);  /* NULL mac = broadcast */
+int  aos_hal_link_recv(aos_link_frame_t *out);        /* bytes, 0 if none */
+bool aos_hal_link_stats(aos_link_stats_t *out);
+void aos_hal_link_stats_reset(void);
+/* N numbered test frames to 'mac' (NULL = broadcast), 'gap_ms' apart, of
+ * 'len' bytes, echoed back by the receiver when 'echo'. Runs in its own
+ * task; the counters tell the story. */
+bool aos_hal_link_test(const uint8_t mac[6], uint32_t n, uint32_t gap_ms, bool echo, uint16_t len);
+bool aos_hal_link_test_running(void);
+/* Phase 2: who is around, and the one we are paired with.
+ *
+ * While the link is up the watch beacons once a second (its name, the app
+ * it offers); neighbours are whoever beaconed in the last five seconds.
+ * Pairing is the bump: with pairing enabled, a bump on this watch and a
+ * bump frame from a neighbour within 400 ms of each other, close by (RSSI),
+ * make them partners: a key derived from both nonces, an encrypted peer,
+ * and the partner kept in NVS so any link app finds it without pairing
+ * again. One partner at a time. */
+#define AOS_LINK_NAME_MAX  24
+#define AOS_LINK_NEIGHBOURS 8
+
+typedef struct {
+    uint8_t  mac[6];
+    char     name[AOS_LINK_NAME_MAX + 1];
+    char     app[AOS_LINK_NAME_MAX + 1];    /* what it offers, "" if nothing */
+    int8_t   rssi;
+    uint32_t age_ms;                        /* since its last beacon */
+} aos_link_neighbour_t;
+
+typedef struct {
+    bool     valid;                         /* there is a partner in NVS */
+    bool     seen;                          /* it beaconed in the last 5 s */
+    bool     confirmed;                     /* it answered on the encrypted peer this session */
+    uint8_t  mac[6];
+    char     name[AOS_LINK_NAME_MAX + 1];
+    int8_t   rssi;
+    uint32_t age_ms;
+} aos_link_partner_t;
+
+void aos_hal_link_offer(const char *app);          /* what the beacon says we offer */
+int  aos_hal_link_neighbours(aos_link_neighbour_t *out, int max);
+void aos_hal_link_pair_enable(bool on);            /* listen for bumps */
+bool aos_hal_link_pairing(void);
+void aos_hal_link_bump(void);                      /* a bump, from the IMU or from /api/link for tests */
+bool aos_hal_link_partner(aos_link_partner_t *out);
+void aos_hal_link_unpair(void);
+bool aos_hal_link_send_partner(const void *data, size_t len);   /* encrypted, to the partner */
+uint32_t aos_hal_link_pair_events(void);           /* how many times it paired, for the stats */
+
+/* Phase 3: two channels to the partner.
+ *   reliable: in order, acknowledged, resent (go-back-N, window 4, 80 ms);
+ *             a frame is at most AOS_LINK_MAX_FRAME - 8 bytes; send() says
+ *             false when the queue of 16 is full (try again next tick) or
+ *             the channel is lost (no ack in 3.2 s: reset it and decide).
+ *   fast:     aos_hal_link_send_partner / aos_hal_link_recv above: send and
+ *             forget, the last one wins. */
+bool aos_hal_link_send_reliable(const void *data, size_t len);
+int  aos_hal_link_recv_reliable(aos_link_frame_t *out);   /* bytes, 0 if none */
+int  aos_hal_link_reliable_pending(void);                  /* queued and in flight */
+bool aos_hal_link_reliable_lost(void);
+void aos_hal_link_reliable_reset(void);
+/* the bulk test: N bytes over the reliable channel, checked on the other
+ * side; drop_percent makes a receiver lose frames on purpose */
+bool aos_hal_link_bulk_test(uint32_t bytes);
+void aos_hal_link_drop_percent(uint32_t pct);
+void aos_hal_link_bulk_drain(void);
+void aos_hal_link_bulk_receiver(bool on);                  /* the poll drains and checks, for the test */
+void aos_hal_link_set_partner_test(const uint8_t mac[6]);  /* tests only: a partner without a bump */
+void aos_hal_link_set_channel_info(uint8_t channel);       /* raw layer -> stats */
+
+/* The channel policy (LINK.md): leave the access point and sit on 'channel'
+ * so two watches on different networks meet; unpark reconnects and
+ * measures the time back to an address. While parked the portal is off
+ * the air: whatever parks must schedule its own unpark. */
+bool     aos_hal_link_park(uint8_t channel);
+void     aos_hal_link_unpark(void);
+bool     aos_hal_link_parked(void);
+uint32_t aos_hal_link_rejoin_ms(void);
+
 #ifdef __cplusplus
 }
 

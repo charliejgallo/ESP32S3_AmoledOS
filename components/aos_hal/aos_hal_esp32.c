@@ -246,6 +246,9 @@ static void (*s_button_cb)(aos_button_t button, aos_button_action_t action);
 static int64_t s_button_down_us;
 
 static aos_net_state_t s_net_state = AOS_NET_OFF;
+static bool     s_link_parked;       /* off the access point, on a fixed channel */
+static int64_t  s_unpark_at_us;
+static uint32_t s_rejoin_ms;
 static char            s_net_ssid[33];
 static esp_netif_t    *s_netif_ap;
 static bool            s_ap_active;
@@ -2194,14 +2197,62 @@ static void wifi_event_handler(void *arg, esp_event_base_t base,
     } else if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
         s_net_state = AOS_NET_FAILED;
         strcpy(s_net_ip, "0.0.0.0");
-        esp_wifi_connect();
+        if (!s_link_parked) {           /* parked on a channel for the link: stay there */
+            esp_wifi_connect();
+        }
     } else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)data;
         snprintf(s_net_ip, sizeof(s_net_ip), IPSTR, IP2STR(&event->ip_info.ip));
         s_net_state = AOS_NET_CONNECTED;
         ESP_LOGI(TAG, "wifi connected, ip %s", s_net_ip);
+        if (s_unpark_at_us) {
+            s_rejoin_ms = (uint32_t)((esp_timer_get_time() - s_unpark_at_us) / 1000);
+            s_unpark_at_us = 0;
+            ESP_LOGI(TAG, "back on the network %lu ms after leaving the parked channel",
+                     (unsigned long)s_rejoin_ms);
+        }
         mdns_up();
     }
+}
+
+/* Parking (docs/LINK.md, the channel policy): the link needs both watches
+ * on one channel, and the station's channel is its access point's. Parked,
+ * the station drops the access point and sits on a fixed channel; the
+ * disconnect handler above leaves it there. Unparked, it reconnects and
+ * the time to get an address again is measured. */
+bool aos_hal_link_park(uint8_t channel)
+{
+    if (channel < 1 || channel > 13) {
+        return false;
+    }
+    s_link_parked = true;
+    esp_wifi_disconnect();
+    vTaskDelay(pdMS_TO_TICKS(100));
+    esp_err_t e = esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
+    ESP_LOGI(TAG, "parked on channel %u: %s", channel, esp_err_to_name(e));
+    return e == ESP_OK;
+}
+
+void aos_hal_link_unpark(void)
+{
+    if (!s_link_parked) {
+        return;
+    }
+    s_link_parked = false;
+    s_unpark_at_us = esp_timer_get_time();
+    s_rejoin_ms = 0;
+    esp_wifi_connect();
+    s_net_state = AOS_NET_CONNECTING;
+}
+
+bool aos_hal_link_parked(void)
+{
+    return s_link_parked;
+}
+
+uint32_t aos_hal_link_rejoin_ms(void)
+{
+    return s_rejoin_ms;
 }
 
 /* The WiFi stack is only brought up once there is something to connect to.

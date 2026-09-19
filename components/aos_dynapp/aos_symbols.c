@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 120 funciones de libc/libm agregadas a mano.
- * Total: 2705 simbolos.
+ * Total: 2755 simbolos.
  */
 
 #include <stddef.h>
@@ -44,6 +44,7 @@ extern int aos_app_convert_get;
 extern int aos_app_flashlight_get;
 extern int aos_app_level_get;
 extern int aos_app_life_get;
+extern int aos_app_link_get;
 extern int aos_app_music_get;
 extern int aos_app_notifs_get;
 extern int aos_app_pato_get;
@@ -63,6 +64,7 @@ extern int aos_board_imu_orientation;
 extern int aos_board_imu_poll;
 extern int aos_board_imu_read;
 extern int aos_board_imu_ring_get;
+extern int aos_board_imu_set_bump_cb;
 extern int aos_board_imu_steps;
 extern int aos_board_imu_steps_reset;
 extern int aos_board_imu_wrist_raised;
@@ -132,6 +134,10 @@ extern int aos_hal_bt_pair_confirm;
 extern int aos_hal_bt_peer;
 extern int aos_hal_bt_phone_battery;
 extern int aos_hal_bt_state;
+extern int aos_hal_device_name;
+extern int aos_hal_device_name_applied;
+extern int aos_hal_device_name_set;
+extern int aos_hal_device_name_valid;
 extern int aos_hal_display_blit;
 extern int aos_hal_display_is_on;
 extern int aos_hal_display_on;
@@ -154,6 +160,39 @@ extern int aos_hal_imu_steps_reset;
 extern int aos_hal_init;
 extern int aos_hal_light_sleep_enable;
 extern int aos_hal_light_sleep_enabled;
+extern int aos_hal_link_bulk_drain;
+extern int aos_hal_link_bulk_receiver;
+extern int aos_hal_link_bulk_test;
+extern int aos_hal_link_bump;
+extern int aos_hal_link_drop_percent;
+extern int aos_hal_link_neighbours;
+extern int aos_hal_link_offer;
+extern int aos_hal_link_pair_enable;
+extern int aos_hal_link_pair_events;
+extern int aos_hal_link_pairing;
+extern int aos_hal_link_park;
+extern int aos_hal_link_parked;
+extern int aos_hal_link_partner;
+extern int aos_hal_link_recv;
+extern int aos_hal_link_recv_reliable;
+extern int aos_hal_link_rejoin_ms;
+extern int aos_hal_link_reliable_lost;
+extern int aos_hal_link_reliable_pending;
+extern int aos_hal_link_reliable_reset;
+extern int aos_hal_link_running;
+extern int aos_hal_link_send;
+extern int aos_hal_link_send_partner;
+extern int aos_hal_link_send_reliable;
+extern int aos_hal_link_set_channel_info;
+extern int aos_hal_link_set_partner_test;
+extern int aos_hal_link_start;
+extern int aos_hal_link_stats;
+extern int aos_hal_link_stats_reset;
+extern int aos_hal_link_stop;
+extern int aos_hal_link_test;
+extern int aos_hal_link_test_running;
+extern int aos_hal_link_unpair;
+extern int aos_hal_link_unpark;
 extern int aos_hal_lock;
 extern int aos_hal_log;
 extern int aos_hal_mdns_add_netif;
@@ -334,6 +373,17 @@ extern int aos_label_scaled;
 extern int aos_lang_pack_count;
 extern int aos_lang_packs;
 extern int aos_launcher_create;
+extern int aos_link_bump_hint;
+extern int aos_link_lock;
+extern int aos_link_now_ms;
+extern int aos_link_on_frame;
+extern int aos_link_on_sent;
+extern int aos_link_poll;
+extern int aos_link_raw_send;
+extern int aos_link_raw_set_partner;
+extern int aos_link_raw_start;
+extern int aos_link_raw_stop;
+extern int aos_link_unlock;
 extern int aos_lvmem_get_psram;
 extern int aos_lvmem_set_psram;
 extern int aos_make_decorative;
@@ -2752,6 +2802,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_app_flashlight_get),
     ESP_ELFSYM_EXPORT(aos_app_level_get),
     ESP_ELFSYM_EXPORT(aos_app_life_get),
+    ESP_ELFSYM_EXPORT(aos_app_link_get),
     ESP_ELFSYM_EXPORT(aos_app_music_get),
     ESP_ELFSYM_EXPORT(aos_app_notifs_get),
     ESP_ELFSYM_EXPORT(aos_app_pato_get),
@@ -2771,6 +2822,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_board_imu_poll),
     ESP_ELFSYM_EXPORT(aos_board_imu_read),
     ESP_ELFSYM_EXPORT(aos_board_imu_ring_get),
+    ESP_ELFSYM_EXPORT(aos_board_imu_set_bump_cb),
     ESP_ELFSYM_EXPORT(aos_board_imu_steps),
     ESP_ELFSYM_EXPORT(aos_board_imu_steps_reset),
     ESP_ELFSYM_EXPORT(aos_board_imu_wrist_raised),
@@ -2840,6 +2892,10 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_bt_peer),
     ESP_ELFSYM_EXPORT(aos_hal_bt_phone_battery),
     ESP_ELFSYM_EXPORT(aos_hal_bt_state),
+    ESP_ELFSYM_EXPORT(aos_hal_device_name),
+    ESP_ELFSYM_EXPORT(aos_hal_device_name_applied),
+    ESP_ELFSYM_EXPORT(aos_hal_device_name_set),
+    ESP_ELFSYM_EXPORT(aos_hal_device_name_valid),
     ESP_ELFSYM_EXPORT(aos_hal_display_blit),
     ESP_ELFSYM_EXPORT(aos_hal_display_is_on),
     ESP_ELFSYM_EXPORT(aos_hal_display_on),
@@ -2862,6 +2918,39 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_init),
     ESP_ELFSYM_EXPORT(aos_hal_light_sleep_enable),
     ESP_ELFSYM_EXPORT(aos_hal_light_sleep_enabled),
+    ESP_ELFSYM_EXPORT(aos_hal_link_bulk_drain),
+    ESP_ELFSYM_EXPORT(aos_hal_link_bulk_receiver),
+    ESP_ELFSYM_EXPORT(aos_hal_link_bulk_test),
+    ESP_ELFSYM_EXPORT(aos_hal_link_bump),
+    ESP_ELFSYM_EXPORT(aos_hal_link_drop_percent),
+    ESP_ELFSYM_EXPORT(aos_hal_link_neighbours),
+    ESP_ELFSYM_EXPORT(aos_hal_link_offer),
+    ESP_ELFSYM_EXPORT(aos_hal_link_pair_enable),
+    ESP_ELFSYM_EXPORT(aos_hal_link_pair_events),
+    ESP_ELFSYM_EXPORT(aos_hal_link_pairing),
+    ESP_ELFSYM_EXPORT(aos_hal_link_park),
+    ESP_ELFSYM_EXPORT(aos_hal_link_parked),
+    ESP_ELFSYM_EXPORT(aos_hal_link_partner),
+    ESP_ELFSYM_EXPORT(aos_hal_link_recv),
+    ESP_ELFSYM_EXPORT(aos_hal_link_recv_reliable),
+    ESP_ELFSYM_EXPORT(aos_hal_link_rejoin_ms),
+    ESP_ELFSYM_EXPORT(aos_hal_link_reliable_lost),
+    ESP_ELFSYM_EXPORT(aos_hal_link_reliable_pending),
+    ESP_ELFSYM_EXPORT(aos_hal_link_reliable_reset),
+    ESP_ELFSYM_EXPORT(aos_hal_link_running),
+    ESP_ELFSYM_EXPORT(aos_hal_link_send),
+    ESP_ELFSYM_EXPORT(aos_hal_link_send_partner),
+    ESP_ELFSYM_EXPORT(aos_hal_link_send_reliable),
+    ESP_ELFSYM_EXPORT(aos_hal_link_set_channel_info),
+    ESP_ELFSYM_EXPORT(aos_hal_link_set_partner_test),
+    ESP_ELFSYM_EXPORT(aos_hal_link_start),
+    ESP_ELFSYM_EXPORT(aos_hal_link_stats),
+    ESP_ELFSYM_EXPORT(aos_hal_link_stats_reset),
+    ESP_ELFSYM_EXPORT(aos_hal_link_stop),
+    ESP_ELFSYM_EXPORT(aos_hal_link_test),
+    ESP_ELFSYM_EXPORT(aos_hal_link_test_running),
+    ESP_ELFSYM_EXPORT(aos_hal_link_unpair),
+    ESP_ELFSYM_EXPORT(aos_hal_link_unpark),
     ESP_ELFSYM_EXPORT(aos_hal_lock),
     ESP_ELFSYM_EXPORT(aos_hal_log),
     ESP_ELFSYM_EXPORT(aos_hal_mdns_add_netif),
@@ -3042,6 +3131,17 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_lang_pack_count),
     ESP_ELFSYM_EXPORT(aos_lang_packs),
     ESP_ELFSYM_EXPORT(aos_launcher_create),
+    ESP_ELFSYM_EXPORT(aos_link_bump_hint),
+    ESP_ELFSYM_EXPORT(aos_link_lock),
+    ESP_ELFSYM_EXPORT(aos_link_now_ms),
+    ESP_ELFSYM_EXPORT(aos_link_on_frame),
+    ESP_ELFSYM_EXPORT(aos_link_on_sent),
+    ESP_ELFSYM_EXPORT(aos_link_poll),
+    ESP_ELFSYM_EXPORT(aos_link_raw_send),
+    ESP_ELFSYM_EXPORT(aos_link_raw_set_partner),
+    ESP_ELFSYM_EXPORT(aos_link_raw_start),
+    ESP_ELFSYM_EXPORT(aos_link_raw_stop),
+    ESP_ELFSYM_EXPORT(aos_link_unlock),
     ESP_ELFSYM_EXPORT(aos_lvmem_get_psram),
     ESP_ELFSYM_EXPORT(aos_lvmem_set_psram),
     ESP_ELFSYM_EXPORT(aos_make_decorative),

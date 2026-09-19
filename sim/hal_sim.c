@@ -6,6 +6,7 @@
  * go into a text file. Good enough to design the UI without the board.
  */
 #include "aos_hal.h"
+#include "aos_link_internal.h"
 #include "aos_notif_internal.h"
 
 /* Forward-declared: aos_hal_init() reads them from the preferences. */
@@ -2179,3 +2180,183 @@ void aos_hal_device_name_applied(const char *name)
 {
     printf("[hal] the watch is now %s.local\n", name);
 }
+
+/* --------------------------------------------------------------------------
+ * Link, the raw layer on the desktop: UDP on 127.0.0.1, one port per
+ * simulator (AOS_SIM_LINK_PORT, default 47000; the second instance uses
+ * 47001, and so on up to four). A "MAC" is 02:00:00:00:00:<port-47000>, a
+ * broadcast goes to all four ports, RSSI is a constant near value, and the
+ * bump is the X key (main.c). The common layer is the same file as on the
+ * board, so a two-player app is designed on the laptop.
+ * -------------------------------------------------------------------------- */
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <errno.h>
+
+#define SIM_LINK_BASE_PORT 47000
+#define SIM_LINK_PORTS     4
+
+static int      s_link_sock = -1;
+static uint16_t s_link_port;
+static uint8_t  s_link_mac[6];
+static bool     s_link_up;
+static bool     s_link_sent_pending;
+static bool     s_link_env_done;
+static uint64_t s_link_last_line_ms;
+
+static void link_mac_of_port(uint16_t port, uint8_t mac[6])
+{
+    memset(mac, 0, 6);
+    mac[0] = 0x02;
+    mac[5] = (uint8_t)(port - SIM_LINK_BASE_PORT);
+}
+
+bool aos_link_raw_start(uint8_t own_mac[6], uint32_t *version)
+{
+    if (s_link_up) {
+        memcpy(own_mac, s_link_mac, 6);
+        *version = 2;
+        return true;
+    }
+    const char *env = getenv("AOS_SIM_LINK_PORT");
+    s_link_port = env ? (uint16_t)atoi(env) : SIM_LINK_BASE_PORT;
+    s_link_sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (s_link_sock < 0) {
+        return false;
+    }
+    int one = 1;
+    setsockopt(s_link_sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
+    struct sockaddr_in me = { .sin_family = AF_INET, .sin_port = htons(s_link_port),
+                              .sin_addr.s_addr = htonl(INADDR_LOOPBACK) };
+    if (bind(s_link_sock, (struct sockaddr *)&me, sizeof me) != 0) {
+        printf("[hal] link: port %u is taken (%s): set AOS_SIM_LINK_PORT\n", s_link_port, strerror(errno));
+        close(s_link_sock);
+        s_link_sock = -1;
+        return false;
+    }
+    fcntl(s_link_sock, F_SETFL, O_NONBLOCK);
+    link_mac_of_port(s_link_port, s_link_mac);
+    memcpy(own_mac, s_link_mac, 6);
+    *version = 2;
+    aos_hal_link_set_channel_info(6);
+    s_link_up = true;
+    printf("[hal] link up on udp port %u (mac 02:00:00:00:00:%02x)\n", s_link_port, s_link_mac[5]);
+    return true;
+}
+
+void aos_link_raw_stop(void)
+{
+    if (s_link_sock >= 0) {
+        close(s_link_sock);
+        s_link_sock = -1;
+    }
+    s_link_up = false;
+    printf("[hal] link down\n");
+}
+
+/* The frame carries the sender's port in front, since UDP over loopback
+ * gives every sender the same address. */
+bool aos_link_raw_send(const uint8_t mac[6], const void *data, size_t len)
+{
+    if (!s_link_up || len > AOS_LINK_MAX_FRAME) {
+        return false;
+    }
+    uint8_t buf[2 + AOS_LINK_MAX_FRAME];
+    buf[0] = (uint8_t)(s_link_port >> 8);
+    buf[1] = (uint8_t)s_link_port;
+    memcpy(buf + 2, data, len);
+    bool broadcast = mac[0] == 0xFF;
+    for (int i = 0; i < SIM_LINK_PORTS; i++) {
+        uint16_t port = SIM_LINK_BASE_PORT + i;
+        if (port == s_link_port) {
+            continue;
+        }
+        if (!broadcast && (uint8_t)(port - SIM_LINK_BASE_PORT) != mac[5]) {
+            continue;
+        }
+        struct sockaddr_in to = { .sin_family = AF_INET, .sin_port = htons(port),
+                                  .sin_addr.s_addr = htonl(INADDR_LOOPBACK) };
+        sendto(s_link_sock, buf, 2 + len, 0, (struct sockaddr *)&to, sizeof to);
+    }
+    s_link_sent_pending = true;         /* the callback comes from the tick, as on the board */
+    return true;
+}
+
+bool aos_link_raw_set_partner(const uint8_t mac[6], const uint8_t lmk[16])
+{
+    (void)mac; (void)lmk;               /* no encryption on the loopback */
+    return true;
+}
+
+uint32_t aos_link_now_ms(void)
+{
+    return (uint32_t)aos_hal_uptime_ms();
+}
+
+void aos_link_lock(void) {}
+void aos_link_unlock(void) {}
+
+/* Called from the main loop: deliver what came in, then the clockwork. */
+void aos_hal_sim_link_tick(void)
+{
+    if (!s_link_up) {
+        return;
+    }
+    if (s_link_sent_pending) {
+        s_link_sent_pending = false;
+        aos_link_on_sent(true);
+    }
+    /* Tests from the environment, once the link is up:
+     *   AOS_SIM_LINK_PARTNER=47001   partner by port, no bump
+     *   AOS_SIM_LINK_DROP=10         drop that percent of reliable frames
+     *   AOS_SIM_LINK_BULK=100000     send that many bytes over the reliable channel
+     * A stats line goes to stdout every second while a test runs. */
+    if (!s_link_env_done) {
+        s_link_env_done = true;
+        const char *partner = getenv("AOS_SIM_LINK_PARTNER");
+        if (partner) {
+            uint8_t mac[6];
+            link_mac_of_port((uint16_t)atoi(partner), mac);
+            aos_hal_link_set_partner_test(mac);
+        }
+        const char *drop = getenv("AOS_SIM_LINK_DROP");
+        if (drop) {
+            aos_hal_link_drop_percent((uint32_t)atoi(drop));
+            aos_hal_link_bulk_receiver(true);
+        }
+        const char *bulk = getenv("AOS_SIM_LINK_BULK");
+        if (bulk) {
+            aos_hal_link_bulk_test((uint32_t)atoi(bulk));
+        }
+    }
+    uint64_t now = aos_hal_uptime_ms();
+    if (now - s_link_last_line_ms >= 1000 && (getenv("AOS_SIM_LINK_BULK") || getenv("AOS_SIM_LINK_DROP"))) {
+        s_link_last_line_ms = now;
+        aos_link_stats_t st;
+        aos_hal_link_stats(&st);
+        printf("[link] sent %lu rel_tx %lu acked %lu retx %lu pending %lu lost %lu | rel_rx %lu bulk_rx %lu bad %lu dropped %lu | bulk_ms %lu\n",
+               (unsigned long)st.sent, (unsigned long)st.rel_tx, (unsigned long)st.rel_acked,
+               (unsigned long)st.rel_retx, (unsigned long)st.rel_pending, (unsigned long)st.rel_lost,
+               (unsigned long)st.rel_rx, (unsigned long)st.bulk_rx_bytes, (unsigned long)st.bulk_rx_bad,
+               (unsigned long)st.drop_count, (unsigned long)st.bulk_ms);
+    }
+    uint8_t buf[2 + AOS_LINK_MAX_FRAME];
+    for (int i = 0; i < 32; i++) {
+        ssize_t n = recv(s_link_sock, buf, sizeof buf, 0);
+        if (n < 2) {
+            break;
+        }
+        uint16_t from = (uint16_t)((buf[0] << 8) | buf[1]);
+        uint8_t mac[6];
+        link_mac_of_port(from, mac);
+        aos_link_on_frame(mac, -30, buf + 2, (size_t)n - 2);
+    }
+    aos_link_poll();
+}
+
+bool     aos_hal_link_park(uint8_t channel) { (void)channel; return false; }
+void     aos_hal_link_unpark(void) {}
+bool     aos_hal_link_parked(void) { return false; }
+uint32_t aos_hal_link_rejoin_ms(void) { return 0; }

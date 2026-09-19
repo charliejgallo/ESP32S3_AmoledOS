@@ -472,6 +472,18 @@ static const uint8_t ICON_DUCK[] = {
     AIC_END
 };
 
+static const uint8_t ICON_LINK[] = {
+    AIC_HEADER,
+    AIC_RECT(AIC_CENTER, -24, 0, 28, 40, 9, AIC_C_TEXT, 255),
+    AIC_RECT(AIC_CENTER,  24, 0, 28, 40, 9, AIC_C_TEXT, 255),
+    AIC_RECT(AIC_CENTER, -24, 0, 18, 26, 5, AIC_C_BG, 255),
+    AIC_RECT(AIC_CENTER,  24, 0, 18, 26, 5, AIC_C_BG, 255),
+    AIC_RECT(AIC_CENTER,   0, -12, 5, 5, AIC_CIRCLE, AIC_C_ACCENT, 255),
+    AIC_RECT(AIC_CENTER,   0,   0, 5, 5, AIC_CIRCLE, AIC_C_ACCENT, 255),
+    AIC_RECT(AIC_CENTER,   0,  12, 5, 5, AIC_CIRCLE, AIC_C_ACCENT, 255),
+    AIC_END
+};
+
 const aos_icon_table_t aos_icon_tables[AOS_ICON_COUNT] = {
     [AOS_ICON_CLOCK] = { ICON_CLOCK, sizeof ICON_CLOCK },
     [AOS_ICON_STOPWATCH] = { ICON_STOPWATCH, sizeof ICON_STOPWATCH },
@@ -516,4 +528,5 @@ const aos_icon_table_t aos_icon_tables[AOS_ICON_COUNT] = {
     [AOS_ICON_PIXEL] = { ICON_PIXEL, sizeof ICON_PIXEL },
     [AOS_ICON_MOLE] = { ICON_MOLE, sizeof ICON_MOLE },
     [AOS_ICON_DUCK] = { ICON_DUCK, sizeof ICON_DUCK },
+    [AOS_ICON_LINK] = { ICON_LINK, sizeof ICON_LINK },
 };

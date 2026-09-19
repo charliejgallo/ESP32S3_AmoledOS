@@ -24,6 +24,8 @@
 #include "esp_http_server.h"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "esp_jpeg_dec.h"
 
 #include "aos_hal.h"
@@ -261,5 +263,179 @@ esp_err_t aos_imu_dump_handler(httpd_req_t *req)
     }
     httpd_resp_send_chunk(req, NULL, 0);
     heap_caps_free(buf);
+    return ESP_OK;
+}
+
+/* GET /api/link                      the link's counters
+ * GET /api/link?do=start|stop|reset
+ * GET /api/link?do=test&n=1000&gap=10&to=aa:bb:cc:dd:ee:ff&echo=1&len=200
+ *                                     'to' absent = broadcast */
+static bool parse_mac(const char *text, uint8_t out[6])
+{
+    unsigned v[6];
+    if (sscanf(text, "%x:%x:%x:%x:%x:%x", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5]) != 6) {
+        return false;
+    }
+    for (int i = 0; i < 6; i++) {
+        out[i] = (uint8_t)v[i];
+    }
+    return true;
+}
+
+/* Parked, the watch is off the network and the Mac cannot talk to it: the
+ * whole parked episode is scheduled here and runs on its own. Sender: park,
+ * wait a second for the other side, send the test, wait for the rest of
+ * 'secs', unpark. Receiver: park, wait 'secs', unpark. */
+typedef struct {
+    uint8_t  channel;
+    uint32_t secs;
+    uint32_t n, gap, len;
+    bool     unicast, echo;
+    uint8_t  mac[6];
+} park_job_t;
+
+static void park_task(void *arg)
+{
+    park_job_t j = *(park_job_t *)arg;
+    free(arg);
+    vTaskDelay(pdMS_TO_TICKS(300));             /* let the HTTP reply go out */
+    aos_hal_link_park(j.channel);
+    int64_t t0 = esp_timer_get_time();
+    if (j.n) {
+        vTaskDelay(pdMS_TO_TICKS(1500));
+        aos_hal_link_test(j.unicast ? j.mac : NULL, j.n, j.gap, j.echo, (uint16_t)j.len);
+    }
+    while ((esp_timer_get_time() - t0) / 1000000 < j.secs) {
+        vTaskDelay(pdMS_TO_TICKS(200));
+    }
+    aos_hal_link_unpark();
+    vTaskDelete(NULL);
+}
+
+esp_err_t aos_link_handler(httpd_req_t *req)
+{
+    char what[16] = "";
+    query_str(req, "do", what, sizeof(what));
+    const char *result = "";
+    if (strcmp(what, "start") == 0) {
+        result = aos_hal_link_start() ? "started" : "start failed";
+    } else if (strcmp(what, "stop") == 0) {
+        aos_hal_link_stop();
+        result = "stopped";
+    } else if (strcmp(what, "reset") == 0) {
+        aos_hal_link_stats_reset();
+        result = "reset";
+    } else if (strcmp(what, "park") == 0) {
+        park_job_t *j = calloc(1, sizeof *j);
+        int ch = 1, secs = 15, n = 0, gap = 5, len = 32, echo = 0;
+        query_int(req, "ch", &ch);
+        query_int(req, "secs", &secs);
+        query_int(req, "n", &n);
+        query_int(req, "gap", &gap);
+        query_int(req, "len", &len);
+        query_int(req, "echo", &echo);
+        char to[24] = "";
+        if (j) {
+            j->channel = (uint8_t)ch; j->secs = (uint32_t)secs; j->n = (uint32_t)n;
+            j->gap = (uint32_t)gap; j->len = (uint32_t)len; j->echo = echo != 0;
+            j->unicast = query_str(req, "to", to, sizeof(to)) && parse_mac(to, j->mac);
+            result = xTaskCreate(park_task, "aos_park", 4096, j, 4, NULL) == pdPASS
+                     ? "parking" : "no task";
+        }
+    } else if (strcmp(what, "pair") == 0) {
+        int on = 1;
+        query_int(req, "on", &on);
+        aos_hal_link_pair_enable(on != 0);
+        result = on ? "pairing" : "pairing off";
+    } else if (strcmp(what, "bump") == 0) {
+        aos_hal_link_bump();
+        result = "bumped";
+    } else if (strcmp(what, "unpair") == 0) {
+        aos_hal_link_unpair();
+        result = "unpaired";
+    } else if (strcmp(what, "offer") == 0) {
+        char app[32] = "";
+        query_str(req, "app", app, sizeof(app));
+        aos_hal_link_offer(app);
+        result = "offer set";
+    } else if (strcmp(what, "bulk") == 0) {
+        int bytes = 100000;
+        query_int(req, "bytes", &bytes);
+        result = aos_hal_link_bulk_test((uint32_t)bytes) ? "bulk started" : "bulk not started";
+    } else if (strcmp(what, "bulkrx") == 0) {
+        int pct = 0;
+        query_int(req, "drop", &pct);
+        aos_hal_link_drop_percent((uint32_t)pct);
+        aos_hal_link_bulk_receiver(true);
+        result = "receiving";
+    } else if (strcmp(what, "test") == 0) {
+        int n = 100, gap = 10, echo = 0, len = 32;
+        query_int(req, "n", &n);
+        query_int(req, "gap", &gap);
+        query_int(req, "echo", &echo);
+        query_int(req, "len", &len);
+        char to[24] = "";
+        uint8_t mac[6];
+        bool unicast = query_str(req, "to", to, sizeof(to)) && parse_mac(to, mac);
+        result = aos_hal_link_test(unicast ? mac : NULL, (uint32_t)n, (uint32_t)gap, echo != 0, (uint16_t)len)
+                 ? "test started" : "test not started";
+    }
+
+    aos_link_stats_t st;
+    aos_hal_link_stats(&st);
+    char out[1024];
+    int n = snprintf(out, sizeof(out),
+        "{\"result\":\"%s\",\"running\":%s,\"testing\":%s,\"version\":%lu,\"channel\":%u,"
+        "\"mac\":\"%02x:%02x:%02x:%02x:%02x:%02x\","
+        "\"sent\":%lu,\"ack_ok\":%lu,\"ack_fail\":%lu,\"send_err\":%lu,"
+        "\"received\":%lu,\"dropped\":%lu,\"last_rssi\":%d,"
+        "\"last_mac\":\"%02x:%02x:%02x:%02x:%02x:%02x\","
+        "\"test_tx\":%lu,\"test_rx\":%lu,\"test_lost\":%lu,\"echo_rx\":%lu,"
+        "\"rtt_avg_us\":%lu,\"rtt_min_us\":%lu,\"rtt_max_us\":%lu,\"test_ms\":%lu,"
+        "\"parked\":%s,\"rejoin_ms\":%lu,"
+        "\"rel_tx\":%lu,\"rel_acked\":%lu,\"rel_retx\":%lu,\"rel_rx\":%lu,\"rel_lost\":%lu,\"rel_pending\":%lu,\"rel_synced\":%s,"
+        "\"bulk_ms\":%lu,\"bulk_rx_bytes\":%lu,\"bulk_rx_bad\":%lu,\"drop_count\":%lu}",
+        result, st.running ? "true" : "false", aos_hal_link_test_running() ? "true" : "false",
+        (unsigned long)st.version, st.channel,
+        st.own_mac[0], st.own_mac[1], st.own_mac[2], st.own_mac[3], st.own_mac[4], st.own_mac[5],
+        (unsigned long)st.sent, (unsigned long)st.ack_ok, (unsigned long)st.ack_fail, (unsigned long)st.send_err,
+        (unsigned long)st.received, (unsigned long)st.dropped, st.last_rssi,
+        st.last_mac[0], st.last_mac[1], st.last_mac[2], st.last_mac[3], st.last_mac[4], st.last_mac[5],
+        (unsigned long)st.test_tx, (unsigned long)st.test_rx, (unsigned long)st.test_lost, (unsigned long)st.echo_rx,
+        (unsigned long)(st.echo_rx ? st.rtt_sum_us / st.echo_rx : 0),
+        (unsigned long)st.rtt_min_us, (unsigned long)st.rtt_max_us, (unsigned long)st.test_ms,
+        aos_hal_link_parked() ? "true" : "false", (unsigned long)aos_hal_link_rejoin_ms(),
+        (unsigned long)st.rel_tx, (unsigned long)st.rel_acked, (unsigned long)st.rel_retx,
+        (unsigned long)st.rel_rx, (unsigned long)st.rel_lost, (unsigned long)st.rel_pending, st.rel_synced ? "true" : "false",
+        (unsigned long)st.bulk_ms, (unsigned long)st.bulk_rx_bytes, (unsigned long)st.bulk_rx_bad,
+        (unsigned long)st.drop_count);
+    httpd_resp_set_type(req, "application/json");
+    /* the counters, then the neighbours and the partner, in chunks */
+    out[n - 1] = ',';                       /* reopen the object */
+    httpd_resp_send_chunk(req, out, n);
+    aos_link_partner_t partner;
+    aos_hal_link_partner(&partner);
+    n = snprintf(out, sizeof(out),
+        "\"pairing\":%s,\"pair_events\":%lu,"
+        "\"partner\":{\"valid\":%s,\"seen\":%s,\"confirmed\":%s,\"name\":\"%s\","
+        "\"mac\":\"%02x:%02x:%02x:%02x:%02x:%02x\",\"rssi\":%d,\"age_ms\":%lu},\"neighbours\":[",
+        aos_hal_link_pairing() ? "true" : "false", (unsigned long)aos_hal_link_pair_events(),
+        partner.valid ? "true" : "false", partner.seen ? "true" : "false",
+        partner.confirmed ? "true" : "false", partner.name,
+        partner.mac[0], partner.mac[1], partner.mac[2], partner.mac[3], partner.mac[4], partner.mac[5],
+        partner.rssi, (unsigned long)partner.age_ms);
+    httpd_resp_send_chunk(req, out, n);
+    aos_link_neighbour_t nb[AOS_LINK_NEIGHBOURS];
+    int count = aos_hal_link_neighbours(nb, AOS_LINK_NEIGHBOURS);
+    for (int i = 0; i < count; i++) {
+        n = snprintf(out, sizeof(out),
+            "%s{\"name\":\"%s\",\"app\":\"%s\",\"mac\":\"%02x:%02x:%02x:%02x:%02x:%02x\",\"rssi\":%d,\"age_ms\":%lu}",
+            i ? "," : "", nb[i].name, nb[i].app,
+            nb[i].mac[0], nb[i].mac[1], nb[i].mac[2], nb[i].mac[3], nb[i].mac[4], nb[i].mac[5],
+            nb[i].rssi, (unsigned long)nb[i].age_ms);
+        httpd_resp_send_chunk(req, out, n);
+    }
+    httpd_resp_sendstr_chunk(req, "]}");
+    httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }

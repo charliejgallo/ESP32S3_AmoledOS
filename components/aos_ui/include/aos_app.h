@@ -105,6 +105,7 @@ typedef enum {
     AOS_ICON_PIXEL,         /* Pixel Art: a heart of cells on the grid */
     AOS_ICON_MOLE,          /* Topos: a mole peeking out of its hole */
     AOS_ICON_DUCK,          /* Pato goma: a yellow rubber duck */
+    AOS_ICON_LINK,          /* Enlace: two watches, face to face, a spark between */
 
     /* Keep LAST. Not an icon: the size of the firmware's table of icon
      * blobs (aos_icon_tables.c). New icons go above this line. */

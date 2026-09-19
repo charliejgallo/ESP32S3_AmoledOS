@@ -115,7 +115,7 @@ to do.
 
 ### Built into the firmware
 
-Twenty ship inside the binary. They are the ones the watch cannot be without
+Twenty-one ship inside the binary. They are the ones the watch cannot be without
 — if the microSD is out, these still work.
 
 | | | |
@@ -126,11 +126,11 @@ Twenty ship inside the binary. They are the ones the watch cannot be without
 | <img src="docs/img/int-music.png" width="200"><br>**Música** — plays WAV from the card through the ES8311 codec. | <img src="docs/img/int-photos.png" width="200"><br>**Fotos** — JPEG, PNG and BMP from the card, decoded and scaled to the screen. | <img src="docs/img/int-flashlight.png" width="200"><br>**Linterna** — the panel at full white, which on an AMOLED is the only way to make light. |
 | <img src="docs/img/int-level.png" width="200"><br>**Nivel** — a spirit level off the accelerometer, with the bubble and the angle in degrees. | <img src="docs/img/int-calc.png" width="200"><br>**Calculadora** — four operations, sized for a thumb rather than for density. | <img src="docs/img/int-convert.png" width="200"><br>**Conversor** — units across several families, with the keypad shared with the calculator. |
 | <img src="docs/img/int-battery.png" width="200"><br>**Batería** — what the AXP2101 reports: charge, voltage and whether it is charging. | <img src="docs/img/app-life.png" width="200"><br>**Vida** — Conway's Game of Life and Langton's ant on a 92x92 grid. | <img src="docs/img/settings-en.png" width="200"><br>**Ajustes** — brightness, always-on, language, wifi, bluetooth, watchface and the touch calibration. |
-| <img src="docs/img/usb-pcremote-keys.png" width="200"><br>**Control PC** — the watch as a keyboard with media keys, a mouse, a gamepad and a MIDI port for the computer on the USB cable, one screen per role. | <img src="docs/img/usb-pato-list.png" width="200"><br>**Pato goma** — runs keyboard-and-mouse scripts on the computer, DuckyScript-style, picked and confirmed on the watch and edited from the portal's `/pato` page. | |
+| <img src="docs/img/usb-pcremote-keys.png" width="200"><br>**Control PC** — the watch as a keyboard with media keys, a mouse, a gamepad and a MIDI port for the computer on the USB cable, one screen per role. | <img src="docs/img/usb-pato-list.png" width="200"><br>**Pato goma** — runs keyboard-and-mouse scripts on the computer, DuckyScript-style, picked and confirmed on the watch and edited from the portal's `/pato` page. | <img src="docs/img/int-link.png" width="200"><br>**Enlace** — the other watches around, and the one this is paired with. Pairing is bumping the two watches together. See [Two watches](#two-watches). |
 
 ### Loaded from the microSD
 
-Twenty-six more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
+Twenty-eight more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
 `.so` files at startup. The same source builds into the simulator, so they are
 designed on a laptop and copied to the card without changing a line — and a new
 one needs no firmware rebuild. That includes its **launcher icon**: an app
@@ -143,7 +143,7 @@ app meant a reflash for that alone. See [docs/ICONS.md](docs/ICONS.md).
 |---|---|---|
 | <img src="docs/img/app-chatarra-map.png" width="200"><br>**Chatarra** — a turn-based robot RPG. Eight zones, 51 rooms, 64 parts drawn from descriptors rather than sprites. | <img src="docs/img/app-chatarra-battle.png" width="200"><br>Its combat: six elemental types, an effectiveness table, and the robot you fight with is one you built from parts torn off others. | <img src="docs/img/app-cjump.png" width="200"><br>**Claude Jump** — a vertical platformer with five zones, coins and sixteen costumes. |
 | <img src="docs/img/app-topos.png" width="200"><br>**Topos** — whack-a-mole in three modes. A mole in a hard hat takes two taps, a golden one is worth a lot, and a bomb must not be touched. | <img src="docs/img/app-topos-frenzy.png" width="200"><br>Frenzy: several at once and combos up to ×5. The lawn never moves, so only what comes out of the holes is redrawn — about a tenth of the screen per frame. | <img src="docs/img/app-topos-survival.png" width="200"><br>Survival: three hearts and a level every eight moles. Every state has its own sprite — peeking, glancing about, taunting, dizzy, the hat flying off. |
-| <img src="docs/img/app-video-list.png" width="200"><br>**Video** — plays MJPEG AVIs from the card at the screen's size, with sound, at 15 fps. `tools/video_convert.sh` makes the pair of files from anything ffmpeg reads. | <img src="docs/img/app-video.png" width="200"><br>The sound is the clock: the frames follow the player's position and a late one is skipped, never the other way round. Reading and decoding run in a background task on the second core, the first app to have one, and the frame goes straight to the panel past LVGL's render. The numbers are in [docs/VIDEO.md](docs/VIDEO.md). | |
+| <img src="docs/img/app-video-list.png" width="200"><br>**Video** — plays MJPEG AVIs from the card at the screen's size, with sound, at 15 fps. `tools/video_convert.sh` makes the pair of files from anything ffmpeg reads. | <img src="docs/img/app-video.png" width="200"><br>The sound is the clock: the frames follow the player's position and a late one is skipped, never the other way round. Reading and decoding run in a background task on the second core, the first app to have one, and the frame goes straight to the panel past LVGL's render. The numbers are in [docs/VIDEO.md](docs/VIDEO.md). | <img src="docs/img/app-pong.png" width="200"><br>**Pong** — across two watches: the ball leaves the top of one screen and comes down the other's. The host simulates at 30 Hz over the link's fast channel; 30 states a second each way, measured, with an iPhone connected. |
 | <img src="docs/img/app-burbujas.png" width="200"><br>**Burbujas** — a bubble shooter in three modes: endless, generated levels where the ceiling comes down, and two minutes against the clock. | <img src="docs/img/app-burbujas-guide.png" width="200"><br>You aim by dragging: the dotted line is the shot itself, run ahead of time through the same stepping function, so it cannot promise a bounce the bubble will not make. The dashed circle is where it would stick. | <img src="docs/img/app-burbujas-timed.png" width="200"><br>Time attack: two minutes, and the rows arrive by the clock rather than by your misses. The still board is the background rather than a sprite per bubble, so sixty bubbles hanging there cost nothing per frame: 9-18 % of the field is redrawn, and the watch holds 29 fps. |
 | <img src="docs/img/app-blackjack-play.png" width="200"><br>**Blackjack** — against the house on a green table: six decks, the dealer stands on 17, blackjack pays 3 to 2, with insurance, doubling and a split. The **Hint** switch rings in gold the play basic strategy would make — here, standing on two queens. | <img src="docs/img/app-blackjack-split.png" width="200"><br>A split, each hand settled on its own. Every card is its own ARGB8888 canvas drawn once and then moved as an object, so only the area it crosses is repainted; the hole card turns over by squeezing its horizontal scale. The rules engine plays a million hands on the Mac and checks every payout: 0.46 % house edge with basic strategy, the textbook figure. | <img src="docs/img/app-blackjack-bj.png" width="200"><br>The art is plain C with no bitmaps: the suits are implicit curves (the heart is the classic sextic), the indices a stroke font, and the jack, queen and king pixel art mirrored top to bottom like a real deck. The curved words on the felt are real fonts, so they are translated. |
 | <img src="docs/img/app-gemas.png" width="200"><br>**Gemas** — match-three. The jewels are traced in code as convex polygons with facets, not stored as bitmaps. | <img src="docs/img/app-2043.png" width="200"><br>**2043** — a vertical shooter, an homage to Capcom's 1943, with a different boss per planet. | <img src="docs/img/app-arkanos.png" width="200"><br>**Arkanos** — brick breaking, twelve walls, and the app that introduced dirty-rectangle drawing. |
@@ -188,6 +188,31 @@ The loop is short on purpose: the portal's `/lua` page is an editor with a
 console, and while a script is running the watch watches the file it came from
 and reloads it when it changes. You save in the browser and look at the watch.
 
+## Two watches
+
+Two of them talk over **ESP-NOW**, with no router in between: WiFi frames
+without an association, a few milliseconds one way. The **Enlace** app shows
+the watches around (each beacons its name once a second) and pairs two of
+them with a gesture: **bump them together**. Both feel the knock, both say
+so on the air, and if the two knocks are within 400 ms and the signal says
+"next to me", they are partners: a key derived from both sides' nonces, an
+encrypted peer, remembered across restarts. On top of that the firmware
+offers apps a fast channel (send and forget, for a game's state) and a
+reliable one (in order, acknowledged, resent, for turns and files), and the
+simulator has the same link over UDP, so a two-player app is designed on a
+laptop with two windows.
+
+| | |
+|---|---|
+| <img src="docs/img/int-link.png" width="220"> | <img src="docs/img/app-pong.png" width="220"> |
+
+The plan, and everything measured along the way — 6000 frames with nothing
+lost on the air, 3-5 ms round trip, 60 KB/s, what Bluetooth costs, what a
+watch that leaves its network to sit on a channel costs, 100 KB over the
+reliable channel with a third of the frames dropped on purpose, and the
+knock that paired the watches seventeen times — is in
+[docs/LINK.md](docs/LINK.md).
+
 ## The USB port
 
 The USB-C port is one thing at a time, chosen in Settings or in the portal:
@@ -207,7 +232,7 @@ with no WiFi. Everything measured is in [docs/USB.md](docs/USB.md).
 ## Flash it without building
 
 The [latest release](https://github.com/charliejgallo/ESP32S3_AmoledOS/releases/latest)
-carries the firmware and the twenty-seven dynamic apps already built, for the
+carries the firmware and the twenty-eight dynamic apps already built, for the
 Waveshare ESP32-S3-Touch-AMOLED-1.8.
 
 ```bash
@@ -266,7 +291,7 @@ components/
   aos_hal/            the single contract with the platform
   aos_board/          AXP2101, PCF85063A, QMI8658
   aos_ui/             launcher, watchfaces, navigation, theme, i18n
-  aos_apps/           the 20 built-in apps
+  aos_apps/           the 21 built-in apps
   aos_dynapp/         .so loader and symbol table
   aos_ble/            NimBLE: ANCS, AMS, pairing
   aos_web/            the web portal, embedded in the binary
