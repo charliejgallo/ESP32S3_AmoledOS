@@ -134,7 +134,8 @@ page as they land.
   notification arriving.
 - **Done when** 1000 frames go one way with the loss rate, the round trip
   and the RSSI in this page, on the same channel and on the parked one, with
-  Bluetooth connected and with it off.
+  Bluetooth connected and with it off. *Done, but for the Bluetooth half:
+  see Measured, phase 1.*
 
 ### Phase 2 — discovery and the bump
 
@@ -189,6 +190,49 @@ Filled in as each phase lands.
 Read from `/api/status` with both idle at the watchface. The 35 KB between
 them is the NimBLE stack, which the second watch does not have running: the
 link's cost is measured against each watch's own row.
+
+### Phase 1 (2026-09-19)
+
+`aos_link.c`: ESP-NOW on the station interface, a broadcast peer, a task
+between the driver's callback and a ring for the app, counters, and the
+test protocol `/api/link` drives (`do=start|stop|reset`, `do=test&n=&gap=&
+to=&echo=&len=`, `do=park&ch=&secs=...`). Both watches negotiated
+**ESP-NOW v2** and sat on **channel 6**, their access point's, a hand's
+width apart (RSSI -11 to -14 dBm). The link costs **4.5 KB of internal
+RAM** while up (the queue and the task).
+
+| test | frames | on the air | lost | round trip avg / min / max | rate |
+| --- | --- | --- | --- | --- | --- |
+| broadcast, 32 B, 10 ms apart | 1000 | 1000 | 0 | — | — |
+| unicast echo, 32 B, 20 ms apart | 200 | 200 | 0 | 4.4 / 3.0 / 13.0 ms | — |
+| unicast, 200 B, 2 ms apart | 1000 | 605 | 0 | — | the sender refused 395 (`esp_now_send` NO_MEM) |
+| unicast echo, 200 B, 5 ms apart | 300 | 300 | 0 | 10.6 / 4.2 / 35.2 ms | — |
+| unicast, 250 B, wait for the send callback | 1000 | 1000 | 0 | — | 238 frames/s, **60 KB/s** |
+| unicast, 32 B, wait for the send callback | 1000 | 1000 | 0 | — | 485 frames/s |
+| broadcast, 250 B, wait for the send callback | 1000 | 1000 | 0 | — | 268 frames/s, 67 KB/s |
+| **parked on channel 1**, unicast echo, 250 B, 5 ms apart | 500 | 500 | 0 | 12.9 / 4.6 / 49.3 ms | — |
+
+- **Nothing was lost on the air**, in eight tests and 6000 frames. The one
+  "loss" was the sender's: at 2 ms apart `esp_now_send()` refuses with
+  NO_MEM once its queue is full. A sender that waits for the send callback
+  before the next frame never hits it, and that is what the reliable and the
+  unreliable channels will do.
+- **The round trip is 3-5 ms** for a small frame, 10-13 ms average for a
+  full one under load. A game at 30 Hz has 33 ms per state: room to spare.
+- **60 KB/s** unicast with the acknowledgement wait: a Pixel Art drawing
+  (a few KB) is instant, a walkie-talkie (8 KB/s) is an eighth of the air.
+- **Parking works and costs 1.1 s to come back**: both watches left the
+  access point, sat on channel 1, ran the echo test with zero loss, and were
+  back on the network with an address **1090-1093 ms** after unparking.
+  While parked the portal is off the air, so a parked episode schedules its
+  own return (the `park` job does).
+
+**The channel policy, decided:** on the same access point the link uses
+its channel and nothing else happens; parking is the fallback for two
+watches on different networks, and it is measured, not just planned.
+
+Not yet measured: the same tests with the iPhone connected over BLE and
+notifications arriving. It needs the phone paired to one of the watches.
 
 ## Traps expected, to be confirmed or struck out
 

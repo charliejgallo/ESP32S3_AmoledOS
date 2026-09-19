@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "aos_hal_esp32.c" "aos_lvmem.c" "aos_http.c" "aos_scan.c" "aos_notif.c" "aos_steps.c" "aos_device_name.c"
+    SRCS "aos_hal_esp32.c" "aos_lvmem.c" "aos_http.c" "aos_scan.c" "aos_notif.c" "aos_steps.c" "aos_device_name.c" "aos_link.c"
     INCLUDE_DIRS "include"
     REQUIRES aos_ble aos_board lvgl esp_wifi esp_netif nvs_flash esp_timer espressif__mdns lwip esp_mm
              waveshare__esp32_s3_touch_amoled_1_8 espressif__esp_lcd_touch

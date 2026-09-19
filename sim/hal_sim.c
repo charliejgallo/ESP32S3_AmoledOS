@@ -2179,3 +2179,18 @@ void aos_hal_device_name_applied(const char *name)
 {
     printf("[hal] the watch is now %s.local\n", name);
 }
+
+/* Link: nothing on the desktop until phase 3 brings the UDP version. */
+bool aos_hal_link_start(void) { printf("[hal] link: not in the simulator yet\n"); return false; }
+void aos_hal_link_stop(void) {}
+bool aos_hal_link_running(void) { return false; }
+bool aos_hal_link_send(const uint8_t mac[6], const void *data, size_t len) { (void)mac; (void)data; (void)len; return false; }
+int  aos_hal_link_recv(aos_link_frame_t *out) { (void)out; return 0; }
+bool aos_hal_link_stats(aos_link_stats_t *out) { if (out) memset(out, 0, sizeof *out); return out != NULL; }
+void aos_hal_link_stats_reset(void) {}
+bool aos_hal_link_test(const uint8_t mac[6], uint32_t n, uint32_t gap_ms, bool echo, uint16_t len) { (void)mac; (void)n; (void)gap_ms; (void)echo; (void)len; return false; }
+bool aos_hal_link_test_running(void) { return false; }
+bool     aos_hal_link_park(uint8_t channel) { (void)channel; return false; }
+void     aos_hal_link_unpark(void) {}
+bool     aos_hal_link_parked(void) { return false; }
+uint32_t aos_hal_link_rejoin_ms(void) { return 0; }
