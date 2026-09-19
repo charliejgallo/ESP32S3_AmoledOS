@@ -63,6 +63,7 @@ static bool        s_pairing;
 static uint32_t    s_pair_events;
 static uint32_t    s_last_beacon_ms;
 static uint32_t    s_last_confirm_ms;
+static uint32_t    s_pair_quiet_until;   /* no bumps count until then: the case rings after a knock */
 
 /* my bump, and the last bump frame that came in */
 static uint32_t    s_my_bump_ms;
@@ -317,7 +318,10 @@ static void pair_with(const uint8_t mac[6], const char *name, uint32_t their_non
     partner_save();
     s_pair_events++;
     s_their_bump.valid = false;
-    s_my_bump_ms = 0;
+    /* One knock was 17 pairings on 2026-09-19: the case keeps ringing above
+     * the bump threshold for a good while, and every ring re-paired with a
+     * fresh key. Three seconds of deafness after a pairing. */
+    s_pair_quiet_until = now_ms() + 3000;
     ESP_LOGI(TAG, "paired with %s (%02x:%02x:%02x:%02x:%02x:%02x)", name,
              mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     send_confirm(LINK_T_CONFIRM);
@@ -360,7 +364,8 @@ static void handle_link_frame(const link_frame_t *f)
         break;
     }
     case LINK_T_BUMP: {
-        if (f->len < 6 + 4 + AOS_LINK_NAME_MAX || !s_pairing) {
+        if (f->len < 6 + 4 + AOS_LINK_NAME_MAX || !s_pairing ||
+            (int32_t)(now_ms() - s_pair_quiet_until) < 0) {
             return;
         }
         s_their_bump.valid = true;
@@ -782,6 +787,9 @@ void aos_hal_link_bump(void)
         return;
     }
     uint32_t now = now_ms();
+    if ((int32_t)(now - s_pair_quiet_until) < 0) {
+        return;                         /* just paired: the case is still ringing */
+    }
     if (now - s_my_bump_ms < LINK_BUMP_WINDOW_MS) {
         return;                         /* the same knock ringing on */
     }
