@@ -78,6 +78,7 @@ add_executable(amoledos_sim
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_notif.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_steps.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_device_name.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_link.c
     ${AOS_UI_SRC}
     ${AOS_APPS_SRC}
     ${AOS_FONT_SRC}

@@ -358,6 +358,16 @@ esp_err_t aos_link_handler(httpd_req_t *req)
         query_str(req, "app", app, sizeof(app));
         aos_hal_link_offer(app);
         result = "offer set";
+    } else if (strcmp(what, "bulk") == 0) {
+        int bytes = 100000;
+        query_int(req, "bytes", &bytes);
+        result = aos_hal_link_bulk_test((uint32_t)bytes) ? "bulk started" : "bulk not started";
+    } else if (strcmp(what, "bulkrx") == 0) {
+        int pct = 0;
+        query_int(req, "drop", &pct);
+        aos_hal_link_drop_percent((uint32_t)pct);
+        aos_hal_link_bulk_receiver(true);
+        result = "receiving";
     } else if (strcmp(what, "test") == 0) {
         int n = 100, gap = 10, echo = 0, len = 32;
         query_int(req, "n", &n);
@@ -373,7 +383,7 @@ esp_err_t aos_link_handler(httpd_req_t *req)
 
     aos_link_stats_t st;
     aos_hal_link_stats(&st);
-    char out[700];
+    char out[1024];
     int n = snprintf(out, sizeof(out),
         "{\"result\":\"%s\",\"running\":%s,\"testing\":%s,\"version\":%lu,\"channel\":%u,"
         "\"mac\":\"%02x:%02x:%02x:%02x:%02x:%02x\","
@@ -382,7 +392,9 @@ esp_err_t aos_link_handler(httpd_req_t *req)
         "\"last_mac\":\"%02x:%02x:%02x:%02x:%02x:%02x\","
         "\"test_tx\":%lu,\"test_rx\":%lu,\"test_lost\":%lu,\"echo_rx\":%lu,"
         "\"rtt_avg_us\":%lu,\"rtt_min_us\":%lu,\"rtt_max_us\":%lu,\"test_ms\":%lu,"
-        "\"parked\":%s,\"rejoin_ms\":%lu}",
+        "\"parked\":%s,\"rejoin_ms\":%lu,"
+        "\"rel_tx\":%lu,\"rel_acked\":%lu,\"rel_retx\":%lu,\"rel_rx\":%lu,\"rel_lost\":%lu,\"rel_pending\":%lu,\"rel_synced\":%s,"
+        "\"bulk_ms\":%lu,\"bulk_rx_bytes\":%lu,\"bulk_rx_bad\":%lu,\"drop_count\":%lu}",
         result, st.running ? "true" : "false", aos_hal_link_test_running() ? "true" : "false",
         (unsigned long)st.version, st.channel,
         st.own_mac[0], st.own_mac[1], st.own_mac[2], st.own_mac[3], st.own_mac[4], st.own_mac[5],
@@ -392,7 +404,11 @@ esp_err_t aos_link_handler(httpd_req_t *req)
         (unsigned long)st.test_tx, (unsigned long)st.test_rx, (unsigned long)st.test_lost, (unsigned long)st.echo_rx,
         (unsigned long)(st.echo_rx ? st.rtt_sum_us / st.echo_rx : 0),
         (unsigned long)st.rtt_min_us, (unsigned long)st.rtt_max_us, (unsigned long)st.test_ms,
-        aos_hal_link_parked() ? "true" : "false", (unsigned long)aos_hal_link_rejoin_ms());
+        aos_hal_link_parked() ? "true" : "false", (unsigned long)aos_hal_link_rejoin_ms(),
+        (unsigned long)st.rel_tx, (unsigned long)st.rel_acked, (unsigned long)st.rel_retx,
+        (unsigned long)st.rel_rx, (unsigned long)st.rel_lost, (unsigned long)st.rel_pending, st.rel_synced ? "true" : "false",
+        (unsigned long)st.bulk_ms, (unsigned long)st.bulk_rx_bytes, (unsigned long)st.bulk_rx_bad,
+        (unsigned long)st.drop_count);
     httpd_resp_set_type(req, "application/json");
     /* the counters, then the neighbours and the partner, in chunks */
     out[n - 1] = ',';                       /* reopen the object */

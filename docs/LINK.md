@@ -142,7 +142,8 @@ page as they land.
   peer. The Link screen on the watch: neighbours, "bump to pair", paired
   with whom.
 - **Done when** two watches pair by bumping, do not pair from across the
-  room, and a third watch (the simulator standing in) is refused.
+  room, and a third watch (the simulator standing in) is refused. *Done for
+  the bump; the far-away and third-watch cases are still to be tried.*
 
 ### Phase 3 — the reliable channel and the simulator
 
@@ -151,6 +152,7 @@ page as they land.
 - **Done when** 100 KB go from one watch to the other over the reliable
   channel with a forced 10 % loss (dropped on purpose on the receiving
   side) and arrive whole, and the same test passes between two simulators.
+  *Done: see Measured, phase 3.*
 
 ### Phase 4 — Pong, and v0.4.0
 
@@ -247,6 +249,60 @@ balloons to 150 ms and the driver starts refusing. Same conclusion as
 before, only louder: **the sender waits for the send callback**, and a game
 at 30 Hz with 20-byte states does not notice the phone at all. Not measured:
 a notification arriving mid-test (it needs the phone to be sent one).
+
+### Phase 2 (2026-09-19)
+
+Beacons once a second with the watch's name, neighbours of the last five
+seconds with their RSSI, the bump, the encrypted partner in NVS, the Link
+app. Measured:
+
+- Two simulated bumps 100 ms apart (`/api/link?do=bump` on each) paired the
+  watches in both directions; 200 echo frames over the encrypted peer came
+  back with a 4.6 ms round trip; the partner survived a link restart.
+- **The real bump paired at the first knock** with the IMU threshold of
+  0.7 g on one sample at 25 Hz, RSSI -1 to -3 dBm case against case. But
+  **one knock was seventeen pairings**: the case keeps ringing above the
+  threshold, every ring re-paired with a fresh key, and the two sides' last
+  keys did not match. Three seconds of deafness after a pairing fixed it;
+  the mismatched keys it left behind showed up in phase 3.
+- The fonts have no block glyphs: the signal meter is ASCII.
+
+### Phase 3 (2026-09-19)
+
+The link split into a common layer (`aos_link.c`, the same file on the
+board and in the simulator) over a raw layer per platform (`aos_link_esp32.c`
+with ESP-NOW and the encrypted peer; UDP on 127.0.0.1 in `hal_sim.c`, one
+port per simulator). The reliable channel: go-back-N, window 4, 80 ms
+retransmit, cumulative acks, in order, and a sync frame so a sender whose
+numbering restarted is understood by the receiver. `/api/link?do=bulk`
+sends N bytes over it with a pattern the receiver checks; `do=bulkrx&drop=`
+makes the receiver lose that percent on purpose.
+
+| run | frames | retransmitted | dropped on purpose | received | time | rate |
+| --- | --- | --- | --- | --- | --- | --- |
+| 100 KB, 10 % loss | 558 | 36 | 50 | 100000 B, 0 bad | 6.2 s | 16 KB/s |
+| 100 KB, no loss | 414 | 0 | 0 | 100000 B, 0 bad | 3.1 s | 32 KB/s |
+| 100 KB, 30 % loss | 1209 | 199 | 364 | 100000 B, 0 bad | 20.4 s | 5 KB/s |
+| 50 KB the other way, 10 % loss | 267 | 15 | 20 | 50000 B, 0 bad | 2.9 s | 17 KB/s |
+| two simulators, 100 KB, 10 % loss | 598 | 46 | 67 | 100000 B, 0 bad | 6.6 s | — |
+
+- **Every byte arrived, in order, under every loss rate**, on the boards and
+  between two simulators on one Mac.
+- Without losses the reliable channel does 32 KB/s against the raw 60: the
+  window of four and one frame per 10 ms poll are the knobs, untouched until
+  an app needs more.
+- **The first run failed and taught the sync frame.** The reliable channel
+  on the boards restarted its numbering at 1 for the second transfer while
+  the receiver still expected 415; the acks "everything before 415 is done"
+  made the sender declare 100 KB delivered that never arrived. Now a sender
+  starts on a number chosen at random and tells the receiver with 'S'
+  before the first data frame.
+- **And the run before it failed on the keys**: after the seventeen-pairing
+  knock, the two watches held different keys and every encrypted frame was
+  dropped silently by the driver, with the MAC-level acknowledgement saying
+  all was well. The confirm exchange over the encrypted peer is the only
+  proof the keys match; the Link app shows it as "canal cifrado listo", and
+  that is the line to look at before playing.
 
 ## Traps expected, to be confirmed or struck out
 

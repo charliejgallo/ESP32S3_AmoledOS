@@ -12,6 +12,7 @@
 #include "aos_i18n.h"
 #include "aos_apps.h"
 #include "aos_hal.h"
+void aos_hal_sim_link_tick(void);   /* hal_sim.c: the UDP link */
 #include "aos_watchface.h"
 #include "aos_theme.h"
 #include "aos_icon_ops.h"
@@ -1447,6 +1448,7 @@ int main(void)
                 aos_steps_tick();
             }
         }
+        aos_hal_sim_link_tick();        /* the UDP link's frames and clockwork */
 
         if (shot_at && now >= shot_at && lv_anim_count_running() == 0) {
             shot_dump(shot_env);

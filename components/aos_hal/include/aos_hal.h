@@ -1273,6 +1273,11 @@ typedef struct {
     uint32_t test_tx, test_rx, test_lost, echo_rx;
     uint32_t rtt_sum_us, rtt_min_us, rtt_max_us;
     uint32_t test_ms;           /* how long the last test took to send */
+    /* the reliable channel */
+    uint32_t rel_tx, rel_acked, rel_retx, rel_rx, rel_lost, rel_pending;
+    bool     rel_synced;        /* the receiver knows where my numbering starts */
+    /* the bulk test over it */
+    uint32_t bulk_ms, bulk_rx_bytes, bulk_rx_bad, drop_count;
 } aos_link_stats_t;
 
 bool aos_hal_link_start(void);
@@ -1326,6 +1331,27 @@ bool aos_hal_link_partner(aos_link_partner_t *out);
 void aos_hal_link_unpair(void);
 bool aos_hal_link_send_partner(const void *data, size_t len);   /* encrypted, to the partner */
 uint32_t aos_hal_link_pair_events(void);           /* how many times it paired, for the stats */
+
+/* Phase 3: two channels to the partner.
+ *   reliable: in order, acknowledged, resent (go-back-N, window 4, 80 ms);
+ *             a frame is at most AOS_LINK_MAX_FRAME - 8 bytes; send() says
+ *             false when the queue of 16 is full (try again next tick) or
+ *             the channel is lost (no ack in 3.2 s: reset it and decide).
+ *   fast:     aos_hal_link_send_partner / aos_hal_link_recv above: send and
+ *             forget, the last one wins. */
+bool aos_hal_link_send_reliable(const void *data, size_t len);
+int  aos_hal_link_recv_reliable(aos_link_frame_t *out);   /* bytes, 0 if none */
+int  aos_hal_link_reliable_pending(void);                  /* queued and in flight */
+bool aos_hal_link_reliable_lost(void);
+void aos_hal_link_reliable_reset(void);
+/* the bulk test: N bytes over the reliable channel, checked on the other
+ * side; drop_percent makes a receiver lose frames on purpose */
+bool aos_hal_link_bulk_test(uint32_t bytes);
+void aos_hal_link_drop_percent(uint32_t pct);
+void aos_hal_link_bulk_drain(void);
+void aos_hal_link_bulk_receiver(bool on);                  /* the poll drains and checks, for the test */
+void aos_hal_link_set_partner_test(const uint8_t mac[6]);  /* tests only: a partner without a bump */
+void aos_hal_link_set_channel_info(uint8_t channel);       /* raw layer -> stats */
 
 /* The channel policy (LINK.md): leave the access point and sit on 'channel'
  * so two watches on different networks meet; unpark reconnects and
