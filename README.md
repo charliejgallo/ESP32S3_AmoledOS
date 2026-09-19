@@ -202,9 +202,18 @@ reliable one (in order, acknowledged, resent, for turns and files), and the
 simulator has the same link over UDP, so a two-player app is designed on a
 laptop with two windows.
 
-| | |
-|---|---|
-| <img src="docs/img/int-link.png" width="220"> | <img src="docs/img/app-pong.png" width="220"> |
+<p align="center">
+  <img src="docs/img/photo-link-paired.jpg" width="640" alt="Two watches paired, one in Spanish and one in English">
+</p>
+<p align="center"><em>Paired by a bump: the one on the left is set to Spanish, the
+other to English. "Canal cifrado listo" / "encrypted channel ready" is the
+proof both hold the same key.</em></p>
+<p align="center">
+  <img src="docs/img/photo-pong.jpg" width="300" alt="Pong across two watches">
+  <img src="docs/img/photo-link-launcher.jpg" width="420" alt="The launchers side by side, with Enlace">
+</p>
+<p align="center"><em>Pong is played with the two watches top to top: the ball
+leaves one screen and comes down the other.</em></p>
 
 The plan, and everything measured along the way — 6000 frames with nothing
 lost on the air, 3-5 ms round trip, 60 KB/s, what Bluetooth costs, what a

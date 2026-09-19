@@ -11,6 +11,10 @@ Branch `espnow`, merged as **v0.4.0** on 2026-09-19: the link, its HAL, the
 simulator's version of it, and the first two-player app. The rest of the
 apps come as v0.4.x on top.
 
+<p align="center">
+  <img src="img/photo-link-paired.jpg" width="640" alt="Two watches paired by a bump">
+</p>
+
 ## What ESP-NOW is, and what it costs here
 
 ESP-NOW is WiFi action frames without an association: no access point, no IP,
