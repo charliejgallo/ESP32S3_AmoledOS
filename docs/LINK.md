@@ -376,6 +376,9 @@ to the host) and the scoreboard's matchsticks on the right side of each
 watch. The banners name the other watch ("AMOLEDOS: ENVIDO", "ESPERANDO A
 CHARLIE") from the partner's device name.
 
+Played a whole game on the two boards afterwards, facing each other
+across a table (the photos are in the README): "todo genial".
+
 Two simulators: `TRUCO_LINK=1` skips the question, and
 `AOS_SIM_LINK_PORT=47000 AOS_SIM_LINK_PARTNER=47001` on one with the ports
 swapped on the other. `TRUCO_SHOWALL=1` shows both hands face up, which is

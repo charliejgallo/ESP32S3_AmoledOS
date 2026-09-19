@@ -217,9 +217,14 @@ leaves one screen and comes down the other.</em></p>
 <p align="center">
   <img src="docs/img/app-truco-link.png" width="300" alt="Truco against the other watch: the partner called envido">
 </p>
-<p align="center"><em>Truco for two (v0.4.1): the other watch called envido and
-this one has to answer. Both run the same deterministic engine from the
-same seed; the host orders the moves and the guest applies only what
+<p align="center">
+  <img src="docs/img/photo-truco-envido.jpg" width="300" alt="Truco for two: charlie called envido, amoledos has to answer">
+  <img src="docs/img/photo-truco-truco.jpg" width="300" alt="Truco for two: amoledos called truco">
+</p>
+<p align="center"><em>Truco for two (v0.4.1), the watches facing each other
+across the table: charlie calls envido and amoledos has to answer; a hand
+later amoledos calls truco. Both run the same deterministic engine from
+the same seed; the host orders the moves and the guest applies only what
 comes back.</em></p>
 
 The plan, and everything measured along the way — 6000 frames with nothing
