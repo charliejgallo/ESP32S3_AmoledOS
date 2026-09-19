@@ -241,7 +241,7 @@ needed the first time:
 
 ```bash
 idf.py build
-./tools/install_fw.sh amoledos.local
+./tools/install_fw.sh amoledos.local       # or <name>.local, the name set in the portal's Settings
 ```
 
 It POSTs `build/amoledos.bin` — the app alone, **not** the merged image — to
