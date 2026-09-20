@@ -931,9 +931,12 @@ static void ent_caja(const ch_ent_t *e, int *x0, int *y0, int *x1, int *y1)
     case E_CABINA:                      /* 18 tall, at y-10: two rows up     */
         *x0 = e->x - 1; *x1 = e->x + 1; *y0 = e->y - 2;
         break;
-    case E_PUERTA:                      /* as wide as the opening            */
-        *x1 = e->x + (e->premio ? e->premio - 1 : 0);
+    case E_PUERTA: {                    /* as big as the opening             */
+        int w, h;
+        ch_puerta_caja(e, &w, &h);
+        *x1 = e->x + w - 1; *y1 = e->y + h - 1;
         break;
+    }
     default:                            /* the rest draw nothing, or draw
                                          * inside their own cell             */
         break;
@@ -1089,15 +1092,22 @@ static const char *const SP_SIGNO[20] = {
 /* A flat three-step arrow, pointing at 'dir' (0 down, 1 up, 2 left, 3 right).
  * It is built by stacking rectangles from the BASE: it is the only way for the
  * tip to be the narrow part. */
+/* The arrow that says "you can leave here". It is drawn FROM THE CELL, not at
+ * a fixed size: on the 8 px grid it was seven pixels across and four deep, and
+ * left at that on the 12 it reads as a smudge in the middle of a street. Now
+ * it fills the cell it is on, which is the only size that stays right the next
+ * time the grid moves. */
 static void flecha(ch_buf_t *b, int cx, int cy, int dir, uint16_t c)
 {
-    for (int i = 0; i < 4; i++) {
-        int w = 7 - i * 2;
+    int n = TILE / 2;                       /* six rows deep on a 12 px cell */
+    for (int i = 0; i < n; i++) {
+        int w = (TILE - 1) - i * 2;
+        if (w < 1) w = 1;
         switch (dir) {
-        case 1: ch_rect(b, cx - w / 2, cy - 2 + i, w, 1, c); break;
-        case 0: ch_rect(b, cx - w / 2, cy + 2 - i, w, 1, c); break;
-        case 2: ch_rect(b, cx - 2 + i, cy - w / 2, 1, w, c); break;
-        default: ch_rect(b, cx + 2 - i, cy - w / 2, 1, w, c); break;
+        case 1: ch_rect(b, cx - w / 2, cy - n / 2 + i, w, 1, c); break;
+        case 0: ch_rect(b, cx - w / 2, cy + n / 2 - i, w, 1, c); break;
+        case 2: ch_rect(b, cx - n / 2 + i, cy - w / 2, 1, w, c); break;
+        default: ch_rect(b, cx + n / 2 - i, cy - w / 2, 1, w, c); break;
         }
     }
 }
@@ -1140,30 +1150,28 @@ void ch_ent_draw(ch_buf_t *b, const ch_room_t *r, const ch_ent_t *e, bool hecho)
          * a stretch of earth identical to all the rest, and there was no way
          * to know you could leave there. The arrow goes over every cell of the
          * opening. */
-        int w = e->premio ? e->premio : 1;
-        int dir;
+        int w, h, dir = ch_puerta_lado(e);
 
-        if (e->y <= 1)            dir = 1;
-        else if (e->y >= ROWS - 3) dir = 0;
-        else if (e->x <= 1)        dir = 2;
-        else if (e->x >= COLS - 2) dir = 3;
-        else if (r->suelo[e->y][e->x] == ':') dir = e->y < ROWS / 2 ? 1 : 0;
-        else if (r->tema == TEMA_DUNGEON) {
+        ch_puerta_caja(e, &w, &h);
+        if (dir < 0) {
+            if (r->suelo[e->y][e->x] == ':') dir = e->y < ROWS / 2 ? 1 : 0;
+            else if (r->tema == TEMA_DUNGEON) {
             /* A door that does NOT lead to the edge is not an exit, it is an
              * entrance: it gets a hatch and not an arrow. An arrow pointing
              * down in the middle of a room says nothing. */
-            ch_rect(b, x, y + 1, w * TILE, TILE - 2, ch_rgb(0x05060C));
-            ch_frame(b, x, y + 1, w * TILE, TILE - 2, ch_rgb(0x99A3BC));
-            for (int k = 0; k < w * 2; k++) {
-                ch_rect(b, x + 2 + k * 4, y + 3, 2, 1, ch_rgb(0x606B85));
+                ch_rect(b, x, y + 1, w * TILE, TILE - 2, ch_rgb(0x05060C));
+                ch_frame(b, x, y + 1, w * TILE, TILE - 2, ch_rgb(0x99A3BC));
+                for (int k = 0; k < w * 2; k++) {
+                    ch_rect(b, x + 2 + k * 4, y + 3, 2, 1, ch_rgb(0x606B85));
+                }
+                break;
             }
-            break;
+            else return;            /* a house's door: the house already draws it */
         }
-        else return;                /* a house's door: the house already draws it */
 
-        for (int k = 0; k < w; k++) {
-            flecha(b, x + k * TILE + TILE / 2, y + TILE / 2, dir,
-                   ch_rgb(r->tema == TEMA_DUNGEON ? 0x7BE9FF : 0xFFE45E));
+        for (int k = 0; k < w * h; k++) {
+            flecha(b, x + (k % w) * TILE + TILE / 2, y + (k / w) * TILE + TILE / 2,
+                   dir, ch_rgb(r->tema == TEMA_DUNGEON ? 0x7BE9FF : 0xFFE45E));
         }
         break;
     }

@@ -82,7 +82,7 @@ static int ent_en(const ch_room_t *r, int x, int y)
  * tests are the SAME ones ch_ent_draw() uses to decide between an arrow and a
  * hatch, and they have to stay the same: a door that is drawn as an arrow out
  * of the room and then fades like a doorway is a door that lies. */
-static int puerta_lado(const ch_ent_t *e)
+int ch_puerta_lado(const ch_ent_t *e)
 {
     if (e->y <= 1)        return 1;         /* up    */
     if (e->y >= ROWS - 3) return 0;         /* down  */
@@ -91,12 +91,28 @@ static int puerta_lado(const ch_ent_t *e)
     return -1;
 }
 
+/* 'premio' is how many cells the opening is, and it runs ALONG THE EDGE the
+ * door is on: across for the top and bottom ones, DOWN for the side ones. It
+ * used to always run in x, which silently capped every side door at a single
+ * cell -24x24 real pixels against the bezel, which is exactly the thing the
+ * comment above warns about. */
+void ch_puerta_caja(const ch_ent_t *e, int *w, int *h)
+{
+    int n = e->premio ? e->premio : 1;
+    int lado = ch_puerta_lado(e);
+
+    if (lado == 2 || lado == 3) { *w = 1; *h = n; }
+    else                        { *w = n; *h = 1; }
+}
+
 static int puerta_en(const ch_room_t *r, int x, int y)
 {
     for (int i = 0; i < r->nents; i++) {
         const ch_ent_t *e = &r->ents[i];
-        int w = e->premio ? e->premio : 1;
-        if (e->tipo == E_PUERTA && e->y == y && x >= e->x && x < e->x + w) {
+        int w, h;
+        if (e->tipo != E_PUERTA) continue;
+        ch_puerta_caja(e, &w, &h);
+        if (x >= e->x && x < e->x + w && y >= e->y && y < e->y + h) {
             return i;
         }
     }
@@ -465,7 +481,7 @@ static void al_llegar(ch_t *g)
 
     if (i >= 0) {
         const ch_ent_t *e = &r->ents[i];
-        int lado = puerta_lado(e);
+        int lado = ch_puerta_lado(e);
         ch_map_entrar(g, e->p1, e->p2, e->p3);
         if (lado >= 0) g->trans_dir = (uint8_t)lado;
         return;
@@ -1042,7 +1058,8 @@ int ch_map_check(void)
             const ch_ent_t *e = &r->ents[i];
 
             if (e->tipo == E_PUERTA) {
-                int w = e->premio ? e->premio : 1;
+                int w, h;
+                ch_puerta_caja(e, &w, &h);
 
                 if (e->p1 >= ch_nsalas) {
                     aos_hal_log("chatarra", "room %d: door to a room that does not exist", si);
@@ -1055,10 +1072,11 @@ int ch_map_check(void)
                 td.s.sala = e->p1;
 
                 /* every cell of the opening has to be walkable */
-                for (int k = 0; k < w; k++) {
-                    if (bloqueado(&tmp, r, e->x + k, e->y)) {
+                for (int k = 0; k < w * h; k++) {
+                    int cx = e->x + k % w, cy = e->y + k / w;
+                    if (bloqueado(&tmp, r, cx, cy)) {
                         aos_hal_log("chatarra", "%s: the doorway at %d,%d is blocked",
-                                    r->nombre, e->x + k, e->y);
+                                    r->nombre, cx, cy);
                         malos++;
                     }
                 }

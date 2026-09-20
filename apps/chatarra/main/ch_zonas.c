@@ -225,50 +225,82 @@ static const ch_ent_t EN_CASA[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_PUEBLO[ROWS] = {
-    "===============", "=      .       ",
-    "=      .       ", "=      .       ",
-    "=      .       ", "=      .       ",
-    "=..............", "=      .       ",
-    "=      .       ", "= ~~~~ .       ",
-    "= ~~~~ .       ", "= ~~~~ .       ",
-    "=      .       ", "=      .       ",
+    "===============",
+    "=     ...      ",
+    "=     ...      ",
+    "=     ...      ",
+    "=     ...      ",
+    "=..............",
+    "=..............",
+    "=..............",
+    "=     ...      ",
+    "= ~~~ ...      ",
+    "= ~~~ ...      ",
+    "= ~~~ ...      ",
+    "=     ...      ",
+    "=     ...      ",
+
 };
 
 static const char *const M_TUERCA_NE[ROWS] = {
-    "=====.....=====", "     .....     ",
-    "     .....     ", "       .       ",
-    "       .       ", "       .       ",
-    "..............=", "       .      =",
-    "       .      =", "       .      =",
-    "       .      =", "       .      =",
-    "       .      =", "       .      =",
+    "=====.....=====",
+    "     .....     ",
+    "     .....     ",
+    "      ...      ",
+    "      ...      ",
+    "..............=",
+    "..............=",
+    "..............=",
+    "      ...     =",
+    "      ...     =",
+    "      ...     =",
+    "      ...     =",
+    "      ...     =",
+    "      ...     =",
+
 };
 
 static const char *const M_TUERCA_SO[ROWS] = {
-    "=      .       ", "=      .       ",
-    "=      .       ", "=      .       ",
-    "=      .       ", "=..............",
-    "=      .       ", "=      .       ",
-    "=      .       ", "=      .       ",
-    "=      .       ", "=      .       ",
-    "=      .       ", "===============",
+    "=     ...      ",
+    "=     ...      ",
+    "=     ...      ",
+    "=     ...      ",
+    "=..............",
+    "=..............",
+    "=..............",
+    "=     ...      ",
+    "=     ...      ",
+    "=     ...      ",
+    "=     ...      ",
+    "=     ...      ",
+    "=     ...      ",
+    "===============",
+
 };
 
 static const char *const M_TUERCA_SE[ROWS] = {
-    "       .      =", "       .      =",
-    "       .      =", "       .      =",
-    "       .      =", "..............=",
-    "       .      =", "       .      =",
-    "       .      =", "       .      =",
-    "       .      =", "       .      =",
-    "       .      =", "===============",
+    "      ...     =",
+    "      ...     =",
+    "      ...     =",
+    "      ...     =",
+    "..............=",
+    "..............=",
+    "..............=",
+    "      ...     =",
+    "      ...     =",
+    "      ...     =",
+    "      ...     =",
+    "      ...     =",
+    "      ...     =",
+    "===============",
+
 };
 
 static const ch_prop_t P_PUEBLO[] = {
     { 2,  1, PR_CASA },          /* the door lands on cell 3,4             */
     { 11, 1, PR_ARBOL },
     { 11, 9, PR_ARBOL },
-    { 8,  7, PR_FAROLA },
+    { 10, 4, PR_FAROLA },
 };
 
 static const ch_ent_t EN_PUEBLO[] = {
@@ -277,9 +309,9 @@ static const ch_ent_t EN_PUEBLO[] = {
      * were walking carries on. The house's door is in the middle of the
      * sector and fades: walking into a house is not walking east. */
     { E_PUERTA,  3,  4, S_CASA,     7, 11, 2, NULL, NULL },
-    { E_PUERTA, 14,  6, S_TUERCA_NE, 1,  6, 1, NULL, NULL },
-    { E_PUERTA,  7, 13, S_TUERCA_SO, 7,  1, 1, NULL, NULL },
-    { E_PNJ,    10,  4, 3, F_MISION_CUMPLIDA, F_TORNILLOS, IT_SOLDADOR,
+    { E_PUERTA, 14,  5, S_TUERCA_NE, 1,  6, 3, NULL, NULL },
+    { E_PUERTA,  6, 13, S_TUERCA_SO, 7,  1, 3, NULL, NULL },
+    { E_PNJ,    13, 12, 3, F_MISION_CUMPLIDA, F_TORNILLOS, IT_SOLDADOR,
       N_("VECINO: SE ME CAYERON\n"
       "LOS TORNILLOS EN EL\n"
       "DEPOSITO DEL DESGUACE.\n"
@@ -307,17 +339,17 @@ static const char *const M_TALLER[ROWS] = {
 };
 
 static const ch_prop_t P_TUERCA_NE[] = {
-    { 10, 3, PR_TALLER },        /* the door lands on cell 11,6            */
-    { 1,  8, PR_ARBOL },
-    { 9,  8, PR_FAROLA },
+    { 10, 1, PR_TALLER },        /* the door lands on cell 11,4            */
+    { 1,  9, PR_ARBOL },
+    { 12, 8, PR_FAROLA },
 };
 
 static const ch_ent_t EN_TUERCA_NE[] = {
     { E_PUERTA,  5,  0, S_SENDERO,   7, 11, 5, NULL, NULL },
-    { E_PUERTA,  0,  6, S_PUEBLO,   13,  6, 1, NULL, NULL },
-    { E_PUERTA,  7, 13, S_TUERCA_SE, 7,  1, 1, NULL, NULL },
-    { E_PUERTA, 11,  6, S_TALLER,    7, 11, 2, NULL, NULL },
-    { E_PNJ,     3,  4, 4, 0, 0, 0,
+    { E_PUERTA,  0,  5, S_PUEBLO,   13,  6, 3, NULL, NULL },
+    { E_PUERTA,  6, 13, S_TUERCA_SE, 7,  1, 3, NULL, NULL },
+    { E_PUERTA, 11,  4, S_TALLER,    7, 11, 2, NULL, NULL },
+    { E_PNJ,     3,  2, 4, 0, 0, 0,
       N_("MECANICO: EL TALLER ES\n"
       "DE LA ABUELA TUERCA.\n"
       "SI TE ROMPEN EL ROBOT,\n"
@@ -326,21 +358,21 @@ static const ch_ent_t EN_TUERCA_NE[] = {
 };
 
 static const ch_prop_t P_TUERCA_SO[] = {
-    { 9,  1, PR_CASA },          /* the door lands on cell 10,4            */
-    { 2,  7, PR_FUENTE },
+    { 10, 1, PR_CASA },          /* the door lands on cell 11,4            */
+    { 2,  8, PR_FUENTE },
     { 12,10, PR_ARBOL },
-    { 5,  9, PR_FAROLA },
+    { 5, 10, PR_FAROLA },
 };
 
 static const ch_ent_t EN_TUERCA_SO[] = {
-    { E_PUERTA,  7,  0, S_PUEBLO,    7, 12, 1, NULL, NULL },
-    { E_PUERTA, 14,  5, S_TUERCA_SE, 1,  5, 1, NULL, NULL },
-    { E_PUERTA, 10,  4, S_VECINO,    7, 11, 2, NULL, NULL },
-    { E_CARTEL,  4, 11, 0, 0, 0, 0,
+    { E_PUERTA,  6,  0, S_PUEBLO,    7, 12, 3, NULL, NULL },
+    { E_PUERTA, 14,  4, S_TUERCA_SE, 1,  5, 3, NULL, NULL },
+    { E_PUERTA, 11,  4, S_VECINO,    7, 11, 2, NULL, NULL },
+    { E_CARTEL,  3, 11, 0, 0, 0, 0,
       N_("VILLA TUERCA\n"
       "POBLACION: 34 PERSONAS\n"
       "Y UNOS CUANTOS ROBOTS."), NULL },
-    { E_PNJ,    11,  8, 2, 0, 0, 0,
+    { E_PNJ,    11,  9, 2, 0, 0, 0,
       N_("CHICO: MI HERMANA DICE\n"
       "QUE EN EL DESGUACE HAY\n"
       "PIEZAS BUENISIMAS.\n"
@@ -350,16 +382,16 @@ static const ch_ent_t EN_TUERCA_SO[] = {
 
 static const ch_prop_t P_TUERCA_SE[] = {
     { 2,  1, PR_ARBOL },
-    { 3,  9, PR_MAQUINA },
-    { 9,  6, PR_FAROLA },
+    { 2,  9, PR_MAQUINA },
+    { 10, 2, PR_FAROLA },
 };
 
 static const ch_ent_t EN_TUERCA_SE[] = {
-    { E_PUERTA,  7,  0, S_TUERCA_NE, 7, 12, 1, NULL, NULL },
-    { E_PUERTA,  0,  5, S_TUERCA_SO, 13, 5, 1, NULL, NULL },
+    { E_PUERTA,  6,  0, S_TUERCA_NE, 7, 12, 3, NULL, NULL },
+    { E_PUERTA,  0,  4, S_TUERCA_SO, 13, 5, 3, NULL, NULL },
     /* The booth: the other watch. One per town, always at the side of the
      * square, because it is a place you go to and not a menu you open. */
-    { E_CABINA, 11,  8, 0, 0, 0, 0, NULL, NULL },
+    { E_CABINA, 11,  9, 0, 0, 0, 0, NULL, NULL },
 };
 
 static const ch_prop_t P_TALLER_INT[] = {
@@ -368,7 +400,7 @@ static const ch_prop_t P_TALLER_INT[] = {
 };
 
 static const ch_ent_t EN_TALLER[] = {
-    { E_PUERTA,  7, 12, S_TUERCA_NE, 11, 7, 3, NULL, NULL },
+    { E_PUERTA,  7, 12, S_TUERCA_NE, 11, 5, 3, NULL, NULL },
     { E_TALLER,  8,  9, 0, 0, 0, 0,
       N_("EL BANCO DE TRABAJO DE\n"
       "LA ABUELA.\n"
@@ -410,7 +442,7 @@ static const char *const M_VECINO[ROWS] = {
 };
 
 static const ch_ent_t EN_VECINO[] = {
-    { E_PUERTA,  7, 12, S_TUERCA_SO, 10, 5, 3, NULL, NULL },
+    { E_PUERTA,  7, 12, S_TUERCA_SO, 11, 5, 3, NULL, NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -418,13 +450,21 @@ static const ch_ent_t EN_VECINO[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_SENDERO[ROWS] = {
-    "=====.....=====", "     .....     ",
-    "       .       ", "  \"\"\"  .  \"\"\"  ",
-    "  \"\"\"  .  \"\"\"  ", "       .       ",
-    "~~~~~~~^~~~~~~~", "       .       ",
-    "  \"\"\"  .  \"\"\"  ", "  \"\"\"  .  \"\"\"  ",
-    "       .       ", "       .       ",
-    "       .       ", "=====.....=====",
+    "=====.....=====",
+    "     .....     ",
+    "      ...      ",
+    "  \"\"\" ... \"\"\"  ",
+    "  \"\"\" ... \"\"\"  ",
+    "      ...      ",
+    "~~~~~~^^^~~~~~~",
+    "      ...      ",
+    "  \"\"\" ... \"\"\"  ",
+    "  \"\"\" ... \"\"\"  ",
+    "      ...      ",
+    "      ...      ",
+    "     .....     ",
+    "=====.....=====",
+
 };
 
 static const ch_prop_t P_SENDERO[] = {
@@ -437,7 +477,7 @@ static const ch_prop_t P_SENDERO[] = {
 static const ch_ent_t EN_SENDERO[] = {
     { E_PUERTA,  5, 13, S_TUERCA_NE, 7,  1, 5, NULL, NULL },
     { E_PUERTA,  5,  0, S_DESGUACE1, 7, 11, 5, NULL, NULL },
-    { E_CARTEL,  9,  7, 0, 0, 0, 0,
+    { E_CARTEL, 11,  7, 0, 0, 0, 0,
       N_("SENDERO NORTE\n"
       "AL DESGUACE.\n"
       "CUIDADO: HAY ROBOTS\n"
