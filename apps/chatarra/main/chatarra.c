@@ -37,10 +37,12 @@
 #include "aos_app.h"
 #include "aos_hal.h"
 #include "aos_i18n.h"
+#include "aos_icon_ops.h"
 #include "aos_ui.h"
 
 #include "chatarra.h"
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -761,6 +763,38 @@ static void chatarra_destroy(aos_app_t *self, void *inst)
     lv_free(a);
 }
 
+/* --------------------------------------------------------------------------
+ * The icon, inside the .so
+ *
+ * Until v0.3.8 an app could only pick one of the firmware's icons by number,
+ * and Chatarra wore a gamepad because there was no robot in that list. The AIC
+ * format (docs/ICONS.md) is the same drawing written as bytes: the app hands
+ * the blob over in init() and the launcher interprets it, so the game brings
+ * its own head with it and nobody reflashes anything.
+ *
+ * Every number is a percent of the icon size, which is why one blob serves the
+ * three sizes the launcher draws. `icon_vec` stays as it was: a firmware older
+ * than the call falls back to it, and falling back to a gamepad beats falling
+ * back to nothing.
+ * -------------------------------------------------------------------------- */
+static const uint8_t CHATARRA_ICON[] = {
+    AIC_HEADER,
+    /* the aerial, and its little red lamp */
+    AIC_RECT(AIC_CENTER,   0, -34,  4, 20, 0,          AIC_C_DIM, 255),
+    AIC_RECT(AIC_CENTER,   0, -46, 11, 11, AIC_CIRCLE, AIC_C_RED, 255),
+    /* the shoulders, behind the head */
+    AIC_RECT(AIC_CENTER,   0,  28, 52, 20, 6,  AIC_C_LIT(0x8E4630), 255),
+    /* the head */
+    AIC_RECT(AIC_CENTER,   0,  -2, 56, 46, 10, AIC_C_LIT(0xC8763F), 255),
+    AIC_BORDER(AIC_DIV(26),                    AIC_C_LIT(0x5A2E17), 255),
+    AIC_INTO,
+        AIC_RECT(AIC_CENTER,    -13, -6, 14, 14, 3, AIC_C_YELLOW,        255),
+        AIC_RECT(AIC_CENTER,     13, -6, 14, 14, 3, AIC_C_YELLOW,        255),
+        AIC_RECT(AIC_BOTTOM_MID,  0, -5, 30,  7, 2, AIC_C_LIT(0x3A1C0E), 255),
+    AIC_OUT,
+    AIC_END
+};
+
 static bool chatarra_init(aos_app_t *app)
 {
     app->desc.id      = "demo.chatarra";
@@ -772,6 +806,9 @@ static bool chatarra_init(aos_app_t *app)
     app->desc.order   = 265;
     app->desc.flags   = AOS_APP_FLAG_FULLSCREEN | AOS_APP_FLAG_KEEP_AWAKE |
                         AOS_APP_FLAG_NO_SWIPE;
+
+    /* After desc.id: the runtime files the blob under the app's id. */
+    aos_icon_set_ops(app, CHATARRA_ICON, sizeof CHATARRA_ICON);
 
     app->create  = chatarra_create;
     app->destroy = chatarra_destroy;
