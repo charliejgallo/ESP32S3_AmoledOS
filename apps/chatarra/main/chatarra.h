@@ -390,6 +390,10 @@ void ch_tile_draw(ch_buf_t *b, char t, int tx, int ty);
  * without a single new byte of art. Anything else is drawn unchanged. */
 void ch_tile_anim(ch_buf_t *b, char t, int tx, int ty, int fase);
 bool ch_tile_corre(char t);     /* does this ground flow?                    */
+/* Where a higher ground spills over this cell, raggedly, two or three pixels
+ * in. Drawn AFTER the tile: once into the background when the room is built,
+ * and again over a cell of flowing water, which would otherwise wipe it. */
+void ch_tile_borde(ch_buf_t *b, const ch_room_t *r, int tx, int ty);
 void ch_prop_draw(ch_buf_t *b, const ch_prop_t *pr);
 /* An entity ALWAYS draws its own thing; the decorations are pure ornament and
  * cannot land on an entity's cell. 'hecho' is the chest already opened or the

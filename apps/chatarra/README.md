@@ -29,7 +29,7 @@ larger than any difference between them.
 Measured on 2026-09-20, with the team of three, the booth and the icon:
 
 ```
-.text          53,803 B   to PSRAM, 64 K-aligned    (was 38,475 on 2026-09-08)
+.text          54,163 B   to PSRAM, 64 K-aligned    (was 38,475 on 2026-09-08)
 .rodata        31,495 B   to PSRAM
 .data.rel.ro   15,628 B   to PSRAM
 .bss            2,540 B   to PSRAM
@@ -916,3 +916,45 @@ when LVGL actually draws. A static screen has a low frame rate by definition.
 swallows the samples, so `CH_WAV=/tmp/x.pcm` writes what the synthesiser
 produced and `tools/pcm2wav.py` puts a header on it. `CH_MEL=<n>` forces a
 tune so it can be listened to without playing up to it.
+
+
+---
+
+## 15. Edge tiles: where one ground spills over another (2026-09-20)
+
+Until now grass met a path in a perfectly straight step eight pixels long, and
+a map made of those reads as a spreadsheet with a robot walking on it. What
+fixes it is not more tiles: it is the two terrains **overlapping by two or
+three pixels, raggedly**, wherever they touch.
+
+Two decisions keep the tables small and the cost at zero:
+
+1. **One pattern per terrain, written for its NORTH edge**, and the other
+   three sides are that pattern *turned* (`borde_dibujar()` reads it rotated).
+   A full autotiler needs twelve per terrain — four sides, four outer and four
+   inner corners — which is why most of them are generated rather than drawn.
+   One and a rotation is a tenth of the art and, at eight pixels, looks the
+   same.
+2. **Drawn once, into the background**, when the room is built. Same licence
+   the combat arena has: the background is the one place in this engine where
+   detail costs nothing per frame. Measured on the board afterwards: **29.4
+   fps**, unchanged.
+
+Which ground spills over which is a **priority**, not a special case: grass
+grows over a path, sand lies on stone, snow covers everything. The two new
+fields go at the END of `tile_t`, so the thirty-eight rows of `TILES` that say
+nothing about them get zero and NULL — which reads exactly as *this ground has
+no fringe and gives way to everything*, and that is the right default.
+
+The priority that matters most is the lowest. **Water and lava are zero**, so
+whatever surrounds a pond hangs into it: that is the difference between a pond
+with a shore and a blue rectangle.
+
+Two things it had to be taught, both of them lessons this file already had:
+
+- **A second pass.** A fringe drawn in the same loop as the tiles gets painted
+  over by the neighbour that comes after it, and half the seams of a room go
+  missing. Every tile goes down first, then every fringe.
+- **The flowing water repaints its own cells**, so it wipes the fringe on the
+  shore — the same bug as the blinking sign in section 14.1, one step further
+  in. `flujo_dibujar()` puts the fringe back after the tile, every time.

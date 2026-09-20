@@ -55,6 +55,14 @@ typedef struct {
     uint8_t            flags;
     const char *const *px;      /* 8 rows of 8 palette characters            */
     const char *const *px2;     /* variant, or NULL                          */
+    /* --- edge tiles ---------------------------------------------------
+     * `prio` is which ground spills over which, and `borde` is what it looks
+     * like spilling. Both are at the END of the structure on purpose: the
+     * thirty-eight rows of TILES that say nothing about them get zero and
+     * NULL, which reads exactly as "this ground has no fringe and gives way
+     * to everything", and that is the right default. */
+    uint8_t            prio;
+    const char *const *borde;
 } tile_t;
 
 static const char *const PX_PASTO[8] = {
@@ -261,46 +269,75 @@ static const char *const PX_CRISTAL[8] = {
     "ccccwccc", "cccccwcc", "ccccccwc", "cccccccc",
 };
 
+static const char *const BR_PASTO[8] = {
+    "eeeeeeee", "eEeeeeEe", "ee.ee.ee", ".e...e..",
+    "..e.....", "........", "........", "........",
+};
+static const char *const BR_TIERRA[8] = {
+    "hhhhhhhh", "hHhhhhHh", "hh.hh.hh", ".h...h..",
+    "........", "........", "........", "........",
+};
+static const char *const BR_ARENA[8] = {
+    "qqqqqqqq", "qQqqqqQq", "qq.qq.qq", ".q...q..",
+    "..q.....", "........", "........", "........",
+};
+static const char *const BR_NIEVE[8] = {
+    "GGGGGGGG", "GwGGGGwG", "GG.GG.GG", ".G...G..",
+    "..G.....", "........", "........", "........",
+};
+static const char *const BR_GRAVA[8] = {
+    "GGGGGGGG", "GIGGGGIG", "GG.GG.GG", ".G...G..",
+    "........", "........", "........", "........",
+};
+static const char *const BR_CIUDAD[8] = {
+    "pppppppp", "pPpppppP", "pp.pp.pp", "........",
+    "........", "........", "........", "........",
+};
+static const char *const BR_VOLCAN[8] = {
+    "SSSSSSSS", "SsSSSSsS", "SS.SS.SS", ".S...S..",
+    "........", "........", "........", "........",
+};
+
 static const tile_t TILES[] = {
-    { ' ', 0,                       PX_PASTO,     PX_PASTO2  },
-    { '.', 0,                       PX_TIERRA,    PX_TIERRA2 },
+    { ' ', 0,                       PX_PASTO,     PX_PASTO2,  5, BR_PASTO  },
+    { '.', 0,                       PX_TIERRA,    PX_TIERRA2, 3, BR_TIERRA },
     { '"', T_ENCUENTRO,             PX_ALTO,      NULL       },
     { '~', T_SOLIDO,                PX_AGUA,      NULL       },
-    { '^', 0,                       PX_PUENTE,    NULL       },
-    { '=', T_SOLIDO,                PX_CERCA,     NULL       },
-    { '#', T_SOLIDO,                PX_PIEDRA,    NULL       },
-    { '%', T_SOLIDO,                PX_LADRILLO,  NULL       },
-    { '_', 0,                       PX_MADERA,    NULL       },
-    { '|', T_SOLIDO,                PX_PARED,     NULL       },
-    { 'o', 0,                       PX_ALFOMBRA,  NULL       },
-    { '-', T_SOLIDO,                PX_MOSTRADOR, NULL       },
-    { 'M', 0,                       PX_METAL,     PX_METAL2  },
-    { 'X', T_SOLIDO,                PX_MURO,      NULL       },
+    { '^', 0,                       PX_PUENTE,    NULL, 9       },
+    { '=', T_SOLIDO,                PX_CERCA,     NULL, 9       },
+    { '#', T_SOLIDO,                PX_PIEDRA,    NULL, 9       },
+    { '%', T_SOLIDO,                PX_LADRILLO,  NULL, 9       },
+    { '_', 0,                       PX_MADERA,    NULL, 9       },
+    { '|', T_SOLIDO,                PX_PARED,     NULL, 9       },
+    { 'o', 0,                       PX_ALFOMBRA,  NULL, 9       },
+    { '-', T_SOLIDO,                PX_MOSTRADOR, NULL, 9       },
+    { 'M', 0,                       PX_METAL,     PX_METAL2, 9  },
+    { 'X', T_SOLIDO,                PX_MURO,      NULL, 9       },
     { 'x', T_ENCUENTRO,             PX_CHATARRA,  NULL       },
     { '*', T_ENCUENTRO,             PX_ACEITE,    NULL       },
-    { 'R', T_SOLIDO,                PX_ROCA,      NULL       },
-    { ':', 0,                       PX_REJILLA,   NULL       },
-    { '+', 0,                       PX_BALDOSA,   NULL       },
-    { '0', T_SOLIDO,                PX_NEGRO,     NULL       },
-    { 'B', T_SOLIDO,                PX_ARBUSTO,   NULL       },
+    { 'R', T_SOLIDO,                PX_ROCA,      NULL, 9       },
+    { ':', 0,                       PX_REJILLA,   NULL, 9       },
+    { '+', 0,                       PX_BALDOSA,   NULL, 9       },
+    { '0', T_SOLIDO,                PX_NEGRO,     NULL, 9       },
+    { 'B', T_SOLIDO,                PX_ARBUSTO,   NULL, 9       },
 
     /* zones 2 to 8 */
-    { 'n', 0,                       PX_NIEVE,     NULL       },
+    { 'n', 0,                       PX_NIEVE,     NULL,       5, BR_NIEVE  },
     { 'N', T_ENCUENTRO,             PX_NEVADO,    NULL       },
     { 'h', 0,                       PX_HIELO,     NULL       },
     { 'L', T_SOLIDO,                PX_LAVA,      NULL       },
-    { 'r', 0,                       PX_VOLCAN,    NULL       },
-    { 'S', 0,                       PX_ARENA,     NULL       },
-    { 'w', 0,                       PX_MUELLE,    NULL       },
+    { 'r', 0,                       PX_VOLCAN,    NULL,       3, BR_VOLCAN },
+    { 'S', 0,                       PX_ARENA,     NULL,       4, BR_ARENA  },
+    { 'w', 0,                       PX_MUELLE,    NULL, 9       },
     { 'z', 0,                       PX_VADO,      NULL       },
     { 'c', 0,                       PX_CIRCUITO,  PX_CIRCUITO2 },
-    { 'C', T_SOLIDO,                PX_MURO_CIRC, NULL       },
+    { 'C', T_SOLIDO,                PX_MURO_CIRC, NULL, 9       },
     { 'd', T_ENCUENTRO,             PX_PARAMO,    NULL       },
     { 'Q', 0,                       PX_SECO,      NULL       },
-    { 'G', 0,                       PX_GRAVA,     NULL       },
-    { 'p', 0,                       PX_CIUDAD,    NULL       },
-    { 'P', T_SOLIDO,                PX_MURO_CIU,  NULL       },
-    { 'V', T_SOLIDO,                PX_CRISTAL,   NULL       },
+    { 'G', 0,                       PX_GRAVA,     NULL,       3, BR_GRAVA  },
+    { 'p', 0,                       PX_CIUDAD,    NULL,       3, BR_CIUDAD },
+    { 'P', T_SOLIDO,                PX_MURO_CIU,  NULL, 9       },
+    { 'V', T_SOLIDO,                PX_CRISTAL,   NULL, 9       },
 };
 
 #define NTILES  ((int)(sizeof(TILES) / sizeof(TILES[0])))
@@ -348,6 +385,74 @@ void ch_tile_anim(ch_buf_t *b, char t, int tx, int ty, int fase)
     if (!ch_tile_corre(t)) { ch_tile_draw(b, t, tx, ty); return; }
     for (int i = 0; i < 8; i++) rot[i] = d->px[(i + fase) & 7];
     ch_blit(b, tx * TILE, ty * TILE, rot, 8);
+}
+
+
+/* --------------------------------------------------------------------------
+ * EDGE TILES: WHERE ONE GROUND SPILLS OVER ANOTHER
+ *
+ * Until now grass met a path in a perfectly straight step eight pixels long,
+ * and a map made of those reads as a spreadsheet with a robot on it. What
+ * fixes that is not more tiles: it is that the two terrains OVERLAP by two or
+ * three pixels, raggedly, wherever they touch.
+ *
+ * Two decisions keep it cheap and keep the tables small:
+ *
+ *   1. ONE pattern per terrain, written for its NORTH edge, and the other
+ *      three sides are that pattern TURNED (borde_dibujar below). Twelve
+ *      patterns per terrain -four sides, four outer and four inner corners-
+ *      is what a full autotiler needs and it is why most of them are
+ *      generated rather than drawn. One and a rotation is a tenth of the art
+ *      and, at eight pixels, looks the same.
+ *
+ *   2. It is drawn ONCE, into the background, when the room is built. It is
+ *      the same licence the combat arena has: the background is the one place
+ *      in this engine where detail costs nothing per frame.
+ *
+ * Which terrain spills over which is a PRIORITY, not a special case: grass
+ * grows over a path, sand lies on stone, snow covers everything. The one that
+ * matters most is the lowest - water and lava have priority zero, so whatever
+ * surrounds a pond hangs into it, which is what gives a pond a shore instead
+ * of a rim.
+ * -------------------------------------------------------------------------- */
+
+/* The pattern turned: 0 north (as written), 1 south, 2 west, 3 east. Reading
+ * it rotated costs nothing and saves three patterns per terrain. */
+static void borde_dibujar(ch_buf_t *b, int tx, int ty,
+                          const char *const *fr, int lado)
+{
+    for (int r = 0; r < 8; r++) {
+        for (int c = 0; c < 8; c++) {
+            char k;
+            uint16_t col;
+            switch (lado) {
+            case 1:  k = fr[7 - r][c];     break;   /* south                 */
+            case 2:  k = fr[c][r];         break;   /* west                  */
+            case 3:  k = fr[7 - c][r];     break;   /* east                  */
+            default: k = fr[r][c];         break;   /* north                 */
+            }
+            if (ch_pal(k, &col)) ch_px(b, tx * TILE + c, ty * TILE + r, col);
+        }
+    }
+}
+
+void ch_tile_borde(ch_buf_t *b, const ch_room_t *r, int tx, int ty)
+{
+    static const int8_t DX[4] = {  0,  0, -1, +1 };
+    static const int8_t DY[4] = { -1, +1,  0,  0 };
+    const tile_t *mio = buscar(r->suelo[ty][tx]);
+
+    for (int lado = 0; lado < 4; lado++) {
+        int nx = tx + DX[lado], ny = ty + DY[lado];
+        const tile_t *otro;
+        if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+        otro = buscar(r->suelo[ny][nx]);
+        /* Only a HIGHER ground spills, and only onto a different one: without
+         * the second test every tile would fringe itself at the seams of its
+         * own variant. */
+        if (!otro->borde || otro->prio <= mio->prio) continue;
+        borde_dibujar(b, tx, ty, otro->borde, lado);
+    }
 }
 
 void ch_tile_draw(ch_buf_t *b, char t, int tx, int ty)

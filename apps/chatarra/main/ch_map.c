@@ -151,6 +151,14 @@ void ch_map_fondo(ch_t *g)
             ch_tile_draw(&g->bg, r->suelo[y][x], x, y);
         }
     }
+    /* The fringes go in a SECOND pass, after every tile is down: a fringe
+     * drawn in the first one would be painted over by the neighbour that comes
+     * after it, and half the seams of the room would be missing. */
+    for (int y = 0; y < ROWS; y++) {
+        for (int x = 0; x < COLS; x++) {
+            ch_tile_borde(&g->bg, r, x, y);
+        }
+    }
     for (int i = 0; i < r->nprops; i++) {
         ch_prop_draw(&g->bg, &r->props[i]);
     }
@@ -779,6 +787,9 @@ static void flujo_dibujar(ch_t *g)
         int fl = g->flujo[g->flujo_i].len;
         for (int i = 0; i < fl; i++) {
             ch_tile_anim(&g->fb, suelo(r, fx + i, fy), fx + i, fy, fase);
+            /* and its fringe back on top, or the shore of a pond would blink
+             * exactly the way the sign at its edge used to */
+            ch_tile_borde(&g->fb, r, fx + i, fy);
         }
         ch_dirty_add(&g->d_cur, fx * TILE, fy * TILE, fl * TILE, TILE);
         g->flujo_i = (uint8_t)((g->flujo_i + 1) % g->nflujo);
