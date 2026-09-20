@@ -375,8 +375,8 @@ static void nueva_partida(ch_t *g)
     g->s.obj[IT_ACEITE] = 3;
     g->s.creditos = 250;
     g->s.sala = 0;
-    g->s.x = 11;
-    g->s.y = 14;
+    g->s.x = 7;                 /* v2: the house is 15x14 now               */
+    g->s.y = 10;
     g->s.dir = 1;
 }
 

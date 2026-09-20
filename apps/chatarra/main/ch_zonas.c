@@ -122,7 +122,10 @@ enum {
 /* Room identifiers. */
 enum {
     S_CASA = 0,
-    S_PUEBLO,
+    S_PUEBLO,                   /* Villa Tuerca, sector noroeste            */
+    S_TUERCA_NE,
+    S_TUERCA_SO,
+    S_TUERCA_SE,
     S_TALLER,
     S_VECINO,
     S_SENDERO,
@@ -187,32 +190,17 @@ enum {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_CASA[ROWS] = {
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "0000|||||||||||||||0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_ooooooooo___|0000",
-    "0000|_ooooooooo___|0000",
-    "0000|_ooooooooo___|0000",
-    "0000|_ooooooooo___|0000",
-    "0000|_ooooooooo___|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000||||||___||||||0000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "000000000000000", "0|||||||||||||0",
+    "0|___________|0", "0|___________|0",
+    "0|___________|0", "0|_ooooooooo_|0",
+    "0|_ooooooooo_|0", "0|_ooooooooo_|0",
+    "0|_ooooooooo_|0", "0|___________|0",
+    "0|___________|0", "0|___________|0",
+    "0||||||___||||0", "000000000000000",
 };
 
 static const ch_ent_t EN_CASA[] = {
-    { E_PUERTA, 10, 17, S_PUEBLO,   4, 10, 3, NULL, NULL },
+    { E_PUERTA,  7, 12, S_PUEBLO,    3,  5, 3, NULL, NULL },
     { E_PNJ,     7,  5, 1, F_ABUELA_HABLO, 0, 0,
       N_("ABUELA TUERCA: BUEN DIA,\n"
       "DORMILON.\n"
@@ -223,8 +211,8 @@ static const ch_ent_t EN_CASA[] = {
       "ANDA AL TALLER Y TE\n"
       "EXPLICO COMO SE CAMBIAN\n"
       "LAS PIEZAS."), NULL },
-    { E_COFRE,  15,  5, IT_ACEITE, 2, F_COFRE_CASA, 0, NULL, NULL },
-    { E_CARTEL, 15,  3, 0, 0, 0, 0,
+    { E_COFRE,  11,  3, IT_ACEITE, 2, F_COFRE_CASA, 0, NULL, NULL },
+    { E_CARTEL,  3,  3, 0, 0, 0, 0,
       N_("UNA FOTO VIEJA: TU\n"
       "ABUELA JOVEN, AL LADO\n"
       "DE UN ROBOT ENORME.\n"
@@ -237,85 +225,71 @@ static const ch_ent_t EN_CASA[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_PUEBLO[ROWS] = {
-    "==========.....========",
-    "          .....        ",
-    "  BB      .....    BB  ",
-    "  BB     .......   BB  ",
-    "         .......       ",
-    " ..................... ",
-    " .                   . ",
-    " .                   . ",
-    " .                   . ",
-    " .                   . ",
-    " .                   . ",
-    " .        .....      . ",
-    " .        .....      . ",
-    " .  ~~~~  .....      . ",
-    " .  ~~~~  .....      . ",
-    " .  ~~~~  .....      . ",
-    " .        .....      . ",
-    " ..................... ",
-    "          .....        ",
-    "          .....        ",
-    "==========.....========",
-    "          .....        ",
+    "===============", "=      .       ",
+    "=      .       ", "=      .       ",
+    "=      .       ", "=      .       ",
+    "=..............", "=      .       ",
+    "=      .       ", "= ~~~~ .       ",
+    "= ~~~~ .       ", "= ~~~~ .       ",
+    "=      .       ", "=      .       ",
+};
+
+static const char *const M_TUERCA_NE[ROWS] = {
+    "=====.....=====", "     .....     ",
+    "     .....     ", "       .       ",
+    "       .       ", "       .       ",
+    "..............=", "       .      =",
+    "       .      =", "       .      =",
+    "       .      =", "       .      =",
+    "       .      =", "       .      =",
+};
+
+static const char *const M_TUERCA_SO[ROWS] = {
+    "=      .       ", "=      .       ",
+    "=      .       ", "=      .       ",
+    "=      .       ", "=..............",
+    "=      .       ", "=      .       ",
+    "=      .       ", "=      .       ",
+    "=      .       ", "=      .       ",
+    "=      .       ", "===============",
+};
+
+static const char *const M_TUERCA_SE[ROWS] = {
+    "       .      =", "       .      =",
+    "       .      =", "       .      =",
+    "       .      =", "..............=",
+    "       .      =", "       .      =",
+    "       .      =", "       .      =",
+    "       .      =", "       .      =",
+    "       .      =", "===============",
 };
 
 static const ch_prop_t P_PUEBLO[] = {
-    { 3,  6, PR_CASA },          /* the door lands on cell 4               */
-    { 14, 6, PR_TALLER },        /* the door lands on cell 16              */
-    { 16,12, PR_FUENTE },
-    { 0,  1, PR_ARBOL },
-    { 21, 1, PR_ARBOL },
-    { 0, 17, PR_ARBOL },
-    { 21,17, PR_ARBOL },
-    { 8,  9, PR_FAROLA },
-    { 18,15, PR_FAROLA },
+    { 2,  1, PR_CASA },          /* the door lands on cell 3,4             */
+    { 11, 1, PR_ARBOL },
+    { 11, 9, PR_ARBOL },
+    { 8,  7, PR_FAROLA },
 };
 
 static const ch_ent_t EN_PUEBLO[] = {
-    /* The doors go on the cell BELOW the threshold: that is where the player
-     * stands, because the house's decoration blocks the way. */
-    { E_PUERTA,  4,  9, S_CASA,    11, 16, 2, NULL, NULL },
-    { E_PUERTA, 16,  9, S_TALLER,  11, 16, 2, NULL, NULL },
-    { E_PUERTA, 10,  0, S_SENDERO,  7, 19, 5, NULL, NULL },
-    { E_PUERTA, 10,  1, S_SENDERO,  7, 19, 5, NULL, NULL },
-    { E_CARTEL,  6, 16, 0, 0, 0, 0,
-      N_("VILLA TUERCA\n"
-      "POBLACION: 34 PERSONAS\n"
-      "Y UNOS CUANTOS ROBOTS."), NULL },
-    { E_PNJ,    12,  8, 2, 0, 0, 0,
-      N_("CHICO: MI HERMANA DICE\n"
-      "QUE EN EL DESGUACE HAY\n"
-      "PIEZAS BUENISIMAS.\n"
-      "YO NO ENTRARIA. HAY\n"
-      "ROBOTS SUELTOS."), NULL },
-    /* The town's only quest with a reward. p3 is the flag you have to bring
-     * and texto2 what they say when they see it: two pointers of a table
-     * instead of a state machine. */
-    { E_PNJ,     5, 11, 3, F_MISION_CUMPLIDA, F_TORNILLOS, IT_SOLDADOR,
+    /* The doors that lead to the next SECTOR of the same town sit on the
+     * paths, at the edge of the map, so crossing one slides and the line you
+     * were walking carries on. The house's door is in the middle of the
+     * sector and fades: walking into a house is not walking east. */
+    { E_PUERTA,  3,  4, S_CASA,     7, 11, 2, NULL, NULL },
+    { E_PUERTA, 14,  6, S_TUERCA_NE, 1,  6, 1, NULL, NULL },
+    { E_PUERTA,  7, 13, S_TUERCA_SO, 7,  1, 1, NULL, NULL },
+    { E_PNJ,    10,  4, 3, F_MISION_CUMPLIDA, F_TORNILLOS, IT_SOLDADOR,
       N_("VECINO: SE ME CAYERON\n"
       "LOS TORNILLOS EN EL\n"
       "DEPOSITO DEL DESGUACE.\n"
       "ESTA AL NORTE, PASANDO\n"
       "EL SENDERO.\n"
-      "SI ME LOS TRAES, TE DOY\n"
-      "ALGO BUENO."),
-      N_("VECINO: LOS TORNILLOS!\n"
-      "SOS UN FENOMENO.\n"
-      "TOMA ESTE SOLDADOR, QUE\n"
-      "A MI NO ME SIRVE Y A VOS\n"
-      "TE VA A SALVAR.\n"
-      "Y QUEDATE CON LOS\n"
-      "CREDITOS TAMBIEN.") },
-    { E_PNJ,    18, 10, 4, 0, 0, 0,
-      N_("SENORA: CUIDADO CON LA\n"
-      "FUENTE, QUE EL AGUA Y\n"
-      "LOS CIRCUITOS NO SE\n"
-      "LLEVAN BIEN."), NULL },
-    /* The booth: the other watch. One per town, always at the side of the
-     * square, because it is a place you go to and not a menu you open. */
-    { E_CABINA, 19, 13, 0, 0, 0, 0, NULL, NULL },
+      "SI ME LOS TRAES TE DOY\n"
+      "ALGO QUE TE VA A SERVIR."),
+      N_("VECINO: MIS TORNILLOS!\n"
+      "TOMA, ESTE SOLDADOR ERA\n"
+      "DE MI PADRE.") },
 };
 
 /* --------------------------------------------------------------------------
@@ -323,28 +297,69 @@ static const ch_ent_t EN_PUEBLO[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_TALLER[ROWS] = {
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "000|||||||||||||||||000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|---------++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++ooooooo+++++|000",
-    "000|+++ooooooo+++++|000",
-    "000|+++ooooooo+++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|++++++___++++++|000",
-    "000|||||||___|||||||000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "000000000000000", "0|||||||||||||0",
+    "0|+++++++++++|0", "0|---------++|0",
+    "0|+++++++++++|0", "0|+++++++++++|0",
+    "0|++ooooooo++|0", "0|++ooooooo++|0",
+    "0|++ooooooo++|0", "0|+++++++++++|0",
+    "0|+++++++++++|0", "0|+++++++++++|0",
+    "0||||||+++||||0", "000000000000000",
+};
+
+static const ch_prop_t P_TUERCA_NE[] = {
+    { 10, 3, PR_TALLER },        /* the door lands on cell 11,6            */
+    { 1,  8, PR_ARBOL },
+    { 9,  8, PR_FAROLA },
+};
+
+static const ch_ent_t EN_TUERCA_NE[] = {
+    { E_PUERTA,  5,  0, S_SENDERO,   7, 11, 5, NULL, NULL },
+    { E_PUERTA,  0,  6, S_PUEBLO,   13,  6, 1, NULL, NULL },
+    { E_PUERTA,  7, 13, S_TUERCA_SE, 7,  1, 1, NULL, NULL },
+    { E_PUERTA, 11,  6, S_TALLER,    7, 11, 2, NULL, NULL },
+    { E_PNJ,     3,  4, 4, 0, 0, 0,
+      N_("MECANICO: EL TALLER ES\n"
+      "DE LA ABUELA TUERCA.\n"
+      "SI TE ROMPEN EL ROBOT,\n"
+      "TE LO DEJA COMO NUEVO\n"
+      "Y NO TE COBRA."), NULL },
+};
+
+static const ch_prop_t P_TUERCA_SO[] = {
+    { 9,  1, PR_CASA },          /* the door lands on cell 10,4            */
+    { 2,  7, PR_FUENTE },
+    { 12,10, PR_ARBOL },
+    { 5,  9, PR_FAROLA },
+};
+
+static const ch_ent_t EN_TUERCA_SO[] = {
+    { E_PUERTA,  7,  0, S_PUEBLO,    7, 12, 1, NULL, NULL },
+    { E_PUERTA, 14,  5, S_TUERCA_SE, 1,  5, 1, NULL, NULL },
+    { E_PUERTA, 10,  4, S_VECINO,    7, 11, 2, NULL, NULL },
+    { E_CARTEL,  4, 11, 0, 0, 0, 0,
+      N_("VILLA TUERCA\n"
+      "POBLACION: 34 PERSONAS\n"
+      "Y UNOS CUANTOS ROBOTS."), NULL },
+    { E_PNJ,    11,  8, 2, 0, 0, 0,
+      N_("CHICO: MI HERMANA DICE\n"
+      "QUE EN EL DESGUACE HAY\n"
+      "PIEZAS BUENISIMAS.\n"
+      "YO NO ENTRARIA. HAY\n"
+      "ROBOTS SUELTOS."), NULL },
+};
+
+static const ch_prop_t P_TUERCA_SE[] = {
+    { 2,  1, PR_ARBOL },
+    { 3,  9, PR_MAQUINA },
+    { 9,  6, PR_FAROLA },
+};
+
+static const ch_ent_t EN_TUERCA_SE[] = {
+    { E_PUERTA,  7,  0, S_TUERCA_NE, 7, 12, 1, NULL, NULL },
+    { E_PUERTA,  0,  5, S_TUERCA_SO, 13, 5, 1, NULL, NULL },
+    /* The booth: the other watch. One per town, always at the side of the
+     * square, because it is a place you go to and not a menu you open. */
+    { E_CABINA, 11,  8, 0, 0, 0, 0, NULL, NULL },
 };
 
 static const ch_prop_t P_TALLER_INT[] = {
@@ -353,7 +368,7 @@ static const ch_prop_t P_TALLER_INT[] = {
 };
 
 static const ch_ent_t EN_TALLER[] = {
-    { E_PUERTA, 10, 17, S_PUEBLO,  16, 10, 3, NULL, NULL },
+    { E_PUERTA,  7, 12, S_TUERCA_NE, 11, 7, 3, NULL, NULL },
     { E_TALLER,  8,  9, 0, 0, 0, 0,
       N_("EL BANCO DE TRABAJO DE\n"
       "LA ABUELA.\n"
@@ -364,7 +379,7 @@ static const ch_ent_t EN_TALLER[] = {
       "ACEITE, BATERIAS Y\n"
       "ALGUNA COSA MAS.\n"
       "MIRA TRANQUILO."), NULL },
-    { E_PNJ,    16,  6, 1, 0, 0, 0,
+    { E_PNJ,    11,  4, 1, 0, 0, 0,
       N_("ABUELA TUERCA: UN ROBOT\n"
       "SON CUATRO PIEZAS:\n"
       "CABEZA, TORSO, BRAZOS\n"
@@ -385,32 +400,17 @@ static const ch_ent_t EN_TALLER[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_VECINO[ROWS] = {
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "0000|||||||||||||||0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000||||||___||||||0000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "000000000000000", "0|||||||||||||0",
+    "0|___________|0", "0|___________|0",
+    "0|___________|0", "0|___________|0",
+    "0|___________|0", "0|___________|0",
+    "0|___________|0", "0|___________|0",
+    "0|___________|0", "0|___________|0",
+    "0||||||___||||0", "000000000000000",
 };
 
 static const ch_ent_t EN_VECINO[] = {
-    { E_PUERTA, 10, 17, S_PUEBLO,  11,  6, 3, NULL, NULL },
+    { E_PUERTA,  7, 12, S_TUERCA_SO, 10, 5, 3, NULL, NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -418,59 +418,31 @@ static const ch_ent_t EN_VECINO[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_SENDERO[ROWS] = {
-    "     .....             ",
-    "  BB .....   BB        ",
-    "     .....             ",
-    "\"\"\"  .....  \"\"\"\"\"\"\"    ",
-    "\"\"\"  .....  \"\"\"\"\"\"\"    ",
-    "\"\"\"  .....  \"\"\"\"\"\"\"    ",
-    "     .....             ",
-    "     ..................",
-    "     .....             ",
-    "  \"\"\"\"\"\"\"\"\"\"\"\"\"        ",
-    "  \"\"\"\"\"\"\"\"\"\"\"\"\"        ",
-    "  \"\"\"\"\"\"\"\"\"\"\"\"\"        ",
-    "     .....             ",
-    "     .....    \"\"\"\"\"    ",
-    "  BB .....    \"\"\"\"\"    ",
-    "     .....    \"\"\"\"\"    ",
-    "     .....             ",
-    "~~~~~.....~~~~~~~~~~~~~",
-    "~~~~~^^^^^~~~~~~~~~~~~~",
-    "     .....             ",
-    "     .....             ",
-    "     .....             ",
+    "=====.....=====", "     .....     ",
+    "       .       ", "  \"\"\"  .  \"\"\"  ",
+    "  \"\"\"  .  \"\"\"  ", "       .       ",
+    "~~~~~~~^~~~~~~~", "       .       ",
+    "  \"\"\"  .  \"\"\"  ", "  \"\"\"  .  \"\"\"  ",
+    "       .       ", "       .       ",
+    "       .       ", "=====.....=====",
 };
 
 static const ch_prop_t P_SENDERO[] = {
-    { 0,  0, PR_ARBOL },
-    { 19, 2, PR_ARBOL },
-    { 0, 12, PR_ARBOL },
-    { 20,14, PR_ARBOL },
+    { 0,  1, PR_PINO },
+    { 13, 1, PR_PINO },
+    { 0, 10, PR_PINO },
+    { 13,10, PR_PINO },
 };
 
 static const ch_ent_t EN_SENDERO[] = {
-    { E_PUERTA,  5, 21, S_PUEBLO,   11,  2, 5, NULL, NULL },
-    { E_PUERTA,  5, 20, S_PUEBLO,   11,  2, 5, NULL, NULL },
-    { E_PUERTA,  5,  0, S_DESGUACE1, 11, 17, 5, NULL, NULL },
-    { E_PUERTA,  5,  1, S_DESGUACE1, 11, 17, 5, NULL, NULL },
-    { E_CARTEL, 15,  6, 0, 0, 0, 0,
-      N_("AL NORTE: EL DESGUACE.\n"
-      "PROHIBIDO EL PASO A\n"
-      "ROBOTS SIN LICENCIA."), NULL },
-    /* The control the Desguace's sub-boss opens. The whole progression of the
-     * game is this: one flag and two texts. */
-    { E_BLOQUEO, 19,  7, F_JEFE_DESGUACE, 0, 0, 0,
-      N_("UN CONTROL BAJADO.\n"
-      "CARTEL: PROHIBIDO PASAR AL\n"
-      "ESTE SIN PASE DE SECTOR.\n"
-      "EL PASE LO DA EL GUARDIAN\n"
-      "DEL DESGUACE."),
-      N_("EL CONTROL ESTA LEVANTADO.\n"
-      "AL ESTE: PUERTO BUJIA.") },
-    { E_PUERTA, 21,  7, S_COSTA,      2,  5, 2, NULL, NULL },
-    { E_ENEMIGO, 13, 10, 1, F_ENEMIGO_1, 4, 0, NULL, NULL },
-    { E_ENEMIGO,  3,  4, 1, F_ENEMIGO_2, 3, 0, NULL, NULL },
+    { E_PUERTA,  5, 13, S_TUERCA_NE, 7,  1, 5, NULL, NULL },
+    { E_PUERTA,  5,  0, S_DESGUACE1, 7, 11, 5, NULL, NULL },
+    { E_CARTEL,  9,  7, 0, 0, 0, 0,
+      N_("SENDERO NORTE\n"
+      "AL DESGUACE.\n"
+      "CUIDADO: HAY ROBOTS\n"
+      "SUELTOS ENTRE LOS\n"
+      "YUYOS."), NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -2846,6 +2818,12 @@ const ch_room_t ch_salas[] = {
       EN_CASA,      N(EN_CASA),      1,   0 , AMB_NADA },
     { N_("VILLA TUERCA"), TEMA_PUEBLO,  M_PUEBLO,    P_PUEBLO,    N(P_PUEBLO),
       EN_PUEBLO,    N(EN_PUEBLO),    1,   0 , AMB_NADA },
+    { N_("TUERCA NORTE"), TEMA_PUEBLO, M_TUERCA_NE, P_TUERCA_NE, N(P_TUERCA_NE),
+      EN_TUERCA_NE, N(EN_TUERCA_NE), 1,   0 , AMB_NADA },
+    { N_("PLAZA DE LA FUENTE"), TEMA_PUEBLO, M_TUERCA_SO, P_TUERCA_SO, N(P_TUERCA_SO),
+      EN_TUERCA_SO, N(EN_TUERCA_SO), 1,   0 , AMB_NADA },
+    { N_("TUERCA ESTE"), TEMA_PUEBLO, M_TUERCA_SE, P_TUERCA_SE, N(P_TUERCA_SE),
+      EN_TUERCA_SE, N(EN_TUERCA_SE), 1,   0 , AMB_NADA },
     { N_("TALLER"),      TEMA_INTERIOR, M_TALLER,    P_TALLER_INT, N(P_TALLER_INT),
       EN_TALLER,    N(EN_TALLER),    1,   0 , AMB_NADA },
     { N_("CASA VECINA"), TEMA_INTERIOR, M_VECINO,    NULL,        0,
