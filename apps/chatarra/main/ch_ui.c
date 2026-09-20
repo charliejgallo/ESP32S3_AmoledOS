@@ -374,38 +374,229 @@ static int flecha_en(int bx, int by)
  * Main menu
  * -------------------------------------------------------------------------- */
 
-static const char *const MENU[] = {
-    N_("TALLER"), N_("OBJETOS"), N_("EQUIPO DE ROBOTS"), N_("REGISTRO"),
-    N_("MAPA"), N_("AYUDA"), N_("SONIDO"), N_("GUARDAR PARTIDA"), N_("CERRAR"),
+/* --------------------------------------------------------------------------
+ * The menu: two pages of tiles with an icon
+ *
+ * It used to be nine rows of 16 px stacked in one column. On a 1.8" screen
+ * that is a 172x14 strip per entry and the whole list crossed the touch
+ * panel's envelope from end to end: the first row and the last one were the
+ * two worst places on the glass. Now it is two pages -what you carry, and
+ * what the game is- of tiles at least 40 px tall, all of them between y=36
+ * and y=168 of the buffer, which is real 72..336: the middle of the panel.
+ *
+ * The icons are 12x12 written as text. Two layers -body and detail- because
+ * one flat colour at this size reads as a blob, and at x2 (or x3 on the root
+ * page) a 12x12 grid is exactly the resolution the rest of the game draws at.
+ * -------------------------------------------------------------------------- */
+
+typedef struct {
+    const char *fila[12];
+    uint32_t    cuerpo, detalle;
+} icono_t;
+
+enum {
+    IC_TALLER, IC_OBJETOS, IC_EQUIPO, IC_REGISTRO, IC_MAPA,
+    IC_AYUDA, IC_SONIDO, IC_GUARDAR, IC_CERRAR,
+    IC_MOCHILA, IC_AJUSTES, NICONOS
 };
+
+static const icono_t ICONOS[NICONOS] = {
+    [IC_TALLER] = { {              /* a nut: the town is called Villa Tuerca */
+        "....####....", "..########..", ".##########.", "###......###",
+        "##...++...##", "##..++++..##", "##..++++..##", "##...++...##",
+        "###......###", ".##########.", "..########..", "....####....",
+    }, 0xC8CEDC, 0x5A6076 },
+    [IC_OBJETOS] = { {                                          /* a bag    */
+        "...##..##...", "...##..##...", "..########..", ".##########.",
+        "############", "############", "##..++++..##", "##..++++..##",
+        "############", ".##########.", "..########..", "............",
+    }, 0xB97A3E, 0xFFE45E },
+    [IC_EQUIPO] = { {           /* three rows of a roster: portrait and bar */
+        "............", ".###.#######", ".#+#.#######", ".###........",
+        "............", ".###.#######", ".#+#.#######", ".###........",
+        "............", ".###.#######", ".#+#.#######", ".###........",
+    }, 0x8FA6C4, 0x6FE3FF },
+    [IC_REGISTRO] = { {                               /* a page with lines  */
+        ".##########.", ".#........#.", ".#.++++++.#.", ".#........#.",
+        ".#.++++++.#.", ".#........#.", ".#.++++++.#.", ".#........#.",
+        ".#.++++...#.", ".#........#.", ".##########.", "............",
+    }, 0xE8E2D0, 0x8A93AB },
+    [IC_MAPA] = { {                                      /* a sheet + pin   */
+        "############", "#..........#", "#...####...#", "#..##++##..#",
+        "#..##++##..#", "#...####...#", "#....##....#", "#....##....#",
+        "#..........#", "#..........#", "############", "............",
+    }, 0x6FBF73, 0xFF5E5E },
+    [IC_AYUDA] = { {                                     /* a question mark */
+        "............", "...######...", "..##++++##..", "..##....##..",
+        "........##..", ".......##...", ".....###....", ".....##.....",
+        ".....##.....", "............", ".....##.....", "............",
+    }, 0xFFE45E, 0xB99A2E },
+    [IC_SONIDO] = { {                                        /* a speaker   */
+        "............", "......##....", ".....###..+.", "...#####.+..",
+        "..######.+.+", "..######+.+.", "..######.+.+", "...#####.+..",
+        ".....###..+.", "......##....", "............", "............",
+    }, 0xD5DCEB, 0x6FE3FF },
+    [IC_GUARDAR] = { {                                       /* a floppy    */
+        "############", "#++++++++++#", "#+##....##+#", "#+##....##+#",
+        "#+########+#", "#++++++++++#", "#+########+#", "#+#......#+#",
+        "#+#......#+#", "#+########+#", "############", "............",
+    }, 0x3D465F, 0xD5DCEB },
+    [IC_CERRAR] = { {                              /* the way out of a room */
+        ".####.......", ".#..........", ".#..........", ".#....##....",
+        ".#...+##....", ".#..++######", ".#...+##....", ".#....##....",
+        ".#..........", ".#..........", ".####.......", "............",
+    }, 0x8A93AB, 0xFFE45E },
+    [IC_MOCHILA] = { {                          /* root: your robot and you */
+        ".....##.....", ".....##.....", ".##########.", "##........##",
+        "#..######..#", "#..#++++#..#", "#..#++++#..#", "#..######..#",
+        "##........##", ".##########.", "..##....##..", "..##....##..",
+    }, 0x8FA6C4, 0x6FE3FF },
+    [IC_AJUSTES] = { {                                /* root: the settings */
+        "............", ".##########.", ".....##.....", ".....##.....",
+        ".##########.", "...##.......", "...##.......", ".##########.",
+        "........##..", "........##..", ".##########.", "............",
+    }, 0xD5DCEB, 0xFFE45E },
+};
+
+static void icono_draw(ch_buf_t *b, int x, int y, int ic, int esc)
+{
+    const icono_t *o = &ICONOS[ic % NICONOS];
+    uint16_t c = ch_rgb(o->cuerpo), d = ch_rgb(o->detalle);
+
+    for (int fy = 0; fy < 12; fy++) {
+        const char *f = o->fila[fy];
+        if (!f) continue;
+        for (int fx = 0; f[fx]; fx++) {
+            if (f[fx] == '.') continue;
+            ch_rect(b, x + fx * esc, y + fy * esc, esc, esc,
+                    f[fx] == '+' ? d : c);
+        }
+    }
+}
+
+/* What each tile of each page is. The root page has two, and everything the
+ * player asked for by name -workshop, items, team, records, map- is on the
+ * first one: those are the five you open while playing, and the other four
+ * are the ones you open once. */
+typedef struct { uint8_t icono; const char *txt; uint8_t accion; } baldosa_t;
+
+enum { AC_TALLER = 1, AC_OBJETOS, AC_EQUIPO, AC_REGISTRO, AC_MAPA,
+       AC_AYUDA, AC_SONIDO, AC_GUARDAR, AC_CERRAR, AC_PAG1, AC_PAG2 };
+
+static const baldosa_t PAG_RAIZ[] = {
+    { IC_MOCHILA, N_("LO TUYO"),   AC_PAG1 },
+    { IC_AJUSTES, N_("EL JUEGO"),  AC_PAG2 },
+};
+static const baldosa_t PAG_TUYO[] = {
+    { IC_TALLER,   N_("TALLER"),   AC_TALLER },
+    { IC_OBJETOS,  N_("OBJETOS"),  AC_OBJETOS },
+    { IC_EQUIPO,   N_("EQUIPO"),   AC_EQUIPO },
+    { IC_REGISTRO, N_("REGISTRO"), AC_REGISTRO },
+    { IC_MAPA,     N_("MAPA"),     AC_MAPA },
+};
+static const baldosa_t PAG_JUEGO[] = {
+    { IC_AYUDA,   N_("AYUDA"),    AC_AYUDA },
+    { IC_SONIDO,  N_("SONIDO"),   AC_SONIDO },
+    { IC_GUARDAR, N_("GUARDAR"),  AC_GUARDAR },
+    { IC_CERRAR,  N_("CERRAR"),   AC_CERRAR },
+};
+
 static const char *const SONIDOS[3] = { N_("MUDO"), N_("EFECTOS"), N_("TODO") };
-#define NMENU ((int)(sizeof(MENU) / sizeof(MENU[0])))
+
+/* The grid. Everything comes out of these four numbers so that moving the
+ * strip is moving one line and not nine. */
+#define BX0     8              /* real x 16..352: the panel's envelope exactly */
+#define BY0    36
+#define BANCHO (CH_W - BX0 * 2)
+#define BALTO  (MAP_H - BY0)
+
+static const baldosa_t *pagina(const ch_t *g, int *n, int *cols, const char **tit)
+{
+    switch (g->sel2) {
+    case 1: *n = (int)(sizeof(PAG_TUYO)  / sizeof(PAG_TUYO[0]));
+            *cols = 2; *tit = N_("LO TUYO");  return PAG_TUYO;
+    case 2: *n = (int)(sizeof(PAG_JUEGO) / sizeof(PAG_JUEGO[0]));
+            *cols = 2; *tit = N_("EL JUEGO"); return PAG_JUEGO;
+    default: *n = (int)(sizeof(PAG_RAIZ) / sizeof(PAG_RAIZ[0]));
+            *cols = 1; *tit = N_("MENU");     return PAG_RAIZ;
+    }
+}
+
+static void baldosa_caja(int i, int n, int cols, int *x, int *y, int *w, int *h)
+{
+    int filas = (n + cols - 1) / cols;
+    int gap = 6;
+
+    *w = (BANCHO - gap * (cols - 1)) / cols;
+    *h = (BALTO - gap * (filas - 1)) / filas;
+    *x = BX0 + (i % cols) * (*w + gap);
+    *y = BY0 + (i / cols) * (*h + gap);
+}
+
+static int baldosa_en(const ch_t *g, int bx, int by)
+{
+    int n, cols;
+    const char *tit;
+
+    (void)pagina(g, &n, &cols, &tit);
+    for (int i = 0; i < n; i++) {
+        int x, y, w, h;
+        baldosa_caja(i, n, cols, &x, &y, &w, &h);
+        if (bx >= x && bx < x + w && by >= y && by < y + h) return i;
+    }
+    return -1;
+}
+
+static void menu_fondo(ch_t *g)
+{
+    ch_buf_t *b = &g->bg;
+    int n, cols;
+    const char *tit;
+    const baldosa_t *p = pagina(g, &n, &cols, &tit);
+
+    ch_ui_titulo(g, _(tit), g->sel2 ? _("DESLIZA PARA VOLVER") : NULL);
+
+    for (int i = 0; i < n; i++) {
+        int x, y, w, h;
+        const char *txt = _(p[i].txt);
+        const char *sub = p[i].accion == AC_SONIDO
+                        ? _(SONIDOS[ch_sonido_get() % 3]) : NULL;
+
+        baldosa_caja(i, n, cols, &x, &y, &w, &h);
+        ch_rect(b, x, y, w, h, ch_rgb(0x1A2133));
+        ch_frame(b, x, y, w, h, ch_rgb(0x3D465F));
+        ch_rect(b, x + 1, y + 1, w - 2, 1, ch_rgb(0x2C3550));
+
+        if (w >= 120) {                 /* wide: the icon to the left of the text */
+            icono_draw(b, x + 14, y + h / 2 - 18, p[i].icono, 3);
+            ch_text(b, x + 62, y + h / 2 - 4, txt, ch_rgb(0xFFFFFF));
+        } else {                        /* narrow: the icon over the text     */
+            /* Centred as ONE block -icon, label and, if there is one, the
+             * value- because the page with five tiles is 40 px tall and
+             * anything anchored to the edges overlaps in the middle. */
+            int alto = 24 + 6 + 7 + (sub ? 9 : 0);
+            int iy = y + (h - alto) / 2;
+
+            icono_draw(b, x + w / 2 - 12, iy, p[i].icono, 2);
+            ch_text(b, x + (w - ch_text_w(txt)) / 2, iy + 30, txt,
+                    ch_rgb(0xFFFFFF));
+            if (sub) {
+                ch_text(b, x + (w - ch_text_w(sub)) / 2, iy + 39, sub,
+                        ch_rgb(0xFFE45E));
+            }
+        }
+    }
+}
 
 void ch_ui_menu(ch_t *g)
 {
     g->modo_prev = g->modo;
     g->modo = MODO_MENU;
     g->sel = 0;
+    g->sel2 = 0;                    /* always back to the root page */
     g->scroll = 0;
     g->rehacer_fondo = 1;
     ch_sfx(900, 25);
-}
-
-static void menu_fondo(ch_t *g)
-{
-    char t[24];
-
-    lista_geom(28, 16, NMENU);
-    /* Without the credits line: with eight rows the list starts at y=40 and
-     * covered it. The HUD already shows them at the bottom right, always. */
-    ch_ui_titulo(g, _("MENU"), NULL);
-    (void)t;
-    for (int i = 0; i < NMENU; i++) {
-        {
-            fila(g, i, _(MENU[i]),
-                 i == 6 ? _(SONIDOS[ch_sonido_get() % 3]) : NULL, true);
-        }
-    }
 }
 
 /* --------------------------------------------------------------------------
@@ -1326,21 +1517,28 @@ void ch_ui_toque(ch_t *g, int bx, int by)
         break;
 
     case MODO_MENU: {
-        int f = fila_en(bx, by);
-        if (f < 0 || f >= NMENU) return;
+        int n, cols;
+        const char *tit;
+        const baldosa_t *p = pagina(g, &n, &cols, &tit);
+        int f = baldosa_en(g, bx, by);
+
+        if (f < 0) return;
         ch_sfx(1000, 25);
         g->sel = 0;
         g->scroll = 0;
-        switch (f) {
-        case 0: g->modo = MODO_TALLER;  break;
-        case 1: g->modo = MODO_OBJETOS; break;
-        case 2: g->modo = MODO_FICHA;   break;
-        case 3: g->modo = MODO_REGISTRO; g->sel2 = 0; break;
-        case 4: g->modo = MODO_MAPAMUNDI; break;
-        case 5: g->modo = MODO_AYUDA;   break;
-        case 6: ch_sonido_set((ch_sonido_get() + 1) % 3); break;
-        case 7: g->quiere_guardar = 1;  ch_ui_aviso(g, _("PARTIDA GUARDADA")); break;
-        case 8: g->modo = MODO_MAPA;    break;
+        switch (p[f].accion) {
+        case AC_PAG1:    g->sel2 = 1; break;
+        case AC_PAG2:    g->sel2 = 2; break;
+        case AC_TALLER:  g->modo = MODO_TALLER;  g->sel2 = 0; break;
+        case AC_OBJETOS: g->modo = MODO_OBJETOS; g->sel2 = 0; break;
+        case AC_EQUIPO:  g->modo = MODO_FICHA;   g->sel2 = 0; break;
+        case AC_REGISTRO:g->modo = MODO_REGISTRO;g->sel2 = 0; break;
+        case AC_MAPA:    g->modo = MODO_MAPAMUNDI; g->sel2 = 0; break;
+        case AC_AYUDA:   g->modo = MODO_AYUDA;   g->sel2 = 0; break;
+        case AC_SONIDO:  ch_sonido_set((ch_sonido_get() + 1) % 3); break;
+        case AC_GUARDAR: g->quiere_guardar = 1;
+                         ch_ui_aviso(g, _("PARTIDA GUARDADA")); break;
+        case AC_CERRAR:  g->modo = MODO_MAPA;    g->sel2 = 0; break;
         default: break;
         }
         g->rehacer_fondo = 1;
@@ -1388,8 +1586,15 @@ bool ch_ui_atras(ch_t *g)
         g->modo = MODO_MENU;
         g->rehacer_fondo = 1;
         return true;
-    case MODO_TIENDA:
     case MODO_MENU:
+        /* The back gesture climbs ONE step: from a page to the root, and from
+         * the root out to the map. Anything else and the two pages would be a
+         * trap you can only leave by picking something. */
+        if (g->sel2) { g->sel2 = 0; g->rehacer_fondo = 1; return true; }
+        g->modo = MODO_MAPA;
+        g->rehacer_fondo = 1;
+        return true;
+    case MODO_TIENDA:
         g->modo = MODO_MAPA;
         g->rehacer_fondo = 1;
         return true;

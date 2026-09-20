@@ -966,6 +966,7 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
      *   CH_CHECK=1    checks the doors and decorations of EVERY room
      *   CH_SHOT_ANIM=1 dumps one .ppm per frame while the combat animates
      *   CH_FINAL=1    opens the closing screen straight away
+     *   CH_MENU=0|1|2 opens the menu at that page (root, yours, the game)
      */
     {
         const char *v;
@@ -1032,6 +1033,12 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
         if ((v = getenv("CH_SALA")) && v[0]) {
             a->g.modo = MODO_MAPA;
             ch_map_entrar(&a->g, atoi(v), 11, 14);
+        }
+        if ((v = getenv("CH_MENU")) && v[0]) {
+            /* The menu opens by touching your own robot, and the simulator's
+             * scripted taps are not reliable enough to land on it. */
+            ch_ui_menu(&a->g);
+            a->g.sel2 = (uint8_t)atoi(v);
         }
         if ((v = getenv("CH_COMBATE")) && v[0]) {
             ch_robot_t rival;
