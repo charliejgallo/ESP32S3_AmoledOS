@@ -313,6 +313,9 @@ static const ch_ent_t EN_PUEBLO[] = {
       "FUENTE, QUE EL AGUA Y\n"
       "LOS CIRCUITOS NO SE\n"
       "LLEVAN BIEN."), NULL },
+    /* The booth: the other watch. One per town, always at the side of the
+     * square, because it is a place you go to and not a menu you open. */
+    { E_CABINA, 19, 13, 0, 0, 0, 0, NULL, NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -787,6 +790,9 @@ static const ch_ent_t EN_PUERTO[] = {
       N_("CAPITAN: EL ANCLA! AHORA\n"
       "SI PUEDO SALIR A PESCAR.\n"
       "TOMA, TE LA GANASTE.") },
+    /* The booth: the other watch. One per town, always at the side of the
+     * square, because it is a place you go to and not a menu you open. */
+    { E_CABINA, 18, 11, 0, 0, 0, 0, NULL, NULL },
 };
 
 static const char *const M_PUERTO_INT[ROWS] = {
@@ -1107,6 +1113,9 @@ static const ch_ent_t EN_VOLTIO[] = {
       N_("TECNICO: EL FUSIBLE!\n"
       "AHORA SI PUEDO ARREGLAR\n"
       "EL TABLERO. TOMA.") },
+    /* The booth: the other watch. One per town, always at the side of the
+     * square, because it is a place you go to and not a menu you open. */
+    { E_CABINA, 19, 11, 0, 0, 0, 0, NULL, NULL },
 };
 
 static const char *const M_VOLTIO_INT[ROWS] = {
@@ -1416,6 +1425,9 @@ static const ch_ent_t EN_FUNDICION[] = {
       N_("MOLDEADORA: EL MOLDE!\n"
       "SOS DE FIERRO, PIBE.\n"
       "TOMA ESTO PARA EL CAMINO.") },
+    /* The booth: the other watch. One per town, always at the side of the
+     * square, because it is a place you go to and not a menu you open. */
+    { E_CABINA, 19, 11, 0, 0, 0, 0, NULL, NULL },
 };
 
 static const char *const M_FUND_INT[ROWS] = {
@@ -1726,6 +1738,9 @@ static const ch_ent_t EN_CRIO[] = {
       "TERMO! GRACIAS, HIJO.\n"
       "TOMA ESTE SOLDADOR QUE\n"
       "ERA DE MI MARIDO.") },
+    /* The booth: the other watch. One per town, always at the side of the
+     * square, because it is a place you go to and not a menu you open. */
+    { E_CABINA, 19, 11, 0, 0, 0, 0, NULL, NULL },
 };
 
 static const char *const M_CRIO_INT[ROWS] = {
@@ -2031,6 +2046,9 @@ static const ch_ent_t EN_MALLA[] = {
       N_("ARCHIVISTA: LA CLAVE!\n"
       "TOMA UN CHIP, TE LO\n"
       "GANASTE.") },
+    /* The booth: the other watch. One per town, always at the side of the
+     * square, because it is a place you go to and not a menu you open. */
+    { E_CABINA,  7, 11, 0, 0, 0, 0, NULL, NULL },
 };
 
 static const char *const M_MALLA_INT[ROWS] = {
@@ -2338,6 +2356,9 @@ static const ch_ent_t EN_OXIDO[] = {
       "HACIA VEINTE ANOS QUE NO\n"
       "VEIA UNO ENTERO.\n"
       "TOMA, TE LO GANASTE.") },
+    /* The booth: the other watch. One per town, always at the side of the
+     * square, because it is a place you go to and not a menu you open. */
+    { E_CABINA, 17, 11, 0, 0, 0, 0, NULL, NULL },
 };
 
 static const char *const M_OXIDO_INT[ROWS] = {
@@ -2617,6 +2638,9 @@ static const ch_ent_t EN_PRISMA[] = {
       "CUMBRE.\n"
       "REPARA ANTES DE SUBIR.\n"
       "ARRIBA NO HAY BANCO."), NULL },
+    /* The booth: the other watch. One per town, always at the side of the
+     * square, because it is a place you go to and not a menu you open. */
+    { E_CABINA, 19, 11, 0, 0, 0, 0, NULL, NULL },
 };
 
 static const char *const M_PRISMA_INT[ROWS] = {

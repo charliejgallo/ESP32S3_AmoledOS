@@ -764,7 +764,7 @@ static void draw_piernas(const pen_t *p, int var, int paso)
  * -------------------------------------------------------------------------- */
 
 void ch_robot_draw(ch_buf_t *b, int cx, int y, const ch_robot_t *r,
-                   int esc, bool mirando_izq, int pose)
+                   int esc, bool mirando_izq, int pose, int flota)
 {
     const ch_skin_t *s = &ch_skins[r->skin % SKINS];
     pen_t p;
@@ -787,12 +787,17 @@ void ch_robot_draw(ch_buf_t *b, int cx, int y, const ch_robot_t *r,
      * does not fit in the dirty rectangle either, so it also stays stuck. */
     {
         uint16_t so = ch_rgb(0x1A1E2A);
-        ch_rect(b, p.ox + (BOX_CX - 8) * esc, p.oy + (BOX_H - 3) * esc,
-                16 * esc, esc, so);
-        ch_rect(b, p.ox + (BOX_CX - 9) * esc, p.oy + (BOX_H - 2) * esc,
-                18 * esc, esc, so);
-        ch_rect(b, p.ox + (BOX_CX - 7) * esc, p.oy + (BOX_H - 1) * esc,
-                14 * esc, esc, so);
+        /* The ground is where the robot WOULD be standing, so the shadow does
+         * not float with it; and it narrows by as much as the robot has
+         * risen, which is what sells the lift. */
+        int sy = p.oy + flota;
+        int ap = flota;                 /* how much narrower, each side      */
+        ch_rect(b, p.ox + (BOX_CX - 8 + ap) * esc, sy + (BOX_H - 3) * esc,
+                (16 - ap * 2) * esc, esc, so);
+        ch_rect(b, p.ox + (BOX_CX - 9 + ap) * esc, sy + (BOX_H - 2) * esc,
+                (18 - ap * 2) * esc, esc, so);
+        ch_rect(b, p.ox + (BOX_CX - 7 + ap) * esc, sy + (BOX_H - 1) * esc,
+                (14 - ap * 2) * esc, esc, so);
     }
 
     /* Order: legs, back arm, torso, head, front arm. The front arm goes last
@@ -1002,6 +1007,166 @@ void ch_robot_curar(ch_robot_t *r)
     ch_robot_stats(r);
     r->vida = r->vida_max;
     r->ene  = r->ene_max;
+}
+
+/* --------------------------------------------------------------------------
+ * THE TEAM
+ *
+ * Three robots, of which one is out. There is no `roto` flag: a robot with
+ * zero health IS the broken one, and that is the only place the truth lives.
+ * A workshop repairs the three of them, not just the one you were using -
+ * walking into town with two wrecks in the bag and being handed back one is
+ * the kind of detail that makes a game feel mean for no reason.
+ *
+ * The slot the screens talk in is 0 for the active robot and 1..2 for the
+ * bench, so nothing outside these functions needs to know that the active one
+ * is a different field of the structure.
+ * -------------------------------------------------------------------------- */
+
+ch_robot_t *ch_eq(ch_save_t *s, int slot)
+{
+    if (slot == 0) return &s->yo;
+    if (slot < 1 || slot > s->nbanco || slot >= EQUIPO) return NULL;
+    return &s->banco[slot - 1];
+}
+
+int ch_eq_n(const ch_save_t *s)
+{
+    int n = 1 + s->nbanco;
+    return n > EQUIPO ? EQUIPO : n;
+}
+
+int ch_eq_vivos(const ch_save_t *s)
+{
+    int n = 0;
+    for (int i = 0; i < ch_eq_n(s); i++) {
+        const ch_robot_t *r = ch_eq((ch_save_t *)s, i);
+        if (r && r->vida > 0) n++;
+    }
+    return n;
+}
+
+int ch_eq_otro_vivo(const ch_save_t *s)
+{
+    for (int i = 1; i < ch_eq_n(s); i++) {
+        const ch_robot_t *r = ch_eq((ch_save_t *)s, i);
+        if (r && r->vida > 0) return i;
+    }
+    return -1;
+}
+
+void ch_eq_activar(ch_save_t *s, int slot)
+{
+    ch_robot_t tmp;
+    ch_robot_t *r = ch_eq(s, slot);
+
+    if (slot <= 0 || !r) return;
+    tmp    = s->yo;
+    s->yo  = *r;
+    *r     = tmp;
+    ch_robot_stats(&s->yo);
+    ch_robot_stats(r);
+}
+
+void ch_eq_curar(ch_save_t *s)
+{
+    for (int i = 0; i < ch_eq_n(s); i++) {
+        ch_robot_t *r = ch_eq(s, i);
+        if (r) ch_robot_curar(r);
+    }
+}
+
+/* How good a part is, to pick one out of the bag without asking. It is the
+ * same sum the workshop shows as a delta, so "the best" means the same thing
+ * on both screens. */
+static int calidad(int id)
+{
+    const ch_part_t *p;
+    if (id >= PIEZAS) return -1;
+    p = &ch_partes[id];
+    return p->vida + p->atk + p->def + p->vel + p->energia;
+}
+
+/* The best loose part of that category in the bag, or -1. */
+static int mejor_en_mochila(const ch_save_t *s, int cat)
+{
+    int mejor = -1, mejorq = -1;
+    for (int i = 0; i < MOCHILA; i++) {
+        int id = s->piezas[i];
+        if (id >= PIEZAS || PIEZA_CAT(id) != cat) continue;
+        if (calidad(id) > mejorq) { mejorq = calidad(id); mejor = i; }
+    }
+    return mejor;
+}
+
+bool ch_eq_puede_armar(const ch_save_t *s)
+{
+    if (ch_eq_n(s) >= EQUIPO) return false;
+    for (int c = 0; c < P_CATS; c++)
+        if (mejor_en_mochila(s, c) < 0) return false;
+    return true;
+}
+
+int ch_eq_armar(ch_save_t *s)
+{
+    int ranura[P_CATS];
+    int slot, nivel;
+    ch_robot_t *r;
+
+    if (ch_eq_n(s) >= EQUIPO) return -1;
+    for (int c = 0; c < P_CATS; c++) {
+        ranura[c] = mejor_en_mochila(s, c);
+        if (ranura[c] < 0) return -1;
+    }
+
+    slot = s->nbanco + 1;
+    r = &s->banco[s->nbanco];
+    memset(r, 0, sizeof(*r));
+    for (int c = 0; c < P_CATS; c++) {
+        r->pieza[c] = PIEZA_VAR(s->piezas[ranura[c]]);
+        s->piezas[ranura[c]] = 0xFF;            /* out of the bag            */
+    }
+    r->skin = (uint8_t)((s->nbanco + 3) % SKINS);
+
+    /* Two levels below the robot you are using, and never under one.
+     *
+     * Not level 1: you build this out of parts torn off opponents your own
+     * size, and a level-1 robot in a level-20 dungeon is not a reserve, it is
+     * a second loss. Not your own level either, or the reserve would be free
+     * and the robot you have been raising would stop mattering. */
+    nivel = s->yo.nivel - 2;
+    if (nivel < 1) nivel = 1;
+    r->nivel = (uint8_t)nivel;
+    r->exp   = ch_exp_nivel(nivel);
+    ch_robot_curar(r);
+
+    s->nbanco++;
+    for (int c = 0; c < P_CATS; c++) ch_ver(s, PIEZA_ID(c, r->pieza[c]));
+    return slot;
+}
+
+bool ch_eq_desarmar(ch_save_t *s, int slot)
+{
+    ch_robot_t *r = ch_eq(s, slot);
+    int libres = 0;
+
+    if (slot <= 0 || !r) return false;          /* the active one, never     */
+    for (int i = 0; i < MOCHILA; i++) if (s->piezas[i] >= PIEZAS) libres++;
+    if (libres < P_CATS) return false;
+
+    for (int c = 0; c < P_CATS; c++) {
+        for (int i = 0; i < MOCHILA; i++) {
+            if (s->piezas[i] < PIEZAS) continue;
+            s->piezas[i] = PIEZA_ID(c, r->pieza[c]);
+            break;
+        }
+    }
+    /* Close the gap: the bench has no holes in it, so `nbanco` alone says
+     * which slots are real and every screen can trust it. */
+    for (int i = slot - 1; i < s->nbanco - 1; i++) s->banco[i] = s->banco[i + 1];
+    s->nbanco--;
+    memset(&s->banco[s->nbanco], 0, sizeof(s->banco[0]));
+    return true;
 }
 
 /* --------------------------------------------------------------------------

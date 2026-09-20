@@ -997,7 +997,7 @@ object per element.
 
 ## 16. Two watches
 
-Five apps talk to the other watch today, and between them they cover every
+Six apps talk to the other watch today, and between them they cover every
 shape a two-player app takes. The HAL contract is short (APP-API.md, "Two
 watches"); what follows is what each app had to learn.
 
@@ -1007,6 +1007,21 @@ runs between apps: a watch on the launcher is not on the air. Start it only
 when there is a partner (`aos_hal_link_partner().valid`): it costs radio time
 and 4.5 KB of internal RAM. Pixel Art does exactly that, and on a watch that
 is alone it is the app it always was.
+
+**It does not have to be the whole app, and it does not have to be `create()`.**
+Chatarra is an RPG that is played alone for hours; its link is a phone booth in
+each town, and the radio goes up when you walk in and comes down when you walk
+out (and in `destroy()`, for the way out that skips the door). Being reachable
+becomes a PLACE rather than a mode.
+
+**Bring the radio up BEFORE asking whether anybody is paired.** On the board the
+partner lives in NVS and either order works, so Truco and Pixel Art ask first —
+and each needs a development flag (`TRUCO_LINK=1`, `PX_LINK=1`) because in the
+simulator the partner is only put there by the link's own tick, and an app that
+asks with the radio off never sees one. Start, then poll for a partner for a
+second or two, and the flag is not needed on either side: it is also the honest
+order, since "is anybody on the air?" is not a question you can ask with the
+radio off.
 
 **Roles between equals: the lower MAC is the host.** Pong, Truco, Radar and
 the walkie all decide the same way, from `aos_hal_link_stats().own_mac` and
@@ -1035,6 +1050,16 @@ header and answers with the slot. The reliable queue holds 16 frames:
 `send_reliable()` says false when it is full and the app tries again next
 tick, which is what the `while` in the tick is for.
 
+**The side that is waiting to be answered needs a clock of its own.**
+`aos_hal_link_reliable_lost()` fires when YOUR frames are not acknowledged;
+a side that has already spoken and is waiting has nothing outstanding, so
+nothing ever times out. Chatarra hit this on the board: one watch won its
+battle, went back to the booth and hung up, and the other sat on "waiting"
+for ever with `rel_tx 9, rel_acked 9` — nothing pending, nothing wrong, a
+dead screen. Watch the partner's BEACON instead (it stops five seconds after
+they leave the app), and put a generous cap underneath so no combination of
+losses can leave the screen stuck.
+
 **Know when the other side is gone.** The reliable channel gives up after
 3.2 s without an acknowledgement (`aos_hal_link_reliable_lost()`, then
 `reliable_reset()`); the partner's beacons stop 5 s after it leaves the link
@@ -1043,10 +1068,28 @@ partner left *this* app (`aos_hal_link_neighbours()`, the `app` field).
 Truco checks all three and shows "SE FUE <name>"; Pixel Art checks the offer
 before sending and says "<name> no está en Pixel Art" instead of timing out.
 
+**Two watches running the same engine must agree on what "first" means.**
+Chatarra's combat breaks a tie on speed by asking "does the rival go first?" —
+which is the OPPOSITE question on the two watches, so the same coin has both of
+them answering yes and the battles fork. Anything a shared engine decides at
+random has to be phrased in terms both sides mean the same way: it draws "does
+the HOST go first?" and each side turns that into its own answer. The same care
+applies to WHICH generator is read: only the rolls that decide something come
+out of the seeded one, and the prizes — which the winner works out alone, while
+the loser works out something else — must not touch it.
+
 **A hello carries a nonce.** Truco's hello has a number chosen per run of
 the app: a hello with a new nonce from the same partner means they
 re-entered the app, and both start over instead of one side applying moves
 to a game the other no longer has.
+
+**Opening the streaming speaker silences `aos_hal_beep()`.** The tone task
+checks `s_spk_task` and stays quiet while `aos_hal_spk_*` holds the codec, so
+an app that opens the speaker for music loses every beep it was making for its
+effects — silently, with nothing in the log. Chatarra's answer is the one that
+generalises: if you take the speaker, you own ALL the sound, effects included,
+as another voice of the mix. Keep a fallback to the beeper for when the open
+fails, which it does while the microphone holds the codec.
 
 **Half duplex is the codec's, not the radio's.** The walkie could send and
 receive at once; the ES8311 cannot record and play at once. Close one side

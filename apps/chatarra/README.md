@@ -12,49 +12,52 @@ in the workshop and head out again with a different robot.
 
 ## 1. What to know before touching anything
 
-### `.text` is the only scarce resource
+### `.text` used to be the only scarce resource. It is not any more.
 
-Dynamic apps take their code from a reservation of **48 KB shared by every
-loaded app** (`components/aos_dynapp/aos_dynapp.c`). `.rodata`, on the other
-hand, is sent by the loader to PSRAM, which is 8 MB. That is:
+This section opened, for two weeks, by saying that dynamic apps take their code
+from a reservation of **48 KB shared by every loaded app**, that `.rodata` goes
+to PSRAM instead, and that therefore a line of code cost eight bytes of a pool
+while a kilobyte of table cost nothing.
 
-| | costs |
-| --- | --- |
-| a line of code | ~8 bytes out of a 48 KB pool |
-| a kilobyte of table | nothing |
+**Since v0.3.4 that is no longer true** (`docs/RAM-AUDIT.md`, section 8). The
+loader maps the apps' `.text` into PSRAM through the instruction-bus MMU: the
+reservation is gone, the executable heap went from 22 K free in one block to
+131 K, and the games were measured on both builds at the same frame rate —
+Claude Jump 29.2 against 29.0 fps, 2043 9.6 against 9.6, with run-to-run noise
+larger than any difference between them.
 
-Measured on 2026-09-08, with `-Os`, with the eight zones, their 51 rooms and
-everything in section 8:
+Measured on 2026-09-20, with the team of three, the booth and the icon:
 
 ```
-.text          38,475 B   78 % of the reservation   <- the only thing you pay for
-.rodata        29,789 B   to PSRAM
-.data.rel.ro   15,444 B   to PSRAM
+.text          53,803 B   to PSRAM, 64 K-aligned    (was 38,475 on 2026-09-08)
+.rodata        31,495 B   to PSRAM
+.data.rel.ro   15,628 B   to PSRAM
 .bss            2,540 B   to PSRAM
 ```
 
-**And watch that 78 %, because it has a consequence.** The reservation is 48 KB
-for ALL the apps loaded at once. With Chatarra open there are **10.6 KB** left,
-which means a small app fits alongside it (`buscaminas` is 5.3 KB) but a big one
-does NOT. The case that bites is an app with `AOS_APP_FLAG_BACKGROUND`: the
-Recorder holds 38 KB forever once it has been opened, and after going through it
-Chatarra no longer fits in the reservation. It does not crash — it falls back to
-the general heap — but the log says so:
+The warning that used to live here — *watch the 78 %, a `BACKGROUND` app like
+the Recorder pushes Chatarra out of the reservation* — **no longer applies, and
+this paragraph is all that is left of it**. There is no reservation to be pushed
+out of. If the old line
 
     N B of code did NOT fit in the reservation
 
-If that line appears, the board has to be restarted before playing.
+ever shows up in the log, it means the firmware was built WITHOUT
+`CONFIG_ELF_LOADER_TEXT_PSRAM_MMU`, and then everything the old section said
+applies again word for word.
 
-And the number that proves the rule works: with only zone 1 the `.text` was
-**28,375 B**. Adding zone 2 moved it by 228 bytes — because of the couple of new
-functions it needed, not because of the content — and **adding zones 3 through 8,
-which are 36 more rooms, did not move it BY A SINGLE BYTE**. Three quarters of
-the game cost no code.
+### What survives the change, and why
 
-For comparison: `g2043`, a shoot-'em-up, takes 28,208 B of `.text`. **The whole
-RPG — world, combat, workshop, shop, quests, menus — costs the same as the
-shoot-'em-up**, and that is no accident: it is the consequence of the three rules
-below, which have to be respected if anything is added to it.
+The number that proved the old rule still says something true: with only zone 1
+the `.text` was **28,375 B**; adding zone 2 moved it by 228 bytes, and **adding
+zones 3 through 8 — 36 more rooms — did not move it BY A SINGLE BYTE**. Three
+quarters of the game cost no code.
+
+That is no longer a saving, but it is still the reason the game can be checked.
+Content that lives in tables is content a program can walk: `ch_map_check()`
+reads all 51 rooms and finds a door standing on a wall, a chest on top of a
+prop, an entity with no name. It could not have read a function. **The three
+rules below stay, for that reason rather than for the pool.**
 
 1. **The 64 parts are not 64 sprites nor 64 functions.** They are 64 descriptors
    of a few bytes each and four drawing functions that interpret them
@@ -112,7 +115,8 @@ Both are written on the title screen, because neither can be guessed.
 | `ch_world.c` | the tiles, the props, the nine rooms, the entities and the dialogue |
 | `ch_map.c` | the room engine: background, pathfinding by breadth-first search, movement, encounters |
 | `ch_battle.c` | the turn-based combat |
-| `ch_ui.c` | HUD, dialogue, menu, workshop, items, stat sheet, shop, title |
+| `ch_ui.c` | HUD, dialogue, menu, workshop, items, team screen, register, shop, title |
+| `ch_link.c` | the phone booth: the protocol and the screen for the other watch |
 | `chatarra.c` | the only thing LVGL and the HAL see: canvas, blit, touch, button, saving |
 
 The game (everything but `chatarra.c`) **does not know that LVGL, the HAL or the
@@ -178,11 +182,37 @@ They only exist there; on the board `getenv()` always returns NULL.
 | --- | --- |
 | `CH_SALA=5` | starts straight in that room |
 | `CH_NIVEL=20` | the robot's level |
-| `CH_PIEZAS=1` | full bag, items and credits: for testing the workshop |
-| `CH_COMBATE=1` | opens straight into a fight |
+| `CH_PIEZAS=1` | full bag, items, credits **and a team of three**: for the workshop, the team screen and the swap button |
+| `CH_COMBATE=<1..8>` | opens straight into a fight **in that zone's arena** |
+| `CH_HERIDO=1` | both robots under a quarter of their health: for the sparks |
+| `CH_MEL=<1..7>` | forces a tune, to hear it without playing up to it |
+| `CH_WAV=/tmp/x.pcm` | dumps everything the synthesiser makes; `tools/pcm2wav.py` makes it playable |
 | `CH_SHOT=/tmp/ch` | **one `.ppm` capture per screen change** |
 | `CH_FPS=1` | frames per second and % of screen pushed |
 | `CH_MUDO=1` | no beeps |
+| `CH_MKV2=1` | writes a save in the OLD v2 format so the conversion can be checked without the board |
+
+### Two simulators, for the booth
+
+The link is UDP on 127.0.0.1, one port per instance. There is **no development
+flag** to force the partner, the way Truco and Pixel Art need one: the booth
+brings the radio up BEFORE it asks whether there is anybody paired, which is
+both the honest order and the one the simulator answers.
+
+```bash
+cd sim
+env AOS_SIM_VIEW=demo.chatarra CH_SALA=1 CH_PIEZAS=1 CH_SHOT=/tmp/a_ \
+    AOS_SIM_LINK_PORT=47000 AOS_SIM_LINK_PARTNER=47001 AOS_SIM_POS=0,40 \
+    AOS_SIM_KEYS="ms:3000,tap:312x216,ms:7000,tap:184x188,ms:20000" ./build/amoledos_sim &
+env AOS_SIM_VIEW=demo.chatarra CH_SALA=1 CH_PIEZAS=1 CH_SHOT=/tmp/b_ \
+    AOS_SIM_LINK_PORT=47001 AOS_SIM_LINK_PARTNER=47000 AOS_SIM_POS=420,40 \
+    AOS_SIM_KEYS="ms:3000,tap:312x216,ms:30000" ./build/amoledos_sim &
+```
+
+`tap:312x216` is the booth in Villa Tuerca and `tap:184x188` is COMBATIR. **With
+two simulators the script clock runs at about half speed** while the captures
+keep wall time, which is why the waits above look so long: a step that reads as
+7 s takes about 14.
 
 `CH_SHOT` exists because the app dumps its own upscaled buffer, which
 `tools/ppm2png.py` turns into a PNG; it comes out more faithful than a screen
@@ -443,3 +473,257 @@ The menu has nine entries and cannot be given 21 without dropping one, so space
 was won by compacting the header (title at y=8, subtitle at 20, rule at 31). The
 ceiling of 172 is the usual one: **below y=172 of the buffer the CST816 touch
 panel reports nothing**, so a row that lands there can be seen but not touched.
+
+---
+
+## 11. Three robots, an icon of its own and a phone booth (2026-09-20)
+
+### 11.1 A team of three
+
+`save.yo` is still the robot that is out, and it is still read by every line of
+the combat, the workshop and the HUD. The reserves went into `save.banco[2]` at
+the **end** of the structure, which is the rule section 9 wrote in stone, and
+`SAVE_VER` went to 4. The conversion from v3 is a copy of the prefix plus a
+zeroed tail — with, in `chatarra.c`:
+
+```c
+_Static_assert(offsetof(ch_save_t, banco) == sizeof(ch_save_v3_t),
+               "v3 dejo de ser un prefijo de v4: el campo nuevo no va en el medio");
+```
+
+which is the x255 lesson turned from a paragraph into a build error.
+
+**A robot is broken when its health is zero.** There is no `roto` flag: the
+state was already in the structure, and a second copy of a truth is a second
+chance for the two to disagree.
+
+Everything outside `ch_parts.c` talks in **slots**: 0 is the robot that is out,
+1 and 2 the bench. Nothing else needs to know that the active one lives in a
+different field.
+
+| What | Where | Rule |
+| --- | --- | --- |
+| build one | team screen, ARMAR | needs one loose part of each of the four categories; takes the best of each; comes out at **your level minus two, minimum one** |
+| strip one | team screen, DESARMAR | its four parts go back to the bag; needs four free slots; never the active one |
+| swap | team screen, or CAMBIAR in combat | in combat it **costs the turn**, as it should |
+| repair | any workshop | **the whole team**, not just the one that was out |
+
+Two decisions worth keeping:
+
+- **A built robot does not start at level 1.** You assemble it out of parts torn
+  off opponents your own size; a level-1 robot in a level-20 dungeon is not a
+  reserve, it is a second loss. Nor at your own level, or the reserve would be
+  free and the robot you have been raising would stop mattering.
+- **When your robot falls you choose the replacement — except over the link,
+  where it is automatic.** A choice in the middle of a shared turn would be a
+  message the lockstep does not have; the first one standing comes out, the same
+  on both watches, because the bench never takes damage and both sides can work
+  out which one that is.
+
+The combat menu went from four cells to **six**: three columns of 56 px, the
+same height as before, so the row got no shorter and the finger no smaller.
+Five are buttons (ATACAR, OBJETO, CAMBIAR, ANALIZAR, HUIR) and the sixth is not
+a button at all — it is the team, three lamps as long as each robot's health, in
+the one place you are already looking when you decide what to do. The
+sub-lists — attacks, items, the team — keep the wide 2x2, because there an
+attack's name has to fit.
+
+### 11.2 The icon lives in the `.so`
+
+Chatarra wore a gamepad because there was no robot in the firmware's list. Since
+v0.3.8 it does not have to: `aos_icon_set_ops(app, CHATARRA_ICON, sizeof
+CHATARRA_ICON)` in `init()`, after `desc.id`, hands the launcher an 86-byte AIC
+blob (`docs/ICONS.md`) — an aerial with a red lamp, shoulders, a head with two
+yellow eyes and a grille. Every number is a percent of the icon size, so one
+blob draws at 66, 74 and 82 px.
+
+`desc.icon_vec` stays as it was: a firmware older than the call falls back to
+it, and falling back to a gamepad beats falling back to nothing.
+
+### 11.3 The phone booth
+
+Every town has one, at the side of the square. Walk into it and the watch goes
+on the air and talks to the one it is paired with: **fight, swap a robot, or
+swap a part**. It is the sixth app on the link and the lessons of the other five
+are in `docs/APP-GUIDE.md` section 16; what this one added:
+
+**The radio goes up BEFORE asking whether anybody is paired.** On the board the
+partner lives in NVS and either order works. In the simulator it does not — the
+partner is only put there by the link's own tick — so Truco and Pixel Art each
+carry a development flag to skip the question. Asking in this order needs none,
+and it is the honest order anyway: you cannot ask whether somebody is on the air
+with the radio off.
+
+**The radio is not on while you play.** It goes up at the booth's door and comes
+down when you leave (and in `destroy()`, for the way out that skips the door).
+The link costs 4.5 KB of internal RAM and radio time, and nearly every minute of
+this game is played alone — which is also what makes the booth a *place*.
+
+**A battle between two watches sends choices, never results.** Truco's lesson:
+the engine is deterministic given its dice, so both watches run the same combat
+and only the two choices of each turn travel. Nobody sends "I did 14 damage";
+both compute 14. Three things had to be right:
+
+1. **The dice are the host's.** `g->rng_bt`, seeded from the frame the host
+   sends, read by the five rolls that decide something and by nothing else. The
+   particles and the prizes keep rolling on `g->rng`: the particles because they
+   change nothing, the prizes because the WINNER works them out alone, and a
+   draw one side makes and the other does not is exactly how a shared sequence
+   comes apart.
+2. **The host orders.** The guest sends its choice and applies nothing — its own
+   tap included — until the host echoes both.
+3. **A tie on speed is decided globally.** The local engine breaks a tie with
+   "does the rival go first?", which is the *opposite* question on the two
+   watches: the same coin would have both answering yes. The link draws "does
+   the HOST go first?" instead, and each side turns that into its own answer.
+
+And one thing that is insurance rather than design: every choice carries the two
+health totals as the sender sees them, and a mismatch stops the battle with
+`LOS DOS COMBATES SE DESINCRONIZARON` instead of drifting into two games that
+both look fine.
+
+The choice is **one byte** — `0..3` an attack slot, `0x10+i` an item, `0x20+s` a
+robot coming out — because that is all the other watch needs: it was sent the
+whole team when the battle started, and it has the same item table. Items and
+running away are off over the link (greyed out, not explained after the tap).
+
+A swap is symmetric by construction: both sides put something on the table,
+neither moves until both have, and then each gives what it offered and takes
+what the other did. That is the same operation seen from the two ends, so there
+is no "who applies first" and no way for one to apply and the other not.
+
+### 11.4 The one crash the booth produced, and what it is
+
+The first battle between the two real watches ran — both started, both drew
+their mirror of it, both read the same levels — and then `amoledos` **rebooted**
+on the turn where both had chosen. The core dump (`/api/coredump`, then
+`esp-coredump info_corefile`) says precisely where:
+
+```
+taskLVGL:  esp_lcd_panel_io_tx_color -> spi_bus_lock_bg_request
+           -> req_core -> bg_enable -> spi_bus_intr_enable
+wifi/ISR:  spi_intr -> spi_bus_lock_bg_exit -> bg_exit_core
+           -> resume_dev_in_isr(dev_lock = 0x0)        <- LoadProhibited, excvaddr 0
+```
+
+It is a race **inside ESP-IDF's SPI bus lock**, not in this game. In
+`bg_exit_core()` (`components/esp_hw_support/spi_bus_lock.c:589`), the branch
+that runs when no device is acquiring calls `schedule_core()` and then
+`resume_dev_in_isr(lock->acquiring_dev, ...)` — and the check that
+`acquiring_dev` is not NULL is a `BUS_LOCK_DEBUG_EXECUTE_CHECK`, which compiles
+to nothing in a release build. If the SPI interrupt lands in the window where
+the LVGL flush is inside `req_core()` and has not published the device yet,
+`resume_dev_in_isr(NULL)` dereferences address 0. That is exactly the
+`excvaddr 0x0` in the dump. IDF here is release/v5.5 of 2026-08-24.
+
+What was measured, because one crash is an anecdote:
+
+| Condition | Result |
+| --- | --- |
+| Link app (`aos.link`) open on the board, radio up, still screen | 90 s, survived |
+| Chatarra in the booth, radio up, only the blinking dot moving | 3 min, survived |
+| Chatarra in a **battle** over the link: radio up AND the panel pushed hard | rebooted |
+
+So the radio alone is not enough and the drawing alone is not enough: it takes
+both at once, which is what makes the battle the place it shows up. The other
+watch, on the same firmware and doing the same thing, did not crash.
+
+Nothing in `ch_link.c` can fix that, and nothing in it should pretend to. What
+this section is for is that the next person who sees a board reboot in a link
+app looks at the SPI bus lock first instead of at the protocol.
+
+And it is **not** systematic: a full game between the two watches was played
+afterwards and finished clean — one watch at 17/40, the other at 0/36, both
+back in the booth saying good fight.
+
+<p align="center">
+  <img src="../../docs/img/photo-chatarra-link-battle.jpg" width="300" alt="The same battle seen from both watches">
+  <img src="../../docs/img/photo-chatarra-link-end.jpg" width="300" alt="Back in the booth afterwards, 17/40 against 0/36">
+</p>
+
+### 11.5 What this update is worth watching for
+
+- **`.text` went from 38,475 to 49,059 B.** Over the old 48 KB reservation, and
+  it does not matter: see section 1. On a firmware built without the MMU option
+  it would matter a great deal.
+- **A save from before today converts on load**, keeps everything, and comes up
+  with a team of one.
+- **The world check found the first booth placement wrong** the moment it ran:
+  the one in Ciudad Malla was sitting on the cell a door from Llanura Muerta
+  lands on. That is the fourth time `CH_CHECK=1` has caught something the
+  compiler could not, and the first time it caught something the same day it was
+  written.
+
+---
+
+## 12. The music: a synthesiser, not a sequencer
+
+`ch_sound.c` was a one-voice sequencer over `aos_hal_beep()`, because that was
+all the board had: one tone at a time, an API of (frequency, duration).
+v0.4.3 added `aos_hal_spk_*` for the walkie — PCM in, a ring of one second in
+PSRAM, a task feeding the codec 20 ms at a time. That is a different
+instrument, and this file now plays it: **three voices and a drum**,
+synthesised a frame at a time.
+
+- **Lead** and **bass** are square waves by phase accumulator, at 1/4 and 1/2
+  duty so two square waves can be told apart. The lead lines are the melodies
+  this game always had; the bass is a short loop of roots that runs
+  **independently** of the lead, which is both what chiptune does and what
+  keeps the table worth having — three lines of data buy the difference between
+  a tune and a piece of music.
+- **Drums** are a 15-bit shift register and a string, one character per quaver:
+  `K` kick, `S` snare, `h` hat, `.` nothing. `"K.h.S.h.K.h.S.h."` is the
+  combat.
+- Envelopes are two straight lines. A note that starts at full volume clicks;
+  two milliseconds of ramp is inaudible as a ramp and removes it.
+
+**And the consequence that decided the design.** The tone task checks
+`s_spk_task` and stays quiet while the streaming speaker holds the codec
+(`aos_hal_esp32.c`). So the moment this file opens the speaker, **every
+`aos_hal_beep()` in the game goes silent** — the hits, the taps, the chest.
+That is not a problem to work around: the effects became a **fourth voice of
+the same mix**, and along the way they got an envelope, which is what stops
+them sounding like a microwave. `ch_sfx()` is still the one call the game
+makes; if the speaker cannot be opened it falls back to the beeper and the
+game is exactly what it was.
+
+**Confirmed on the board, and it had to be**: with the synthesiser holding the
+codec, touching your own robot to open the menu still clicks. That is the one
+thing the simulator could not prove — its speaker is a stub — and the one
+thing that would have been invisible if it had broken, because a map with no
+music and no effects sounds exactly like a map with no music.
+
+Two details that are not obvious and are worth keeping:
+
+- **The clock is the sample, not the frame.** The old sequencer counted frames
+  because a frame was the only clock it had. Here a note lasts exactly as long
+  as it says even when a frame of the game runs late, which is why the music
+  does not wobble when the board is busy.
+- **The ring is topped up towards a target** (150 ms) rather than filled on a
+  schedule, so a slow frame is absorbed by the buffer instead of becoming a
+  gap. And the speaker is opened on the first TICK, not in `create()`:
+  `aos_hal_spk_open()` waits up to 800 ms for the microphone and the codec's
+  own open costs about 200, and that is time better spent on the title screen
+  than in front of a black one.
+
+**What it costs, measured on the board** with `/api/mem?fps=N`, the
+synthesiser holding the codec and a tune playing:
+
+| Screen | Before the music | With the music |
+| --- | ---: | ---: |
+| Map (effects only, no tune) | 29.4 fps | **29.4 / 28.8 fps** |
+| Combat, combat theme playing | 27.4 / 28.6 fps | **28.5-29.5 / 28.5-28.8 fps** |
+
+Nothing. Four voices of integer arithmetic over 528 samples is below the
+noise of the measurement — three consecutive samples of the same screen span
+a whole frame per second on their own. Which is what the arithmetic said, and
+this time the board agreed with it.
+
+A number that is NOT a measurement of anything: the title screen reads about
+8 fps, because nothing on it animates and `LV_EVENT_RENDER_READY` only fires
+when LVGL actually draws. A static screen has a low frame rate by definition.
+
+**How to hear it without the board.** The simulator's speaker is a stub that
+swallows the samples, so `CH_WAV=/tmp/x.pcm` writes what the synthesiser
+produced and `tools/pcm2wav.py` puts a header on it. `CH_MEL=<n>` forces a
+tune so it can be listened to without playing up to it.

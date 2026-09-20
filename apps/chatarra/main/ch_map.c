@@ -492,11 +492,23 @@ void ch_map_interactuar(ch_t *g, int idx)
         break;
 
     case E_TALLER:
-        ch_robot_curar(&g->s.yo);
+        /* The whole team, not only the one that is out. Walking into town with
+         * two wrecks in the bag and being handed back one would be mean for no
+         * reason: the workshop is this game's health centre. */
+        ch_eq_curar(&g->s);
         g->hud_sucio = 1;
         ch_sfx(880, 80);
         ch_ui_dialogo(g, e->texto ? _(e->texto) :
-                      _("TU ROBOT QUEDO COMO NUEVO."), idx, MODO_MAPA);
+                      (ch_eq_n(&g->s) > 1 ? _("TU EQUIPO QUEDO COMO NUEVO.")
+                                          : _("TU ROBOT QUEDO COMO NUEVO.")),
+                      idx, MODO_MAPA);
+        break;
+
+    case E_CABINA:
+        /* The booth is a place you walk to: from here the watch goes on the
+         * air and the other one can be reached. ch_link.c does the rest. */
+        ch_sfx(1200, 60);
+        ch_lk_entrar(g);
         break;
 
     case E_BLOQUEO: {

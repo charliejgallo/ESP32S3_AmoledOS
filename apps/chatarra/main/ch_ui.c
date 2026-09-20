@@ -325,7 +325,7 @@ static void fila(ch_t *g, int i, const char *izq, const char *der, bool activa)
     }
 }
 
-static void titulo(ch_t *g, const char *txt, const char *sub)
+void ch_ui_titulo(ch_t *g, const char *txt, const char *sub)
 {
     ch_buf_t *b = &g->bg;
 
@@ -375,7 +375,7 @@ static int flecha_en(int bx, int by)
  * -------------------------------------------------------------------------- */
 
 static const char *const MENU[] = {
-    N_("TALLER"), N_("OBJETOS"), N_("FICHA DEL ROBOT"), N_("REGISTRO"),
+    N_("TALLER"), N_("OBJETOS"), N_("EQUIPO DE ROBOTS"), N_("REGISTRO"),
     N_("MAPA"), N_("AYUDA"), N_("SONIDO"), N_("GUARDAR PARTIDA"), N_("CERRAR"),
 };
 static const char *const SONIDOS[3] = { N_("MUDO"), N_("EFECTOS"), N_("TODO") };
@@ -398,7 +398,7 @@ static void menu_fondo(ch_t *g)
     lista_geom(28, 16, NMENU);
     /* Without the credits line: with eight rows the list starts at y=40 and
      * covered it. The HUD already shows them at the bottom right, always. */
-    titulo(g, _("MENU"), NULL);
+    ch_ui_titulo(g, _("MENU"), NULL);
     (void)t;
     for (int i = 0; i < NMENU; i++) {
         {
@@ -425,7 +425,7 @@ static void taller_fondo(ch_t *g)
     char t[30], d[16];
 
     lista_geom(62, 21, 5);
-    titulo(g, _("TALLER"), _("TOCA PARA MONTAR"));
+    ch_ui_titulo(g, _("TALLER"), _("TOCA PARA MONTAR"));
 
     /* At the top, either what you are wearing or -if you touched a part- WHAT
      * THE WHOLE ROBOT WOULD LOOK LIKE with it. It is the only question that
@@ -561,7 +561,7 @@ static void objetos_fondo(ch_t *g)
     char t[30], d[12];
 
     lista_geom(46, 21, 6);
-    titulo(g, _("OBJETOS"), _("TOCA UNO PARA USARLO"));
+    ch_ui_titulo(g, _("OBJETOS"), _("TOCA UNO PARA USARLO"));
 
     s_nlista = 0;
     for (int i = 1; i < ITEMS; i++) {
@@ -644,59 +644,204 @@ static void objetos_toque(ch_t *g, int bx, int by)
  * The robot's data card
  * -------------------------------------------------------------------------- */
 
+/* --------------------------------------------------------------------------
+ * THE TEAM (what used to be the robot's data card)
+ *
+ * With three robots the card stopped being about one of them. Rather than add
+ * a tenth row to a menu that already reaches the bottom of the touch window,
+ * the card GREW: three tabs at the top choose which robot you are looking at,
+ * and the two buttons at the bottom are what you can do with that one.
+ *
+ * An empty slot is not hidden, it is an offer: ARMAR builds a robot out of the
+ * loose parts in the bag. That is the only place in the game that explains why
+ * you would keep a spare head.
+ * -------------------------------------------------------------------------- */
+
+#define EQ_Y      36
+#define EQ_H      24
+#define EQ_W      58
+#define EQ_BY    156                    /* the buttons                       */
+#define EQ_BH     16
+
+static int eq_slot_en(int bx, int by)
+{
+    if (by < EQ_Y || by >= EQ_Y + EQ_H) return -1;
+    for (int i = 0; i < EQUIPO; i++) {
+        int x = 4 + i * (EQ_W + 3);
+        if (bx >= x && bx < x + EQ_W) return i;
+    }
+    return -1;
+}
+
+static int eq_boton_en(int bx, int by)
+{
+    if (by < EQ_BY || by >= EQ_BY + EQ_BH) return -1;
+    return bx < CH_W / 2 ? 0 : 1;
+}
+
+static void eq_boton(ch_t *g, int i, const char *txt, bool activo)
+{
+    ch_buf_t *b = &g->bg;
+    int x = i ? CH_W / 2 + 2 : 4;
+    int w = CH_W / 2 - 6;
+
+    ch_round(b, x, EQ_BY, w, EQ_BH, 3, ch_rgb(activo ? 0x2A3350 : 0x141824));
+    ch_frame(b, x, EQ_BY, w, EQ_BH, ch_rgb(activo ? 0x8A93AB : 0x2B3145));
+    ch_text_center(b, x + w / 2, EQ_BY + 5, txt,
+                   ch_rgb(activo ? 0xFFFFFF : 0x545C70), ch_rgb(0x05060C));
+}
+
 static void ficha_fondo(ch_t *g)
 {
     ch_buf_t *b = &g->bg;
-    const ch_robot_t *r = &g->s.yo;
+    int sel = g->sel < EQUIPO ? g->sel : 0;
+    const ch_robot_t *r = ch_eq(&g->s, sel);
     char t[30];
+
+    if (!r) { sel = 0; r = &g->s.yo; g->sel = 0; }
 
     snprintf(t, sizeof(t), _("NIVEL %d   TIPO %s"), r->nivel,
              _(ch_tipo_nombre[r->tipo % TIPOS]));
-    titulo(g, ch_robot_nombre(r), t);
+    ch_ui_titulo(g, ch_robot_nombre(r), t);
 
-    /* The robot at scale 2, which is how it looks in combat: the card exists
-     * precisely to look at what you built. At scale 1 it was the size of a
-     * postage stamp and you could not tell one part from another. */
-    ch_robot_draw(b, 38, 42, r, 2, false, 0);
+    /* --- the three tabs --------------------------------------------------- */
+    for (int i = 0; i < EQUIPO; i++) {
+        const ch_robot_t *q = ch_eq(&g->s, i);
+        int x = 4 + i * (EQ_W + 3);
+        bool aqui = (i == sel);
 
-    int y = 44;
-    snprintf(t, sizeof(t), _("VIDA %d/%d"), r->vida, r->vida_max);
-    ch_text(b, 76, y, t, ch_rgb(0x4ADE80));  y += 12;
-    snprintf(t, sizeof(t), _("ENER %d/%d"), r->ene, r->ene_max);
-    ch_text(b, 76, y, t, ch_rgb(0x4A9DF5));  y += 12;
-    snprintf(t, sizeof(t), _("ATAQUE   %d"), r->atk);
-    ch_text(b, 76, y, t, ch_rgb(0xD5DCEB));  y += 12;
-    snprintf(t, sizeof(t), _("DEFENSA  %d"), r->def);
-    ch_text(b, 76, y, t, ch_rgb(0xD5DCEB));  y += 12;
-    snprintf(t, sizeof(t), _("VELOCID. %d"), r->vel);
-    ch_text(b, 76, y, t, ch_rgb(0xD5DCEB));
-
-    /* The game's statistics. A long RPG needs to be able to answer "how long
-     * have I been playing": they are four numbers that were already stored and
-     * that until now were shown nowhere. */
-    {
-        int vistas = 0;
-        for (int i = 0; i < PIEZAS; i++) if (ch_visto(&g->s, i)) vistas++;
-        snprintf(t, sizeof(t), _("COMBATES %d"), g->s.victorias);
-        ch_text(b, 8, 106, t, ch_rgb(0x8A93AB));
-        snprintf(t, sizeof(t), _("PIEZAS %d/%d"), vistas, PIEZAS);
-        ch_text(b, CH_W - 8 - ch_text_w(t), 106, t, ch_rgb(0x8A93AB));
-        snprintf(t, sizeof(t), _("PASOS %d"), (int)g->s.pasos);
-        ch_text(b, 8, 116, t, ch_rgb(0x606B85));
-        snprintf(t, sizeof(t), _("EXP %d"), (int)r->exp);
-        ch_text(b, CH_W - 8 - ch_text_w(t), 116, t, ch_rgb(0x606B85));
+        ch_round(b, x, EQ_Y, EQ_W, EQ_H, 3,
+                 ch_rgb(aqui ? 0x2A3350 : 0x141824));
+        ch_frame(b, x, EQ_Y, EQ_W, EQ_H,
+                 ch_rgb(aqui ? 0xFFE45E : 0x2B3145));
+        if (!q) {
+            ch_text_center(b, x + EQ_W / 2, EQ_Y + 9, _("VACIO"),
+                           ch_rgb(0x545C70), ch_rgb(0x05060C));
+            continue;
+        }
+        /* Three rows inside 24 px: the name, the level with its state, and the
+         * health. Eight characters is what fits at six pixels a letter, and a
+         * name cut short still tells the robots apart. */
+        snprintf(t, sizeof(t), "%.8s", ch_robot_nombre(q));
+        ch_text(b, x + 4, EQ_Y + 3, t, ch_rgb(q->vida > 0 ? 0xFFFFFF : 0xE05252));
+        snprintf(t, sizeof(t), _("N%d"), q->nivel);
+        ch_text(b, x + 4, EQ_Y + 12, t, ch_rgb(0xFFE45E));
+        {
+            const char *e = i == 0 ? _("SALE") : (q->vida <= 0 ? _("ROTO") : "");
+            if (e[0]) {
+                ch_text(b, x + EQ_W - 4 - ch_text_w(e), EQ_Y + 12, e,
+                        ch_rgb(i == 0 ? 0x8A93AB : 0xE05252));
+            }
+        }
+        ch_barra(b, x + 4, EQ_Y + 20, EQ_W - 8, q->vida, q->vida_max,
+                 ch_rgb(q->vida > 0 ? 0x4ADE80 : 0xE05252));
     }
 
-    for (int i = 0; i < r->nmov; i++) {
+    /* --- the selected robot ----------------------------------------------- */
+    ch_robot_draw(b, 34, 64, r, 2, false, 0, 0);
+
+    {
+        int y = 64;
+        snprintf(t, sizeof(t), _("VIDA %d/%d"), r->vida, r->vida_max);
+        ch_text(b, 76, y, t, ch_rgb(0x4ADE80));  y += 10;
+        snprintf(t, sizeof(t), _("ENER %d/%d"), r->ene, r->ene_max);
+        ch_text(b, 76, y, t, ch_rgb(0x4A9DF5));  y += 10;
+        snprintf(t, sizeof(t), _("ATAQUE   %d"), r->atk);
+        ch_text(b, 76, y, t, ch_rgb(0xD5DCEB));  y += 10;
+        snprintf(t, sizeof(t), _("DEFENSA  %d"), r->def);
+        ch_text(b, 76, y, t, ch_rgb(0xD5DCEB));  y += 10;
+        snprintf(t, sizeof(t), _("VELOCID. %d"), r->vel);
+        ch_text(b, 76, y, t, ch_rgb(0xD5DCEB));
+    }
+
+    for (int i = 0; i < r->nmov && i < 4; i++) {
         const ch_move_t *m = &ch_moves[r->mov[i] % MOVES];
-        int fy = 130 + i * 11;
-        ch_rect(b, 6, fy - 2, CH_W - 12, 10, ch_rgb(0x171B29));
+        int fy = 118 + i * 9;
+        ch_rect(b, 6, fy - 1, CH_W - 12, 8, ch_rgb(0x171B29));
         ch_text(b, 10, fy, _(m->nombre), ch_rgb(0xFFFFFF));
-        snprintf(t, sizeof(t), "%s", _(ch_tipo_nombre[m->tipo % TIPOS]));
-        ch_text(b, 104, fy, t, ch_rgb(ch_tipo_color[m->tipo % TIPOS]));
+        ch_text(b, 104, fy, _(ch_tipo_nombre[m->tipo % TIPOS]),
+                ch_rgb(ch_tipo_color[m->tipo % TIPOS]));
         snprintf(t, sizeof(t), "%d/%d", m->poder, m->costo);
         ch_text(b, CH_W - 10 - ch_text_w(t), fy, t, ch_rgb(0x8A93AB));
     }
+
+    /* --- what can be done with it ----------------------------------------- */
+    if (sel == 0) {
+        bool puede = ch_eq_puede_armar(&g->s);
+        eq_boton(g, 0, _("ARMAR OTRO"), puede);
+        eq_boton(g, 1, _("VOLVER"), true);
+
+    } else {
+        eq_boton(g, 0, _("QUE SALGA ESTE"), r->vida > 0);
+        eq_boton(g, 1, _("DESARMAR"), true);
+    }
+}
+
+static void ficha_toque(ch_t *g, int bx, int by)
+{
+    int i = eq_slot_en(bx, by);
+    int b;
+
+    if (i >= 0) {
+        if (ch_eq(&g->s, i)) { g->sel = (uint8_t)i; ch_sfx(1000, 20); }
+        else if (ch_eq_puede_armar(&g->s)) {
+            int slot = ch_eq_armar(&g->s);
+            if (slot > 0) {
+                g->sel = (uint8_t)slot;
+                ch_sfx(1500, 90);
+                ch_ui_aviso(g, _("ROBOT ARMADO!"));
+                g->quiere_guardar = 1;
+            }
+        } else {
+            ch_sfx(220, 40);
+            ch_ui_aviso(g, _("FALTAN PIEZAS SUELTAS"));
+        }
+        g->rehacer_fondo = 1;
+        return;
+    }
+
+    b = eq_boton_en(bx, by);
+    if (b < 0) return;
+
+    if (g->sel == 0) {
+        if (b == 1) { g->sel = 0; g->modo = MODO_MENU; ch_sfx(700, 30); }
+        else if (ch_eq_puede_armar(&g->s)) {
+            int slot = ch_eq_armar(&g->s);
+            if (slot > 0) {
+                g->sel = (uint8_t)slot;
+                ch_sfx(1500, 90);
+                ch_ui_aviso(g, _("ROBOT ARMADO!"));
+                g->quiere_guardar = 1;
+            }
+        } else {
+            ch_sfx(220, 40);
+            ch_ui_aviso(g, _("FALTAN PIEZAS SUELTAS"));
+        }
+    } else if (b == 0) {
+        const ch_robot_t *r = ch_eq(&g->s, g->sel);
+        if (!r || r->vida <= 0) {
+            ch_sfx(220, 40);
+            ch_ui_aviso(g, _("ESTA ROTO: AL TALLER"));
+        } else {
+            ch_eq_activar(&g->s, g->sel);
+            g->sel = 0;
+            ch_sfx(1400, 70);
+            ch_ui_aviso(g, _("CAMBIASTE DE ROBOT"));
+            g->hud_sucio = 1;
+            g->quiere_guardar = 1;
+        }
+    } else {
+        if (ch_eq_desarmar(&g->s, g->sel)) {
+            g->sel = 0;
+            ch_sfx(500, 90);
+            ch_ui_aviso(g, _("PIEZAS A LA MOCHILA"));
+            g->quiere_guardar = 1;
+        } else {
+            ch_sfx(220, 40);
+            ch_ui_aviso(g, _("MOCHILA LLENA!"));
+        }
+    }
+    g->rehacer_fondo = 1;
 }
 
 /* --------------------------------------------------------------------------
@@ -713,7 +858,7 @@ static void tienda_fondo(ch_t *g)
     char t[30], d[16];
 
     lista_geom(46, 21, 6);
-    titulo(g, _("TIENDA"), NULL);
+    ch_ui_titulo(g, _("TIENDA"), NULL);
     snprintf(t, sizeof(t), _("TENES %d CREDITOS"), g->s.creditos);
     ch_text(&g->bg, 8, 46, t, ch_rgb(0xFFE45E));
 
@@ -807,7 +952,7 @@ static void registro_fondo(ch_t *g)
 
     for (int i = 0; i < PIEZAS; i++) if (ch_visto(&g->s, i)) n++;
     snprintf(t, sizeof(t), "%d/%d", n, PIEZAS);
-    titulo(g, _("REGISTRO"), NULL);
+    ch_ui_titulo(g, _("REGISTRO"), NULL);
     ch_text(b, CH_W - 8 - ch_text_w(t), 9, t, ch_rgb(0xFFE45E));
 
     for (int c = 0; c < P_CATS; c++) {
@@ -911,7 +1056,7 @@ static void final_fondo(ch_t *g)
 
     ch_text_center(b, CH_W / 2, 10, _("CAMPEON"), ch_rgb(0xFFE45E),
                    ch_rgb(0x8E4630));
-    ch_robot_draw(b, CH_W / 2, 26, &g->s.yo, 2, false, 0);
+    ch_robot_draw(b, CH_W / 2, 26, &g->s.yo, 2, false, 0, 0);
 
     ch_text_center(b, CH_W / 2, 112, ch_robot_nombre(&g->s.yo),
                    ch_rgb(0xFFFFFF), ch_rgb(0x05060C));
@@ -995,7 +1140,7 @@ static void ayuda_fondo(ch_t *g)
     char t[12];
 
     snprintf(t, sizeof(t), "%d/%d", pag + 1, NAYUDA);
-    titulo(g, _("AYUDA"), NULL);
+    ch_ui_titulo(g, _("AYUDA"), NULL);
     ch_text(&g->bg, CH_W - 8 - ch_text_w(t), 12, t, ch_rgb(0xFFE45E));
 
     n = ch_wrap(_(AYUDA[pag]), 27, lin, 14);
@@ -1034,7 +1179,7 @@ static void mapa_fondo(ch_t *g)
     }
 
     snprintf(t, sizeof(t), "%d/%d", hechas, ZONAS);
-    titulo(g, _("MAPA"), NULL);
+    ch_ui_titulo(g, _("MAPA"), NULL);
     ch_text(b, CH_W - 8 - ch_text_w(t), 9, t, ch_rgb(0xFFE45E));
 
     /* The line joining them: it is what says the world is a chain. */
@@ -1101,7 +1246,7 @@ static void titulo_fondo(ch_t *g)
 
     ch_robot_random(&demo, &semilla, 20, 6);
     demo.skin = 2;
-    ch_robot_draw(b, CH_W / 2, 34, &demo, 2, false, 0);
+    ch_robot_draw(b, CH_W / 2, 34, &demo, 2, false, 0, 0);
 
     ch_text_center(b, CH_W / 2, 122, "C H A T A R R A", ch_rgb(0xFFE45E),
                    ch_rgb(0x8E4630));
@@ -1140,6 +1285,7 @@ void ch_ui_fondo(ch_t *g)
     case MODO_MAPAMUNDI: mapa_fondo(g); break;
     case MODO_AYUDA:   ayuda_fondo(g); break;
     case MODO_FINAL:   final_fondo(g); break;
+    case MODO_CABINA:  ch_lk_fondo(g); break;
     case MODO_DIALOGO: ch_map_fondo(g); dlg_fondo(g); break;
     default:           ch_map_fondo(g);  break;
     }
@@ -1156,6 +1302,7 @@ void ch_ui_dibujar(ch_t *g)
         if (g->dlg_chars < 250) g->dlg_chars = (uint8_t)(g->dlg_chars + 2);
         dlg_texto(g);
     }
+    if (g->modo == MODO_CABINA) ch_lk_dibujar(g);
 }
 
 /* --------------------------------------------------------------------------
@@ -1210,7 +1357,7 @@ void ch_ui_toque(ch_t *g, int bx, int by)
     case MODO_OBJETOS: objetos_toque(g, bx, by); break;
     case MODO_TIENDA:  tienda_toque(g, bx, by);  break;
     case MODO_REGISTRO: registro_toque(g, bx, by); break;
-    case MODO_FICHA:
+    case MODO_FICHA:   ficha_toque(g, bx, by); break;
     case MODO_MAPAMUNDI: g->modo = MODO_MENU; g->rehacer_fondo = 1; break;
     case MODO_AYUDA:
         if (++g->sel >= NAYUDA) { g->sel = 0; g->modo = MODO_MENU; }
@@ -1219,6 +1366,7 @@ void ch_ui_toque(ch_t *g, int bx, int by)
         break;
 
     case MODO_COMBATE: ch_bt_toque(g, bx, by);   break;
+    case MODO_CABINA:  ch_lk_toque(g, bx, by);   break;
 
     default:
         if (by < MAP_H) ch_map_toque(g, bx, by);
@@ -1250,6 +1398,8 @@ bool ch_ui_atras(ch_t *g)
         return true;
     case MODO_COMBATE:
         return ch_bt_atras(g);
+    case MODO_CABINA:
+        return ch_lk_atras(g);
     default:
         return false;
     }

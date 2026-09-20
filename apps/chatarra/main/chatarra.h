@@ -6,26 +6,42 @@
  * the combat and the workshop can be tested without a screen.
  *
  * ---------------------------------------------------------------------------
- * THE RULE THAT ORDERS THE WHOLE DESIGN: .text is the scarce resource
+ * THE RULE THAT ORDERED THE WHOLE DESIGN, AND WHAT IS LEFT OF IT
  * ---------------------------------------------------------------------------
  *
- * Dynamic apps take their code from a 48 KB reservation shared by ALL loaded
- * apps (components/aos_dynapp/aos_dynapp.c). The .rodata, by contrast, is sent
- * by the loader to PSRAM, which is 8 MB. In other words:
+ * This file used to open by saying that .text was the scarce resource: dynamic
+ * apps took their code from a 48 KB reservation shared by every loaded app,
+ * while their .rodata went to PSRAM, which is eight megabytes. One line of
+ * code cost eight bytes of a pool; one kilobyte of table cost nothing.
  *
- *     one line of code costs         ~8 bytes of a 48 KB pool
- *     one kilobyte of table costs     nothing
+ * THAT IS NO LONGER TRUE. Since v0.3.4 (docs/RAM-AUDIT.md section 8) the
+ * loader maps the apps' .text into PSRAM through the instruction-bus MMU:
+ * the reservation is gone, the general executable heap got the 48 KB back,
+ * and the games were measured at the same frame rate on both builds - Claude
+ * Jump 29.2 against 29.0 fps, with run-to-run noise larger than the
+ * difference. This app's code went from 38 KB to 49 KB in one update without
+ * anything to weigh it against.
  *
- * Three decisions follow from that, repeated across every file:
+ * The three decisions it produced are still here, and they are still right -
+ * for reasons that were never about the pool:
  *
  *   1. The 64 robot parts are NOT 64 sprites or 64 functions. They are 64
  *      DESCRIPTORS of a handful of bytes and four drawing functions that
  *      interpret them (ch_parts.c). The colour goes in as an argument, like
- *      cjump's costumes.
+ *      cjump's costumes. What that buys now is that a part is a ROW: adding
+ *      one is a line of a table, and every part can be drawn at two scales, in
+ *      the register, as a silhouette and inside a whole robot without any of
+ *      those knowing how a leg is shaped.
  *   2. The maps, the dialogue, the items and the attacks are const tables.
- *      Adding a whole town adds not one line of code.
+ *      Adding a whole town adds not one line of code - and, more to the point,
+ *      not one line of code that can be wrong. ch_map_check() can walk a table
+ *      and find a door on a wall; it could not walk a function.
  *   3. Whatever is drawn the same is drawn by the same function. A sign, a
  *      chest and an NPC go through the same blit.
+ *
+ * What the change does mean is that a fourth rule has quietly expired: "do not
+ * write that, it costs .text". It does not, any more. What things still cost
+ * is being understood, and that budget was always the tighter one.
  *
  * ---------------------------------------------------------------------------
  * THE SCREEN
@@ -197,9 +213,14 @@ void ch_robot_curar(ch_robot_t *r);         /* health and energy to maximum  */
 uint32_t ch_exp_nivel(int nivel);           /* exp accumulated for that level */
 const char *ch_robot_nombre(const ch_robot_t *r);   /* the torso's          */
 
-/* Drawing. 'esc' is 1 or 2: the same robot for combat and for the data card. */
+/* Drawing. 'esc' is 1 or 2: the same robot for combat and for the data card.
+ *
+ * 'flota' is how many pixels it is ABOVE its resting place. The robot needs to
+ * know, because its shadow does not go up with it: it stays on the ground and
+ * narrows, which is the whole difference between a robot that breathes and a
+ * sprite sliding up and down. Zero everywhere except in combat. */
 void ch_robot_draw(ch_buf_t *b, int cx, int y, const ch_robot_t *r,
-                   int esc, bool mirando_izq, int pose);
+                   int esc, bool mirando_izq, int pose, int flota);
 void ch_robot_box(int esc, int *w, int *h);
 /* Draws ONE loose part. The register uses it; combat draws the whole robot. A
  * negative 'skin' draws it as a silhouette, which is how the ones you have not
@@ -271,6 +292,7 @@ enum {
     E_TIENDA,           /* p1 = stock list                                   */
     E_ROCA,             /* p1 = flag: it stands aside if you have the upgrade */
     E_BLOQUEO,          /* p1 = flag that opens it, p2 = item required       */
+    E_CABINA,           /* the phone booth: the link to another watch        */
 };
 
 /* On the three parameters and the two texts:
@@ -378,6 +400,7 @@ bool ch_prop_solido(const ch_room_t *r, int tx, int ty);
 
 #define BANDERAS    256                 /* chests, NPCs, bosses, quests      */
 #define MOCHILA     12                  /* stored parts                      */
+#define EQUIPO      3                   /* robots you can carry at once      */
 
 /* --------------------------------------------------------------------------
  * THE SAVE FILE CANNOT DEPEND ON THE ENUMS
@@ -418,6 +441,19 @@ typedef struct {
     uint16_t   victorias;
     uint32_t   pasos;
     uint8_t    visto[CH_MAX_PIEZAS / 8];/* parts you have ever seen          */
+
+    /* --- v4: the team ---------------------------------------------------
+     * `yo` above is the ACTIVE robot and stays where it was: every line of
+     * combat, of the workshop and of the HUD reads `g->s.yo`, and moving it
+     * into an array would have touched all of them for no gain. The reserves
+     * live here, at the END of the structure, which is the one rule the x255
+     * bug left written in stone above.
+     *
+     * A robot is BROKEN when its health is 0. There is no separate flag: the
+     * state was already in the structure and a second copy of a truth is a
+     * second chance to have it disagree with itself. */
+    ch_robot_t banco[EQUIPO - 1];
+    uint8_t    nbanco;                  /* how many of them are assembled    */
 } ch_save_t;
 
 /* If they are ever exceeded, the compiler says so HERE and not the board later. */
@@ -435,6 +471,28 @@ static inline void ch_ver(ch_save_t *s, int id)
 }
 /* Marks a robot's four parts: called on coming across an opponent. */
 void ch_robot_visto(ch_save_t *s, const ch_robot_t *r);
+
+/* --------------------------------------------------------------------------
+ * The team
+ *
+ * `save.yo` is the robot that is out; `save.banco[]` holds the reserves. The
+ * slot number the screens and the link talk in is 0 for the active one and
+ * 1..2 for the bench, so "slot" means the same thing everywhere and nothing
+ * has to know where a robot physically lives.
+ * -------------------------------------------------------------------------- */
+ch_robot_t *ch_eq(ch_save_t *s, int slot);       /* NULL if empty     */
+int  ch_eq_n(const ch_save_t *s);                /* 1..EQUIPO         */
+int  ch_eq_vivos(const ch_save_t *s);
+int  ch_eq_otro_vivo(const ch_save_t *s);        /* a slot != 0, or -1 */
+void ch_eq_activar(ch_save_t *s, int slot);      /* swaps it with `yo` */
+void ch_eq_curar(ch_save_t *s);                  /* the whole team    */
+/* Builds a robot out of the loose parts in the bag: it needs one of each of
+ * the four categories and takes the best it finds. Returns the slot, or -1. */
+int  ch_eq_armar(ch_save_t *s);
+bool ch_eq_puede_armar(const ch_save_t *s);
+/* Takes it apart: its four parts go back to the bag. -1 if there is no room
+ * or if it is the last robot standing. */
+bool ch_eq_desarmar(ch_save_t *s, int slot);
 
 static inline bool ch_flag(const ch_save_t *s, int f)
 {
@@ -466,6 +524,7 @@ enum {
     MODO_FINAL,
     MODO_COMBATE,
     MODO_TITULO,
+    MODO_CABINA,        /* the phone booth: the other watch                  */
 };
 
 /* --------------------------------------------------------------------------
@@ -480,6 +539,8 @@ enum {
     CB_MENSAJE,         /* showing text, waiting for the touch               */
     CB_ACCION,          /* resolving a turn                                  */
     CB_FIN,
+    CB_CAMBIO,          /* choosing which robot of the team comes out        */
+    CB_ESPERA,          /* link: the other watch has not chosen yet          */
 };
 
 typedef struct {
@@ -504,6 +565,24 @@ typedef struct {
     uint8_t    sacude;          /* frames of shake for whoever is hit        */
     uint8_t    sacude_quien;
     uint8_t    flash;
+    uint8_t    forzado;         /* the team screen with no way back: yours fell */
+
+    /* --- A battle against another watch ---------------------------------
+     * The engine is the same one. What changes is where the rival's choice
+     * comes from -the link instead of the AI- and that the dice are seeded
+     * by the host, so both watches roll the same numbers and neither has to
+     * send a result: they both compute it. That is the lesson of Truco, one
+     * file over (apps/truco/main/tl_link.h). */
+    uint8_t    enlace;          /* 1 = the rival is the other watch          */
+    uint8_t    eleccion;        /* what I chose this turn, 0xFF = nothing    */
+    uint8_t    eleccion_e;      /* what they chose, 0xFF = not yet           */
+    uint8_t    nturno;          /* turn number, so an echo is never applied twice */
+
+    /* What each robot LOOKED LIKE last frame. Measured on the board: pushing
+     * both robot boxes every frame costs 22 fps in combat against 29 on the
+     * map, and between two steps of the breath the pixels are identical -
+     * seven frames out of eight were being paid for nothing. */
+    uint32_t   firma[2];
 
     /* --- The hit animation ---------------------------------------------
      * It runs WHILE the message panel is being read, so it does not lengthen
@@ -531,11 +610,54 @@ typedef struct {
 } ch_batalla_t;
 
 /* --------------------------------------------------------------------------
+ * The phone booth: the other watch
+ *
+ * Every town has one. Inside, the watch talks to the one it is paired with
+ * (the bump of docs/LINK.md) and the two can fight or swap robots and parts.
+ * The protocol is in ch_link.c; what is here is the state the screen keeps.
+ * -------------------------------------------------------------------------- */
+
+#define CH_NOMBRE_MAX  20
+
+enum {
+    LK_SIN_ENLACE = 0,  /* no paired watch, or the radio would not start     */
+    LK_LLAMANDO,        /* hello sent, waiting for theirs                    */
+    LK_MENU,            /* fight / swap a robot / swap a part                */
+    LK_ELIGIENDO,       /* picking what to offer                             */
+    LK_OFRECIDO,        /* offered: waiting for them                         */
+    LK_HECHO,           /* the swap closed                                   */
+    LK_CAIDO,           /* they left, or the channel gave up                 */
+};
+
+typedef struct {
+    uint8_t    estado;
+    uint8_t    sel;
+    uint8_t    host;            /* 1 = we are the host: the lower MAC        */
+    uint32_t   nonce, nonce_e;  /* one per run of the booth, like Truco's    */
+    uint16_t   t;               /* frames in this state                      */
+    char       nombre[CH_NOMBRE_MAX];   /* the other watch's                 */
+    char       linea[3][30];
+    uint8_t    clase;           /* 0 = a robot, 1 = a part                   */
+    uint8_t    ofrezco;         /* team slot, or bag slot                    */
+    uint8_t    ofrecen;         /* what they put on the table, 0xFF = nothing */
+    uint16_t   espera;          /* frames waiting for the other side to speak */
+    uint8_t    mudos;           /* consecutive checks with no beacon of theirs */
+    ch_robot_t robot_e;         /* the robot they offer, when clase == 0     */
+    /* Their team, copied whole when a battle starts: a swap on their side is
+     * then just an index, and this side already knows what came out. */
+    ch_robot_t equipo_e[EQUIPO];
+    uint8_t    nequipo_e;
+} ch_link_t;
+
+/* --------------------------------------------------------------------------
  * The whole game
  * -------------------------------------------------------------------------- */
 
 #define MAX_MOV     8           /* creatures moving about a room             */
 #define RUTA_MAX    64
+#define CH_FLUJOS   16          /* runs of water/lava tracked per room       */
+#define FLUJO_MAX   8           /* cells per run: one rect of 64x8 at most    */
+#define FLUJO_POR_CUADRO 2      /* how many are repainted each frame         */
 
 typedef struct {
     /* buffers */
@@ -599,6 +721,11 @@ typedef struct {
 
     /* combat */
     ch_batalla_t bt;
+    /* The dice of a LINK battle. In a normal one the combat rolls on `rng`
+     * like everything else; with two watches the sequence has to be the same
+     * on both, so it comes out of its own generator seeded by the host and
+     * NOTHING else is allowed to read it. */
+    uint32_t   rng_bt;
     uint8_t    bt_pendiente;    /* creature+1 to fight when the boss's
                                    dialogue closes; 0 = none                  */
 
@@ -608,6 +735,9 @@ typedef struct {
 
     /* music: which melody is playing, which note it is on and how long it has left */
     uint8_t    mel_id, mel_i, mel_t;
+
+    /* the phone booth */
+    ch_link_t  lk;
 
     /* things the LVGL layer has to deal with */
     uint8_t    quiere_salir;
@@ -651,6 +781,22 @@ void ch_ui_menu(ch_t *g);
 void ch_panel(ch_buf_t *b, int x, int y, int w, int h, uint16_t borde);
 int  ch_wrap(const char *s, int ancho, char dst[][30], int max);
 void ch_barra(ch_buf_t *b, int x, int y, int w, int v, int vmax, uint16_t c);
+/* The header every screen wears: the booth uses it too, so it looks like the
+ * rest of the game and not like a bolted-on dialogue. */
+void ch_ui_titulo(ch_t *g, const char *txt, const char *sub);
+
+/* ch_link.c - the phone booth */
+void ch_lk_entrar(ch_t *g);
+void ch_lk_salir(ch_t *g);
+void ch_lk_tick(ch_t *g);
+void ch_lk_fondo(ch_t *g);
+void ch_lk_dibujar(ch_t *g);
+void ch_lk_toque(ch_t *g, int bx, int by);
+bool ch_lk_atras(ch_t *g);
+/* Used by the combat when the rival is the other watch. */
+void ch_lk_elegir(ch_t *g, uint8_t eleccion);   /* send my choice this turn  */
+void ch_lk_combate_fin(ch_t *g);
+bool ch_lk_hay_piezas(const ch_t *g);
 
 /* ch_battle.c */
 void ch_bt_empezar(ch_t *g, const ch_robot_t *rival, int jefe, int zona);
@@ -660,6 +806,9 @@ void ch_bt_animar(ch_t *g, int quien, int tipo, int de_estado);
 bool ch_bt_atras(ch_t *g);
 void ch_bt_tick(ch_t *g);
 void ch_bt_toque(ch_t *g, int bx, int by);
+/* A link battle: the two choices of the turn, mine and theirs, decided
+ * elsewhere and applied here. Never called in a battle against the machine. */
+void ch_bt_aplicar_enlace(ch_t *g, uint8_t mio, uint8_t suyo);
 
 /* --------------------------------------------------------------------------
  * Sound
@@ -678,9 +827,48 @@ enum {
 
 void ch_snd_melodia(ch_t *g, int id);
 void ch_snd_tick(ch_t *g);
+void ch_snd_init(void);                 /* opens the speaker, if it can      */
+void ch_snd_fin(void);
+void ch_snd_sfx(int freq_hz, int ms);   /* an effect INTO the mix            */
+bool ch_snd_sintetiza(void);            /* is the synthesiser the one playing? */
+void ch_snd_reabrir(void);              /* the sound setting changed         */
 
-/* implemented by chatarra.c: the game knows neither the HAL nor the preferences */
+/* --------------------------------------------------------------------------
+ * The link, seen from the model
+ *
+ * Same pattern as the sound below: the game does not know `aos_hal_*` exists.
+ * chatarra.c implements these eight calls over the HAL's link and ch_link.c
+ * speaks the protocol through them, so the booth can be driven in the
+ * simulator with two windows and read as plain model code.
+ * -------------------------------------------------------------------------- */
+bool ch_net_hay_pareja(char *nombre, int n);    /* a watch paired in NVS     */
+bool ch_net_empezar(void);                      /* radio up, offering the game */
+void ch_net_parar(void);
+bool ch_net_soy_host(void);                     /* the lower MAC, as everyone */
+bool ch_net_mandar(const void *d, int n);       /* reliable channel          */
+int  ch_net_recibir(void *d, int max);          /* bytes, 0 if nothing       */
+bool ch_net_caido(void);                        /* no ack in 3.2 s           */
+void ch_net_reset_canal(void);                  /* after a loss, start over  */
+bool ch_net_alla(void);                         /* their beacon offers the game */
+
+/* --------------------------------------------------------------------------
+ * The speaker, seen from the model
+ *
+ * Same shape as ch_net_* above: chatarra.c is the only file that knows the HAL
+ * exists. ch_sound.c synthesises PCM and hands it over through these five.
+ * -------------------------------------------------------------------------- */
+bool ch_audio_abrir(int hz);
+void ch_audio_cerrar(void);
+bool ch_audio_abierto(void);
+int  ch_audio_pendiente(void);          /* samples still to play             */
+int  ch_audio_escribir(const int16_t *pcm, int n);
+
+/* implemented by chatarra.c: the game knows neither the HAL nor the preferences
+ *
+ * ch_sfx() is the game's ONE call for a noise. With the synthesiser up it
+ * becomes a voice of the mix; with the speaker unavailable it falls back to
+ * the HAL's beeper, which is what this game used to be made of. */
 void ch_sfx(int freq_hz, int ms);       /* effect: plays with sonido >= 1    */
-void ch_tono(int freq_hz, int ms);      /* music: plays with sonido == 2     */
+void ch_tono(int freq_hz, int ms);      /* the fallback beeper only          */
 int  ch_sonido_get(void);               /* 0 mute, 1 effects, 2 everything   */
 void ch_sonido_set(int v);

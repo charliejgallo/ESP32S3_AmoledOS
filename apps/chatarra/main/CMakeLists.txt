@@ -8,6 +8,7 @@ idf_component_register(
          "ch_map.c"
          "ch_battle.c"
          "ch_ui.c"
+         "ch_link.c"
     INCLUDE_DIRS "."
     REQUIRES lvgl
 )

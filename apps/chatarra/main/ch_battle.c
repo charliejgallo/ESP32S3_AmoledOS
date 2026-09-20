@@ -81,8 +81,55 @@
 static const int BOT_X[4] = { CAJA_X + 2, CAJA_X + 90, CAJA_X + 2, CAJA_X + 90 };
 static const int BOT_Y[4] = { CAJA_Y + 2, CAJA_Y + 2, CAJA_Y + 23, CAJA_Y + 23 };
 
-static const char *const MENU_PPAL[4] = { N_("ATACAR"), N_("OBJETO"),
-                                         N_("ANALIZAR"), N_("HUIR") };
+/* --------------------------------------------------------------------------
+ * THE MAIN MENU IS SIX CELLS, NOT FOUR
+ *
+ * With a team of three there is a fifth thing to do in a turn -bring another
+ * robot out- and no room for it among four buttons without losing one. Three
+ * columns of 56 give six cells of the same height as before, which is what
+ * matters: the row got no shorter and the finger did not get any smaller.
+ *
+ * The sixth cell is NOT a button. It is the team: three lamps with the health
+ * of each robot, in the one place you are already looking when you decide what
+ * to do. The sub-lists -attacks, items, the team- keep the wide 2x2, because
+ * there an attack's name has to fit.
+ * -------------------------------------------------------------------------- */
+#define B6_W         56
+static const int B6_X[6] = { CAJA_X +  2, CAJA_X + 60, CAJA_X + 118,
+                             CAJA_X +  2, CAJA_X + 60, CAJA_X + 118 };
+static const int B6_Y[6] = { CAJA_Y +  2, CAJA_Y +  2, CAJA_Y +   2,
+                             CAJA_Y + 23, CAJA_Y + 23, CAJA_Y +  23 };
+
+enum { MP_ATACAR = 0, MP_OBJETO, MP_CAMBIAR, MP_ANALIZAR, MP_HUIR, MP_EQUIPO };
+
+static const char *const MENU_PPAL[5] = { N_("ATACAR"), N_("OBJETO"),
+                                          N_("CAMBIAR"), N_("ANALIZAR"),
+                                          N_("HUIR") };
+
+/* --------------------------------------------------------------------------
+ * THE COMBAT'S DICE
+ *
+ * Against the machine they are the game's own, `g->rng`, as they always were.
+ * Against another watch they have to come out of a generator SEEDED BY THE
+ * HOST and read by nothing else: both watches run this same engine over the
+ * same two choices, so if they roll the same numbers they reach the same
+ * result and neither has to send one.
+ *
+ * Which is why only the five rolls that DECIDE something go through here -
+ * damage spread, the critical, the burn, the miss, the side effect. The
+ * particles and the prizes keep rolling on `g->rng`: the particles because
+ * they change nothing and the prizes because they are worked out by the winner
+ * alone, and a draw one side makes and the other does not is exactly how a
+ * shared sequence comes apart.
+ * -------------------------------------------------------------------------- */
+
+static void sacar(ch_t *g, int slot, char *dst, size_t n);
+static void sacar_rival(ch_t *g, int slot);
+
+static int bt_rnd(ch_t *g, int n)
+{
+    return ch_rnd(g->bt.enlace ? &g->rng_bt : &g->rng, n);
+}
 
 /* --------------------------------------------------------------------------
  * Attack and defence stages, in eighths
@@ -174,13 +221,13 @@ static int danio(ch_t *g, const ch_robot_t *at, const ch_robot_t *df,
      * torso, so building the robot around one element has a reward. */
     if (m->tipo == at->tipo) base = base * 5 / 4;
 
-    base = base * (85 + ch_rnd(&g->rng, 16)) / 100;
+    base = base * (85 + bt_rnd(g, 16)) / 100;
 
     /* Critical: one in ten. It exists because turn-based combat with nearly
      * fixed damage turns into a sum and not a fight; the critical is what
      * makes the extra turn worth trying when you are losing. */
     g->bt.critico = 0;
-    if (ch_rnd(&g->rng, 100) < 10) {
+    if (bt_rnd(g, 100) < 10) {
         base = base * 3 / 2;
         g->bt.critico = 1;
     }
@@ -202,6 +249,12 @@ static bool atacar(ch_t *g, int quien, int mv)
     char l1[30], l2[30], l3[30];
     int ef = 8, d = 0;
 
+    /* 0xFF is "this side did not attack": it brought another robot out, and a
+     * swap costs the whole turn. Saying it here -instead of with a flag and an
+     * `if` around each half of the turn- means the rest of the engine never
+     * learns that a turn can be empty. */
+    if (mv == 0xFF) return false;
+
     l1[0] = l2[0] = l3[0] = 0;
     snprintf(l1, sizeof(l1), _("%s USA %s"),
              quien ? _("EL RIVAL") : _("TU ROBOT"), _(m->nombre));
@@ -209,7 +262,7 @@ static bool atacar(ch_t *g, int quien, int mv)
     /* Short circuit: the turn is lost. */
     if (g->bt.corto[quien]) {
         g->bt.corto[quien]--;
-        if (ch_rnd(&g->rng, 100) < 45) {
+        if (bt_rnd(g, 100) < 45) {
             snprintf(l1, sizeof(l1), _("%s ESTA"),
                      quien ? _("EL RIVAL") : _("TU ROBOT"));
             msg(g, l1, _("EN CORTOCIRCUITO Y"), _("NO PUEDE MOVERSE."));
@@ -223,7 +276,7 @@ static bool atacar(ch_t *g, int quien, int mv)
     }
     at->ene = (int16_t)(at->ene - m->costo);
 
-    if (ch_rnd(&g->rng, 100) >= m->precision) {
+    if (bt_rnd(g, 100) >= m->precision) {
         msg(g, l1, _("PERO FALLA."), "");
         ch_sfx(200, 50);
         return false;
@@ -262,7 +315,7 @@ static bool atacar(ch_t *g, int quien, int mv)
     }
 
     /* The effect, if there is one and if it lands. */
-    if (m->efecto != EF_NADA && ch_rnd(&g->rng, 100) < m->prob) {
+    if (m->efecto != EF_NADA && bt_rnd(g, 100) < m->prob) {
         switch (m->efecto) {
         case EF_BAJA_DEF:
             if (g->bt.et_def[!quien] > -6) g->bt.et_def[!quien]--;
@@ -314,7 +367,6 @@ static bool atacar(ch_t *g, int quien, int mv)
     msg(g, l1, l2, l3);
     return df->vida <= 0;
 }
-
 /* --------------------------------------------------------------------------
  * The opponent's choice
  *
@@ -367,6 +419,17 @@ static void subir_nivel(ch_t *g)
     }
 }
 
+/* The first standing robot on the other watch's bench, or -1. Both sides can
+ * work this out -the bench never takes damage- which is what lets the
+ * replacement happen without a message and without a choice. */
+static int rival_de_reserva(const ch_t *g)
+{
+    for (int i = 1; i < g->lk.nequipo_e; i++) {
+        if (g->lk.equipo_e[i].vida > 0) return i;
+    }
+    return -1;
+}
+
 static void victoria(ch_t *g)
 {
     ch_robot_t *r = &g->bt.rival;
@@ -374,6 +437,36 @@ static void victoria(ch_t *g)
     int exp = r->nivel * r->nivel * 3 / 2 + 12;
     int cred = r->nivel * 8 + ch_rnd(&g->rng, 20);
     int nv_antes = g->s.yo.nivel;
+
+    /* Against another watch: their robot went down, but their team may not
+     * have. The replacement is AUTOMATIC and the same on both watches -the
+     * first one standing- because a choice here would be a message in the
+     * middle of a turn, and the whole design of this battle is that nothing
+     * travels but the two choices. */
+    if (g->bt.enlace) {
+        int slot = rival_de_reserva(g);
+        if (slot > 0) {
+            char l1[30];
+            snprintf(l1, sizeof(l1), _("%s SE APAGO!"), ch_robot_nombre(r));
+            sacar_rival(g, slot);
+            snprintf(l2, sizeof(l2), _("SACAN A %s!"),
+                     ch_robot_nombre(&g->bt.rival));
+            g->bt.pend = CB_MENU;
+            msg(g, l1, l2, "");
+            ch_sfx(1500, 70);
+            return;
+        }
+        g->s.victorias++;
+        g->s.yo.exp += (uint32_t)exp;
+        subir_nivel(g);
+        g->bt.premio_pieza = 0xFF;
+        snprintf(l2, sizeof(l2), _("GANAS %d EXP."), exp);
+        g->bt.pend = CB_FIN;
+        ch_snd_melodia(g, CH_MEL_VICTORIA);
+        msg(g, _("GANASTE EL COMBATE!"), l2,
+            g->s.yo.nivel > nv_antes ? _("SUBISTE DE NIVEL!") : "");
+        return;
+    }
 
     if (g->bt.jefe) { exp *= 3; cred *= 3; }
 
@@ -444,9 +537,44 @@ static void victoria(ch_t *g)
     msg(g, _("GANASTE EL COMBATE!"), l2, l3);
 }
 
+/* --------------------------------------------------------------------------
+ * ONE ROBOT FALLS, THE TEAM DOES NOT
+ *
+ * Until the team existed, your robot running out of health was the end of the
+ * fight. Now it is the end of THAT ROBOT: if there is another one standing you
+ * choose which comes out, and the screen that asks has no way back -
+ * `forzado`- because there is nothing else you could be doing.
+ *
+ * It is only a loss when the three of them are down, and that is the branch
+ * that keeps the old punishment: a quarter of the credits and the walk back to
+ * the workshop.
+ * -------------------------------------------------------------------------- */
+
+static void relevo(ch_t *g)
+{
+    g->bt.fase   = CB_CAMBIO;
+    g->bt.forzado = 1;
+    g->bt.pend   = CB_MENU;
+    g->rehacer_fondo = 1;
+    ch_snd_melodia(g, CH_MEL_NADA);
+}
+
 static void derrota(ch_t *g)
 {
-    int perdido = g->s.creditos / 4;
+    int perdido;
+
+    /* Against another watch nothing is lost and nobody is carried anywhere:
+     * it is a friendly, and a friendly that charged you a quarter of your
+     * credits would be played exactly once. */
+    if (g->bt.enlace) {
+        g->bt.pend = CB_FIN;
+        g->bt.huir = 0;
+        msg(g, _("TU EQUIPO SE APAGO."), _("GANARON ELLOS."), "");
+        ch_snd_melodia(g, CH_MEL_DERROTA);
+        return;
+    }
+
+    perdido = g->s.creditos / 4;
     g->s.creditos = (uint16_t)(g->s.creditos - perdido);
     g->bt.pend = CB_FIN;
     g->bt.huir = 2;                 /* 2 = you crawled back to the workshop  */
@@ -456,6 +584,39 @@ static void derrota(ch_t *g)
         msg(g, _("TU ROBOT SE APAGO..."), l2, _("TE LLEVAN AL TALLER."));
     }
     ch_snd_melodia(g, CH_MEL_DERROTA);
+}
+
+/* Your active robot just went down. If another one is standing, the fight goes
+ * on with it; the loss is only when there is nothing left to send out. */
+static void caer(ch_t *g)
+{
+    /* Over the link the replacement is automatic, for the same reason it is on
+     * the other side: a choice in the middle of a turn would be a message the
+     * lockstep does not have. Alone, you pick - there is nobody to keep in
+     * step with. */
+    if (g->bt.enlace) {
+        int slot = ch_eq_otro_vivo(&g->s);
+        if (slot > 0) {
+            char l1[30], l2[30];
+            snprintf(l1, sizeof(l1), _("%s SE APAGO!"), ch_robot_nombre(&g->s.yo));
+            sacar(g, slot, l2, sizeof(l2));
+            g->bt.pend = CB_MENU;
+            msg(g, l1, l2, "");
+            return;
+        }
+        derrota(g);
+        return;
+    }
+
+    if (ch_eq_otro_vivo(&g->s) >= 0) {
+        char l1[30];
+        snprintf(l1, sizeof(l1), _("%s SE APAGO!"), ch_robot_nombre(&g->s.yo));
+        g->bt.pend = CB_CAMBIO;
+        msg(g, l1, _("SACA OTRO ROBOT."), "");
+        ch_sfx(150, 200);
+        return;
+    }
+    derrota(g);
 }
 
 /* --------------------------------------------------------------------------
@@ -476,11 +637,15 @@ static void seguir(ch_t *g)
         g->rehacer_fondo = 1;
         break;
 
+    case CB_CAMBIO:
+        relevo(g);
+        return;
+
     case CB_ACCION:
         /* the second half: whoever did not attack first replies */
         g->bt.pend = CB_MENSAJE;
         if (g->bt.turno == 0) {
-            if (atacar(g, 1, g->bt.mov_r)) { derrota(g); return; }
+            if (atacar(g, 1, g->bt.mov_r)) { caer(g); return; }
         } else {
             if (atacar(g, 0, g->bt.mov_j)) { victoria(g); return; }
         }
@@ -493,6 +658,7 @@ static void seguir(ch_t *g)
         break;
 
     case CB_FIN:
+        if (g->bt.enlace) { ch_lk_combate_fin(g); break; }
         /* Beating the champion opens the closing screen. It is told apart by
          * the room, like the music: it is the world's last. */
         if (g->bt.jefe && g->s.sala == ch_nsalas - 1 &&
@@ -504,7 +670,7 @@ static void seguir(ch_t *g)
         g->modo = MODO_MAPA;
         ch_snd_melodia(g, CH_MEL_NADA);
         if (g->bt.huir == 2) {
-            ch_robot_curar(&g->s.yo);
+            ch_eq_curar(&g->s);         /* the workshop repairs the three   */
             ch_map_entrar(g, 0, 11, 14);        /* your house                */
         }
         g->rehacer_fondo = 1;
@@ -537,7 +703,7 @@ static void fin_de_turno(ch_t *g)
             g->bt.pend = CB_MENSAJE;
             msg(g, l1, l2, "");
         }
-        if (g->s.yo.vida <= 0)      { derrota(g);  return; }
+        if (g->s.yo.vida <= 0)      { caer(g);     return; }
         if (g->bt.rival.vida <= 0)  { victoria(g); return; }
         return;                     /* one message at a time                 */
     }
@@ -548,6 +714,50 @@ static void fin_de_turno(ch_t *g)
     g->rehacer_fondo = 1;
 }
 
+/* Who moves first. A tie cannot be settled with "does the rival go first?":
+ * that is the OPPOSITE question on the two watches and the same coin would
+ * have both of them answering yes. Over the link the coin decides whether the
+ * HOST goes first, which means the same thing on both sides, and each one
+ * turns that into its own answer. */
+static int orden(ch_t *g, int vj, int vr)
+{
+    if (vr != vj) return vr > vj;
+    if (!g->bt.enlace) return ch_rnd(&g->rng, 2);
+    return ch_rnd(&g->rng_bt, 2) ? !g->lk.host : (int)g->lk.host;
+}
+
+/* Brings out the robot in `slot`. Shared by the swap you choose and the one
+ * you are forced into when yours falls. */
+static void sacar(ch_t *g, int slot, char *dst, size_t n)
+{
+    ch_eq_activar(&g->s, slot);
+    g->bt.et_atk[0] = g->bt.et_def[0] = 0;   /* the stages belong to the robot */
+    g->bt.quema[0] = g->bt.corto[0] = 0;
+    g->bt.hp_ver[0] = g->s.yo.vida;
+    g->bt.forzado = 0;
+    if (dst && n) snprintf(dst, n, _("SALE %s!"), ch_robot_nombre(&g->s.yo));
+    ch_sfx(1500, 70);
+}
+
+/* The same, on the other watch's side of the arena. Their team is mirrored
+ * here whole, so their swap is an index and this side already knows what came
+ * out - the live health of the robot leaving goes back to the mirror first,
+ * or it would come back later as good as new. */
+static void sacar_rival(ch_t *g, int slot)
+{
+    if (slot <= 0 || slot >= g->lk.nequipo_e) return;
+    g->lk.equipo_e[0] = g->bt.rival;
+    {
+        ch_robot_t t = g->lk.equipo_e[0];
+        g->lk.equipo_e[0] = g->lk.equipo_e[slot];
+        g->lk.equipo_e[slot] = t;
+    }
+    g->bt.rival = g->lk.equipo_e[0];
+    g->bt.et_atk[1] = g->bt.et_def[1] = 0;
+    g->bt.quema[1] = g->bt.corto[1] = 0;
+    g->bt.hp_ver[1] = g->bt.rival.vida;
+}
+
 static void jugar_turno(ch_t *g, int mv)
 {
     g->bt.mov_j = (uint8_t)mv;
@@ -555,13 +765,13 @@ static void jugar_turno(ch_t *g, int mv)
 
     int vj = con_etapa(g->s.yo.vel, 0);
     int vr = con_etapa(g->bt.rival.vel, 0);
-    g->bt.turno = (uint8_t)((vr > vj || (vr == vj && ch_rnd(&g->rng, 2))) ? 1 : 0);
+    g->bt.turno = (uint8_t)orden(g, vj, vr);
 
     g->bt.pend = CB_ACCION;
     if (g->bt.turno == 0) {
         if (atacar(g, 0, g->bt.mov_j)) { victoria(g); return; }
     } else {
-        if (atacar(g, 1, g->bt.mov_r)) { derrota(g); return; }
+        if (atacar(g, 1, g->bt.mov_r)) { caer(g); return; }
     }
     g->bt.pend = CB_ACCION;
 }
@@ -649,6 +859,17 @@ static void huir(ch_t *g)
  * The touch
  * -------------------------------------------------------------------------- */
 
+static int boton6_en(int bx, int by)
+{
+    for (int i = 0; i < 6; i++) {
+        if (bx >= B6_X[i] && bx < B6_X[i] + B6_W &&
+            by >= B6_Y[i] && by < B6_Y[i] + BOT_H) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 static int boton_en(int bx, int by)
 {
     for (int i = 0; i < 4; i++) {
@@ -669,13 +890,59 @@ void ch_bt_toque(ch_t *g, int bx, int by)
         seguir(g);
         return;
 
-    case CB_MENU:
+    case CB_CAMBIO: {
+        int n = ch_eq_n(&g->s);
         b = boton_en(bx, by);
         if (b < 0) return;
+        if (b == 3 && n <= 3) {                 /* the VOLVER cell           */
+            if (g->bt.forzado) { ch_sfx(220, 40); return; }
+            ch_sfx(700, 30);
+            g->bt.fase = CB_MENU;
+            g->rehacer_fondo = 1;
+            return;
+        }
+        if (b >= n || b == 0) { ch_sfx(220, 40); return; }
+        {
+            const ch_robot_t *r = ch_eq(&g->s, b);
+            if (!r || r->vida <= 0) { ch_sfx(220, 40); return; }
+        }
         ch_sfx(1100, 25);
-        if (b == 0)      { g->bt.fase = CB_ATAQUES; g->rehacer_fondo = 1; }
-        else if (b == 1) { g->bt.fase = CB_OBJETOS; g->rehacer_fondo = 1; }
-        else if (b == 2) {
+        if (g->bt.forzado) {
+            /* Forced: the robot that fell is replaced and the turn goes on
+             * without the rival getting a free hit for it. */
+            char l1[30];
+            sacar(g, b, l1, sizeof(l1));
+            g->bt.fase = CB_MENSAJE;
+            g->bt.pend = CB_MENU;
+            msg(g, l1, "", "");
+            /* Over the link, the other watch has to be told which one came
+             * out, or its mirror of this team stops matching. */
+            if (g->bt.enlace) ch_lk_elegir(g, (uint8_t)(0x20 + b));
+            return;
+        }
+        if (g->bt.enlace) { ch_lk_elegir(g, (uint8_t)(0x20 + b)); return; }
+        sacar(g, b, NULL, 0);
+        jugar_turno(g, 0xFF);                   /* the swap IS the turn      */
+        return;
+    }
+
+    case CB_ESPERA:
+        return;                                  /* the other watch's turn   */
+
+    case CB_MENU:
+        b = boton6_en(bx, by);
+        if (b < 0 || b == MP_EQUIPO) return;
+        if (b == MP_OBJETO && g->bt.enlace) { ch_sfx(220, 40); return; }
+        if (b == MP_CAMBIAR && ch_eq_otro_vivo(&g->s) < 0) { ch_sfx(220, 40); return; }
+        ch_sfx(1100, 25);
+        if (b == MP_ATACAR)  { g->bt.fase = CB_ATAQUES; g->rehacer_fondo = 1; }
+        else if (b == MP_OBJETO) { g->bt.fase = CB_OBJETOS; g->rehacer_fondo = 1; }
+        else if (b == MP_CAMBIAR) {
+            g->bt.fase = CB_CAMBIO;
+            g->bt.forzado = 0;
+            g->rehacer_fondo = 1;
+        }
+        else if (b == MP_ANALIZAR) {
             char l1[30], l2[30], l3[40];
             const ch_robot_t *r = &g->bt.rival;
             snprintf(l1, sizeof(l1), _("%s  NV %d"), ch_robot_nombre(r), r->nivel);
@@ -697,6 +964,8 @@ void ch_bt_toque(ch_t *g, int bx, int by)
             }
             g->bt.pend = CB_MENU;
             msg(g, l1, l2, l3);
+        } else if (g->bt.enlace) {
+            ch_sfx(220, 40);
         } else {
             huir(g);
         }
@@ -706,6 +975,11 @@ void ch_bt_toque(ch_t *g, int bx, int by)
         b = boton_en(bx, by);
         if (b < 0 || b >= g->s.yo.nmov) return;
         ch_sfx(1100, 25);
+        /* Over the link nothing is resolved on the tap: the choice goes out
+         * and the turn happens when both are known. A side that resolved its
+         * own move on the tap would be a turn ahead of the other half the
+         * time - Truco's lesson, and the reason its guest applies nothing. */
+        if (g->bt.enlace) { ch_lk_elegir(g, (uint8_t)b); return; }
         jugar_turno(g, g->s.yo.mov[b]);
         return;
 
@@ -724,10 +998,67 @@ void ch_bt_toque(ch_t *g, int bx, int by)
     }
 }
 
+/* --------------------------------------------------------------------------
+ * A TURN OF A BATTLE BETWEEN TWO WATCHES
+ *
+ * `mio` and `suyo` are the two choices of the turn, in the one byte each of
+ * them travels as. Both watches call this with the same pair -the host after
+ * hearing the guest, the guest after the host's echo- and from here on the
+ * engine is the one that has always been there.
+ *
+ * Swaps resolve FIRST and both at once, then whoever is left attacks in order
+ * of speed. It is the order the game this one comes from uses, and it is the
+ * only one where choosing to swap is not a free turn of being hit.
+ * -------------------------------------------------------------------------- */
+void ch_bt_aplicar_enlace(ch_t *g, uint8_t mio, uint8_t suyo)
+{
+    int mv_j = 0xFF, mv_r = 0xFF;
+    int vj, vr;
+    char cambio[30];
+
+    g->bt.nturno++;
+    g->bt.eleccion   = 0xFF;
+    g->bt.eleccion_e = 0xFF;
+    cambio[0] = 0;
+
+    if ((suyo & 0xF0) == 0x20) sacar_rival(g, suyo & 0x0F);
+    if ((mio  & 0xF0) == 0x20) sacar(g, mio & 0x0F, cambio, sizeof(cambio));
+
+    if (mio  < 0x10 && mio  < g->s.yo.nmov)     mv_j = g->s.yo.mov[mio];
+    if (suyo < 0x10 && suyo < g->bt.rival.nmov) mv_r = g->bt.rival.mov[suyo];
+
+    g->bt.mov_j = (uint8_t)mv_j;
+    g->bt.mov_r = (uint8_t)mv_r;
+
+    if (mv_j == 0xFF && mv_r == 0xFF) {         /* both swapped: nobody hits */
+        g->bt.turno = 2;
+        g->bt.pend  = CB_MENSAJE;
+        msg(g, cambio[0] ? cambio : _("CAMBIAN DE ROBOT."),
+            _("NADIE ATACA ESTE TURNO."), "");
+        return;
+    }
+
+    vj = con_etapa(g->s.yo.vel, 0);
+    vr = con_etapa(g->bt.rival.vel, 0);
+    g->bt.turno = (uint8_t)orden(g, vj, vr);
+    g->bt.pend  = CB_ACCION;
+    if (g->bt.turno == 0) {
+        if (atacar(g, 0, g->bt.mov_j)) { victoria(g); return; }
+    } else {
+        if (atacar(g, 1, g->bt.mov_r)) { caer(g); return; }
+    }
+    g->bt.pend = CB_ACCION;
+}
+
 /* The back gesture: from a sub-list to the menu. */
 bool ch_bt_atras(ch_t *g)
 {
-    if (g->bt.fase == CB_ATAQUES || g->bt.fase == CB_OBJETOS) {
+    /* A forced swap has no way back: there is nothing else you could be doing
+     * with a robot that has just gone down. */
+    if (g->bt.fase == CB_CAMBIO && g->bt.forzado) return true;
+    if (g->bt.fase == CB_ESPERA) return true;
+    if (g->bt.fase == CB_ATAQUES || g->bt.fase == CB_OBJETOS ||
+        g->bt.fase == CB_CAMBIO) {
         g->bt.fase = CB_MENU;
         g->rehacer_fondo = 1;
         return true;
@@ -759,36 +1090,246 @@ static void panel_robot(ch_t *g, int x, int y, const ch_robot_t *r, bool mio)
     (void)t;
 }
 
-static void boton(ch_t *g, int i, const char *txt, bool activo)
+static void boton_en_xy(ch_t *g, int x, int y, int w, const char *txt,
+                        bool activo)
 {
     ch_buf_t *b = &g->bg;
     uint16_t fondo = activo ? ch_rgb(0x2B3145) : ch_rgb(0x171B29);
     uint16_t borde = activo ? ch_rgb(0x8A93AB) : ch_rgb(0x3D465F);
     uint16_t tinta = activo ? ch_rgb(0xFFFFFF) : ch_rgb(0x606B85);
 
-    ch_rect(b, BOT_X[i], BOT_Y[i], BOT_W, BOT_H, fondo);
-    ch_frame(b, BOT_X[i], BOT_Y[i], BOT_W, BOT_H, borde);
-    ch_text_center(b, BOT_X[i] + BOT_W / 2, BOT_Y[i] + 6, txt, tinta,
-                   ch_rgb(0x05060C));
+    ch_rect(b, x, y, w, BOT_H, fondo);
+    ch_frame(b, x, y, w, BOT_H, borde);
+    ch_text_center(b, x + w / 2, y + 6, txt, tinta, ch_rgb(0x05060C));
+}
+
+static void boton(ch_t *g, int i, const char *txt, bool activo)
+{
+    boton_en_xy(g, BOT_X[i], BOT_Y[i], BOT_W, txt, activo);
+}
+
+static void boton6(ch_t *g, int i, const char *txt, bool activo)
+{
+    boton_en_xy(g, B6_X[i], B6_Y[i], B6_W, txt, activo);
+}
+
+/* The team, in the sixth cell: one lamp per robot, as long as its health.
+ * Green the one that is out, grey a reserve, red a wreck. */
+static void celda_equipo(ch_t *g)
+{
+    ch_buf_t *b = &g->bg;
+    int x = B6_X[MP_EQUIPO], y = B6_Y[MP_EQUIPO];
+    int n = ch_eq_n(&g->s);
+
+    ch_rect(b, x, y, B6_W, BOT_H, ch_rgb(0x171B29));
+    ch_frame(b, x, y, B6_W, BOT_H, ch_rgb(0x3D465F));
+    for (int i = 0; i < n; i++) {
+        const ch_robot_t *r = ch_eq(&g->s, i);
+        int by = y + 3 + i * 5;
+        int v = r && r->vida_max ? r->vida * (B6_W - 12) / r->vida_max : 0;
+        uint16_t c = !r || r->vida <= 0 ? ch_rgb(0xE05252)
+                   : (i == 0 ? ch_rgb(0x4ADE80) : ch_rgb(0x8A93AB));
+        ch_rect(b, x + 5, by, B6_W - 12, 3, ch_rgb(0x2B3145));
+        if (v > 0) ch_rect(b, x + 5, by, v, 3, c);
+    }
+}
+
+/* --------------------------------------------------------------------------
+ * THE ARENA, ONE PER ZONE
+ *
+ * The combat used to happen in the same purple dusk everywhere, which meant
+ * that after two hours the port, the foundry and the ice valley all looked
+ * like the same fight. Eight arenas is a TABLE of eight rows plus one painter
+ * per kind of scenery, and every one of them is drawn ONCE, into the
+ * background, when the phase changes.
+ *
+ * That last sentence is the whole licence for this section. The background is
+ * the only place in this engine where detail is free: what costs a frame is
+ * the dirty rectangles pushed on top of it, and the arena pushes none. So it
+ * can afford gradients, a skyline, two hundred dots of snow - things that
+ * would be unthinkable if they had to be redrawn thirty times a second.
+ *
+ * The scenery is drawn from a FIXED seed, so the same zone always looks the
+ * same: it is a place you recognise, not noise that reshuffles every fight.
+ * -------------------------------------------------------------------------- */
+
+enum {
+    DECO_NADA = 0,
+    DECO_ESTRELLAS,     /* the first town, at dusk                           */
+    DECO_OLAS,          /* the port                                          */
+    DECO_CIRCUITO,      /* Alto Voltio: a grid with lit nodes                */
+    DECO_BRASAS,        /* the foundry                                       */
+    DECO_NIEVE,         /* Criovalle                                         */
+    DECO_TORRES,        /* Ciudad Malla: a skyline                           */
+    DECO_AGUJAS,        /* Villa Oxido: rusted spires                        */
+    DECO_CRISTALES,     /* Prisma                                            */
+};
+
+typedef struct {
+    uint32_t cielo_a, cielo_b;      /* sky, top and bottom                   */
+    uint32_t suelo_a, suelo_b;      /* ground, near the horizon and far down */
+    uint32_t horizonte;
+    uint32_t plato, plato_alto;     /* the two discs each robot stands on    */
+    uint8_t  deco;
+    uint32_t deco_c;
+} ch_arena_t;
+
+/* Indexed by zone MINUS ONE; a battle with no zone (the phone booth falls back
+ * to the room you are standing in) lands on row 0. */
+static const ch_arena_t ARENAS[ZONAS] = {
+    /* 1 Villa Tuerca - dusk over the fields                                 */
+    { 0x1B2340, 0x3B3A62, 0x4A4162, 0x241E33, 0x6A5F8C,
+      0x5A5178, 0x6E648F, DECO_ESTRELLAS, 0xD5DCEB },
+    /* 2 Puerto Bujia - sea and a low sun                                    */
+    { 0x0E2A4A, 0x2E6E96, 0x1C4E63, 0x0A2030, 0x7FD4E8,
+      0x2A5A70, 0x3E7A92, DECO_OLAS, 0x9FE3F2 },
+    /* 3 Alto Voltio - the substation at night                               */
+    { 0x160B2E, 0x3A1E63, 0x2A1A46, 0x120A22, 0x9A6CF0,
+      0x3A2A5E, 0x54407E, DECO_CIRCUITO, 0x7BE9FF },
+    /* 4 Fundicion - the furnace                                             */
+    { 0x2A0E06, 0x7A2A0C, 0x5A2008, 0x260A04, 0xFF9F0A,
+      0x5E2A14, 0x7E3E1E, DECO_BRASAS, 0xFF6A1E },
+    /* 5 Criovalle - the one daylit arena, but not so bright that a pale grey
+     * robot disappears into it: the sky is a cold mid blue and the snow does
+     * the lifting. */
+    { 0x2E5A80, 0x6E9CBC, 0x7E9EB2, 0x3E5468, 0xDCEEF8,
+      0x4E6E86, 0x7EA2BC, DECO_NIEVE, 0xFFFFFF },
+    /* 6 Ciudad Malla - a skyline of masts                                   */
+    { 0x08201E, 0x104A44, 0x0E3A36, 0x061A18, 0x2AF0C8,
+      0x125248, 0x1E7A6C, DECO_TORRES, 0x2AF0C8 },
+    /* 7 Villa Oxido - dust and rust                                         */
+    { 0x3A2410, 0x8A5E28, 0x6E4A20, 0x2E1E0C, 0xC9A96A,
+      0x5E4018, 0x7E5A28, DECO_AGUJAS, 0xC06B2E },
+    /* 8 Prisma - the summit                                                 */
+    { 0x14082E, 0x4A1E7E, 0x32155A, 0x160828, 0xE0A8FF,
+      0x3E2068, 0x5E3A92, DECO_CRISTALES, 0xB072F0 },
+};
+
+/* A generator of its own, seeded per zone: the scenery is the same every time
+ * you fight there. Using the game's `rng` would reshuffle the skyline on every
+ * battle, and worse, would pull the combat's dice along with it. */
+static void arena_deco(ch_t *g, const ch_arena_t *a, int zona)
+{
+    ch_buf_t *b = &g->bg;
+    uint32_t r = 0x5EED0000u + (uint32_t)zona * 2654435761u;
+    uint16_t c = ch_rgb(a->deco_c);
+
+    switch (a->deco) {
+
+    case DECO_ESTRELLAS:
+        for (int i = 0; i < 40; i++) {
+            int x = ch_rnd(&r, CH_W), y = ch_rnd(&r, 84);
+            ch_px(b, x, y, ch_tone(c, 40 + ch_rnd(&r, 60)));
+        }
+        break;
+
+    case DECO_OLAS:
+        /* Four crests, flatter and paler the further away they are. */
+        for (int k = 0; k < 4; k++) {
+            int y = 62 + k * 8;
+            uint16_t cc = ch_tone(c, 30 + k * 18);
+            for (int x = 0; x < CH_W; x += 2) {
+                int d = ((x / 2 + k * 3) % 8 < 4) ? 0 : 1;
+                ch_rect(b, x, y + d, 2, 1, cc);
+            }
+        }
+        break;
+
+    case DECO_CIRCUITO:
+        for (int x = 8; x < CH_W; x += 16) ch_vline(b, x, 0, 94, ch_tone(c, 22));
+        for (int y = 12; y < 94; y += 16) ch_hline(b, 0, y, CH_W, ch_tone(c, 22));
+        for (int i = 0; i < 12; i++) {
+            int x = 8 + ch_rnd(&r, 11) * 16, y = 12 + ch_rnd(&r, 6) * 16;
+            ch_rect(b, x - 1, y - 1, 3, 3, c);
+        }
+        break;
+
+    case DECO_BRASAS:
+        ch_glow(b, CH_W / 2, 96, 60, ch_rgb(0xFF9F0A), 70);
+        for (int i = 0; i < 34; i++) {
+            int x = ch_rnd(&r, CH_W), y = 20 + ch_rnd(&r, 74);
+            int s = 1 + (ch_rnd(&r, 10) == 0);
+            ch_rect(b, x, y, s, s, ch_tone(c, 50 + ch_rnd(&r, 50)));
+        }
+        break;
+
+    case DECO_NIEVE:
+        for (int i = 0; i < 70; i++) {
+            int x = ch_rnd(&r, CH_W), y = ch_rnd(&r, 94);
+            ch_px(b, x, y, ch_tone(c, 50 + ch_rnd(&r, 50)));
+        }
+        break;
+
+    case DECO_TORRES: {
+        /* A skyline: the masts go BEHIND the horizon line, which is what
+         * makes them read as far away instead of as bars on the floor. */
+        int x = -4;
+        while (x < CH_W) {
+            int w = 6 + ch_rnd(&r, 10);
+            int h = 18 + ch_rnd(&r, 44);
+            ch_rect(b, x, 94 - h, w, h, ch_tone(c, 16 + ch_rnd(&r, 14)));
+            for (int y = 94 - h + 4; y < 92; y += 7) {
+                if (ch_rnd(&r, 3)) ch_rect(b, x + 2, y, 2, 2, ch_tone(c, 70));
+            }
+            x += w + 2 + ch_rnd(&r, 6);
+        }
+        break;
+    }
+
+    case DECO_AGUJAS:
+        for (int i = 0; i < 9; i++) {
+            int x = 6 + ch_rnd(&r, CH_W - 12);
+            int h = 16 + ch_rnd(&r, 40);
+            uint16_t cc = ch_tone(c, 24 + ch_rnd(&r, 22));
+            for (int k = 0; k < h; k++) {
+                int w = 1 + (h - k) / 12;
+                ch_rect(b, x - w / 2, 94 - h + k, w, 1, cc);
+            }
+        }
+        for (int i = 0; i < 26; i++) {           /* dust                     */
+            ch_px(b, ch_rnd(&r, CH_W), 30 + ch_rnd(&r, 60), ch_tone(c, 40));
+        }
+        break;
+
+    case DECO_CRISTALES:
+        for (int i = 0; i < 11; i++) {
+            int x = 4 + ch_rnd(&r, CH_W - 8);
+            int h = 20 + ch_rnd(&r, 46);
+            int w = 4 + ch_rnd(&r, 7);
+            uint16_t cc = ch_tone(c, 26 + ch_rnd(&r, 30));
+            for (int k = 0; k < h; k++) {
+                int ww = w * (h - k) / h + 1;
+                ch_rect(b, x - ww / 2, 94 - h + k, ww, 1, cc);
+            }
+            ch_vline(b, x, 94 - h + 2, h - 4, ch_tone(c, 85));
+        }
+        break;
+
+    default:
+        break;
+    }
 }
 
 void ch_bt_fondo(ch_t *g)
 {
     ch_buf_t *b = &g->bg;
+    const ch_arena_t *a = &ARENAS[(g->bt.zona ? g->bt.zona - 1 : 0) % ZONAS];
 
-    /* The arena: sky, horizon and floor. It is the only decorative part and
-     * that is why it can afford a gradient: it is drawn once per phase. */
-    ch_vgrad(b, 0, 0, CH_W, 96, ch_rgb(0x1B2340), ch_rgb(0x3B3A62));
-    ch_vgrad(b, 0, 96, CH_W, 176, ch_rgb(0x4A4162), ch_rgb(0x241E33));
-    ch_rect(b, 0, 94, CH_W, 2, ch_rgb(0x6A5F8C));
+    /* The arena: sky, scenery, horizon and floor. It is the only decorative
+     * part and that is why it can afford all this: it is drawn once per phase
+     * and pays not one dirty rectangle afterwards. */
+    ch_vgrad(b, 0, 0, CH_W, 96, ch_rgb(a->cielo_a), ch_rgb(a->cielo_b));
+    arena_deco(g, a, g->bt.zona);
+    ch_vgrad(b, 0, 96, CH_W, 176, ch_rgb(a->suelo_a), ch_rgb(a->suelo_b));
+    ch_rect(b, 0, 94, CH_W, 2, ch_rgb(a->horizonte));
 
     /* Two platforms, one per robot. They go in the BACKGROUND and not with the
      * robot: they do not move, so there is no reason for them to pay a dirty
      * rectangle per frame. */
-    ch_disc(b, RIVAL_CX, RIVAL_Y + 80, 30, ch_rgb(0x5A5178));
-    ch_disc(b, RIVAL_CX, RIVAL_Y + 78, 28, ch_rgb(0x6E648F));
-    ch_disc(b, YO_CX, YO_Y + 82, 36, ch_rgb(0x5A5178));
-    ch_disc(b, YO_CX, YO_Y + 80, 34, ch_rgb(0x6E648F));
+    ch_disc(b, RIVAL_CX, RIVAL_Y + 80, 30, ch_rgb(a->plato));
+    ch_disc(b, RIVAL_CX, RIVAL_Y + 78, 28, ch_rgb(a->plato_alto));
+    ch_disc(b, YO_CX, YO_Y + 82, 36, ch_rgb(a->plato));
+    ch_disc(b, YO_CX, YO_Y + 80, 34, ch_rgb(a->plato_alto));
 
     panel_robot(g, PAN_R_X,  PAN_R_Y,  &g->bt.rival, false);
     panel_robot(g, PAN_YO_X, PAN_YO_Y, &g->s.yo,     true);
@@ -798,7 +1339,35 @@ void ch_bt_fondo(ch_t *g)
 
     switch (g->bt.fase) {
     case CB_MENU:
-        for (int i = 0; i < 4; i++) boton(g, i, _(MENU_PPAL[i]), true);
+        /* Swapping needs a reserve standing; running away is not an option
+         * against a boss or against another watch. A button that cannot be
+         * used says so by being grey, which is cheaper than a message
+         * explaining it after the tap. */
+        boton6(g, MP_ATACAR,   _(MENU_PPAL[MP_ATACAR]),   true);
+        boton6(g, MP_OBJETO,   _(MENU_PPAL[MP_OBJETO]),   !g->bt.enlace);
+        boton6(g, MP_CAMBIAR,  _(MENU_PPAL[MP_CAMBIAR]),
+               ch_eq_otro_vivo(&g->s) >= 0);
+        boton6(g, MP_ANALIZAR, _(MENU_PPAL[MP_ANALIZAR]), true);
+        boton6(g, MP_HUIR,     _(MENU_PPAL[MP_HUIR]),     !g->bt.jefe && !g->bt.enlace);
+        celda_equipo(g);
+        break;
+
+    case CB_CAMBIO:
+        for (int i = 0; i < 4; i++) {
+            const ch_robot_t *r = i < ch_eq_n(&g->s) ? ch_eq(&g->s, i) : NULL;
+            char t[26];
+            if (!r) { boton(g, i, i == 3 ? _("VOLVER") : "-", i == 3 && !g->bt.forzado); continue; }
+            snprintf(t, sizeof(t), "%s %d/%d", ch_robot_nombre(r),
+                     r->vida, r->vida_max);
+            boton(g, i, t, i != 0 && r->vida > 0);
+        }
+        break;
+
+    case CB_ESPERA:
+        boton(g, 0, _("ESPERANDO..."), false);
+        boton(g, 1, "", false);
+        boton(g, 2, "", false);
+        boton(g, 3, "", false);
         break;
 
     case CB_ATAQUES:
@@ -1062,7 +1631,23 @@ void ch_bt_dibujar(ch_t *g)
 {
     ch_buf_t *b = &g->fb;
     int w, h, cx, cy;
-    int bob = ((g->cuadro >> 4) & 1) ? 1 : 0;
+    /* THE IDLE.
+     *
+     * This used to be a one-pixel square wave, and the measurement is what
+     * justifies replacing it: in combat the engine pushes 40 % of the screen
+     * EVERY frame, idle included, because the two robot boxes are dirtied
+     * whether or not anything moved. That budget is already spent. Everything
+     * drawn inside those boxes is therefore free, and what was being bought
+     * with it was one pixel of bob.
+     *
+     * So: a three-step breath of about a second, the two robots out of phase
+     * so they do not look like one object, the shadow narrowing underneath
+     * (ch_robot_draw's `flota`), and a robot under a quarter of its health
+     * throwing sparks - which is not decoration, it is the one thing in this
+     * screen that says "this is about to end" without reading a number. */
+    static const int8_t RESPIRO[8] = { 0, 1, 2, 2, 2, 1, 0, 0 };
+    int fase_r = RESPIRO[(g->cuadro >> 3) & 7];
+    int fase_y = RESPIRO[((g->cuadro >> 3) + 4) & 7];
     int sac_r = 0, sac_y = 0, emb_r = 0, emb_y = 0;
     int paso = ANIM_LARGO - g->bt.anim;      /* 0..21 while it lasts         */
     bool animando = g->bt.anim || g->bt.dmg_t;
@@ -1089,10 +1674,35 @@ void ch_bt_dibujar(ch_t *g)
         if (g->bt.sacude_quien) sac_y = d; else sac_r = d;
     }
 
-    ch_robot_draw(b, RIVAL_CX + sac_r + emb_r, RIVAL_Y + bob, &g->bt.rival,
-                  2, true, g->bt.anim && g->bt.anim_dir ? 1 : 0);
-    ch_robot_draw(b, YO_CX + sac_y + emb_y, YO_Y + (bob ^ 1), &g->s.yo,
-                  2, false, g->bt.anim && !g->bt.anim_dir ? 1 : 0);
+    /* While a hit is playing the robot is being thrown about; breathing on
+     * top of that just makes it jitter. */
+    if (g->bt.anim || g->bt.sacude) fase_r = fase_y = 0;
+
+    ch_robot_draw(b, RIVAL_CX + sac_r + emb_r, RIVAL_Y - fase_r, &g->bt.rival,
+                  2, true, g->bt.anim && g->bt.anim_dir ? 1 : 0, fase_r);
+    ch_robot_draw(b, YO_CX + sac_y + emb_y, YO_Y - fase_y, &g->s.yo,
+                  2, false, g->bt.anim && !g->bt.anim_dir ? 1 : 0, fase_y);
+
+    /* A robot below a quarter of its health throws sparks out of its chest.
+     * The dice are the GAME's and never the combat's: over the link both
+     * watches must roll the same numbers for the same reasons, and a spark is
+     * not one of them. */
+    for (int q = 0; q < 2; q++) {
+        const ch_robot_t *r = q ? &g->bt.rival : &g->s.yo;
+        if (r->vida <= 0 || r->vida * 4 >= r->vida_max) continue;
+        punto(q, &cx, &cy);
+        for (int i = 0; i < 2; i++) {
+            if (ch_rnd(&g->rng, 3)) continue;
+            int sx = cx - 8 + ch_rnd(&g->rng, 17);
+            int sy = cy - 6 + ch_rnd(&g->rng, 13);
+            ch_rect(b, sx, sy, 1, 1 + (int)ch_rnd(&g->rng, 2),
+                    ch_rnd(&g->rng, 2) ? ch_rgb(0xFFE45E) : ch_rgb(0xFF8A3D));
+        }
+        /* and every so often the whole body browns out for a frame */
+        if (((g->cuadro + q * 17) % 47) == 0) {
+            ch_shade(b, cx - 26, cy - 24, 52, 48, -3);
+        }
+    }
 
     if (g->bt.anim && !g->bt.anim_estado) {
         if (paso >= 6 && g->bt.anim > ANIM_IMPACTO) {

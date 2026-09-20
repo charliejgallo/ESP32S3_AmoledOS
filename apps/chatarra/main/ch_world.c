@@ -874,6 +874,37 @@ static void flecha(ch_buf_t *b, int cx, int cy, int dir, uint16_t c)
     }
 }
 
+
+/* --------------------------------------------------------------------------
+ * The phone booth
+ *
+ * Ten wide and eighteen tall, like the characters: it sticks out upwards and
+ * the cell you touch is still the one at its feet. Blue and lit, so it reads
+ * as a booth at a glance in a town full of brown and green - and the aerial
+ * on the roof is there to say what it is for, because nothing else on this
+ * map talks to another watch.
+ * -------------------------------------------------------------------------- */
+static const char *const SP_CABINA[18] = {
+    "....k.....",
+    "...kck....",
+    "....k.....",
+    "..kkkkkk..",
+    ".kBBBBBBk.",
+    ".kBccccBk.",
+    ".kBcwwcBk.",
+    ".kBccccBk.",
+    ".kBcccdBk.",
+    ".kBcdddBk.",
+    ".kBccccBk.",
+    ".kBccccBk.",
+    ".kBccccBk.",
+    ".kBBBBBBk.",
+    ".kBBBBBBk.",
+    ".kkkkkkkk.",
+    "..KKKKKK..",
+    "..........",
+};
+
 void ch_ent_draw(ch_buf_t *b, const ch_room_t *r, const ch_ent_t *e, bool hecho)
 {
     int x = e->x * TILE, y = e->y * TILE;
@@ -927,6 +958,10 @@ void ch_ent_draw(ch_buf_t *b, const ch_room_t *r, const ch_ent_t *e, bool hecho)
         break;
     case E_CARTEL:
         ch_blit(b, x - 1, y - 6, SP_SIGNO, 14);
+        break;
+
+    case E_CABINA:
+        ch_blit(b, x - 1, y - 10, SP_CABINA, 18);
         break;
 
     case E_BLOQUEO:

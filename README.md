@@ -243,6 +243,27 @@ speaker the HAL lacked (`aos_hal_spk_*`).
 apart: 24 frames one way, 31 the other, nothing lost. One watch in Spanish,
 the other in English.</em></p>
 
+And the sixth app on the link is not a link app at all: **Chatarra**, the robot
+RPG, grew a **phone booth** in each of its eight towns. Walk into it and the
+watch goes on the air and talks to the one it is paired with — fight, swap a
+robot, swap a part — and walk out and the radio comes down. The battle is
+lockstep like Truco's: both watches run the same combat over the same seed and
+only the two choices of the turn travel, one byte each.
+
+<p align="center">
+  <img src="docs/img/photo-chatarra-booth.jpg" width="300" alt="The phone booth on two watches: connected to each other">
+  <img src="docs/img/photo-chatarra-link-battle.jpg" width="300" alt="The same battle seen from both watches">
+</p>
+<p align="center"><em>The booth, and then the same battle from both sides: the
+one in English is CRATE LV6 and sees the rival at LV5; the one in Spanish is
+CAJA N5 and sees the rival at N6. The guest says ESPERANDO while the host
+resolves the turn.</em></p>
+<p align="center">
+  <img src="docs/img/photo-chatarra-link-end.jpg" width="300" alt="Back in the booth after the fight, one watch at 17/40 and the other at 0/36">
+</p>
+<p align="center"><em>And back in the booth afterwards: 17/40 against 0/36, and
+both say good fight in their own language.</em></p>
+
 The plan, and everything measured along the way — 6000 frames with nothing
 lost on the air, 3-5 ms round trip, 60 KB/s, what Bluetooth costs, what a
 watch that leaves its network to sit on a channel costs, 100 KB over the

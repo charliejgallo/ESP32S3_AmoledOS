@@ -50,7 +50,7 @@
 #define FRAME_MS    33          /* 30 frames per second                      */
 
 #define SAVE_MAGIC  0x43485431u /* "CHT1"                                    */
-#define SAVE_VER    3           /* v3: fixed-size arrays (see below)         */
+#define SAVE_VER    4           /* v4: the team of three (see below)         */
 
 /* --------------------------------------------------------------------------
  * The v2 format, exactly as it was, so it can be converted
@@ -82,6 +82,36 @@ typedef struct {
     uint32_t   pasos;
     uint8_t    visto[V2_PIEZAS / 8];
 } ch_save_v2_t;
+
+/* --------------------------------------------------------------------------
+ * v3: everything v4 has, minus the team
+ *
+ * v4 added `banco[]` and `nbanco` AT THE END, which is the rule the v2 bug
+ * wrote. That makes v3 a strict PREFIX of v4 and the conversion a copy of the
+ * prefix plus a zeroed tail - no field list, because a field list is a thing
+ * that can be got wrong and this is a thing the compiler can check.
+ *
+ * And it does check it: the assert below is what turns "it is a prefix" from a
+ * claim in a comment into a build error the day somebody adds a field in the
+ * middle instead of at the end. That is the whole lesson of the x255 bug,
+ * written as code rather than as prose.
+ * -------------------------------------------------------------------------- */
+typedef struct {
+    ch_robot_t yo;
+    uint8_t    sala;
+    uint8_t    x, y;
+    uint8_t    dir;
+    uint16_t   creditos;
+    uint8_t    obj[CH_MAX_OBJ];
+    uint8_t    piezas[CH_MAX_MOCHILA];
+    uint8_t    bandera[BANDERAS / 8];
+    uint16_t   victorias;
+    uint32_t   pasos;
+    uint8_t    visto[CH_MAX_PIEZAS / 8];
+} ch_save_v3_t;
+
+_Static_assert(offsetof(ch_save_t, banco) == sizeof(ch_save_v3_t),
+               "v3 dejo de ser un prefijo de v4: el campo nuevo no va en el medio");
 
 typedef struct {
     uint32_t  magic;
@@ -127,7 +157,13 @@ static int s_sonido = 2;
 
 void ch_sfx(int freq_hz, int ms)
 {
-    if (s_sonido >= 1) {
+    if (s_sonido < 1) return;
+    /* With the synthesiser up the effect is a voice of the mix; the beeper is
+     * silent anyway while the streaming speaker holds the codec, so this is
+     * not a preference, it is the only way it makes a sound at all. */
+    if (ch_snd_sintetiza()) {
+        ch_snd_sfx(freq_hz, ms);
+    } else {
         aos_hal_beep(freq_hz, ms);
     }
 }
@@ -145,6 +181,165 @@ void ch_sonido_set(int v)
 {
     s_sonido = v < 0 ? 0 : (v > 2 ? 2 : v);
     aos_hal_pref_set_i32(KEY_SND, s_sonido);
+    ch_snd_reabrir();
+}
+
+/* --------------------------------------------------------------------------
+ * The speaker
+ *
+ * Five calls, the same shape as the link's eight above: ch_sound.c makes the
+ * samples and does not know there is a HAL on the other side.
+ * -------------------------------------------------------------------------- */
+
+#ifdef AOS_SIM_BUILTIN
+/* CH_WAV=/tmp/x.pcm writes everything the synthesiser produces to a file, raw
+ * 16-bit mono. The simulator swallows the samples -its speaker is a stub- so
+ * this is the only way to HEAR what was written before it reaches the board.
+ * tools/pcm2wav.py puts a header on it. */
+static FILE *s_wav;
+#endif
+
+bool ch_audio_abrir(int hz)
+{
+    if (aos_hal_spk_is_open()) return true;
+    if (!aos_hal_spk_open((uint32_t)hz)) {
+        /* The microphone holds the codec, or this firmware has no streaming
+         * speaker. Not a failure: the game falls back to the beeper it was
+         * built on, and says so once. */
+        aos_hal_log("chatarra", "no speaker: the beeper it is");
+        return false;
+    }
+    aos_hal_log("chatarra", "synthesiser at %d Hz", hz);
+    return true;
+}
+
+void ch_audio_cerrar(void)
+{
+#ifdef AOS_SIM_BUILTIN
+    if (s_wav) { fclose(s_wav); s_wav = NULL; }
+#endif
+    aos_hal_spk_close();
+}
+bool ch_audio_abierto(void)     { return aos_hal_spk_is_open(); }
+int  ch_audio_pendiente(void)   { return aos_hal_spk_queued(); }
+
+int ch_audio_escribir(const int16_t *pcm, int n)
+{
+#ifdef AOS_SIM_BUILTIN
+    if (!s_wav) {
+        const char *v = getenv("CH_WAV");
+        if (v && v[0]) s_wav = fopen(v, "wb");
+    }
+    if (s_wav) fwrite(pcm, sizeof(int16_t), (size_t)n, s_wav);
+#endif
+    return aos_hal_spk_write(pcm, n);
+}
+
+
+/* --------------------------------------------------------------------------
+ * THE LINK, FROM THIS SIDE OF THE WALL
+ *
+ * The phone booth in every town talks to the watch this one is paired with.
+ * The protocol is in ch_link.c and does not know `aos_hal_*` exists: these
+ * eight calls are the whole of what it needs, in the same shape as ch_sfx()
+ * above. Everything specific to the radio -that a partner lives in NVS, that
+ * the host is the lower MAC, that the reliable channel gives up after 3.2 s-
+ * stops here.
+ *
+ * The radio is NOT started when the app opens. A watch on the map is a watch
+ * off the air: the link costs 4.5 KB of internal RAM and radio time, and the
+ * game is played alone nearly always. It goes up when you walk into the booth
+ * and comes down when you walk out (and in destroy(), for the way out that
+ * skips the door).
+ * -------------------------------------------------------------------------- */
+
+#define OFERTA  "Chatarra"      /* what our beacon says, and what we look for */
+
+bool ch_net_hay_pareja(char *nombre, int n)
+{
+    aos_link_partner_t p;
+
+    if (!aos_hal_link_partner(&p) || !p.valid) return false;
+    /* A watch whose name was never set answers with an empty one, and an empty
+     * subtitle reads as a bug. The booth says "the other watch" instead. */
+    if (nombre && n > 0) {
+        snprintf(nombre, (size_t)n, "%s", p.name[0] ? p.name : _("OTRO RELOJ"));
+    }
+    return true;
+}
+
+bool ch_net_empezar(void)
+{
+    if (!aos_hal_link_running() && !aos_hal_link_start()) return false;
+    aos_hal_link_offer(OFERTA);
+    aos_hal_link_reliable_reset();
+    return true;
+}
+
+void ch_net_parar(void)
+{
+    if (!aos_hal_link_running()) return;
+    aos_hal_link_offer("");
+    aos_hal_link_stop();
+}
+
+/* The lower MAC is the host. Pong, Truco, the radar and the walkie all decide
+ * it the same way and so does this: the rule is only useful if it is the same
+ * one everywhere. */
+bool ch_net_soy_host(void)
+{
+    aos_link_stats_t st;
+    aos_link_partner_t p;
+
+    if (!aos_hal_link_stats(&st) || !aos_hal_link_partner(&p) || !p.valid) {
+        return true;
+    }
+    return memcmp(st.own_mac, p.mac, 6) < 0;
+}
+
+bool ch_net_mandar(const void *d, int n)
+{
+    return aos_hal_link_send_reliable(d, (size_t)n);
+}
+
+int ch_net_recibir(void *d, int max)
+{
+    aos_link_frame_t f;
+    int n = aos_hal_link_recv_reliable(&f);
+
+    if (n <= 0) return 0;
+    if (n > max) n = max;
+    memcpy(d, f.data, (size_t)n);
+    return n;
+}
+
+bool ch_net_caido(void)
+{
+    return aos_hal_link_reliable_lost();
+}
+
+void ch_net_reset_canal(void)
+{
+    aos_hal_link_reliable_reset();
+}
+
+/* Their beacon says which app they are offering. Checking it is what lets the
+ * booth say "they are not in Chatarra" instead of waiting 3.2 s for a channel
+ * that was never going to answer - the trap Pixel Art documented. */
+bool ch_net_alla(void)
+{
+    aos_link_neighbour_t v[AOS_LINK_NEIGHBOURS];
+    aos_link_partner_t p;
+    int n;
+
+    if (!aos_hal_link_partner(&p) || !p.valid) return false;
+    n = aos_hal_link_neighbours(v, AOS_LINK_NEIGHBOURS);
+    for (int i = 0; i < n; i++) {
+        if (memcmp(v[i].mac, p.mac, 6) == 0) {
+            return strcmp(v[i].app, OFERTA) == 0;
+        }
+    }
+    return false;
 }
 
 /* --------------------------------------------------------------------------
@@ -200,6 +395,9 @@ static bool cargar(ch_t *g)
 
     if (sv.ver == SAVE_VER && sv.largo == (uint16_t)sizeof(ch_save_t)) {
         g->s = sv.s;
+    } else if (sv.ver == 3 && sv.largo == (uint16_t)sizeof(ch_save_v3_t)) {
+        memcpy(&g->s, &sv.s, sizeof(ch_save_v3_t));     /* the tail is already 0 */
+        aos_hal_log("chatarra", "v3 save converted to v4");
     } else if (sv.ver == 2 && sv.largo == (uint16_t)sizeof(ch_save_v2_t)) {
         /* Field-by-field conversion, which is the only thing that does not
          * take care of itself when a size changes. */
@@ -216,7 +414,7 @@ static bool cargar(ch_t *g)
         memcpy(g->s.piezas,  v->piezas,  V2_MOCHILA);
         memcpy(g->s.bandera, v->bandera, sizeof(v->bandera));
         memcpy(g->s.visto,   v->visto,   sizeof(v->visto));
-        aos_hal_log("chatarra", "v2 save converted to v3");
+        aos_hal_log("chatarra", "v2 save converted to v4");
     } else {
         aos_hal_log("chatarra", "save v%u of %u B: no known conversion",
                     (unsigned)sv.ver, (unsigned)sv.largo);
@@ -239,8 +437,9 @@ static bool cargar(ch_t *g)
     for (int i = ITEMS; i < CH_MAX_OBJ; i++) g->s.obj[i] = 0;
     for (int i = MOCHILA; i < CH_MAX_MOCHILA; i++) g->s.piezas[i] = 0xFF;
     if (g->s.sala >= ch_nsalas) g->s.sala = 0;
-    if (g->s.sala >= ch_nsalas) g->s.sala = 0;
+    if (g->s.nbanco > EQUIPO - 1) g->s.nbanco = EQUIPO - 1;
     ch_robot_stats(&g->s.yo);
+    for (int i = 0; i < g->s.nbanco; i++) ch_robot_stats(&g->s.banco[i]);
     return true;
 }
 
@@ -482,6 +681,13 @@ static void tick(lv_timer_t *t)
         break;
     case MODO_COMBATE:
         ch_bt_tick(g);
+        /* A link battle still has to drain the channel: the rival's choice
+         * comes in through it, and so does the news that they walked out. */
+        if (g->bt.enlace) ch_lk_tick(g);
+        break;
+    case MODO_CABINA:
+        ch_lk_tick(g);
+        g->cuadro++;
         break;
     default:
         g->cuadro++;
@@ -719,6 +925,14 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
             }
             for (int i = 1; i < ITEMS; i++) a->g.s.obj[i] = 5;
             a->g.s.creditos = 4000;
+            /* and a full team, which is the only way to see the swap button
+             * lit up without playing for an hour first */
+            ch_eq_armar(&a->g.s);
+            ch_eq_armar(&a->g.s);
+        }
+        if ((v = getenv("CH_MEL")) && v[0]) {
+            /* Forces a tune, to listen to it without playing up to it. */
+            ch_snd_melodia(&a->g, atoi(v));
         }
         if ((v = getenv("CH_SALA")) && v[0]) {
             a->g.modo = MODO_MAPA;
@@ -751,6 +965,8 @@ static void chatarra_destroy(aos_app_t *self, void *inst)
 
     if (a->timer) lv_timer_delete(a->timer);
     guardar(&a->g);
+    ch_snd_fin();               /* the codec goes back to whoever wants it */
+    ch_net_parar();             /* the way out that skips the booth's door */
 
     /* With the context still alive, deleting the objects here makes any event
      * from the deletion -DELETE, PRESS_LOST- harmless. Leaving them to the
