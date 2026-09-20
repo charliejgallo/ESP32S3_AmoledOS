@@ -19,10 +19,12 @@ HERE=${0:a:h}
 CHECK=0; [ "$1" = "--check" ] && CHECK=1
 for p in $HERE/*.patch; do
     name=$(basename $p)
-    if (cd $IDF && patch -p1 -R --dry-run -s < $p > /dev/null 2>&1); then
+    # forward first: `patch -R --dry-run` on an unpatched file says "reversed
+    # patch detected, assume -R" and exits 0, which read as "already in"
+    if (cd $IDF && patch -p1 -N --dry-run -s -f < $p > /dev/null 2>&1); then
+        if [ $CHECK = 1 ]; then echo "  MISSING $name"; else (cd $IDF && patch -p1 -N -s -f < $p) && echo "  applied $name"; fi
+    elif (cd $IDF && patch -p1 -R -N --dry-run -s -f < $p > /dev/null 2>&1); then
         echo "  in     $name"
-    elif (cd $IDF && patch -p1 --dry-run -s < $p > /dev/null 2>&1); then
-        if [ $CHECK = 1 ]; then echo "  MISSING $name"; else (cd $IDF && patch -p1 -s < $p) && echo "  applied $name"; fi
     else
         echo "  ?? $name does not apply cleanly to $IDF (different IDF version?)"
     fi
