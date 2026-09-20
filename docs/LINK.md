@@ -488,6 +488,36 @@ closing the microphone and lost every time, because the capture task
 releases the codec when it ends, not when close() returns. The HAL's
 open() now waits for it; the app retries from its tick as well.
 
+## The sixth app: a place, not a mode (Chatarra's phone booth)
+
+The five apps above are link apps: you open them to talk to the other watch.
+Chatarra is an RPG played alone for hours that grew **a phone booth in each of
+its eight towns**. The radio goes up when you walk into one and comes down when
+you walk out, so being reachable is somewhere you go rather than a mode you
+switch on — and the other 51 rooms of the game are not on the air at all.
+
+Two things it contributed back to this document:
+
+- **Bring the radio up BEFORE asking whether anybody is paired.** On the board
+  the partner is in NVS and either order works; in the simulator the partner is
+  only put there by the link's own tick, which is why Truco and Pixel Art each
+  need a development flag to skip the question. Start, then poll for a partner
+  for a second or two, and no flag is needed — and it is the honest order, since
+  "is anybody on the air?" cannot be asked with the radio off.
+- **Anything a shared engine decides at random has to be phrased so both sides
+  mean the same thing by it.** Chatarra's combat breaks a tie on speed by asking
+  "does the rival go first?", which is the *opposite* question on the two
+  watches: the same coin would have both of them answering yes. It draws "does
+  the HOST go first?" instead and each side turns that into its own answer.
+
+<p align="center">
+  <img src="img/photo-chatarra-booth.jpg" width="300" alt="The phone booth on two watches, connected to each other">
+  <img src="img/photo-chatarra-link-battle.jpg" width="300" alt="The same battle seen from both watches">
+</p>
+<p align="center"><em>The booth, and the same battle from both sides: one watch
+is CRATE LV6 and sees the rival at LV5, the other is CAJA N5 and sees the rival
+at N6. Only two bytes a turn travel; both watches compute the damage.</em></p>
+
 ## Traps expected, to be confirmed or struck out
 
 - A watch that leaves its access point loses the portal and the phone's
@@ -504,6 +534,36 @@ open() now waits for it; the app retries from its tick as well.
   is open.
 - With the iPhone connected, ANCS traffic and ESP-NOW share the air;
   measured before it is designed around.
+- **The radio up AND the panel pushed hard at the same time can reset the
+  board.** Seen once, on the first Chatarra battle between the two watches: the
+  crash is a race inside ESP-IDF's SPI bus lock, where the LVGL flush is inside
+  `req_core()` and the SPI interrupt lands in the window before the device is
+  published, so `bg_exit_core()` calls `resume_dev_in_isr(NULL)`. The radio
+  alone survives (the Link app, 90 s; Chatarra idle in the booth, 3 minutes);
+  it takes both. Not the protocol's, and not fixable from an app.
+- **The radio up and the panel flushing hard can reboot the watch, and it
+  is IDF's, not the link's.** Seen once in a Chatarra battle over the link
+  (2026-09-20): a coredump in the panel's SPI interrupt, `LoadProhibited` at
+  address 0 inside `resume_dev_in_isr()`, with the LVGL task in the middle
+  of a flush on the other core. It is
+  [espressif/esp-idf#18527](https://github.com/espressif/esp-idf/issues/18527):
+  `spi_bus_lock.c` reads `acquiring_dev` twice in `bg_exit_core()` and
+  another core can clear it in between. The condition is two cores on the
+  same bus lock at once, which the firmware used to provide for free: the
+  panel's SPI interrupt lived on core 0 (allocated by `app_main`) and the
+  LVGL task had no affinity. Since v0.4.4 the display is brought up from a
+  task pinned to core 1, so the interrupt lives there, the LVGL and
+  housekeeping tasks are pinned there, and a brightness or sleep command
+  from any other task (the portal, BLE) runs on that core through the IPC
+  task; WiFi and its interrupts stay on core 0. `/api/mem?intr=1` shows the
+  placement. The driver's own fix is in `tools/idf-patches/`, to apply to
+  the local IDF until upstream ships it. Measured: 20 minutes of Pong
+  (30 frames/s each way, a full-screen canvas at 30 fps) plus a loop of
+  brightness writes from the portal task, on both boards, before and after,
+  with no reboot either way, and the video player at the same frame rate:
+  the race is rarer than that, and the change is argued from the
+  interrupt placement, not from a reproduction. The write-up is
+  `docs/internal/HANDOFF-SPI-WIFI-NUCLEOS.md`.
 - Lockstep only holds while the engine is deterministic: a move decided by
   `tr_ai_decide()` on one side, or anything that reads the state's random
   generator outside the deal, would fork the two games silently. In link

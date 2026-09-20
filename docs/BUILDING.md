@@ -63,6 +63,17 @@ build with `=0` afterwards - it sticks like the others.
 pulling a change to it, delete `sdkconfig` before building: a stale one builds
 the old configuration without a word. (`idf.py fullclean` does not remove it.)
 
+## Patches to ESP-IDF
+
+`tools/idf-patches/` holds fixes the firmware needs and upstream has not
+shipped. `./tools/idf-patches/apply.sh` applies them to `$IDF_PATH` (or
+`~/esp/esp-idf`), once; `--check` only says which are in. Today there is
+one: `spi_bus_lock.c` reading `acquiring_dev` twice in the SPI interrupt
+([espressif/esp-idf#18527](https://github.com/espressif/esp-idf/issues/18527)),
+a NULL dereference now and then with the radio up and the panel flushing.
+The firmware also keeps every user of the panel's SPI on one core, so it does
+not crash without the patch; the patch closes the bug in the driver as well.
+
 ## Simulator
 
 Reproduces the 368x448 display with the mouse acting as a finger.
