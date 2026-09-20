@@ -95,24 +95,40 @@ int ch_puerta_lado(const ch_ent_t *e)
  * door is on: across for the top and bottom ones, DOWN for the side ones. It
  * used to always run in x, which silently capped every side door at a single
  * cell -24x24 real pixels against the bezel, which is exactly the thing the
- * comment above warns about. */
-void ch_puerta_caja(const ch_ent_t *e, int *w, int *h)
+ * comment above warns about.
+ *
+ * And the opening is PUERTA_HONDO cells deep, always growing INWARDS from the
+ * edge, because the outermost row of the map is not touchable. The audit's
+ * envelope (APP-GUIDE) is y 24..410, x 16..352 of the 368x448 real panel, and
+ * a 12 px cell is 24 real: row 0 lives at y 0..23, which is ENTIRELY outside
+ * it. That is why you could walk south between sectors and never back north.
+ * Column 0 has 8 usable pixels out of 24 and column 14 has 17, which is why
+ * the sideways ones "worked" and felt stiff. */
+#define PUERTA_HONDO 2
+
+void ch_puerta_caja(const ch_ent_t *e, int *x0, int *y0, int *w, int *h)
 {
     int n = e->premio ? e->premio : 1;
-    int lado = ch_puerta_lado(e);
+    int f = PUERTA_HONDO;
 
-    if (lado == 2 || lado == 3) { *w = 1; *h = n; }
-    else                        { *w = n; *h = 1; }
+    *x0 = e->x; *y0 = e->y;
+    switch (ch_puerta_lado(e)) {
+    case 1: *w = n; *h = f;                       break;  /* top:    y .. y+1 */
+    case 0: *w = n; *h = f; *y0 = e->y - f + 1;   break;  /* bottom: y-1 .. y */
+    case 2: *w = f; *h = n;                       break;  /* left:   x .. x+1 */
+    case 3: *w = f; *h = n; *x0 = e->x - f + 1;   break;  /* right:  x-1 .. x */
+    default: *w = n; *h = 1;                      break;  /* a door inside a room */
+    }
 }
 
 static int puerta_en(const ch_room_t *r, int x, int y)
 {
     for (int i = 0; i < r->nents; i++) {
         const ch_ent_t *e = &r->ents[i];
-        int w, h;
+        int x0, y0, w, h;
         if (e->tipo != E_PUERTA) continue;
-        ch_puerta_caja(e, &w, &h);
-        if (x >= e->x && x < e->x + w && y >= e->y && y < e->y + h) {
+        ch_puerta_caja(e, &x0, &y0, &w, &h);
+        if (x >= x0 && x < x0 + w && y >= y0 && y < y0 + h) {
             return i;
         }
     }
@@ -1058,8 +1074,8 @@ int ch_map_check(void)
             const ch_ent_t *e = &r->ents[i];
 
             if (e->tipo == E_PUERTA) {
-                int w, h;
-                ch_puerta_caja(e, &w, &h);
+                int px, py, w, h;
+                ch_puerta_caja(e, &px, &py, &w, &h);
 
                 if (e->p1 >= ch_nsalas) {
                     aos_hal_log("chatarra", "room %d: door to a room that does not exist", si);
@@ -1073,7 +1089,7 @@ int ch_map_check(void)
 
                 /* every cell of the opening has to be walkable */
                 for (int k = 0; k < w * h; k++) {
-                    int cx = e->x + k % w, cy = e->y + k / w;
+                    int cx = px + k % w, cy = py + k / w;
                     if (bloqueado(&tmp, r, cx, cy)) {
                         aos_hal_log("chatarra", "%s: the doorway at %d,%d is blocked",
                                     r->nombre, cx, cy);

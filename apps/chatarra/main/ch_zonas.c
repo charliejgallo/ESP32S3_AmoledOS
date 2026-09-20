@@ -308,9 +308,9 @@ static const ch_ent_t EN_PUEBLO[] = {
      * paths, at the edge of the map, so crossing one slides and the line you
      * were walking carries on. The house's door is in the middle of the
      * sector and fades: walking into a house is not walking east. */
-    { E_PUERTA,  3,  4, S_CASA,     7, 11, 2, NULL, NULL },
-    { E_PUERTA, 14,  5, S_TUERCA_NE, 1,  6, 3, NULL, NULL },
-    { E_PUERTA,  6, 13, S_TUERCA_SO, 7,  1, 3, NULL, NULL },
+    { E_PUERTA,  3,  4, S_CASA,     7, 10, 2, NULL, NULL },
+    { E_PUERTA, 14,  5, S_TUERCA_NE, 2,  6, 3, NULL, NULL },
+    { E_PUERTA,  6, 13, S_TUERCA_SO, 7,  2, 3, NULL, NULL },
     { E_PNJ,    13, 12, 3, F_MISION_CUMPLIDA, F_TORNILLOS, IT_SOLDADOR,
       N_("VECINO: SE ME CAYERON\n"
       "LOS TORNILLOS EN EL\n"
@@ -346,9 +346,9 @@ static const ch_prop_t P_TUERCA_NE[] = {
 
 static const ch_ent_t EN_TUERCA_NE[] = {
     { E_PUERTA,  5,  0, S_SENDERO,   7, 11, 5, NULL, NULL },
-    { E_PUERTA,  0,  5, S_PUEBLO,   13,  6, 3, NULL, NULL },
-    { E_PUERTA,  6, 13, S_TUERCA_SE, 7,  1, 3, NULL, NULL },
-    { E_PUERTA, 11,  4, S_TALLER,    7, 11, 2, NULL, NULL },
+    { E_PUERTA,  0,  5, S_PUEBLO,   12,  6, 3, NULL, NULL },
+    { E_PUERTA,  6, 13, S_TUERCA_SE, 7,  2, 3, NULL, NULL },
+    { E_PUERTA, 11,  4, S_TALLER,    7, 10, 2, NULL, NULL },
     { E_PNJ,     3,  2, 4, 0, 0, 0,
       N_("MECANICO: EL TALLER ES\n"
       "DE LA ABUELA TUERCA.\n"
@@ -365,9 +365,9 @@ static const ch_prop_t P_TUERCA_SO[] = {
 };
 
 static const ch_ent_t EN_TUERCA_SO[] = {
-    { E_PUERTA,  6,  0, S_PUEBLO,    7, 12, 3, NULL, NULL },
-    { E_PUERTA, 14,  4, S_TUERCA_SE, 1,  5, 3, NULL, NULL },
-    { E_PUERTA, 11,  4, S_VECINO,    7, 11, 2, NULL, NULL },
+    { E_PUERTA,  6,  0, S_PUEBLO,    7, 11, 3, NULL, NULL },
+    { E_PUERTA, 14,  4, S_TUERCA_SE, 2,  5, 3, NULL, NULL },
+    { E_PUERTA, 11,  4, S_VECINO,    7, 10, 2, NULL, NULL },
     { E_CARTEL,  3, 11, 0, 0, 0, 0,
       N_("VILLA TUERCA\n"
       "POBLACION: 34 PERSONAS\n"
@@ -387,8 +387,8 @@ static const ch_prop_t P_TUERCA_SE[] = {
 };
 
 static const ch_ent_t EN_TUERCA_SE[] = {
-    { E_PUERTA,  6,  0, S_TUERCA_NE, 7, 12, 3, NULL, NULL },
-    { E_PUERTA,  0,  4, S_TUERCA_SO, 13, 5, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_TUERCA_NE, 7, 11, 3, NULL, NULL },
+    { E_PUERTA,  0,  4, S_TUERCA_SO, 12, 5, 3, NULL, NULL },
     /* The booth: the other watch. One per town, always at the side of the
      * square, because it is a place you go to and not a menu you open. */
     { E_CABINA, 11,  9, 0, 0, 0, 0, NULL, NULL },
@@ -475,7 +475,7 @@ static const ch_prop_t P_SENDERO[] = {
 };
 
 static const ch_ent_t EN_SENDERO[] = {
-    { E_PUERTA,  5, 13, S_TUERCA_NE, 7,  1, 5, NULL, NULL },
+    { E_PUERTA,  5, 13, S_TUERCA_NE, 7,  2, 5, NULL, NULL },
     { E_PUERTA,  5,  0, S_DESGUACE1, 7, 11, 5, NULL, NULL },
     { E_CARTEL, 11,  7, 0, 0, 0, 0,
       N_("SENDERO NORTE\n"

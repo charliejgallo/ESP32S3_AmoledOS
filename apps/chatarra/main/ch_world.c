@@ -932,9 +932,10 @@ static void ent_caja(const ch_ent_t *e, int *x0, int *y0, int *x1, int *y1)
         *x0 = e->x - 1; *x1 = e->x + 1; *y0 = e->y - 2;
         break;
     case E_PUERTA: {                    /* as big as the opening             */
-        int w, h;
-        ch_puerta_caja(e, &w, &h);
-        *x1 = e->x + w - 1; *y1 = e->y + h - 1;
+        int px, py, w, h;
+        ch_puerta_caja(e, &px, &py, &w, &h);
+        *x0 = px; *y0 = py;
+        *x1 = px + w - 1; *y1 = py + h - 1;
         break;
     }
     default:                            /* the rest draw nothing, or draw
@@ -1150,9 +1151,10 @@ void ch_ent_draw(ch_buf_t *b, const ch_room_t *r, const ch_ent_t *e, bool hecho)
          * a stretch of earth identical to all the rest, and there was no way
          * to know you could leave there. The arrow goes over every cell of the
          * opening. */
-        int w, h, dir = ch_puerta_lado(e);
+        int px, py, w, h, dir = ch_puerta_lado(e);
 
-        ch_puerta_caja(e, &w, &h);
+        ch_puerta_caja(e, &px, &py, &w, &h);
+        x = px * TILE; y = py * TILE;
         if (dir < 0) {
             if (r->suelo[e->y][e->x] == ':') dir = e->y < ROWS / 2 ? 1 : 0;
             else if (r->tema == TEMA_DUNGEON) {

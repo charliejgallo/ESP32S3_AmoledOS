@@ -452,7 +452,7 @@ bool ch_prop_solido(const ch_room_t *r, int tx, int ty);
  * The flowing ground asks before animating a tile, or it wipes what stands on
  * it once per turn and the thing blinks. */
 int  ch_puerta_lado(const ch_ent_t *e);
-void ch_puerta_caja(const ch_ent_t *e, int *w, int *h);
+void ch_puerta_caja(const ch_ent_t *e, int *x0, int *y0, int *w, int *h);
 bool ch_celda_tapada(const ch_room_t *r, int tx, int ty);
 
 /* --------------------------------------------------------------------------

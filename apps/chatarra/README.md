@@ -83,7 +83,7 @@ frame you repaint the player's robot and the few creatures on patrol.
 whole background (parallax, screen shake, an animated backdrop) throws all of
 this away. Best discarded before it is drawn.
 
-### The touch panel does not reach the bottom
+### The touch panel does not reach the edges - and the TOP is the worst one
 
 This board's CST816 **reports nothing below a real y≈354**, and in the simulator
 that does not show because the mouse reaches everywhere. That is where the
@@ -98,6 +98,33 @@ buffer 184 x 224, upscaled x2 to the board's 368 x 448
 
 Everything touchable in this game ends at **y=174 of the buffer** (348 real).
 The lists are six rows of 18 px from y=64: the last one ends right there.
+
+**And it does not reach the top either, which cost a whole direction of
+travel.** The audit's envelope (`docs/APP-GUIDE.md`) is the full rectangle:
+
+```
+real y  24..410     real x  16..352
+```
+
+On the 12 px grid of v2 a cell is 24 real pixels, so:
+
+| edge of the map | real span | usable |
+|---|---|---|
+| row 0 (north) | y 0..23 | **0 px of 24** |
+| row 13 (south) | y 312..335 | 24 |
+| column 0 (west) | x 0..23 | 8 of 24 |
+| column 14 (east) | x 336..359 | 17 of 24 |
+
+The north doors of the sectors were **entirely outside the panel**: you could
+walk south from one sector to the next and never come back. The sideways ones
+"worked" on a third of a cell, which is why they felt stiff. None of this
+shows in the simulator, and none of it shows with an injected tap either
+(`/api/mem?tap=` goes in below the panel), so it came out of arithmetic, not
+of testing.
+
+The rule that follows: **an exit never lives in the outermost row or column
+alone**. Every edge opening is `PUERTA_HONDO = 2` cells deep, growing inwards,
+so the second one is always well inside the envelope.
 
 And that is why **the menu has no on-screen button**. It opens with the
 **physical button** (like a console's START) or by **touching your own robot**.
