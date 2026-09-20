@@ -26,6 +26,7 @@
 #include <inttypes.h>
 #include "esp_http_server.h"
 #include "esp_heap_caps.h"
+#include "esp_intr_alloc.h"
 #include "esp_flash.h"
 #include "spi_flash_chip_driver.h"
 #include "freertos/FreeRTOS.h"
@@ -250,6 +251,33 @@ esp_err_t aos_mem_handler(httpd_req_t *req)
             aos_hal_brightness_set(keep);
             outf(&o, "== spin ==\n%d brightness writes in %lld ms, still here\n\n",
                  n, (long long)((esp_timer_get_time() - t0) / 1000));
+        }
+    }
+
+    /* ?intr=1: which interrupt lives on which core (esp_intr_dump). The
+     * panel's SPI interrupt is allocated by whichever core called
+     * spi_bus_initialize(); the WiFi ones by the WiFi task's core. Where they
+     * are decides whether the bus lock's ISR and its task-side callers can
+     * run at the same time (HANDOFF-SPI-WIFI-NUCLEOS.md). */
+    {
+        char q[64] = "", v[8];
+        if (httpd_req_get_url_query_str(req, q, sizeof(q)) == ESP_OK &&
+            httpd_query_key_value(q, "intr", v, sizeof(v)) == ESP_OK) {
+            char *buf = malloc(6144);
+            if (buf) {
+                FILE *f = fmemopen(buf, 6144, "w");
+                if (f) {
+                    esp_intr_dump(f);
+                    fclose(f);
+                    outf(&o, "== interrupts ==\n");
+                    for (char *line = strtok(buf, "\n"); line; line = strtok(NULL, "\n")) {
+                        outf(&o, "%s\n", line);        /* one chunk per line: outf's buffer is small */
+                    }
+                }
+                free(buf);
+            }
+            outf(&o, "this request runs on core %d; the LVGL task is pinned to %d\n\n",
+                 xPortGetCoreID(), aos_hal_lvgl_core());
         }
     }
 

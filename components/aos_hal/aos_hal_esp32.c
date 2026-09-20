@@ -15,6 +15,7 @@
 
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_ipc.h"
 #include "esp_system.h"
 #include "esp_heap_caps.h"
 #include "esp_cache.h"
@@ -208,6 +209,7 @@ static bool                 s_power_saving = true;      /* preference          *
 static bool                 s_battery_care = true;      /* preference          */
 static bool                 s_low_battery_saving;       /* forced under 20%    */
 static bool                 s_light_sleep_enabled = true;   /* preference       */
+#define AOS_LVGL_CORE       1       /* the panel's SPI, LVGL, housekeeping and the workers */
 static volatile bool        s_speaker_open;             /* held by tone_task   */
 /* the streaming speaker (aos_hal_spk_*) */
 static TaskHandle_t         s_spk_task;
@@ -361,6 +363,41 @@ void aos_hal_unlock(void)
  * colour transfers itself, which is the one order esp_lcd supports.
  * panel_sleep() already did this for its own commands; brightness did not.
  * -------------------------------------------------------------------------- */
+/* The two commands that reach the panel's SPI from outside the LVGL task,
+ * run on the panel's core. The bus lock's ISR side lives on AOS_LVGL_CORE
+ * (display_start_pinned) and IDF's spi_bus_lock reads `acquiring_dev`
+ * twice (espressif/esp-idf#18527): a polling transaction from the portal's
+ * httpd task or the BLE host on core 0 would be the other reader. The
+ * caller keeps holding the LVGL lock, so the IPC task itself takes nothing
+ * that could be held by whoever called us. */
+typedef struct {
+    int       cmd;              /* -1: brightness */
+    int       arg;
+    esp_err_t ret;
+} panel_ipc_t;
+
+static void panel_ipc_fn(void *p)
+{
+    panel_ipc_t *a = (panel_ipc_t *)p;
+    if (a->cmd < 0) {
+        bsp_display_brightness_set(a->arg);
+        a->ret = ESP_OK;
+    } else {
+        a->ret = esp_lcd_panel_io_tx_param(s_panel_io, (0x02 << 24) | (a->cmd << 8), NULL, 0);
+    }
+}
+
+static esp_err_t panel_tx_on_core(int cmd, int arg)
+{
+    panel_ipc_t a = { .cmd = cmd, .arg = arg, .ret = ESP_FAIL };
+    if (xPortGetCoreID() == AOS_LVGL_CORE) {
+        panel_ipc_fn(&a);
+    } else if (esp_ipc_call_blocking(AOS_LVGL_CORE, panel_ipc_fn, &a) != ESP_OK) {
+        ESP_LOGW(TAG, "panel command %d: ipc to core %d failed", cmd, AOS_LVGL_CORE);
+    }
+    return a.ret;
+}
+
 static void panel_brightness(int percent)
 {
 #if AOS_TEST_UNLOCKED_BRIGHTNESS
@@ -372,7 +409,7 @@ static void panel_brightness(int percent)
         ESP_LOGW(TAG, "brightness %d: could not take the LVGL lock, skipped", percent);
         return;
     }
-    bsp_display_brightness_set(percent);
+    panel_tx_on_core(-1, percent);
     aos_hal_unlock();
 #endif
 }
@@ -3271,7 +3308,7 @@ aos_touch_gesture_t aos_hal_touch_gesture(void)
  * -------------------------------------------------------------------------- */
 static esp_err_t panel_cmd(uint8_t cmd)
 {
-    return esp_lcd_panel_io_tx_param(s_panel_io, (0x02 << 24) | ((int)cmd << 8), NULL, 0);
+    return panel_tx_on_core(cmd, 0);
 }
 
 /* With the screen off LVGL has nothing to draw and nobody to listen to, but
@@ -4077,6 +4114,13 @@ static lv_display_t *display_start(void)
      * ticking once every 100 ms, where it only touches a counter nobody
      * reads. */
     port_cfg.timer_period_ms = 100;
+    /* Pinned, and to the core the panel's SPI interrupt lives on (this
+     * function runs there, see display_start_pinned): the bus lock's ISR
+     * side and its task side must never run at the same time on two cores,
+     * because IDF's spi_bus_lock reads `acquiring_dev` twice
+     * (espressif/esp-idf#18527) and the second read can be NULL. WiFi and
+     * its interrupts stay on core 0. */
+    port_cfg.task_affinity = AOS_LVGL_CORE;
     if (lvgl_port_init(&port_cfg) != ESP_OK) {
         ESP_LOGE(TAG, "lvgl_port_init failed");
         return NULL;
@@ -4210,6 +4254,44 @@ static lv_display_t *display_start(void)
     return disp;
 }
 
+/* display_start() on core AOS_LVGL_CORE, whatever core app_main runs on: an
+ * interrupt is allocated on the core that calls esp_intr_alloc(), and
+ * spi_bus_initialize() does so from here. Everything that touches the
+ * panel's SPI afterwards -the LVGL task, the housekeeping task's brightness
+ * and sleep commands, the video app's worker- is pinned to the same core. */
+static lv_display_t     *s_display_started;
+static SemaphoreHandle_t s_display_started_sem;
+
+static void display_start_task(void *arg)
+{
+    (void)arg;
+    s_display_started = display_start();
+    xSemaphoreGive(s_display_started_sem);
+    vTaskDelete(NULL);
+}
+
+static lv_display_t *display_start_pinned(void)
+{
+    s_display_started_sem = xSemaphoreCreateBinary();
+    if (!s_display_started_sem) {
+        return display_start();
+    }
+    if (xTaskCreatePinnedToCore(display_start_task, "aos_disp_init", 8192, NULL, 5, NULL,
+                                AOS_LVGL_CORE) != pdPASS) {
+        vSemaphoreDelete(s_display_started_sem);
+        return display_start();
+    }
+    xSemaphoreTake(s_display_started_sem, portMAX_DELAY);
+    vSemaphoreDelete(s_display_started_sem);
+    s_display_started_sem = NULL;
+    return s_display_started;
+}
+
+int aos_hal_lvgl_core(void)
+{
+    return AOS_LVGL_CORE;
+}
+
 bool aos_hal_init(void)
 {
     esp_err_t ret = nvs_flash_init();
@@ -4313,7 +4395,7 @@ bool aos_hal_init(void)
      * not flappy or recorder, which use ordinary widgets. display_start()
      * raises it. */
     aos_board_panel_hw_reset();
-    s_display = display_start();
+    s_display = display_start_pinned();
 
     if (!s_display) {
         ESP_LOGE(TAG, "could not start the display");
@@ -4400,7 +4482,9 @@ bool aos_hal_init(void)
     }
 
     s_last_activity_us = esp_timer_get_time();
-    xTaskCreate(housekeeping_task, "aos_hk", HK_STACK, NULL, 4, NULL);
+    /* on the panel's core: it sends the brightness and sleep commands over
+     * the same SPI device as the flush (see display_start) */
+    xTaskCreatePinnedToCore(housekeeping_task, "aos_hk", HK_STACK, NULL, 4, NULL, AOS_LVGL_CORE);
 
     if (aos_hal_net_enabled()) {
         aos_hal_net_enable(true);

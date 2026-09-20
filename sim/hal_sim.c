@@ -2361,6 +2361,8 @@ void     aos_hal_link_unpark(void) {}
 bool     aos_hal_link_parked(void) { return false; }
 uint32_t aos_hal_link_rejoin_ms(void) { return 0; }
 
+int aos_hal_lvgl_core(void) { return -1; }
+
 /* The streaming speaker: the simulator swallows the samples. */
 static bool s_spk_open_sim;
 bool aos_hal_spk_open(uint32_t sample_rate) { (void)sample_rate; s_spk_open_sim = true; return true; }

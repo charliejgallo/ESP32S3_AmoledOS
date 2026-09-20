@@ -438,3 +438,6 @@ CONFIG_MDNS_PREDEF_NETIF_ETH=n
 
 # FTM (fine timing measurement) for the radar between two watches (docs/LINK.md)
 CONFIG_ESP_WIFI_FTM_ENABLE=y
+
+# The panel commands from other cores run on the IPC task of the panel's core (aos_hal_esp32.c panel_tx_on_core)
+CONFIG_ESP_IPC_TASK_STACK_SIZE=2560

@@ -1164,6 +1164,7 @@ bool aos_hal_init(void);
  * not thread-safe); in the simulator they are no-ops. Anything touching LVGL
  * objects from outside the LVGL task has to go between lock and unlock. */
 bool aos_hal_lock(uint32_t timeout_ms);
+int  aos_hal_lvgl_core(void);           /* the core LVGL and the panel's SPI are pinned to (-1: none) */
 void aos_hal_unlock(void);
 
 /* --------------------------------------------------------------------------
