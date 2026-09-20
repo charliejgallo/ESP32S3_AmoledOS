@@ -65,69 +65,85 @@ typedef struct {
     const char *const *borde;
 } tile_t;
 
-static const char *const PX_PASTO[8] = {
-    "eeeeeeee", "eeeEeeee", "eeeeeeee", "eEeeeeEe",
-    "eeeeeeee", "eeeeEeee", "eEeeeeee", "eeeeeeee",
+static const char *const PX_PASTO[TILE] = {
+    "eeeeeeeeeeee", "eeeeeeeEeeee", "eeeeeeeEeeee", "eeEeeeeeeeee",
+    "eeEeeeeeeeEe", "eeeeeeeeeeEe", "eeeeeeeeeeee", "eeeeeEeeeeee",
+    "eeeeeEeeeeee", "eeeeeeeeeeee", "eEeeeeeeEeee", "eeeeeeeeEeee",
 };
-static const char *const PX_PASTO2[8] = {
-    "eeeeeeee", "eeEEeeee", "eEeeEeee", "eeeeeeEe",
-    "eEeeeEEe", "eeeeeeee", "eeEeeeee", "eeeeeeee",
+static const char *const PX_PASTO2[TILE] = {
+    "eeeeeeeeeeee", "eEeeeeeeeeee", "eEeeeeeeeeee", "eeeeeeeeeEee",
+    "eeeeeEeeeEee", "eeeeeEeeeeee", "eeeeeeeeeeee", "eeeeeeeeEeee",
+    "eeeEeeeeEeee", "eeeEeeeeeeee", "eeeeeeeeeeee", "eeeeeeEeeeee",
 };
-static const char *const PX_TIERRA[8] = {
-    "hhhhhhhh", "hhHhhhhh", "hhhhhhHh", "hHhhhhhh",
-    "hhhhhHhh", "hhhhhhhh", "hHhhhhhh", "hhhhHhhh",
+static const char *const PX_TIERRA[TILE] = {
+    "hhhhhhhhhhhh", "hhhHhhhhhhhh", "hhhhhhhhHhhh", "hHhhhhhhhhhh",
+    "hhhhhhHhhhhh", "hhhhhhhhhhHh", "hHhhhhhhhhhh", "hhhhHhhhhhhh",
+    "hhhhhhhhhHhh", "hhHhhhhhhhhh", "hhhhhhhHhhhh", "hhhhhhhhhhhh",
 };
-static const char *const PX_TIERRA2[8] = {
-    "hhhhhhhh", "hhhhHhhh", "hHhhhhhh", "hhhhhhhH",
-    "hhHhhhhh", "hhhhhhHh", "hhhhhhhh", "hHhhhHhh",
+static const char *const PX_TIERRA2[TILE] = {
+    "hhhhhhhhhhhh", "hhhhhhhHhhhh", "hhHhhhhhhhhh", "hhhhhhhhhhHh",
+    "hhhhHhhhhhhh", "hHhhhhhhhhhh", "hhhhhhhhHhhh", "hhhhhhhhhhhh",
+    "hhhHhhhhhHhh", "hhhhhhHhhhhh", "hHhhhhhhhhhh", "hhhhhhhhhhhh",
 };
-static const char *const PX_ALTO[8] = {
-    "EEEEEEEE", "EfEEEfEE", "EffEEffE", "EffEEffE",
-    "fffEfffE", "ffffffff", "fFffffFf", "ffffffff",
+static const char *const PX_ALTO[TILE] = {
+    "EEEEEEEEEEEE", "EfEEEfEEEfEE", "EffEEffEEffE", "EffEEffEEffE",
+    "fffEfffEfffE", "ffffffffffff", "fFffffFfffFf", "ffffffffffff",
+    "ffFfffffFfff", "ffffffffffff", "fFffffFfffFf", "ffffffffffff",
 };
-static const char *const PX_AGUA[8] = {
-    "llllllll", "lLlllLll", "llllllll", "LlllllLl",
-    "llllllll", "llLlllll", "llllllLl", "llllllll",
+static const char *const PX_AGUA[TILE] = {
+    "llllllllllll", "lLllllLlllll", "llllllllllll", "LllllllllLll",
+    "llllllllllll", "llLllllllllL", "llllllllllll", "lllLllllLlll",
+    "llllllllllll", "LllllllllLll", "llllllllllll", "llllLlllllll",
 };
-static const char *const PX_CERCA[8] = {
-    "eeeeeeee", "eeeeeeee", "jjjjjjjj", "JJJJJJJJ",
-    "eejjeeee", "jjjjjjjj", "JJJJJJJJ", "eejjeeee",
+static const char *const PX_CERCA[TILE] = {
+    "eeeeeeeeeeee", "eeeeeeeeeeee", "eeJeeeeeJeee", "jjjjjjjjjjjj",
+    "JJJJJJJJJJJJ", "eeJeeeeeJeee", "eeJeeeeeJeee", "jjjjjjjjjjjj",
+    "JJJJJJJJJJJJ", "eeJeeeeeJeee", "eeJeeeeeJeee", "eeeeeeeeeeee",
 };
-static const char *const PX_PIEDRA[8] = {
-    "iiiiiiii", "iiiiiiii", "iiiiiiii", "IIIIIIII",
-    "iiiIiiii", "iiiIiiii", "iiiIiiii", "IIIIIIII",
+static const char *const PX_PIEDRA[TILE] = {
+    "iiiiiiiiiiii", "iiiiiiiiiiii", "iiiiiiiiiiii", "IIIIIIIIIIII",
+    "iiiiiIiiiiii", "iiiiiIiiiiii", "iiiiiIiiiiii", "IIIIIIIIIIII",
+    "iiIiiiiiiiIi", "iiIiiiiiiiIi", "iiIiiiiiiiIi", "IIIIIIIIIIII",
 };
-static const char *const PX_LADRILLO[8] = {
-    "aaaaaaaa", "aaaAaaaa", "aaaAaaaa", "AAAAAAAA",
-    "aaaaaaaa", "aaaaaaaA", "aaaaaaaA", "AAAAAAAA",
+static const char *const PX_LADRILLO[TILE] = {
+    "aaaaaaaaaaaa", "aaaaaAaaaaaa", "AAAAAAAAAAAA", "aaAaaaaaaaAa",
+    "aaAaaaaaaaAa", "AAAAAAAAAAAA", "aaaaaAaaaaaa", "aaaaaAaaaaaa",
+    "AAAAAAAAAAAA", "aaAaaaaaaaAa", "aaAaaaaaaaAa", "AAAAAAAAAAAA",
 };
-static const char *const PX_MADERA[8] = {
-    "jjjjjjjj", "jjjjjjjJ", "JJJJJJJJ", "jjjjjjjJ",
-    "jjjjjjjJ", "jjjjjjjJ", "JJJJJJJJ", "jjjjjjjJ",
+static const char *const PX_MADERA[TILE] = {
+    "jjjjjjjjjjjJ", "jjjjjjjjjjjJ", "JJJJJJJJJJJJ", "jjjjjjjjjjjJ",
+    "jjjjjjjjjjjJ", "jjjjjjjjjjjJ", "JJJJJJJJJJJJ", "jjjjjjjjjjjJ",
+    "jjjjjjjjjjjJ", "jjjjjjjjjjjJ", "JJJJJJJJJJJJ", "jjjjjjjjjjjJ",
 };
-static const char *const PX_PARED[8] = {
-    "QQQQQQQQ", "QQQQQQQQ", "QQQQQQQQ", "jjjjjjjj",
-    "QQQQQQQQ", "QQQQQQQQ", "QQQQQQQQ", "jjjjjjjj",
+static const char *const PX_PARED[TILE] = {
+    "QQQQQQQQQQQQ", "QQQQQQQQQQQQ", "QQQQQQQQQQQQ", "QQQQQQQQQQQQ",
+    "QQQQQQQQQQQQ", "jjjjjjjjjjjj", "JJJJJJJJJJJJ", "QQQQQQQQQQQQ",
+    "QQQQQQQQQQQQ", "QQQQQQQQQQQQ", "QQQQQQQQQQQQ", "jjjjjjjjjjjj",
 };
-static const char *const PX_ALFOMBRA[8] = {
-    "AAAAAAAA", "AaAAAAaA", "AAAAAAAA", "AAAaAAAA",
-    "AAAAAAAA", "AaAAAAaA", "AAAAAAAA", "AAAaAAAA",
+static const char *const PX_ALFOMBRA[TILE] = {
+    "AAAAAAAAAAAA", "AaAAAAAAaAAA", "AAAAAAAAAAAA", "AAAAaAAAAAAA",
+    "AAAAAAAAAAAA", "AaAAAAAAaAAA", "AAAAAAAAAAAA", "AAAAaAAAAAAA",
+    "AAAAAAAAAAAA", "AaAAAAAAaAAA", "AAAAAAAAAAAA", "AAAAaAAAAAAA",
 };
-static const char *const PX_MOSTRADOR[8] = {
-    "GGGGGGGG", "GGGGGGGG", "jjjjjjjj", "jjjjjjjj",
-    "JJJJJJJJ", "jjjjjjjj", "jjjjjjjj", "JJJJJJJJ",
+static const char *const PX_MOSTRADOR[TILE] = {
+    "GGGGGGGGGGGG", "GGGGGGGGGGGG", "gggggggggggg", "jjjjjjjjjjjj",
+    "jjjjjjjjjjjj", "JJJJJJJJJJJJ", "jjjjjjjjjjjj", "jjjjjjjjjjjj",
+    "JJJJJJJJJJJJ", "jjjjjjjjjjjj", "jjjjjjjjjjjj", "JJJJJJJJJJJJ",
 };
-static const char *const PX_METAL[8] = {
-    "dddddddd", "dgddddgd", "dddddddd", "dddddddd",
-    "dddddddd", "dddddddd", "dgddddgd", "dddddddd",
+static const char *const PX_METAL[TILE] = {
+    "dddddddddddd", "dgdddddddgdd", "dddddddddddd", "dddddddddddd",
+    "dddddddddddd", "dddddddddddd", "dddddddddddd", "dddddddddddd",
+    "dgdddddddgdd", "dddddddddddd", "dddddddddddd", "dddddddddddd",
 };
-static const char *const PX_METAL2[8] = {
-    "dddddddd", "dddddddd", "ddDDDDdd", "ddDddDdd",
-    "ddDddDdd", "ddDDDDdd", "dddddddd", "dddddddd",
+static const char *const PX_METAL2[TILE] = {
+    "dddddddddddd", "dddddddddddd", "ddDDDDDDDDdd", "ddDddddddDdd",
+    "ddDddddddDdd", "ddDddddddDdd", "ddDddddddDdd", "ddDddddddDdd",
+    "ddDDDDDDDDdd", "dddddddddddd", "dddddddddddd", "dddddddddddd",
 };
-static const char *const PX_MURO[8] = {
-    "xxxxxxxx", "xKKKKKKx", "xKddddKx", "xKddddKx",
-    "xKddddKx", "xKddddKx", "xKKKKKKx", "xxxxxxxx",
+static const char *const PX_MURO[TILE] = {
+    "xxxxxxxxxxxx", "xKKKKKKKKKKx", "xKddddddddKx", "xKddddddddKx",
+    "xKddddddddKx", "xKddddddddKx", "xKddddddddKx", "xKddddddddKx",
+    "xKddddddddKx", "xKddddddddKx", "xKKKKKKKKKKx", "xxxxxxxxxxxx",
 };
 /* Scrap: plating and rust over the metal floor. The pieces are deliberately
  * LARGE. The first version had loose pixels and from two cells away it read as
@@ -137,40 +153,48 @@ static const char *const PX_MURO[8] = {
  * nine cells of scrap in a row read as noise and not as a pile of metal: in an
  * 8x8 pattern that repeats, the fine stuff turns into texture and only what
  * takes up several pixels together survives. */
-static const char *const PX_CHATARRA[8] = {
-    "dddddddd", "ddgDDddd", "ddDggDdd", "dddDDddd",
-    "ddddUUdd", "dddUUddd", "dddddddd", "dddddddd",
+static const char *const PX_CHATARRA[TILE] = {
+    "dddddddddddd", "ddddggDDdddd", "dddgDDggDddd", "dddDggggDddd",
+    "ddddDDDDdddd", "dddddUUUdddd", "ddddUUUUUddd", "dddddUUUdddd",
+    "dddddddddddd", "ddddddddgddd", "dddddddddddd", "dddddddddddd",
 };
 /* A puddle has to JOIN UP with the puddle beside it. With the blot centred on
  * the cell and clean edges, three cells in a row read as three links of a
  * chain instead of as one long puddle. */
-static const char *const PX_ACEITE[8] = {
-    "dKKKKKKd", "KKKKKKKK", "KKKKKKKK", "KKKKPKKK",
-    "KKKKKKKK", "KKKKKKKK", "KKKKKKKK", "dKKKKKKd",
+static const char *const PX_ACEITE[TILE] = {
+    "dKKKKKKKKKKd", "KKKKKKKKKKKK", "KKKKKKKKKKKK", "KKKKKPKKKKKK",
+    "KKKKPPPKKKKK", "KKKKKPKKKKKK", "KKKKKKKKKKKK", "KKKKKKKKKKKK",
+    "KKKKKKKKKKKK", "KKKKKKKKKKKK", "KKKKKKKKKKKK", "dKKKKKKKKKKd",
 };
-static const char *const PX_ROCA[8] = {
-    "QQQQQQQQ", "QQIIIQQQ", "QIiiiIQQ", "IiiiiiIQ",
-    "IiiiiiIQ", "QIiiiIQQ", "QQIIIQQQ", "QQQQQQQQ",
+static const char *const PX_ROCA[TILE] = {
+    "QQQQQQQQQQQQ", "QQQQIIIIQQQQ", "QQQIiiiiIQQQ", "QQIiiiiiiIQQ",
+    "QIiiiiiiiiIQ", "QIiiiiiiiiIQ", "QIiiiiiiiiIQ", "QQIiiiiiiIQQ",
+    "QQQIiiiiIQQQ", "QQQQIIIIQQQQ", "QQQQQQQQQQQQ", "QQQQQQQQQQQQ",
 };
-static const char *const PX_REJILLA[8] = {
-    "dddddddd", "KdKdKdKd", "dddddddd", "KdKdKdKd",
-    "dddddddd", "KdKdKdKd", "dddddddd", "KdKdKdKd",
+static const char *const PX_REJILLA[TILE] = {
+    "dddddddddddd", "KdKdKdKdKdKd", "dddddddddddd", "KdKdKdKdKdKd",
+    "dddddddddddd", "KdKdKdKdKdKd", "dddddddddddd", "KdKdKdKdKdKd",
+    "dddddddddddd", "KdKdKdKdKdKd", "dddddddddddd", "KdKdKdKdKdKd",
 };
-static const char *const PX_BALDOSA[8] = {
-    "gGGGGGGG", "gGGGGGGG", "gGGGGGGG", "gGGGGGGG",
-    "gGGGGGGG", "gGGGGGGG", "gGGGGGGG", "gggggggg",
+static const char *const PX_BALDOSA[TILE] = {
+    "gGGGGGGGGGGG", "gGGGGGGGGGGG", "gGGGGGGGGGGG", "gGGGGGGGGGGG",
+    "gGGGGGGGGGGG", "gGGGGGGGGGGG", "gGGGGGGGGGGG", "gGGGGGGGGGGG",
+    "gGGGGGGGGGGG", "gGGGGGGGGGGG", "gGGGGGGGGGGG", "gggggggggggg",
 };
-static const char *const PX_NEGRO[8] = {
-    "kkkkkkkk", "kkkkkkkk", "kkkkkkkk", "kkkkkkkk",
-    "kkkkkkkk", "kkkkkkkk", "kkkkkkkk", "kkkkkkkk",
+static const char *const PX_NEGRO[TILE] = {
+    "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk",
+    "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk",
+    "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk",
 };
-static const char *const PX_PUENTE[8] = {
-    "jjjjjjjj", "JJJJJJJJ", "jjjjjjjj", "jjjjjjjj",
-    "JJJJJJJJ", "jjjjjjjj", "jjjjjjjj", "JJJJJJJJ",
+static const char *const PX_PUENTE[TILE] = {
+    "jjjjjjjjjjjj", "JJJJJJJJJJJJ", "jjjjjjjjjjjj", "jjjjjjjjjjjj",
+    "JJJJJJJJJJJJ", "jjjjjjjjjjjj", "jjjjjjjjjjjj", "JJJJJJJJJJJJ",
+    "jjjjjjjjjjjj", "jjjjjjjjjjjj", "JJJJJJJJJJJJ", "jjjjjjjjjjjj",
 };
-static const char *const PX_ARBUSTO[8] = {
-    "eeeeeeee", "eefffeee", "efFFFfee", "fFFfFFfe",
-    "fFFFFFfe", "efFFFfee", "eefffeee", "eeeeeeee",
+static const char *const PX_ARBUSTO[TILE] = {
+    "eeeeeeeeeeee", "eeeefffeeeee", "eeefFFFfeeee", "eefFFFFFfeee",
+    "efFFfFFFFfee", "efFFFFFFFfee", "efFFFFFFFfee", "eefFFFFFfeee",
+    "eeefFFFfeeee", "eeeeFFFeeeee", "eeeeeeeeeeee", "eeeeeeeeeeee",
 };
 
 /* --------------------------------------------------------------------------
@@ -184,57 +208,68 @@ static const char *const PX_ARBUSTO[8] = {
  * and over white they disappear -so the whole zone's ambience is lost- and on
  * an AMOLED full white leaves no headroom for a highlight on top. White is
  * kept for what falls. */
-static const char *const PX_NIEVE[8] = {
-    "GGGGGGGG", "GGwGGGGG", "GGGGGGwG", "GwGGGGGG",
-    "GGGGGwGG", "GGGGGGGG", "GwGGGGGG", "GGGGwGGG",
+static const char *const PX_NIEVE[TILE] = {
+    "GGGGGGGGGGGG", "GGwGGGGGGGGG", "GGGGGGGwGGGG", "GwGGGGGGGGGG",
+    "GGGGGGwGGGGG", "GGGGGGGGGGwG", "GwGGGGGGGGGG", "GGGGwGGGGGGG",
+    "GGGGGGGGGwGG", "GGwGGGGGGGGG", "GGGGGGGwGGGG", "GGGGGGGGGGGG",
 };
 /* Snowy scrub: the SAME silhouette as the tall grass and the dry scrub. All
  * three hide creatures, so all three have to be recognised the same way. */
-static const char *const PX_NEVADO[8] = {
-    "GGGGGGGG", "GwGGGwGG", "GwwGGwwG", "GwwGGwwG",
-    "wwwGwwwG", "wwwwwwww", "wCwwwwCw", "wwwwwwww",
+static const char *const PX_NEVADO[TILE] = {
+    "GGGGGGGGGGGG", "GwGGGwGGGwGG", "GwwGGwwGGwwG", "GwwGGwwGGwwG",
+    "wwwGwwwGwwwG", "wwwwwwwwwwww", "wCwwwwCwwwCw", "wwwwwwwwwwww",
+    "wwCwwwwwCwww", "wwwwwwwwwwww", "wCwwwwCwwwCw", "wwwwwwwwwwww",
 };
-static const char *const PX_HIELO[8] = {
-    "cccccccc", "ccCccccc", "cCcccCcc", "cccccccc",
-    "ccccCccc", "cCcccccc", "cccccCcc", "cccccccc",
+static const char *const PX_HIELO[TILE] = {
+    "cccccccccccc", "ccCccccccccc", "cCcccCcccccc", "cccccccccCcc",
+    "ccccCccccccc", "cCcccccccccc", "cccccCcccccc", "ccccccccCccc",
+    "cccccccccccc", "ccCccccccCcc", "cccccccccccc", "cccCcccccccc",
 };
-static const char *const PX_LAVA[8] = {
-    "OOOOOOOO", "OoOOOoOO", "oooOoooO", "OoooOooo",
-    "OOoOOOoO", "oOOOooOO", "OOOoOOOO", "OoOOOOoO",
+static const char *const PX_LAVA[TILE] = {
+    "OOOOOOOOOOOO", "OoOOOoOOOoOO", "oooOoooOoooO", "OoooOoooOooo",
+    "OOoOOOoOOOoO", "oOOOooOOoOOO", "OOOoOOOOOoOO", "OoOOOOoOOOOo",
+    "oooOoooOoooO", "OOoOOOoOOOoO", "OoOOOOOOoOOO", "OOOoOOOoOOOO",
 };
-static const char *const PX_VOLCAN[8] = {
-    "SSSSSSSS", "SsSSSSSS", "SSSSSUSS", "SSsSSSSS",
-    "SSSSSSSU", "SSSSSSSS", "SsSSSSSS", "SSSSuSSS",
+static const char *const PX_VOLCAN[TILE] = {
+    "SSSSSSSSSSSS", "SsSSSSSSSsSS", "SSSSSUSSSSSS", "SSsSSSSSSSSS",
+    "SSSSSSSUSSSS", "SSSSSSSSSSSS", "SsSSSSSSSsSS", "SSSSuSSSSSSS",
+    "SSSSSSSSSSSS", "SSSSSSSsSSSS", "SSuSSSSSSSSS", "SSSSSSSSSSSS",
 };
-static const char *const PX_ARENA[8] = {
-    "qqqqqqqq", "qqQqqqqq", "qqqqqqQq", "qQqqqqqq",
-    "qqqqqQqq", "qqqqqqqq", "qQqqqqqq", "qqqqQqqq",
+static const char *const PX_ARENA[TILE] = {
+    "qqqqqqqqqqqq", "qqQqqqqqqqqq", "qqqqqqqQqqqq", "qQqqqqqqqqqq",
+    "qqqqqQqqqqqq", "qqqqqqqqqqQq", "qQqqqqqqqqqq", "qqqqQqqqqqqq",
+    "qqqqqqqqqQqq", "qqQqqqqqqqqq", "qqqqqqqQqqqq", "qqqqqqqqqqqq",
 };
-static const char *const PX_MUELLE[8] = {
-    "jjjJjjjJ", "JJJJJJJJ", "jjjJjjjJ", "jjjJjjjJ",
-    "JJJJJJJJ", "jjjJjjjJ", "jjjJjjjJ", "JJJJJJJJ",
+static const char *const PX_MUELLE[TILE] = {
+    "jjjJjjjjJjjj", "JJJJJJJJJJJJ", "jjjJjjjjJjjj", "jjjJjjjjJjjj",
+    "JJJJJJJJJJJJ", "jjjJjjjjJjjj", "jjjJjjjjJjjj", "JJJJJJJJJJJJ",
+    "jjjJjjjjJjjj", "jjjJjjjjJjjj", "JJJJJJJJJJJJ", "jjjJjjjjJjjj",
 };
-static const char *const PX_VADO[8] = {
-    "llllllll", "lcllllcl", "llllllll", "cllllcll",
-    "llllllll", "llclllll", "lllllcll", "llllllll",
+static const char *const PX_VADO[TILE] = {
+    "llllllllllll", "lcllllclllll", "llllllllllll", "cllllcllllcl",
+    "llllllllllll", "llclllllcccl", "llllllllllll", "lllllcllllll",
+    "llccllllcccl", "llllllllllll", "lclllllcllll", "llllllllllll",
 };
 /* The floor goes VERY dark and the wall BRIGHT. The first version had both at
  * the same contrast and on screen you could not see where the walls were: the
  * room looked like a flat board. In a dungeon that is not an aesthetic detail,
  * it is being unable to play it. */
-static const char *const PX_CIRCUITO[8] = {
-    "kkkkkkkk", "kkkkkkkk", "kkkkkkkk", "kkkKkkkk",
-    "kkkKkkkk", "kkkkkkkk", "kkkkkkkk", "kkkkkkkk",
+static const char *const PX_CIRCUITO[TILE] = {
+    "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkKkkkkkkk",
+    "kkkkKkkkkkkk", "kkkkKkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk",
+    "kkkkkkkkKkkk", "kkkkkkkkKkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk",
 };
 /* The track only appears on one cell in four: with the mark on ALL of them the
  * floor was as busy as the wall and the earlier problem came back. */
-static const char *const PX_CIRCUITO2[8] = {
-    "kkkkkkkk", "kkNkkkkk", "kkNNNkkk", "kkkkNkkk",
-    "kkkkNNkk", "kkkkkkkk", "kkkkkkkk", "kkkkkkkk",
+static const char *const PX_CIRCUITO2[TILE] = {
+    "kkkkkkkkkkkk", "kkNkkkkkkkkk", "kkNNNkkkkkkk", "kkkkNkkkkkkk",
+    "kkkkNNkkkkkk", "kkkkkNkkkkkk", "kkkkkNNNkkkk", "kkkkkkkNkkkk",
+    "kkkkkkkNkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk",
 };
-static const char *const PX_MURO_CIRC[8] = {
-    "NNNNNNNN", "NKKKKKKN", "NKnnnnKN", "NKnnnnKN",
-    "NKnnnnKN", "NKnnnnKN", "NKKKKKKN", "NNNNNNNN",
+static const char *const PX_MURO_CIRC[TILE] = {
+    "NNNNNNNNNNNN", "NKKKKKKKKKKN", "NKnnnnnnnnKN", "NKnnnnnnnnKN",
+    "NKnnnnnnnnKN", "NKnnnnnnnnKN", "NKnnnnnnnnKN", "NKnnnnnnnnKN",
+    "NKnnnnnnnnKN", "NKnnnnnnnnKN", "NKKKKKKKKKKN", "NNNNNNNNNNNN",
 };
 /* Dry scrub. It has the SAME silhouette as the tall grass and not that of a
  * mottled floor, because the two cells do the same thing -they hide creatures-
@@ -244,58 +279,71 @@ static const char *const PX_MURO_CIRC[8] = {
  * cell throughout zone 7 WITHOUT being in the table: buscar() returns the
  * first entry when it does not find the character, so the whole wasteland was
  * drawn as green grass and nobody said a word. */
-static const char *const PX_SECO[8] = {
-    "QQQQQQQQ", "QQQQQQQQ", "QQQUQQQQ", "QQUQQQQQ",
-    "QQQQQQQQ", "QQQQQQUQ", "QQQQQUQQ", "QQQQQQQQ",
+static const char *const PX_SECO[TILE] = {
+    "QQQQQQQQQQQQ", "QQQQQQQQQQQQ", "QQQUQQQQQQQQ", "QQUQQQQQQQQQ",
+    "QQQQQQQQQQQQ", "QQQQQQQUQQQQ", "QQQQQUQQQQQQ", "QQQQQQQQQQQQ",
+    "QQQQQQQQQUQQ", "QQUQQQQQQQQQ", "QQQQQQQQQQQQ", "QQQQQQQQQQQQ",
 };
-static const char *const PX_PARAMO[8] = {
-    "QQQQQQQQ", "QVQQQVQQ", "QVVQQVVQ", "QVVQQVVQ",
-    "VVVQVVVQ", "VVVVVVVV", "VEVVVVEV", "VVVVVVVV",
+static const char *const PX_PARAMO[TILE] = {
+    "QQQQQQQQQQQQ", "QVQQQVQQQVQQ", "QVVQQVVQQVVQ", "QVVQQVVQQVVQ",
+    "VVVQVVVQVVVQ", "VVVVVVVVVVVV", "VEVVVVEVVVEV", "VVVVVVVVVVVV",
+    "VVEVVVVVEVVV", "VVVVVVVVVVVV", "VEVVVVEVVVEV", "VVVVVVVVVVVV",
 };
-static const char *const PX_GRAVA[8] = {
-    "IIIIIIII", "IiIIIiII", "IIIiIIII", "IiIIIIiI",
-    "IIIIiIII", "IIiIIIII", "IIIIIIiI", "IiIIIIII",
+static const char *const PX_GRAVA[TILE] = {
+    "IIIIIIIIIIII", "IiIIIiIIIiII", "IIIiIIIIIIII", "IiIIIIiIIIiI",
+    "IIIIiIIIIIII", "IIiIIIIIIiII", "IIIIIIiIIIII", "IiIIIIIIIIiI",
+    "IIIiIIIiIIII", "IIIIIIIIIIII", "IiIIIiIIIIII", "IIIIIiIIIIII",
 };
-static const char *const PX_CIUDAD[8] = {
-    "DDDDDDDD", "DGGGGGGD", "DGGGGGGD", "DGGGGGGD",
-    "DGGGGGGD", "DGGGGGGD", "DGGGGGGD", "DDDDDDDD",
+static const char *const PX_CIUDAD[TILE] = {
+    "DDDDDDDDDDDD", "DGGGGGGGGGGD", "DGGGGGGGGGGD", "DGGGGGGGGGGD",
+    "DGGGGGGGGGGD", "DGGGGGGGGGGD", "DGGGGGGGGGGD", "DGGGGGGGGGGD",
+    "DGGGGGGGGGGD", "DGGGGGGGGGGD", "DGGGGGGGGGGD", "DDDDDDDDDDDD",
 };
-static const char *const PX_MURO_CIU[8] = {
-    "gggggggg", "gGGGGGGg", "gGDDDDGg", "gGDDDDGg",
-    "gGDDDDGg", "gGDDDDGg", "gGGGGGGg", "gggggggg",
+static const char *const PX_MURO_CIU[TILE] = {
+    "gggggggggggg", "gGGGGGGGGGGg", "gGDDDDDDDDGg", "gGDDDDDDDDGg",
+    "gGDDDDDDDDGg", "gGDDDDDDDDGg", "gGDDDDDDDDGg", "gGDDDDDDDDGg",
+    "gGDDDDDDDDGg", "gGDDDDDDDDGg", "gGGGGGGGGGGg", "gggggggggggg",
 };
-static const char *const PX_CRISTAL[8] = {
-    "cccccccc", "cwcccccc", "ccwccccc", "cccwcccc",
-    "ccccwccc", "cccccwcc", "ccccccwc", "cccccccc",
+static const char *const PX_CRISTAL[TILE] = {
+    "cccccccccccc", "cwcccccccccc", "ccwccccccccc", "cccwcccccccc",
+    "ccccwccccccc", "cccccwcccccc", "ccccccwccccc", "cccccccwcccc",
+    "ccccccccwccc", "cccccccccwcc", "ccccccccccwc", "cccccccccccc",
 };
 
-static const char *const BR_PASTO[8] = {
-    "eeeeeeee", "eEeeeeEe", "ee.ee.ee", ".e...e..",
-    "..e.....", "........", "........", "........",
+static const char *const BR_PASTO[TILE] = {
+    "eeeeeeeeeeee", "eEeeeeeeeEee", "ee.ee.ee.eee", ".e...e...e..",
+    "..e.....e...", "............", "............", "............",
+    "............", "............", "............", "............",
 };
-static const char *const BR_TIERRA[8] = {
-    "hhhhhhhh", "hHhhhhHh", "hh.hh.hh", ".h...h..",
-    "........", "........", "........", "........",
+static const char *const BR_TIERRA[TILE] = {
+    "hhhhhhhhhhhh", "hHhhhhhhhHhh", "hh.hh.hh.hhh", ".h...h...h..",
+    "............", "............", "............", "............",
+    "............", "............", "............", "............",
 };
-static const char *const BR_ARENA[8] = {
-    "qqqqqqqq", "qQqqqqQq", "qq.qq.qq", ".q...q..",
-    "..q.....", "........", "........", "........",
+static const char *const BR_ARENA[TILE] = {
+    "qqqqqqqqqqqq", "qQqqqqqqqQqq", "qq.qq.qq.qqq", ".q...q...q..",
+    "..q.....q...", "............", "............", "............",
+    "............", "............", "............", "............",
 };
-static const char *const BR_NIEVE[8] = {
-    "GGGGGGGG", "GwGGGGwG", "GG.GG.GG", ".G...G..",
-    "..G.....", "........", "........", "........",
+static const char *const BR_NIEVE[TILE] = {
+    "GGGGGGGGGGGG", "GwGGGGGGGwGG", "GG.GG.GG.GGG", ".G...G...G..",
+    "..G.....G...", "............", "............", "............",
+    "............", "............", "............", "............",
 };
-static const char *const BR_GRAVA[8] = {
-    "GGGGGGGG", "GIGGGGIG", "GG.GG.GG", ".G...G..",
-    "........", "........", "........", "........",
+static const char *const BR_GRAVA[TILE] = {
+    "IIIIIIIIIIII", "IiIIIIIIIiII", "II.II.II.III", ".I...I...I..",
+    "............", "............", "............", "............",
+    "............", "............", "............", "............",
 };
-static const char *const BR_CIUDAD[8] = {
-    "pppppppp", "pPpppppP", "pp.pp.pp", "........",
-    "........", "........", "........", "........",
+static const char *const BR_CIUDAD[TILE] = {
+    "pppppppppppp", "pPpppppppPpp", "pp.pp.pp.ppp", "............",
+    "............", "............", "............", "............",
+    "............", "............", "............", "............",
 };
-static const char *const BR_VOLCAN[8] = {
-    "SSSSSSSS", "SsSSSSsS", "SS.SS.SS", ".S...S..",
-    "........", "........", "........", "........",
+static const char *const BR_VOLCAN[TILE] = {
+    "SSSSSSSSSSSS", "SsSSSSSSSsSS", "SS.SS.SS.SSS", ".S...S...S..",
+    "............", "............", "............", "............",
+    "............", "............", "............", "............",
 };
 
 static const tile_t TILES[] = {
@@ -380,11 +428,11 @@ bool ch_tile_corre(char t)
 void ch_tile_anim(ch_buf_t *b, char t, int tx, int ty, int fase)
 {
     const tile_t *d = buscar(t);
-    const char *rot[8];
+    const char *rot[TILE];
 
     if (!ch_tile_corre(t)) { ch_tile_draw(b, t, tx, ty); return; }
-    for (int i = 0; i < 8; i++) rot[i] = d->px[(i + fase) & 7];
-    ch_blit_esc(b, tx * TILE, ty * TILE, rot, 8, TILE, ART_DEN);
+    for (int i = 0; i < TILE; i++) rot[i] = d->px[(i + fase) % TILE];
+    ch_blit(b, tx * TILE, ty * TILE, rot, TILE);
 }
 
 
@@ -421,18 +469,17 @@ void ch_tile_anim(ch_buf_t *b, char t, int tx, int ty, int fase)
 static void borde_dibujar(ch_buf_t *b, int tx, int ty,
                           const char *const *fr, int lado)
 {
-    for (int dr = 0; dr < TILE; dr++) {
-        for (int dc = 0; dc < TILE; dc++) {
-            int r = dr * ART_DEN / TILE, c = dc * ART_DEN / TILE;
+    for (int r = 0; r < TILE; r++) {
+        for (int c = 0; c < TILE; c++) {
             char k;
             uint16_t col;
             switch (lado) {
-            case 1:  k = fr[7 - r][c];     break;   /* south                 */
-            case 2:  k = fr[c][r];         break;   /* west                  */
-            case 3:  k = fr[7 - c][r];     break;   /* east                  */
-            default: k = fr[r][c];         break;   /* north                 */
+            case 1:  k = fr[TILE - 1 - r][c];  break;   /* south             */
+            case 2:  k = fr[c][r];             break;   /* west              */
+            case 3:  k = fr[TILE - 1 - c][r];  break;   /* east              */
+            default: k = fr[r][c];             break;   /* north             */
             }
-            if (ch_pal(k, &col)) ch_px(b, tx * TILE + dc, ty * TILE + dr, col);
+            if (ch_pal(k, &col)) ch_px(b, tx * TILE + c, ty * TILE + r, col);
         }
     }
 }
@@ -465,7 +512,7 @@ void ch_tile_draw(ch_buf_t *b, char t, int tx, int ty)
     if (d->px2 && (((tx * 7) ^ (ty * 13)) & 3) == 0) {
         px = d->px2;
     }
-    ch_blit_esc(b, tx * TILE, ty * TILE, px, 8, TILE, ART_DEN);
+    ch_blit(b, tx * TILE, ty * TILE, px, TILE);
 }
 
 /* --------------------------------------------------------------------------

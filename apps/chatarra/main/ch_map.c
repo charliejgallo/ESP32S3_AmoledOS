@@ -820,7 +820,7 @@ static void flujo_buscar(ch_t *g)
 static void flujo_dibujar(ch_t *g)
 {
     const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
-    int fase = (int)((g->cuadro / 6) & 7);
+    int fase = (int)((g->cuadro / 6) % TILE);   /* a full cycle is TILE rows */
 
     if (!g->nflujo) return;
     for (int k = 0; k < FLUJO_POR_CUADRO && k < g->nflujo; k++) {
