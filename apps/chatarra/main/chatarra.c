@@ -129,6 +129,13 @@ typedef struct {
     lv_timer_t *timer;
 
     uint16_t   *fbmem, *bgmem, *big;
+    /* The two still frames a directional transition slides between: the room
+     * that is leaving and the room that is arriving. 82 KB each in PSRAM,
+     * which is nothing there, and they are the reason the slide is a copy and
+     * not a re-render: during those nine frames NOTHING in the game moves, so
+     * paying to redraw it nine times would buy nothing. */
+    uint16_t   *salmem, *nuemem;
+    bool        deslizando;
 
     bool        closing;
     bool        saliendo;           /* see chatarra_back()                   */
@@ -535,9 +542,65 @@ static void push_all(app_t *a)
 /* Rebuilds the whole background for the current mode. It is the only expensive
  * frame and it happens on changing room, menu or combat phase: never
  * continuously. */
+/* --------------------------------------------------------------------------
+ * THE DIRECTIONAL TRANSITION
+ *
+ * A door at the edge of the map is a step to the next screen of the same
+ * place, so the new room comes in FROM THE SIDE YOU WALKED TOWARDS and pushes
+ * the old one out. A door in the middle of a room is a doorway into somewhere
+ * else and keeps the fade: walking into a house is not walking east.
+ *
+ * That is the whole feature, and what it buys is that the world stops being
+ * fifty-one screens and becomes a layout you can hold in your head - without
+ * a map, without a word of text, and without moving the camera, which this
+ * engine cannot afford (a scrolling camera invalidates all 165 thousand
+ * pixels every frame: the 15 fps of 2043).
+ *
+ * It costs nine full-screen pushes in a row, which is the one thing this
+ * engine is normally careful never to do. It is affordable for exactly the
+ * reason the room change already was: it happens once per room, and a room
+ * lasts minutes.
+ * -------------------------------------------------------------------------- */
+
+static void mezclar(app_t *a, int p)
+{
+    ch_t *g = &a->g;
+    /* How far the arriving room still has to travel, in pixels. At p = 0 it is
+     * entirely off screen and at p = TRANS_N it has arrived. */
+    int horiz = (g->trans_dir >= 2);
+    int largo = horiz ? CH_W : MAP_H;
+    int falta = largo * (TRANS_N - p) / TRANS_N;
+    int signo = (g->trans_dir == 1 || g->trans_dir == 2) ? -1 : +1;
+    int dn = signo * falta;             /* the new room's offset             */
+    int dv = dn - signo * largo;        /* the old one's, one screen behind  */
+
+    for (int y = 0; y < MAP_H; y++) {
+        uint16_t *dst = &a->fbmem[y * CH_W];
+        for (int x = 0; x < CH_W; x++) {
+            int sx = horiz ? x - dn : x;
+            int sy = horiz ? y : y - dn;
+            if (sx >= 0 && sx < CH_W && sy >= 0 && sy < MAP_H) {
+                dst[x] = a->nuemem[sy * CH_W + sx];
+                continue;
+            }
+            sx = horiz ? x - dv : x;
+            sy = horiz ? y : y - dv;
+            dst[x] = (sx >= 0 && sx < CH_W && sy >= 0 && sy < MAP_H)
+                     ? a->salmem[sy * CH_W + sx] : 0;
+        }
+    }
+}
+
 static void rehacer(app_t *a)
 {
     ch_t *g = &a->g;
+
+    /* The frame that is LEAVING has to be kept before the background is
+     * rebuilt over it: at this point fbmem still holds it. */
+    a->deslizando = (g->trans && g->trans_dir != 0xFF && a->salmem && a->nuemem);
+    if (a->deslizando) {
+        memcpy(a->salmem, a->fbmem, (size_t)CH_W * CH_H * sizeof(uint16_t));
+    }
 
     if (g->modo == MODO_COMBATE) {
         ch_bt_fondo(g);
@@ -559,8 +622,16 @@ static void rehacer(app_t *a)
         ch_ui_dibujar(g);
     }
 
+    if (a->deslizando) {
+        /* And the frame that is ARRIVING, composed once: nothing moves during
+         * the slide, so the nine frames are a copy each. */
+        memcpy(a->nuemem, a->fbmem, (size_t)CH_W * CH_H * sizeof(uint16_t));
+        mezclar(a, 0);
+    }
+
     push_all(a);
-    g->d_prev = g->d_cur;
+    ch_dirty_all(&g->d_prev);
+    g->d_cur = g->d_prev;
     g->rehacer_fondo = 0;
     g->hud_sucio = 0;
 
@@ -571,12 +642,29 @@ static void rehacer(app_t *a)
 #endif
 }
 
+
 static void present(app_t *a)
 {
     ch_t *g = &a->g;
 
     if (g->rehacer_fondo) {
         rehacer(a);
+        return;
+    }
+
+    if (a->deslizando) {
+        mezclar(a, TRANS_N - (int)g->trans);
+        push_all(a);
+#ifdef AOS_SIM_BUILTIN
+        if (s_shot_anim) volcar(a->big);    /* every frame of the slide      */
+#endif
+        if (!g->trans) {
+            /* Arrived. fbmem is now exactly the new room, and the next frame
+             * restores from the background over everything, which is what
+             * d_prev being whole means. */
+            a->deslizando = false;
+            ch_dirty_all(&g->d_prev);
+        }
         return;
     }
 
@@ -809,6 +897,18 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
     memset(a->bgmem, 0, chico);
     memset(a->big, 0, chico * CH_SCALE * CH_SCALE);
 
+    /* The two still frames of a directional transition. Unlike the three
+     * above these are OPTIONAL: if they do not fit, trans_dir is never
+     * honoured and every door fades, which is what the game did before. A
+     * nicety is not worth failing to open over. */
+    a->salmem = (uint16_t *)malloc(chico);
+    a->nuemem = (uint16_t *)malloc(chico);
+    if (!a->salmem || !a->nuemem) {
+        free(a->salmem); free(a->nuemem);
+        a->salmem = a->nuemem = NULL;
+        aos_hal_log("chatarra", "no room for the slide: the doors will fade");
+    }
+
     ch_pal_init();
     ch_buf_init(&a->g.fb, a->fbmem, CH_W, CH_H);
     ch_buf_init(&a->g.bg, a->bgmem, CH_W, CH_H);
@@ -990,6 +1090,8 @@ static void chatarra_destroy(aos_app_t *self, void *inst)
     free(a->fbmem);
     free(a->bgmem);
     free(a->big);
+    free(a->salmem);
+    free(a->nuemem);
     lv_free(a);
 }
 

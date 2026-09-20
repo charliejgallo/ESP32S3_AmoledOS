@@ -667,6 +667,7 @@ typedef struct {
 
 #define MAX_MOV     8           /* creatures moving about a room             */
 #define RUTA_MAX    64
+#define TRANS_N     9           /* frames of a room transition               */
 #define CH_FLUJOS   16          /* runs of water/lava tracked per room       */
 #define FLUJO_MAX   8           /* cells per run: one rect of 64x8 at most    */
 #define FLUJO_POR_CUADRO 2      /* how many are repainted each frame         */
@@ -732,6 +733,15 @@ typedef struct {
     uint8_t    flujo_i;         /* whose turn it is to be repainted          */
     uint8_t    cofre_t, cofre_x, cofre_y;   /* the chest's glint     */
     uint8_t    trans;           /* frames of the room transition             */
+    /* WHICH WAY THE NEW ROOM COMES IN.
+     *
+     * 0 down, 1 up, 2 left, 3 right - the same four the player walks in - and
+     * 0xFF for a fade. A door at the edge of the map is a step to the next
+     * screen of the same place and slides; a door in the middle of a room is
+     * a doorway into somewhere else and fades, because walking into a house
+     * is not walking east. That distinction is the whole point: it is what
+     * tells you the world is laid out, without a map and without a word. */
+    uint8_t    trans_dir;
 
     /* dialogue */
     const char *dlg;

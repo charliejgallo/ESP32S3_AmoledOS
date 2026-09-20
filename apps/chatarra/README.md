@@ -29,7 +29,7 @@ larger than any difference between them.
 Measured on 2026-09-20, with the team of three, the booth and the icon:
 
 ```
-.text          54,163 B   to PSRAM, 64 K-aligned    (was 38,475 on 2026-09-08)
+.text          54,687 B   to PSRAM, 64 K-aligned    (was 38,475 on 2026-09-08)
 .rodata        31,495 B   to PSRAM
 .data.rel.ro   15,628 B   to PSRAM
 .bss            2,540 B   to PSRAM
@@ -958,3 +958,45 @@ Two things it had to be taught, both of them lessons this file already had:
 - **The flowing water repaints its own cells**, so it wipes the fringe on the
   shore — the same bug as the blinking sign in section 14.1, one step further
   in. `flujo_dibujar()` puts the fringe back after the tile, every time.
+
+
+---
+
+## 16. The door that tells you where you went (2026-09-20)
+
+Every room change used to be the same nine-frame fade, whether you had walked
+off the north edge of a town or stepped into a house. Now **a door at the edge
+of the map slides**: the new room comes in from the side you walked towards
+and pushes the old one out. A door in the middle of a room still fades,
+because walking into a house is not walking east.
+
+That distinction is the whole feature. What it buys is that the world stops
+being fifty-one screens and becomes a layout you can hold in your head -
+without a map, without a word of text, and without moving the camera, which
+this engine cannot afford: a scrolling camera invalidates all 165 thousand
+pixels every frame, which is the 15 fps of `2043`.
+
+The test for "is this door an exit" is the SAME one `ch_ent_draw()` uses to
+decide between drawing an arrow and drawing a hatch. It has to be: a door
+drawn as an arrow out of the room that then fades like a doorway is a door
+that lies.
+
+**Nothing moves during those nine frames**, so the slide is a copy and not a
+re-render: two still frames, the room leaving and the room arriving, composed
+at an offset. They cost 82 KB each in PSRAM, which is nothing there - and they
+are **optional**. If they do not fit, `trans_dir` is never honoured and every
+door fades, which is what the game did before. A nicety is not worth failing
+to open over.
+
+**What it costs, from the board's own frame log:**
+
+```
+normal      frame 34.0 ms = draw  5.6 + flush 0.18 + gap 28.4   (29.4 fps)
+sliding     frame 41.6 ms = draw 13.9 + flush 1.69 + gap 27.6   (24.1 fps)
+```
+
+Nine full-screen pushes in a row, which is the one thing this engine is
+otherwise careful never to do. It is affordable for exactly the reason the
+room change already was: it happens once per room, and a room lasts minutes.
+The transition takes 0.37 s instead of 0.30, and nothing else in the game
+gives up a frame for it.

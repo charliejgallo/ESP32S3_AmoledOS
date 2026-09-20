@@ -77,6 +77,19 @@ static int ent_en(const ch_room_t *r, int x, int y)
 /* Doors are looked up separately because they are the only things occupying
  * SEVERAL cells: 'premio' carries the width. A single-cell door against the
  * edge of the screen cannot be touched with a finger. */
+/* Which edge of the map this door sits on, or -1 if it is not on one. The
+ * tests are the SAME ones ch_ent_draw() uses to decide between an arrow and a
+ * hatch, and they have to stay the same: a door that is drawn as an arrow out
+ * of the room and then fades like a doorway is a door that lies. */
+static int puerta_lado(const ch_ent_t *e)
+{
+    if (e->y <= 1)        return 1;         /* up    */
+    if (e->y >= ROWS - 3) return 0;         /* down  */
+    if (e->x <= 1)        return 2;         /* left  */
+    if (e->x >= COLS - 2) return 3;         /* right */
+    return -1;
+}
+
 static int puerta_en(const ch_room_t *r, int x, int y)
 {
     for (int i = 0; i < r->nents; i++) {
@@ -248,7 +261,8 @@ void ch_map_entrar(ch_t *g, int sala, int x, int y)
 
     /* The transition covers the room change. Without it the cut is abrupt and
      * you notice they are two different screens and not a world. */
-    g->trans = 9;
+    g->trans = TRANS_N;
+    g->trans_dir = 0xFF;            /* a fade unless the caller says otherwise */
     for (int i = 0; i < NAMB; i++) amb_nace(g, i, false);
 
     g->rehacer_fondo = 1;
@@ -396,7 +410,9 @@ static void al_llegar(ch_t *g)
 
     if (i >= 0) {
         const ch_ent_t *e = &r->ents[i];
+        int lado = puerta_lado(e);
         ch_map_entrar(g, e->p1, e->p2, e->p3);
+        if (lado >= 0) g->trans_dir = (uint8_t)lado;
         return;
     }
 
@@ -915,9 +931,10 @@ void ch_map_dibujar(ch_t *g)
         ch_dirty_add(&g->d_cur, cx - r - 2, cy - r - 2, r * 2 + 5, r * 2 + 5);
     }
 
-    /* The fade in. It is nine frames and it dirties the whole map, but it
-     * happens once per room: it is the same deal as the background repaint. */
-    if (g->trans) {
+    /* The fade in, for the doors that are doorways. The ones at the edge of
+     * the map slide instead, and that is composed in chatarra.c because it
+     * needs the frame that is leaving, which the model does not keep. */
+    if (g->trans && g->trans_dir == 0xFF) {
         ch_shade(&g->fb, 0, 0, CH_W, MAP_H, -(int)g->trans * 2);
         ch_dirty_add(&g->d_cur, 0, 0, CH_W, MAP_H);
     }
