@@ -1,11 +1,12 @@
 # AmoledOS
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
-368x448 AMOLED you can hold in your hand. Seven watchfaces, twenty built-in
-apps, twenty-six more loaded from the microSD as shared objects — one of them a
-Lua interpreter, so a text file on the card is an app too — a web portal,
-iPhone notifications over BLE, and a desktop simulator that runs the same UI
-code so you can build the whole thing without the board.
+368x448 AMOLED you can hold in your hand. Seven watchfaces, twenty-one
+built-in apps, thirty more loaded from the microSD as shared objects — one of
+them a Lua interpreter, so a text file on the card is an app too — a web
+portal, iPhone notifications over BLE, a link between two watches over ESP-NOW
+with five apps on it, and a desktop simulator that runs the same UI code so
+you can build the whole thing without the board.
 
 <p align="center">
   <img src="docs/img/board-watchface.png" width="220" alt="Nixie watchface, photographed from the board">
@@ -109,7 +110,7 @@ same files the apps read. See [docs/PORTAL.md](docs/PORTAL.md).
 
 ## The apps
 
-Forty-six of them, plus one for every Lua script on the card, in three
+Fifty-one of them, plus one for every Lua script on the card, in three
 families that differ in where the code lives — not in what they are allowed
 to do.
 
@@ -130,7 +131,7 @@ Twenty-one ship inside the binary. They are the ones the watch cannot be without
 
 ### Loaded from the microSD
 
-Twenty-eight more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
+Thirty more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
 `.so` files at startup. The same source builds into the simulator, so they are
 designed on a laptop and copied to the card without changing a line — and a new
 one needs no firmware rebuild. That includes its **launcher icon**: an app
@@ -235,6 +236,13 @@ watch is, by signal strength and by FTM time of flight. v0.4.3 adds the
 **Walkie**, push to talk over the fast channel, and with it the streaming
 speaker the HAL lacked (`aos_hal_spk_*`).
 
+<p align="center">
+  <img src="docs/img/photo-walkie.jpg" width="640" alt="The walkie on two watches, one in Spanish and one in English">
+</p>
+<p align="center"><em>The walkie after a chat through a closed door, five metres
+apart: 24 frames one way, 31 the other, nothing lost. One watch in Spanish,
+the other in English.</em></p>
+
 The plan, and everything measured along the way — 6000 frames with nothing
 lost on the air, 3-5 ms round trip, 60 KB/s, what Bluetooth costs, what a
 watch that leaves its network to sit on a channel costs, 100 KB over the
@@ -261,7 +269,7 @@ with no WiFi. Everything measured is in [docs/USB.md](docs/USB.md).
 ## Flash it without building
 
 The [latest release](https://github.com/charliejgallo/ESP32S3_AmoledOS/releases/latest)
-carries the firmware and the twenty-eight dynamic apps already built, for the
+carries the firmware and the thirty dynamic apps already built, for the
 Waveshare ESP32-S3-Touch-AMOLED-1.8.
 
 ```bash
@@ -271,7 +279,11 @@ esptool --chip esp32s3 -p <PORT> -b 460800 write_flash 0x0 amoledos-full.bin
 # 2. the apps: unzip onto the microSD, in a folder called apps/
 unzip apps.zip -d /Volumes/<sd>/apps/
 
-# 3. the example Lua scripts, in a folder called lua/ (optional)
+# 3. the language packs, in a folder called lang/ (English and German ship
+#    inside the binary too, but a pack on the card wins, so keep them current)
+unzip lang.zip -d /Volumes/<sd>/lang/
+
+# 4. the example Lua scripts, in a folder called lua/ (optional)
 unzip lua-scripts.zip -d /Volumes/<sd>/lua/
 ```
 
@@ -324,7 +336,7 @@ components/
   aos_dynapp/         .so loader and symbol table
   aos_ble/            NimBLE: ANCS, AMS, pairing
   aos_web/            the web portal, embedded in the binary
-apps/                 27 dynamic apps
+apps/                 30 dynamic apps
 tools/                generators, test benches, board utilities
 ```
 
@@ -333,9 +345,11 @@ The rule that holds it up: **`aos_ui` and `aos_apps` include only LVGL and
 compiles for the board and for the desktop, and why every screen can be
 designed, audited and screenshotted without hardware.
 
-Three files are shared verbatim by both platforms because they contain no
-platform code at all: the HTTP/TLS client, the notification policy, and the
-network survey's report format.
+Four files are shared verbatim by both platforms because they contain no
+platform code at all: the HTTP/TLS client, the notification policy, the
+network survey's report format, and the link between two watches (beacons,
+pairing, the reliable channel) above a raw layer that is ESP-NOW on the board
+and UDP in the simulator.
 
 ## Documentation
 
@@ -346,11 +360,15 @@ network survey's report format.
 | [BUILDING.md](docs/BUILDING.md) | firmware, simulator, dynamic apps, and every tool |
 | [APP-API.md](docs/APP-API.md) | writing an app, and the things that will bite you |
 | [APP-GUIDE.md](docs/APP-GUIDE.md) | the long form: how the apps were actually written - workflow, the four drawing techniques with their costs, data from the internet, configuration from the portal, testing without the board, and every trap that bit |
+| [LINK.md](docs/LINK.md) | two watches over ESP-NOW: the plan in phases, the design, what every phase measured, and the five apps on it |
 | [I18N.md](docs/I18N.md) | how translation works and why the key is the Spanish string |
 | [LUA.md](docs/LUA.md) | scripts on the watch: what a script is, everything it can reach, the rules the app enforces and why, and what a frame actually costs |
 | [ICONS.md](docs/ICONS.md) | icons as data: the AIC format, how a `.so` or a file on the card brings one, how the 36 hand-drawn ones became tables, and what it saved |
 | [POWER.md](docs/POWER.md) | the AXP2101, the rails, light sleep, and the measurements behind each switch |
 | [PORTAL.md](docs/PORTAL.md) | the web portal: pages, API, what it costs the board, and the dev server |
+| [STEPS.md](docs/STEPS.md) | the step counter: why it is software, how it was tuned on counted walks |
+| [VIDEO.md](docs/VIDEO.md) | video from the card: the decoder, the background task, the direct blit, and the clock |
+| [RAM-AUDIT.md](docs/RAM-AUDIT.md) | where the internal RAM went and how the apps' code moved to PSRAM |
 | [ROADMAP.md](docs/ROADMAP.md) | what is planned and has no date: Android phones, and USB host (a pendrive on the watch), waiting for a way to power it |
 | [USB.md](docs/USB.md) | the USB-C port as a device or a host: what the board allows, the catalogue, the test rigs, the measurements and what was found |
 
@@ -385,8 +403,10 @@ Running on hardware. WiFi, BLE against a real iPhone, audio in and out, the
 microSD, the web portal, TLS, over-the-air updates and the USB port in its
 device modes (keyboard, mouse, gamepad, MIDI, network, disk) have all been
 exercised on the board — most of the measurements quoted throughout the source
-were taken there. USB host mode (a pendrive on the watch) works but is parked:
-the board cannot power a peripheral ([USB.md](docs/USB.md)).
+were taken there. The link between two watches has been played with on two
+boards: Pong, Truco, a drawing sent, the radar and the walkie through a door.
+USB host mode (a pendrive on the watch) works but is parked: the board cannot
+power a peripheral ([USB.md](docs/USB.md)).
 
 Known gaps: MP3 — the player handles 16-bit PCM WAV only. On the power side,
 the clean power-off at 3 % and the charge-cycle counter are written and

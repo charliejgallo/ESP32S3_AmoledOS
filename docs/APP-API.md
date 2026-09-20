@@ -196,6 +196,7 @@ and the numbers that made it necessary.
 | `FULLSCREEN` | no status bar |
 | `BACKGROUND` | the app stays alive after exit and keeps getting ticks |
 | `NO_SWIPE` | the app handles the back gesture itself |
+| `KEEP_AWAKE` | also: the app is not closed when the screen times out (30 s) — an app that holds the link or a codec needs it |
 | `LONG_DRAG` | do not abort an in-flight touch at the 50 px gesture threshold |
 
 `LONG_DRAG` exists for a specific reason. A drag longer than 50 px fires LVGL's
@@ -278,6 +279,56 @@ release in `destroy`) and the hardware's limits are in
 [HANDOFF-USB.md](HANDOFF-USB.md) section 4, and `aos_app_pcremote.c` is the
 worked example. The simulator switches instantly and its keyboard is always
 ready in keys mode, so the screens can be drawn on the Mac.
+
+## Two watches: the link
+
+Since v0.4.0 an app can talk to the watch this one is paired with, over
+ESP-NOW, through `aos_hal_link_*`. The link lives only while an app holds it:
+
+```c
+/* create() */
+up = aos_hal_link_start();               /* false if the radio is off */
+aos_hal_link_offer("pong");              /* what the beacon says we are running */
+aos_link_partner_t p;
+have_partner = aos_hal_link_partner(&p) && p.valid;   /* paired in Enlace */
+
+/* the tick, 20-100 ms */
+aos_link_frame_t f;
+while (aos_hal_link_recv(&f) > 0) { ... }              /* fast channel */
+while (aos_hal_link_recv_reliable(&f) > 0) { ... }     /* reliable channel */
+aos_hal_link_send_partner(&state, sizeof state);       /* send and forget, the last one wins */
+aos_hal_link_send_reliable(&move, sizeof move);        /* in order, acknowledged, resent */
+
+/* destroy() */
+aos_hal_link_offer("");
+aos_hal_link_stop();
+```
+
+Frames are at most 250 bytes (242 on the reliable channel). Pairing is not
+the app's business: the user bumps the two watches in Enlace and the partner
+is in NVS from then on; the app only asks `aos_hal_link_partner()` and reads
+`p.valid`, `p.seen` (beaconed in the last 5 s) and `p.name`. Roles between
+equals come from the MACs (`aos_hal_link_stats().own_mac` against the
+partner's: the lower one is the host), the pattern every two-player app uses.
+`aos_hal_link_neighbours()` says what the partner is offering, which is how an
+app knows the other watch is in the same app before sending anything.
+
+Give the app `KEEP_AWAKE`: the link stops when the app is destroyed, and an
+app without the flag is destroyed when the screen times out.
+
+In the simulator the link is UDP on 127.0.0.1: run two instances with
+`AOS_SIM_LINK_PORT=47000 AOS_SIM_LINK_PARTNER=47001` on one and the ports
+swapped on the other, and they are partners without a bump.
+
+The whole design, the measurements and the five apps on it (Pong, Truco for
+two, Pixel Art's sending, Radar, Walkie) are in [LINK.md](LINK.md); the
+patterns that worked and the traps are in [APP-GUIDE.md](APP-GUIDE.md)
+section 16.
+
+Two HAL additions came with the link apps and are general: **the streaming
+speaker** (`aos_hal_spk_open/write/queued/is_open/close`), for audio that is
+not a file, and **FTM** (`aos_hal_ftm_supported/responder/responder_info/
+measure/result`), distance by time of flight to another watch.
 
 ## Translation
 

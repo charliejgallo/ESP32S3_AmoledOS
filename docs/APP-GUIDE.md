@@ -158,6 +158,9 @@ LVGL's TJPGD, 8.5 KB of internal RAM while open. Numbers in VIDEO.md.
 | files | `aos_hal_path_photos()`, `_music()`, `_recordings()`, `_data()` |
 | system | `aos_hal_uptime_ms()`, `aos_hal_heap_info()`, `aos_hal_log()` |
 | USB | `aos_hal_usb_mode/mode_set/busy/keys_ready()`, `aos_hal_usb_key("volup")`, `_type()`, `_mouse/click()`, `_gamepad()`, `_midi_note/cc/bend()` - see [HANDOFF-USB.md](HANDOFF-USB.md) section 4 |
+| the other watch | `aos_hal_link_start/stop/offer/partner/neighbours()`, `aos_hal_link_send_partner/recv()` (fast), `aos_hal_link_send_reliable/recv_reliable/reliable_lost/reliable_reset()` - section 16 and [LINK.md](LINK.md) |
+| streaming speaker | `aos_hal_spk_open/write/queued/is_open/close()`: PCM in, sound out, for audio that is not a file |
+| FTM | `aos_hal_ftm_supported/responder/responder_info/measure/result()`: distance to the other watch by time of flight |
 
 **The UI runtime** (`aos_ui.h`): `aos_ui_toast()`, `aos_ui_back()`,
 `aos_ui_open()`, `aos_ui_take_gesture()`. **The theme** (`aos_theme.h`): the
@@ -992,6 +995,78 @@ falls far below its usual 160-185 KB, this is what it will look like. Spend
 less internal RAM: a screen with many identical elements is a canvas, not an
 object per element.
 
+## 16. Two watches
+
+Five apps talk to the other watch today, and between them they cover every
+shape a two-player app takes. The HAL contract is short (APP-API.md, "Two
+watches"); what follows is what each app had to learn.
+
+**The link is the app's.** `aos_hal_link_start()` in `create()`,
+`aos_hal_link_stop()` in `destroy()`, `KEEP_AWAKE` on the descriptor. Nothing
+runs between apps: a watch on the launcher is not on the air. Start it only
+when there is a partner (`aos_hal_link_partner().valid`): it costs radio time
+and 4.5 KB of internal RAM. Pixel Art does exactly that, and on a watch that
+is alone it is the app it always was.
+
+**Roles between equals: the lower MAC is the host.** Pong, Truco, Radar and
+the walkie all decide the same way, from `aos_hal_link_stats().own_mac` and
+the partner's MAC, after a hello exchange (Pong on the fast channel, Truco on
+the reliable one) so both sides know the other is in the same app. Radar and
+the walkie skip the hello: their pings are the hello.
+
+**Send state, not events, on the fast channel.** Pong's host sends the
+whole state (ball, both paddles, score, phase) 30 times a second and the
+guest draws the last one it got; a lost frame is 33 ms of nothing. The
+walkie's frames carry the codec's state too, so a lost one costs its 29 ms
+and nothing after it. Never send a delta on a channel that drops.
+
+**A game by turns is lockstep on the reliable channel.** Truco's engine is
+deterministic given its seed, so both watches run the same engine and only
+the moves travel: the host picks the seed, takes every move, applies it and
+echoes it; the guest applies only what comes back, its own taps included.
+Moves wait in an inbox until the table is quiet, so the animations keep
+their own pace on each screen. The one rule: nothing may read the state's
+random generator except the deal, or the two games fork silently.
+
+**A file is chunks and a start message.** Pixel Art sends `.pix` files
+(up to 4 KB) as a start frame with the length and then 236-byte chunks with
+an offset, all on the reliable channel; the receiver writes, validates the
+header and answers with the slot. The reliable queue holds 16 frames:
+`send_reliable()` says false when it is full and the app tries again next
+tick, which is what the `while` in the tick is for.
+
+**Know when the other side is gone.** The reliable channel gives up after
+3.2 s without an acknowledgement (`aos_hal_link_reliable_lost()`, then
+`reliable_reset()`); the partner's beacons stop 5 s after it leaves the link
+(`p.seen`); and its beacon says which app it offers, so an app knows the
+partner left *this* app (`aos_hal_link_neighbours()`, the `app` field).
+Truco checks all three and shows "SE FUE <name>"; Pixel Art checks the offer
+before sending and says "<name> no está en Pixel Art" instead of timing out.
+
+**A hello carries a nonce.** Truco's hello has a number chosen per run of
+the app: a hello with a new nonce from the same partner means they
+re-entered the app, and both start over instead of one side applying moves
+to a game the other no longer has.
+
+**Half duplex is the codec's, not the radio's.** The walkie could send and
+receive at once; the ES8311 cannot record and play at once. Close one side
+before opening the other, and know that the microphone's task lets go of
+the codec a little after `aos_hal_mic_close()` returns: `aos_hal_spk_open()`
+waits for it, bounded, and the app retries from its tick as well.
+
+**The simulator is two windows.** `AOS_SIM_LINK_PORT`/`AOS_SIM_LINK_PARTNER`
+make two instances partners over UDP; a dev flag (`TRUCO_LINK=1`,
+`PX_LINK=1`) skips the "against whom" question because the simulator has no
+partner in its preferences until the link is up. With two simulators on one
+Mac the script clock of `AOS_SIM_KEYS` runs at about half speed while
+`AOS_SIM_SHOT_MS` keeps wall time. `TRUCO_SHOWALL=1` shows both hands face
+up, which is how the two tables were compared.
+
+**On the boards, drive both from the portal.** `POST /api/accion
+que=abrir&id=aos.truco`, `/api/mem?tap=x,y` (and `tap=x,y,3000` to hold),
+`tools/captura.py`, and `/api/link` for the counters. Script it without
+pauses: an app without `KEEP_AWAKE` is closed when the screen times out.
+
 ## 15. Checklist
 
 - [ ] unique `id` with a prefix of your own
@@ -1037,6 +1112,9 @@ object per element.
 | `apps/hello_app/` | the template: icon, translation, event codes, all in place |
 | `apps/arkanos/main/ak_pixel.c` · `tools/ak_harness.c` | dirty rectangles and the harness that checks them |
 | `apps/clima/main/wx_api.c` | the JSON reader without a tree |
+| `apps/pong/main/pong.c` · `apps/truco/main/tl_link.h` | the fast channel with a host, and lockstep on the reliable one |
+| `apps/walkie/main/wk_adpcm.c` | IMA ADPCM, 4 bits a sample, state per frame |
+| `components/aos_hal/aos_link.c` | the link's common layer, shared by the board and the simulator |
 | `tools/build_apps.sh` · `install_apps.sh` · `install_lang.sh` | build, verify, install |
 | `tools/gen_symbols.py` | the firmware's symbol table (`EXTRA_SYMBOLS`) |
 | `tools/gen_lang.py` · `audit_layout.sh` · `captura.py` | translation, layout and the real screen |
