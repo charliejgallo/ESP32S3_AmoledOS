@@ -819,6 +819,16 @@ void ch_robot_draw(ch_buf_t *b, int cx, int y, const ch_robot_t *r,
  * their robot walking.
  * -------------------------------------------------------------------------- */
 
+/* --------------------------------------------------------------------------
+ * v2 GREW THIS FIGURE BY HALF, AND NOT BY RETYPING IT
+ *
+ * The map figure was 12x16 on an 8 px grid; on v2's 12 px grid it is 18x24.
+ * It is thirty rectangles of small literals, so every coordinate goes through
+ * E() -three halves- instead of being typed again: the proportions cannot
+ * drift, and the day the grid changes again it is one number.
+ * -------------------------------------------------------------------------- */
+#define E(v)    ((v) * 3 / 2)
+
 void ch_mini_draw(ch_buf_t *b, int x, int y, const ch_robot_t *r,
                   int dir, int paso)
 {
@@ -831,59 +841,60 @@ void ch_mini_draw(ch_buf_t *b, int x, int y, const ch_robot_t *r,
     int a = (paso & 2) ? 1 : 0;
 
     /* shadow */
-    ch_rect(b, x + 2, y + 15, 8, 1, ch_rgb(0x1A1E2A));
+    ch_rect(b, x + E(2), y + E(15), E(8), E(1), ch_rgb(0x1A1E2A));
 
     /* legs or wheels */
     if (rueda == 2 || rueda == 3 || rueda == 4 || rueda == 5) {
-        ch_rect(b, x + 1, y + 11, 10, 4, kk);
-        ch_rect(b, x + 2, y + 12, 8, 2, os);
-        ch_rect(b, x + 3 + ((paso >> 1) & 1) * 2, y + 12, 2, 2, md);
+        ch_rect(b, x + E(1), y + E(11), E(10), E(4), kk);
+        ch_rect(b, x + E(2), y + E(12), E(8), E(2), os);
+        ch_rect(b, x + E(3 + ((paso >> 1) & 1) * 2), y + E(12), E(2), E(2), md);
     } else {
-        ch_rect(b, x + 3, y + 11, 2, 4 - a, kk);
-        ch_rect(b, x + 7, y + 11, 2, 4 + a - 1, kk);
+        ch_rect(b, x + E(3), y + E(11), E(2), E(4 - a), kk);
+        ch_rect(b, x + E(7), y + E(11), E(2), E(4 + a - 1), kk);
     }
 
     /* torso */
-    ch_rect(b, x + 2, y + 6, 8, 6, kk);
-    ch_rect(b, x + 3, y + 7, 6, 4, cl);
-    ch_rect(b, x + 3, y + 7, 2, 4, md);
+    ch_rect(b, x + E(2), y + E(6), E(8), E(6), kk);
+    ch_rect(b, x + E(3), y + E(7), E(6), E(4), cl);
+    ch_rect(b, x + E(3), y + E(7), E(2), E(4), md);
 
     /* arms */
-    ch_rect(b, x, y + 6, 2, 4, md);
-    ch_rect(b, x + 10, y + 6, 2, 4, md);
+    ch_rect(b, x, y + E(6), E(2), E(4), md);
+    ch_rect(b, x + E(10), y + E(6), E(2), E(4), md);
 
     /* head */
-    ch_rect(b, x + 2, y + 1, 8, 6, kk);
-    ch_rect(b, x + 3, y + 2, 6, 4, cl);
+    ch_rect(b, x + E(2), y + E(1), E(8), E(6), kk);
+    ch_rect(b, x + E(3), y + E(2), E(6), E(4), cl);
 
     /* the face looks where it walks */
     switch (dir) {
     case 1:                                      /* from behind              */
-        ch_rect(b, x + 4, y + 3, 4, 2, md);
+        ch_rect(b, x + E(4), y + E(3), E(4), E(2), md);
         break;
     case 2:                                      /* to the left              */
-        ch_rect(b, x + 3, y + 3, 2, 2, br);
+        ch_rect(b, x + E(3), y + E(3), E(2), E(2), br);
         break;
     case 3:                                      /* to the right             */
-        ch_rect(b, x + 7, y + 3, 2, 2, br);
+        ch_rect(b, x + E(7), y + E(3), E(2), E(2), br);
         break;
     default:                                     /* front on                 */
-        ch_rect(b, x + 4, y + 3, 1, 2, br);
-        ch_rect(b, x + 7, y + 3, 1, 2, br);
+        ch_rect(b, x + E(4), y + E(3), E(1), E(2), br);
+        ch_rect(b, x + E(7), y + E(3), E(1), E(2), br);
         break;
     }
 
     /* the head's finish travels too: it is what shows most from a distance */
     if (ant == 1 || ant == 4) {
-        ch_rect(b, x + 6, y - 1, 1, 2, os);
-        ch_rect(b, x + 6, y - 2, 1, 1, br);
+        ch_rect(b, x + E(6), y - E(1), E(1), E(2), os);
+        ch_rect(b, x + E(6), y - E(2), E(1), E(1), br);
     } else if (ant == 2 || ant == 5) {
-        ch_rect(b, x + 3, y, 1, 2, os);
-        ch_rect(b, x + 8, y, 1, 2, os);
+        ch_rect(b, x + E(3), y, E(1), E(2), os);
+        ch_rect(b, x + E(8), y, E(1), E(2), os);
     } else if (ant == 3) {
-        ch_rect(b, x + 4, y - 1, 4, 1, md);
+        ch_rect(b, x + E(4), y - E(1), E(4), E(1), md);
     }
 }
+#undef E
 
 /* --------------------------------------------------------------------------
  * Stats

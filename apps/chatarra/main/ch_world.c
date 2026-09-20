@@ -526,139 +526,116 @@ void ch_tile_draw(ch_buf_t *b, char t, int tx, int ty)
 
 typedef struct {
     const char *const *px;
-    uint8_t            rows;    /* height in pixels (multiple of 8)          */
+    uint8_t            rows;    /* height in pixels                          */
     uint8_t            cw;      /* width in cells                            */
     uint8_t            solidas; /* rows of solid cells, from the bottom      */
+    /* Which grid the ART is drawn on: 12 once it has been redrawn for v2, 8
+     * while it is still v1's and gets stretched. Scaffolding, and the only
+     * way the two batches can live in the same table while the redraw is
+     * half done. It goes when the last 8 does. */
+    uint8_t            grid;
 } propdef_t;
 
-static const char *const SP_ARBOL[24] = {
-    "......ffff......",
-    "....ffFFFFff....",
-    "...fFFFFFFFFf...",
-    "..fFFFFFFFFFFf..",
-    ".fFFFFvvFFFFFFf.",
-    ".fFFFvvvvFFFFFf.",
-    "fFFFFvvvvvFFFFFf",
-    "fFFFvvvvvvvFFFFf",
-    "fFFFFvvvvvFFFFFf",
-    "fFFFFFvvvFFFFFFf",
-    ".fFFFFFFFFFFFFf.",
-    ".fFFFFFFFFFFFFf.",
-    "..fFFFFFFFFFFf..",
-    "...ffFFFFFFff...",
-    "....ffFFFFff....",
-    "......fjjf......",
-    "......jjjj......",
-    "......jJJj......",
-    "......jJJj......",
-    "......jJJj......",
-    ".....jjJJjj.....",
-    "....jJJJJJJj....",
-    "...EJJJJJJJJE...",
-    "..EEEEEEEEEEEE..",
+static const char *const SP_ARBOL[36] = {
+    ".........ffffff.........", ".......ffFFFFFFff.......",
+    ".....fFFFFFFFFFFFFf.....", "....fFFFFFFFFFFFFFFf....",
+    "...fFFFFFvvFFFFFFFFFf...", "..fFFFFFvvvvFFFFFFFFFf..",
+    "..fFFFFvvvvvvFFFFFFFFf..", ".fFFFFFvvvvvvvFFFFFFFFf.",
+    ".fFFFFFFvvvvvFFFFFFFFFf.", "fFFFFFFFFvvvFFFFFFFFFFFf",
+    "fFFFFFFFFFFFFFFFFFFFFFFf", "fFFFFFFFFFFFFFFFFFFFFFFf",
+    "fFFFFFFFFFFFFFFFFFFFFFFf", ".fFFFFFFFFFFFFFFFFFFFFf.",
+    ".fFFFFFFFFFFFFFFFFFFFFf.", "..fFFFFFFFFFFFFFFFFFFf..",
+    "..fFFFFFFFFFFFFFFFFFFf..", "...fFFFFFFFFFFFFFFFFf...",
+    "....fFFFFFFFFFFFFFFf....", ".....ffFFFFFFFFFFff.....",
+    ".......ffFFFFFFff.......", ".........ffffff.........",
+    "..........jjjj..........", ".........jjJJjj.........",
+    ".........jJJJJj.........", ".........jJJJJj.........",
+    ".........jJJJJj.........", ".........jJJJJj.........",
+    ".........jJJJJj.........", ".........jJJJJj.........",
+    "........jjJJJJjj........", ".......jJJJJJJJJj.......",
+    "......jJJJJJJJJJJj......", "....EEJJJJJJJJJJJJEE....",
+    "..EEEEEEEEEEEEEEEEEEEE..", "........................",
 };
 
-static const char *const SP_CASA[24] = {
-    "........aaaaaaaaaaaaaa..........",
-    "......aaaaaaaaaaaaaaaaaa........",
-    "....aaaaaaaaaaaaaaaaaaaaaa......",
-    "..aaaaaaaaaaaaaaaaaaaaaaaaaa....",
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA..",
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA..",
-    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQ...",
-    ".QQQjjjjQQQQQQQQQQQjjjjQQQQQQ...",
-    ".QQQjccjQQQQQQQQQQQjccjQQQQQQ...",
-    ".QQQjccjQQQQQQQQQQQjccjQQQQQQ...",
-    ".QQQjjjjQQQQQQQQQQQjjjjQQQQQQ...",
-    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQjjjjjjQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQjJJJJjQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQjJJJJjQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQjJJyJjQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQjJJJJjQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQjJJJJjQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQjJJJJjQQQQQQQQQQQ...",
-    ".JJJJJJJJJJJjJJJJjJJJJJJJJJJJ...",
-    "....EEEE....hhhhhh....EEEE......",
+static const char *const SP_CASA[36] = {
+    "............aaaaaaaaaaaaaaaaaaaa................", ".........aaaaaaaaaaaaaaaaaaaaaaaaaa.............",
+    "......aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..........", "...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.........",
+    ".aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.......", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA......",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA......", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA......",
+    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......", ".QQQjjjjjjQQQQQQQQQQQQQQQQjjjjjjQQQQQQQQQ.......",
+    ".QQQjccccjQQQQQQQQQQQQQQQQjccccjQQQQQQQQQ.......", ".QQQjccccjQQQQQQQQQQQQQQQQjccccjQQQQQQQQQ.......",
+    ".QQQjccccjQQQQQQQQQQQQQQQQjccccjQQQQQQQQQ.......", ".QQQjjjjjjQQQQQQQQQQQQQQQQjjjjjjQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQjjjjjjjjQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQjJJyyJJjQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......",
+    ".JJJJJJJJJJJJJJJjJJJJJJjJJJJJJJJJJJJJJJJJ.......", ".JJJJJJJJJJJJJJJjJJJJJJjJJJJJJJJJJJJJJJJJ.......",
+    "......EEEEEE.......hhhhhhhh.......EEEEEE........", ".......EEEE.........hhhh...........EEEE.........",
 };
 
-static const char *const SP_TALLER[24] = {
-    "..IIIIIIIIIIIIIIIIIIIIIIIIII....",
-    ".IIIIIIIIIIIIIIIIIIIIIIIIIIII...",
-    "IIIIIIIIIIIIIIIIIIIIIIIIIIIIII..",
-    "iiiiiiiiiiiiiiiiiiiiiiiiiiiiii..",
-    "iiiiiiiiiiiiiiiiiiiiiiiiiiiiii..",
-    ".dddddddddddddddddddddddddddd...",
-    ".dyyyyyyyyyyyyyyyyyyyyyyyyyyd...",
-    ".dyyyyyyyyyyyyyyyyyyyyyyyyyyd...",
-    ".dddddddddddddddddddddddddddd...",
-    ".DDDDDDDDDDDDDDDDDDDDDDDDDDDD...",
-    ".DDDDccccDDDDDDDDDDDDccccDDDD...",
-    ".DDDDccccDDDDDDDDDDDDccccDDDD...",
-    ".DDDDccccDDDDDDDDDDDDccccDDDD...",
-    ".DDDDDDDDDDDDDDDDDDDDDDDDDDDD...",
-    ".DDDDDDDDDDDDDDDDDDDDDDDDDDDD...",
-    ".DDDDDDDDDDDKKKKKKDDDDDDDDDDD...",
-    ".DDDDDDDDDDDKddddKDDDDDDDDDDD...",
-    ".DDDDDDDDDDDKddddKDDDDDDDDDDD...",
-    ".DDDDDDDDDDDKddoiKDDDDDDDDDDD...",
-    ".DDDDDDDDDDDKddddKDDDDDDDDDDD...",
-    ".DDDDDDDDDDDKddddKDDDDDDDDDDD...",
-    ".DDDDDDDDDDDKddddKDDDDDDDDDDD...",
-    ".xxxxxxxxxxxKddddKxxxxxxxxxxx...",
-    "....IIII....dddddd....IIII......",
+static const char *const SP_TALLER[36] = {
+    "...DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD.........", "..DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD........",
+    ".DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD.......", "DDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDD......",
+    "DDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDD......", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx......",
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx......", ".dddddddddddddddddddddddddddddddddddddddd.......",
+    ".dddddddddddddddddddddddddddddddddddddddd.......", ".dddDDDDDDdddddddddddddddddDDDDDDdddddddd.......",
+    ".dddDccccDdddddddddddddddddDccccDddddddddd......", ".dddDccccDdddddddddddddddddDccccDddddddddd......",
+    ".dddDDDDDDdddddddddddddddddDDDDDDddddddddd......", ".dddddddddddddddddddddddddddddddddddddddd.......",
+    ".dddddddddddddddddddddddddddddddddddddddd.......", ".dddddddddddddddddddddddddddddddddddddddd.......",
+    ".ddddddddoooooooooooooooooooooddddddddddd.......", ".ddddddddoOOOOOOOOOOOOOOOOOoddddddddddddd.......",
+    ".ddddddddoOxxxxxxxxxxxxxxxxxOoddddddddddd.......", ".ddddddddoOxDDDDDDDDDDDDDxOoddddddddddddd.......",
+    ".ddddddddoOxDDDDDDDDDDDDDxOoddddddddddddd.......", ".ddddddddoOxDDDDDDDDDDDDDxOoddddddddddddd.......",
+    ".ddddddddoOxDDDDDDDDDDDDDxOoddddddddddddd.......", ".ddddddddoOxDDDDDDDDDDDDDxOoddddddddddddd.......",
+    ".ddddddddoOxDDDDDDDDDDDDDxOoddddddddddddd.......", ".ddddddddoOxxxxxxxxxxxxxxxOoddddddddddddd.......",
+    ".ddddddddoOOOOOOOOOOOOOOOOOoddddddddddddd.......", ".ddddddddoooooooooooooooooooddddddddddddd.......",
+    ".dddddddddddddddddddddddddddddddddddddddd.......", ".dddddddddddddddddddddddddddddddddddddddd.......",
+    ".dddddddddddddddddddddddddddddddddddddddd.......", ".dddddddddddddddddddddddddddddddddddddddd.......",
+    ".KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK.......", ".KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK.......",
+    "......IIIIII.......IIIIIIII.......IIIIII........", ".......IIII.........IIII...........IIII.........",
 };
 
-static const char *const SP_FUENTE[14] = {
-    "......IIIIIIIIIIII......",
-    "....IIiiiiiiiiiiiiII....",
-    "..IIiiiiiiiiiiiiiiiiII..",
-    "..IiiillllllllllllliiI..",
-    "..IiilLLLLLLLLLLLLLliI..",
-    "..IiilLLLLLccLLLLLLliI..",
-    "..IiilLLLLLccLLLLLLliI..",
-    "..IiilLLLLLccLLLLLLliI..",
-    "..IiilLLLLLLLLLLLLLliI..",
-    "..IiiillllllllllllliiI..",
-    "..IIiiiiiiiiiiiiiiiiII..",
-    "....IIiiiiiiiiiiiiII....",
-    "......IIIIIIIIIIII......",
-    ".......IIIIIIIIII.......",
+static const char *const SP_FUENTE[22] = {
+    ".........IIIIIIIIIIIIIIIII..........", ".......IIiiiiiiiiiiiiiiiiiII........",
+    "....IIiiiiiiiiiiiiiiiiiiiiiiiII.....", "..IIiiiiiiiiiiiiiiiiiiiiiiiiiiiII...",
+    "..IiiiiillllllllllllllllllliiiiI....", "..IiiilLLLLLLLLLLLLLLLLLLLLLliiI....",
+    "..IiilLLLLLLLLLLLLLLLLLLLLLLLliI....", "..IiilLLLLLLLLcccLLLLLLLLLLLLliI....",
+    "..IiilLLLLLLLLcccLLLLLLLLLLLLliI....", "..IiilLLLLLLLLcccLLLLLLLLLLLLliI....",
+    "..IiilLLLLLLLLcccLLLLLLLLLLLLliI....", "..IiilLLLLLLLLLLLLLLLLLLLLLLLliI....",
+    "..IiiilLLLLLLLLLLLLLLLLLLLLliiiI....", "..IiiiiillllllllllllllllllliiiiI....",
+    "..IIiiiiiiiiiiiiiiiiiiiiiiiiiiiII...", "....IIiiiiiiiiiiiiiiiiiiiiiiiII.....",
+    ".......IIiiiiiiiiiiiiiiiiiII........", ".........IIIIIIIIIIIIIIIII..........",
+    "..........IIIIIIIIIIIIIII...........", "...........IIIIIIIIIIIII............",
+    "............IIIIIIIIIII.............", "..............sssssss...............",
 };
 
-static const char *const SP_CARTEL[10] = {
-    "...jjjjjjjjjj...",
-    "..jGGGGGGGGGGj..",
-    "..jGkkkkkkkkGj..",
-    "..jGkGGGGGGkGj..",
-    "..jGkkkkkkkkGj..",
-    "..jGGGGGGGGGGj..",
-    "...jjjjjjjjjj...",
-    ".......jj.......",
-    ".......jj.......",
-    "......JJJJ......",
+static const char *const SP_CARTEL[14] = {
+    "....jjjjjjjjjjjjjj......", "...jGGGGGGGGGGGGGGj.....",
+    "...jGkkkkkkkkkkkkGj.....", "...jGkGGGGGGGGGGkGj.....",
+    "...jGkGGGGGGGGGGkGj.....", "...jGkkkkkkkkkkkkGj.....",
+    "...jGGGGGGGGGGGGGGj.....", "....jjjjjjjjjjjjjj......",
+    ".........jjjj...........", ".........jjjj...........",
+    ".........jjjj...........", ".........jjjj...........",
+    "........JJJJJJ..........", ".......JJJJJJJJ.........",
 };
 
-static const char *const SP_FAROLA[16] = {
-    "..yyyy..",
-    ".yywwyy.",
-    "yywwwwyy",
-    "yywwwwyy",
-    ".yywwyy.",
-    "..dddd..",
-    "...dd...",
-    "...dd...",
-    "...dd...",
-    "...dd...",
-    "...dd...",
-    "...dd...",
-    "...dd...",
-    "...dd...",
-    "..dddd..",
-    ".dddddd.",
+static const char *const SP_FAROLA[24] = {
+    "...yyyyyy...", "..yywwwwyy..",
+    ".yywwwwwwyy.", "yywwwwwwwwyy",
+    "yywwwwwwwwyy", "yywwwwwwwwyy",
+    ".yywwwwwwyy.", "..yyyyyyyy..",
+    "....dddd....", "....dddd....",
+    ".....dd.....", ".....dd.....",
+    ".....dd.....", ".....dd.....",
+    ".....dd.....", ".....dd.....",
+    ".....dd.....", ".....dd.....",
+    ".....dd.....", ".....dd.....",
+    ".....dd.....", "....dddd....",
+    "...dddddd...", "..dddddddd..",
 };
 
 static const char *const SP_MAQUINA[16] = {
@@ -863,20 +840,20 @@ static const char *const SP_BARCO[24] = {
 
 static const propdef_t PROPS[] = {
     /* sprite      height width  solid rows */
-    { SP_ARBOL,      24,   2,   2 },   /* 0 tree: you pass behind it at the top */
-    { SP_CASA,       24,   4,   3 },   /* 1 house                            */
-    { SP_TALLER,     24,   4,   3 },   /* 2 workshop                         */
-    { SP_FUENTE,     14,   3,   2 },   /* 3 fountain                         */
-    { SP_CARTEL,     10,   2,   1 },   /* 4 sign                             */
-    { SP_FAROLA,     16,   1,   1 },   /* 5 street lamp                      */
-    { SP_MAQUINA,    16,   2,   2 },   /* 6 machine                          */
-    { SP_PILA,       16,   2,   1 },   /* 7 scrap pile                       */
-    { SP_PINO,       24,   2,   2 },   /* 8 pine                             */
-    { SP_TORRE,      24,   2,   2 },   /* 9 pylon                            */
-    { SP_ESTATUA,    24,   2,   3 },   /* 10 statue                          */
-    { SP_SERVIDOR,   24,   2,   3 },   /* 11 server                          */
-    { SP_HORNO,      24,   4,   3 },   /* 12 furnace                         */
-    { SP_BARCO,      24,   4,   3 },   /* 13 ship                            */
+    { SP_ARBOL, 36, 2, 2, 12 },   /* 0 tree: you pass behind it at the top */
+    { SP_CASA, 36, 4, 3, 12 },   /* 1 house                            */
+    { SP_TALLER, 36, 4, 3, 12 },   /* 2 workshop                         */
+    { SP_FUENTE, 22, 3, 2, 12 },   /* 3 fountain                         */
+    { SP_CARTEL, 14, 2, 1, 12 },   /* 4 sign                             */
+    { SP_FAROLA, 24, 1, 1, 12 },   /* 5 street lamp                      */
+    { SP_MAQUINA, 16, 2, 2, 8 },   /* 6 machine                          */
+    { SP_PILA, 16, 2, 1, 8 },   /* 7 scrap pile                       */
+    { SP_PINO, 24, 2, 2, 8 },   /* 8 pine                             */
+    { SP_TORRE, 24, 2, 2, 8 },   /* 9 pylon                            */
+    { SP_ESTATUA, 24, 2, 3, 8 },   /* 10 statue                          */
+    { SP_SERVIDOR, 24, 2, 3, 8 },   /* 11 server                          */
+    { SP_HORNO, 24, 4, 3, 8 },   /* 12 furnace                         */
+    { SP_BARCO, 24, 4, 3, 8 },   /* 13 ship                            */
 };
 
 #define NPROPS  ((int)(sizeof(PROPS) / sizeof(PROPS[0])))
@@ -900,7 +877,8 @@ void ch_prop_draw(ch_buf_t *b, const ch_prop_t *pr)
      * this size reads as an ellipse without being one. */
     {
         int w = d->cw * TILE;
-        int y = (pr->y + (d->rows + ART_DEN - 1) / ART_DEN) * TILE - ART(2);
+        int alto = d->rows * TILE / d->grid;        /* on the panel's grid  */
+        int y = pr->y * TILE + alto - 3;
         int x = pr->x * TILE;
         for (int k = 0; k < 3; k++) {
             int m = 1 + k * 2;          /* each row a little narrower        */
@@ -910,7 +888,11 @@ void ch_prop_draw(ch_buf_t *b, const ch_prop_t *pr)
         }
     }
 
-    ch_blit_esc(b, pr->x * TILE, pr->y * TILE, d->px, d->rows, TILE, ART_DEN);
+    if (d->grid == TILE) {
+        ch_blit(b, pr->x * TILE, pr->y * TILE, d->px, d->rows);
+    } else {
+        ch_blit_esc(b, pr->x * TILE, pr->y * TILE, d->px, d->rows, TILE, d->grid);
+    }
 }
 
 /* --------------------------------------------------------------------------
@@ -964,7 +946,7 @@ bool ch_celda_tapada(const ch_room_t *r, int tx, int ty)
         const ch_prop_t *pr = &r->props[i];
         if (pr->sprite >= NPROPS) continue;
         const propdef_t *d = &PROPS[pr->sprite];
-        int filas = (d->rows + ART_DEN - 1) / ART_DEN;
+        int filas = (d->rows + d->grid - 1) / d->grid;
         if (tx >= pr->x && tx < pr->x + d->cw &&
             ty >= pr->y && ty < pr->y + filas) {
             return true;
@@ -984,7 +966,7 @@ bool ch_prop_solido(const ch_room_t *r, int tx, int ty)
         const ch_prop_t *pr = &r->props[i];
         if (pr->sprite >= NPROPS) continue;
         const propdef_t *d = &PROPS[pr->sprite];
-        int filas = (d->rows + ART_DEN - 1) / ART_DEN;
+        int filas = (d->rows + d->grid - 1) / d->grid;
         int y0 = pr->y + filas - d->solidas;
         if (tx >= pr->x && tx < pr->x + d->cw && ty >= y0 && ty < pr->y + filas) {
             return true;
@@ -1004,80 +986,64 @@ bool ch_prop_solido(const ch_room_t *r, int tx, int ty)
  * stays stuck.
  * -------------------------------------------------------------------------- */
 
-static const char *const SP_ABUELA[16] = {
-    "..GGGGGG..",
-    ".GGGGGGGG.",
-    ".GwwGGwwG.",
-    ".GkwGGkwG.",
-    ".GGGGGGGG.",
-    "..GGmmGG..",
-    "..pppppp..",
-    ".ppppppppp",
-    "GppPPPPppG",
-    ".ppPPPPpp.",
-    ".ppPPPPpp.",
-    "..pppppp..",
-    "..pp..pp..",
-    "..dd..dd..",
-    "..KK..KK..",
-    "..........",
+static const char *const SP_ABUELA[24] = {
+    "...............", "....mmmmmmmm...",
+    "..mhhhhhhhhhm..", "..mhhhhhhhhhm..",
+    "..hwwwhhhwwwh..", "..hkwwhhhkwwh..",
+    "..hhhhhhhhhhh..", "...hhhMMMhhh...",
+    "....hhhhhhh....", "...ppppppppp...",
+    "..ppppppppppp..", ".ppppppppppppp.",
+    "hpppppPPPpppppH", "hpppppPPPpppppH",
+    ".ppppppPPpppppp", "..ppppppppppp..",
+    "...ppppppppp...", "...ppp...ppp...",
+    "...ppp...ppp...", "...KKK...KKK...",
+    "...KKK...KKK...", "...ddd...ddd...",
+    "...ddd...ddd...", "...............",
 };
 
-static const char *const SP_CHICO[16] = {
-    "..........",
-    "..oooooo..",
-    ".ohhhhhho.",
-    ".hwwhhwwh.",
-    ".hkwhhkwh.",
-    ".hhhhhhhh.",
-    "..hhrrhh..",
-    "..cccccc..",
-    ".cccccccc.",
-    "hcccCCcccH",
-    ".cccCCccc.",
-    "..cccccc..",
-    "..cc..cc..",
-    "..bb..bb..",
-    "..KK..KK..",
-    "..........",
+static const char *const SP_CHICO[24] = {
+    "...............", "....oooooooo...",
+    "..ohhhhhhhhho..", "..ohhhhhhhhho..",
+    "..hwwwhhhwwwh..", "..hkwwhhhkwwh..",
+    "..hhhhhhhhhhh..", "...hhhrrrhhh...",
+    "....hhhhhhh....", "...ccccccccc...",
+    "..ccccccccccc..", ".ccccccccccccc.",
+    "hcccccCCCcccccH", "hcccccCCCcccccH",
+    ".ccccccCCcccccc", "..ccccccccccc..",
+    "...ccccccccc...", "...ccc...ccc...",
+    "...ccc...ccc...", "...bbb...bbb...",
+    "...bbb...bbb...", "...KKK...KKK...",
+    "...KKK...KKK...", "...............",
 };
 
-static const char *const SP_VECINO[16] = {
-    "..........",
-    "..jjjjjj..",
-    ".jjjjjjjj.",
-    ".hwwhhwwh.",
-    ".hkwhhkwh.",
-    ".hhhhhhhh.",
-    "..hhTThh..",
-    "..vvvvvv..",
-    ".vvvvvvvv.",
-    "hvvVVVVvvH",
-    ".vvVVVVvv.",
-    ".vvvvvvvv.",
-    "..vv..vv..",
-    "..JJ..JJ..",
-    "..KK..KK..",
-    "..........",
+static const char *const SP_VECINO[24] = {
+    "...............", "....JJJJJJJJ...",
+    "..JhhhhhhhhhJ..", "..JhhhhhhhhhJ..",
+    "..hwwwhhhwwwh..", "..hkwwhhhkwwh..",
+    "..hhhhhhhhhhh..", "...hhhjjjhhh...",
+    "....hhhhhhh....", "...vvvvvvvvv...",
+    "..vvvvvvvvvvv..", ".vvvvvvvvvvvvv.",
+    "hvvvvvVVVvvvvvH", "hvvvvvVVVvvvvvH",
+    ".vvvvvvVVvvvvvv", "..vvvvvvvvvvv..",
+    "...vvvvvvvvv...", "...jjj...jjj...",
+    "...jjj...jjj...", "...JJJ...JJJ...",
+    "...JJJ...JJJ...", "...KKK...KKK...",
+    "...KKK...KKK...", "...............",
 };
 
-static const char *const SP_SENORA[16] = {
-    "..........",
-    "..YYYYYY..",
-    ".YYYYYYYY.",
-    ".YwwYYwwY.",
-    ".YkwYYkwY.",
-    ".YYYYYYYY.",
-    "..YYmmYY..",
-    "..mmmmmm..",
-    ".mmmmmmmm.",
-    "YmmMMMMmmY",
-    ".mmMMMMmm.",
-    ".mmmmmmmm.",
-    ".mmmmmmmm.",
-    "..dd..dd..",
-    "..KK..KK..",
-    "..........",
+static const char *const SP_SENORA[24] = {
+    "...............", "....YYYYYYYY...",
+    "..YhhhhhhhhhY..", "..YhhhhhhhhhY..",
+    "..hwwwhhhwwwh..", "..hkwwhhhkwwh..",
+    "..hhhhhhhhhhh..", "...hhhmmmhhh...",
+    "....hhhhhhh....", "...mmmmmmmmm...",
+    "..mmmmmmmmmmm..", ".mmmmmmmmmmmmm.",
+    "hmmmmmMMMmmmmmH", "hmmmmmMMMmmmmmH",
+    ".mmmmmmMMmmmmmm", "..mmmmmmmmmmm..",
+    "...mmmmmmmmm...", "...mmm...mmm...",
+    "...mmm...mmm...", "...ddd...ddd...",
+    "...ddd...ddd...", "...KKK...KKK...",
+    "...KKK...KKK...", "...............",
 };
 
 static const char *const *const NPCS[] = {
@@ -1085,47 +1051,39 @@ static const char *const *const NPCS[] = {
 };
 #define NNPCS   ((int)(sizeof(NPCS) / sizeof(NPCS[0])))
 
-static const char *const SP_COFRE[10] = {
-    "..YYYYYYYY..",
-    ".YyyyyyyyyY.",
-    ".YyYYYYYYyY.",
-    ".YyyyyyyyyY.",
-    "YYYYYYYYYYYY",
-    "YyyyyKKyyyyY",
-    "YyyyyKKyyyyY",
-    "YyyyyyyyyyyY",
-    ".YYYYYYYYYY.",
-    "..UUUUUUUU..",
+static const char *const SP_COFRE[15] = {
+    "...YYYYYYYYYYYY...", "..YyyyyyyyyyyyyY..",
+    "..YyYYYYYYYYYYyY..", "..YyyyyyyyyyyyyY..",
+    "..YyyyyyyyyyyyyY..", "YYYYYYYYYYYYYYYYYY",
+    "YyyyyyyKKKKyyyyyyY", "YyyyyyyKkkKyyyyyyY",
+    "YyyyyyyKKKKyyyyyyY", "YyyyyyyyyyyyyyyyyY",
+    "YyyyyyyyyyyyyyyyyY", ".YYYYYYYYYYYYYYYY.",
+    "..UUUUUUUUUUUUUU..", "..UUUUUUUUUUUUUU..",
+    "..................",
 };
 
-static const char *const SP_COFRE_ABIERTO[10] = {
-    "..JJJJJJJJ..",
-    ".JkkkkkkkkJ.",
-    ".JkkkkkkkkJ.",
-    "..JJJJJJJJ..",
-    "YYYYYYYYYYYY",
-    "YkkkkkkkkkkY",
-    "YkkkkkkkkkkY",
-    "YyyyyyyyyyyY",
-    ".YYYYYYYYYY.",
-    "..UUUUUUUU..",
+static const char *const SP_COFRE_ABIERTO[15] = {
+    "...JJJJJJJJJJJJ...", "..JkkkkkkkkkkkkJ..",
+    "..JkkkkkkkkkkkkJ..", "..JkkkkkkkkkkkkJ..",
+    "...JJJJJJJJJJJJ...", "YYYYYYYYYYYYYYYYYY",
+    "YkkkkkkkkkkkkkkkkY", "YkkkkkkkkkkkkkkkkY",
+    "YkkkkkkkkkkkkkkkkY", "YyyyyyyyyyyyyyyyyY",
+    "YyyyyyyyyyyyyyyyyY", ".YYYYYYYYYYYYYYYY.",
+    "..UUUUUUUUUUUUUU..", "..UUUUUUUUUUUUUU..",
+    "..................",
 };
 
-static const char *const SP_SIGNO[14] = {
-    "..jjjjjj..",
-    ".jGGGGGGj.",
-    ".jGkkkkGj.",
-    ".jGkGGkGj.",
-    ".jGkkkkGj.",
-    ".jGGGGGGj.",
-    "..jjjjjj..",
-    "....jj....",
-    "....jj....",
-    "....jj....",
-    "....JJ....",
-    "...JJJJ...",
-    "..........",
-    "..........",
+static const char *const SP_SIGNO[20] = {
+    "...jjjjjjjjj...", "..jGGGGGGGGGj..",
+    "..jGkkkkkkkGj..", "..jGkGGGGGkGj..",
+    "..jGkGGGGGkGj..", "..jGkGGGGGkGj..",
+    "..jGkkkkkkkGj..", "..jGGGGGGGGGj..",
+    "...jjjjjjjjj...", "......jjj......",
+    "......jjj......", "......jjj......",
+    "......jjj......", ".....JJJJJ.....",
+    "....JJJJJJJ....", "....JJJJJJJ....",
+    "...............", "...............",
+    "...............", "...............",
 };
 
 /* A flat three-step arrow, pointing at 'dir' (0 down, 1 up, 2 left, 3 right).
@@ -1154,25 +1112,21 @@ static void flecha(ch_buf_t *b, int cx, int cy, int dir, uint16_t c)
  * on the roof is there to say what it is for, because nothing else on this
  * map talks to another watch.
  * -------------------------------------------------------------------------- */
-static const char *const SP_CABINA[18] = {
-    "....k.....",
-    "...kck....",
-    "....k.....",
-    "..kkkkkk..",
-    ".kBBBBBBk.",
-    ".kBccccBk.",
-    ".kBcwwcBk.",
-    ".kBccccBk.",
-    ".kBcccdBk.",
-    ".kBcdddBk.",
-    ".kBccccBk.",
-    ".kBccccBk.",
-    ".kBccccBk.",
-    ".kBBBBBBk.",
-    ".kBBBBBBk.",
-    ".kkkkkkkk.",
-    "..KKKKKK..",
-    "..........",
+static const char *const SP_CABINA[28] = {
+    ".......k.......", "......kck......",
+    ".......k.......", "....kkkkkkk....",
+    "...kBBBBBBBk...", "...kBBBBBBBk...",
+    "...kBcccccBk...", "...kBcccccBk...",
+    "...kBcwwwcBk...", "...kBcwwwcBk...",
+    "...kBcccccBk...", "...kBcccccBk...",
+    "...kBccccdBk...", "...kBcccdddBk..",
+    "...kBcdddddBk..", "...kBcccccBk...",
+    "...kBcccccBk...", "...kBcccccBk...",
+    "...kBcccccBk...", "...kBcccccBk...",
+    "...kBBBBBBBk...", "...kBBBBBBBk...",
+    "...kBBBBBBBk...", "...kkkkkkkkk...",
+    "....KKKKKKK....", "....KKKKKKK....",
+    "...............", "...............",
 };
 
 void ch_ent_draw(ch_buf_t *b, const ch_room_t *r, const ch_ent_t *e, bool hecho)
@@ -1220,19 +1174,18 @@ void ch_ent_draw(ch_buf_t *b, const ch_room_t *r, const ch_ent_t *e, bool hecho)
         /* The character is 16 tall and the cell 8: it sticks out upwards, just
          * like the player's robot. That way it is seen whole without the cell
          * below ceasing to be the one you touch. */
-        ch_blit_esc(b, x - ART(1), y - ART(8), NPCS[a], 16, TILE, ART_DEN);
+        ch_blit(b, x - 1, y - 12, NPCS[a], 24);
         break;
     }
     case E_COFRE:
-        ch_blit_esc(b, x - ART(2), y - ART(2),
-                    hecho ? SP_COFRE_ABIERTO : SP_COFRE, 10, TILE, ART_DEN);
+        ch_blit(b, x - 3, y - 3, hecho ? SP_COFRE_ABIERTO : SP_COFRE, 15);
         break;
     case E_CARTEL:
-        ch_blit_esc(b, x - ART(1), y - ART(6), SP_SIGNO, 14, TILE, ART_DEN);
+        ch_blit(b, x - 1, y - 8, SP_SIGNO, 20);
         break;
 
     case E_CABINA:
-        ch_blit_esc(b, x - ART(1), y - ART(10), SP_CABINA, 18, TILE, ART_DEN);
+        ch_blit(b, x - 1, y - 16, SP_CABINA, 28);
         break;
 
     case E_BLOQUEO:

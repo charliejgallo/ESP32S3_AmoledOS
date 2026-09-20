@@ -260,8 +260,8 @@ void ch_part_draw(ch_buf_t *b, int cat, int var, int cx, int cy, int esc,
 
 /* The little figure on the map: 12x14, with the head and legs you are wearing.
  * It is not the combat robot shrunk, it is a separate drawing. */
-#define MINI_W  12
-#define MINI_H  16
+#define MINI_W  18                     /* v2: 12 x 16 on the 8 px grid */
+#define MINI_H  24
 void ch_mini_draw(ch_buf_t *b, int x, int y, const ch_robot_t *r,
                   int dir, int paso);
 
