@@ -654,9 +654,198 @@ back in the booth saying good fight.
   compiler could not, and the first time it caught something the same day it was
   written.
 
+
 ---
 
-## 12. The music: a synthesiser, not a sequencer
+## 12. What the ceiling coming down actually bought (2026-09-20)
+
+Three things went in on the strength of `.text` no longer being scarce, and
+the most useful part of the story is that **one of them was the wrong idea and
+a measurement said so before it was written**.
+
+### 12.1 The measurement that changed the plan
+
+The plan was to pre-render each robot once into a buffer in PSRAM and blit it,
+to buy back frame time for everything else. Then `CH_FPS=1` was pointed at a
+fight:
+
+```
+[chatarra] 29 fps, 40 % of the screen
+```
+
+**Forty per cent, idle**, every frame, with nothing moving. And the reason is
+not how long the robot takes to draw: it is that `ch_bt_dibujar()` dirties both
+robot boxes unconditionally, and what a frame costs in this engine is the AREA
+pushed, not the work done filling it. Pre-rendering optimises the half that was
+never the problem; it would have changed that line by nothing.
+
+So the idea was dropped, and the real finding taken instead: **that budget is
+already being spent, and what it was buying was a one-pixel bob**
+(`bob = ((cuadro >> 4) & 1)`). Anything drawn inside those rectangles is free.
+
+### 12.2 So the idle got spent properly
+
+- A three-step breath of about two seconds, `RESPIRO[8]`, the two robots four
+  steps out of phase so they do not look like one object moving.
+- **The shadow stays on the ground.** `ch_robot_draw()` took a new argument,
+  `flota`, for how far above its resting place the robot is: the shadow is
+  drawn at the ground and narrows by that much. A shadow that rises with the
+  robot is a sprite sliding; a shadow that stays and shrinks is a robot
+  lifting.
+- **A robot under a quarter of its health throws sparks**, and browns out for
+  one frame every so often. That one is not decoration: it is the only thing
+  on that screen that says "this is about to end" without reading a number.
+  Its dice are the GAME's (`g->rng`) and never the combat's (`g->rng_bt`) —
+  over the link both watches must roll the same numbers for the same reasons,
+  and a spark is not one of them.
+
+Measured afterwards: **29 fps, 40 % of the screen.** Unchanged, which is the
+whole point.
+
+### 12.3 Water and lava that flow
+
+The tiles are animated by ROLLING their own eight-row pattern
+(`ch_tile_anim()`): row `fase` becomes the top one and the rest wrap. Not one
+byte of new art — the speckles that were already in `PX_AGUA` and `PX_LAVA`
+become a current and a churn.
+
+What makes it affordable is again not memory, it is the **rectangle budget**.
+A pond of 6x4 is 24 cells and the dirty list holds 24 in total; past that
+`ch_dirty_add()` merges rectangles far apart and ends up pushing half the
+screen. So on entering a room the map is scanned once into horizontal RUNS of
+at most `FLUJO_MAX` cells (`flujo_buscar()`), and only `FLUJO_POR_CUADRO` of
+them are repainted per frame, in turn. They all read the same phase, so a run
+repainted two frames late still lines up with its neighbours: what is
+staggered is the work, not the picture.
+
+Measured on the map: **29 fps, 2 % of the screen.**
+
+### 12.4 Eight arenas
+
+`ARENAS[ZONAS]` is a row per zone — two gradients, a horizon, two platform
+colours — plus one painter per kind of scenery: stars, waves, a circuit grid
+with lit nodes, embers over a furnace glow, snow, a skyline of masts, rusted
+spires with dust, crystal shards. Drawn **once, into the background**, when the
+phase changes, which is the only place in this engine where detail is free.
+
+The scenery rolls from a seed fixed per zone, so an arena is a place you
+recognise rather than noise that reshuffles every fight — and, more to the
+point, it does not touch `g->rng` and so cannot drag the combat's dice along
+with it.
+
+The one that needed a second pass was Criovalle: the first version was a bright
+daylit sky and a pale grey robot vanished into it. It is a cold mid blue now
+and the snow does the lifting.
+
+A link battle uses the arena of **the town you are standing in**, which means
+the two watches can legitimately show different ones. That is right: you are
+not in the same place.
+
+New development switches: `CH_COMBATE=<zone>` opens a fight in that zone's
+arena (it used to be a flag), and `CH_HERIDO=1` leaves both robots under a
+quarter, which is the only way to look at the sparks without losing a fight
+first.
+
+
+---
+
+## 13. What the board said, and the two things it changed (2026-09-20)
+
+The three additions above were measured in the simulator, where every one of
+them read **29 fps**. Then they were measured on the board with
+`/api/mem?fps=N`, which counts LVGL's `LV_EVENT_RENDER_READY` over N seconds:
+
+| Where | Pushed | Simulator | **Board** |
+| --- | ---: | ---: | ---: |
+| Map, walking | 2 % | 29 fps | **29.4 fps** |
+| Combat | 40 % | 29 fps | **22.4 / 21.4 fps** |
+
+The simulator says the same number for both because LVGL costs twenty or
+thirty times less there. **The board is the only place this question has an
+answer**, and the answer was that combat was giving away eight frames a second.
+
+### 13.1 Only what changed gets pushed
+
+The 40 % was two robot boxes dirtied every frame whether or not a pixel of
+them differed — and between two steps of a breath that moves every eighth
+frame, none does. Each robot now carries a signature of everything that can
+change how it looks (its phase, its shake, its lunge, its four parts, and
+whether it is sparking, which changes by definition), and its box is dirtied
+when the signature moves.
+
+The frame AFTER a change still pushes the box, and that is not a leak: `d_prev`
+is what the engine restores and pushes next time round, which is how it erases
+what it drew.
+
+| | Pushed | Board |
+| --- | ---: | ---: |
+| Combat, both robots healthy | 40 % → **12 %** | 22.4 → **27.4 fps** |
+| Combat, one robot sparking | 40 % (correctly: it changes every frame) | — |
+
+Five frames a second, for a comparison and a `continue`. And note what it is
+NOT: pre-rendering the robots into PSRAM, which was the plan in section 12.1
+and would have changed this table by nothing, because the cost was never the
+drawing.
+
+### 13.2 The side that is waiting to be answered had no way out
+
+Found by playing a full battle between the two watches: one won, went back to
+the booth and hung up, and **the other sat on ESPERANDO for ever** — with
+`rel_tx 9, rel_acked 9`, nothing pending, nothing wrong.
+
+That is the hole: `ch_net_caido()` only fires when OUR frames are not being
+acknowledged, and the side that has already spoken has none outstanding. It was
+waiting for a message that was never going to come, and nothing was watching.
+
+What settles it is their **beacon**: it says which app they are offering and it
+stops five seconds after they leave. Two checks a second apart, and the battle
+closes into the booth saying `SE FUE DE CHATARRA` — repairing the team on the
+way out, because `cerrar_combate()` is on every exit path including this one.
+Underneath that there is a 60-second cap so no combination of losses can leave
+the screen stuck; it is generous on purpose, because on the other side there is
+a person deciding, not a machine.
+
+The same watchdog covers a swap left hanging (`LK_OFRECIDO`), which had exactly
+the same shape and exactly the same hole.
+
+### 13.3 And the crash from section 11.4 is somebody else's now
+
+It was **espressif/esp-idf#18527**: `lock->acquiring_dev` is `volatile` and
+`bg_exit_core()` reads it twice, with the other core able to null it in
+between. Fixed in the firmware (v0.4.4) by putting the panel's SPI interrupt,
+`taskLVGL` and the panel commands on core 1 and leaving WiFi on core 0 — the
+opposite of "separate SPI from WiFi": what has to be together is the interrupt
+and every task that uses that bus. `docs/internal/HANDOFF-SPI-WIFI-NUCLEOS.md`
+has the whole story. Nothing in this app changed for it.
+
+
+---
+
+## 14. The blink at the water's edge, and the music (2026-09-20)
+
+### 14.1 Things standing in the water were blinking
+
+Reported from the board with a photograph: the sign at the edge of the first
+town's pond appeared and disappeared.
+
+Props and entities are painted **into the background**, on top of the ground.
+The flowing water repaints its own cells into the frame buffer — and a cell
+with a sign standing on it got the sign wiped, then restored from the
+background next frame, then wiped again on that run's next turn. The blink rate
+was the run's turn coming round.
+
+The runs now stop at anything drawn over them (`ch_celda_tapada()`). A few
+tiles of water under a sign do not ripple, which nobody can tell, and it is a
+great deal better than the blinking.
+
+The first version of that test used a generous three-by-three envelope around
+each entity and **swallowed six of the pond's twelve cells** — half the water
+stopped moving. So the box is taken from what `ch_ent_draw()` actually blits:
+a sign is fourteen pixels tall drawn six above its cell, so it covers two rows,
+not three. Three water cells excluded instead of six, and the sign region
+measured at **0 pixels of change** between frames a second apart.
+
+### 14.2 The music: a synthesiser, not a sequencer
 
 `ch_sound.c` was a one-voice sequencer over `aos_hal_beep()`, because that was
 all the board had: one tone at a time, an API of (frequency, duration).

@@ -1797,7 +1797,38 @@ void ch_bt_dibujar(ch_t *g)
     if (animando) {
         ch_dirty_add(&g->d_cur, 0, 0, CH_W, CAJA_Y);
     } else {
-        ch_dirty_add(&g->d_cur, RIVAL_CX - w / 2 - 6, RIVAL_Y - 12, w + 12, h + 16);
-        ch_dirty_add(&g->d_cur, YO_CX - w / 2 - 6, YO_Y - 12, w + 12, h + 16);
+        /* ONLY WHAT CHANGED.
+         *
+         * Measured on the board: 29.4 fps on the map, where 2 % of the screen
+         * is pushed, against 22.4 in combat, where 40 % is. And that 40 % is
+         * two robot boxes repainted every frame whether or not a single pixel
+         * of them differs - which, between two steps of a breath that moves
+         * every eighth frame, it does not.
+         *
+         * So each robot carries a signature of everything that can change how
+         * it looks, and its box is dirtied when the signature moves. A robot
+         * throwing sparks changes every frame by definition and says so.
+         *
+         * The frame AFTER a change still pushes the box, because `d_prev` is
+         * what gets restored and pushed next time round: that is not a leak,
+         * it is how the engine erases what it drew. */
+        static const int BX[2] = { YO_CX, RIVAL_CX };
+        static const int BY[2] = { YO_Y,  RIVAL_Y  };
+        for (int q = 0; q < 2; q++) {
+            const ch_robot_t *r = q ? &g->bt.rival : &g->s.yo;
+            bool chispea = r->vida > 0 && r->vida * 4 < r->vida_max;
+            uint32_t f = (uint32_t)((q ? fase_r : fase_y) & 7)
+                       | (uint32_t)((q ? sac_r : sac_y) + 8) << 4
+                       | (uint32_t)((q ? emb_r : emb_y) + 16) << 10
+                       /* all four parts, so a robot coming out in place of
+                        * another is never mistaken for the same one */
+                       | (uint32_t)((r->pieza[0] ^ (r->pieza[1] * 3) ^
+                                     (r->pieza[2] * 7) ^ (r->pieza[3] * 11))
+                                    & 15) << 17
+                       | (uint32_t)(chispea ? g->cuadro : 0) << 21;
+            if (f == g->bt.firma[q]) continue;
+            g->bt.firma[q] = f;
+            ch_dirty_add(&g->d_cur, BX[q] - w / 2 - 6, BY[q] - 12, w + 12, h + 16);
+        }
     }
 }

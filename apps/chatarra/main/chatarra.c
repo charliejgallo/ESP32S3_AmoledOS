@@ -941,13 +941,27 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
         if ((v = getenv("CH_COMBATE")) && v[0]) {
             ch_robot_t rival;
             uint32_t sem = 12345u;
+            /* The value is the ZONE, which is what picks the arena: eight
+             * arenas cannot be looked at one by one without this. */
+            int z = atoi(v);
+            if (z < 1 || z > ZONAS) z = 1;
             a->g.modo = MODO_MAPA;
             ch_map_entrar(&a->g, 4, 7, 10);
-            ch_robot_random(&rival, &sem, a->g.s.yo.nivel + 1, 3);
-            ch_bt_empezar(&a->g, &rival, 0, 2);
+            ch_robot_random(&rival, &sem, a->g.s.yo.nivel + 1, (uint8_t)z);
+            ch_bt_empezar(&a->g, &rival, 0, z);
+            /* CH_HERIDO leaves both of them under a quarter: it is the only
+             * way to look at the sparks without losing a fight first. */
+            if ((v = getenv("CH_HERIDO")) && v[0]) {
+                a->g.s.yo.vida      = (int16_t)(a->g.s.yo.vida_max / 6);
+                a->g.bt.rival.vida  = (int16_t)(a->g.bt.rival.vida_max / 6);
+                a->g.bt.hp_ver[0]   = a->g.s.yo.vida;
+                a->g.bt.hp_ver[1]   = a->g.bt.rival.vida;
+            }
         }
     }
 #endif
+
+    ch_snd_init();
 
     a->prev_ms = aos_hal_uptime_ms();
     a->timer = lv_timer_create(tick, FRAME_MS, a);

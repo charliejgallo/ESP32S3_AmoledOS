@@ -386,6 +386,10 @@ bool ch_tile_encuentro(char t);
  * DETERMINISTIC: the background is repainted by rectangles and grass drawn at
  * random on the fly would give a different picture every time. */
 void ch_tile_draw(ch_buf_t *b, char t, int tx, int ty);
+/* The same tile with its pattern rolled 'fase' rows: water and lava flow
+ * without a single new byte of art. Anything else is drawn unchanged. */
+void ch_tile_anim(ch_buf_t *b, char t, int tx, int ty, int fase);
+bool ch_tile_corre(char t);     /* does this ground flow?                    */
 void ch_prop_draw(ch_buf_t *b, const ch_prop_t *pr);
 /* An entity ALWAYS draws its own thing; the decorations are pure ornament and
  * cannot land on an entity's cell. 'hecho' is the chest already opened or the
@@ -393,6 +397,10 @@ void ch_prop_draw(ch_buf_t *b, const ch_prop_t *pr);
 void ch_ent_draw(ch_buf_t *b, const ch_room_t *r, const ch_ent_t *e, bool hecho);
 /* Height in cells of the decoration, and whether it blocks that cell. */
 bool ch_prop_solido(const ch_room_t *r, int tx, int ty);
+/* Is anything -a prop, an entity- painted over this cell in the background?
+ * The flowing ground asks before animating a tile, or it wipes what stands on
+ * it once per turn and the thing blinks. */
+bool ch_celda_tapada(const ch_room_t *r, int tx, int ty);
 
 /* --------------------------------------------------------------------------
  * Save state
@@ -700,9 +708,24 @@ typedef struct {
      * each other and ends up pushing half the screen. */
     struct { int16_t x, y, vx, vy; } amb[6];
     /* Glints on the water and the lava: three at a time, each on a randomly
-     * chosen cell. They are not an animated water system -that would force a
-     * background repaint- but three dots born and dying on top. */
+     * chosen cell, born and dying on top of whatever is underneath. */
     struct { uint8_t x, y, t; } brillo[3];
+
+    /* --- The water and the lava, flowing -------------------------------
+     * The tiles themselves are animated now, and the thing that makes it
+     * affordable is NOT that memory got cheap: it is that the cells are
+     * grouped into horizontal RUNS and only a couple of runs are repainted
+     * per frame, in turn.
+     *
+     * A pond of 6x4 is 24 cells and would be 24 dirty rectangles - the list
+     * holds 24 in total, and past that ch_dirty_add() merges rectangles that
+     * are far apart and ends up pushing half the screen. As four runs of six
+     * it is four, and repainting two of them per frame it is two. The whole
+     * pond comes round every other frame, which at this speed nobody can
+     * see. */
+    struct { uint8_t x, y, len; } flujo[CH_FLUJOS];
+    uint8_t    nflujo;
+    uint8_t    flujo_i;         /* whose turn it is to be repainted          */
     uint8_t    cofre_t, cofre_x, cofre_y;   /* the chest's glint     */
     uint8_t    trans;           /* frames of the room transition             */
 

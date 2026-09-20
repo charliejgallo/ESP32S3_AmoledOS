@@ -53,6 +53,7 @@ static void lanzar_bicho(ch_t *g, int m);
 static void amb_nace(ch_t *g, int i, bool arriba);
 static void amb_tick(ch_t *g);
 static void brillo_tick(ch_t *g);
+static void flujo_buscar(ch_t *g);
 
 /* --------------------------------------------------------------------------
  * Terrain queries
@@ -189,6 +190,7 @@ void ch_map_entrar(ch_t *g, int sala, int x, int y)
     g->andando = 0;
     g->destino_ent = 0xFF;
     colocar(g);
+    flujo_buscar(g);
 
     /* The room's creatures. The robot is generated HERE and stored: the one
      * you see walking is exactly the one you fight. Rolling it again when the
@@ -724,6 +726,65 @@ static void amb_tick(ch_t *g)
 /* Glints on the water and the lava. Three dots born on a randomly chosen cell
  * and fading. They do not animate the background -that would force a repaint-
  * but they are enough for the water to stop looking like a drawing. */
+/* --------------------------------------------------------------------------
+ * The runs of flowing ground
+ *
+ * Found once, on entering the room, and never again: the map is const. Long
+ * stretches are cut into pieces of FLUJO_MAX so that no single rectangle is
+ * wide enough to drag half a row through the flush.
+ * -------------------------------------------------------------------------- */
+static void flujo_buscar(ch_t *g)
+{
+    const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
+
+    g->nflujo = 0;
+    g->flujo_i = 0;
+    for (int y = 0; y < ROWS && g->nflujo < CH_FLUJOS; y++) {
+        int x = 0;
+        while (x < COLS && g->nflujo < CH_FLUJOS) {
+            if (!ch_tile_corre(suelo(r, x, y)) || ch_celda_tapada(r, x, y)) {
+                x++;
+                continue;
+            }
+            int largo = 0;
+            char t = suelo(r, x, y);
+            /* A run stops at anything drawn over the ground, or repainting it
+             * would wipe what stands there and the thing would blink. */
+            while (x + largo < COLS && largo < FLUJO_MAX &&
+                   suelo(r, x + largo, y) == t &&
+                   !ch_celda_tapada(r, x + largo, y)) {
+                largo++;
+            }
+            g->flujo[g->nflujo].x   = (uint8_t)x;
+            g->flujo[g->nflujo].y   = (uint8_t)y;
+            g->flujo[g->nflujo].len = (uint8_t)largo;
+            g->nflujo++;
+            x += largo;
+        }
+    }
+}
+
+/* Repaints FLUJO_POR_CUADRO runs, taking turns. They all read the SAME phase,
+ * so a run repainted a frame or two late still lines up with its neighbours:
+ * what is staggered is the work, not the picture. */
+static void flujo_dibujar(ch_t *g)
+{
+    const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
+    int fase = (int)((g->cuadro / 6) & 7);
+
+    if (!g->nflujo) return;
+    for (int k = 0; k < FLUJO_POR_CUADRO && k < g->nflujo; k++) {
+        int fx = g->flujo[g->flujo_i].x;
+        int fy = g->flujo[g->flujo_i].y;
+        int fl = g->flujo[g->flujo_i].len;
+        for (int i = 0; i < fl; i++) {
+            ch_tile_anim(&g->fb, suelo(r, fx + i, fy), fx + i, fy, fase);
+        }
+        ch_dirty_add(&g->d_cur, fx * TILE, fy * TILE, fl * TILE, TILE);
+        g->flujo_i = (uint8_t)((g->flujo_i + 1) % g->nflujo);
+    }
+}
+
 static void brillo_tick(ch_t *g)
 {
     const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
@@ -797,6 +858,11 @@ void ch_map_dibujar(ch_t *g)
     int bot = (g->modo == MODO_DIALOGO) ? DLG_Y : MAP_H;
 
     ch_clip(&g->fb, 0, 0, CH_W, bot);
+
+    /* The ground first: the runs of water and lava go UNDER everything that
+     * walks on them, or a robot standing at the water's edge would be sliced
+     * by its own scenery a frame later. */
+    flujo_dibujar(g);
 
     for (int i = 0; i < g->nmov; i++) {
         if (!g->mov[i].vivo) continue;

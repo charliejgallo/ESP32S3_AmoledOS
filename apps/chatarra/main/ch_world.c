@@ -323,6 +323,33 @@ bool ch_tile_encuentro(char t)
     return (buscar(t)->flags & T_ENCUENTRO) != 0;
 }
 
+/* --------------------------------------------------------------------------
+ * GROUND THAT FLOWS
+ *
+ * Water and lava are animated by ROLLING their own eight-row pattern, not by
+ * drawing anything new: row `fase` becomes the top one and the rest follow,
+ * wrapping. For water the speckles drift downwards and it reads as a current;
+ * for lava the same motion reads as a slow churn, which is exactly what those
+ * two patterns already were, only still.
+ *
+ * Not one byte of new art, and the tile stays a table.
+ * -------------------------------------------------------------------------- */
+
+bool ch_tile_corre(char t)
+{
+    return t == '~' || t == 'L';
+}
+
+void ch_tile_anim(ch_buf_t *b, char t, int tx, int ty, int fase)
+{
+    const tile_t *d = buscar(t);
+    const char *rot[8];
+
+    if (!ch_tile_corre(t)) { ch_tile_draw(b, t, tx, ty); return; }
+    for (int i = 0; i < 8; i++) rot[i] = d->px[(i + fase) & 7];
+    ch_blit(b, tx * TILE, ty * TILE, rot, 8);
+}
+
 void ch_tile_draw(ch_buf_t *b, char t, int tx, int ty)
 {
     const tile_t *d = buscar(t);
@@ -706,6 +733,71 @@ void ch_prop_draw(ch_buf_t *b, const ch_prop_t *pr)
     if (pr->sprite >= NPROPS) return;
     const propdef_t *d = &PROPS[pr->sprite];
     ch_blit(b, pr->x * TILE, pr->y * TILE, d->px, d->rows);
+}
+
+/* --------------------------------------------------------------------------
+ * IS THERE ANYTHING DRAWN ON TOP OF THIS CELL?
+ *
+ * Props and entities are painted INTO THE BACKGROUND, on top of the ground.
+ * The flowing water repaints its own cells into the frame buffer, and a cell
+ * that has a sign standing on it gets the sign wiped - and then restored from
+ * the background on the next frame, and wiped again on that run's next turn.
+ * On the board that reads as a sign blinking at the edge of the pond, which is
+ * exactly what it was.
+ *
+ * So the runs stop at anything that covers them. A few tiles of water under a
+ * sign do not ripple; nobody can tell, and it is a great deal better than the
+ * blinking.
+ *
+ * The box of an entity is taken from what ch_ent_draw() actually blits, and
+ * not from a generous envelope around it. That is not fussiness: a three-by-
+ * three box around the sign at the edge of the first town's pond swallowed six
+ * of its twelve cells and half the pond stopped moving. The sign is fourteen
+ * pixels tall drawn six above its cell, so it covers two rows, not three.
+ * -------------------------------------------------------------------------- */
+
+/* How far above its own cell each entity's sprite reaches, in cells, and how
+ * wide it is. Mirrors ch_ent_draw() below: if a sprite there changes, this
+ * changes with it. */
+static void ent_caja(const ch_ent_t *e, int *x0, int *y0, int *x1, int *y1)
+{
+    *x0 = e->x; *x1 = e->x; *y0 = e->y; *y1 = e->y;
+    switch (e->tipo) {
+    case E_PNJ: case E_TIENDA:          /* 16 tall, blitted at y-8           */
+    case E_COFRE:                       /* 10 tall, at y-2                   */
+    case E_CARTEL:                      /* 14 tall, at y-6                   */
+        *x0 = e->x - 1; *x1 = e->x + 1; *y0 = e->y - 1;
+        break;
+    case E_CABINA:                      /* 18 tall, at y-10: two rows up     */
+        *x0 = e->x - 1; *x1 = e->x + 1; *y0 = e->y - 2;
+        break;
+    case E_PUERTA:                      /* as wide as the opening            */
+        *x1 = e->x + (e->premio ? e->premio - 1 : 0);
+        break;
+    default:                            /* the rest draw nothing, or draw
+                                         * inside their own cell             */
+        break;
+    }
+}
+
+bool ch_celda_tapada(const ch_room_t *r, int tx, int ty)
+{
+    for (int i = 0; i < r->nprops; i++) {
+        const ch_prop_t *pr = &r->props[i];
+        if (pr->sprite >= NPROPS) continue;
+        const propdef_t *d = &PROPS[pr->sprite];
+        int filas = (d->rows + TILE - 1) / TILE;
+        if (tx >= pr->x && tx < pr->x + d->cw &&
+            ty >= pr->y && ty < pr->y + filas) {
+            return true;
+        }
+    }
+    for (int i = 0; i < r->nents; i++) {
+        int x0, y0, x1, y1;
+        ent_caja(&r->ents[i], &x0, &y0, &x1, &y1);
+        if (tx >= x0 && tx <= x1 && ty >= y0 && ty <= y1) return true;
+    }
+    return false;
 }
 
 bool ch_prop_solido(const ch_room_t *r, int tx, int ty)
