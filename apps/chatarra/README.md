@@ -29,7 +29,7 @@ larger than any difference between them.
 Measured on 2026-09-20, with the team of three, the booth and the icon:
 
 ```
-.text          54,687 B   to PSRAM, 64 K-aligned    (was 38,475 on 2026-09-08)
+.text          55,103 B   to PSRAM, 64 K-aligned    (was 38,475 on 2026-09-08)
 .rodata        31,495 B   to PSRAM
 .data.rel.ro   15,628 B   to PSRAM
 .bss            2,540 B   to PSRAM
@@ -1000,3 +1000,70 @@ otherwise careful never to do. It is affordable for exactly the reason the
 room change already was: it happens once per room, and a room lasts minutes.
 The transition takes 0.37 s instead of 0.30, and nothing else in the game
 gives up a frame for it.
+
+
+---
+
+## 17. Shadows, the air of each zone, and the legs a creature left behind
+
+### 17.1 The bug the photograph found
+
+A creature walking through tall grass left a yellow streak behind it. The
+arithmetic says exactly why:
+
+```
+the sprite    py    ..  py+15          (MINI_H is 16)
+the rectangle py-10 ..  py+7           sucio_mini(g, px, py - 9)
+              the bottom eight rows were never restored
+```
+
+The call was passing `py - 9` so that the level number floating above the
+creature would be covered — which **moved** the rectangle up nine pixels
+instead of **growing** it. Those eight uncovered rows are the legs, and they
+were never erased.
+
+It had been there for weeks and nobody saw it, because on plain grass the
+leftovers are the same green as what is underneath. Tall grass is a different
+green, so there they show. **The bug did not appear when the tall grass did;
+the tall grass is what made it visible** — and that is worth remembering the
+next time something "starts" happening after an unrelated change.
+
+`sucio_bicho()` grows the box up by nine for the label and out by eight for
+the alert mark.
+
+### 17.2 Shadows
+
+Three rows of dark pixels at the foot of every prop, narrowing as they go
+down, inside the sprite's own width. Without one a house is a drawing pasted
+on the grass; with one it is standing on it.
+
+Flat and not a disc, for the reason the combat robot already learned: a disc
+centred on the base sticks out below by its whole radius, and here it would
+run under the next tile and be cut by whichever prop is painted after it.
+
+### 17.3 The air of each zone
+
+The combat arenas got eight skies and the map kept the same green light
+everywhere, so walking from the foundry into the ice valley changed the tiles
+and nothing else. `ch_aire[ZONAS]` is a colour and a strength per zone, washed
+over the finished background — over the props and the signs too, because a
+wash that only covered the ground would make the houses look cut out of
+another room.
+
+Villa Tuerca is zero on purpose: it is the light everything else is a
+departure from, and you cannot tell the ice valley is colder than home if home
+is tinted too.
+
+### 17.4 And the scale that bit twice in one afternoon
+
+**`ch_mix()`'s blend is out of SIXTEEN, not out of 255**, and at 16 it returns
+the target colour and nothing else.
+
+The first version of the zone table used numbers between 14 and 22 thinking
+they were out of 255, and turned four zones into flat rectangles of paint. The
+prop shadows, written in the same half hour, asked for 46 and got solid black.
+Two or three is a wash; seven, five, three is a shadow. It is written at
+`ch_tint()` now, where the next person will be standing when they need it.
+
+Measured on the board afterwards: **29.2 fps**, unchanged. All three are
+background work, and the background is free.

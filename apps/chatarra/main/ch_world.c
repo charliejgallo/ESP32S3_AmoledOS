@@ -837,6 +837,31 @@ void ch_prop_draw(ch_buf_t *b, const ch_prop_t *pr)
 {
     if (pr->sprite >= NPROPS) return;
     const propdef_t *d = &PROPS[pr->sprite];
+
+    /* THE SHADOW, AND WHY IT IS FLAT AND NOT A DISC.
+     *
+     * Without one a house is a drawing pasted on the grass; with one it is
+     * standing on it, and that is the whole of what three rows of dark pixels
+     * buy. They go at the FOOT of the sprite and inside its own width: the
+     * combat robot learned the same lesson the hard way, where a disc centred
+     * on the base stuck out by its whole radius and was drawn over the text
+     * panel. Here it would run under the neighbouring tile and be cut by the
+     * next prop painted after it.
+     *
+     * Width follows the sprite and the rows narrow as they go down, which at
+     * this size reads as an ellipse without being one. */
+    {
+        int w = d->cw * TILE;
+        int y = (pr->y + (d->rows + TILE - 1) / TILE) * TILE - 2;
+        int x = pr->x * TILE;
+        for (int k = 0; k < 3; k++) {
+            int m = 1 + k * 2;          /* each row a little narrower        */
+            /* Out of SIXTEEN: ch_shade goes through ch_mix, and 16 is solid
+             * black. Seven, five, three is a shadow; forty is a hole. */
+            ch_shade(b, x + m, y + k, w - m * 2, 1, -(7 - k * 2));
+        }
+    }
+
     ch_blit(b, pr->x * TILE, pr->y * TILE, d->px, d->rows);
 }
 

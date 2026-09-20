@@ -54,6 +54,7 @@ static void amb_nace(ch_t *g, int i, bool arriba);
 static void amb_tick(ch_t *g);
 static void brillo_tick(ch_t *g);
 static void flujo_buscar(ch_t *g);
+static void aire_zona(ch_t *g, ch_buf_t *b, int x, int y, int w, int h);
 
 /* --------------------------------------------------------------------------
  * Terrain queries
@@ -184,12 +185,30 @@ void ch_map_fondo(ch_t *g)
         ch_ent_draw(&g->bg, r, e, hecho);
     }
 
+    /* The zone's air goes LAST, over everything: the tiles, the props, the
+     * signs. A wash that only covered the ground would make the houses look
+     * like they had been cut out of another room and pasted in. */
+    aire_zona(g, &g->bg, 0, 0, CH_W, MAP_H);
+
     ch_clip_none(&g->bg);
 }
 
 /* --------------------------------------------------------------------------
  * Entering a room
  * -------------------------------------------------------------------------- */
+
+/* The wash of the room's zone, over a rectangle of a buffer. Anything that
+ * repaints a piece of the finished background -the flowing water- has to put
+ * it back, or that piece is the only part of the room without air in it. */
+static void aire_zona(ch_t *g, ch_buf_t *b, int x, int y, int w, int h)
+{
+    const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
+    int z = r->zona;
+
+    if (z < 1 || z > ZONAS) return;
+    if (!ch_aire[z - 1].fuerza) return;
+    ch_tint(b, x, y, w, h, ch_rgb(ch_aire[z - 1].color), ch_aire[z - 1].fuerza);
+}
 
 static void colocar(ch_t *g)
 {
@@ -807,6 +826,7 @@ static void flujo_dibujar(ch_t *g)
              * exactly the way the sign at its edge used to */
             ch_tile_borde(&g->fb, r, fx + i, fy);
         }
+        aire_zona(g, &g->fb, fx * TILE, fy * TILE, fl * TILE, TILE);
         ch_dirty_add(&g->d_cur, fx * TILE, fy * TILE, fl * TILE, TILE);
         g->flujo_i = (uint8_t)((g->flujo_i + 1) % g->nflujo);
     }
@@ -876,6 +896,20 @@ static void sucio_mini(ch_t *g, int x, int y)
     ch_dirty_add(&g->d_cur, x - 1, y - 1, MINI_W + 2, MINI_H + 2);
 }
 
+/* A room's creature is not just its figure: the level hangs nine pixels above
+ * it and the alert mark sticks out to the right. The rectangle has to GROW to
+ * cover them.
+ *
+ * It used to be `sucio_mini(g, px, py - 9)`, which MOVED it up nine instead,
+ * and left the bottom eight rows of the sprite outside it - so they were never
+ * restored from the background. Walking through tall grass a creature left its
+ * own legs behind, because there the ground underneath is a different colour
+ * and the leftovers show. On plain grass they had been invisible for weeks. */
+static void sucio_bicho(ch_t *g, int x, int y)
+{
+    ch_dirty_add(&g->d_cur, x - 1, y - 10, MINI_W + 2 + 8, MINI_H + 2 + 9);
+}
+
 void ch_map_dibujar(ch_t *g)
 {
     /* With the dialogue panel open, the clip goes up to where the panel
@@ -914,7 +948,7 @@ void ch_map_dibujar(ch_t *g)
             ch_rect(&g->fb, x, y, 2, 4, ch_rgb(0xFFE45E));
             ch_rect(&g->fb, x, y + 5, 2, 2, ch_rgb(0xFFE45E));
         }
-        sucio_mini(g, g->mov[i].px, g->mov[i].py - 9);
+        sucio_bicho(g, g->mov[i].px, g->mov[i].py);
     }
 
     ch_mini_draw(&g->fb, g->px, g->py, &g->s.yo, g->s.dir, g->paso);

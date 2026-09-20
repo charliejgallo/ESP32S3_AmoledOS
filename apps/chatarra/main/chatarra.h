@@ -375,6 +375,23 @@ typedef struct {
 #define ZONAS 8
 extern const ch_zona_t ch_zonas_tab[ZONAS];
 
+/* --------------------------------------------------------------------------
+ * The air of each zone
+ *
+ * The combat arenas got eight skies and the map kept the same green light
+ * everywhere, so walking from the foundry into the ice valley changed the
+ * tiles and nothing else. A thin wash of one colour over the finished
+ * background fixes that for the price of one pass per room.
+ *
+ * `fuerza` is OUT OF SIXTEEN: that is ch_mix()'s scale, and at 16 it returns
+ * the colour and nothing else. The first version of this table used two-digit
+ * numbers thinking they were out of 255 and turned four zones into flat
+ * rectangles of paint. Two or three is a wash; anything above five is a
+ * filter, and the tiles you drew disappear under it.
+ * -------------------------------------------------------------------------- */
+typedef struct { uint32_t color; uint8_t fuerza; } ch_aire_t;
+extern const ch_aire_t ch_aire[ZONAS];
+
 /* Querying the ground and the decorations: used by the path finder. */
 bool ch_tile_solido(char t);
 bool ch_tile_encuentro(char t);

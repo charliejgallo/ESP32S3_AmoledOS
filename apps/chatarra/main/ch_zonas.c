@@ -2968,6 +2968,20 @@ const uint8_t ch_nsalas = (uint8_t)(sizeof(ch_salas) / sizeof(ch_salas[0]));
  * The only thing needed for the world map: what each one is called, which flag
  * says you have cleared it and which rooms make it up.
  * -------------------------------------------------------------------------- */
+/* The wash each zone puts over its rooms. Villa Tuerca is zero on purpose: it
+ * is the light everything else is a departure from, and you cannot tell the
+ * ice valley is colder than home if home is tinted too. */
+const ch_aire_t ch_aire[ZONAS] = {
+    { 0x000000, 0 },    /* 1 Villa Tuerca - the reference                    */
+    { 0x2E6E96, 2 },    /* 2 Puerto Bujia - sea air                          */
+    { 0x6A2FB5, 2 },    /* 3 Alto Voltio  - the substation hum               */
+    { 0xFF6A1E, 2 },    /* 4 Fundicion    - the furnace next door            */
+    { 0xAFD4EE, 3 },    /* 5 Criovalle    - cold light, and it reads coldest */
+    { 0x10584E, 2 },    /* 6 Ciudad Malla - green screens                    */
+    { 0xC06B2E, 2 },    /* 7 Villa Oxido  - dust in the air                  */
+    { 0xB072F0, 2 },    /* 8 Prisma       - the summit                       */
+};
+
 const ch_zona_t ch_zonas_tab[ZONAS] = {
     { N_("VILLA TUERCA"),  F_JEFE_DESGUACE,  S_CASA,   S_JEFE   },
     { N_("PUERTO BUJIA"),  F_JEFE_PUERTO,    S_COSTA,  S_JEFE2  },

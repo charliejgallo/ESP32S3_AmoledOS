@@ -131,6 +131,8 @@ void ch_round(ch_buf_t *b, int x, int y, int w, int h, int cut, uint16_t c);
 void ch_vgrad(ch_buf_t *b, int x, int y0, int w, int y1, uint16_t top, uint16_t bot);
 /* darkens (f<0) or lightens (f>0) an area, in sixteenths */
 void ch_shade(ch_buf_t *b, int x, int y, int w, int h, int f);
+/* A wash towards a colour: the zone's air over a finished background. */
+void ch_tint(ch_buf_t *b, int x, int y, int w, int h, uint16_t c, int f);
 /* disc blended with what is already there: halos, glints and ripples */
 void ch_glow(ch_buf_t *b, int cx, int cy, int r, uint16_t c, int f);
 /* thick blended ring: an explosion's wave */

@@ -409,6 +409,29 @@ void ch_shade(ch_buf_t *b, int x, int y, int w, int h, int f)
     }
 }
 
+/* The same, but towards a COLOUR instead of black or white. It is what gives
+ * each zone its air: a thin wash of the zone's colour over the finished
+ * background, once, when the room is built.
+ *
+ * `f` IS OUT OF SIXTEEN, not out of 255 - that is ch_mix()'s scale, and at 16
+ * it returns the target colour and nothing else. Asking for 20 does not give
+ * a strong wash, it gives a flat rectangle of paint; two or three is a wash. */
+void ch_tint(ch_buf_t *b, int x, int y, int w, int h, uint16_t c, int f)
+{
+    int x0 = x < b->cx0 ? b->cx0 : x;
+    int y0 = y < b->cy0 ? b->cy0 : y;
+    int x1 = x + w; if (x1 > b->cx1) x1 = b->cx1;
+    int y1 = y + h; if (y1 > b->cy1) y1 = b->cy1;
+
+    if (f <= 0) return;
+    for (int yy = y0; yy < y1; yy++) {
+        uint16_t *row = &b->px[yy * b->w];
+        for (int xx = x0; xx < x1; xx++) {
+            row[xx] = ch_mix(row[xx], c, f);
+        }
+    }
+}
+
 void ch_glow(ch_buf_t *b, int cx, int cy, int r, uint16_t c, int f)
 {
     if (r <= 0) {
