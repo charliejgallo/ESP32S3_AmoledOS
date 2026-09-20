@@ -50,7 +50,7 @@
 #define FRAME_MS    33          /* 30 frames per second                      */
 
 #define SAVE_MAGIC  0x43485431u /* "CHT1"                                    */
-#define SAVE_VER    4           /* v4: the team of three (see below)         */
+#define SAVE_VER    5           /* v5: v2's world. Nothing older converts.   */
 
 /* --------------------------------------------------------------------------
  * The v2 format, exactly as it was, so it can be converted
@@ -402,29 +402,24 @@ static bool cargar(ch_t *g)
 
     if (sv.ver == SAVE_VER && sv.largo == (uint16_t)sizeof(ch_save_t)) {
         g->s = sv.s;
-    } else if (sv.ver == 3 && sv.largo == (uint16_t)sizeof(ch_save_v3_t)) {
-        memcpy(&g->s, &sv.s, sizeof(ch_save_v3_t));     /* the tail is already 0 */
-        aos_hal_log("chatarra", "v3 save converted to v4");
-    } else if (sv.ver == 2 && sv.largo == (uint16_t)sizeof(ch_save_v2_t)) {
-        /* Field-by-field conversion, which is the only thing that does not
-         * take care of itself when a size changes. */
-        const ch_save_v2_t *v = (const ch_save_v2_t *)(const void *)&sv.s;
-        g->s.yo        = v->yo;
-        g->s.sala      = v->sala;
-        g->s.x         = v->x;
-        g->s.y         = v->y;
-        g->s.dir       = v->dir;
-        g->s.creditos  = v->creditos;
-        g->s.victorias = v->victorias;
-        g->s.pasos     = v->pasos;
-        memcpy(g->s.obj,     v->obj,     V2_ITEMS);
-        memcpy(g->s.piezas,  v->piezas,  V2_MOCHILA);
-        memcpy(g->s.bandera, v->bandera, sizeof(v->bandera));
-        memcpy(g->s.visto,   v->visto,   sizeof(v->visto));
-        aos_hal_log("chatarra", "v2 save converted to v4");
     } else {
-        aos_hal_log("chatarra", "save v%u of %u B: no known conversion",
-                    (unsigned)sv.ver, (unsigned)sv.largo);
+        /* NOTHING OLDER IS CONVERTED, AND THAT IS THE POINT.
+         *
+         * Up to v4 every version converted the one before it, because the
+         * world was the same and only the structure moved. v2 of the GAME
+         * redrew the world: the map went from 23x22 cells to 15x14, the rooms
+         * were rebuilt and renumbered, and the quest flags index errands that
+         * no longer exist. A room number, an x and a y from v1 do not mean
+         * anything here.
+         *
+         * Converting one anyway is how a player ends up standing inside the
+         * wall of a house with no way out, which is exactly what happened on
+         * the board: (11,14) of the old map clamped to (11,13) of the new one,
+         * which is solid. Refusing is the honest answer, and the arrival's
+         * search for a free cell -ch_map_entrar()- is the belt to this braces.
+         */
+        aos_hal_log("chatarra", "save v%u is from the old world: starting fresh",
+                    (unsigned)sv.ver);
         return false;
     }
 

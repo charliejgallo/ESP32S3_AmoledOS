@@ -228,6 +228,35 @@ void ch_map_entrar(ch_t *g, int sala, int x, int y)
      * back into it. */
     if (x < 0) x = 0; else if (x >= COLS) x = COLS - 1;
     if (y < 0) y = 0; else if (y >= ROWS) y = ROWS - 1;
+    /* AND IT HAS TO BE A CELL YOU CAN STAND ON.
+     *
+     * Clamping into the map is not enough: (11,13) is inside a 15x14 room and
+     * is also the wall of the house. A player standing in a wall cannot walk
+     * out of it -the path finder will not start from a blocked cell- and the
+     * game is over without a message. That happened on the board with a
+     * position that came from a v1 save.
+     *
+     * So the arrival looks outwards for the nearest cell that is free. It
+     * costs nothing (it happens once per room and nearly always finds the
+     * cell it was given) and it turns a class of silent trap into a step
+     * sideways. */
+    {
+        const ch_room_t *dst = &ch_salas[sala];
+        if (bloqueado(g, dst, x, y)) {
+            for (int rad = 1; rad < COLS; rad++) {
+                int hallado = 0;
+                for (int dy = -rad; dy <= rad && !hallado; dy++) {
+                    for (int dx = -rad; dx <= rad && !hallado; dx++) {
+                        int nx = x + dx, ny = y + dy;
+                        if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+                        if (bloqueado(g, dst, nx, ny)) continue;
+                        x = nx; y = ny; hallado = 1;
+                    }
+                }
+                if (hallado) break;
+            }
+        }
+    }
     g->s.sala = (uint8_t)sala;
     g->s.x = (uint8_t)x;
     g->s.y = (uint8_t)y;
