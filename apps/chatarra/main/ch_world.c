@@ -384,7 +384,7 @@ void ch_tile_anim(ch_buf_t *b, char t, int tx, int ty, int fase)
 
     if (!ch_tile_corre(t)) { ch_tile_draw(b, t, tx, ty); return; }
     for (int i = 0; i < 8; i++) rot[i] = d->px[(i + fase) & 7];
-    ch_blit(b, tx * TILE, ty * TILE, rot, 8);
+    ch_blit_esc(b, tx * TILE, ty * TILE, rot, 8, TILE, ART_DEN);
 }
 
 
@@ -421,8 +421,9 @@ void ch_tile_anim(ch_buf_t *b, char t, int tx, int ty, int fase)
 static void borde_dibujar(ch_buf_t *b, int tx, int ty,
                           const char *const *fr, int lado)
 {
-    for (int r = 0; r < 8; r++) {
-        for (int c = 0; c < 8; c++) {
+    for (int dr = 0; dr < TILE; dr++) {
+        for (int dc = 0; dc < TILE; dc++) {
+            int r = dr * ART_DEN / TILE, c = dc * ART_DEN / TILE;
             char k;
             uint16_t col;
             switch (lado) {
@@ -431,7 +432,7 @@ static void borde_dibujar(ch_buf_t *b, int tx, int ty,
             case 3:  k = fr[7 - c][r];     break;   /* east                  */
             default: k = fr[r][c];         break;   /* north                 */
             }
-            if (ch_pal(k, &col)) ch_px(b, tx * TILE + c, ty * TILE + r, col);
+            if (ch_pal(k, &col)) ch_px(b, tx * TILE + dc, ty * TILE + dr, col);
         }
     }
 }
@@ -464,7 +465,7 @@ void ch_tile_draw(ch_buf_t *b, char t, int tx, int ty)
     if (d->px2 && (((tx * 7) ^ (ty * 13)) & 3) == 0) {
         px = d->px2;
     }
-    ch_blit(b, tx * TILE, ty * TILE, px, 8);
+    ch_blit_esc(b, tx * TILE, ty * TILE, px, 8, TILE, ART_DEN);
 }
 
 /* --------------------------------------------------------------------------
@@ -852,7 +853,7 @@ void ch_prop_draw(ch_buf_t *b, const ch_prop_t *pr)
      * this size reads as an ellipse without being one. */
     {
         int w = d->cw * TILE;
-        int y = (pr->y + (d->rows + TILE - 1) / TILE) * TILE - 2;
+        int y = (pr->y + (d->rows + ART_DEN - 1) / ART_DEN) * TILE - ART(2);
         int x = pr->x * TILE;
         for (int k = 0; k < 3; k++) {
             int m = 1 + k * 2;          /* each row a little narrower        */
@@ -862,7 +863,7 @@ void ch_prop_draw(ch_buf_t *b, const ch_prop_t *pr)
         }
     }
 
-    ch_blit(b, pr->x * TILE, pr->y * TILE, d->px, d->rows);
+    ch_blit_esc(b, pr->x * TILE, pr->y * TILE, d->px, d->rows, TILE, ART_DEN);
 }
 
 /* --------------------------------------------------------------------------
@@ -916,7 +917,7 @@ bool ch_celda_tapada(const ch_room_t *r, int tx, int ty)
         const ch_prop_t *pr = &r->props[i];
         if (pr->sprite >= NPROPS) continue;
         const propdef_t *d = &PROPS[pr->sprite];
-        int filas = (d->rows + TILE - 1) / TILE;
+        int filas = (d->rows + ART_DEN - 1) / ART_DEN;
         if (tx >= pr->x && tx < pr->x + d->cw &&
             ty >= pr->y && ty < pr->y + filas) {
             return true;
@@ -936,7 +937,7 @@ bool ch_prop_solido(const ch_room_t *r, int tx, int ty)
         const ch_prop_t *pr = &r->props[i];
         if (pr->sprite >= NPROPS) continue;
         const propdef_t *d = &PROPS[pr->sprite];
-        int filas = (d->rows + TILE - 1) / TILE;
+        int filas = (d->rows + ART_DEN - 1) / ART_DEN;
         int y0 = pr->y + filas - d->solidas;
         if (tx >= pr->x && tx < pr->x + d->cw && ty >= y0 && ty < pr->y + filas) {
             return true;
@@ -1172,18 +1173,19 @@ void ch_ent_draw(ch_buf_t *b, const ch_room_t *r, const ch_ent_t *e, bool hecho)
         /* The character is 16 tall and the cell 8: it sticks out upwards, just
          * like the player's robot. That way it is seen whole without the cell
          * below ceasing to be the one you touch. */
-        ch_blit(b, x - 1, y - 8, NPCS[a], 16);
+        ch_blit_esc(b, x - ART(1), y - ART(8), NPCS[a], 16, TILE, ART_DEN);
         break;
     }
     case E_COFRE:
-        ch_blit(b, x - 2, y - 2, hecho ? SP_COFRE_ABIERTO : SP_COFRE, 10);
+        ch_blit_esc(b, x - ART(2), y - ART(2),
+                    hecho ? SP_COFRE_ABIERTO : SP_COFRE, 10, TILE, ART_DEN);
         break;
     case E_CARTEL:
-        ch_blit(b, x - 1, y - 6, SP_SIGNO, 14);
+        ch_blit_esc(b, x - ART(1), y - ART(6), SP_SIGNO, 14, TILE, ART_DEN);
         break;
 
     case E_CABINA:
-        ch_blit(b, x - 1, y - 10, SP_CABINA, 18);
+        ch_blit_esc(b, x - ART(1), y - ART(10), SP_CABINA, 18, TILE, ART_DEN);
         break;
 
     case E_BLOQUEO:

@@ -69,9 +69,39 @@
  * Geometry
  * -------------------------------------------------------------------------- */
 
-#define TILE        8
-#define COLS        23                  /* 23 * 8 = 184 = CH_W               */
-#define ROWS        22                  /* 22 * 8 = 176                      */
+/* --------------------------------------------------------------------------
+ * v2: THE ZOOM IS FREE, AND THIS IS WHY
+ *
+ * The engine draws into a 184x224 buffer and expands it x2 to the panel in the
+ * last step. The zoom is NOT done by growing the buffer -that would multiply
+ * every dirty rectangle by four and cost the combat seven frames a second- it
+ * is done by growing the TILE inside the same buffer.
+ *
+ *                          v1 (TILE 8)      v2 (TILE 12)
+ *     buffer               184 x 224        the same
+ *     expansion            x2               the same
+ *     cells on screen      23 x 22          15 x 14
+ *     a cell, on the panel 16 x 16 px       24 x 24 px
+ *     art per tile         64 px            144 px   (2.25x the detail)
+ *     the whole background 32,384 px        30,240 px
+ *
+ * The background comes out CHEAPER, not dearer: fewer tiles, each one bigger.
+ * Nothing in ch_pixel.c, in the dirty rectangles, in present() or in the
+ * combat changes - the combat never used TILE, and its robots already draw
+ * from descriptors with a scale argument.
+ *
+ * The whole cost of v2 is art and level design. docs/internal/HANDOFF-CHATARRA-V2.md
+ * -------------------------------------------------------------------------- */
+
+#define TILE        12
+#define COLS        15                  /* 15 * 12 = 180, 4 px of slack      */
+#define ROWS        14                  /* 14 * 12 = 168                     */
+
+/* v1's art is drawn on an 8 px grid. Until every tile, prop and sprite is
+ * redrawn at 12, they are stretched by this ratio and their offsets scaled by
+ * ART(). Both disappear when the art does. */
+#define ART_DEN     8
+#define ART(v)      ((v) * TILE / ART_DEN)
 #define MAP_H       (ROWS * TILE)       /* 176                               */
 #define HUD_Y       MAP_H
 #define HUD_H       (CH_H - MAP_H)      /* 48 px that cannot be touched      */

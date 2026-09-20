@@ -221,6 +221,13 @@ void ch_map_entrar(ch_t *g, int sala, int x, int y)
     const ch_room_t *r;
 
     if (sala < 0 || sala >= ch_nsalas) sala = 0;
+    /* Clamped into the room, always. A destination outside it is not a
+     * theoretical worry: v2 shrank the map from 23x22 cells to 15x14, so every
+     * coordinate written for v1 -a save, a door, a starting position- can now
+     * point off the edge, and a player standing outside the map cannot walk
+     * back into it. */
+    if (x < 0) x = 0; else if (x >= COLS) x = COLS - 1;
+    if (y < 0) y = 0; else if (y >= ROWS) y = ROWS - 1;
     g->s.sala = (uint8_t)sala;
     g->s.x = (uint8_t)x;
     g->s.y = (uint8_t)y;
