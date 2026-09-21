@@ -52,6 +52,7 @@ static void lanzar_bicho(ch_t *g, int m);
 #define NAMB    ((int)(sizeof(((ch_t *)0)->amb) / sizeof(((ch_t *)0)->amb[0])))
 static void amb_nace(ch_t *g, int i, bool arriba);
 static void amb_tick(ch_t *g);
+static uint8_t clima(const ch_t *g);
 static void brillo_tick(ch_t *g);
 static void flujo_buscar(ch_t *g);
 static void aire_zona(ch_t *g, ch_buf_t *b, int x, int y, int w, int h);
@@ -244,8 +245,31 @@ static void aire_zona(ch_t *g, ch_buf_t *b, int x, int y, int w, int h)
     int z = r->zona;
 
     if (z < 1 || z > ZONAS) return;
-    if (!ch_aire[z - 1].fuerza) return;
-    ch_tint(b, x, y, w, h, ch_rgb(ch_aire[z - 1].color), ch_aire[z - 1].fuerza);
+    if (ch_aire[z - 1].fuerza) {
+        ch_tint(b, x, y, w, h, ch_rgb(ch_aire[z - 1].color),
+                ch_aire[z - 1].fuerza);
+    }
+
+    /* LA HORA, encima del aire de la zona.
+     *
+     * El reloj sale de los pasos dados: 300 pasos es una hora, asi que un dia
+     * entero son unas dos horas de juego y se guarda sin un campo nuevo
+     * -`pasos` ya estaba en el guardado-. De noche el mapa se tine de azul y
+     * al amanecer y al atardecer de naranja; los interiores y las mazmorras
+     * no, porque adentro no hay cielo.
+     *
+     * Es un lavado mas sobre un fondo ya terminado: cuesta lo que costaba el
+     * aire de la zona, que se midio en cero. */
+    if (r->tema != TEMA_INTERIOR && r->tema != TEMA_DUNGEON &&
+        r->tema != TEMA_CUEVA) {
+        int h24 = ch_hora(&g->s);
+        /* Siete de dieciseis para la noche: con cinco la diferencia estaba
+         * -326.700 bytes de 494.592 cambiaban- y aun asi no se LEIA como que
+         * era de noche, que es lo unico que importa. */
+        if (h24 >= 21 || h24 < 5) ch_tint(b, x, y, w, h, ch_rgb(0x0A1740), 8);
+        else if (h24 < 7)         ch_tint(b, x, y, w, h, ch_rgb(0xFF7A3D), 5);
+        else if (h24 >= 19)       ch_tint(b, x, y, w, h, ch_rgb(0xFF4A1E), 6);
+    }
 }
 
 static void colocar(ch_t *g)
@@ -921,7 +945,7 @@ void ch_map_tick(ch_t *g)
 
 static void amb_nace(ch_t *g, int i, bool arriba)
 {
-    int amb = ch_salas[g->s.sala % ch_nsalas].ambiente;
+    int amb = clima(g);
 
     g->amb[i].x = (int16_t)(ch_rnd(&g->rng, CH_W) * 4);
     switch (amb) {
@@ -948,9 +972,43 @@ static void amb_nace(ch_t *g, int i, bool arriba)
     }
 }
 
+/* EL CLIMA DE CADA ZONA.
+ *
+ * El campo `ambiente` de la sala manda -las goteras de la bodega son de la
+ * bodega y llueve adentro siempre-. Donde no dice nada y se esta al aire
+ * libre, la zona pone el suyo, y SOLO A CIERTAS HORAS: si llueve siempre no
+ * es clima, es una textura. Con el reloj de pasos eso significa que el puerto
+ * amanece limpio y se larga a llover a media manana, y que la ceniza de la
+ * fundicion cae de noche.
+ *
+ * Cuesta lo que costaban las particulas, que son seis y estaban medidas. */
+static uint8_t clima(const ch_t *g)
+{
+    static const uint8_t POR_ZONA[ZONAS] = {
+        AMB_NADA, AMB_GOTERAS, AMB_NADA, AMB_BRASAS,
+        AMB_NIEVE, AMB_NADA, AMB_POLVO, AMB_NADA,
+    };
+    const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
+    int z = r->zona, h;
+
+    if (r->ambiente) return r->ambiente;
+    if (z < 1 || z > ZONAS) return AMB_NADA;
+    if (r->tema == TEMA_INTERIOR || r->tema == TEMA_DUNGEON ||
+        r->tema == TEMA_CUEVA) return AMB_NADA;
+
+    h = ch_hora(&g->s);
+    switch (POR_ZONA[z - 1]) {
+    case AMB_GOTERAS: return (h >= 10 && h < 18) ? AMB_GOTERAS : AMB_NADA;
+    case AMB_BRASAS:  return (h >= 19 || h < 6)  ? AMB_BRASAS  : AMB_NADA;
+    case AMB_NIEVE:   return AMB_NIEVE;          /* alla nieva siempre */
+    case AMB_POLVO:   return (h >= 12 && h < 20) ? AMB_POLVO   : AMB_NADA;
+    default:          return AMB_NADA;
+    }
+}
+
 static void amb_tick(ch_t *g)
 {
-    if (!ch_salas[g->s.sala % ch_nsalas].ambiente) return;
+    if (!clima(g)) return;
 
     for (int i = 0; i < NAMB; i++) {
         g->amb[i].x = (int16_t)(g->amb[i].x + g->amb[i].vx);

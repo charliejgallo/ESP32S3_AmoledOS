@@ -979,6 +979,8 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
      *   CH_CABINA=<n> the booth, at that state (see the LK_ enum): the menu
      *                 needs a second watch, and its layout does not.
      *   CH_FERIA=1    la cinta de chatarra, directo
+     *   CH_HORA=<0..23> la hora del mundo: el dia entero son dos horas de
+     *                 juego, asi que verlo sin esto es esperar
 
      */
     {
@@ -1042,6 +1044,11 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
         if ((v = getenv("CH_MEL")) && v[0]) {
             /* Forces a tune, to listen to it without playing up to it. */
             ch_snd_melodia(&a->g, atoi(v));
+        }
+        if ((v = getenv("CH_HORA")) && v[0]) {
+            int h = atoi(v) % 24;
+            a->g.s.pasos = (uint32_t)(((h + 24 - 8) % 24) * 300);
+            a->g.rehacer_fondo = 1;
         }
         if ((v = getenv("CH_SALA")) && v[0]) {
             a->g.modo = MODO_MAPA;

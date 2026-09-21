@@ -609,6 +609,14 @@ bool ch_eq_desarmar(ch_save_t *s, int slot);
 bool ch_feria_premio(ch_save_t *s, uint32_t *sem);
 
 /* La dificultad y el tamano de la mochila, guardados en banderas. */
+/* LA HORA DEL MUNDO, en pasos dados. 300 pasos la hora, asi que el dia entero
+ * son unas dos horas de juego. Sale de `pasos`, que ya estaba en el guardado:
+ * un campo nuevo tirarÃ­a todas las partidas. */
+static inline int ch_hora(const ch_save_t *s)
+{
+    return (int)((s->pasos / 300u + 8u) % 24u);   /* se empieza a las 8 */
+}
+
 static inline int ch_dificultad(const ch_save_t *s);
 static inline int ch_mochila(const ch_save_t *s);
 
