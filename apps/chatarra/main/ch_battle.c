@@ -1760,7 +1760,31 @@ void ch_bt_dibujar(ch_t *g)
             ch_rect(b, x + 2, y + 1, 1, 4, ch_rgb(0xFFE45E));
         }
     }
-    ch_dirty_add(&g->d_cur, PAN_R_X + 3, PAN_R_Y + 2, PAN_W - 6, 19);
+    /* LAS ETAPAS DE ATAQUE Y DEFENSA.
+     *
+     * Subir o bajar una etapa es +-33% de dano, o sea la mitad de la pelea, y
+     * lo unico que lo decia era una linea de texto en el turno en que pasaba:
+     * tres turnos despues nadie se acuerda de si sigue con el ataque bajo. Va
+     * al lado de las barras, en el color del signo, y solo cuando no es cero.
+     * Mismo criterio que la quemadura, que ya estaba resuelta asi. */
+    for (int q = 0; q < 2; q++) {
+        char t[16];
+        int a = g->bt.et_atk[q], d2 = g->bt.et_def[q];
+        int x = (q ? PAN_R_X : PAN_YO_X) + 4;
+        int y = q ? PAN_R_Y + 21 : PAN_YO_Y + 23;
+
+        if (!q) x += 44;                        /* el mio, al lado del 39/39 */
+        if (a) {
+            snprintf(t, sizeof(t), "A%+d", a);
+            ch_text(b, x, y, t, a > 0 ? ch_rgb(0x4ADE80) : ch_rgb(0xFF4A3D));
+            x += ch_text_w(t) + 5;
+        }
+        if (d2) {
+            snprintf(t, sizeof(t), "D%+d", d2);
+            ch_text(b, x, y, t, d2 > 0 ? ch_rgb(0x4ADE80) : ch_rgb(0xFF4A3D));
+        }
+    }
+    ch_dirty_add(&g->d_cur, PAN_R_X + 3, PAN_R_Y + 2, PAN_W - 6, 24);
     ch_dirty_add(&g->d_cur, PAN_YO_X + 3, PAN_YO_Y + 2, PAN_W - 6, 39);
 
     /* The damage number, rising from the chest of whoever took it. */
