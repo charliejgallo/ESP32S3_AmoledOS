@@ -457,6 +457,7 @@ static int buscar_ruta(ch_t *g, int gx, int gy, int tope)
 
 void ch_map_toque(ch_t *g, int bx, int by)
 {
+    g->quieto = 0;
     const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
     int tx = bx / TILE, ty = by / TILE;
 
@@ -783,6 +784,8 @@ static void andar_bichos(ch_t *g)
 void ch_map_tick(ch_t *g)
 {
     g->cuadro++;
+    if (g->andando || g->nruta) g->quieto = 0;
+    else if (g->quieto < 60000)  g->quieto++;
     if (g->trans) g->trans--;
     if (g->cofre_t) g->cofre_t--;
     amb_tick(g);
@@ -1083,8 +1086,23 @@ void ch_map_dibujar(ch_t *g)
         sucio_bicho(g, g->mov[i].px, g->mov[i].py);
     }
 
-    ch_mini_draw(&g->fb, g->px, g->py, &g->s.yo, g->s.dir, g->paso);
-    sucio_mini(g, g->px, g->py);
+    /* LA ESPERA. Pasados cinco segundos sin caminar, el robot mira a un lado
+     * y al otro y se balancea un pixel. No es una animacion nueva: es la
+     * direccion que ya se dibuja, cambiada cada segundo y medio, mas un
+     * pixel de alto. Cuesta lo mismo que estar quieto -el rectangulo sucio
+     * del jugador ya se empuja todos los cuadros- y es lo que separa un
+     * pueblo vivo de una captura de pantalla. */
+    {
+        int dir = g->s.dir, py = g->py;
+        if (g->quieto > QUIETO_ESPERA) {
+            uint16_t t = (uint16_t)(g->quieto - QUIETO_ESPERA);
+            static const uint8_t MIRA[4] = { 2, 0, 3, 0 };
+            dir = MIRA[(t / 45) & 3];
+            if (((t / 8) & 3) == 0) py -= 1;
+        }
+        ch_mini_draw(&g->fb, g->px, py, &g->s.yo, dir, g->paso);
+        sucio_mini(g, g->px, py - 1);
+    }
 
     amb_dibujar(g);
     brillo_dibujar(g);

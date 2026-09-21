@@ -64,7 +64,7 @@
 
 #define PAN_R_X       4
 #define PAN_R_Y       2
-#define PAN_R_H      26
+#define PAN_R_H      40         /* +14: la fila de piezas conocidas del rival */
 #define PAN_YO_X     88
 #define PAN_YO_Y     88
 #define PAN_YO_H     40
@@ -1079,6 +1079,44 @@ static void panel_robot(ch_t *g, int x, int y, const ch_robot_t *r, bool mio)
     ch_text(b, x + 4, y + 3, ch_robot_nombre(r), ch_rgb(0xFFFFFF));
     snprintf(t, sizeof(t), _("N%d"), r->nivel);
     ch_text(b, x + PAN_W - 4 - ch_text_w(t), y + 3, t, ch_rgb(0xFFE45E));
+
+    /* LAS PIEZAS DEL RIVAL, las que ya viste.
+     *
+     * El registro anotaba cada pieza vista y no servia para nada mas que para
+     * mirarlo. Aca dice de que esta hecho el que tenes enfrente: cuatro
+     * casillas con la letra de la categoria y el color de su tipo, y una
+     * interrogacion donde todavia no viste esa pieza. Con el juego de piezas
+     * -las del tipo del torso suman- eso es exactamente lo que hay que saber
+     * antes de elegir el golpe, y de paso le da un para que al registro. */
+    if (!mio) {
+        static const char *const L[P_CATS] = { "C", "T", "B", "P" };
+        for (int c = 0; c < P_CATS; c++) {
+            uint8_t id = PIEZA_ID(c, r->pieza[c] % PVAR);
+            const ch_part_t *p = &ch_partes[id];
+            bool visto = ch_visto(&g->s, id);
+            int px = x + 4 + c * 13, py = y + PAN_R_H - 13;
+
+            ch_rect(b, px, py, 11, 10,
+                    visto ? ch_rgb(ch_tipo_color[p->tipo % TIPOS])
+                          : ch_rgb(0x232B41));
+            ch_frame(b, px, py, 11, 10, ch_rgb(0x05060C));
+            /* Letra blanca con sombra negra SIEMPRE: la tinta oscura sobre
+             * el color del tipo se lee en los claros y desaparece en los
+             * oscuros, y hay tipos de los dos. */
+            ch_text_center(b, px + 5, py + 2, visto ? L[c] : "?",
+                           visto ? ch_rgb(0xFFFFFF) : ch_rgb(0x8A93AB),
+                           ch_rgb(0x05060C));
+        }
+        {   /* y si tiene juego, que es el +30% que no se ve venir */
+            int n = ch_robot_juego(r);
+            if (n >= 2) {
+                char j[16];
+                snprintf(j, sizeof(j), "x%d", n);
+                ch_text(b, x + PAN_W - 4 - ch_text_w(j), y + PAN_R_H - 11, j,
+                        ch_rgb(n >= 4 ? 0xFF4A3D : 0xFFE45E));
+            }
+        }
+    }
 
     /* Only the bar's SLOT. The fill and the numbers are drawn by
      * ch_bt_dibujar() per frame, because they go down gradually: leaving them

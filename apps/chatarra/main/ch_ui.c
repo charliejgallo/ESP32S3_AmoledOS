@@ -482,6 +482,11 @@ static const icono_t ICONOS[NICONOS] = {
         "kBBBBBBBBBBk", "kkkkkkkkkkkk", "............", "....rrrr....",
         "....rrrr....", "..rrrrrrrr..", "...rrrrrr...", "....rrrr....",
     }, 0x4A9DF5, 0xFF4A3D },
+    [IC_DIARIO] = { {                           /* una libreta con un lazo */
+        ".kkkkkkkkkk.", ".kJjjjjjjjJk", "kykjjjjjjjJk", "kykjjyyyyjJk",
+        "kykjjjjjjjJk", "kykjjyyyyjJk", "kykjjjjjjjJk", "kykjjyyjjjJk",
+        "kykjjjjjjjJk", ".kJjjjjjjjJk", ".kkkkkkkkkk.", "............",
+    }, 0x8A5A32, 0xFFE45E },
     [IC_AJUSTES] = { {                                /* root: the settings */
         "............", ".##########.", ".....##.....", ".....##.....",
         ".##########.", "...##.......", "...##.......", ".##########.",
@@ -658,7 +663,8 @@ static int flecha_en(int bx, int by)
 typedef struct { uint8_t icono; const char *txt; uint8_t accion; } baldosa_t;
 
 enum { AC_TALLER = 1, AC_OBJETOS, AC_EQUIPO, AC_REGISTRO, AC_MAPA,
-       AC_AYUDA, AC_SONIDO, AC_GUARDAR, AC_CERRAR, AC_PAG1, AC_PAG2 };
+       AC_DIARIO, AC_AYUDA, AC_SONIDO, AC_GUARDAR, AC_CERRAR,
+       AC_PAG1, AC_PAG2 };
 
 static const baldosa_t PAG_RAIZ[] = {
     { IC_MOCHILA, N_("LO TUYO"),   AC_PAG1 },
@@ -670,6 +676,7 @@ static const baldosa_t PAG_TUYO[] = {
     { IC_EQUIPO,   N_("EQUIPO"),   AC_EQUIPO },
     { IC_REGISTRO, N_("REGISTRO"), AC_REGISTRO },
     { IC_MAPA,     N_("MAPA"),     AC_MAPA },
+    { IC_DIARIO,   N_("DIARIO"),   AC_DIARIO },
 };
 static const baldosa_t PAG_JUEGO[] = {
     { IC_AYUDA,   N_("AYUDA"),    AC_AYUDA },
@@ -1511,10 +1518,29 @@ static void ficha_toque(ch_t *g, int bx, int by)
  * Shop
  * -------------------------------------------------------------------------- */
 
+/* EL SURTIDO CRECE CON LA ZONA.
+ *
+ * Las ocho tiendas vendian exactamente lo mismo, asi que llegar a un pueblo
+ * nuevo no cambiaba nada: el aceite puro estaba a la venta en el minuto cinco
+ * -con 180 creditos que no tenias- y el iman tambien. Ahora cada zona agrega
+ * lo suyo, que es lo que hace que valga la pena entrar a la tienda de un
+ * pueblo al que acabas de llegar.
+ *
+ * Es una tabla de cuantos items del arreglo se ven, no ocho arreglos: el
+ * orden ya es de barato a caro. */
 static const uint8_t SURTIDO[] = {
-    IT_ACEITE, IT_ACEITE2, IT_BATERIA, IT_BATERIA2, IT_SOLDADOR, IT_IMAN,
+    IT_ACEITE, IT_BATERIA, IT_ACEITE2, IT_BATERIA2, IT_CHIP, IT_IMAN,
+    IT_SOLDADOR,
 };
-#define NSURTIDO ((int)(sizeof(SURTIDO) / sizeof(SURTIDO[0])))
+static const uint8_t SURTIDO_ZONA[ZONAS] = { 2, 3, 4, 5, 5, 6, 7, 7 };
+
+static int surtido_n(const ch_t *g)
+{
+    const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
+    int z = r->zona < 1 ? 1 : (r->zona > ZONAS ? ZONAS : r->zona);
+    return SURTIDO_ZONA[z - 1];
+}
+#define NSURTIDO surtido_n(g)
 
 static void tienda_fondo(ch_t *g)
 {
@@ -1826,6 +1852,107 @@ static const char *const AYUDA[] = {
 };
 #define NAYUDA ((int)(sizeof(AYUDA) / sizeof(AYUDA[0])))
 
+/* --------------------------------------------------------------------------
+ * EL DIARIO
+ *
+ * Los ocho encargos ya existian enteros en los datos: un PNJ con `p3` -la
+ * bandera de "traeme esto"- y un cofre en alguna parte cuya `p3` es la misma.
+ * Lo unico que faltaba era una pantalla que los junte, porque el juego te
+ * contaba el encargo una vez, en un dialogo, y tres pueblos despues no habia
+ * forma de acordarse de que buscabas ni donde te lo habian pedido.
+ *
+ * No lleva tabla nueva: se recorre el mundo. 61 salas por diez entidades es
+ * nada, y se hace una vez por fondo, no por cuadro. Y al no haber tabla no
+ * puede quedar desincronizada con los encargos de verdad, que es el modo en
+ * que estas listas se pudren.
+ * -------------------------------------------------------------------------- */
+#define DIARIO_MAX  12
+
+static struct { uint8_t sala, item, estado; } s_diario[DIARIO_MAX];
+static int s_ndiario;
+
+static void diario_juntar(ch_t *g)
+{
+    s_ndiario = 0;
+    for (int si = 0; si < ch_nsalas && s_ndiario < DIARIO_MAX; si++) {
+        const ch_room_t *r = &ch_salas[si];
+        for (int i = 0; i < r->nents && s_ndiario < DIARIO_MAX; i++) {
+            const ch_ent_t *e = &r->ents[i];
+            uint8_t item = 0;
+
+            if (e->tipo != E_PNJ || !e->p3) continue;
+            /* que hay que traerle: el cofre cuya bandera es la misma */
+            for (int sj = 0; sj < ch_nsalas && !item; sj++) {
+                const ch_room_t *q = &ch_salas[sj];
+                for (int k = 0; k < q->nents; k++) {
+                    if (q->ents[k].tipo == E_COFRE &&
+                        q->ents[k].p3 == e->p3) { item = q->ents[k].p1; break; }
+                }
+            }
+            s_diario[s_ndiario].sala = (uint8_t)si;
+            s_diario[s_ndiario].item = item;
+            s_diario[s_ndiario].estado =
+                (e->p2 && ch_flag(&g->s, e->p2)) ? 2
+                : (ch_flag(&g->s, e->p3) ? 1 : 0);
+            s_ndiario++;
+        }
+    }
+}
+
+static void diario_fondo(ch_t *g)
+{
+    ch_buf_t *b = &g->bg;
+    char t[40];
+    int abiertos = 0;
+
+    diario_juntar(g);
+    for (int i = 0; i < s_ndiario; i++) if (s_diario[i].estado != 2) abiertos++;
+
+    lista_geom(38, 42, 3);
+    ch_ui_titulo(g, _("DIARIO"), _("LO QUE TE PIDIERON"));
+    snprintf(t, sizeof(t), "%d/%d", abiertos, s_ndiario);
+    ch_text(b, 8 + ch_text_w(_("DIARIO")) + 8, 9, t, ch_rgb(0x8A93AB));
+
+    if (!s_ndiario) {
+        ch_text_center(b, CH_W / 2, 100, _("NADIE TE PIDIO NADA"),
+                       ch_rgb(0x8A93AB), ch_rgb(0x05060C));
+        return;
+    }
+    flechas(g, g->scroll > 0, g->scroll + s_lfilas < s_ndiario);
+
+    for (int i = 0; i < s_lfilas; i++) {
+        int k = g->scroll + i;
+        int y = s_ly0 + i * s_lfh, h = s_lfh - 4;
+        int est;
+        uint32_t c;
+
+        if (k >= s_ndiario) break;
+        est = s_diario[k].estado;
+        c = est == 2 ? 0x4ADE80 : (est == 1 ? 0xFFE45E : 0x8A93AB);
+
+        ch_rect(b, LX, y, LW, h, ch_rgb(est == 2 ? 0x14261C : 0x1A2133));
+        ch_frame(b, LX, y, LW, h, ch_rgb(est == 2 ? 0x1E7A3C : 0x3D465F));
+        ch_rect(b, LX + 1, y + 1, LW - 2, 1, ch_rgb(0x2C3550));
+        ch_ui_icono(b, LX + 6, y + h / 2 - 12,
+                    s_diario[k].item < ITEMS && ICONO_ITEM[s_diario[k].item]
+                        ? ICONO_ITEM[s_diario[k].item] : IC_HERRAMIENTA, 2);
+
+        ch_text(b, LX + 36, y + 5, _(ch_salas[s_diario[k].sala].nombre),
+                ch_rgb(0xFFFFFF));
+        if (est == 2) {
+            snprintf(t, sizeof(t), "%s", _("ENTREGADO"));
+        } else if (est == 1) {
+            snprintf(t, sizeof(t), "%s", _("LO TENES: VOLVE"));
+        } else if (s_diario[k].item < ITEMS) {
+            snprintf(t, sizeof(t), _("TRAE: %s"),
+                     _(ch_items[s_diario[k].item].nombre));
+        } else {
+            snprintf(t, sizeof(t), "%s", _("PENDIENTE"));
+        }
+        ch_text(b, LX + 36, y + 18, t, ch_rgb(c));
+    }
+}
+
 static void ayuda_fondo(ch_t *g)
 {
     char lin[14][30];
@@ -2051,6 +2178,7 @@ void ch_ui_fondo(ch_t *g)
     case MODO_TIENDA:  tienda_fondo(g);  break;
     case MODO_REGISTRO: registro_fondo(g); break;
     case MODO_MAPAMUNDI: mapa_fondo(g); break;
+    case MODO_DIARIO:  diario_fondo(g); break;
     case MODO_AYUDA:   ayuda_fondo(g); break;
     case MODO_FINAL:   final_fondo(g); break;
     case MODO_CABINA:  ch_lk_fondo(g); break;
@@ -2112,6 +2240,8 @@ void ch_ui_toque(ch_t *g, int bx, int by)
         case AC_EQUIPO:  g->modo = MODO_FICHA;   g->sel2 = 0; break;
         case AC_REGISTRO:g->modo = MODO_REGISTRO;g->sel2 = 0; break;
         case AC_MAPA:    g->modo = MODO_MAPAMUNDI; g->sel2 = 0; break;
+        case AC_DIARIO:  g->modo = MODO_DIARIO;  g->sel2 = 0;
+                         g->scroll = 0; break;
         case AC_AYUDA:   g->modo = MODO_AYUDA;   g->sel2 = 0; break;
         case AC_SONIDO:  ch_sonido_set((ch_sonido_get() + 1) % 3); break;
         case AC_GUARDAR: g->quiere_guardar = 1;
@@ -2135,6 +2265,21 @@ void ch_ui_toque(ch_t *g, int bx, int by)
     case MODO_REGISTRO: registro_toque(g, bx, by); break;
     case MODO_FICHA:   ficha_toque(g, bx, by); break;
     case MODO_MAPAMUNDI: mapa_toque(g, bx, by); break;
+    case MODO_DIARIO: {
+        int f = flecha_en(bx, by);
+        if (f) {
+            int n = (int)g->scroll + f;
+            if (n >= 0 && n + s_lfilas <= s_ndiario) {
+                g->scroll = (uint8_t)n;
+                g->rehacer_fondo = 1;
+            }
+            return;
+        }
+        g->modo = MODO_MENU;
+        g->sel2 = 1;
+        g->rehacer_fondo = 1;
+        break;
+    }
     case MODO_AYUDA:
         if (++g->sel >= NAYUDA) { g->sel = 0; g->modo = MODO_MENU; }
         ch_sfx(1000, 20);
@@ -2165,6 +2310,7 @@ bool ch_ui_atras(ch_t *g)
     case MODO_FICHA:
     case MODO_REGISTRO:
     case MODO_MAPAMUNDI:
+    case MODO_DIARIO:
     case MODO_AYUDA:
         g->sel = 0;
         g->modo = MODO_MENU;

@@ -1596,6 +1596,13 @@ static const char blob_en_demo_chatarra_lang[] =
     "JUEGO PURO\tFULL SET\n"
     "TIPO %s\tTYPE %s\n"
     "TRIO\tTRIO\n"
+    "DIARIO\tDIARY\n"
+    "ENTREGADO\tDELIVERED\n"
+    "LO QUE TE PIDIERON\tWHAT YOU WERE ASKED FOR\n"
+    "LO TENES: VOLVE\tYOU HAVE IT: GO BACK\n"
+    "NADIE TE PIDIO NADA\tNOBODY ASKED YOU FOR ANYTHING\n"
+    "PENDIENTE\tPENDING\n"
+    "TRAE: %s\tBRING: %s\n"
     ;
 
 static const char blob_en_demo_cjump_lang[] =
@@ -3366,6 +3373,13 @@ static const char blob_de_demo_chatarra_lang[] =
     "JUEGO PURO\tVOLLER SATZ\n"
     "TIPO %s\tTYP %s\n"
     "TRIO\tTRIO\n"
+    "DIARIO\tTAGEBUCH\n"
+    "ENTREGADO\tABGEGEBEN\n"
+    "LO QUE TE PIDIERON\tWORUM MAN DICH BAT\n"
+    "LO TENES: VOLVE\tDU HAST ES: GEH ZURUECK\n"
+    "NADIE TE PIDIO NADA\tNIEMAND HAT DICH UM ETWAS GEBETEN\n"
+    "PENDIENTE\tOFFEN\n"
+    "TRAE: %s\tBRING: %s\n"
     ;
 
 static const char blob_de_demo_cjump_lang[] =

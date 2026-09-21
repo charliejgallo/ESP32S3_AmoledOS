@@ -262,6 +262,7 @@ void ch_part_draw(ch_buf_t *b, int cat, int var, int cx, int cy, int esc,
 
 /* The little figure on the map: 12x14, with the head and legs you are wearing.
  * It is not the combat robot shrunk, it is a separate drawing. */
+#define QUIETO_ESPERA 150       /* cinco segundos a 30 cuadros        */
 #define MINI_W  18                     /* v2: 12 x 16 on the 8 px grid */
 #define MINI_H  24
 void ch_animal_draw(ch_buf_t *b, int x, int y, int cual, int dir, int cuadro);
@@ -607,6 +608,7 @@ enum {
     MODO_REGISTRO,
     MODO_MAPAMUNDI,
     MODO_AYUDA,
+    MODO_DIARIO,        /* los encargos abiertos y donde                   */
     MODO_FINAL,
     MODO_COMBATE,
     MODO_TITULO,
@@ -767,6 +769,10 @@ typedef struct {
     uint8_t    ruta[RUTA_MAX];  /* pending directions                        */
     uint8_t    nruta, iruta;
     uint8_t    destino_ent;     /* entity being walked to, 0xFF if none      */
+    /* Cuadros parado. Pasados unos segundos el robot se pone a mirar
+     * alrededor: un personaje inmovil en un pueblo con gato, pajaro y agua
+     * que corre es lo unico muerto de la pantalla. */
+    uint16_t   quieto;
 
     /* mobile entities of the room (the enemies that patrol) */
     struct {
@@ -899,7 +905,7 @@ enum {
      * pictures is a list you read twice before finding the oil */
     IC_ACEITE, IC_BATERIA, IC_SOLDADOR, IC_CHIP, IC_IMAN, IC_LLAVE,
     IC_PASE, IC_TORNILLOS, IC_ANCLA, IC_HERRAMIENTA, IC_BARRIL,
-    IC_COMBATE, IC_TRUEQUE, IC_PIEZA, IC_COLGAR,
+    IC_COMBATE, IC_TRUEQUE, IC_PIEZA, IC_COLGAR, IC_DIARIO,
     NICONOS
 };
 
