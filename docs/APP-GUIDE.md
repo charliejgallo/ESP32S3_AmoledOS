@@ -997,7 +997,7 @@ object per element.
 
 ## 16. Two watches
 
-Six apps talk to the other watch today, and between them they cover every
+Seven apps talk to the other watch today, and between them they cover every
 shape a two-player app takes. The HAL contract is short (APP-API.md, "Two
 watches"); what follows is what each app had to learn.
 
@@ -1077,6 +1077,26 @@ the HOST go first?" and each side turns that into its own answer. The same care
 applies to WHICH generator is read: only the rolls that decide something come
 out of the seeded one, and the prizes — which the winner works out alone, while
 the loser works out something else — must not touch it.
+
+**A lockstep game with a clock is the host's clock.** Neon Snakes moves
+eight times a second, so the host does not wait for turns: on every step it
+decides where both players go (its own input, and the TURN frames the guest
+sent on the reliable channel) and sends that STEP before applying it. The
+guest applies STEPs as they arrive and nothing else, and each carries the
+host's hash of the board so a divergence is logged the step it happens. Do
+not give the guest an inbox of its own: one of 16 dropped a step when the
+guest fell behind, and the guest waited for that step for ever. Without it the
+link's receive ring fills, stops acknowledging, and a host that refuses to
+step with more than eight frames unacknowledged waits for the guest.
+
+**The reliable channel can overtake the fast one.** Neon Snakes' host
+answered the guest's hello with a hello (fast) and a START (reliable), and on
+two boards the START arrived first: the guest started the match without the
+host's MAC or nonce, and the late hello looked like the host re-entering the
+app. Two simulators never showed it. Nothing that travels fast may be a
+precondition of something that travels reliably: take the partner's MAC from
+`aos_hal_link_partner()` and put what the receiver needs inside the reliable
+frame itself.
 
 **A hello carries a nonce.** Truco's hello has a number chosen per run of
 the app: a hello with a new nonce from the same partner means they

@@ -2,10 +2,10 @@
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
 368x448 AMOLED you can hold in your hand. Seven watchfaces, twenty-one
-built-in apps, thirty more loaded from the microSD as shared objects — one of
-them a Lua interpreter, so a text file on the card is an app too — a web
+built-in apps, thirty-one more loaded from the microSD as shared objects — one
+of them a Lua interpreter, so a text file on the card is an app too — a web
 portal, iPhone notifications over BLE, a link between two watches over ESP-NOW
-with five apps on it, and a desktop simulator that runs the same UI code so
+with seven apps on it, and a desktop simulator that runs the same UI code so
 you can build the whole thing without the board.
 
 <p align="center">
@@ -131,7 +131,7 @@ Twenty-one ship inside the binary. They are the ones the watch cannot be without
 
 ### Loaded from the microSD
 
-Thirty more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
+Thirty-one more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
 `.so` files at startup. The same source builds into the simulator, so they are
 designed on a laptop and copied to the card without changing a line — and a new
 one needs no firmware rebuild. That includes its **launcher icon**: an app
@@ -145,7 +145,7 @@ app meant a reflash for that alone. See [docs/ICONS.md](docs/ICONS.md).
 | <img src="docs/img/app-chatarra-map.png" width="200"><br>**Chatarra** — a turn-based robot RPG. Eight zones, 61 rooms, 64 parts drawn from descriptors rather than sprites. A team of three, a phone booth to fight another watch, a fair at the docks, weather and a day that turns to night. | <img src="docs/img/app-chatarra-battle.png" width="200"><br>Its combat: six elemental types, an effectiveness table, the rival's parts as far as your register knows them, and a robot you built from parts torn off others. | <img src="docs/img/app-cjump.png" width="200"><br>**Claude Jump** — a vertical platformer with five zones, coins and sixteen costumes. |
 | <img src="docs/img/app-topos.png" width="200"><br>**Topos** — whack-a-mole in three modes. A mole in a hard hat takes two taps, a golden one is worth a lot, and a bomb must not be touched. | <img src="docs/img/app-topos-frenzy.png" width="200"><br>Frenzy: several at once and combos up to ×5. The lawn never moves, so only what comes out of the holes is redrawn — about a tenth of the screen per frame. | <img src="docs/img/app-topos-survival.png" width="200"><br>Survival: three hearts and a level every eight moles. Every state has its own sprite — peeking, glancing about, taunting, dizzy, the hat flying off. |
 | <img src="docs/img/app-video-list.png" width="200"><br>**Video** — plays MJPEG AVIs from the card at the screen's size, with sound, at 15 fps. `tools/video_convert.sh` makes the pair of files from anything ffmpeg reads. | <img src="docs/img/app-video.png" width="200"><br>The sound is the clock: the frames follow the player's position and a late one is skipped, never the other way round. Reading and decoding run in a background task on the second core, the first app to have one, and the frame goes straight to the panel past LVGL's render. The numbers are in [docs/VIDEO.md](docs/VIDEO.md). | <img src="docs/img/app-pong.png" width="200"><br>**Pong** — across two watches: the ball leaves the top of one screen and comes down the other's. The host simulates at 30 Hz over the link's fast channel; 30 states a second each way, measured, with an iPhone connected. |
-| <img src="docs/img/app-radar.png" width="200"><br>**Radar** — where the other watch is. Pings ten times a second carry the signal strength each side sees, and a path-loss model calibrated at one metre puts the partner on the rings; underneath, FTM time of flight (IEEE 802.11mc): one watch answers from its softAP, the other measures 16 frames every 1.5 s and both show the distance in centimetres. | <img src="docs/img/app-walkie.png" width="200"><br>**Walkie** — push to talk between two watches. Hold the button and 29 ms frames of IMA ADPCM go out on the fast channel, 34 a second; let go and the speaker takes the codec back and plays what arrives through the HAL's streaming speaker. Half duplex because the ES8311 is one codec for both directions. | |
+| <img src="docs/img/app-radar.png" width="200"><br>**Radar** — where the other watch is. Pings ten times a second carry the signal strength each side sees, and a path-loss model calibrated at one metre puts the partner on the rings; underneath, FTM time of flight (IEEE 802.11mc): one watch answers from its softAP, the other measures 16 frames every 1.5 s and both show the distance in centimetres. | <img src="docs/img/app-walkie.png" width="200"><br>**Walkie** — push to talk between two watches. Hold the button and 29 ms frames of IMA ADPCM go out on the fast channel, 34 a second; let go and the speaker takes the codec back and plays what arrives through the HAL's streaming speaker. Half duplex because the ES8311 is one codec for both directions. | <img src="docs/img/app-neon-combat.png" width="200"><br>**Neon Snakes** — neon snakes eating neon fruit on a screen that is black everywhere else, no score. Normal is the classic; Battle pulls the camera back to four snakes, you against three bots or against the paired watch and two bots. Every sprite is drawn by code from distance fields, and only the cells that changed are repainted: 28 fps on the board. |
 | <img src="docs/img/app-burbujas.png" width="200"><br>**Burbujas** — a bubble shooter in three modes: endless, generated levels where the ceiling comes down, and two minutes against the clock. | <img src="docs/img/app-burbujas-guide.png" width="200"><br>You aim by dragging: the dotted line is the shot itself, run ahead of time through the same stepping function, so it cannot promise a bounce the bubble will not make. The dashed circle is where it would stick. | <img src="docs/img/app-burbujas-timed.png" width="200"><br>Time attack: two minutes, and the rows arrive by the clock rather than by your misses. The still board is the background rather than a sprite per bubble, so sixty bubbles hanging there cost nothing per frame: 9-18 % of the field is redrawn, and the watch holds 29 fps. |
 | <img src="docs/img/app-blackjack-play.png" width="200"><br>**Blackjack** — against the house on a green table: six decks, the dealer stands on 17, blackjack pays 3 to 2, with insurance, doubling and a split. The **Hint** switch rings in gold the play basic strategy would make — here, standing on two queens. | <img src="docs/img/app-blackjack-split.png" width="200"><br>A split, each hand settled on its own. Every card is its own ARGB8888 canvas drawn once and then moved as an object, so only the area it crosses is repainted; the hole card turns over by squeezing its horizontal scale. The rules engine plays a million hands on the Mac and checks every payout: 0.46 % house edge with basic strategy, the textbook figure. | <img src="docs/img/app-blackjack-bj.png" width="200"><br>The art is plain C with no bitmaps: the suits are implicit curves (the heart is the classic sextic), the indices a stroke font, and the jack, queen and king pixel art mirrored top to bottom like a real deck. The curved words on the felt are real fonts, so they are translated. |
 | <img src="docs/img/app-gemas.png" width="200"><br>**Gemas** — match-three. The jewels are traced in code as convex polygons with facets, not stored as bitmaps. | <img src="docs/img/app-2043.png" width="200"><br>**2043** — a vertical shooter, an homage to Capcom's 1943, with a different boss per planet. | <img src="docs/img/app-arkanos.png" width="200"><br>**Arkanos** — brick breaking, twelve walls, and the app that introduced dirty-rectangle drawing. |
@@ -264,6 +264,24 @@ resolves the turn.</em></p>
 <p align="center"><em>And back in the booth afterwards: 17/40 against 0/36, and
 both say good fight in their own language.</em></p>
 
+The seventh is **Neon Snakes** (v0.4.8): Battle → Multiplayer puts the two
+watches in the same arena with two bots. Lockstep again, but with a clock: the
+host decides where both snakes turn on every step and sends that decision on
+the reliable channel before applying it, eight times a second; the guest
+applies exactly what arrives, and checks a hash of the board after each step.
+A minute on two boards: 470 steps, none resent, no divergence. It also found
+the link's newest trap, which two simulators never showed: a frame on the
+reliable channel can overtake one sent earlier on the fast channel, so
+nothing that travels fast may be a precondition for something that travels
+reliably.
+
+<p align="center">
+  <img src="docs/img/photo-neon-link.jpg" width="420" alt="Neon Snakes on two watches: the same arena, each seen from its own side">
+</p>
+<p align="center"><em>The same Battle on both watches, one turned towards
+each player. The ring on the lower screen marks that watch's own snake for a
+couple of seconds after it comes back.</em></p>
+
 The plan, and everything measured along the way — 6000 frames with nothing
 lost on the air, 3-5 ms round trip, 60 KB/s, what Bluetooth costs, what a
 watch that leaves its network to sit on a channel costs, 100 KB over the
@@ -290,7 +308,7 @@ with no WiFi. Everything measured is in [docs/USB.md](docs/USB.md).
 ## Flash it without building
 
 The [latest release](https://github.com/charliejgallo/ESP32S3_AmoledOS/releases/latest)
-carries the firmware and the thirty dynamic apps already built, for the
+carries the firmware and the thirty-one dynamic apps already built, for the
 Waveshare ESP32-S3-Touch-AMOLED-1.8.
 
 ```bash
@@ -357,7 +375,7 @@ components/
   aos_dynapp/         .so loader and symbol table
   aos_ble/            NimBLE: ANCS, AMS, pairing
   aos_web/            the web portal, embedded in the binary
-apps/                 30 dynamic apps
+apps/                 31 dynamic apps
 tools/                generators, test benches, board utilities
 ```
 
@@ -425,7 +443,8 @@ microSD, the web portal, TLS, over-the-air updates and the USB port in its
 device modes (keyboard, mouse, gamepad, MIDI, network, disk) have all been
 exercised on the board — most of the measurements quoted throughout the source
 were taken there. The link between two watches has been played with on two
-boards: Pong, Truco, a drawing sent, the radar and the walkie through a door.
+boards: Pong, Truco, a drawing sent, the radar, the walkie through a door, a
+fight in Chatarra's phone booth and a match of Neon Snakes.
 USB host mode (a pendrive on the watch) works but is parked: the board cannot
 power a peripheral ([USB.md](docs/USB.md)).
 

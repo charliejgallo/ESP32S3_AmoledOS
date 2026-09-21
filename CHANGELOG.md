@@ -3,6 +3,30 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.4.8 — 2026-09-21
+
+**Neon Snakes**, a new dynamic app (`neon.so`, `demo.neon`): neon snakes eat
+neon fruit on a screen that is black everywhere else. No score, no HUD.
+
+- **Normal**: one snake, one fruit, 21x24 cells of 16 px; faster as it grows.
+- **Battle**: 34x40 cells of 10 px (the camera further away) and four snakes.
+  One player is you against three bots; **multiplayer** is you and the watch
+  you are paired with in Link, plus two bots. A snake that dies flashes, leaves
+  every other segment as sparks of its colour, and comes back.
+- Seven fruits and every part of four snakes (bends, tails, heads with eyes
+  and tongue, the flash) are drawn by code from distance fields at the cell
+  size of each mode; glows are baked into the sprites and combined by the
+  brighter channel, and only the 3x3 blocks around what changed are
+  repainted. 28 fps on the board.
+- Steering by touch (swipe, or tap beside the head) or by tilting the watch,
+  kept in preferences. The icon travels inside the `.so`.
+- Two watches in lockstep: the host decides both turns on every step and
+  sends it on the reliable channel; the guest checks a hash of the board after
+  each one. Measured on two boards: 470 steps, 0 resent, no divergence.
+
+Firmware: only the embedded language pack changed (the app's strings in
+English and German). `neon.so` loads on v0.4.0 or newer (the link API).
+
 ## v0.4.7 — 2026-09-21
 
 **Chatarra**: the fair's prize no longer disappears into a full bag. Same save
