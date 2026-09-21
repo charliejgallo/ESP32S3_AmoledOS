@@ -1329,10 +1329,6 @@ static const char blob_en_demo_chatarra_lang[] =
     "TOR\tTOR\n"
     "BRA\tARM\n"
     "PIE\tLEG\n"
-    "TOCA PARA MONTAR\tTAP TO FIT\n"
-    "LA MOCHILA ESTA VACIA.\tYOUR BAG IS EMPTY.\n"
-    "GANA COMBATES PARA\tWIN FIGHTS TO RIP\n"
-    "ARRANCAR PIEZAS.\tPARTS OFF RIVALS.\n"
     "TOCA UNO PARA USARLO\tTAP ONE TO USE IT\n"
     "NO TENES NADA.\tYOU HAVE NOTHING.\n"
     "+%d DE VIDA\t+%d HP\n"
@@ -1589,6 +1585,12 @@ static const char blob_en_demo_chatarra_lang[] =
     "VIDA\tHP\n"
     "YA ESTAS AHI\tYOU ARE ALREADY THERE\n"
     "TOCA 2X\tTAP 2X\n"
+    "AHORA:\tNOW:\n"
+    "NO TENES PIEZAS DE ESTE TIPO\tNO PARTS OF THIS KIND\n"
+    "TOCA 2 VECES\tTAP TWICE\n"
+    "TOCA UNA PIEZA\tTAP A PART\n"
+    "GANA COMBATES\tWIN FIGHTS\n"
+    "PARA ARRANCAR PIEZAS\tTO TEAR PARTS OFF\n"
     ;
 
 static const char blob_en_demo_cjump_lang[] =
@@ -3092,10 +3094,6 @@ static const char blob_de_demo_chatarra_lang[] =
     "TOR\tRUM\n"
     "BRA\tARM\n"
     "PIE\tBEI\n"
-    "TOCA PARA MONTAR\tZUM EINBAUEN TIPPEN\n"
-    "LA MOCHILA ESTA VACIA.\tDER RUCKSACK IST LEER.\n"
-    "GANA COMBATES PARA\tGEWINNE KAEMPFE UM\n"
-    "ARRANCAR PIEZAS.\tTEILE ZU REISSEN.\n"
     "TOCA UNO PARA USARLO\tZUM BENUTZEN TIPPEN\n"
     "NO TENES NADA.\tDU HAST NICHTS.\n"
     "+%d DE VIDA\t+%d LP\n"
@@ -3352,6 +3350,12 @@ static const char blob_de_demo_chatarra_lang[] =
     "VIDA\tLP\n"
     "YA ESTAS AHI\tDU BIST SCHON DA\n"
     "TOCA 2X\t2X TIPPEN\n"
+    "AHORA:\tJETZT:\n"
+    "NO TENES PIEZAS DE ESTE TIPO\tKEINE TEILE DIESER ART\n"
+    "TOCA 2 VECES\tZWEIMAL TIPPEN\n"
+    "TOCA UNA PIEZA\tEIN TEIL ANTIPPEN\n"
+    "GANA COMBATES\tKAEMPFE GEWINNEN\n"
+    "PARA ARRANCAR PIEZAS\tUM TEILE ZU HOLEN\n"
     ;
 
 static const char blob_de_demo_cjump_lang[] =

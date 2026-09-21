@@ -358,6 +358,33 @@ static void RB(const pen_t *p, int x, int y, int w, int h, uint16_t c)
     }
 }
 
+/* MEDIA UNIDAD: donde entra el detalle que la grilla de 26x40 no permite.
+ *
+ * El robot esta dibujado en unidades de esa grilla y se escala entero, asi que
+ * agrandarlo agranda el bloque y no agrega nada: a escala 3 un remache seguia
+ * siendo imposible porque la unidad minima eran tres pixeles. Estas dos
+ * funciones toman las coordenadas en MEDIAS unidades, asi que a escala 1 se
+ * redondean a cero -y no se dibujan- y desde escala 2 son detalle de verdad.
+ *
+ * O sea: el mismo codigo dibuja el robot chico del mapa y el grande de la
+ * ficha, y el grande tiene el doble de resolucion sin una tabla nueva ni un
+ * segundo dibujante que mantener. */
+static void RH(const pen_t *p, int x2, int y2, int w2, int h2, uint16_t c)
+{
+    int e = p->e;
+    int pw = w2 * e / 2, ph = h2 * e / 2;
+
+    if (pw < 1 || ph < 1) return;               /* no hay lugar a esta escala */
+    ch_rect(p->b, p->ox + x2 * e / 2, p->oy + y2 * e / 2, pw, ph, c);
+}
+
+/* Un remache: dos pixeles a escala 2, con la luz arriba. */
+static void REM(const pen_t *p, int x2, int y2, uint16_t c, uint16_t luz)
+{
+    RH(p, x2, y2, 2, 2, c);
+    RH(p, x2, y2, 1, 1, luz);
+}
+
 static void DSC(const pen_t *p, int cx, int cy, int r, uint16_t c)
 {
     /* The disc is drawn at real scale so it does not come out blocky. */
@@ -507,6 +534,19 @@ static void draw_cabeza(const pen_t *p, int var, bool izq)
     default:
         break;
     }
+
+    /* --- el detalle, que solo entra de escala 2 para arriba ------------- */
+    RH(p, x * 2 + 2, y * 2 + 1, (w - 2) * 2, 1, p->br);        /* filo de luz */
+    RH(p, x * 2 + 2, (y + h) * 2 - 3, (w - 2) * 2, 1, p->os);  /* sombra baja */
+    REM(p, x * 2 + 1, y * 2 + 2, p->os, p->cl);                /* remaches    */
+    REM(p, (x + w) * 2 - 3, y * 2 + 2, p->os, p->cl);
+    REM(p, x * 2 + 1, (y + h) * 2 - 4, p->os, p->cl);
+    REM(p, (x + w) * 2 - 3, (y + h) * 2 - 4, p->os, p->cl);
+    if (forma != 6) {                             /* la junta de la quijada */
+        RH(p, x * 2 + 3, (y + h) * 2 - 6, (w - 3) * 2, 1, p->os);
+    }
+    RH(p, BOX_CX * 2 - 3, (y + h) * 2 - 5, 6, 2, p->kk);        /* la boca    */
+    RH(p, BOX_CX * 2 - 2, (y + h) * 2 - 5, 4, 1, p->md);
 }
 
 /* --------------------------------------------------------------------------
@@ -613,6 +653,22 @@ static void draw_torso(const pen_t *p, int var, bool izq)
     default:
         break;
     }
+
+    /* --- el detalle: chapa, cintura, rejillas y remaches ---------------- */
+    RH(p, x * 2 + 2, y * 2 + 1, (w - 2) * 2, 1, p->br);
+    RH(p, x * 2 + 2, (y + h) * 2 - 3, (w - 2) * 2, 1, p->os);
+    RH(p, x * 2 + 3, (y + h) * 2 - 9, (w - 3) * 2, 1, p->os);   /* cintura   */
+    RH(p, x * 2 + 3, (y + h) * 2 - 8, (w - 3) * 2, 1, p->md);
+    for (int i = 0; i < 3; i++) {                               /* rejillas  */
+        RH(p, x * 2 + 3, (y + h) * 2 - 6 + i, 5, 1, (i & 1) ? p->os : p->md);
+        RH(p, (x + w) * 2 - 8, (y + h) * 2 - 6 + i, 5, 1,
+           (i & 1) ? p->os : p->md);
+    }
+    REM(p, x * 2 + 1, y * 2 + 3, p->os, p->cl);
+    REM(p, (x + w) * 2 - 3, y * 2 + 3, p->os, p->cl);
+    REM(p, x * 2 + 1, (y + h) * 2 - 5, p->os, p->cl);
+    REM(p, (x + w) * 2 - 3, (y + h) * 2 - 5, p->os, p->cl);
+    RH(p, BOX_CX * 2 - 4, y * 2 - 1, 8, 1, p->br);              /* el cuello */
 }
 
 /* --------------------------------------------------------------------------
@@ -681,6 +737,14 @@ static void draw_un_brazo(const pen_t *p, int var, int lado, int alza)
         RB(p, x, y + 11, gr, 4, p->cl);
         break;
     }
+
+    /* --- el detalle: hombro, codo y nudillos ---------------------------- */
+    RH(p, x * 2, (y + 3) * 2, gr * 2, 1, p->br);
+    RH(p, x * 2, (y + 8) * 2, gr * 2, 1, p->os);                /* el codo   */
+    RH(p, x * 2, (y + 8) * 2 + 1, gr * 2, 1, p->md);
+    RH(p, x * 2 + 1, (y + 12) * 2, 1, 4, p->os);                /* la mano   */
+    RH(p, x * 2 + gr * 2 - 2, (y + 12) * 2, 1, 4, p->os);
+    REM(p, x * 2 + 1, (y + 4) * 2, p->os, p->cl);
 }
 
 /* --------------------------------------------------------------------------
@@ -755,6 +819,18 @@ static void draw_piernas(const pen_t *p, int var, int paso)
         break;
     }
     }
+
+    /* --- el detalle: rodillas, tobillos y la suela ---------------------- */
+    for (int l = 0; l < 2; l++) {
+        int lx = l ? BOX_CX + 2 : BOX_CX - 6;
+        RH(p, lx * 2, (y + 1) * 2 + 1, 8, 1, p->br);
+        RH(p, lx * 2, (y + h / 2) * 2, 8, 1, p->os);            /* rodilla   */
+        RH(p, lx * 2 + 1, (y + h / 2) * 2 + 1, 6, 1, p->md);
+        RH(p, lx * 2, (y + h) * 2 - 8, 8, 1, p->os);            /* tobillo   */
+        REM(p, lx * 2 + 2, (y + h / 2) * 2 - 2, p->os, p->cl);
+    }
+    RH(p, (BOX_CX - 7) * 2, (y + h) * 2 - 1, 12, 1, p->kk);     /* la suela  */
+    RH(p, (BOX_CX + 1) * 2, (y + h) * 2 - 1, 12, 1, p->kk);
 }
 
 /* --------------------------------------------------------------------------

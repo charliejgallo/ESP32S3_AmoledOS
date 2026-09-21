@@ -777,119 +777,177 @@ void ch_ui_menu(ch_t *g)
 static const char *const CATS[P_CATS] = { N_("CAB"), N_("TOR"),
                                          N_("BRA"), N_("PIE") };
 
+/* El indice filtrado que comparten el taller, la mochila y la tienda: dice
+ * QUE se muestra en cada fila, no lo que se muestra. */
+static uint8_t s_lista[ITEMS];
+static int     s_nlista;
+
+/* --------------------------------------------------------------------------
+ * EL TALLER, EN DOS PARTES
+ *
+ * Era una lista de la mochila entera y el robot no se veia: montabas a ciegas
+ * y confirmabas mirando cuatro nombres en un encabezado. Ahora hay una vista
+ * general -el robot lo mas grande que entra, y a la derecha las cuatro
+ * categorias con lo que lleva puesto- y, al tocar una, la lista de lo que
+ * tenes en la mochila DE ESA CATEGORIA, a pantalla completa. Elegis, se monta
+ * y volves a ver el robot cambiado, que es la unica razon por la que uno abre
+ * esta pantalla.
+ *
+ * sel2: 0 = la vista general, 1+cat = la lista de esa categoria.
+ * sel:  0 = nada elegido, 1+fila = la fila tocada una vez (la segunda monta).
+ * -------------------------------------------------------------------------- */
+#define TA_CY     34                    /* el contenido: 34..166             */
+#define TA_RX      6                    /* el robot, a escala 3              */
+#define TA_RY     38
+#define TA_BX     90                    /* los cuatro botones de categoria   */
+#define TA_BW    (CH_W - TA_BX - 6)
+#define TA_BH     29
+
+static int ta_cat_en(int bx, int by)
+{
+    if (bx < TA_BX || bx >= TA_BX + TA_BW) return -1;
+    for (int c = 0; c < P_CATS; c++) {
+        int y = TA_CY + 4 + c * TA_BH;
+        if (by >= y && by < y + TA_BH - 3) return c;
+    }
+    return -1;
+}
+
+/* Las piezas de la mochila de una categoria, en s_lista. */
+static void ta_juntar(ch_t *g, int cat)
+{
+    s_nlista = 0;
+    for (int i = 0; i < MOCHILA; i++) {
+        if (g->s.piezas[i] == 0xFF) continue;
+        if (PIEZA_CAT(g->s.piezas[i]) != cat) continue;
+        s_lista[s_nlista++] = (uint8_t)i;
+    }
+}
+
 static void taller_fondo(ch_t *g)
 {
     ch_buf_t *b = &g->bg;
-    char t[30], d[16];
+    char t[40];
 
-    lista_geom(60, 36, 3);
-    ch_ui_titulo(g, _("TALLER"), _("TOCA PARA MONTAR"));
+    if (g->sel2 == 0) {
+        /* --- la vista general ------------------------------------------- */
+        int sueltas = 0;
 
-    /* At the top, either what you are wearing or -if you touched a part- WHAT
-     * THE WHOLE ROBOT WOULD LOOK LIKE with it. It is the only question that
-     * matters in front of the bag, and until now you had to fit it to answer
-     * it. */
-    if (g->sel2) {
-        ch_robot_t prueba = g->s.yo;
-        uint8_t id = g->s.piezas[(g->sel2 - 1) % MOCHILA];
-        char t2[72];   /* el peor caso que asume gcc: ocho int16 con signo */
+        ch_ui_titulo(g, _("TALLER"), _("TOCA UNA PIEZA"));
+        ch_robot_draw(b, TA_RX + 39, TA_RY, &g->s.yo, 3, false, 0, 0);
 
-        /* DOS CADENAS ALINEADAS A DERECHA EN LA MISMA LINEA SE PISAN.
-         *
-         * Este encabezado tenia el nombre a la izquierda y "AHORA PV.." a la
-         * derecha en y=42, y los numeros nuevos a la izquierda y "TOCA OTRA
-         * VEZ PARA MONTAR" a la derecha en y=52. En castellano entraba por
-         * poco; en ingles, en la placa, quedaba un amasijo. Ahora es una
-         * comparacion en UNA linea -viejo>nuevo- que mide 23 caracteres
-         * siempre, y la pista es corta. */
-        prueba.pieza[PIEZA_CAT(id)] = PIEZA_VAR(id);
-        ch_robot_stats(&prueba);
-        ch_text(b, 6, 42, _(ch_partes[id].nombre), ch_rgb(0xFFE45E));
-        ch_text(b, CH_W - 6 - ch_text_w(_("TOCA 2X")), 42, _("TOCA 2X"),
-                ch_rgb(0x8A93AB));
-        snprintf(t2, sizeof(t2), "PV%d>%d A%d>%d D%d>%d V%d>%d",
-                 g->s.yo.vida_max, prueba.vida_max,
-                 g->s.yo.atk, prueba.atk,
-                 g->s.yo.def, prueba.def,
-                 g->s.yo.vel, prueba.vel);
-        ch_text(b, 6, 52, t2, ch_rgb(0xD5DCEB));
-    } else {
         for (int c = 0; c < P_CATS; c++) {
             const ch_part_t *p = &ch_partes[PIEZA_ID(c, g->s.yo.pieza[c])];
-            int x = 6 + (c & 1) * 90;
-            int y = 42 + (c >> 1) * 10;
-            ch_text(b, x, y, _(CATS[c]), ch_rgb(0x606B85));
-            ch_text(b, x + 20, y, _(p->nombre), ch_rgb(0xD5DCEB));
+            int y = TA_CY + 4 + c * TA_BH;
+            int n = 0;
+
+            for (int i = 0; i < MOCHILA; i++) {
+                if (g->s.piezas[i] != 0xFF &&
+                    PIEZA_CAT(g->s.piezas[i]) == c) n++;
+            }
+            ch_round(b, TA_BX, y, TA_BW, TA_BH - 3, 3, ch_rgb(0x1A2133));
+            ch_frame(b, TA_BX, y, TA_BW, TA_BH - 3,
+                     ch_rgb(n ? 0x8A93AB : 0x3D465F));
+            ch_text(b, TA_BX + 5, y + 4, _(CATS[c]), ch_rgb(0x8A93AB));
+            if (n) {
+                snprintf(t, sizeof(t), "+%d", n);
+                ch_text(b, TA_BX + TA_BW - 5 - ch_text_w(t), y + 4, t,
+                        ch_rgb(0x4ADE80));
+            }
+            snprintf(t, sizeof(t), "%.14s", _(p->nombre));
+            ch_text(b, TA_BX + 5, y + 14, t, ch_rgb(0xFFFFFF));
+            sueltas += n;
         }
-    }
-
-    int n = 0;
-    for (int i = 0; i < MOCHILA; i++) if (g->s.piezas[i] != 0xFF) n++;
-
-    if (!n) {
-        ch_text_center(b, CH_W / 2, 100, _("LA MOCHILA ESTA VACIA."),
-                       ch_rgb(0x8A93AB), ch_rgb(0x05060C));
-        ch_text_center(b, CH_W / 2, 112, _("GANA COMBATES PARA"),
-                       ch_rgb(0x606B85), ch_rgb(0x05060C));
-        ch_text_center(b, CH_W / 2, 122, _("ARRANCAR PIEZAS."),
-                       ch_rgb(0x606B85), ch_rgb(0x05060C));
+        /* Y si no hay NADA suelto, decirlo: cuatro botones que se abren a una
+         * lista vacia son cuatro caminos a ninguna parte. */
+        if (!sueltas) {
+            /* En dos lineas: de una sola son 34 caracteres, o sea 204 px de
+             * ancho en una pantalla de 184. */
+            ch_text_center(b, CH_W / 2, 148, _("GANA COMBATES"),
+                           ch_rgb(0x606B85), ch_rgb(0x05060C));
+            ch_text_center(b, CH_W / 2, 158, _("PARA ARRANCAR PIEZAS"),
+                           ch_rgb(0x606B85), ch_rgb(0x05060C));
+        }
         return;
     }
 
-    flechas(g, g->scroll > 0, g->scroll + s_lfilas < MOCHILA);
+    /* --- la lista de una categoria ------------------------------------- */
+    {
+        int cat = (g->sel2 - 1) % P_CATS;
 
-    for (int i = 0; i < s_lfilas; i++) {
-        int k = g->scroll + i;
-        if (k >= MOCHILA) break;
-        uint8_t id = g->s.piezas[k];
-        int y = s_ly0 + i * s_lfh;
-        int h = s_lfh - 4;
-        if (id == 0xFF) {
-            ch_rect(&g->bg, LX, y, LW, h, ch_rgb(0x111420));
-            ch_frame(&g->bg, LX, y, LW, h, ch_rgb(0x232B41));
-            ch_text(&g->bg, LX + 8, y + h / 2 - 3, _("VACIO"), ch_rgb(0x3D465F));
-            continue;
+        ta_juntar(g, cat);
+        lista_geom(60, 36, 3);
+        snprintf(t, sizeof(t), "%s  %s", _("TALLER"), _(CATS[cat]));
+        ch_ui_titulo(g, t, _("TOCA 2 VECES"));
+
+        if (!s_nlista) {
+            ch_text_center(b, CH_W / 2, 100, _("NO TENES PIEZAS DE ESTE TIPO"),
+                           ch_rgb(0x8A93AB), ch_rgb(0x05060C));
+            return;
         }
-        const ch_part_t *p = &ch_partes[id];
-        int cat = PIEZA_CAT(id);
-        const ch_part_t *puesta = &ch_partes[PIEZA_ID(cat, g->s.yo.pieza[cat])];
+        flechas(g, g->scroll > 0, g->scroll + s_lfilas < s_nlista);
 
-        /* THE PART, DRAWN. A bag listed as "HED SIMPLE EYE" is a list of
-         * words: you cannot see which of your four heads is the square one
-         * without fitting it. The row now shows the piece itself, in your own
-         * colours, which is the same information the grid of the register
-         * gives and it costs one call. */
-        ch_rect(&g->bg, LX, y, LW, h, ch_rgb(0x1A2133));
-        ch_frame(&g->bg, LX, y, LW, h, ch_rgb(0x3D465F));
-        ch_rect(&g->bg, LX + 1, y + 1, LW - 2, 1, ch_rgb(0x2C3550));
-        ch_rect(&g->bg, LX + 3, y + 3, 30, h - 6, ch_rgb(0x0E111A));
-        ch_part_draw(&g->bg, cat, PIEZA_VAR(id), LX + 18, y + h - 6, 1,
-                     (int)g->s.yo.skin);
-        ch_text(&g->bg, LX + 38, y + 5, _(CATS[cat]), ch_rgb(0x8A93AB));
-        ch_text(&g->bg, LX + 38 + ch_text_w(_(CATS[cat])) + 5, y + 5,
-                _(p->nombre), ch_rgb(0xFFFFFF));
-        snprintf(t, sizeof(t), _("PV%d E%d"), p->vida, p->energia);
-        ch_text(&g->bg, LX + 38, y + 17, t, ch_rgb(0x606B85));
+        /* Lo que cambiaria, si ya tocaste una fila una vez. */
+        if (g->sel) {
+            ch_robot_t prueba = g->s.yo;
+            uint8_t id = g->s.piezas[s_lista[(g->sel - 1) % s_nlista]];
+            char t2[72];
 
-        /* THE DIFFERENCE, NOT THE BARE NUMBER.
-         *
-         * The row used to say "A24 D9 V6" and that does not answer the one
-         * question you have in front of the bag: whether it is better or worse
-         * than the one you are wearing. With the sign and the colour it is
-         * answered at a glance, and without opening another screen. */
-        {
-            static const char *const LET[3] = { "A", "D", "V" };
-            int dif[3] = { p->atk - puesta->atk,
-                           p->def - puesta->def,
-                           p->vel - puesta->vel };
-            int x = LX + LW - 5;
-            for (int k = 2; k >= 0; k--) {
-                snprintf(d, sizeof(d), "%s%+d", LET[k], dif[k]);
-                x -= ch_text_w(d) + 4;
-                ch_text(&g->bg, x, s_ly0 + i * s_lfh + 17, d,
-                        dif[k] > 0 ? ch_rgb(0x4ADE80)
-                                   : (dif[k] < 0 ? ch_rgb(0xFF4A3D)
-                                                 : ch_rgb(0x606B85)));
+            prueba.pieza[cat] = PIEZA_VAR(id);
+            ch_robot_stats(&prueba);
+            ch_text(b, 6, 42, _(ch_partes[id].nombre), ch_rgb(0xFFE45E));
+            ch_text(b, CH_W - 6 - ch_text_w(_("TOCA 2X")), 42, _("TOCA 2X"),
+                    ch_rgb(0x8A93AB));
+            snprintf(t2, sizeof(t2), "PV%d>%d A%d>%d D%d>%d V%d>%d",
+                     g->s.yo.vida_max, prueba.vida_max,
+                     g->s.yo.atk, prueba.atk, g->s.yo.def, prueba.def,
+                     g->s.yo.vel, prueba.vel);
+            ch_text(b, 6, 52, t2, ch_rgb(0xD5DCEB));
+        } else {
+            const ch_part_t *p = &ch_partes[PIEZA_ID(cat, g->s.yo.pieza[cat])];
+            snprintf(t, sizeof(t), "%s %s", _("AHORA:"), _(p->nombre));
+            ch_text(b, 6, 46, t, ch_rgb(0x8A93AB));
+        }
+
+        for (int i = 0; i < s_lfilas; i++) {
+            int k = g->scroll + i;
+            int y = s_ly0 + i * s_lfh, h = s_lfh - 4;
+            uint8_t id;
+            const ch_part_t *p, *puesta;
+
+            if (k >= s_nlista) break;
+            id = g->s.piezas[s_lista[k]];
+            p = &ch_partes[id];
+            puesta = &ch_partes[PIEZA_ID(cat, g->s.yo.pieza[cat])];
+
+            ch_rect(b, LX, y, LW, h,
+                    ch_rgb(g->sel == k + 1 ? 0x2A3350 : 0x1A2133));
+            ch_frame(b, LX, y, LW, h,
+                     ch_rgb(g->sel == k + 1 ? 0xFFE45E : 0x3D465F));
+            ch_rect(b, LX + 1, y + 1, LW - 2, 1, ch_rgb(0x2C3550));
+            ch_rect(b, LX + 3, y + 3, 30, h - 6, ch_rgb(0x0E111A));
+            ch_part_draw(b, cat, PIEZA_VAR(id), LX + 18, y + h / 2, 1,
+                         (int)g->s.yo.skin);
+            ch_text(b, LX + 38, y + 5, _(p->nombre), ch_rgb(0xFFFFFF));
+            snprintf(t, sizeof(t), _("PV%d E%d"), p->vida, p->energia);
+            ch_text(b, LX + 38, y + 17, t, ch_rgb(0x606B85));
+
+            /* LA DIFERENCIA, NO EL NUMERO PELADO. La fila decia "A24 D9 V6" y
+             * eso no contesta la unica pregunta que uno tiene delante de la
+             * mochila: si es mejor o peor que la que lleva puesta. */
+            {
+                static const char *const LET[3] = { "A", "D", "V" };
+                int dif[3] = { p->atk - puesta->atk, p->def - puesta->def,
+                               p->vel - puesta->vel };
+                int x = LX + LW - 5;
+                for (int q = 2; q >= 0; q--) {
+                    snprintf(t, sizeof(t), "%s%+d", LET[q], dif[q]);
+                    x -= ch_text_w(t) + 4;
+                    ch_text(b, x, y + 17, t,
+                            dif[q] > 0 ? ch_rgb(0x4ADE80)
+                                       : (dif[q] < 0 ? ch_rgb(0xFF4A3D)
+                                                     : ch_rgb(0x606B85)));
+                }
             }
         }
     }
@@ -897,51 +955,69 @@ static void taller_fondo(ch_t *g)
 
 static void taller_toque(ch_t *g, int bx, int by)
 {
-    int f = flecha_en(bx, by);
-    if (f) {
-        int s = (int)g->scroll + f;
-        if (s >= 0 && s + s_lfilas <= MOCHILA) { g->scroll = (uint8_t)s; g->rehacer_fondo = 1; }
-        return;
-    }
-    f = fila_en(bx, by);
-    if (f < 0) return;
-    int k = g->scroll + f;
-    if (k >= MOCHILA || g->s.piezas[k] == 0xFF) return;
-
-    /* First tap: show what it would look like. Second: fit it. Fitting
-     * straight away made it easy to get the wrong row and change the robot by
-     * accident. */
-    if (g->sel2 != (uint8_t)(k + 1)) {
-        g->sel2 = (uint8_t)(k + 1);
-        ch_sfx(900, 20);
+    if (g->sel2 == 0) {
+        int c = ta_cat_en(bx, by);
+        if (c < 0) return;
+        g->sel2 = (uint8_t)(c + 1);
+        g->sel = 0;
+        g->scroll = 0;
+        ch_sfx(1000, 25);
         g->rehacer_fondo = 1;
         return;
     }
-    g->sel2 = 0;
+    {
+        int cat = (g->sel2 - 1) % P_CATS;
+        int f = flecha_en(bx, by);
+        int k;
+        uint8_t id, antes;
 
-    uint8_t id = g->s.piezas[k];
-    int cat = PIEZA_CAT(id);
-    uint8_t antes = PIEZA_ID(cat, g->s.yo.pieza[cat]);
+        if (f) {
+            int nuevo = (int)g->scroll + f;
+            if (nuevo >= 0 && nuevo + s_lfilas <= s_nlista) {
+                g->scroll = (uint8_t)nuevo;
+                g->rehacer_fondo = 1;
+            }
+            return;
+        }
+        f = fila_en(bx, by);
+        if (f < 0) return;
+        k = g->scroll + f;
+        if (k >= s_nlista) return;
 
-    g->s.yo.pieza[cat] = PIEZA_VAR(id);
-    g->s.piezas[k] = antes;
-    ch_ver(&g->s, id);
-    ch_ver(&g->s, antes);
-    ch_robot_stats(&g->s.yo);
-    if (g->s.yo.vida > g->s.yo.vida_max) g->s.yo.vida = g->s.yo.vida_max;
+        /* Primer toque: mostrar en que cambiaria. Segundo: montarla. Montar
+         * de una hacia facil errarle a la fila y cambiar el robot sin
+         * querer. */
+        if (g->sel != (uint8_t)(k + 1)) {
+            g->sel = (uint8_t)(k + 1);
+            ch_sfx(900, 20);
+            g->rehacer_fondo = 1;
+            return;
+        }
+        id = g->s.piezas[s_lista[k]];
+        antes = PIEZA_ID(cat, g->s.yo.pieza[cat]);
+        g->s.yo.pieza[cat] = PIEZA_VAR(id);
+        g->s.piezas[s_lista[k]] = antes;
+        ch_ver(&g->s, id);
+        ch_ver(&g->s, antes);
+        ch_robot_stats(&g->s.yo);
+        if (g->s.yo.vida > g->s.yo.vida_max) g->s.yo.vida = g->s.yo.vida_max;
 
-    ch_sfx(1200, 40);
-    ch_ui_aviso(g, _(ch_partes[id].nombre));
-    g->rehacer_fondo = 1;
-    g->hud_sucio = 1;
+        ch_sfx(1200, 40);
+        ch_ui_aviso(g, _(ch_partes[id].nombre));
+        /* Y de vuelta al robot, que es lo que uno queria ver. */
+        g->sel2 = 0;
+        g->sel = 0;
+        g->scroll = 0;
+        g->rehacer_fondo = 1;
+        g->hud_sucio = 1;
+    }
 }
+
 
 /* --------------------------------------------------------------------------
  * Items
  * -------------------------------------------------------------------------- */
 
-static uint8_t s_lista[ITEMS];
-static int     s_nlista;
 
 static void objetos_fondo(ch_t *g)
 {
@@ -1461,7 +1537,13 @@ static void registro_fondo(ch_t *g)
         puesta = (g->s.yo.pieza[cat] == i);
 
         ch_rect(b, x + 1, y + 1, RG_CW - 3, RG_CH - 3, ch_rgb(0x0E111A));
-        ch_part_draw(b, cat, i, x + RG_CW / 2 - 1, y + RG_CH - 8, 2,
+        /* EL CENTRO DE LA CELDA, no su pie. ch_part_draw() ya coloca cada
+         * categoria para que quede centrada en el punto que se le da -la
+         * cabeza arriba, las piernas abajo, cada una con su propio salto-,
+         * asi que darle el pie de la celda corre las cuatro hacia abajo, y
+         * distinto segun la categoria. Por eso se notaba en cabezas, brazos
+         * y piernas y no en los torsos. */
+        ch_part_draw(b, cat, i, x + RG_CW / 2 - 1, y + RG_CH / 2, 2,
                      visto ? (int)g->s.yo.skin : -1);
         /* Two different frames and not one: GREEN the one you are wearing,
          * YELLOW the one you are looking at. With a single frame you cannot
@@ -1617,11 +1699,18 @@ static void ayuda_fondo(ch_t *g)
     ch_ui_titulo(g, _("AYUDA"), NULL);
     ch_text(&g->bg, CH_W - 8 - ch_text_w(t), 12, t, ch_rgb(0xFFE45E));
 
-    n = ch_wrap(_(AYUDA[pag]), 27, lin, 14);
-    for (int i = 0; i < n; i++) {
+    /* ONCE LINEAS Y LA PISTA EN 156, no catorce y la pista en 164.
+     *
+     * El mapa termina en 168 y el HUD manda de ahi para abajo: con catorce
+     * lineas desde y=42 el texto llegaba a 182 y la pista a 171, o sea que en
+     * la placa se leia "TAP TO CONTI". Misma cuenta que en registro y en
+     * equipo, tercera vez. */
+    n = ch_wrap(_(AYUDA[pag]), 27, lin, 11);
+    for (int i = 0; i < n && i < 11; i++) {
         ch_text(&g->bg, 8, 42 + i * 10, lin[i], ch_rgb(0xD5DCEB));
     }
-    ch_text_center(&g->bg, CH_W / 2, 164, _("TOCA PARA SEGUIR"),
+    ch_hline(&g->bg, 8, 152, CH_W - 16, ch_rgb(0x232B41));
+    ch_text_center(&g->bg, CH_W / 2, 157, _("TOCA PARA SEGUIR"),
                    ch_rgb(0x606B85), ch_rgb(0x05060C));
 }
 
@@ -1880,7 +1969,8 @@ void ch_ui_toque(ch_t *g, int bx, int by)
         switch (p[f].accion) {
         case AC_PAG1:    g->sel2 = 1; break;
         case AC_PAG2:    g->sel2 = 2; break;
-        case AC_TALLER:  g->modo = MODO_TALLER;  g->sel2 = 0; break;
+        case AC_TALLER:  g->modo = MODO_TALLER;  g->sel2 = 0;
+                         g->sel = 0; g->scroll = 0; break;
         case AC_OBJETOS: g->modo = MODO_OBJETOS; g->sel2 = 0; break;
         case AC_EQUIPO:  g->modo = MODO_FICHA;   g->sel2 = 0; break;
         case AC_REGISTRO:g->modo = MODO_REGISTRO;g->sel2 = 0; break;
@@ -1928,6 +2018,12 @@ bool ch_ui_atras(ch_t *g)
 {
     switch (g->modo) {
     case MODO_TALLER:
+        if (g->sel2) { g->sel2 = 0; g->sel = 0; g->scroll = 0;
+                       g->rehacer_fondo = 1; return true; }
+        g->sel = 0;
+        g->modo = MODO_MENU;
+        g->rehacer_fondo = 1;
+        return true;
     case MODO_OBJETOS:
     case MODO_FICHA:
     case MODO_REGISTRO:
