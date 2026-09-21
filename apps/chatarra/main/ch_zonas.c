@@ -490,46 +490,35 @@ static const ch_ent_t EN_SENDERO[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_DESGUACE1[ROWS] = {
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "XMMMMMMMMX:::XMMMMMMMMX",
-    "XMMxxxMMMMMMMMMMxxxMMMX",
-    "XMMxxxMMMMMMMMMMxxxMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMM***MMMM***MMMMMX",
-    "XMMMMMM***MMMM***MMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMxxxxxMMMMMMxxxxxMMMX",
-    "XMMxxxxxMMMMMMxxxxxMMMX",
-    "XMMxxxxxMMMMMMxxxxxMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMM:::::MMMMMMMMX",
-    "XMMMMMMMM:::::MMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMX:::XMMMMMMMMX",
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "XXXXXX:::XXXXXX",
+    "XMMMMM:::MMMMMX",
+    "XMMxxxMMMMMxxxX",
+    "XMMxxxMMMMMxxxX",
+    "XMMMMMMMMMMMMMX",
+    "XMM***MMM***MMX",
+    "XMM***MMM***MMX",
+    "XMMMMMMMMMMMMMX",
+    "XMMxxxMMMMMxxxX",
+    "XMMxxxMMMMMxxxX",
+    "XMMMMMMMMMMMMMX",
+    "XMMMMM:::MMMMMX",
+    "XMMMMM:::MMMMMX",
+    "XXXXXX:::XXXXXX",
 };
 
 static const ch_prop_t P_DESGUACE1[] = {
-    { 2,  4, PR_PILA },
-    { 18, 8, PR_PILA },
-    { 5, 17, PR_PILA },
-    { 17,16, PR_MAQUINA },
+    { 1,  4, PR_PILA },
+    { 12, 7, PR_PILA },
+    { 11,11, PR_MAQUINA },
 };
 
 static const ch_ent_t EN_DESGUACE1[] = {
-    { E_PUERTA, 10, 19, S_SENDERO,    7,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_SENDERO,    7,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_DESGUACE2, 11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_DESGUACE2, 11, 17, 3, NULL, NULL },
-    { E_COFRE,    3,  8, IT_ACEITE, 1, F_COFRE_DESGUACE1, 0, NULL, NULL },
-    { E_ENEMIGO, 16,  5, 1, F_ENEMIGO_3, 5, 0, NULL, NULL },
-    { E_ENEMIGO,  6, 13, 1, F_ENEMIGO_4, 5, 0, NULL, NULL },
-    { E_CARTEL,  12,  8, 0, 0, 0, 0,
+    { E_PUERTA,  6, 13, S_SENDERO,    7,  2, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_DESGUACE2,  7, 11, 3, NULL, NULL },
+    { E_COFRE,   2,  7, IT_ACEITE, 1, F_COFRE_DESGUACE1, 0, NULL, NULL },
+    { E_ENEMIGO,11,  3, 1, F_ENEMIGO_3, 5, 0, NULL, NULL },
+    { E_ENEMIGO, 4,  9, 1, F_ENEMIGO_4, 5, 0, NULL, NULL },
+    { E_CARTEL,  7,  6, 0, 0, 0, 0,
       N_("UN CARTEL TORCIDO:\n"
       "DESGUACE MUNICIPAL\n"
       "NO ALIMENTE A LOS\n"
@@ -541,45 +530,35 @@ static const ch_ent_t EN_DESGUACE1[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_DESGUACE2[ROWS] = {
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "XMMMMMMMMX:::XMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMXXXXXXMMMMMXXXXXXMMX",
-    "XMMXxxxxXMMMMMXxxxxXMMX",
-    "XMMXxxxxXMMMMMXxxxxXMMX",
-    "XMMXxxxxXMMMMMXxxxxXMMX",
-    "XMMXXXX:XMMMMMX:XXXXMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMM*****MMMMMMMMMX",
-    "XMMMMMMM*****MMMMMMMMMX",
-    "XMMMMMMM*****MMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMxxxMMMMMMMMMMMxxxMMX",
-    "XMMxxxMMMMMMMMMMMxxxMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMX:::XMMMMMMMMX",
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "XXXXXX:::XXXXXX",
+    "XMMMMM:::MMMMMX",
+    "XMMMMMMMMMMMMMX",
+    "XMxxxMMMMMxxxMX",
+    "XMxxxMMMMMxxxMX",
+    "::MMMMMMMMMMMMX",
+    "::MMMMMMMMMMMMX",
+    "XMMMMMMMMMMMMMX",
+    "XMM***MMM***MMX",
+    "XMM***MMM***MMX",
+    "XMMMMMMMMMMMMMX",
+    "XMMMMM:::MMMMMX",
+    "XMMMMM:::MMMMMX",
+    "XXXXXX:::XXXXXX",
 };
 
 static const ch_prop_t P_DESGUACE2[] = {
-    { 2,  9, PR_MAQUINA },
-    { 19,11, PR_PILA },
+    { 1,  9, PR_MAQUINA },
+    { 12, 9, PR_PILA },
 };
 
 static const ch_ent_t EN_DESGUACE2[] = {
-    { E_PUERTA, 10, 19, S_DESGUACE1, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_DESGUACE1, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_JEFE,      11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_JEFE,      11, 17, 3, NULL, NULL },
-    { E_PUERTA,  5,  5, S_DESGUACE3, 11, 16, 2, NULL, NULL },
-    { E_COFRE,  17,  5, IT_BATERIA, 2, F_COFRE_DESGUACE2, 0, NULL, NULL },
-    { E_ENEMIGO, 4, 12, 1, F_ENEMIGO_5, 6, 0, NULL, NULL },
-    { E_ENEMIGO,18, 16, 1, F_ENEMIGO_6, 6, 0, NULL, NULL },
-    { E_ENEMIGO,11, 13, 1, F_ENEMIGO_7, 7, 0, NULL, NULL },
+    { E_PUERTA,  6, 13, S_DESGUACE1,  7, 11, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_JEFE,       7, 11, 3, NULL, NULL },
+    { E_PUERTA,  0,  5, S_DESGUACE3, 12,  5, 2, NULL, NULL },
+    { E_COFRE,  12,  4, IT_BATERIA, 2, F_COFRE_DESGUACE2, 0, NULL, NULL },
+    { E_ENEMIGO, 3,  9, 1, F_ENEMIGO_5, 6, 0, NULL, NULL },
+    { E_ENEMIGO,11,  2, 1, F_ENEMIGO_6, 6, 0, NULL, NULL },
+    { E_ENEMIGO, 7,  9, 1, F_ENEMIGO_7, 7, 0, NULL, NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -587,40 +566,32 @@ static const ch_ent_t EN_DESGUACE2[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_DESGUACE3[ROWS] = {
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "0000XXXXXXXXXXXXXXX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XMMxxxxxxxxxMMX0000",
-    "0000XMMxxxxxxxxxMMX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XMM:::::::::MMX0000",
-    "0000XMM:::::::::MMX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XMMxxxxxxxxxMMX0000",
-    "0000XMMxxxxxxxxxMMX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XXXXXX:::XXXXXX0000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "XXXXXXXXXXXXXXX",
+    "XMMMMMMMMMMMMMX",
+    "XMxxxxxxxxxxxMX",
+    "XMxxxxxxxxxxxMX",
+    "XMMMMMMMMMMMMMX",
+    "XMM:::::::::MM:",
+    "XMM:::::::::MM:",
+    "XMMMMMMMMMMMMMX",
+    "XMxxxxxxxxxxxMX",
+    "XMxxxxxxxxxxxMX",
+    "XMMMMMMMMMMMMMX",
+    "XMMMMMMMMMMMMMX",
+    "XMMMMMMMMMMMMMX",
+    "XXXXXXXXXXXXXXX",
 };
 
 static const ch_prop_t P_DESGUACE3[] = {
-    { 5,  3, PR_PILA },
-    { 15,14, PR_PILA },
+    { 2, 11, PR_PILA },
+    { 11,11, PR_PILA },
 };
 
 static const ch_ent_t EN_DESGUACE3[] = {
-    { E_PUERTA, 10, 17, S_DESGUACE2,  6,  6, 3, NULL, NULL },
-    { E_COFRE,  11,  6, IT_LLAVE, 1, F_COFRE_DESGUACE3, 0, NULL, NULL },
-    { E_COFRE,   7, 11, IT_TORNILLOS, 1, F_TORNILLOS, 0, NULL, NULL },
-    { E_ENEMIGO,15,  9, 1, F_ENEMIGO_8, 7, 0, NULL, NULL },
+    { E_PUERTA, 14,  5, S_DESGUACE2,  2,  5, 2, NULL, NULL },
+    { E_COFRE,   6,  1, IT_LLAVE, 1, F_COFRE_DESGUACE3, 0, NULL, NULL },
+    { E_COFRE,   6, 11, IT_TORNILLOS, 1, F_TORNILLOS, 0, NULL, NULL },
+    { E_ENEMIGO,10,  8, 1, F_ENEMIGO_8, 7, 0, NULL, NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -628,38 +599,30 @@ static const ch_ent_t EN_DESGUACE3[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_JEFE[ROWS] = {
-    "00000XXXXXXXXXXXXX00000",
-    "00000X:::::::::::X00000",
-    "00000X:::::::::::X00000",
-    "0000XX:::::::::::XX0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000XX:::::::::::XX0000",
-    "00000X:::::::::::X00000",
-    "00000X:::::::::::X00000",
-    "00000X:::::::::::X00000",
-    "00000X:::::::::::X00000",
-    "00000XXXXX:::XXXXX00000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "XXXXXXXXXXXXXXX",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "XXXXXX:::XXXXXX",
 };
 
 static const ch_prop_t P_JEFE[] = {
-    { 5,  2, PR_MAQUINA },
-    { 16, 2, PR_MAQUINA },
+    { 2,  1, PR_MAQUINA },
+    { 11, 1, PR_MAQUINA },
 };
 
 static const ch_ent_t EN_JEFE[] = {
-    { E_PUERTA, 10, 19, S_DESGUACE2, 11, 17, 3, NULL, NULL },
-    { E_JEFE,   11,  6, 3, F_JEFE_DESGUACE, 12, IT_PASE,
+    { E_PUERTA,  6, 13, S_DESGUACE2,  7, 11, 3, NULL, NULL },
+    { E_JEFE,    7,  4, 3, F_JEFE_DESGUACE, 12, IT_PASE,
       N_("GUARDIAN DEL DESGUACE:\n"
       "ALTO AHI.\n"
       "NADIE SE LLEVA CHATARRA\n"

@@ -612,21 +612,6 @@ void ch_blit(ch_buf_t *b, int x, int y, const char *const *rows, int nrows)
     }
 }
 
-void ch_blit_esc(ch_buf_t *b, int x, int y, const char *const *rows,
-                 int nrows, int num, int den)
-{
-    int w = (int)strlen(rows[0]);
-    int dw = w * num / den, dh = nrows * num / den;
-
-    if (num == den) { ch_blit(b, x, y, rows, nrows); return; }
-    for (int dy = 0; dy < dh; dy++) {
-        const char *fila = rows[dy * den / num];
-        for (int dx = 0; dx < dw; dx++) {
-            uint16_t c;
-            if (ch_pal(fila[dx * den / num], &c)) ch_px(b, x + dx, y + dy, c);
-        }
-    }
-}
 
 void ch_blit_c(ch_buf_t *b, int cx, int cy, const char *const *rows, int nrows)
 {

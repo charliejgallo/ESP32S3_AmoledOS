@@ -97,11 +97,6 @@
 #define COLS        15                  /* 15 * 12 = 180, 4 px of slack      */
 #define ROWS        14                  /* 14 * 12 = 168                     */
 
-/* v1's art is drawn on an 8 px grid. Until every tile, prop and sprite is
- * redrawn at 12, they are stretched by this ratio and their offsets scaled by
- * ART(). Both disappear when the art does. */
-#define ART_DEN     8
-#define ART(v)      ((v) * TILE / ART_DEN)
 #define MAP_H       (ROWS * TILE)       /* 176                               */
 #define HUD_Y       MAP_H
 #define HUD_H       (CH_H - MAP_H)      /* 48 px that cannot be touched      */
