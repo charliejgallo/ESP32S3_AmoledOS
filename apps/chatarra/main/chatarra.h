@@ -69,9 +69,34 @@
  * Geometry
  * -------------------------------------------------------------------------- */
 
-#define TILE        8
-#define COLS        23                  /* 23 * 8 = 184 = CH_W               */
-#define ROWS        22                  /* 22 * 8 = 176                      */
+/* --------------------------------------------------------------------------
+ * v2: THE ZOOM IS FREE, AND THIS IS WHY
+ *
+ * The engine draws into a 184x224 buffer and expands it x2 to the panel in the
+ * last step. The zoom is NOT done by growing the buffer -that would multiply
+ * every dirty rectangle by four and cost the combat seven frames a second- it
+ * is done by growing the TILE inside the same buffer.
+ *
+ *                          v1 (TILE 8)      v2 (TILE 12)
+ *     buffer               184 x 224        the same
+ *     expansion            x2               the same
+ *     cells on screen      23 x 22          15 x 14
+ *     a cell, on the panel 16 x 16 px       24 x 24 px
+ *     art per tile         64 px            144 px   (2.25x the detail)
+ *     the whole background 32,384 px        30,240 px
+ *
+ * The background comes out CHEAPER, not dearer: fewer tiles, each one bigger.
+ * Nothing in ch_pixel.c, in the dirty rectangles, in present() or in the
+ * combat changes - the combat never used TILE, and its robots already draw
+ * from descriptors with a scale argument.
+ *
+ * The whole cost of v2 is art and level design. docs/internal/HANDOFF-CHATARRA-V2.md
+ * -------------------------------------------------------------------------- */
+
+#define TILE        12
+#define COLS        15                  /* 15 * 12 = 180, 4 px of slack      */
+#define ROWS        14                  /* 14 * 12 = 168                     */
+
 #define MAP_H       (ROWS * TILE)       /* 176                               */
 #define HUD_Y       MAP_H
 #define HUD_H       (CH_H - MAP_H)      /* 48 px that cannot be touched      */
@@ -208,6 +233,13 @@ typedef struct {
     uint8_t  tipo;              /* the dominant one, the torso's             */
 } ch_robot_t;
 
+/* Cuantas de las cuatro piezas comparten el tipo del torso (1..4). Se CALCULA
+ * y no se guarda: es derivado de las piezas, y un campo mas en ch_robot_t
+ * cambia el tamano de ch_save_t, o sea que tira todas las partidas. */
+int  ch_robot_juego(const ch_robot_t *r);
+/* El nombre del juego (N_()) y su bonificacion de ataque, o NULL si no hay. */
+const char *ch_robot_juego_nombre(const ch_robot_t *r, int *pct);
+
 void ch_robot_stats(ch_robot_t *r);         /* recomputes everything derived */
 void ch_robot_curar(ch_robot_t *r);         /* health and energy to maximum  */
 uint32_t ch_exp_nivel(int nivel);           /* exp accumulated for that level */
@@ -230,8 +262,11 @@ void ch_part_draw(ch_buf_t *b, int cat, int var, int cx, int cy, int esc,
 
 /* The little figure on the map: 12x14, with the head and legs you are wearing.
  * It is not the combat robot shrunk, it is a separate drawing. */
-#define MINI_W  12
-#define MINI_H  16
+#define CH_FE_MAX  6            /* piezas en la cinta a la vez        */
+#define QUIETO_ESPERA 150       /* cinco segundos a 30 cuadros        */
+#define MINI_W  18                     /* v2: 12 x 16 on the 8 px grid */
+#define MINI_H  24
+void ch_animal_draw(ch_buf_t *b, int x, int y, int cual, int dir, int cuadro);
 void ch_mini_draw(ch_buf_t *b, int x, int y, const ch_robot_t *r,
                   int dir, int paso);
 
@@ -293,7 +328,19 @@ enum {
     E_ROCA,             /* p1 = flag: it stands aside if you have the upgrade */
     E_BLOQUEO,          /* p1 = flag that opens it, p2 = item required       */
     E_CABINA,           /* the phone booth: the link to another watch        */
+    E_MUEBLE,           /* p1 = which piece, p2 = flag, premio = item        */
+    E_ANIMAL,           /* p1 = which animal: it wanders and never fights    */
+    E_FERIA,            /* la cinta de chatarra: un minijuego por creditos   */
 };
+
+/* The furniture. It is an ENTITY and not a decoration so that a room can be
+ * furnished AND the furniture can be touched: a house with a table you cannot
+ * look at is a house with a picture of a table in it. p2 is a flag and premio
+ * an item, so any of them can hide something, once. */
+enum { MU_MESA = 0, MU_SILLA, MU_ESTANTE, MU_COMPU, MU_PLANTA, MU_VASIJA,
+       MU_CUADRO, MU_CAMA, MU_BANCO, MU_CESTO, MU_MACETA, MUEBLES_N };
+
+enum { AN_GATO = 0, AN_PAJARO, ANIMALES_N };
 
 /* On the three parameters and the two texts:
  *
@@ -370,6 +417,13 @@ typedef struct {
     const char *nombre;         /* N_()                                      */
     uint8_t     bandera;        /* the sub-boss's: set = zone cleared          */
     uint8_t     sala0, sala1;   /* range of rooms, to know where you are      */
+    /* FAST TRAVEL. 'visita' is set the first time you set foot in the zone
+     * and 'casa' is the room the map sends you back to -its town, never a
+     * dungeon-. Two more bytes of a const table; the alternative was walking
+     * six rooms back for one repair. */
+    uint8_t     visita;         /* flag: you have been here                  */
+    uint8_t     casa;           /* where fast travel lands you               */
+    uint8_t     casa_x, casa_y;
 } ch_zona_t;
 
 #define ZONAS 8
@@ -417,10 +471,13 @@ void ch_prop_draw(ch_buf_t *b, const ch_prop_t *pr);
  * character with their business settled. */
 void ch_ent_draw(ch_buf_t *b, const ch_room_t *r, const ch_ent_t *e, bool hecho);
 /* Height in cells of the decoration, and whether it blocks that cell. */
+bool ch_mueble_solido(int cual);
 bool ch_prop_solido(const ch_room_t *r, int tx, int ty);
 /* Is anything -a prop, an entity- painted over this cell in the background?
  * The flowing ground asks before animating a tile, or it wipes what stands on
  * it once per turn and the thing blinks. */
+int  ch_puerta_lado(const ch_ent_t *e);
+void ch_puerta_caja(const ch_ent_t *e, int *x0, int *y0, int *w, int *h);
 bool ch_celda_tapada(const ch_room_t *r, int tx, int ty);
 
 /* --------------------------------------------------------------------------
@@ -523,6 +580,9 @@ bool ch_eq_puede_armar(const ch_save_t *s);
  * or if it is the last robot standing. */
 bool ch_eq_desarmar(ch_save_t *s, int slot);
 
+/* La pieza que paga la feria, una sola vez. true si la dio ahora. */
+bool ch_feria_premio(ch_save_t *s, uint32_t *sem);
+
 static inline bool ch_flag(const ch_save_t *s, int f)
 {
     return f > 0 && f < BANDERAS && (s->bandera[f >> 3] & (1u << (f & 7)));
@@ -550,6 +610,8 @@ enum {
     MODO_REGISTRO,
     MODO_MAPAMUNDI,
     MODO_AYUDA,
+    MODO_DIARIO,        /* los encargos abiertos y donde                   */
+    MODO_FERIA,         /* la cinta de chatarra del puerto                  */
     MODO_FINAL,
     MODO_COMBATE,
     MODO_TITULO,
@@ -710,6 +772,22 @@ typedef struct {
     uint8_t    ruta[RUTA_MAX];  /* pending directions                        */
     uint8_t    nruta, iruta;
     uint8_t    destino_ent;     /* entity being walked to, 0xFF if none      */
+    /* Cuadros parado. Pasados unos segundos el robot se pone a mirar
+     * alrededor: un personaje inmovil en un pueblo con gato, pajaro y agua
+     * que corre es lo unico muerto de la pantalla. */
+    uint16_t   quieto;
+    uint8_t    mel_mapa;        /* el tema de zona que esta puesto           */
+    uint8_t    feria_pend;      /* el dialogo del puesto: al cerrar, jugar   */
+
+    /* LA FERIA. Seis piezas en tres carriles, cuarenta segundos. Vive aca y
+     * no en el guardado porque una partida de la feria no sobrevive a cerrar
+     * el juego; lo unico que se guarda es el record. */
+    struct {
+        struct { int16_t x; uint8_t carril, malo, cual, vivo; } p[CH_FE_MAX];
+        uint32_t sem;
+        uint16_t resta;
+        uint8_t  puntos, aviso, record;
+    } fe;
 
     /* mobile entities of the room (the enemies that patrol) */
     struct {
@@ -815,6 +893,15 @@ void ch_map_entrar(ch_t *g, int sala, int x, int y);
 void ch_map_fondo(ch_t *g);                     /* repaints the whole bg     */
 void ch_map_dibujar(ch_t *g);                   /* what moves                */
 void ch_map_tick(ch_t *g);
+/* Pone el tema de la zona en la que estas, si no estaba ya. */
+void ch_map_musica(ch_t *g);
+
+/* La feria del puerto: la cinta de chatarra. */
+void ch_fe_entrar(ch_t *g);
+void ch_fe_tick(ch_t *g);
+void ch_fe_toque(ch_t *g, int bx, int by);
+void ch_fe_fondo(ch_t *g);
+void ch_fe_dibujar(ch_t *g);
 void ch_map_toque(ch_t *g, int bx, int by);
 void ch_map_interactuar(ch_t *g, int idx);
 void ch_map_dialogo_cerrado(ch_t *g);
@@ -830,6 +917,23 @@ bool ch_ui_atras(ch_t *g);                      /* back gesture              */
 void ch_ui_toque(ch_t *g, int bx, int by);
 void ch_ui_dialogo(ch_t *g, const char *texto, int ent, int luego);
 void ch_ui_aviso(ch_t *g, const char *texto);
+/* LOS ICONOS DE 12x12 son de toda la interfaz y no del menu: la cabina los
+ * usa igual. Cualquier letra que no sea '#' (cuerpo) ni '+' (detalle) se busca
+ * en la paleta de los sprites, asi que un icono puede tener tanto detalle como
+ * el resto del arte. */
+enum {
+    IC_TALLER, IC_OBJETOS, IC_EQUIPO, IC_REGISTRO, IC_MAPA,
+    IC_AYUDA, IC_SONIDO, IC_GUARDAR, IC_CERRAR,
+    IC_MOCHILA, IC_AJUSTES,
+    /* one per item, and the errands share one: a list of names with no
+     * pictures is a list you read twice before finding the oil */
+    IC_ACEITE, IC_BATERIA, IC_SOLDADOR, IC_CHIP, IC_IMAN, IC_LLAVE,
+    IC_PASE, IC_TORNILLOS, IC_ANCLA, IC_HERRAMIENTA, IC_BARRIL,
+    IC_COMBATE, IC_TRUEQUE, IC_PIEZA, IC_COLGAR, IC_DIARIO,
+    NICONOS
+};
+
+void ch_ui_icono(ch_buf_t *b, int x, int y, int ic, int esc);
 void ch_ui_menu(ch_t *g);
 /* Drawing helpers shared by every mode. */
 void ch_panel(ch_buf_t *b, int x, int y, int w, int h, uint16_t borde);
@@ -877,6 +981,8 @@ enum {
     CH_MEL_NIVEL,
     CH_MEL_DERROTA,
     CH_MEL_FINAL,
+    /* Uno por zona, en orden: CH_MEL_ZONA + (zona - 1). */
+    CH_MEL_ZONA,
 };
 
 void ch_snd_melodia(ch_t *g, int id);

@@ -65,69 +65,127 @@ typedef struct {
     const char *const *borde;
 } tile_t;
 
-static const char *const PX_PASTO[8] = {
-    "eeeeeeee", "eeeEeeee", "eeeeeeee", "eEeeeeEe",
-    "eeeeeeee", "eeeeEeee", "eEeeeeee", "eeeeeeee",
+static const char *const PX_PASTO[TILE] = {
+    "eeeeeeeeeeee", "eeeeeeeEeeee", "eeeeeeeEeeee", "eeEeeeeeeeee",
+    "eeEeeeeeeeEe", "eeeeeeeeeeEe", "eeeeeeeeeeee", "eeeeeEeeeeee",
+    "eeeeeEeeeeee", "eeeeeeeeeeee", "eEeeeeeeEeee", "eeeeeeeeEeee",
 };
-static const char *const PX_PASTO2[8] = {
-    "eeeeeeee", "eeEEeeee", "eEeeEeee", "eeeeeeEe",
-    "eEeeeEEe", "eeeeeeee", "eeEeeeee", "eeeeeeee",
+static const char *const PX_PASTO2[TILE] = {
+    "eeeeeeeeeeee", "eEeeeeeeeeee", "eEeeeeeeeeee", "eeeeeeeeeEee",
+    "eeeeeEeeeEee", "eeeeeEeeeeee", "eeeeeeeeeeee", "eeeeeeeeEeee",
+    "eeeEeeeeEeee", "eeeEeeeeeeee", "eeeeeeeeeeee", "eeeeeeEeeeee",
 };
-static const char *const PX_TIERRA[8] = {
-    "hhhhhhhh", "hhHhhhhh", "hhhhhhHh", "hHhhhhhh",
-    "hhhhhHhh", "hhhhhhhh", "hHhhhhhh", "hhhhHhhh",
+static const char *const PX_TIERRA[TILE] = {
+    "hhhhhhhhhhhh", "hhhHhhhhhhhh", "hhhhhhhhHhhh", "hHhhhhhhhhhh",
+    "hhhhhhHhhhhh", "hhhhhhhhhhHh", "hHhhhhhhhhhh", "hhhhHhhhhhhh",
+    "hhhhhhhhhHhh", "hhHhhhhhhhhh", "hhhhhhhHhhhh", "hhhhhhhhhhhh",
 };
-static const char *const PX_TIERRA2[8] = {
-    "hhhhhhhh", "hhhhHhhh", "hHhhhhhh", "hhhhhhhH",
-    "hhHhhhhh", "hhhhhhHh", "hhhhhhhh", "hHhhhHhh",
+static const char *const PX_TIERRA2[TILE] = {
+    "hhhhhhhhhhhh", "hhhhhhhHhhhh", "hhHhhhhhhhhh", "hhhhhhhhhhHh",
+    "hhhhHhhhhhhh", "hHhhhhhhhhhh", "hhhhhhhhHhhh", "hhhhhhhhhhhh",
+    "hhhHhhhhhHhh", "hhhhhhHhhhhh", "hHhhhhhhhhhh", "hhhhhhhhhhhh",
 };
-static const char *const PX_ALTO[8] = {
-    "EEEEEEEE", "EfEEEfEE", "EffEEffE", "EffEEffE",
-    "fffEfffE", "ffffffff", "fFffffFf", "ffffffff",
+static const char *const PX_PASTO_C[TILE] = {
+    "eeeEeeeeeeee", "eeEEeeeEeeEe", "eeEeeeeEeeEE", "eeEeeeEeeeee",
+    "eeEeeEEeeeEe", "eeeeeEeeeeEe", "eEeeeeeeEeee", "eeeEEeeeEEee",
+    "eeeEEeeeeEee", "eEeeeeEeeeee", "eEEeeeeEEeee", "eeeeeeeEEeee",
 };
-static const char *const PX_AGUA[8] = {
-    "llllllll", "lLlllLll", "llllllll", "LlllllLl",
-    "llllllll", "llLlllll", "llllllLl", "llllllll",
+
+static const char *const PX_PASTO_C2[TILE] = {
+    "eeeeeEEeeeee", "eEEeeeEeeeEe", "eEeeeeeeeeEE", "eeeeeeeeeEee",
+    "eeEeeEeeeEee", "eEeeeEeeeeEe", "eeeeEeeeEeee", "eeeEeeeeEEee",
+    "eEeEEeeeEeee", "eEeEeeEeeeee", "eeEeeeeEeeee", "eeeeeeEEeeee",
 };
-static const char *const PX_CERCA[8] = {
-    "eeeeeeee", "eeeeeeee", "jjjjjjjj", "JJJJJJJJ",
-    "eejjeeee", "jjjjjjjj", "JJJJJJJJ", "eejjeeee",
+
+static const char *const PX_FLORES[TILE] = {
+    "eeeeeeeeeeee", "eermeeeeeyee", "eemreeeeeYye", "eeeeeeeeeyee",
+    "eeeeeeeeeeee", "eeeeeycyeeee", "eeeeeycyeeee", "eeeeeeeeeeee",
+    "eeeeeeeeeeee", "eeceeeeemree", "eeceeeeermme", "eeeeeeeeeeee",
 };
-static const char *const PX_PIEDRA[8] = {
-    "iiiiiiii", "iiiiiiii", "iiiiiiii", "IIIIIIII",
-    "iiiIiiii", "iiiIiiii", "iiiIiiii", "IIIIIIII",
+
+static const char *const PX_FLORES2[TILE] = {
+    "eeeeeeeeeeee", "eeeeeeycyeee", "eeeeeeycyeee", "eeeeeeeeeeee",
+    "eemreeeeeeee", "eermeeeeeyee", "eeeeeeeeeYye", "eeeeeeeeeyee",
+    "eeeeeeeeeeee", "eeeecceeeeee", "eeeecceeeeee", "eeeeeeeeeeee",
 };
-static const char *const PX_LADRILLO[8] = {
-    "aaaaaaaa", "aaaAaaaa", "aaaAaaaa", "AAAAAAAA",
-    "aaaaaaaa", "aaaaaaaA", "aaaaaaaA", "AAAAAAAA",
+
+static const char *const PX_ADOQUIN[TILE] = {
+    "qQqqqQqqqqQq", "qqqqqqqqqqqq", "qqQqqqqqQqqq", "HHHHHHHHHHHH",
+    "qqqQqqqQqqqq", "qqqqqqqqqqqq", "qQqqqqqqqqQq", "HHHHHHHHHHHH",
+    "qqqqqQqqqqqq", "qQqqqqqQqqqq", "qqqqqqqqqqqq", "HHHHHHHHHHHH",
 };
-static const char *const PX_MADERA[8] = {
-    "jjjjjjjj", "jjjjjjjJ", "JJJJJJJJ", "jjjjjjjJ",
-    "jjjjjjjJ", "jjjjjjjJ", "JJJJJJJJ", "jjjjjjjJ",
+
+static const char *const PX_LOSA[TILE] = {
+    "gggggggggggg", "gGGGGGgGGGGG", "gGGGGGgGGGGG", "gGGGGGgGGGGG",
+    "gGGGGGgGGGGG", "gggggggggggg", "gGGGGGgGGGGG", "gGGGGGgGGGGG",
+    "gGGGGGgGGGGG", "gGGGGGgGGGGG", "gggggggggggg", "gGGGGGgGGGGG",
 };
-static const char *const PX_PARED[8] = {
-    "QQQQQQQQ", "QQQQQQQQ", "QQQQQQQQ", "jjjjjjjj",
-    "QQQQQQQQ", "QQQQQQQQ", "QQQQQQQQ", "jjjjjjjj",
+
+static const char *const PX_PARQUET[TILE] = {
+    "jjjjjjjjjjjj", "jJjjjjjjjJjj", "jjjjjjjjjjjj", "JJJJJJJJJJJJ",
+    "jjjjjJjjjjjj", "jjjjjjjjjjjj", "jjjJjjjjjjjj", "JJJJJJJJJJJJ",
+    "jjjjjjjjjJjj", "jjjjjjjjjjjj", "jjJjjjjjjjjj", "JJJJJJJJJJJJ",
 };
-static const char *const PX_ALFOMBRA[8] = {
-    "AAAAAAAA", "AaAAAAaA", "AAAAAAAA", "AAAaAAAA",
-    "AAAAAAAA", "AaAAAAaA", "AAAAAAAA", "AAAaAAAA",
+
+static const char *const PX_ALTO[TILE] = {
+    "EEEEEEEEEEEE", "EfEEEfEEEfEE", "EffEEffEEffE", "EffEEffEEffE",
+    "fffEfffEfffE", "ffffffffffff", "fFffffFfffFf", "ffffffffffff",
+    "ffFfffffFfff", "ffffffffffff", "fFffffFfffFf", "ffffffffffff",
 };
-static const char *const PX_MOSTRADOR[8] = {
-    "GGGGGGGG", "GGGGGGGG", "jjjjjjjj", "jjjjjjjj",
-    "JJJJJJJJ", "jjjjjjjj", "jjjjjjjj", "JJJJJJJJ",
+static const char *const PX_AGUA[TILE] = {
+    "llllllllllll", "lLllllLlllll", "llllllllllll", "LllllllllLll",
+    "llllllllllll", "llLllllllllL", "llllllllllll", "lllLllllLlll",
+    "llllllllllll", "LllllllllLll", "llllllllllll", "llllLlllllll",
 };
-static const char *const PX_METAL[8] = {
-    "dddddddd", "dgddddgd", "dddddddd", "dddddddd",
-    "dddddddd", "dddddddd", "dgddddgd", "dddddddd",
+static const char *const PX_CERCA[TILE] = {
+    "eeeeeeeeeeee", "eeeeeeeeeeee", "eeJeeeeeJeee", "jjjjjjjjjjjj",
+    "JJJJJJJJJJJJ", "eeJeeeeeJeee", "eeJeeeeeJeee", "jjjjjjjjjjjj",
+    "JJJJJJJJJJJJ", "eeJeeeeeJeee", "eeJeeeeeJeee", "eeeeeeeeeeee",
 };
-static const char *const PX_METAL2[8] = {
-    "dddddddd", "dddddddd", "ddDDDDdd", "ddDddDdd",
-    "ddDddDdd", "ddDDDDdd", "dddddddd", "dddddddd",
+static const char *const PX_PIEDRA[TILE] = {
+    "iiiiiiiiiiii", "iiiiiiiiiiii", "iiiiiiiiiiii", "IIIIIIIIIIII",
+    "iiiiiIiiiiii", "iiiiiIiiiiii", "iiiiiIiiiiii", "IIIIIIIIIIII",
+    "iiIiiiiiiiIi", "iiIiiiiiiiIi", "iiIiiiiiiiIi", "IIIIIIIIIIII",
 };
-static const char *const PX_MURO[8] = {
-    "xxxxxxxx", "xKKKKKKx", "xKddddKx", "xKddddKx",
-    "xKddddKx", "xKddddKx", "xKKKKKKx", "xxxxxxxx",
+static const char *const PX_LADRILLO[TILE] = {
+    "aaaaaaaaaaaa", "aaaaaAaaaaaa", "AAAAAAAAAAAA", "aaAaaaaaaaAa",
+    "aaAaaaaaaaAa", "AAAAAAAAAAAA", "aaaaaAaaaaaa", "aaaaaAaaaaaa",
+    "AAAAAAAAAAAA", "aaAaaaaaaaAa", "aaAaaaaaaaAa", "AAAAAAAAAAAA",
+};
+static const char *const PX_MADERA[TILE] = {
+    "jjjjjjjjjjjJ", "jjjjjjjjjjjJ", "JJJJJJJJJJJJ", "jjjjjjjjjjjJ",
+    "jjjjjjjjjjjJ", "jjjjjjjjjjjJ", "JJJJJJJJJJJJ", "jjjjjjjjjjjJ",
+    "jjjjjjjjjjjJ", "jjjjjjjjjjjJ", "JJJJJJJJJJJJ", "jjjjjjjjjjjJ",
+};
+static const char *const PX_PARED[TILE] = {
+    "QQQQQQQQQQQQ", "QQQQQQQQQQQQ", "QQQQQQQQQQQQ", "QQQQQQQQQQQQ",
+    "QQQQQQQQQQQQ", "jjjjjjjjjjjj", "JJJJJJJJJJJJ", "QQQQQQQQQQQQ",
+    "QQQQQQQQQQQQ", "QQQQQQQQQQQQ", "QQQQQQQQQQQQ", "jjjjjjjjjjjj",
+};
+static const char *const PX_ALFOMBRA[TILE] = {
+    "AAAAAAAAAAAA", "AaAAAAAAaAAA", "AAAAAAAAAAAA", "AAAAaAAAAAAA",
+    "AAAAAAAAAAAA", "AaAAAAAAaAAA", "AAAAAAAAAAAA", "AAAAaAAAAAAA",
+    "AAAAAAAAAAAA", "AaAAAAAAaAAA", "AAAAAAAAAAAA", "AAAAaAAAAAAA",
+};
+static const char *const PX_MOSTRADOR[TILE] = {
+    "GGGGGGGGGGGG", "GGGGGGGGGGGG", "gggggggggggg", "jjjjjjjjjjjj",
+    "jjjjjjjjjjjj", "JJJJJJJJJJJJ", "jjjjjjjjjjjj", "jjjjjjjjjjjj",
+    "JJJJJJJJJJJJ", "jjjjjjjjjjjj", "jjjjjjjjjjjj", "JJJJJJJJJJJJ",
+};
+static const char *const PX_METAL[TILE] = {
+    "dddddddddddd", "dgdddddddgdd", "dddddddddddd", "dddddddddddd",
+    "dddddddddddd", "dddddddddddd", "dddddddddddd", "dddddddddddd",
+    "dgdddddddgdd", "dddddddddddd", "dddddddddddd", "dddddddddddd",
+};
+static const char *const PX_METAL2[TILE] = {
+    "dddddddddddd", "dddddddddddd", "ddDDDDDDDDdd", "ddDddddddDdd",
+    "ddDddddddDdd", "ddDddddddDdd", "ddDddddddDdd", "ddDddddddDdd",
+    "ddDDDDDDDDdd", "dddddddddddd", "dddddddddddd", "dddddddddddd",
+};
+static const char *const PX_MURO[TILE] = {
+    "xxxxxxxxxxxx", "xKKKKKKKKKKx", "xKddddddddKx", "xKddddddddKx",
+    "xKddddddddKx", "xKddddddddKx", "xKddddddddKx", "xKddddddddKx",
+    "xKddddddddKx", "xKddddddddKx", "xKKKKKKKKKKx", "xxxxxxxxxxxx",
 };
 /* Scrap: plating and rust over the metal floor. The pieces are deliberately
  * LARGE. The first version had loose pixels and from two cells away it read as
@@ -137,40 +195,48 @@ static const char *const PX_MURO[8] = {
  * nine cells of scrap in a row read as noise and not as a pile of metal: in an
  * 8x8 pattern that repeats, the fine stuff turns into texture and only what
  * takes up several pixels together survives. */
-static const char *const PX_CHATARRA[8] = {
-    "dddddddd", "ddgDDddd", "ddDggDdd", "dddDDddd",
-    "ddddUUdd", "dddUUddd", "dddddddd", "dddddddd",
+static const char *const PX_CHATARRA[TILE] = {
+    "dddddddddddd", "ddddggDDdddd", "dddgDDggDddd", "dddDggggDddd",
+    "ddddDDDDdddd", "dddddUUUdddd", "ddddUUUUUddd", "dddddUUUdddd",
+    "dddddddddddd", "ddddddddgddd", "dddddddddddd", "dddddddddddd",
 };
 /* A puddle has to JOIN UP with the puddle beside it. With the blot centred on
  * the cell and clean edges, three cells in a row read as three links of a
  * chain instead of as one long puddle. */
-static const char *const PX_ACEITE[8] = {
-    "dKKKKKKd", "KKKKKKKK", "KKKKKKKK", "KKKKPKKK",
-    "KKKKKKKK", "KKKKKKKK", "KKKKKKKK", "dKKKKKKd",
+static const char *const PX_ACEITE[TILE] = {
+    "dKKKKKKKKKKd", "KKKKKKKKKKKK", "KKKKKKKKKKKK", "KKKKKPKKKKKK",
+    "KKKKPPPKKKKK", "KKKKKPKKKKKK", "KKKKKKKKKKKK", "KKKKKKKKKKKK",
+    "KKKKKKKKKKKK", "KKKKKKKKKKKK", "KKKKKKKKKKKK", "dKKKKKKKKKKd",
 };
-static const char *const PX_ROCA[8] = {
-    "QQQQQQQQ", "QQIIIQQQ", "QIiiiIQQ", "IiiiiiIQ",
-    "IiiiiiIQ", "QIiiiIQQ", "QQIIIQQQ", "QQQQQQQQ",
+static const char *const PX_ROCA[TILE] = {
+    "QQQQQQQQQQQQ", "QQQQIIIIQQQQ", "QQQIiiiiIQQQ", "QQIiiiiiiIQQ",
+    "QIiiiiiiiiIQ", "QIiiiiiiiiIQ", "QIiiiiiiiiIQ", "QQIiiiiiiIQQ",
+    "QQQIiiiiIQQQ", "QQQQIIIIQQQQ", "QQQQQQQQQQQQ", "QQQQQQQQQQQQ",
 };
-static const char *const PX_REJILLA[8] = {
-    "dddddddd", "KdKdKdKd", "dddddddd", "KdKdKdKd",
-    "dddddddd", "KdKdKdKd", "dddddddd", "KdKdKdKd",
+static const char *const PX_REJILLA[TILE] = {
+    "dddddddddddd", "KdKdKdKdKdKd", "dddddddddddd", "KdKdKdKdKdKd",
+    "dddddddddddd", "KdKdKdKdKdKd", "dddddddddddd", "KdKdKdKdKdKd",
+    "dddddddddddd", "KdKdKdKdKdKd", "dddddddddddd", "KdKdKdKdKdKd",
 };
-static const char *const PX_BALDOSA[8] = {
-    "gGGGGGGG", "gGGGGGGG", "gGGGGGGG", "gGGGGGGG",
-    "gGGGGGGG", "gGGGGGGG", "gGGGGGGG", "gggggggg",
+static const char *const PX_BALDOSA[TILE] = {
+    "gGGGGGGGGGGG", "gGGGGGGGGGGG", "gGGGGGGGGGGG", "gGGGGGGGGGGG",
+    "gGGGGGGGGGGG", "gGGGGGGGGGGG", "gGGGGGGGGGGG", "gGGGGGGGGGGG",
+    "gGGGGGGGGGGG", "gGGGGGGGGGGG", "gGGGGGGGGGGG", "gggggggggggg",
 };
-static const char *const PX_NEGRO[8] = {
-    "kkkkkkkk", "kkkkkkkk", "kkkkkkkk", "kkkkkkkk",
-    "kkkkkkkk", "kkkkkkkk", "kkkkkkkk", "kkkkkkkk",
+static const char *const PX_NEGRO[TILE] = {
+    "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk",
+    "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk",
+    "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk",
 };
-static const char *const PX_PUENTE[8] = {
-    "jjjjjjjj", "JJJJJJJJ", "jjjjjjjj", "jjjjjjjj",
-    "JJJJJJJJ", "jjjjjjjj", "jjjjjjjj", "JJJJJJJJ",
+static const char *const PX_PUENTE[TILE] = {
+    "jjjjjjjjjjjj", "JJJJJJJJJJJJ", "jjjjjjjjjjjj", "jjjjjjjjjjjj",
+    "JJJJJJJJJJJJ", "jjjjjjjjjjjj", "jjjjjjjjjjjj", "JJJJJJJJJJJJ",
+    "jjjjjjjjjjjj", "jjjjjjjjjjjj", "JJJJJJJJJJJJ", "jjjjjjjjjjjj",
 };
-static const char *const PX_ARBUSTO[8] = {
-    "eeeeeeee", "eefffeee", "efFFFfee", "fFFfFFfe",
-    "fFFFFFfe", "efFFFfee", "eefffeee", "eeeeeeee",
+static const char *const PX_ARBUSTO[TILE] = {
+    "eeeeeeeeeeee", "eeeefffeeeee", "eeefFFFfeeee", "eefFFFFFfeee",
+    "efFFfFFFFfee", "efFFFFFFFfee", "efFFFFFFFfee", "eefFFFFFfeee",
+    "eeefFFFfeeee", "eeeeFFFeeeee", "eeeeeeeeeeee", "eeeeeeeeeeee",
 };
 
 /* --------------------------------------------------------------------------
@@ -184,57 +250,68 @@ static const char *const PX_ARBUSTO[8] = {
  * and over white they disappear -so the whole zone's ambience is lost- and on
  * an AMOLED full white leaves no headroom for a highlight on top. White is
  * kept for what falls. */
-static const char *const PX_NIEVE[8] = {
-    "GGGGGGGG", "GGwGGGGG", "GGGGGGwG", "GwGGGGGG",
-    "GGGGGwGG", "GGGGGGGG", "GwGGGGGG", "GGGGwGGG",
+static const char *const PX_NIEVE[TILE] = {
+    "GGGGGGGGGGGG", "GGwGGGGGGGGG", "GGGGGGGwGGGG", "GwGGGGGGGGGG",
+    "GGGGGGwGGGGG", "GGGGGGGGGGwG", "GwGGGGGGGGGG", "GGGGwGGGGGGG",
+    "GGGGGGGGGwGG", "GGwGGGGGGGGG", "GGGGGGGwGGGG", "GGGGGGGGGGGG",
 };
 /* Snowy scrub: the SAME silhouette as the tall grass and the dry scrub. All
  * three hide creatures, so all three have to be recognised the same way. */
-static const char *const PX_NEVADO[8] = {
-    "GGGGGGGG", "GwGGGwGG", "GwwGGwwG", "GwwGGwwG",
-    "wwwGwwwG", "wwwwwwww", "wCwwwwCw", "wwwwwwww",
+static const char *const PX_NEVADO[TILE] = {
+    "GGGGGGGGGGGG", "GwGGGwGGGwGG", "GwwGGwwGGwwG", "GwwGGwwGGwwG",
+    "wwwGwwwGwwwG", "wwwwwwwwwwww", "wCwwwwCwwwCw", "wwwwwwwwwwww",
+    "wwCwwwwwCwww", "wwwwwwwwwwww", "wCwwwwCwwwCw", "wwwwwwwwwwww",
 };
-static const char *const PX_HIELO[8] = {
-    "cccccccc", "ccCccccc", "cCcccCcc", "cccccccc",
-    "ccccCccc", "cCcccccc", "cccccCcc", "cccccccc",
+static const char *const PX_HIELO[TILE] = {
+    "cccccccccccc", "ccCccccccccc", "cCcccCcccccc", "cccccccccCcc",
+    "ccccCccccccc", "cCcccccccccc", "cccccCcccccc", "ccccccccCccc",
+    "cccccccccccc", "ccCccccccCcc", "cccccccccccc", "cccCcccccccc",
 };
-static const char *const PX_LAVA[8] = {
-    "OOOOOOOO", "OoOOOoOO", "oooOoooO", "OoooOooo",
-    "OOoOOOoO", "oOOOooOO", "OOOoOOOO", "OoOOOOoO",
+static const char *const PX_LAVA[TILE] = {
+    "OOOOOOOOOOOO", "OoOOOoOOOoOO", "oooOoooOoooO", "OoooOoooOooo",
+    "OOoOOOoOOOoO", "oOOOooOOoOOO", "OOOoOOOOOoOO", "OoOOOOoOOOOo",
+    "oooOoooOoooO", "OOoOOOoOOOoO", "OoOOOOOOoOOO", "OOOoOOOoOOOO",
 };
-static const char *const PX_VOLCAN[8] = {
-    "SSSSSSSS", "SsSSSSSS", "SSSSSUSS", "SSsSSSSS",
-    "SSSSSSSU", "SSSSSSSS", "SsSSSSSS", "SSSSuSSS",
+static const char *const PX_VOLCAN[TILE] = {
+    "SSSSSSSSSSSS", "SsSSSSSSSsSS", "SSSSSUSSSSSS", "SSsSSSSSSSSS",
+    "SSSSSSSUSSSS", "SSSSSSSSSSSS", "SsSSSSSSSsSS", "SSSSuSSSSSSS",
+    "SSSSSSSSSSSS", "SSSSSSSsSSSS", "SSuSSSSSSSSS", "SSSSSSSSSSSS",
 };
-static const char *const PX_ARENA[8] = {
-    "qqqqqqqq", "qqQqqqqq", "qqqqqqQq", "qQqqqqqq",
-    "qqqqqQqq", "qqqqqqqq", "qQqqqqqq", "qqqqQqqq",
+static const char *const PX_ARENA[TILE] = {
+    "qqqqqqqqqqqq", "qqQqqqqqqqqq", "qqqqqqqQqqqq", "qQqqqqqqqqqq",
+    "qqqqqQqqqqqq", "qqqqqqqqqqQq", "qQqqqqqqqqqq", "qqqqQqqqqqqq",
+    "qqqqqqqqqQqq", "qqQqqqqqqqqq", "qqqqqqqQqqqq", "qqqqqqqqqqqq",
 };
-static const char *const PX_MUELLE[8] = {
-    "jjjJjjjJ", "JJJJJJJJ", "jjjJjjjJ", "jjjJjjjJ",
-    "JJJJJJJJ", "jjjJjjjJ", "jjjJjjjJ", "JJJJJJJJ",
+static const char *const PX_MUELLE[TILE] = {
+    "jjjJjjjjJjjj", "JJJJJJJJJJJJ", "jjjJjjjjJjjj", "jjjJjjjjJjjj",
+    "JJJJJJJJJJJJ", "jjjJjjjjJjjj", "jjjJjjjjJjjj", "JJJJJJJJJJJJ",
+    "jjjJjjjjJjjj", "jjjJjjjjJjjj", "JJJJJJJJJJJJ", "jjjJjjjjJjjj",
 };
-static const char *const PX_VADO[8] = {
-    "llllllll", "lcllllcl", "llllllll", "cllllcll",
-    "llllllll", "llclllll", "lllllcll", "llllllll",
+static const char *const PX_VADO[TILE] = {
+    "llllllllllll", "lcllllclllll", "llllllllllll", "cllllcllllcl",
+    "llllllllllll", "llclllllcccl", "llllllllllll", "lllllcllllll",
+    "llccllllcccl", "llllllllllll", "lclllllcllll", "llllllllllll",
 };
 /* The floor goes VERY dark and the wall BRIGHT. The first version had both at
  * the same contrast and on screen you could not see where the walls were: the
  * room looked like a flat board. In a dungeon that is not an aesthetic detail,
  * it is being unable to play it. */
-static const char *const PX_CIRCUITO[8] = {
-    "kkkkkkkk", "kkkkkkkk", "kkkkkkkk", "kkkKkkkk",
-    "kkkKkkkk", "kkkkkkkk", "kkkkkkkk", "kkkkkkkk",
+static const char *const PX_CIRCUITO[TILE] = {
+    "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkKkkkkkkk",
+    "kkkkKkkkkkkk", "kkkkKkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk",
+    "kkkkkkkkKkkk", "kkkkkkkkKkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk",
 };
 /* The track only appears on one cell in four: with the mark on ALL of them the
  * floor was as busy as the wall and the earlier problem came back. */
-static const char *const PX_CIRCUITO2[8] = {
-    "kkkkkkkk", "kkNkkkkk", "kkNNNkkk", "kkkkNkkk",
-    "kkkkNNkk", "kkkkkkkk", "kkkkkkkk", "kkkkkkkk",
+static const char *const PX_CIRCUITO2[TILE] = {
+    "kkkkkkkkkkkk", "kkNkkkkkkkkk", "kkNNNkkkkkkk", "kkkkNkkkkkkk",
+    "kkkkNNkkkkkk", "kkkkkNkkkkkk", "kkkkkNNNkkkk", "kkkkkkkNkkkk",
+    "kkkkkkkNkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk", "kkkkkkkkkkkk",
 };
-static const char *const PX_MURO_CIRC[8] = {
-    "NNNNNNNN", "NKKKKKKN", "NKnnnnKN", "NKnnnnKN",
-    "NKnnnnKN", "NKnnnnKN", "NKKKKKKN", "NNNNNNNN",
+static const char *const PX_MURO_CIRC[TILE] = {
+    "NNNNNNNNNNNN", "NKKKKKKKKKKN", "NKnnnnnnnnKN", "NKnnnnnnnnKN",
+    "NKnnnnnnnnKN", "NKnnnnnnnnKN", "NKnnnnnnnnKN", "NKnnnnnnnnKN",
+    "NKnnnnnnnnKN", "NKnnnnnnnnKN", "NKKKKKKKKKKN", "NNNNNNNNNNNN",
 };
 /* Dry scrub. It has the SAME silhouette as the tall grass and not that of a
  * mottled floor, because the two cells do the same thing -they hide creatures-
@@ -244,64 +321,86 @@ static const char *const PX_MURO_CIRC[8] = {
  * cell throughout zone 7 WITHOUT being in the table: buscar() returns the
  * first entry when it does not find the character, so the whole wasteland was
  * drawn as green grass and nobody said a word. */
-static const char *const PX_SECO[8] = {
-    "QQQQQQQQ", "QQQQQQQQ", "QQQUQQQQ", "QQUQQQQQ",
-    "QQQQQQQQ", "QQQQQQUQ", "QQQQQUQQ", "QQQQQQQQ",
+static const char *const PX_SECO[TILE] = {
+    "QQQQQQQQQQQQ", "QQQQQQQQQQQQ", "QQQUQQQQQQQQ", "QQUQQQQQQQQQ",
+    "QQQQQQQQQQQQ", "QQQQQQQUQQQQ", "QQQQQUQQQQQQ", "QQQQQQQQQQQQ",
+    "QQQQQQQQQUQQ", "QQUQQQQQQQQQ", "QQQQQQQQQQQQ", "QQQQQQQQQQQQ",
 };
-static const char *const PX_PARAMO[8] = {
-    "QQQQQQQQ", "QVQQQVQQ", "QVVQQVVQ", "QVVQQVVQ",
-    "VVVQVVVQ", "VVVVVVVV", "VEVVVVEV", "VVVVVVVV",
+static const char *const PX_PARAMO[TILE] = {
+    "QQQQQQQQQQQQ", "QVQQQVQQQVQQ", "QVVQQVVQQVVQ", "QVVQQVVQQVVQ",
+    "VVVQVVVQVVVQ", "VVVVVVVVVVVV", "VEVVVVEVVVEV", "VVVVVVVVVVVV",
+    "VVEVVVVVEVVV", "VVVVVVVVVVVV", "VEVVVVEVVVEV", "VVVVVVVVVVVV",
 };
-static const char *const PX_GRAVA[8] = {
-    "IIIIIIII", "IiIIIiII", "IIIiIIII", "IiIIIIiI",
-    "IIIIiIII", "IIiIIIII", "IIIIIIiI", "IiIIIIII",
+static const char *const PX_GRAVA[TILE] = {
+    "IIIIIIIIIIII", "IiIIIiIIIiII", "IIIiIIIIIIII", "IiIIIIiIIIiI",
+    "IIIIiIIIIIII", "IIiIIIIIIiII", "IIIIIIiIIIII", "IiIIIIIIIIiI",
+    "IIIiIIIiIIII", "IIIIIIIIIIII", "IiIIIiIIIIII", "IIIIIiIIIIII",
 };
-static const char *const PX_CIUDAD[8] = {
-    "DDDDDDDD", "DGGGGGGD", "DGGGGGGD", "DGGGGGGD",
-    "DGGGGGGD", "DGGGGGGD", "DGGGGGGD", "DDDDDDDD",
+static const char *const PX_CIUDAD[TILE] = {
+    "DDDDDDDDDDDD", "DGGGGGGGGGGD", "DGGGGGGGGGGD", "DGGGGGGGGGGD",
+    "DGGGGGGGGGGD", "DGGGGGGGGGGD", "DGGGGGGGGGGD", "DGGGGGGGGGGD",
+    "DGGGGGGGGGGD", "DGGGGGGGGGGD", "DGGGGGGGGGGD", "DDDDDDDDDDDD",
 };
-static const char *const PX_MURO_CIU[8] = {
-    "gggggggg", "gGGGGGGg", "gGDDDDGg", "gGDDDDGg",
-    "gGDDDDGg", "gGDDDDGg", "gGGGGGGg", "gggggggg",
+static const char *const PX_MURO_CIU[TILE] = {
+    "gggggggggggg", "gGGGGGGGGGGg", "gGDDDDDDDDGg", "gGDDDDDDDDGg",
+    "gGDDDDDDDDGg", "gGDDDDDDDDGg", "gGDDDDDDDDGg", "gGDDDDDDDDGg",
+    "gGDDDDDDDDGg", "gGDDDDDDDDGg", "gGGGGGGGGGGg", "gggggggggggg",
 };
-static const char *const PX_CRISTAL[8] = {
-    "cccccccc", "cwcccccc", "ccwccccc", "cccwcccc",
-    "ccccwccc", "cccccwcc", "ccccccwc", "cccccccc",
+static const char *const PX_CRISTAL[TILE] = {
+    "cccccccccccc", "cwcccccccccc", "ccwccccccccc", "cccwcccccccc",
+    "ccccwccccccc", "cccccwcccccc", "ccccccwccccc", "cccccccwcccc",
+    "ccccccccwccc", "cccccccccwcc", "ccccccccccwc", "cccccccccccc",
 };
 
-static const char *const BR_PASTO[8] = {
-    "eeeeeeee", "eEeeeeEe", "ee.ee.ee", ".e...e..",
-    "..e.....", "........", "........", "........",
+static const char *const BR_PASTO[TILE] = {
+    "eeeeeeeeeeee", "eEeeeeeeeEee", "ee.ee.ee.eee", ".e...e...e..",
+    "..e.....e...", "............", "............", "............",
+    "............", "............", "............", "............",
 };
-static const char *const BR_TIERRA[8] = {
-    "hhhhhhhh", "hHhhhhHh", "hh.hh.hh", ".h...h..",
-    "........", "........", "........", "........",
+static const char *const BR_TIERRA[TILE] = {
+    "hhhhhhhhhhhh", "hHhhhhhhhHhh", "hh.hh.hh.hhh", ".h...h...h..",
+    "............", "............", "............", "............",
+    "............", "............", "............", "............",
 };
-static const char *const BR_ARENA[8] = {
-    "qqqqqqqq", "qQqqqqQq", "qq.qq.qq", ".q...q..",
-    "..q.....", "........", "........", "........",
+static const char *const BR_ARENA[TILE] = {
+    "qqqqqqqqqqqq", "qQqqqqqqqQqq", "qq.qq.qq.qqq", ".q...q...q..",
+    "..q.....q...", "............", "............", "............",
+    "............", "............", "............", "............",
 };
-static const char *const BR_NIEVE[8] = {
-    "GGGGGGGG", "GwGGGGwG", "GG.GG.GG", ".G...G..",
-    "..G.....", "........", "........", "........",
+static const char *const BR_NIEVE[TILE] = {
+    "GGGGGGGGGGGG", "GwGGGGGGGwGG", "GG.GG.GG.GGG", ".G...G...G..",
+    "..G.....G...", "............", "............", "............",
+    "............", "............", "............", "............",
 };
-static const char *const BR_GRAVA[8] = {
-    "GGGGGGGG", "GIGGGGIG", "GG.GG.GG", ".G...G..",
-    "........", "........", "........", "........",
+static const char *const BR_GRAVA[TILE] = {
+    "IIIIIIIIIIII", "IiIIIIIIIiII", "II.II.II.III", ".I...I...I..",
+    "............", "............", "............", "............",
+    "............", "............", "............", "............",
 };
-static const char *const BR_CIUDAD[8] = {
-    "pppppppp", "pPpppppP", "pp.pp.pp", "........",
-    "........", "........", "........", "........",
+static const char *const BR_CIUDAD[TILE] = {
+    "pppppppppppp", "pPpppppppPpp", "pp.pp.pp.ppp", "............",
+    "............", "............", "............", "............",
+    "............", "............", "............", "............",
 };
-static const char *const BR_VOLCAN[8] = {
-    "SSSSSSSS", "SsSSSSsS", "SS.SS.SS", ".S...S..",
-    "........", "........", "........", "........",
+static const char *const BR_VOLCAN[TILE] = {
+    "SSSSSSSSSSSS", "SsSSSSSSSsSS", "SS.SS.SS.SSS", ".S...S...S..",
+    "............", "............", "............", "............",
+    "............", "............", "............", "............",
 };
 
 static const tile_t TILES[] = {
     { ' ', 0,                       PX_PASTO,     PX_PASTO2,  5, BR_PASTO  },
     { '.', 0,                       PX_TIERRA,    PX_TIERRA2, 3, BR_TIERRA },
     { '"', T_ENCUENTRO,             PX_ALTO,      NULL       },
+    /* The town's extra ground. Nothing here changes the rules -none of them
+     * is solid and none of them triggers an encounter- and that is the point:
+     * a square that is one flat rectangle of the same green reads as a hole in
+     * the map, and it costs a table row to stop being one. */
+    { 'e', 0,                       PX_PASTO_C,   PX_PASTO_C2, 5, BR_PASTO  },
+    { 'v', 0,                       PX_FLORES,    PX_FLORES2,  5, BR_PASTO  },
+    { 'j', 0,                       PX_ADOQUIN,   NULL,        4 },
+    { 'i', 0,                       PX_LOSA,      NULL,        4 },
+    { 'W', 0,                       PX_PARQUET,   NULL,        9 },
     { '~', T_SOLIDO,                PX_AGUA,      NULL       },
     { '^', 0,                       PX_PUENTE,    NULL, 9       },
     { '=', T_SOLIDO,                PX_CERCA,     NULL, 9       },
@@ -380,11 +479,11 @@ bool ch_tile_corre(char t)
 void ch_tile_anim(ch_buf_t *b, char t, int tx, int ty, int fase)
 {
     const tile_t *d = buscar(t);
-    const char *rot[8];
+    const char *rot[TILE];
 
     if (!ch_tile_corre(t)) { ch_tile_draw(b, t, tx, ty); return; }
-    for (int i = 0; i < 8; i++) rot[i] = d->px[(i + fase) & 7];
-    ch_blit(b, tx * TILE, ty * TILE, rot, 8);
+    for (int i = 0; i < TILE; i++) rot[i] = d->px[(i + fase) % TILE];
+    ch_blit(b, tx * TILE, ty * TILE, rot, TILE);
 }
 
 
@@ -421,15 +520,15 @@ void ch_tile_anim(ch_buf_t *b, char t, int tx, int ty, int fase)
 static void borde_dibujar(ch_buf_t *b, int tx, int ty,
                           const char *const *fr, int lado)
 {
-    for (int r = 0; r < 8; r++) {
-        for (int c = 0; c < 8; c++) {
+    for (int r = 0; r < TILE; r++) {
+        for (int c = 0; c < TILE; c++) {
             char k;
             uint16_t col;
             switch (lado) {
-            case 1:  k = fr[7 - r][c];     break;   /* south                 */
-            case 2:  k = fr[c][r];         break;   /* west                  */
-            case 3:  k = fr[7 - c][r];     break;   /* east                  */
-            default: k = fr[r][c];         break;   /* north                 */
+            case 1:  k = fr[TILE - 1 - r][c];  break;   /* south             */
+            case 2:  k = fr[c][r];             break;   /* west              */
+            case 3:  k = fr[TILE - 1 - c][r];  break;   /* east              */
+            default: k = fr[r][c];             break;   /* north             */
             }
             if (ch_pal(k, &col)) ch_px(b, tx * TILE + c, ty * TILE + r, col);
         }
@@ -464,7 +563,7 @@ void ch_tile_draw(ch_buf_t *b, char t, int tx, int ty)
     if (d->px2 && (((tx * 7) ^ (ty * 13)) & 3) == 0) {
         px = d->px2;
     }
-    ch_blit(b, tx * TILE, ty * TILE, px, 8);
+    ch_blit(b, tx * TILE, ty * TILE, px, TILE);
 }
 
 /* --------------------------------------------------------------------------
@@ -478,357 +577,285 @@ void ch_tile_draw(ch_buf_t *b, char t, int tx, int ty)
 
 typedef struct {
     const char *const *px;
-    uint8_t            rows;    /* height in pixels (multiple of 8)          */
+    uint8_t            rows;    /* height in pixels                          */
     uint8_t            cw;      /* width in cells                            */
     uint8_t            solidas; /* rows of solid cells, from the bottom      */
 } propdef_t;
 
-static const char *const SP_ARBOL[24] = {
-    "......ffff......",
-    "....ffFFFFff....",
-    "...fFFFFFFFFf...",
-    "..fFFFFFFFFFFf..",
-    ".fFFFFvvFFFFFFf.",
-    ".fFFFvvvvFFFFFf.",
-    "fFFFFvvvvvFFFFFf",
-    "fFFFvvvvvvvFFFFf",
-    "fFFFFvvvvvFFFFFf",
-    "fFFFFFvvvFFFFFFf",
-    ".fFFFFFFFFFFFFf.",
-    ".fFFFFFFFFFFFFf.",
-    "..fFFFFFFFFFFf..",
-    "...ffFFFFFFff...",
-    "....ffFFFFff....",
-    "......fjjf......",
-    "......jjjj......",
-    "......jJJj......",
-    "......jJJj......",
-    "......jJJj......",
-    ".....jjJJjj.....",
-    "....jJJJJJJj....",
-    "...EJJJJJJJJE...",
-    "..EEEEEEEEEEEE..",
+static const char *const SP_ARBOL[36] = {
+    ".........ffffff.........", ".......ffFFFFFFff.......",
+    ".....fFFFFFFFFFFFFf.....", "....fFFFFFFFFFFFFFFf....",
+    "...fFFFFFvvFFFFFFFFFf...", "..fFFFFFvvvvFFFFFFFFFf..",
+    "..fFFFFvvvvvvFFFFFFFFf..", ".fFFFFFvvvvvvvFFFFFFFFf.",
+    ".fFFFFFFvvvvvFFFFFFFFFf.", "fFFFFFFFFvvvFFFFFFFFFFFf",
+    "fFFFFFFFFFFFFFFFFFFFFFFf", "fFFFFFFFFFFFFFFFFFFFFFFf",
+    "fFFFFFFFFFFFFFFFFFFFFFFf", ".fFFFFFFFFFFFFFFFFFFFFf.",
+    ".fFFFFFFFFFFFFFFFFFFFFf.", "..fFFFFFFFFFFFFFFFFFFf..",
+    "..fFFFFFFFFFFFFFFFFFFf..", "...fFFFFFFFFFFFFFFFFf...",
+    "....fFFFFFFFFFFFFFFf....", ".....ffFFFFFFFFFFff.....",
+    ".......ffFFFFFFff.......", ".........ffffff.........",
+    "..........jjjj..........", ".........jjJJjj.........",
+    ".........jJJJJj.........", ".........jJJJJj.........",
+    ".........jJJJJj.........", ".........jJJJJj.........",
+    ".........jJJJJj.........", ".........jJJJJj.........",
+    "........jjJJJJjj........", ".......jJJJJJJJJj.......",
+    "......jJJJJJJJJJJj......", "....EEJJJJJJJJJJJJEE....",
+    "..EEEEEEEEEEEEEEEEEEEE..", "........................",
 };
 
-static const char *const SP_CASA[24] = {
-    "........aaaaaaaaaaaaaa..........",
-    "......aaaaaaaaaaaaaaaaaa........",
-    "....aaaaaaaaaaaaaaaaaaaaaa......",
-    "..aaaaaaaaaaaaaaaaaaaaaaaaaa....",
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA..",
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA..",
-    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQ...",
-    ".QQQjjjjQQQQQQQQQQQjjjjQQQQQQ...",
-    ".QQQjccjQQQQQQQQQQQjccjQQQQQQ...",
-    ".QQQjccjQQQQQQQQQQQjccjQQQQQQ...",
-    ".QQQjjjjQQQQQQQQQQQjjjjQQQQQQ...",
-    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQjjjjjjQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQjJJJJjQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQjJJJJjQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQjJJyJjQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQjJJJJjQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQjJJJJjQQQQQQQQQQQ...",
-    ".QQQQQQQQQQQjJJJJjQQQQQQQQQQQ...",
-    ".JJJJJJJJJJJjJJJJjJJJJJJJJJJJ...",
-    "....EEEE....hhhhhh....EEEE......",
+static const char *const SP_CASA[36] = {
+    "............aaaaaaaaaaaaaaaaaaaa................", ".........aaaaaaaaaaaaaaaaaaaaaaaaaa.............",
+    "......aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..........", "...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.........",
+    ".aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.......", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA......",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA......", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA......",
+    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......", ".QQQjjjjjjQQQQQQQQQQQQQQQQjjjjjjQQQQQQQQQ.......",
+    ".QQQjccccjQQQQQQQQQQQQQQQQjccccjQQQQQQQQQ.......", ".QQQjccccjQQQQQQQQQQQQQQQQjccccjQQQQQQQQQ.......",
+    ".QQQjccccjQQQQQQQQQQQQQQQQjccccjQQQQQQQQQ.......", ".QQQjjjjjjQQQQQQQQQQQQQQQQjjjjjjQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQjjjjjjjjQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQjJJyyJJjQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......",
+    ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......", ".QQQQQQQQQQQQQQQjJJJJJJjQQQQQQQQQQQQQQQQQ.......",
+    ".JJJJJJJJJJJJJJJjJJJJJJjJJJJJJJJJJJJJJJJJ.......", ".JJJJJJJJJJJJJJJjJJJJJJjJJJJJJJJJJJJJJJJJ.......",
+    "......EEEEEE.......hhhhhhhh.......EEEEEE........", ".......EEEE.........hhhh...........EEEE.........",
 };
 
-static const char *const SP_TALLER[24] = {
-    "..IIIIIIIIIIIIIIIIIIIIIIIIII....",
-    ".IIIIIIIIIIIIIIIIIIIIIIIIIIII...",
-    "IIIIIIIIIIIIIIIIIIIIIIIIIIIIII..",
-    "iiiiiiiiiiiiiiiiiiiiiiiiiiiiii..",
-    "iiiiiiiiiiiiiiiiiiiiiiiiiiiiii..",
-    ".dddddddddddddddddddddddddddd...",
-    ".dyyyyyyyyyyyyyyyyyyyyyyyyyyd...",
-    ".dyyyyyyyyyyyyyyyyyyyyyyyyyyd...",
-    ".dddddddddddddddddddddddddddd...",
-    ".DDDDDDDDDDDDDDDDDDDDDDDDDDDD...",
-    ".DDDDccccDDDDDDDDDDDDccccDDDD...",
-    ".DDDDccccDDDDDDDDDDDDccccDDDD...",
-    ".DDDDccccDDDDDDDDDDDDccccDDDD...",
-    ".DDDDDDDDDDDDDDDDDDDDDDDDDDDD...",
-    ".DDDDDDDDDDDDDDDDDDDDDDDDDDDD...",
-    ".DDDDDDDDDDDKKKKKKDDDDDDDDDDD...",
-    ".DDDDDDDDDDDKddddKDDDDDDDDDDD...",
-    ".DDDDDDDDDDDKddddKDDDDDDDDDDD...",
-    ".DDDDDDDDDDDKddoiKDDDDDDDDDDD...",
-    ".DDDDDDDDDDDKddddKDDDDDDDDDDD...",
-    ".DDDDDDDDDDDKddddKDDDDDDDDDDD...",
-    ".DDDDDDDDDDDKddddKDDDDDDDDDDD...",
-    ".xxxxxxxxxxxKddddKxxxxxxxxxxx...",
-    "....IIII....dddddd....IIII......",
+static const char *const SP_TALLER[36] = {
+    "...DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD.........", "..DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD........",
+    ".DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD.......", "DDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDD......",
+    "DDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDdDDD......", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx......",
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx......", ".dddddddddddddddddddddddddddddddddddddddd.......",
+    ".dddddddddddddddddddddddddddddddddddddddd.......", ".dddDDDDDDdddddddddddddddddDDDDDDdddddddd.......",
+    ".dddDccccDdddddddddddddddddDccccDddddddddd......", ".dddDccccDdddddddddddddddddDccccDddddddddd......",
+    ".dddDDDDDDdddddddddddddddddDDDDDDddddddddd......", ".dddddddddddddddddddddddddddddddddddddddd.......",
+    ".dddddddddddddddddddddddddddddddddddddddd.......", ".dddddddddddddddddddddddddddddddddddddddd.......",
+    ".ddddddddoooooooooooooooooooooddddddddddd.......", ".ddddddddoOOOOOOOOOOOOOOOOOoddddddddddddd.......",
+    ".ddddddddoOxxxxxxxxxxxxxxxxxOoddddddddddd.......", ".ddddddddoOxDDDDDDDDDDDDDxOoddddddddddddd.......",
+    ".ddddddddoOxDDDDDDDDDDDDDxOoddddddddddddd.......", ".ddddddddoOxDDDDDDDDDDDDDxOoddddddddddddd.......",
+    ".ddddddddoOxDDDDDDDDDDDDDxOoddddddddddddd.......", ".ddddddddoOxDDDDDDDDDDDDDxOoddddddddddddd.......",
+    ".ddddddddoOxDDDDDDDDDDDDDxOoddddddddddddd.......", ".ddddddddoOxxxxxxxxxxxxxxxOoddddddddddddd.......",
+    ".ddddddddoOOOOOOOOOOOOOOOOOoddddddddddddd.......", ".ddddddddoooooooooooooooooooddddddddddddd.......",
+    ".dddddddddddddddddddddddddddddddddddddddd.......", ".dddddddddddddddddddddddddddddddddddddddd.......",
+    ".dddddddddddddddddddddddddddddddddddddddd.......", ".dddddddddddddddddddddddddddddddddddddddd.......",
+    ".KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK.......", ".KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK.......",
+    "......IIIIII.......IIIIIIII.......IIIIII........", ".......IIII.........IIII...........IIII.........",
 };
 
-static const char *const SP_FUENTE[14] = {
-    "......IIIIIIIIIIII......",
-    "....IIiiiiiiiiiiiiII....",
-    "..IIiiiiiiiiiiiiiiiiII..",
-    "..IiiillllllllllllliiI..",
-    "..IiilLLLLLLLLLLLLLliI..",
-    "..IiilLLLLLccLLLLLLliI..",
-    "..IiilLLLLLccLLLLLLliI..",
-    "..IiilLLLLLccLLLLLLliI..",
-    "..IiilLLLLLLLLLLLLLliI..",
-    "..IiiillllllllllllliiI..",
-    "..IIiiiiiiiiiiiiiiiiII..",
-    "....IIiiiiiiiiiiiiII....",
-    "......IIIIIIIIIIII......",
-    ".......IIIIIIIIII.......",
+static const char *const SP_FUENTE[22] = {
+    ".........IIIIIIIIIIIIIIIII..........", ".......IIiiiiiiiiiiiiiiiiiII........",
+    "....IIiiiiiiiiiiiiiiiiiiiiiiiII.....", "..IIiiiiiiiiiiiiiiiiiiiiiiiiiiiII...",
+    "..IiiiiillllllllllllllllllliiiiI....", "..IiiilLLLLLLLLLLLLLLLLLLLLLliiI....",
+    "..IiilLLLLLLLLLLLLLLLLLLLLLLLliI....", "..IiilLLLLLLLLcccLLLLLLLLLLLLliI....",
+    "..IiilLLLLLLLLcccLLLLLLLLLLLLliI....", "..IiilLLLLLLLLcccLLLLLLLLLLLLliI....",
+    "..IiilLLLLLLLLcccLLLLLLLLLLLLliI....", "..IiilLLLLLLLLLLLLLLLLLLLLLLLliI....",
+    "..IiiilLLLLLLLLLLLLLLLLLLLLliiiI....", "..IiiiiillllllllllllllllllliiiiI....",
+    "..IIiiiiiiiiiiiiiiiiiiiiiiiiiiiII...", "....IIiiiiiiiiiiiiiiiiiiiiiiiII.....",
+    ".......IIiiiiiiiiiiiiiiiiiII........", ".........IIIIIIIIIIIIIIIII..........",
+    "..........IIIIIIIIIIIIIII...........", "...........IIIIIIIIIIIII............",
+    "............IIIIIIIIIII.............", "..............sssssss...............",
 };
 
-static const char *const SP_CARTEL[10] = {
-    "...jjjjjjjjjj...",
-    "..jGGGGGGGGGGj..",
-    "..jGkkkkkkkkGj..",
-    "..jGkGGGGGGkGj..",
-    "..jGkkkkkkkkGj..",
-    "..jGGGGGGGGGGj..",
-    "...jjjjjjjjjj...",
-    ".......jj.......",
-    ".......jj.......",
-    "......JJJJ......",
+static const char *const SP_CARTEL[14] = {
+    "....jjjjjjjjjjjjjj......", "...jGGGGGGGGGGGGGGj.....",
+    "...jGkkkkkkkkkkkkGj.....", "...jGkGGGGGGGGGGkGj.....",
+    "...jGkGGGGGGGGGGkGj.....", "...jGkkkkkkkkkkkkGj.....",
+    "...jGGGGGGGGGGGGGGj.....", "....jjjjjjjjjjjjjj......",
+    ".........jjjj...........", ".........jjjj...........",
+    ".........jjjj...........", ".........jjjj...........",
+    "........JJJJJJ..........", ".......JJJJJJJJ.........",
 };
 
-static const char *const SP_FAROLA[16] = {
-    "..yyyy..",
-    ".yywwyy.",
-    "yywwwwyy",
-    "yywwwwyy",
-    ".yywwyy.",
-    "..dddd..",
-    "...dd...",
-    "...dd...",
-    "...dd...",
-    "...dd...",
-    "...dd...",
-    "...dd...",
-    "...dd...",
-    "...dd...",
-    "..dddd..",
-    ".dddddd.",
+static const char *const SP_FAROLA[24] = {
+    "...yyyyyy...", "..yywwwwyy..",
+    ".yywwwwwwyy.", "yywwwwwwwwyy",
+    "yywwwwwwwwyy", "yywwwwwwwwyy",
+    ".yywwwwwwyy.", "..yyyyyyyy..",
+    "....dddd....", "....dddd....",
+    ".....dd.....", ".....dd.....",
+    ".....dd.....", ".....dd.....",
+    ".....dd.....", ".....dd.....",
+    ".....dd.....", ".....dd.....",
+    ".....dd.....", ".....dd.....",
+    ".....dd.....", "....dddd....",
+    "...dddddd...", "..dddddddd..",
 };
 
-static const char *const SP_MAQUINA[16] = {
-    "xxxxxxxxxxxxxxxx",
-    "xKKKKKKKKKKKKKKx",
-    "xKddddddddddddKx",
-    "xKdcccccccccddKx",
-    "xKdcCCCCCCCcddKx",
-    "xKdcCCCCCCCcddKx",
-    "xKdcccccccccddKx",
-    "xKddddddddddddKx",
-    "xKdrrddddddggdKx",
-    "xKdrrddddddggdKx",
-    "xKddddddddddddKx",
-    "xKdyyyyyyyyyydKx",
-    "xKdYYYYYYYYYYdKx",
-    "xKddddddddddddKx",
-    "xKKKKKKKKKKKKKKx",
-    "xxxxxxxxxxxxxxxx",
+static const char *const SP_MAQUINA[24] = {
+    "xxxxxxxxxxxxxxxxxxxxxxxx", "xKKKKKKKKKKKKKKKKKKKKKKx",
+    "xKddddddddddddddddddddKx", "xKdDDDDDDDDDDDDDDDDDDdKx",
+    "xKdDccccccccccccccccDdKx", "xKdDcCCCCCCCCCCCCCCcDdKx",
+    "xKdDcCCCCCCCCCCCCCCcDdKx", "xKdDcCCwwwwwwwwwwCCcDdKx",
+    "xKdDcCCwCCCCCCCCwCCcDdKx", "xKdDcCCCCCCCCCCCCCCcDdKx",
+    "xKdDccccccccccccccccDdKx", "xKdDDDDDDDDDDDDDDDDDDdKx",
+    "xKddddddddddddddddddddKx", "xKddrrddddddddddddggddKx",
+    "xKddrRddddddddddddgGddKx", "xKddddddddddddddddddddKx",
+    "xKdyyyyyyyyyyyyyyyyyydKx", "xKdYYYYYYYYYYYYYYYYYYdKx",
+    "xKddddddddddddddddddddKx", "xKdDDDDDDDDDDDDDDDDDDdKx",
+    "xKddddddddddddddddddddKx", "xKKKKKKKKKKKKKKKKKKKKKKx",
+    "xxxxxxxxxxxxxxxxxxxxxxxx", "........................",
 };
 
-static const char *const SP_PILA[16] = {
-    "................",
-    "................",
-    "................",
-    "................",
-    ".....ggGg.......",
-    "...ggGGGGg......",
-    "..gGdddddGg.uu..",
-    ".gGdddddddGguUu.",
-    ".gddUUUdddgguUu.",
-    "gGdUUUUUddGg.u..",
-    "gddUUUUUdddg....",
-    "gdddddddddgg....",
-    "ggdddddddgg.....",
-    ".gggggggggg.....",
-    "..IIIIIIII......",
-    "................",
+static const char *const SP_PILA[24] = {
+    "........................", "........................",
+    "........................", "...........gg...........",
+    "..........gddg..........", ".........gdUUdg.........",
+    ".........gdUUdg.....uu..", "........gdUUUudg....uUu.",
+    ".......gdUUUuUUdg...uUu.", ".......gdUUuUUUdg...uu..",
+    "......gdUUuUUUUudg......", ".....gdUUuUUUUuUUdg.....",
+    ".....gdUuUUUUuUUUdg.....", "....gdUuUUUUuUUUUudg....",
+    "...gdUuUUUUuUUUUuUUdg...", "...gduUUUUuUUUUuUUUdg...",
+    "..gduUUUUuUUUUuUUUUudg..", ".gduUUUUuUUUUuUUUUuUUdg.",
+    "gduUUUUuUUUUuUUUUuUUUUdg", "gdUUUUuUUUUuUUUUuUUUUudg",
+    "gdUUUuUUUUuUUUUuUUUUuUdg", "gIIIIIIIIIIIIIIIIIIIIIIg",
+    "........................", "........................",
 };
 
-static const char *const SP_PINO[24] = {
-    ".......ff.......",
-    "......ffff......",
-    "......fFFf......",
-    ".....ffFFff.....",
-    ".....fFFFFf.....",
-    "....ffFFFFff....",
-    "....fFFFFFFf....",
-    "...ffFFFFFFff...",
-    "...fFFFFFFFFf...",
-    "..ffFFFFFFFFff..",
-    "..fFFFFFFFFFFf..",
-    ".ffFFFFFFFFFFff.",
-    ".fFFFFFFFFFFFFf.",
-    "ffFFFFFFFFFFFFff",
-    "fFFFFFFFFFFFFFFf",
-    ".ffFFFFFFFFFFff.",
-    "..ffffffffffff..",
-    "......jjjj......",
-    "......jJJj......",
-    "......jJJj......",
-    "......jJJj......",
-    ".....jjJJjj.....",
-    "....GGGGGGGG....",
-    "...GGGGGGGGGG...",
+static const char *const SP_PINO[36] = {
+    "..........ffff..........", "..........fFFf..........",
+    "..........fFFf..........", ".........fFFFFf.........",
+    ".........fFFFFf.........", "........ffFFFFff........",
+    ".........ffFFff.........", "........fFFFFFFf........",
+    ".......fFFFFFFFFf.......", ".......fFFFFFFFFf.......",
+    "......fFFFFFFFFFFf......", "......fFFFFFFFFFFf......",
+    ".......fFFFFFFFFf.......", ".....fFFFFFFFFFFFFf.....",
+    ".....fFFFFFFFFFFFFf.....", "....fFFFFFFFFFFFFFFf....",
+    "....fFFFFFFFFFFFFFFf....", "...ffFFFFFFFFFFFFFFff...",
+    "....ffFFFFFFFFFFFFff....", "...fFFFFFFFFFFFFFFFFf...",
+    "..fFFFFFFFFFFFFFFFFFFf..", "..fFFFFFFFFFFFFFFFFFFf..",
+    ".fFFFFFFFFFFFFFFFFFFFFf.", ".fFFFFFFFFFFFFFFFFFFFFf.",
+    "..fFFFFFFFFFFFFFFFFFFf..", "fFFFFFFFFFFFFFFFFFFFFFFf",
+    "....ffffffffffffffff....", "......ffffffffffff......",
+    "..........jJJj..........", "..........jJJj..........",
+    "..........jJJj..........", "..........jJJj..........",
+    "..........jJJj..........", "........jjJJJJjj........",
+    ".......EEEEEEEEEE.......", "........................",
 };
 
-static const char *const SP_TORRE[24] = {
-    "......gggg......",
-    ".....g....g.....",
-    ".....g....g.....",
-    "....gggggggg....",
-    "....g......g....",
-    "....g.gggg.g....",
-    "....g......g....",
-    "...gggggggggg...",
-    "...g........g...",
-    "...g..gggg..g...",
-    "...g........g...",
-    "..gggggggggggg..",
-    "..g..........g..",
-    "..g...gggg...g..",
-    "..g..........g..",
-    ".gggggggggggggg.",
-    ".g............g.",
-    ".g...gggggg...g.",
-    ".g............g.",
-    "gggggggggggggggg",
-    "g..............g",
-    "g..............g",
-    "II............II",
-    "IIIIIIIIIIIIIIII",
+static const char *const SP_TORRE[36] = {
+    "...........GG...........", "........Dg....gD........",
+    "........DgDDDDgD........", "......GGGGGGGGGGGG......",
+    "........Dg.dd.gD........", ".......Dg......gD.......",
+    ".......Dg......gD.......", ".......DgDDDDDDgD.......",
+    "....GGGGGGGGGGGGGGGG....", "......Dg..d..d..gD......",
+    "......Dg........gD......", "......Dg........gD......",
+    "......DgDDDDDDDDgD......", ".....Dg..........gD.....",
+    ".....Dgd..d..d..dgD.....", ".....Dg..........gD.....",
+    ".....Dg..........gD.....", "....DgDDDDDDDDDDDDgD....",
+    "....Dg............gD....", "....Dg.d..d..d..d.gD....",
+    "....Dg............gD....", "...Dg..............gD...",
+    "...DgDDDDDDDDDDDDDDgD...", "...Dg..............gD...",
+    "...Dg..d..d..d..d..gD...", "..Dg................gD..",
+    "..Dg................gD..", "..DgDDDDDDDDDDDDDDDDgD..",
+    "..Dg................gD..", ".Dgd.dd.dd.dd.dd.dd.dgD.",
+    "gDDDDDDDDDDDDDDDDDDDDDDg", "gddddddddddddddddddddddg",
+    "..IIIIIIIIIIIIIIIIIIII..", "...IIIIIIIIIIIIIIIIII...",
+    "........................", "........................",
 };
 
-static const char *const SP_ESTATUA[24] = {
-    "......IIII......",
-    ".....IiiiiI.....",
-    ".....IiwwiI.....",
-    ".....IiiiiI.....",
-    "......IiiI......",
-    ".....IIIIII.....",
-    "....IiiiiiiI....",
-    "...IiiiiiiiiI...",
-    "...IiiIIIIiiI...",
-    "...IiiIiiIiiI...",
-    "...IiiIiiIiiI...",
-    "...IiiiiiiiiI...",
-    "....IiiiiiiI....",
-    "....IiiIIiiI....",
-    "....IiiIIiiI....",
-    "....IiiIIiiI....",
-    "...IIiiIIiiII...",
-    "..IIIIIIIIIIII..",
-    "..IiiiiiiiiiiI..",
-    "..IiiiiiiiiiiI..",
-    ".IIIIIIIIIIIIII.",
-    ".IiiiiiiiiiiiiI.",
-    "IIIIIIIIIIIIIIII",
-    "IIIIIIIIIIIIIIII",
+static const char *const SP_ESTATUA[36] = {
+    "........gggggg..........", ".......gGGGGGGg.........",
+    "......gGGGGGGGGg........", "......gGGccccGGg........",
+    "......gGGccccGGg........", "......gGGGGGGGGg........",
+    ".......gGGGGGGg.........", "........gGGGGg..........",
+    ".........gGGg...........", "......gggGGGGggg........",
+    ".....gGGGGGGGGGGg.......", "....gGGGGGGGGGGGGg......",
+    "...gGGGGGGGGGGGGGGg.....", "...gGGGGGGGGGGGGGGg.....",
+    "..gGGGGGGGGGGGGGGGGg....", "..gGGGGGGGGGGGGGGGGg....",
+    "..gGGGGGGGGGGGGGGGGg....", "...gGGGGGGGGGGGGGGg.....",
+    "...gGGGGGGGGGGGGGGg.....", "....gGGGGGGGGGGGGg......",
+    ".....gGGGGgggGGGGg......", ".....gGGGg...gGGGg......",
+    ".....gGGGg...gGGGg......", ".....gGGGg...gGGGg......",
+    "....gGGGGg...gGGGGg.....", "....gGGGGg...gGGGGg.....",
+    "...ggggggg..ggggggg.....", "..IIIIIIIIIIIIIIIIII....",
+    "..IiiiiiiiiiiiiiiiII....", "..IiIIIIIIIIIIIIIiII....",
+    "..IiiiiiiiiiiiiiiiII....", ".IIIIIIIIIIIIIIIIIIII...",
+    ".IiiiiiiiiiiiiiiiiiII...", ".IIIIIIIIIIIIIIIIIIII...",
+    "........................", "........................",
 };
 
-static const char *const SP_SERVIDOR[24] = {
-    "................",
-    "..kkkkkkkkkkkk..",
-    "..kxxxxxxxxxxk..",
-    "..kxnnnnnnnnxk..",
-    "..kxnKKKKKKnxk..",
-    "..kxnKvKKvKnxk..",
-    "..kxnKKKKKKnxk..",
-    "..kxnnnnnnnnxk..",
-    "..kxxxxxxxxxxk..",
-    "..kxnnnnnnnnxk..",
-    "..kxnKvKKvKnxk..",
-    "..kxnKKKKKKnxk..",
-    "..kxnnnnnnnnxk..",
-    "..kxxxxxxxxxxk..",
-    "..kxnnnnnnnnxk..",
-    "..kxnKKvvKKnxk..",
-    "..kxnnnnnnnnxk..",
-    "..kxxxxxxxxxxk..",
-    "..kxxxxxxxxxxk..",
-    "..kkkkkkkkkkkk..",
-    "..dddddddddddd..",
-    "..dddddddddddd..",
-    ".dddddddddddddd.",
-    "................",
+static const char *const SP_SERVIDOR[36] = {
+    ".kkkkkkkkkkkkkkkkkkkkkk.", ".KKKKKKKKKKKKKKKKKKKKKK.",
+    ".KxxxxxxxxxxxxxxxxxxxxK.", ".KxddddrkrkkddddddddGxK.",
+    ".KxDDDDDDDDDDDDDDDDDDxK.", ".KxxxxxxxxxxxxxxxxxxxxK.",
+    ".KxddddvkvkkddddddddGxK.", ".KxDDDDDDDDDDDDDDDDDDxK.",
+    ".KxxxxxxxxxxxxxxxxxxxxK.", ".KxddddvkvkkddddddddGxK.",
+    ".KxDDDDDDDDDDDDDDDDDDxK.", ".KxxxxxxxxxxxxxxxxxxxxK.",
+    ".KxddddrkrkkddddddddGxK.", ".KxDDDDDDDDDDDDDDDDDDxK.",
+    ".KxxxxxxxxxxxxxxxxxxxxK.", ".KxddddvkvkkddddddddGxK.",
+    ".KxDDDDDDDDDDDDDDDDDDxK.", ".KxxxxxxxxxxxxxxxxxxxxK.",
+    ".KxddddvkvkkddddddddGxK.", ".KxDDDDDDDDDDDDDDDDDDxK.",
+    ".KxxxxxxxxxxxxxxxxxxxxK.", ".KxddddrkrkkddddddddGxK.",
+    ".KxDDDDDDDDDDDDDDDDDDxK.", ".KxxxxxxxxxxxxxxxxxxxxK.",
+    ".KxddddvkvkkddddddddGxK.", ".KxDDDDDDDDDDDDDDDDDDxK.",
+    ".KxxxxxxxxxxxxxxxxxxxxK.", ".KxddddvkvkkddddddddGxK.",
+    ".KxDDDDDDDDDDDDDDDDDDxK.", ".KxxxxxxxxxxxxxxxxxxxxK.",
+    ".KxxxxxxxxxxxxxxxxxxxxK.", ".KKKKKKKKKKKKKKKKKKKKKK.",
+    ".KKKKKKKKKKKKKKKKKKKKKK.", ".kkkkkkkkkkkkkkkkkkkkkk.",
+    "kkkkkkkkkkkkkkkkkkkkkkkk", "........................",
 };
 
-static const char *const SP_HORNO[24] = {
-    "................................",
-    "......IIIIIIIIIIIIIIIIIIII......",
-    ".....IIIIIIIIIIIIIIIIIIIIII.....",
-    "....IIiiiiiiiiiiiiiiiiiiiiII....",
-    "....IiiiiiiiiiiiiiiiiiiiiiiI....",
-    "....IiixxxxxxxxxxxxxxxxxxiiI....",
-    "....IiixOOOOOOOOOOOOOOOOxiiI....",
-    "....IiixOooooooooooooooOxiiI....",
-    "....IiixOoyyyyyyyyyyyyoOxiiI....",
-    "....IiixOoyywwwwwwwwyyoOxiiI....",
-    "....IiixOoyywwwwwwwwyyoOxiiI....",
-    "....IiixOoyyyyyyyyyyyyoOxiiI....",
-    "....IiixOooooooooooooooOxiiI....",
-    "....IiixOOOOOOOOOOOOOOOOxiiI....",
-    "....IiixxxxxxxxxxxxxxxxxxiiI....",
-    "....IiiiiiiiiiiiiiiiiiiiiiiI....",
-    "....IiiIIIIiiiiiiiiIIIIiiiiI....",
-    "....IiiIuuIiiiiiiiIuuIiiiiiI....",
-    "....IiiIuuIiiiiiiiIuuIiiiiiI....",
-    "....IiiIIIIiiiiiiiiIIIIiiiiI....",
-    "....IiiiiiiiiiiiiiiiiiiiiiiI....",
-    "...IIIIIIIIIIIIIIIIIIIIIIIIII...",
-    "...IIIIIIIIIIIIIIIIIIIIIIIIII...",
-    "................................",
+static const char *const SP_HORNO[36] = {
+    "................................................", "................................................",
+    "....AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA....", "...AaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA...",
+    "...AaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaA...", "...AaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA...",
+    "...AaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA...", "...AaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA...",
+    "...AaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaA...", "...AaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA...",
+    "...AaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA...", "...AaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA...",
+    "...AaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaA...", "...AaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA...",
+    "...AaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA...", "...AaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA...",
+    "...AaaaaaaaaaaAkkkkOOooyyooOOkkkkAaaaaaaaaaaA...", "...AaaaaaaaaaaAkkOOooyyyyyyooOOkkAaaaaaaaaaaA...",
+    "...AaaaaaaaaaaAOOooyyyyyyyyyyooOOAaaaaaaaaaaA...", "...AaaaaaaaaaaAOooyyyyyyyyyyyyooOAaaaaaaaaaaA...",
+    "...AaaaaaaaaaaAOooyyyyyyyyyyyyooOAaaaaaaaaaaA...", "...AaaaaaaaaaaAOooyyyyyyyyyyyyooOAaaaaaaaaaaA...",
+    "...AaaaaaaaaaaAOooyyyyyyyyyyyyooOAaaaaaaaaaaA...", "...AaaaaaaaaaaAOooyyyyyyyyyyyyooOAaaaaaaaaaaA...",
+    "...AaaaaaaaaaaAOooyyyyyyyyyyyyooOAaaaaaaaaaaA...", "...AaaaaaaaaaaAOooyyyyyyyyyyyyooOAaaaaaaaaaaA...",
+    "...AaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA...", "...AaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA...",
+    "...AaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA...", "...AaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA...",
+    "...AaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA...", "...AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...",
+    "..IIiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiII..", "..IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII..",
+    ".IIIiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiIII.", ".IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII.",
 };
 
-static const char *const SP_BARCO[24] = {
-    "................................",
-    "..............jj................",
-    "..............jj................",
-    ".............Gjj................",
-    "...........GGGjj................",
-    ".........GGGGGjj................",
-    ".......GGGGGGGjj................",
-    ".....GGGGGGGGGjj................",
-    "...GGGGGGGGGGGjj................",
-    "...GGGGGGGGGGGjj................",
-    ".....GGGGGGGGGjj................",
-    ".......GGGGGGGjj................",
-    "..............jj................",
-    "..............jj................",
-    "..jjjjjjjjjjjjjjjjjjjjjjjjjjjj..",
-    ".jJJJJJJJJJJJJJJJJJJJJJJJJJJJJj.",
-    ".jJuuJJJJJJJJJJJJJJJJJJJJuuJJJj.",
-    ".jJJJJJJJJJJJJJJJJJJJJJJJJJJJJj.",
-    "..jJJJJJJJJJJJJJJJJJJJJJJJJJJj..",
-    "...jjJJJJJJJJJJJJJJJJJJJJJJjj...",
-    ".....jjjJJJJJJJJJJJJJJJJjjj.....",
-    "........jjjjjjjjjjjjjjjj........",
-    "................................",
-    "................................",
+static const char *const SP_BARCO[36] = {
+    "................................................", "................................................",
+    "................................................", "................................................",
+    "................................................", "................................................",
+    ".....................gg.........................", ".....................gD.........................",
+    "...............gGGGGGGGGGGGGG...................", "...............guuuuuuuuuuuuu...................",
+    ".....................gD.........................", ".....................gD.........................",
+    ".....................gD.........................", ".....................gD.........................",
+    "............gddddddddddddddg....................", "............gddcccddcccddddg....................",
+    "............gddddddddddddddg....................", "............gDDDDDDDDDDDDDDg....................",
+    "..guuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuug..", "..gUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUg..",
+    "..guuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuug..", "..gddddddddddddddddddddddddddddddddddddddddddg..",
+    "..guuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuug..", "....gUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUg....",
+    "......guuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuug......", "........gUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUg........",
+    "..........guuuuuuuuuuuuuuuuuuuuuuuuuug..........", "............gUUUUUUUUUUUUUUUUUUUUUUg............",
+    "..............guuuuuuuuuuuuuuuuuug..............", "................gUUUUUUUUUUUUUUg................",
+    "..................guuuuuuuuuug..................", "....................gUUUUUUg....................",
+    "......................gg........................", "................................................",
+    "................................................", "................................................",
 };
 
 static const propdef_t PROPS[] = {
     /* sprite      height width  solid rows */
-    { SP_ARBOL,      24,   2,   2 },   /* 0 tree: you pass behind it at the top */
-    { SP_CASA,       24,   4,   3 },   /* 1 house                            */
-    { SP_TALLER,     24,   4,   3 },   /* 2 workshop                         */
-    { SP_FUENTE,     14,   3,   2 },   /* 3 fountain                         */
-    { SP_CARTEL,     10,   2,   1 },   /* 4 sign                             */
-    { SP_FAROLA,     16,   1,   1 },   /* 5 street lamp                      */
-    { SP_MAQUINA,    16,   2,   2 },   /* 6 machine                          */
-    { SP_PILA,       16,   2,   1 },   /* 7 scrap pile                       */
-    { SP_PINO,       24,   2,   2 },   /* 8 pine                             */
-    { SP_TORRE,      24,   2,   2 },   /* 9 pylon                            */
-    { SP_ESTATUA,    24,   2,   3 },   /* 10 statue                          */
-    { SP_SERVIDOR,   24,   2,   3 },   /* 11 server                          */
-    { SP_HORNO,      24,   4,   3 },   /* 12 furnace                         */
-    { SP_BARCO,      24,   4,   3 },   /* 13 ship                            */
+    { SP_ARBOL, 36, 2, 2 },   /* 0 tree: you pass behind it at the top */
+    { SP_CASA, 36, 4, 3 },   /* 1 house                            */
+    { SP_TALLER, 36, 4, 3 },   /* 2 workshop                         */
+    { SP_FUENTE, 22, 3, 2 },   /* 3 fountain                         */
+    { SP_CARTEL, 14, 2, 1 },   /* 4 sign                             */
+    { SP_FAROLA, 24, 1, 1 },   /* 5 street lamp                      */
+    { SP_MAQUINA, 24, 2, 2 },   /* 6 machine                          */
+    { SP_PILA, 24, 2, 1 },   /* 7 scrap pile                       */
+    { SP_PINO, 36, 2, 2 },   /* 8 pine                             */
+    { SP_TORRE, 36, 2, 2 },   /* 9 pylon                            */
+    { SP_ESTATUA, 36, 2, 3 },   /* 10 statue                          */
+    { SP_SERVIDOR, 36, 2, 3 },   /* 11 server                          */
+    { SP_HORNO, 36, 4, 3 },   /* 12 furnace                         */
+    { SP_BARCO, 36, 4, 3 },   /* 13 ship                            */
 };
 
 #define NPROPS  ((int)(sizeof(PROPS) / sizeof(PROPS[0])))
@@ -852,7 +879,8 @@ void ch_prop_draw(ch_buf_t *b, const ch_prop_t *pr)
      * this size reads as an ellipse without being one. */
     {
         int w = d->cw * TILE;
-        int y = (pr->y + (d->rows + TILE - 1) / TILE) * TILE - 2;
+        int alto = d->rows;                 /* the art IS at the panel's size */
+        int y = pr->y * TILE + alto - 3;
         int x = pr->x * TILE;
         for (int k = 0; k < 3; k++) {
             int m = 1 + k * 2;          /* each row a little narrower        */
@@ -863,6 +891,233 @@ void ch_prop_draw(ch_buf_t *b, const ch_prop_t *pr)
     }
 
     ch_blit(b, pr->x * TILE, pr->y * TILE, d->px, d->rows);
+}
+
+/* --------------------------------------------------------------------------
+ * THE FURNITURE AND THE ANIMALS
+ *
+ * The furniture is what makes a room a place instead of a floor with an exit.
+ * All of it is an entity, so all of it can be touched, and the table below is
+ * the only thing that knows how big each piece is: the sprite's height is
+ * whatever the drawing needed and the WIDTH in cells is what has to be right,
+ * which is the lesson the props batch left.
+ * -------------------------------------------------------------------------- */
+
+static const char *const MU_MESA_PX[18] = {
+    "........................", "..jjjjjjjjjjjjjjjjjjjj..",
+    ".jJJJJJJJJJJJJJJJJJJJJj.", ".jJwwwwwwwwwwwwwwwwwwJj.",
+    ".jJwGGGGGGGGGGGGGGGGwJj.", ".jJwGGGGGGGGGGGGGGGGwJj.",
+    ".jJwwwwwwwwwwwwwwwwwwJj.", ".jJJJJJJJJJJJJJJJJJJJJj.",
+    "..jjjjjjjjjjjjjjjjjjjj..", "...JJ..............JJ...",
+    "...jJ..............Jj...", "...jJ..............Jj...",
+    "...jJ..............Jj...", "...jJ..............Jj...",
+    "...jJ..............Jj...", "...JJ..............JJ...",
+    "..jjjj............jjjj..", "........................",
+};
+
+static const char *const MU_SILLA_PX[20] = {
+    "............", "..jjjjjjjj..",
+    "..jJJJJJJj..", "..jJttttJj..",
+    "..jJttttJj..", "..jJJJJJJj..",
+    "..jjjjjjjj..", "............",
+    ".jjjjjjjjjj.", ".jJJJJJJJJj.",
+    ".jttttttttj.", ".jJJJJJJJJj.",
+    ".jjjjjjjjjj.", "..J......J..",
+    "..j......j..", "..j......j..",
+    "..j......j..", "..j......j..",
+    ".jj......jj.", "............",
+};
+
+static const char *const MU_ESTANTE_PX[32] = {
+    "jJJJJJJJJJJJJJJJJJJJJJJj", "jJkkkkkkkkkkkkkkkkkkkkJj",
+    "jJkrrkbbkvvkyykmmkcckrJj", "jJkrrkbbkvvkyykmmkcckrJj",
+    "jJkrrkbbkvvkyykmmkcckrJj", "jJkrrkbbkvvkyykmmkcckrJj",
+    "jJkkkkkkkkkkkkkkkkkkkkJj", "jjjjjjjjjjjjjjjjjjjjjjjj",
+    "jJJJJJJJJJJJJJJJJJJJJJJj", "jJkkkkkkkkkkkkkkkkkkkkJj",
+    "jJkcckyykrrkGGkbbkvvkcJj", "jJkcckyykrrkGGkbbkvvkcJj",
+    "jJkcckyykrrkGGkbbkvvkcJj", "jJkcckyykrrkGGkbbkvvkcJj",
+    "jJkkkkkkkkkkkkkkkkkkkkJj", "jjjjjjjjjjjjjjjjjjjjjjjj",
+    "jJJJJJJJJJJJJJJJJJJJJJJj", "jJkkkkkkkkkkkkkkkkkkkkJj",
+    "jJkmmkvvkcckyykrrkbbkmJj", "jJkmmkvvkcckyykrrkbbkmJj",
+    "jJkmmkvvkcckyykrrkbbkmJj", "jJkmmkvvkcckyykrrkbbkmJj",
+    "jJkkkkkkkkkkkkkkkkkkkkJj", "jjjjjjjjjjjjjjjjjjjjjjjj",
+    "jJJJJJJJJJJJJJJJJJJJJJJj", "jJkkkkkkkkkkkkkkkkkkkkJj",
+    "jJkyykcckmmkbbkvvkrrkyJj", "jJkyykcckmmkbbkvvkrrkyJj",
+    "jJkyykcckmmkbbkvvkrrkyJj", "jJkyykcckmmkbbkvvkrrkyJj",
+    "jJkkkkkkkkkkkkkkkkkkkkJj", "jjjjjjjjjjjjjjjjjjjjjjjj",
+};
+
+static const char *const MU_COMPU_PX[22] = {
+    "............", ".kkkkkkkkkk.",
+    ".kGGGGGGGGk.", ".kGcccccCGk.",
+    ".kGcwwwccGk.", ".kGccccccGk.",
+    ".kGcCCcccGk.", ".kGccccccGk.",
+    ".kGGGGGGGGk.", ".kkkkkkkkkk.",
+    "....kddk....", "....kddk....",
+    "..kkkkkkkk..", "..kddddddk..",
+    "..kkkkkkkk..", "............",
+    ".KKKKKKKKKK.", ".KGGGGGGGGK.",
+    ".KGkkkkkkGK.", ".KGGGGGGGGK.",
+    ".KKKKKKKKKK.", "............",
+};
+
+static const char *const MU_PLANTA_PX[24] = {
+    "............", "......v.....",
+    ".....vvv....", "....vvvvv...",
+    "...vvVvvvv..", "..vvVVvVVvv.",
+    ".vvVVvvvVVv.", "..vvVvvvVv..",
+    "...vvvVvvv..", "....vvvvv...",
+    "..vvvvVvvvv.", ".vvVvvvvvVv.",
+    "..vvvvvvvv..", "...vvvVvv...",
+    "....vvvv....", ".....vv.....",
+    "....tttttt..", "...tttttttt.",
+    "...tTTTTTTt.", "...tTttttTt.",
+    "...tTTTTTTt.", "....tttttt..",
+    ".....tttt...", "............",
+};
+
+static const char *const MU_VASIJA_PX[18] = {
+    "............", "............",
+    ".....tt.....", "....tTTt....",
+    "...ttTTtt...", "...tTTTTt...",
+    "..ttTTTTtt..", "..tTTuuTTt..",
+    ".ttTuuuuTtt.", ".tTTuuuuTTt.",
+    ".tTTTuuTTTt.", ".tTTTTTTTTt.",
+    "..tTTTTTTt..", "..ttTTTTtt..",
+    "...ttTTtt...", "....tttt....",
+    "............", "............",
+};
+
+static const char *const MU_CUADRO_PX[14] = {
+    "jjjjjjjjjjjj", "jJJJJJJJJJJj",
+    "jJllllllllJj", "jJlllcllllJj",
+    "jJllccclllJj", "jJlcccccllJj",
+    "jJllvvvvvlJj", "jJlvvvvvvvJj",
+    "jJvvvVVvvvJj", "jJJJJJJJJJJj",
+    "jjjjjjjjjjjj", "............",
+    "............", "............",
+};
+
+static const char *const MU_CAMA_PX[30] = {
+    "jjjjjjjjjjjjjjjjjjjjjjjj", "jJJJJJJJJJJJJJJJJJJJJJJj",
+    "jJwwwwwwwwwwwwwwwwwwwwJj", "jJwGGGGGGGGGGGGGGGGGGwJj",
+    "jJwGGGGGGGGGGGGGGGGGGwJj", "jJwwwwwwwwwwwwwwwwwwwwJj",
+    "jJJJJJJJJJJJJJJJJJJJJJJj", "jjjjjjjjjjjjjjjjjjjjjjjj",
+    "jJbbbBBBbbbBBBbbbBBBbbJj", "jJbbbBBBbbbBBBbbbBBBbbJj",
+    "jJbbbBBBbbbBBBbbbBBBbbJj", "jJBBBbbbBBBbbbBBBbbbBBJj",
+    "jJBBBbbbBBBbbbBBBbbbBBJj", "jJBBBbbbBBBbbbBBBbbbBBJj",
+    "jJbbbBBBbbbBBBbbbBBBbbJj", "jJbbbBBBbbbBBBbbbBBBbbJj",
+    "jJbbbBBBbbbBBBbbbBBBbbJj", "jJJJJJJJJJJJJJJJJJJJJJJj",
+    "jjjjjjjjjjjjjjjjjjjjjjjj", ".jJ..................Jj.",
+    ".jJ..................Jj.", ".jJ..................Jj.",
+    ".jJ..................Jj.", ".jJ..................Jj.",
+    ".jJ..................Jj.", "jjjj................jjjj",
+    "........................", "........................",
+    "........................", "........................",
+};
+
+static const char *const MU_BANCO_PX[18] = {
+    "........................", "..IIIIIIIIIIIIIIIIIIII..",
+    ".IiiiiiiiiiiiiiiiiiiiiI.", ".IiIIIIIIIIIIIIIIIIIIiI.",
+    ".IiiiiiiiiiiiiiiiiiiiiI.", "..IIIIIIIIIIIIIIIIIIII..",
+    "........................", "..jjjjjjjjjjjjjjjjjjjj..",
+    ".jJJJJJJJJJJJJJJJJJJJJj.", ".jjjjjjjjjjjjjjjjjjjjjj.",
+    "..jjjjjjjjjjjjjjjjjjjj..", "...II..............II...",
+    "...Ii..............iI...", "...Ii..............iI...",
+    "...Ii..............iI...", "..IIII............IIII..",
+    "........................", "........................",
+};
+
+static const char *const MU_CESTO_PX[16] = {
+    "............", ".IIIIIIIIII.",
+    ".IiiiiiiiiI.", ".IIIIIIIIII.",
+    "..IiIiIiIi..", "..IiIiIiIi..",
+    "..IiIiIiIi..", "..IiIiIiIi..",
+    "..IiIiIiIi..", "..IiIiIiIi..",
+    "..IiIiIiIi..", "..IiIiIiIi..",
+    "...IIIIII...", "...IiiiiI...",
+    "...IIIIII...", "............",
+};
+
+static const char *const MU_MACETA_PX[18] = {
+    "............", "......v.....",
+    ".....vvv....", "....vvvvv...",
+    "...vvVvVvv..", "..vvvVvVvvv.",
+    "..vvVvvvVvv.", "...vvvvvvv..",
+    "....vvvvv...", "............",
+    ".ttttttttttt", ".tTTTTTTTTt.",
+    ".tTuuuuuuTt.", ".tTuuuuuuTt.",
+    "..tTuuuuTt..", "..ttTTTTtt..",
+    "...tttttt...", "............",
+};
+
+
+static const char *const AN_GATO_D[14] = {
+    "................", "..kk........kk..",
+    ".kKKk......kKKk.", ".kKKKkkkkkKKKk..",
+    "kKKKKKKKKKKKKKk.", "kKKKKKKKKKvKvKk.",
+    "kKKKKKKKKKKKKKk.", "kKKKKKKKKKkKkKk.",
+    ".kKKKKKKKKKKKk..", "..kKKKKKKKKKk...",
+    ".kKk.kKKKk.kKk..", ".kKk..kKk..kKk..",
+    "..k....k....k...", "................",
+};
+
+static const char *const AN_GATO_I[14] = {
+    "................", "..kk........kk..",
+    ".kKKk......kKKk.", "..kKKKkkkkkKKKk.",
+    ".kKKKKKKKKKKKKKk", ".kKvKvKKKKKKKKKk",
+    ".kKKKKKKKKKKKKKk", ".kKkKkKKKKKKKKKk",
+    "..kKKKKKKKKKKKk.", "...kKKKKKKKKKk..",
+    "..kKk.kKKKk.kKk.", "..kKk..kKk..kKk.",
+    "...k....k....k..", "................",
+};
+
+static const char *const AN_PAJARO_D[10] = {
+    "..............", "....ccc.......",
+    "...cCCCc......", "..cCwkCCc.....",
+    ".cCCCCCCCcoo..", ".cCCCCCCCCco..",
+    "..cCCCCCCCc...", "...ccCCCcc....",
+    "....o..o......", "..............",
+};
+
+static const char *const AN_PAJARO_I[10] = {
+    "..............", ".......ccc....",
+    "......cCCCc...", ".....cCCkwCc..",
+    "..oocCCCCCCCc.", "..ocCCCCCCCCc.",
+    "...cCCCCCCCc..", "....ccCCCcc...",
+    "......o..o....", "..............",
+};
+
+
+static const struct { const char *const *px; uint8_t rows, cw; } MUEBLE[MUEBLES_N] = {
+    [MU_MESA]    = { MU_MESA_PX,    18, 2 },
+    [MU_SILLA]   = { MU_SILLA_PX,   20, 1 },
+    [MU_ESTANTE] = { MU_ESTANTE_PX, 32, 2 },
+    [MU_COMPU]   = { MU_COMPU_PX,   22, 1 },
+    [MU_PLANTA]  = { MU_PLANTA_PX,  24, 1 },
+    [MU_VASIJA]  = { MU_VASIJA_PX,  18, 1 },
+    [MU_CUADRO]  = { MU_CUADRO_PX,  14, 1 },
+    [MU_CAMA]    = { MU_CAMA_PX,    30, 2 },
+    [MU_BANCO]   = { MU_BANCO_PX,   18, 2 },
+    [MU_CESTO]   = { MU_CESTO_PX,   16, 1 },
+    [MU_MACETA]  = { MU_MACETA_PX,  18, 1 },
+};
+
+/* An animal is drawn from the map's loop, once per frame, like the creatures:
+ * that is what buys the movement. Two sprites each, one per side, and the
+ * mirrored one is generated, not drawn twice by hand. */
+void ch_animal_draw(ch_buf_t *b, int x, int y, int cual, int dir, int cuadro)
+{
+    bool izq = (dir == 2);
+
+    if ((cual % ANIMALES_N) == AN_PAJARO) {
+        /* it hops: one pixel up every other beat, which at this size is the
+         * whole difference between a bird and a sticker of a bird */
+        ch_blit(b, x + 2, y + 10 - ((cuadro >> 3) & 1),
+                izq ? AN_PAJARO_I : AN_PAJARO_D, 10);
+        return;
+    }
+    ch_blit(b, x, y + 6, izq ? AN_GATO_I : AN_GATO_D, 14);
 }
 
 /* --------------------------------------------------------------------------
@@ -898,12 +1153,26 @@ static void ent_caja(const ch_ent_t *e, int *x0, int *y0, int *x1, int *y1)
     case E_CARTEL:                      /* 14 tall, at y-6                   */
         *x0 = e->x - 1; *x1 = e->x + 1; *y0 = e->y - 1;
         break;
-    case E_CABINA:                      /* 18 tall, at y-10: two rows up     */
-        *x0 = e->x - 1; *x1 = e->x + 1; *y0 = e->y - 2;
+    case E_CABINA:                      /* 42 tall, at y-30: three rows up   */
+        *x0 = e->x - 1; *x1 = e->x + 2; *y0 = e->y - 3;
         break;
-    case E_PUERTA:                      /* as wide as the opening            */
-        *x1 = e->x + (e->premio ? e->premio - 1 : 0);
+    case E_FERIA:                       /* 36 de ancho, 32 de alto, en y-16  */
+        *x0 = e->x - 1; *x1 = e->x + 2; *y0 = e->y - 2;
         break;
+    case E_MUEBLE: {
+        const int m = e->p1 % MUEBLES_N;
+        int alto = (MUEBLE[m].rows + TILE - 1) / TILE;
+        *x1 = e->x + MUEBLE[m].cw - 1;
+        *y0 = e->y - alto + 1;
+        break;
+    }
+    case E_PUERTA: {                    /* as big as the opening             */
+        int px, py, w, h;
+        ch_puerta_caja(e, &px, &py, &w, &h);
+        *x0 = px; *y0 = py;
+        *x1 = px + w - 1; *y1 = py + h - 1;
+        break;
+    }
     default:                            /* the rest draw nothing, or draw
                                          * inside their own cell             */
         break;
@@ -928,6 +1197,12 @@ bool ch_celda_tapada(const ch_room_t *r, int tx, int ty)
         if (tx >= x0 && tx <= x1 && ty >= y0 && ty <= y1) return true;
     }
     return false;
+}
+
+/* Todo mueble tapa el paso menos el cuadro, que cuelga. */
+bool ch_mueble_solido(int cual)
+{
+    return (cual % MUEBLES_N) != MU_CUADRO;
 }
 
 bool ch_prop_solido(const ch_room_t *r, int tx, int ty)
@@ -956,80 +1231,64 @@ bool ch_prop_solido(const ch_room_t *r, int tx, int ty)
  * stays stuck.
  * -------------------------------------------------------------------------- */
 
-static const char *const SP_ABUELA[16] = {
-    "..GGGGGG..",
-    ".GGGGGGGG.",
-    ".GwwGGwwG.",
-    ".GkwGGkwG.",
-    ".GGGGGGGG.",
-    "..GGmmGG..",
-    "..pppppp..",
-    ".ppppppppp",
-    "GppPPPPppG",
-    ".ppPPPPpp.",
-    ".ppPPPPpp.",
-    "..pppppp..",
-    "..pp..pp..",
-    "..dd..dd..",
-    "..KK..KK..",
-    "..........",
+static const char *const SP_ABUELA[24] = {
+    "...............", "....mmmmmmmm...",
+    "..mhhhhhhhhhm..", "..mhhhhhhhhhm..",
+    "..hwwwhhhwwwh..", "..hkwwhhhkwwh..",
+    "..hhhhhhhhhhh..", "...hhhMMMhhh...",
+    "....hhhhhhh....", "...ppppppppp...",
+    "..ppppppppppp..", ".ppppppppppppp.",
+    "hpppppPPPpppppH", "hpppppPPPpppppH",
+    ".ppppppPPpppppp", "..ppppppppppp..",
+    "...ppppppppp...", "...ppp...ppp...",
+    "...ppp...ppp...", "...KKK...KKK...",
+    "...KKK...KKK...", "...ddd...ddd...",
+    "...ddd...ddd...", "...............",
 };
 
-static const char *const SP_CHICO[16] = {
-    "..........",
-    "..oooooo..",
-    ".ohhhhhho.",
-    ".hwwhhwwh.",
-    ".hkwhhkwh.",
-    ".hhhhhhhh.",
-    "..hhrrhh..",
-    "..cccccc..",
-    ".cccccccc.",
-    "hcccCCcccH",
-    ".cccCCccc.",
-    "..cccccc..",
-    "..cc..cc..",
-    "..bb..bb..",
-    "..KK..KK..",
-    "..........",
+static const char *const SP_CHICO[24] = {
+    "...............", "....oooooooo...",
+    "..ohhhhhhhhho..", "..ohhhhhhhhho..",
+    "..hwwwhhhwwwh..", "..hkwwhhhkwwh..",
+    "..hhhhhhhhhhh..", "...hhhrrrhhh...",
+    "....hhhhhhh....", "...ccccccccc...",
+    "..ccccccccccc..", ".ccccccccccccc.",
+    "hcccccCCCcccccH", "hcccccCCCcccccH",
+    ".ccccccCCcccccc", "..ccccccccccc..",
+    "...ccccccccc...", "...ccc...ccc...",
+    "...ccc...ccc...", "...bbb...bbb...",
+    "...bbb...bbb...", "...KKK...KKK...",
+    "...KKK...KKK...", "...............",
 };
 
-static const char *const SP_VECINO[16] = {
-    "..........",
-    "..jjjjjj..",
-    ".jjjjjjjj.",
-    ".hwwhhwwh.",
-    ".hkwhhkwh.",
-    ".hhhhhhhh.",
-    "..hhTThh..",
-    "..vvvvvv..",
-    ".vvvvvvvv.",
-    "hvvVVVVvvH",
-    ".vvVVVVvv.",
-    ".vvvvvvvv.",
-    "..vv..vv..",
-    "..JJ..JJ..",
-    "..KK..KK..",
-    "..........",
+static const char *const SP_VECINO[24] = {
+    "...............", "....JJJJJJJJ...",
+    "..JhhhhhhhhhJ..", "..JhhhhhhhhhJ..",
+    "..hwwwhhhwwwh..", "..hkwwhhhkwwh..",
+    "..hhhhhhhhhhh..", "...hhhjjjhhh...",
+    "....hhhhhhh....", "...vvvvvvvvv...",
+    "..vvvvvvvvvvv..", ".vvvvvvvvvvvvv.",
+    "hvvvvvVVVvvvvvH", "hvvvvvVVVvvvvvH",
+    ".vvvvvvVVvvvvvv", "..vvvvvvvvvvv..",
+    "...vvvvvvvvv...", "...jjj...jjj...",
+    "...jjj...jjj...", "...JJJ...JJJ...",
+    "...JJJ...JJJ...", "...KKK...KKK...",
+    "...KKK...KKK...", "...............",
 };
 
-static const char *const SP_SENORA[16] = {
-    "..........",
-    "..YYYYYY..",
-    ".YYYYYYYY.",
-    ".YwwYYwwY.",
-    ".YkwYYkwY.",
-    ".YYYYYYYY.",
-    "..YYmmYY..",
-    "..mmmmmm..",
-    ".mmmmmmmm.",
-    "YmmMMMMmmY",
-    ".mmMMMMmm.",
-    ".mmmmmmmm.",
-    ".mmmmmmmm.",
-    "..dd..dd..",
-    "..KK..KK..",
-    "..........",
+static const char *const SP_SENORA[24] = {
+    "...............", "....YYYYYYYY...",
+    "..YhhhhhhhhhY..", "..YhhhhhhhhhY..",
+    "..hwwwhhhwwwh..", "..hkwwhhhkwwh..",
+    "..hhhhhhhhhhh..", "...hhhmmmhhh...",
+    "....hhhhhhh....", "...mmmmmmmmm...",
+    "..mmmmmmmmmmm..", ".mmmmmmmmmmmmm.",
+    "hmmmmmMMMmmmmmH", "hmmmmmMMMmmmmmH",
+    ".mmmmmmMMmmmmmm", "..mmmmmmmmmmm..",
+    "...mmmmmmmmm...", "...mmm...mmm...",
+    "...mmm...mmm...", "...ddd...ddd...",
+    "...ddd...ddd...", "...KKK...KKK...",
+    "...KKK...KKK...", "...............",
 };
 
 static const char *const *const NPCS[] = {
@@ -1037,63 +1296,73 @@ static const char *const *const NPCS[] = {
 };
 #define NNPCS   ((int)(sizeof(NPCS) / sizeof(NPCS[0])))
 
-static const char *const SP_COFRE[10] = {
-    "..YYYYYYYY..",
-    ".YyyyyyyyyY.",
-    ".YyYYYYYYyY.",
-    ".YyyyyyyyyY.",
-    "YYYYYYYYYYYY",
-    "YyyyyKKyyyyY",
-    "YyyyyKKyyyyY",
-    "YyyyyyyyyyyY",
-    ".YYYYYYYYYY.",
-    "..UUUUUUUU..",
+static const char *const SP_COFRE[15] = {
+    "...YYYYYYYYYYYY...", "..YyyyyyyyyyyyyY..",
+    "..YyYYYYYYYYYYyY..", "..YyyyyyyyyyyyyY..",
+    "..YyyyyyyyyyyyyY..", "YYYYYYYYYYYYYYYYYY",
+    "YyyyyyyKKKKyyyyyyY", "YyyyyyyKkkKyyyyyyY",
+    "YyyyyyyKKKKyyyyyyY", "YyyyyyyyyyyyyyyyyY",
+    "YyyyyyyyyyyyyyyyyY", ".YYYYYYYYYYYYYYYY.",
+    "..UUUUUUUUUUUUUU..", "..UUUUUUUUUUUUUU..",
+    "..................",
 };
 
-static const char *const SP_COFRE_ABIERTO[10] = {
-    "..JJJJJJJJ..",
-    ".JkkkkkkkkJ.",
-    ".JkkkkkkkkJ.",
-    "..JJJJJJJJ..",
-    "YYYYYYYYYYYY",
-    "YkkkkkkkkkkY",
-    "YkkkkkkkkkkY",
-    "YyyyyyyyyyyY",
-    ".YYYYYYYYYY.",
-    "..UUUUUUUU..",
+static const char *const SP_COFRE_ABIERTO[15] = {
+    "...JJJJJJJJJJJJ...", "..JkkkkkkkkkkkkJ..",
+    "..JkkkkkkkkkkkkJ..", "..JkkkkkkkkkkkkJ..",
+    "...JJJJJJJJJJJJ...", "YYYYYYYYYYYYYYYYYY",
+    "YkkkkkkkkkkkkkkkkY", "YkkkkkkkkkkkkkkkkY",
+    "YkkkkkkkkkkkkkkkkY", "YyyyyyyyyyyyyyyyyY",
+    "YyyyyyyyyyyyyyyyyY", ".YYYYYYYYYYYYYYYY.",
+    "..UUUUUUUUUUUUUU..", "..UUUUUUUUUUUUUU..",
+    "..................",
 };
 
-static const char *const SP_SIGNO[14] = {
-    "..jjjjjj..",
-    ".jGGGGGGj.",
-    ".jGkkkkGj.",
-    ".jGkGGkGj.",
-    ".jGkkkkGj.",
-    ".jGGGGGGj.",
-    "..jjjjjj..",
-    "....jj....",
-    "....jj....",
-    "....jj....",
-    "....JJ....",
-    "...JJJJ...",
-    "..........",
-    "..........",
+static const char *const SP_SIGNO[20] = {
+    "...jjjjjjjjj...", "..jGGGGGGGGGj..",
+    "..jGkkkkkkkGj..", "..jGkGGGGGkGj..",
+    "..jGkGGGGGkGj..", "..jGkGGGGGkGj..",
+    "..jGkkkkkkkGj..", "..jGGGGGGGGGj..",
+    "...jjjjjjjjj...", "......jjj......",
+    "......jjj......", "......jjj......",
+    "......jjj......", ".....JJJJJ.....",
+    "....JJJJJJJ....", "....JJJJJJJ....",
+    "...............", "...............",
+    "...............", "...............",
 };
 
 /* A flat three-step arrow, pointing at 'dir' (0 down, 1 up, 2 left, 3 right).
  * It is built by stacking rectangles from the BASE: it is the only way for the
  * tip to be the narrow part. */
-static void flecha(ch_buf_t *b, int cx, int cy, int dir, uint16_t c)
+/* The arrow that says "you can leave here". It is drawn FROM THE CELL, not at
+ * a fixed size: on the 8 px grid it was seven pixels across and four deep, and
+ * left at that on the 12 it reads as a smudge in the middle of a street. Now
+ * it fills the cell it is on, which is the only size that stays right the next
+ * time the grid moves. */
+static void flecha_1(ch_buf_t *b, int cx, int cy, int dir, uint16_t c, int cr)
 {
-    for (int i = 0; i < 4; i++) {
-        int w = 7 - i * 2;
+    int n = TILE / 2;                       /* six rows deep on a 12 px cell */
+    for (int i = 0; i < n; i++) {
+        int w = (TILE - 1) - i * 2 + cr * 2;
+        if (w < 1) w = 1;
         switch (dir) {
-        case 1: ch_rect(b, cx - w / 2, cy - 2 + i, w, 1, c); break;
-        case 0: ch_rect(b, cx - w / 2, cy + 2 - i, w, 1, c); break;
-        case 2: ch_rect(b, cx - 2 + i, cy - w / 2, 1, w, c); break;
-        default: ch_rect(b, cx + 2 - i, cy - w / 2, 1, w, c); break;
+        case 1: ch_rect(b, cx - w / 2, cy - n / 2 + i - cr, w, 1 + cr, c); break;
+        case 0: ch_rect(b, cx - w / 2, cy + n / 2 - i, w, 1 + cr, c); break;
+        case 2: ch_rect(b, cx - n / 2 + i - cr, cy - w / 2, 1 + cr, w, c); break;
+        default: ch_rect(b, cx + n / 2 - i, cy - w / 2, 1 + cr, w, c); break;
         }
     }
+}
+
+/* THE ARROW HAS A DARK OUTLINE. On the dirt of v1 a yellow arrow read from
+ * across the room; on the town's sandstone paving it vanished, and an exit you
+ * cannot see is an exit that does not exist -which is the whole reason the
+ * arrow is drawn at all. One pass a pixel wider in near-black, one pass on
+ * top: it now reads on grass, on stone and on the dungeons' grating. */
+static void flecha(ch_buf_t *b, int cx, int cy, int dir, uint16_t c)
+{
+    flecha_1(b, cx, cy, dir, ch_rgb(0x14161F), 1);
+    flecha_1(b, cx, cy, dir, c, 0);
 }
 
 
@@ -1106,25 +1375,28 @@ static void flecha(ch_buf_t *b, int cx, int cy, int dir, uint16_t c)
  * on the roof is there to say what it is for, because nothing else on this
  * map talks to another watch.
  * -------------------------------------------------------------------------- */
-static const char *const SP_CABINA[18] = {
-    "....k.....",
-    "...kck....",
-    "....k.....",
-    "..kkkkkk..",
-    ".kBBBBBBk.",
-    ".kBccccBk.",
-    ".kBcwwcBk.",
-    ".kBccccBk.",
-    ".kBcccdBk.",
-    ".kBcdddBk.",
-    ".kBccccBk.",
-    ".kBccccBk.",
-    ".kBccccBk.",
-    ".kBBBBBBk.",
-    ".kBBBBBBk.",
-    ".kkkkkkkk.",
-    "..KKKKKK..",
-    "..........",
+static const char *const SP_CABINA[42] = {
+    ".........kkkkkk.........", ".........kBBBBk.........",
+    ".........kByyBk.........", ".........kBBBBk.........",
+    "..........kkkk..........", "..kkkkkkkkkkkkkkkkkkkk..",
+    "..kBBBBBBBBBBBBBBBBBBk..", "..kByyyyyyyyyyyyyyyyBk..",
+    "..kBYYYYYYYYYYYYYYYYBk..", "..kBBBBBBBBBBBBBBBBBBk..",
+    "..kBBcccwccccccwcccBBk..", "..kBBccwccccccwccccBBk..",
+    "..kBBcwccccccwcccccBBk..", "..kBBwccccccwccccccBBk..",
+    "..kBBccccccwcGGGGGwBBk..", "..kBBcccccwccGGGGGcBBk..",
+    "..kBBccccwcccGGGGGcBBk..", "..kBBcccwccccGGGGGcBBk..",
+    "..kBBccwcccccGGGGGcBBk..", "..kBBcwccccccGGGGGcBBk..",
+    "..kBBwccccccwGGGGGcBBk..", "..kBBcddddcwccccccwBBk..",
+    "..kBBcddddwccccccwcBBk..", "..kBBcddddccccccwccBBk..",
+    "..kBBccdwccccccwcccBBk..", "..kBBccdccccccwccccBBk..",
+    "..kBBcwdcccccwcccccBBk..", "..kBBwccccccwccccccBBk..",
+    "..kBBccccccwccccccwBBk..", "..kBBcccccwccccccwcBBk..",
+    "..kBBccccwccccccwccBBk..", "..kBBcccwccccccwcccBBk..",
+    "..kBBccwccccccwccccBBk..", "..kBBcwccccccwcccccBBk..",
+    "..kBBwccccccwccccccBBk..", "..kBBBBBBBBBBBBBBBBBBk..",
+    "..kBBBBBBBBBBBBBBBBBBk..", "..kkkkkkkkkkkkkkkkkkkk..",
+    "..KKKKKKKKKKKKKKKKKKKK..", "...KKKKKKKKKKKKKKKKKK...",
+    "........................", "........................",
 };
 
 void ch_ent_draw(ch_buf_t *b, const ch_room_t *r, const ch_ent_t *e, bool hecho)
@@ -1138,30 +1410,29 @@ void ch_ent_draw(ch_buf_t *b, const ch_room_t *r, const ch_ent_t *e, bool hecho)
          * a stretch of earth identical to all the rest, and there was no way
          * to know you could leave there. The arrow goes over every cell of the
          * opening. */
-        int w = e->premio ? e->premio : 1;
-        int dir;
+        int px, py, w, h, dir = ch_puerta_lado(e);
 
-        if (e->y <= 1)            dir = 1;
-        else if (e->y >= ROWS - 3) dir = 0;
-        else if (e->x <= 1)        dir = 2;
-        else if (e->x >= COLS - 2) dir = 3;
-        else if (r->suelo[e->y][e->x] == ':') dir = e->y < ROWS / 2 ? 1 : 0;
-        else if (r->tema == TEMA_DUNGEON) {
+        ch_puerta_caja(e, &px, &py, &w, &h);
+        x = px * TILE; y = py * TILE;
+        if (dir < 0) {
+            if (r->suelo[e->y][e->x] == ':') dir = e->y < ROWS / 2 ? 1 : 0;
+            else if (r->tema == TEMA_DUNGEON) {
             /* A door that does NOT lead to the edge is not an exit, it is an
              * entrance: it gets a hatch and not an arrow. An arrow pointing
              * down in the middle of a room says nothing. */
-            ch_rect(b, x, y + 1, w * TILE, TILE - 2, ch_rgb(0x05060C));
-            ch_frame(b, x, y + 1, w * TILE, TILE - 2, ch_rgb(0x99A3BC));
-            for (int k = 0; k < w * 2; k++) {
-                ch_rect(b, x + 2 + k * 4, y + 3, 2, 1, ch_rgb(0x606B85));
+                ch_rect(b, x, y + 1, w * TILE, TILE - 2, ch_rgb(0x05060C));
+                ch_frame(b, x, y + 1, w * TILE, TILE - 2, ch_rgb(0x99A3BC));
+                for (int k = 0; k < w * 2; k++) {
+                    ch_rect(b, x + 2 + k * 4, y + 3, 2, 1, ch_rgb(0x606B85));
+                }
+                break;
             }
-            break;
+            else return;            /* a house's door: the house already draws it */
         }
-        else return;                /* a house's door: the house already draws it */
 
-        for (int k = 0; k < w; k++) {
-            flecha(b, x + k * TILE + TILE / 2, y + TILE / 2, dir,
-                   ch_rgb(r->tema == TEMA_DUNGEON ? 0x7BE9FF : 0xFFE45E));
+        for (int k = 0; k < w * h; k++) {
+            flecha(b, x + (k % w) * TILE + TILE / 2, y + (k / w) * TILE + TILE / 2,
+                   dir, ch_rgb(r->tema == TEMA_DUNGEON ? 0x7BE9FF : 0xFFE45E));
         }
         break;
     }
@@ -1172,19 +1443,49 @@ void ch_ent_draw(ch_buf_t *b, const ch_room_t *r, const ch_ent_t *e, bool hecho)
         /* The character is 16 tall and the cell 8: it sticks out upwards, just
          * like the player's robot. That way it is seen whole without the cell
          * below ceasing to be the one you touch. */
-        ch_blit(b, x - 1, y - 8, NPCS[a], 16);
+        ch_blit(b, x - 1, y - 12, NPCS[a], 24);
         break;
     }
     case E_COFRE:
-        ch_blit(b, x - 2, y - 2, hecho ? SP_COFRE_ABIERTO : SP_COFRE, 10);
+        ch_blit(b, x - 3, y - 3, hecho ? SP_COFRE_ABIERTO : SP_COFRE, 15);
         break;
     case E_CARTEL:
-        ch_blit(b, x - 1, y - 6, SP_SIGNO, 14);
+        ch_blit(b, x - 1, y - 8, SP_SIGNO, 20);
         break;
 
     case E_CABINA:
-        ch_blit(b, x - 1, y - 10, SP_CABINA, 18);
+        ch_blit(b, x - 6, y - 30, SP_CABINA, 42);
         break;
+
+    case E_FERIA: {
+        /* El puesto: un toldo a rayas y una cinta. Dibujado con rectangulos
+         * y no con un sprite porque son seis lineas y el toldo a rayas es
+         * justo lo que se lee de lejos. */
+        int i;
+        ch_rect(b, x - 6, y - 4, 36, 14, ch_rgb(0x3D465F));
+        ch_frame(b, x - 6, y - 4, 36, 14, ch_rgb(0x05060C));
+        for (i = 0; i < 6; i++) {
+            ch_rect(b, x - 6 + i * 6, y - 16, 6, 10,
+                    ch_rgb(i & 1 ? 0xFF4A3D : 0xF2DFA8));
+        }
+        ch_frame(b, x - 6, y - 16, 36, 10, ch_rgb(0x05060C));
+        ch_rect(b, x - 6, y - 6, 36, 2, ch_rgb(0x8A93AB));
+        for (i = 0; i < 5; i++) {
+            ch_rect(b, x - 4 + i * 7, y + 1, 4, 4, ch_rgb(0x99A3BC));
+        }
+        break;
+    }
+
+    case E_MUEBLE: {
+        /* Anchored at the FOOT of its cell, like everything else that stands
+         * on the floor: the cell you walk up to is the one under it. */
+        const int m = e->p1 % MUEBLES_N;
+        ch_blit(b, x, y + TILE - MUEBLE[m].rows, MUEBLE[m].px, MUEBLE[m].rows);
+        break;
+    }
+
+    case E_ANIMAL:
+        break;                  /* it is drawn every frame, from the map      */
 
     case E_BLOQUEO:
         /* Closed: a striped barrier. Open: nothing is drawn, and that is half

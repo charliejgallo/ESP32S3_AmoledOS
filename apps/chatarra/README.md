@@ -8,6 +8,23 @@ one of them is written down anywhere.
 The game loop is: walk around, fight, **rip a part off whoever you beat**, fit it
 in the workshop and head out again with a different robot.
 
+<p align="center">
+  <img src="../../docs/img/app-chatarra-map.png" width="190" alt="Cogville: cobbled streets, flowerbeds, a bench, a bin, a cat by the lamp post">
+  <img src="../../docs/img/app-chatarra-battle.png" width="190" alt="Combat: the rival's four parts by elemental type, its set, and the stat stages">
+  <img src="../../docs/img/app-chatarra-workshop.png" width="190" alt="The workshop: the robot at scale 3 and the four categories down the right">
+</p>
+<p align="center">
+  <img src="../../docs/img/app-chatarra-team.png" width="190" alt="The team of three, with stats or moves behind a pair of buttons">
+  <img src="../../docs/img/app-chatarra-records.png" width="190" alt="The register: the parts seen, eight to a page">
+  <img src="../../docs/img/app-chatarra-fair.png" width="190" alt="The scrap belt at Bujia docks">
+</p>
+
+**v2 (2026-09-20)** redrew the world at **12 px a cell** instead of 8 — fewer,
+bigger cells, which costs the same and touches far better on a 1.8" screen — and
+with it came 61 rooms, towns split into sectors, a team of three, a phone booth
+per town, a fair, and the whole menu rebuilt out of tiles. Section 18 is the
+short version; `docs/internal/HANDOFF-CHATARRA-V2.md` is the long one.
+
 ---
 
 ## 1. What to know before touching anything
@@ -83,7 +100,7 @@ frame you repaint the player's robot and the few creatures on patrol.
 whole background (parallax, screen shake, an animated backdrop) throws all of
 this away. Best discarded before it is drawn.
 
-### The touch panel does not reach the bottom
+### The touch panel does not reach the edges - and the TOP is the worst one
 
 This board's CST816 **reports nothing below a real y≈354**, and in the simulator
 that does not show because the mouse reaches everywhere. That is where the
@@ -99,6 +116,33 @@ buffer 184 x 224, upscaled x2 to the board's 368 x 448
 Everything touchable in this game ends at **y=174 of the buffer** (348 real).
 The lists are six rows of 18 px from y=64: the last one ends right there.
 
+**And it does not reach the top either, which cost a whole direction of
+travel.** The audit's envelope (`docs/APP-GUIDE.md`) is the full rectangle:
+
+```
+real y  24..410     real x  16..352
+```
+
+On the 12 px grid of v2 a cell is 24 real pixels, so:
+
+| edge of the map | real span | usable |
+|---|---|---|
+| row 0 (north) | y 0..23 | **0 px of 24** |
+| row 13 (south) | y 312..335 | 24 |
+| column 0 (west) | x 0..23 | 8 of 24 |
+| column 14 (east) | x 336..359 | 17 of 24 |
+
+The north doors of the sectors were **entirely outside the panel**: you could
+walk south from one sector to the next and never come back. The sideways ones
+"worked" on a third of a cell, which is why they felt stiff. None of this
+shows in the simulator, and none of it shows with an injected tap either
+(`/api/mem?tap=` goes in below the panel), so it came out of arithmetic, not
+of testing.
+
+The rule that follows: **an exit never lives in the outermost row or column
+alone**. Every edge opening is `PUERTA_HONDO = 2` cells deep, growing inwards,
+so the second one is always well inside the envelope.
+
 And that is why **the menu has no on-screen button**. It opens with the
 **physical button** (like a console's START) or by **touching your own robot**.
 Both are written on the title screen, because neither can be guessed.
@@ -112,11 +156,14 @@ Both are written on the title screen, because neither can be guessed.
 | `chatarra.h` | the whole model: parts, robot, world, savegame, modes |
 | `ch_pixel.c/.h` | pixel-art engine with dirty rectangles (copied from `cjump`, with the palette extended to earth, grass, water, stone and wood) |
 | `ch_parts.c` | the 64 parts, the 44 attacks, the items, the colour schemes and the four functions that draw a robot |
-| `ch_world.c` | the tiles, the props, the nine rooms, the entities and the dialogue |
+| `ch_world.c` | the tiles, the props, the furniture, the animals and the entity sprites |
+| `ch_zonas.c` | the 61 rooms, their entities and every line of dialogue |
 | `ch_map.c` | the room engine: background, pathfinding by breadth-first search, movement, encounters |
 | `ch_battle.c` | the turn-based combat |
 | `ch_ui.c` | HUD, dialogue, menu, workshop, items, team screen, register, shop, title |
 | `ch_link.c` | the phone booth: the protocol and the screen for the other watch |
+| `ch_feria.c` | the scrap belt: the minigame at Bujia docks |
+| `ch_sound.c` | the four-voice synthesiser and the sixteen tunes |
 | `chatarra.c` | the only thing LVGL and the HAL see: canvas, blit, touch, button, saving |
 
 The game (everything but `chatarra.c`) **does not know that LVGL, the HAL or the
@@ -372,7 +419,7 @@ tables.
 **Done:** the whole game. The engine, the 64 parts, the 44 attacks with six types
 and an effectiveness table, turn-based combat with status effects, the workshop,
 the shop, the items, the stat sheet, saving, flag-driven quests, and **the eight
-zones across 51 rooms**, from Villa Tuerca to the Summit:
+zones across 61 rooms**, from Villa Tuerca to the Summit:
 
 | # | Zone | Road / Dungeon | Sub-boss | Type |
 | --- | --- | --- | --- | --- |
@@ -406,9 +453,13 @@ hand and there is nothing to lay it out. Two real cases:
 - The 105 lines of dialogue in each language are cut by hand to ≤27. A longer
   line breaks nothing, but it wraps by itself and looks bad.
 
+**Measured on the board** at every step since 2026-09-20: 29.5 fps on the map
+and 27-29 in combat, which is the ceiling the panel gives and not the game's.
+
 **Pending:**
-- **Measuring it on the board.** Everything here is tested in the simulator,
-  where LVGL costs twenty or thirty times less.
+- The seven zones after the first came out of templates, so they share a layout
+  per role. The character is in the tiles, the props and the text; giving each
+  zone a floor plan of its own is hand work, one room at a time.
 
 ---
 
@@ -1067,3 +1118,98 @@ Two or three is a wash; seven, five, three is a shadow. It is written at
 
 Measured on the board afterwards: **29.2 fps**, unchanged. All three are
 background work, and the background is free.
+
+---
+
+## 18. v2: twelve pixels a cell, and everything that followed (2026-09-20)
+
+The map was 21 x 22 cells of 8 px. v2 draws **15 x 14 cells of 12 px**, and the
+whole rework hangs off one measurement: **in a dirty-rectangle engine what
+costs is AREA pushed, not drawing**, so fewer and bigger cells cost the same as
+more and smaller ones. 29.2 fps before, 29.2 fps after. What it buys is that a
+door is 24 real pixels instead of 16, and a finger can hit it.
+
+### The world
+
+- **61 rooms** instead of 51. Every town is two or four sectors — Cogville is
+  four — because a road crossing, a workshop, three neighbours, the booth and
+  the checkpoint out do not fit in 210 cells without going back to the cramming
+  v2 exists to stop.
+- The seven zones after the first were rebuilt **from seven templates**, one per
+  role (approach, town, east sector, interior, two dungeon floors, boss), which
+  take the zone's TILE LETTERS and nothing else and read every text, flag, item
+  and level out of the tables that were already there. Every template mistake
+  then shows up 6 or 42 times at once, which turns the world check from a sieve
+  into a test bench: the first pass gave 47 problems and they were five causes.
+- **Edge tiles**, directional room transitions, **per-zone air** (a colour wash
+  over the finished background), flowing water and lava, prop shadows.
+- Towns got **seven new ground tiles** — a denser grass, a flowerbed, warm
+  sandstone paving, slabs, parquet — plus benches, bins, planters, and **a black
+  cat and a bird that walk**. The animals join the creatures' loop instead of
+  getting one of their own, so they are already a dirty rectangle in a list that
+  was being drawn anyway.
+- **Furniture is an entity, not a decoration**: eleven pieces, each with its own
+  text, and any of them can hide one thing once. A house with a table you cannot
+  look at is a house with a picture of a table in it.
+
+### The robots
+
+They are drawn by code on a 26 x 40 unit grid and scaled whole, so scaling them
+added no detail — the smallest unit was three pixels and a rivet did not fit.
+Two functions (`RH`, `REM`) take their coordinates in **half units**: at scale 1
+they round to zero and are not drawn, from scale 2 up they are real detail. The
+same code draws the small robot on the map and an effective 52 x 80 one in the
+sheet, the workshop and combat. On top of that, a detail pass per category —
+lit and shaded plate edges, rivets, a jaw seam, a waist, vent grilles, elbow and
+knuckles, knee, ankle and sole — all derived from measurements the part already
+computed, so it covers all 16 variants of each.
+
+### Playing it
+
+- **A team of three**: the starting robot plus two built from spare parts, and a
+  reserve to fall back on when one breaks.
+- **Parts of the same type work together**: two of the torso's element +10%
+  attack, three +20% and +10% defence, four +30/+20/+10. That is the difference
+  between a menu and a decision. It is computed and not stored, because
+  `ch_save_t` is accepted by SIZE and a new field throws away every game in
+  progress.
+- **Fast travel** from the map screen to any zone you have set foot in, always
+  to its town.
+- **A diary** of the eight errands, which walks the world rather than keeping a
+  table of its own, so it cannot fall out of step with them.
+- **The phone booth** in every town: fight or swap robots and parts with another
+  watch over the link.
+- **The scrap belt** at Bujia docks: a three-lane conveyor, grab the green parts
+  and let the rusty ones through, forty seconds for credits and — once — a part.
+- **Eight zone themes** on the four-voice synth. What separates them is the
+  pulse and the register, not the tune.
+
+### The interface
+
+Every list became tiles or tall rows: the menu is two pages of icons, the items
+and the shop are 42 px rows with a 24 x 24 icon and the description wrapped
+underneath, the register is eight parts a page at twice the old cell, the map is
+eight cards, the booth's menu is four tiles.
+
+Behind all of it, one rule learned three times on the board: **everything is
+measured from the top and the only thing with a variable height is whatever is
+left over.** The HUD owns everything from y=168, and the register's card, the
+team's buttons and the help's hint were each anchored to the bottom while what
+came above them grew freely. After the third one I swept for every constant
+between 155 and 223 used as a Y in a drawing call.
+
+### What the board caught and the simulator did not
+
+- `-Werror=format-truncation`: a `snprintf` into a `char[30]` compiles clean in
+  the simulator and is an **error** for the board.
+- Two right-aligned strings on one line fit in Spanish and were a mess in
+  English. Render with `lang=en` before installing.
+- Uploading a `.so` does **not** reload an app that is already open: the ELF
+  stays in memory. Restart, then open.
+
+### Measured
+
+- `CH_CHECK=1`: **0 problems** across the 61 rooms.
+- Board: **29.5 fps** on the map, with music, the idle, the animals and the
+  furniture — the same as the empty v1 map.
+- Catalogues: 554 strings in Spanish, English and German.

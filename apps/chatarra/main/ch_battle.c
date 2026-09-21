@@ -64,7 +64,7 @@
 
 #define PAN_R_X       4
 #define PAN_R_Y       2
-#define PAN_R_H      26
+#define PAN_R_H      40         /* +14: la fila de piezas conocidas del rival */
 #define PAN_YO_X     88
 #define PAN_YO_Y     88
 #define PAN_YO_H     40
@@ -556,7 +556,6 @@ static void relevo(ch_t *g)
     g->bt.forzado = 1;
     g->bt.pend   = CB_MENU;
     g->rehacer_fondo = 1;
-    ch_snd_melodia(g, CH_MEL_NADA);
 }
 
 static void derrota(ch_t *g)
@@ -668,11 +667,14 @@ static void seguir(ch_t *g)
             break;
         }
         g->modo = MODO_MAPA;
-        ch_snd_melodia(g, CH_MEL_NADA);
+        /* Y de vuelta al tema de la zona, que es de donde se venia: parar la
+         * musica al salir del combate dejaba el mapa mudo otra vez. */
+        g->mel_mapa = 0;
         if (g->bt.huir == 2) {
             ch_eq_curar(&g->s);         /* the workshop repairs the three   */
             ch_map_entrar(g, 0, 11, 14);        /* your house                */
         }
+        ch_map_musica(g);
         g->rehacer_fondo = 1;
         g->hud_sucio = 1;
         break;
@@ -1079,6 +1081,44 @@ static void panel_robot(ch_t *g, int x, int y, const ch_robot_t *r, bool mio)
     ch_text(b, x + 4, y + 3, ch_robot_nombre(r), ch_rgb(0xFFFFFF));
     snprintf(t, sizeof(t), _("N%d"), r->nivel);
     ch_text(b, x + PAN_W - 4 - ch_text_w(t), y + 3, t, ch_rgb(0xFFE45E));
+
+    /* LAS PIEZAS DEL RIVAL, las que ya viste.
+     *
+     * El registro anotaba cada pieza vista y no servia para nada mas que para
+     * mirarlo. Aca dice de que esta hecho el que tenes enfrente: cuatro
+     * casillas con la letra de la categoria y el color de su tipo, y una
+     * interrogacion donde todavia no viste esa pieza. Con el juego de piezas
+     * -las del tipo del torso suman- eso es exactamente lo que hay que saber
+     * antes de elegir el golpe, y de paso le da un para que al registro. */
+    if (!mio) {
+        static const char *const L[P_CATS] = { "C", "T", "B", "P" };
+        for (int c = 0; c < P_CATS; c++) {
+            uint8_t id = PIEZA_ID(c, r->pieza[c] % PVAR);
+            const ch_part_t *p = &ch_partes[id];
+            bool visto = ch_visto(&g->s, id);
+            int px = x + 4 + c * 13, py = y + PAN_R_H - 13;
+
+            ch_rect(b, px, py, 11, 10,
+                    visto ? ch_rgb(ch_tipo_color[p->tipo % TIPOS])
+                          : ch_rgb(0x232B41));
+            ch_frame(b, px, py, 11, 10, ch_rgb(0x05060C));
+            /* Letra blanca con sombra negra SIEMPRE: la tinta oscura sobre
+             * el color del tipo se lee en los claros y desaparece en los
+             * oscuros, y hay tipos de los dos. */
+            ch_text_center(b, px + 5, py + 2, visto ? L[c] : "?",
+                           visto ? ch_rgb(0xFFFFFF) : ch_rgb(0x8A93AB),
+                           ch_rgb(0x05060C));
+        }
+        {   /* y si tiene juego, que es el +30% que no se ve venir */
+            int n = ch_robot_juego(r);
+            if (n >= 2) {
+                char j[16];
+                snprintf(j, sizeof(j), "x%d", n);
+                ch_text(b, x + PAN_W - 4 - ch_text_w(j), y + PAN_R_H - 11, j,
+                        ch_rgb(n >= 4 ? 0xFF4A3D : 0xFFE45E));
+            }
+        }
+    }
 
     /* Only the bar's SLOT. The fill and the numbers are drawn by
      * ch_bt_dibujar() per frame, because they go down gradually: leaving them
@@ -1760,7 +1800,31 @@ void ch_bt_dibujar(ch_t *g)
             ch_rect(b, x + 2, y + 1, 1, 4, ch_rgb(0xFFE45E));
         }
     }
-    ch_dirty_add(&g->d_cur, PAN_R_X + 3, PAN_R_Y + 2, PAN_W - 6, 19);
+    /* LAS ETAPAS DE ATAQUE Y DEFENSA.
+     *
+     * Subir o bajar una etapa es +-33% de dano, o sea la mitad de la pelea, y
+     * lo unico que lo decia era una linea de texto en el turno en que pasaba:
+     * tres turnos despues nadie se acuerda de si sigue con el ataque bajo. Va
+     * al lado de las barras, en el color del signo, y solo cuando no es cero.
+     * Mismo criterio que la quemadura, que ya estaba resuelta asi. */
+    for (int q = 0; q < 2; q++) {
+        char t[16];
+        int a = g->bt.et_atk[q], d2 = g->bt.et_def[q];
+        int x = (q ? PAN_R_X : PAN_YO_X) + 4;
+        int y = q ? PAN_R_Y + 21 : PAN_YO_Y + 23;
+
+        if (!q) x += 44;                        /* el mio, al lado del 39/39 */
+        if (a) {
+            snprintf(t, sizeof(t), "A%+d", a);
+            ch_text(b, x, y, t, a > 0 ? ch_rgb(0x4ADE80) : ch_rgb(0xFF4A3D));
+            x += ch_text_w(t) + 5;
+        }
+        if (d2) {
+            snprintf(t, sizeof(t), "D%+d", d2);
+            ch_text(b, x, y, t, d2 > 0 ? ch_rgb(0x4ADE80) : ch_rgb(0xFF4A3D));
+        }
+    }
+    ch_dirty_add(&g->d_cur, PAN_R_X + 3, PAN_R_Y + 2, PAN_W - 6, 24);
     ch_dirty_add(&g->d_cur, PAN_YO_X + 3, PAN_YO_Y + 2, PAN_W - 6, 39);
 
     /* The damage number, rising from the chest of whoever took it. */

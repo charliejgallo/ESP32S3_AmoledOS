@@ -157,6 +157,9 @@ int ch_isqrt(int v);
 void     ch_pal_init(void);     /* once, before drawing anything */
 bool     ch_pal(char ch, uint16_t *out);
 void     ch_blit(ch_buf_t *b, int x, int y, const char *const *rows, int nrows);
+/* The same, scaled by num/den with nearest neighbour. Scaffolding for v2: it
+ * draws v1's 8 px art on the 12 px grid so the game runs while the tiles are
+ * being redrawn, and it goes away with the last of them. */
 void     ch_blit_c(ch_buf_t *b, int cx, int cy, const char *const *rows, int nrows);
 int      ch_sprite_w(const char *const *rows);
 

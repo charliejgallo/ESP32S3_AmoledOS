@@ -112,6 +112,25 @@ enum {
     F_ENEMIGO_45, F_ENEMIGO_46, F_ENEMIGO_47, F_ENEMIGO_48,
     F_ENEMIGO_49, F_ENEMIGO_50, F_ENEMIGO_51,
 
+    /* What a piece of furniture hides. One flag each, so it is found ONCE:
+     * without it a bookcase is a machine for printing oil. */
+    F_MUEBLE_1, F_MUEBLE_2, F_MUEBLE_3, F_MUEBLE_4, F_MUEBLE_5,
+    F_MUEBLE_6, F_MUEBLE_7, F_MUEBLE_8,
+
+    /* One per zone: set the first time you walk into it, and it is what the
+     * map's fast travel unlocks. */
+    F_VISITA_1, F_VISITA_2, F_VISITA_3, F_VISITA_4,
+    F_VISITA_5, F_VISITA_6, F_VISITA_7, F_VISITA_8,
+
+    /* TEMPORAL: la entrega de piezas de prueba, una sola vez. */
+    /* Las dos de la reparticion de prueba de la v2. La funcion se fue; las
+     * banderas se quedan, porque sacarlas correria todas las de abajo y un
+     * guardado en curso leeria "cofre abierto" donde dice "jefe vencido". */
+    F_PRUEBA_PIEZAS, F_PRUEBA_PIEZAS2,
+
+    /* La feria paga su pieza una sola vez. */
+    F_FERIA_PIEZA,
+
     /* zone 8 - Torre Prisma */
     F_JEFE_PRISMA, F_FINAL,
     F_COFRE_T1, F_COFRE_T2, F_COFRE_T3,
@@ -122,7 +141,10 @@ enum {
 /* Room identifiers. */
 enum {
     S_CASA = 0,
-    S_PUEBLO,
+    S_PUEBLO,                   /* Villa Tuerca, sector noroeste            */
+    S_TUERCA_NE,
+    S_TUERCA_SO,
+    S_TUERCA_SE,
     S_TALLER,
     S_VECINO,
     S_SENDERO,
@@ -133,6 +155,7 @@ enum {
     /* zone 2 */
     S_COSTA,
     S_PUERTO,
+    S_PUERTO_E,
     S_PUERTO_INT,
     S_BODEGA1,
     S_BODEGA2,
@@ -140,6 +163,7 @@ enum {
     /* zone 3 */
     S_CUESTA,
     S_VOLTIO,
+    S_VOLTIO_E,
     S_VOLTIO_INT,
     S_SUB1,
     S_SUB2,
@@ -147,6 +171,7 @@ enum {
     /* zone 4 */
     S_HUMO,
     S_FUNDICION,
+    S_FUNDICION_E,
     S_FUND_INT,
     S_HORNO1,
     S_HORNO2,
@@ -154,6 +179,7 @@ enum {
     /* zone 5 */
     S_PASO,
     S_CRIO,
+    S_CRIO_E,
     S_CRIO_INT,
     S_CUEVA1,
     S_CUEVA2,
@@ -161,6 +187,7 @@ enum {
     /* zone 6 */
     S_AUTOPISTA,
     S_MALLA,
+    S_MALLA_E,
     S_MALLA_INT,
     S_SERV1,
     S_SERV2,
@@ -168,6 +195,7 @@ enum {
     /* zone 7 */
     S_LLANURA,
     S_OXIDO,
+    S_OXIDO_E,
     S_OXIDO_INT,
     S_CEMENT1,
     S_CEMENT2,
@@ -175,6 +203,7 @@ enum {
     /* zone 8 */
     S_ULTIMO,
     S_PRISMA,
+    S_PRISMA_E,
     S_PRISMA_INT,
     S_TORRE1,
     S_TORRE2,
@@ -187,32 +216,17 @@ enum {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_CASA[ROWS] = {
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "0000|||||||||||||||0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_ooooooooo___|0000",
-    "0000|_ooooooooo___|0000",
-    "0000|_ooooooooo___|0000",
-    "0000|_ooooooooo___|0000",
-    "0000|_ooooooooo___|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000||||||___||||||0000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "000000000000000", "0|||||||||||||0",
+    "0|___________|0", "0|___________|0",
+    "0|___________|0", "0|_ooooooooo_|0",
+    "0|_ooooooooo_|0", "0|_ooooooooo_|0",
+    "0|_ooooooooo_|0", "0|___________|0",
+    "0|___________|0", "0|___________|0",
+    "0||||||___||||0", "000000000000000",
 };
 
 static const ch_ent_t EN_CASA[] = {
-    { E_PUERTA, 10, 17, S_PUEBLO,   4, 10, 3, NULL, NULL },
+    { E_PUERTA,  7, 12, S_PUEBLO,    3,  5, 3, NULL, NULL },
     { E_PNJ,     7,  5, 1, F_ABUELA_HABLO, 0, 0,
       N_("ABUELA TUERCA: BUEN DIA,\n"
       "DORMILON.\n"
@@ -223,13 +237,29 @@ static const ch_ent_t EN_CASA[] = {
       "ANDA AL TALLER Y TE\n"
       "EXPLICO COMO SE CAMBIAN\n"
       "LAS PIEZAS."), NULL },
-    { E_COFRE,  15,  5, IT_ACEITE, 2, F_COFRE_CASA, 0, NULL, NULL },
-    { E_CARTEL, 15,  3, 0, 0, 0, 0,
+    { E_COFRE,  11,  3, IT_ACEITE, 2, F_COFRE_CASA, 0, NULL, NULL },
+    { E_CARTEL,  3,  3, 0, 0, 0, 0,
       N_("UNA FOTO VIEJA: TU\n"
       "ABUELA JOVEN, AL LADO\n"
       "DE UN ROBOT ENORME.\n"
       "ABAJO DICE:\n"
       "CAMPEONA, ANO 12."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -237,85 +267,111 @@ static const ch_ent_t EN_CASA[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_PUEBLO[ROWS] = {
-    "==========.....========",
-    "          .....        ",
-    "  BB      .....    BB  ",
-    "  BB     .......   BB  ",
-    "         .......       ",
-    " ..................... ",
-    " .                   . ",
-    " .                   . ",
-    " .                   . ",
-    " .                   . ",
-    " .                   . ",
-    " .        .....      . ",
-    " .        .....      . ",
-    " .  ~~~~  .....      . ",
-    " .  ~~~~  .....      . ",
-    " .  ~~~~  .....      . ",
-    " .        .....      . ",
-    " ..................... ",
-    "          .....        ",
-    "          .....        ",
-    "==========.....========",
-    "          .....        ",
+    "===============",
+    "=     jjj      ",
+    "=     jjj      ",
+    "=     jjj      ",
+    "=  ee jjj  vv  ",
+    "=jjjjjjjjjjjjjj",
+    "=jjjjjjjjjjjjjj",
+    "=jjjjjjjjjjjjjj",
+    "=  vv jjj      ",
+    "= ~~~ jjj      ",
+    "= ~~~ jjj      ",
+    "= ~~~ jjj   ee ",
+    "=  ee jjj   ee ",
+    "=     jjj      ",
+};
+
+static const char *const M_TUERCA_NE[ROWS] = {
+    "=====.....=====",
+    "     .....     ",
+    "     vv..vv    ",
+    "      jjj      ",
+    "   ee jjj  ee  ",
+    "jjjjjjjjjjjjjj=",
+    "jjjjjjjjjjjjjj=",
+    "jjjjjjjjjjjjjj=",
+    "      jjj  vv =",
+    "  ee  jjj     =",
+    "  ee  jjj     =",
+    "      jjj     =",
+    "      jjj  vv =",
+    "      jjj     =",
+};
+
+static const char *const M_TUERCA_SO[ROWS] = {
+    "=     jjj      ",
+    "=     jjj      ",
+    "=     jjj      ",
+    "=  vv jjj   ee ",
+    "=jjjjjjjjjjjjjj",
+    "=jjjjjjjjjjjjjj",
+    "=jjjjjjjjjjjjjj",
+    "=  ee jjj      ",
+    "=     jjj  vv  ",
+    "=     jjj      ",
+    "=  vv jjj      ",
+    "=     jjj   ee ",
+    "=     jjj      ",
+    "===============",
+};
+
+static const char *const M_TUERCA_SE[ROWS] = {
+    "      jjj     =",
+    "      jjj     =",
+    "   ee jjj  vv =",
+    "      jjj     =",
+    "jjjjjjjjjjjjjj=",
+    "jjjjjjjjjjjjjj=",
+    "jjjjjjjjjjjjjj=",
+    "   vv jjj     =",
+    "      jjj  ee =",
+    "      jjj     =",
+    "   ee jjj     =",
+    "      jjj  vv =",
+    "      jjj     =",
+    "===============",
 };
 
 static const ch_prop_t P_PUEBLO[] = {
-    { 3,  6, PR_CASA },          /* the door lands on cell 4               */
-    { 14, 6, PR_TALLER },        /* the door lands on cell 16              */
-    { 16,12, PR_FUENTE },
-    { 0,  1, PR_ARBOL },
-    { 21, 1, PR_ARBOL },
-    { 0, 17, PR_ARBOL },
-    { 21,17, PR_ARBOL },
-    { 8,  9, PR_FAROLA },
-    { 18,15, PR_FAROLA },
+    { 2,  1, PR_CASA },          /* the door lands on cell 3,4             */
+    { 11, 1, PR_ARBOL },
+    { 11, 9, PR_ARBOL },
+    { 10, 4, PR_FAROLA },
 };
 
 static const ch_ent_t EN_PUEBLO[] = {
-    /* The doors go on the cell BELOW the threshold: that is where the player
-     * stands, because the house's decoration blocks the way. */
-    { E_PUERTA,  4,  9, S_CASA,    11, 16, 2, NULL, NULL },
-    { E_PUERTA, 16,  9, S_TALLER,  11, 16, 2, NULL, NULL },
-    { E_PUERTA, 10,  0, S_SENDERO,  7, 19, 5, NULL, NULL },
-    { E_PUERTA, 10,  1, S_SENDERO,  7, 19, 5, NULL, NULL },
-    { E_CARTEL,  6, 16, 0, 0, 0, 0,
-      N_("VILLA TUERCA\n"
-      "POBLACION: 34 PERSONAS\n"
-      "Y UNOS CUANTOS ROBOTS."), NULL },
-    { E_PNJ,    12,  8, 2, 0, 0, 0,
-      N_("CHICO: MI HERMANA DICE\n"
-      "QUE EN EL DESGUACE HAY\n"
-      "PIEZAS BUENISIMAS.\n"
-      "YO NO ENTRARIA. HAY\n"
-      "ROBOTS SUELTOS."), NULL },
-    /* The town's only quest with a reward. p3 is the flag you have to bring
-     * and texto2 what they say when they see it: two pointers of a table
-     * instead of a state machine. */
-    { E_PNJ,     5, 11, 3, F_MISION_CUMPLIDA, F_TORNILLOS, IT_SOLDADOR,
+    /* The doors that lead to the next SECTOR of the same town sit on the
+     * paths, at the edge of the map, so crossing one slides and the line you
+     * were walking carries on. The house's door is in the middle of the
+     * sector and fades: walking into a house is not walking east. */
+    { E_PUERTA,  3,  4, S_CASA,     7, 10, 2, NULL, NULL },
+    { E_PUERTA, 14,  5, S_TUERCA_NE, 2,  6, 3, NULL, NULL },
+    { E_PUERTA,  6, 13, S_TUERCA_SO, 7,  2, 3, NULL, NULL },
+    { E_PNJ,    13, 12, 3, F_MISION_CUMPLIDA, F_TORNILLOS, IT_SOLDADOR,
       N_("VECINO: SE ME CAYERON\n"
       "LOS TORNILLOS EN EL\n"
       "DEPOSITO DEL DESGUACE.\n"
       "ESTA AL NORTE, PASANDO\n"
       "EL SENDERO.\n"
-      "SI ME LOS TRAES, TE DOY\n"
-      "ALGO BUENO."),
-      N_("VECINO: LOS TORNILLOS!\n"
-      "SOS UN FENOMENO.\n"
-      "TOMA ESTE SOLDADOR, QUE\n"
-      "A MI NO ME SIRVE Y A VOS\n"
-      "TE VA A SALVAR.\n"
-      "Y QUEDATE CON LOS\n"
-      "CREDITOS TAMBIEN.") },
-    { E_PNJ,    18, 10, 4, 0, 0, 0,
-      N_("SENORA: CUIDADO CON LA\n"
-      "FUENTE, QUE EL AGUA Y\n"
-      "LOS CIRCUITOS NO SE\n"
-      "LLEVAN BIEN."), NULL },
-    /* The booth: the other watch. One per town, always at the side of the
-     * square, because it is a place you go to and not a menu you open. */
-    { E_CABINA, 19, 13, 0, 0, 0, 0, NULL, NULL },
+      "SI ME LOS TRAES TE DOY\n"
+      "ALGO QUE TE VA A SERVIR."),
+      N_("VECINO: MIS TORNILLOS!\n"
+      "TOMA, ESTE SOLDADOR ERA\n"
+      "DE MI PADRE.") },
+    { E_MUEBLE,  1,  8, MU_BANCO, 0, 0, 0,
+      N_("UN BANCO DE PLAZA.\n"
+      "MIRA AL ESTANQUE."), NULL },
+    { E_MUEBLE, 13,  4, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  9,  8, MU_MACETA, 0, 0, 0,
+      N_("UNA MACETA DE LA VEREDA.\n"
+      "ALGUIEN LE PUSO UN\n"
+      "CARTELITO: NO PISAR."), NULL },
+    { E_ANIMAL, 12,  4, AN_GATO, 0, 0, 0,
+      N_("UN GATO NEGRO.\n"
+      "TE MIRA, BOSTEZA, Y\n"
+      "SIGUE EN LO SUYO."), NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -323,37 +379,107 @@ static const ch_ent_t EN_PUEBLO[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_TALLER[ROWS] = {
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "000|||||||||||||||||000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|---------++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++ooooooo+++++|000",
-    "000|+++ooooooo+++++|000",
-    "000|+++ooooooo+++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|++++++___++++++|000",
-    "000|||||||___|||||||000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "000000000000000", "0|||||||||||||0",
+    "0|+++++++++++|0", "0|---------++|0",
+    "0|+++++++++++|0", "0|+++++++++++|0",
+    "0|++ooooooo++|0", "0|++ooooooo++|0",
+    "0|++ooooooo++|0", "0|+++++++++++|0",
+    "0|+++++++++++|0", "0|+++++++++++|0",
+    "0||||||+++||||0", "000000000000000",
+};
+
+static const ch_prop_t P_TUERCA_NE[] = {
+    { 10, 1, PR_TALLER },        /* the door lands on cell 11,4            */
+    { 1,  9, PR_ARBOL },
+    { 12, 8, PR_FAROLA },
+};
+
+static const ch_ent_t EN_TUERCA_NE[] = {
+    { E_PUERTA,  5,  0, S_SENDERO,   7, 11, 5, NULL, NULL },
+    { E_PUERTA,  0,  5, S_PUEBLO,   12,  6, 3, NULL, NULL },
+    { E_PUERTA,  6, 13, S_TUERCA_SE, 7,  2, 3, NULL, NULL },
+    { E_PUERTA, 11,  4, S_TALLER,    7, 10, 2, NULL, NULL },
+    { E_PNJ,     3,  2, 4, 0, 0, 0,
+      N_("MECANICO: EL TALLER ES\n"
+      "DE LA ABUELA TUERCA.\n"
+      "SI TE ROMPEN EL ROBOT,\n"
+      "TE LO DEJA COMO NUEVO\n"
+      "Y NO TE COBRA."), NULL },
+    { E_MUEBLE,  2,  4, MU_BANCO, 0, 0, 0,
+      N_("UN BANCO GASTADO.\n"
+      "ACA ESPERAN LOS QUE\n"
+      "DEJAN EL ROBOT EN EL\n"
+      "TALLER."), NULL },
+    { E_MUEBLE,  4,  8, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_ANIMAL,  3, 12, AN_PAJARO, 0, 0, 0,
+      N_("UN PAJARO PICOTEA\n"
+      "TORNILLOS DEL PISO.\n"
+      "NO PARECE UNA BUENA\n"
+      "DIETA."), NULL },
+};
+
+static const ch_prop_t P_TUERCA_SO[] = {
+    { 10, 1, PR_CASA },          /* the door lands on cell 11,4            */
+    { 2,  8, PR_FUENTE },
+    { 12,10, PR_ARBOL },
+    { 5, 10, PR_FAROLA },
+};
+
+static const ch_ent_t EN_TUERCA_SO[] = {
+    { E_PUERTA,  6,  0, S_PUEBLO,    7, 11, 3, NULL, NULL },
+    { E_PUERTA, 14,  4, S_TUERCA_SE, 2,  5, 3, NULL, NULL },
+    { E_PUERTA, 11,  4, S_VECINO,    7, 10, 2, NULL, NULL },
+    { E_CARTEL,  3, 11, 0, 0, 0, 0,
+      N_("VILLA TUERCA\n"
+      "POBLACION: 34 PERSONAS\n"
+      "Y UNOS CUANTOS ROBOTS."), NULL },
+    { E_PNJ,    11,  9, 2, 0, 0, 0,
+      N_("CHICO: MI HERMANA DICE\n"
+      "QUE EN EL DESGUACE HAY\n"
+      "PIEZAS BUENISIMAS.\n"
+      "YO NO ENTRARIA. HAY\n"
+      "ROBOTS SUELTOS."), NULL },
+    { E_MUEBLE,  9,  8, MU_BANCO, F_MUEBLE_2, 0, IT_ACEITE,
+      N_("UN BANCO FRENTE A LA\n"
+      "FUENTE.\n"
+      "ABAJO HAY ALGO."), NULL },
+    { E_MUEBLE,  1,  3, MU_MACETA, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE, 13,  7, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_ANIMAL,  7, 11, AN_GATO, 0, 0, 0,
+      N_("OTRO GATO. O EL MISMO,\n"
+      "QUE SE MUEVE MAS RAPIDO\n"
+      "DE LO QUE PARECE."), NULL },
+};
+
+static const ch_prop_t P_TUERCA_SE[] = {
+    { 2,  1, PR_ARBOL },
+    { 2,  9, PR_MAQUINA },
+    { 10, 2, PR_FAROLA },
+};
+
+static const ch_ent_t EN_TUERCA_SE[] = {
+    { E_PUERTA,  6,  0, S_TUERCA_NE, 7, 11, 3, NULL, NULL },
+    { E_PUERTA,  0,  4, S_TUERCA_SO, 12, 5, 3, NULL, NULL },
+    /* The booth: the other watch. One per town, always at the side of the
+     * square, because it is a place you go to and not a menu you open. */
+    { E_CABINA, 11,  9, 0, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  4,  8, MU_BANCO, 0, 0, 0,
+      N_("UN BANCO AL LADO DE LA\n"
+      "CABINA.\n"
+      "PARA ESPERAR TURNO."), NULL },
+    { E_MUEBLE, 10, 11, MU_MACETA, 0, 0, 0, NULL, NULL },
+    { E_ANIMAL, 12,  2, AN_PAJARO, 0, 0, 0,
+      N_("UN PAJARO EN EL CANTERO.\n"
+      "SE VA APENAS TE ACERCAS."), NULL },
 };
 
 static const ch_prop_t P_TALLER_INT[] = {
-    { 15,  3, PR_MAQUINA },
+    { 2,   2, PR_MAQUINA },
     { 8,   8, PR_MAQUINA },      /* the workbench: touched from below */
 };
 
 static const ch_ent_t EN_TALLER[] = {
-    { E_PUERTA, 10, 17, S_PUEBLO,  16, 10, 3, NULL, NULL },
+    { E_PUERTA,  7, 12, S_TUERCA_NE, 11, 5, 3, NULL, NULL },
     { E_TALLER,  8,  9, 0, 0, 0, 0,
       N_("EL BANCO DE TRABAJO DE\n"
       "LA ABUELA.\n"
@@ -364,7 +490,7 @@ static const ch_ent_t EN_TALLER[] = {
       "ACEITE, BATERIAS Y\n"
       "ALGUNA COSA MAS.\n"
       "MIRA TRANQUILO."), NULL },
-    { E_PNJ,    16,  6, 1, 0, 0, 0,
+    { E_PNJ,    11,  4, 1, 0, 0, 0,
       N_("ABUELA TUERCA: UN ROBOT\n"
       "SON CUATRO PIEZAS:\n"
       "CABEZA, TORSO, BRAZOS\n"
@@ -378,6 +504,22 @@ static const ch_ent_t EN_TALLER[] = {
       "ESAS VAN A LA MOCHILA\n"
       "Y SE MONTAN DESDE EL\n"
       "MENU, EN TALLER."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -385,32 +527,61 @@ static const ch_ent_t EN_TALLER[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_VECINO[ROWS] = {
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "0000|||||||||||||||0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000|_____________|0000",
-    "0000||||||___||||||0000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "000000000000000",
+    "0|||||||||||||0",
+    "0|WWWWWWWWWWW|0",
+    "0|WWWWWWWWWWW|0",
+    "0|WWWWWWWWWWW|0",
+    "0|WWooooooWWW|0",
+    "0|WWooooooWWW|0",
+    "0|WWooooooWWW|0",
+    "0|WWWWWWWWWWW|0",
+    "0|WWWWWWWWWWW|0",
+    "0|WWWWWWWWWWW|0",
+    "0|WWWWWWWWWWW|0",
+    "0||||||WWW||||0",
+    "000000000000000",
 };
 
 static const ch_ent_t EN_VECINO[] = {
-    { E_PUERTA, 10, 17, S_PUEBLO,  11,  6, 3, NULL, NULL },
+    { E_PUERTA,  7, 12, S_TUERCA_SO, 11,  5, 3, NULL, NULL },
+    { E_MUEBLE,  3,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN CUADRO DE UN LAGO.\n"
+      "LA FIRMA DICE: TUERCA,\n"
+      "ANO 9."), NULL },
+    { E_MUEBLE,  6,  2, MU_CUADRO, 0, 0, 0,
+      N_("LA FOTO DE UN ROBOT\n"
+      "VIEJO, CON UNA MEDALLA.\n"
+      "ATRAS ALGUIEN ESCRIBIO:\n"
+      "SIEMPRE VOLVIA."), NULL },
+    { E_MUEBLE,  9,  4, MU_ESTANTE, F_MUEBLE_1, 0, IT_ACEITE,
+      N_("UNA BIBLIOTECA LLENA DE\n"
+      "MANUALES.\n"
+      "ATRAS DE UN TOMO HAY\n"
+      "ALGO GUARDADO."), NULL },
+    { E_MUEBLE,  2,  3, MU_COMPU, 0, 0, 0,
+      N_("UNA TERMINAL VIEJA.\n"
+      "EN LA PANTALLA PARPADEA\n"
+      "UNA PARTIDA DE AJEDREZ\n"
+      "SIN TERMINAR."), NULL },
+    { E_MUEBLE, 12,  4, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA DE BARRO.\n"
+      "ADENTRO HAY TORNILLOS\n"
+      "DE TODAS LAS MEDIDAS."), NULL },
+    { E_MUEBLE,  4,  6, MU_MESA, 0, 0, 0,
+      N_("LA MESA, PUESTA PARA\n"
+      "DOS.\n"
+      "HACE RATO QUE ESPERA."), NULL },
+    { E_MUEBLE,  3,  6, MU_SILLA, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  6,  6, MU_SILLA, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE, 10,  9, MU_CAMA, 0, 0, 0,
+      N_("LA CAMA, TENDIDA.\n"
+      "MEJOR NO."), NULL },
+    { E_MUEBLE,  2, 10, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA DE INTERIOR.\n"
+      "ALGUIEN LA RIEGA TODOS\n"
+      "LOS DIAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -418,49 +589,36 @@ static const ch_ent_t EN_VECINO[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_SENDERO[ROWS] = {
-    "     .....             ",
-    "  BB .....   BB        ",
-    "     .....             ",
-    "\"\"\"  .....  \"\"\"\"\"\"\"    ",
-    "\"\"\"  .....  \"\"\"\"\"\"\"    ",
-    "\"\"\"  .....  \"\"\"\"\"\"\"    ",
-    "     .....             ",
-    "     ..................",
-    "     .....             ",
-    "  \"\"\"\"\"\"\"\"\"\"\"\"\"        ",
-    "  \"\"\"\"\"\"\"\"\"\"\"\"\"        ",
-    "  \"\"\"\"\"\"\"\"\"\"\"\"\"        ",
-    "     .....             ",
-    "     .....    \"\"\"\"\"    ",
-    "  BB .....    \"\"\"\"\"    ",
-    "     .....    \"\"\"\"\"    ",
-    "     .....             ",
-    "~~~~~.....~~~~~~~~~~~~~",
-    "~~~~~^^^^^~~~~~~~~~~~~~",
-    "     .....             ",
-    "     .....             ",
-    "     .....             ",
+    "=====.....=====",
+    "     .....     ",
+    "      ...      ",
+    "  \"\"\" ... \"\"\"  ",
+    "  \"\"\" ... \"\"\"  ",
+    "      ...      ",
+    "~~~~~~^^^~~~~~~",
+    "      .........",
+    "      .........",
+    "  \"\"\" ... \"\"\"  ",
+    "      ...      ",
+    "      ...      ",
+    "     .....     ",
+    "=====.....=====",
 };
 
 static const ch_prop_t P_SENDERO[] = {
-    { 0,  0, PR_ARBOL },
-    { 19, 2, PR_ARBOL },
-    { 0, 12, PR_ARBOL },
-    { 20,14, PR_ARBOL },
+    { 0,  1, PR_PINO },
+    { 13, 1, PR_PINO },
+    { 0, 10, PR_PINO },
+    { 13,10, PR_PINO },
 };
 
 static const ch_ent_t EN_SENDERO[] = {
-    { E_PUERTA,  5, 21, S_PUEBLO,   11,  2, 5, NULL, NULL },
-    { E_PUERTA,  5, 20, S_PUEBLO,   11,  2, 5, NULL, NULL },
-    { E_PUERTA,  5,  0, S_DESGUACE1, 11, 17, 5, NULL, NULL },
-    { E_PUERTA,  5,  1, S_DESGUACE1, 11, 17, 5, NULL, NULL },
-    { E_CARTEL, 15,  6, 0, 0, 0, 0,
-      N_("AL NORTE: EL DESGUACE.\n"
-      "PROHIBIDO EL PASO A\n"
-      "ROBOTS SIN LICENCIA."), NULL },
-    /* The control the Desguace's sub-boss opens. The whole progression of the
-     * game is this: one flag and two texts. */
-    { E_BLOQUEO, 19,  7, F_JEFE_DESGUACE, 0, 0, 0,
+    { E_PUERTA,  5, 13, S_TUERCA_NE, 7,  2, 5, NULL, NULL },
+    { E_PUERTA,  5,  0, S_DESGUACE1, 7, 11, 5, NULL, NULL },
+    { E_PUERTA, 14,  7, S_COSTA,     2,  5, 2, NULL, NULL },
+    /* The gate to zone 2. It is a pair of BLOCKS and not a closed door: a
+     * door that refuses is indistinguishable from a door that is broken. */
+    { E_BLOQUEO,12,  7, F_JEFE_DESGUACE, 0, 0, 0,
       N_("UN CONTROL BAJADO.\n"
       "CARTEL: PROHIBIDO PASAR AL\n"
       "ESTE SIN PASE DE SECTOR.\n"
@@ -468,9 +626,17 @@ static const ch_ent_t EN_SENDERO[] = {
       "DEL DESGUACE."),
       N_("EL CONTROL ESTA LEVANTADO.\n"
       "AL ESTE: PUERTO BUJIA.") },
-    { E_PUERTA, 21,  7, S_COSTA,      2,  5, 2, NULL, NULL },
-    { E_ENEMIGO, 13, 10, 1, F_ENEMIGO_1, 4, 0, NULL, NULL },
-    { E_ENEMIGO,  3,  4, 1, F_ENEMIGO_2, 3, 0, NULL, NULL },
+    { E_BLOQUEO,12,  8, F_JEFE_DESGUACE, 0, 0, 0,
+      N_("UN CONTROL BAJADO.\n"
+      "AL ESTE NO SE PASA SIN\n"
+      "PASE DE SECTOR."),
+      N_("EL CONTROL ESTA LEVANTADO."), },
+    { E_CARTEL, 11,  4, 0, 0, 0, 0,
+      N_("SENDERO NORTE\n"
+      "AL DESGUACE.\n"
+      "CUIDADO: HAY ROBOTS\n"
+      "SUELTOS ENTRE LOS\n"
+      "YUYOS."), NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -478,46 +644,35 @@ static const ch_ent_t EN_SENDERO[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_DESGUACE1[ROWS] = {
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "XMMMMMMMMX:::XMMMMMMMMX",
-    "XMMxxxMMMMMMMMMMxxxMMMX",
-    "XMMxxxMMMMMMMMMMxxxMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMM***MMMM***MMMMMX",
-    "XMMMMMM***MMMM***MMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMxxxxxMMMMMMxxxxxMMMX",
-    "XMMxxxxxMMMMMMxxxxxMMMX",
-    "XMMxxxxxMMMMMMxxxxxMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMM:::::MMMMMMMMX",
-    "XMMMMMMMM:::::MMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMX:::XMMMMMMMMX",
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "XXXXXX:::XXXXXX",
+    "XMMMMM:::MMMMMX",
+    "XMMxxxMMMMMxxxX",
+    "XMMxxxMMMMMxxxX",
+    "XMMMMMMMMMMMMMX",
+    "XMM***MMM***MMX",
+    "XMM***MMM***MMX",
+    "XMMMMMMMMMMMMMX",
+    "XMMxxxMMMMMxxxX",
+    "XMMxxxMMMMMxxxX",
+    "XMMMMMMMMMMMMMX",
+    "XMMMMM:::MMMMMX",
+    "XMMMMM:::MMMMMX",
+    "XXXXXX:::XXXXXX",
 };
 
 static const ch_prop_t P_DESGUACE1[] = {
-    { 2,  4, PR_PILA },
-    { 18, 8, PR_PILA },
-    { 5, 17, PR_PILA },
-    { 17,16, PR_MAQUINA },
+    { 1,  4, PR_PILA },
+    { 12, 7, PR_PILA },
+    { 11,11, PR_MAQUINA },
 };
 
 static const ch_ent_t EN_DESGUACE1[] = {
-    { E_PUERTA, 10, 19, S_SENDERO,    7,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_SENDERO,    7,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_DESGUACE2, 11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_DESGUACE2, 11, 17, 3, NULL, NULL },
-    { E_COFRE,    3,  8, IT_ACEITE, 1, F_COFRE_DESGUACE1, 0, NULL, NULL },
-    { E_ENEMIGO, 16,  5, 1, F_ENEMIGO_3, 5, 0, NULL, NULL },
-    { E_ENEMIGO,  6, 13, 1, F_ENEMIGO_4, 5, 0, NULL, NULL },
-    { E_CARTEL,  12,  8, 0, 0, 0, 0,
+    { E_PUERTA,  6, 13, S_SENDERO,    7,  2, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_DESGUACE2,  7, 11, 3, NULL, NULL },
+    { E_COFRE,   2,  7, IT_ACEITE, 1, F_COFRE_DESGUACE1, 0, NULL, NULL },
+    { E_ENEMIGO,11,  3, 1, F_ENEMIGO_3, 5, 0, NULL, NULL },
+    { E_ENEMIGO, 4,  9, 1, F_ENEMIGO_4, 5, 0, NULL, NULL },
+    { E_CARTEL,  7,  6, 0, 0, 0, 0,
       N_("UN CARTEL TORCIDO:\n"
       "DESGUACE MUNICIPAL\n"
       "NO ALIMENTE A LOS\n"
@@ -529,45 +684,35 @@ static const ch_ent_t EN_DESGUACE1[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_DESGUACE2[ROWS] = {
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "XMMMMMMMMX:::XMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMXXXXXXMMMMMXXXXXXMMX",
-    "XMMXxxxxXMMMMMXxxxxXMMX",
-    "XMMXxxxxXMMMMMXxxxxXMMX",
-    "XMMXxxxxXMMMMMXxxxxXMMX",
-    "XMMXXXX:XMMMMMX:XXXXMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMM*****MMMMMMMMMX",
-    "XMMMMMMM*****MMMMMMMMMX",
-    "XMMMMMMM*****MMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMxxxMMMMMMMMMMMxxxMMX",
-    "XMMxxxMMMMMMMMMMMxxxMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMX:::XMMMMMMMMX",
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "XXXXXX:::XXXXXX",
+    "XMMMMM:::MMMMMX",
+    "XMMMMMMMMMMMMMX",
+    "XMxxxMMMMMxxxMX",
+    "XMxxxMMMMMxxxMX",
+    "::MMMMMMMMMMMMX",
+    "::MMMMMMMMMMMMX",
+    "XMMMMMMMMMMMMMX",
+    "XMM***MMM***MMX",
+    "XMM***MMM***MMX",
+    "XMMMMMMMMMMMMMX",
+    "XMMMMM:::MMMMMX",
+    "XMMMMM:::MMMMMX",
+    "XXXXXX:::XXXXXX",
 };
 
 static const ch_prop_t P_DESGUACE2[] = {
-    { 2,  9, PR_MAQUINA },
-    { 19,11, PR_PILA },
+    { 1,  9, PR_MAQUINA },
+    { 12, 9, PR_PILA },
 };
 
 static const ch_ent_t EN_DESGUACE2[] = {
-    { E_PUERTA, 10, 19, S_DESGUACE1, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_DESGUACE1, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_JEFE,      11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_JEFE,      11, 17, 3, NULL, NULL },
-    { E_PUERTA,  5,  5, S_DESGUACE3, 11, 16, 2, NULL, NULL },
-    { E_COFRE,  17,  5, IT_BATERIA, 2, F_COFRE_DESGUACE2, 0, NULL, NULL },
-    { E_ENEMIGO, 4, 12, 1, F_ENEMIGO_5, 6, 0, NULL, NULL },
-    { E_ENEMIGO,18, 16, 1, F_ENEMIGO_6, 6, 0, NULL, NULL },
-    { E_ENEMIGO,11, 13, 1, F_ENEMIGO_7, 7, 0, NULL, NULL },
+    { E_PUERTA,  6, 13, S_DESGUACE1,  7, 11, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_JEFE,       7, 11, 3, NULL, NULL },
+    { E_PUERTA,  0,  5, S_DESGUACE3, 12,  5, 2, NULL, NULL },
+    { E_COFRE,  12,  4, IT_BATERIA, 2, F_COFRE_DESGUACE2, 0, NULL, NULL },
+    { E_ENEMIGO, 3,  9, 1, F_ENEMIGO_5, 6, 0, NULL, NULL },
+    { E_ENEMIGO,11,  2, 1, F_ENEMIGO_6, 6, 0, NULL, NULL },
+    { E_ENEMIGO, 7,  9, 1, F_ENEMIGO_7, 7, 0, NULL, NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -575,40 +720,32 @@ static const ch_ent_t EN_DESGUACE2[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_DESGUACE3[ROWS] = {
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "0000XXXXXXXXXXXXXXX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XMMxxxxxxxxxMMX0000",
-    "0000XMMxxxxxxxxxMMX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XMM:::::::::MMX0000",
-    "0000XMM:::::::::MMX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XMMxxxxxxxxxMMX0000",
-    "0000XMMxxxxxxxxxMMX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XMMMMMMMMMMMMMX0000",
-    "0000XXXXXX:::XXXXXX0000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "XXXXXXXXXXXXXXX",
+    "XMMMMMMMMMMMMMX",
+    "XMxxxxxxxxxxxMX",
+    "XMxxxxxxxxxxxMX",
+    "XMMMMMMMMMMMMMX",
+    "XMM:::::::::MM:",
+    "XMM:::::::::MM:",
+    "XMMMMMMMMMMMMMX",
+    "XMxxxxxxxxxxxMX",
+    "XMxxxxxxxxxxxMX",
+    "XMMMMMMMMMMMMMX",
+    "XMMMMMMMMMMMMMX",
+    "XMMMMMMMMMMMMMX",
+    "XXXXXXXXXXXXXXX",
 };
 
 static const ch_prop_t P_DESGUACE3[] = {
-    { 5,  3, PR_PILA },
-    { 15,14, PR_PILA },
+    { 2, 11, PR_PILA },
+    { 11,11, PR_PILA },
 };
 
 static const ch_ent_t EN_DESGUACE3[] = {
-    { E_PUERTA, 10, 17, S_DESGUACE2,  6,  6, 3, NULL, NULL },
-    { E_COFRE,  11,  6, IT_LLAVE, 1, F_COFRE_DESGUACE3, 0, NULL, NULL },
-    { E_COFRE,   7, 11, IT_TORNILLOS, 1, F_TORNILLOS, 0, NULL, NULL },
-    { E_ENEMIGO,15,  9, 1, F_ENEMIGO_8, 7, 0, NULL, NULL },
+    { E_PUERTA, 14,  5, S_DESGUACE2,  2,  5, 2, NULL, NULL },
+    { E_COFRE,   6,  1, IT_LLAVE, 1, F_COFRE_DESGUACE3, 0, NULL, NULL },
+    { E_COFRE,   6, 11, IT_TORNILLOS, 1, F_TORNILLOS, 0, NULL, NULL },
+    { E_ENEMIGO,10,  8, 1, F_ENEMIGO_8, 7, 0, NULL, NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -616,38 +753,30 @@ static const ch_ent_t EN_DESGUACE3[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_JEFE[ROWS] = {
-    "00000XXXXXXXXXXXXX00000",
-    "00000X:::::::::::X00000",
-    "00000X:::::::::::X00000",
-    "0000XX:::::::::::XX0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000X:::::::::::::X0000",
-    "0000XX:::::::::::XX0000",
-    "00000X:::::::::::X00000",
-    "00000X:::::::::::X00000",
-    "00000X:::::::::::X00000",
-    "00000X:::::::::::X00000",
-    "00000XXXXX:::XXXXX00000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "XXXXXXXXXXXXXXX",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "X:::::::::::::X",
+    "XXXXXX:::XXXXXX",
 };
 
 static const ch_prop_t P_JEFE[] = {
-    { 5,  2, PR_MAQUINA },
-    { 16, 2, PR_MAQUINA },
+    { 2,  1, PR_MAQUINA },
+    { 11, 1, PR_MAQUINA },
 };
 
 static const ch_ent_t EN_JEFE[] = {
-    { E_PUERTA, 10, 19, S_DESGUACE2, 11, 17, 3, NULL, NULL },
-    { E_JEFE,   11,  6, 3, F_JEFE_DESGUACE, 12, IT_PASE,
+    { E_PUERTA,  6, 13, S_DESGUACE2,  7, 11, 3, NULL, NULL },
+    { E_JEFE,    7,  4, 3, F_JEFE_DESGUACE, 12, IT_PASE,
       N_("GUARDIAN DEL DESGUACE:\n"
       "ALTO AHI.\n"
       "NADIE SE LLEVA CHATARRA\n"
@@ -665,124 +794,148 @@ static const ch_ent_t EN_JEFE[] = {
  * ========================================================================== */
 
 static const char *const M_COSTA[ROWS] = {
-    "#######################",
-    "##   ddd   ##   ddd  ##",
-    "##   ddd   ##   ddd  ##",
-    "##         ##        ##",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "##                   ##",
-    "##  ddddd    ddddddd ##",
-    "##  ddddd    ddddddd ##",
-    "##                   ##",
-    "SSSSSSSSSSSSSSSSSSSSSSS",
-    "SSSSSSSSSSSSSSSSSSSSSSS",
-    "SSSSSSSSSSSSSSSSSSSSSSS",
-    "SSSSSSSSSSSSSSSSSSSSSSS",
-    "zzzzzzzzzzzzzzzzzzzzzzz",
-    "zzzzzzzzzzzzzzzzzzzzzzz",
-    "~~~~~~~~~~~~~~~~~~~~~~~",
-    "~~~~~~~~~~~~~~~~~~~~~~~",
-    "~~~~~~~~~~~~~~~~~~~~~~~",
-    "~~~~~~~~~~~~~~~~~~~~~~~",
-    "~~~~~~~~~~~~~~~~~~~~~~~",
+    "###############",
+    "## ddd   ddd ##",
+    "## ddd   ddd ##",
+    "##           ##",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "##           ##",
+    "## ddd ddddd ##",
+    "## ddd ddddd ##",
+    "SSSSSSSSSSSSSSS",
+    "SSSSSSSSSSSSSSS",
+    "zzzzzzzzzzzzzzz",
+    "~~~~~~~~~~~~~~~",
 };
 
 static const ch_prop_t P_COSTA[] = {
-    { 3,  1, PR_PINO },
-    { 18, 1, PR_PINO },
-    { 8, 13, PR_BARCO },
-    { 1,  7, PR_PILA },
+    { 2,  1, PR_PINO },
+    { 11, 1, PR_PINO },
+    { 5, 10, PR_BARCO },
+    { 2,  8, PR_PILA },
 };
 
 static const ch_ent_t EN_COSTA[] = {
-    { E_PUERTA,  0,  4, S_SENDERO, 20,  7, 2, NULL, NULL },
-    { E_PUERTA,  0,  5, S_SENDERO, 20,  7, 2, NULL, NULL },
-    { E_PUERTA,  0,  6, S_SENDERO, 20,  7, 2, NULL, NULL },
-    { E_PUERTA, 21,  4, S_PUERTO,   2, 11, 2, NULL, NULL },
-    { E_PUERTA, 21,  5, S_PUERTO,   2, 11, 2, NULL, NULL },
-    { E_PUERTA, 21,  6, S_PUERTO,   2, 11, 2, NULL, NULL },
-    { E_CARTEL,  4, 12, 0, 0, 0, 0,
+    { E_PUERTA,  0,  4, S_SENDERO,  11,  7, 3, NULL, NULL },
+    { E_PUERTA, 14,  4, S_PUERTO,    2,  5, 3, NULL, NULL },
+    { E_CARTEL,  3, 11, 0, 0, 0, 0,
       N_("PLAYA DEL CANGREJO.\n"
       "NO SE PERMITE OXIDARSE\n"
       "EN LA ARENA."), NULL },
-    { E_COFRE,  19, 13, IT_ACEITE2, 1, F_COFRE_P1, 0, NULL, NULL },
-    { E_ENEMIGO, 6,  8, 0, F_ENEMIGO_9,  10, 0, NULL, NULL },
-    { E_ENEMIGO,16,  9, 0, F_ENEMIGO_10, 11, 0, NULL, NULL },
-    { E_ENEMIGO,11, 12, 0, F_ENEMIGO_11, 12, 0, NULL, NULL },
+    { E_COFRE,  12, 11, IT_ACEITE2, 1, F_COFRE_P1, 0, NULL, NULL },
+    { E_ENEMIGO, 4,  2, 0, F_ENEMIGO_9,  10, 0, NULL, NULL },
+    { E_ENEMIGO,11,  8, 0, F_ENEMIGO_10, 11, 0, NULL, NULL },
+    { E_ENEMIGO, 4,  9, 0, F_ENEMIGO_11, 12, 0, NULL, NULL },
 };
 
 static const char *const M_PUERTO[ROWS] = {
-    "##########:::##########",
-    "#ppppppppppppppppppppp#",
-    "#ppppppppppppppppppppp#",
-    "#ppppppppppppppppppp###",
-    "#pppppppppppppppppppppp",
-    "#pppppppppppppppppppppp",
-    "#ppppppppppppppppppp###",
-    "#ppppppppppppppppppppp#",
-    "#ppppppppppppppppppppp#",
-    "#ppppppppppppppppppppp#",
-    "#ppppppppppppppppppppp#",
-    "GGGGGGGGGGGGGGGGGGGGGG#",
-    "#ppppppppppppppppppppp#",
-    "#pppppppppppppwwwwwwww#",
-    "#pppppppppppppwwwwwwww#",
-    "#SSSSSSSSSSSSSzzzzzzzz#",
-    "#SSSSSSSSSSSSS~~~~~~~~#",
-    "#SSSSSSSSSSSSS~~~~~~~~#",
-    "#~~~~~~~~~~~~~~~~~~~~~#",
-    "#~~~~~~~~~~~~~~~~~~~~~#",
-    "#~~~~~~~~~~~~~~~~~~~~~#",
-    "#######################",
+    "######GGG######",
+    "#pppppGGGppppp#",
+    "#pppppGGGppppp#",
+    "#pppppGGGppppp#",
+    "#pppppGGGppppp#",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "#pppppGGGppppp#",
+    "#pppppGGGppppp#",
+    "#pppppGGGppppp#",
+    "#pppppGGGppppp#",
+    "#pppppGGGppppp#",
+    "###############",
 };
 
 static const ch_prop_t P_PUERTO[] = {
-    { 3,  3, PR_CASA },
-    { 14, 3, PR_TALLER },
-    { 3,  7, PR_CASA },
-    { 9,  1, PR_FAROLA },
-    { 18,12, PR_FAROLA },
-    { 16,12, PR_BARCO },
-    { 19, 1, PR_ESTATUA },
+    { 1,  1, PR_CASA },
+    { 10, 1, PR_TALLER },        /* the door lands on cell 11,4            */
+    { 1,  9, PR_CASA },
+    { 10, 9, PR_ESTATUA },
+    { 13, 3, PR_FAROLA },
 };
 
 static const ch_ent_t EN_PUERTO[] = {
-    { E_PUERTA,  0, 11, S_COSTA,   20,  5, 2, NULL, NULL },
-    { E_BLOQUEO,20,  4, F_JEFE_PUERTO, 0, 0, 0,
+    { E_PUERTA,  0,  5, S_COSTA,    12,  5, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_PUERTO_E,  2,  6, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_BODEGA1,   7, 11, 3, NULL, NULL },
+    { E_PUERTA, 11,  4, S_PUERTO_INT, 7, 10, 2, NULL, NULL },
+    { E_CARTEL,  3, 12, 0, 0, 0, 0,
+      N_("PUERTO BUJIA\n"
+      "AQUI SE DESCARGA TODO LO\n"
+      "QUE SE OXIDA DESPUES.\n"
+      "AL NORTE: LA BODEGA."), NULL },
+    { E_PNJ,    12, 12, 2, 0, 0, 0,
+      N_("CHICO: EN LA BODEGA HAY\n"
+      "AGUA HASTA LAS RODILLAS\n"
+      "Y ROBOTS QUE NO SALEN\n"
+      "NUNCA DE AHI."), NULL },
+};
+
+static const char *const M_PUERTO_INT[ROWS] = {
+    "000000000000000",
+    "0|||||||||||||0",
+    "0|+++++++++++|0",
+    "0|---------++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0|++ooooooo++|0",
+    "0|++ooooooo++|0",
+    "0|++ooooooo++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0||||||+++||||0",
+    "000000000000000",
+};
+
+static const char *const M_PUERTO_E[ROWS] = {
+    "###############",
+    "#pppppppppppp##",
+    "#pppppppppppp##",
+    "#pppppppppppp##",
+    "#pppppppppppp##",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "#pppppppppppp##",
+    "#pppppwwwwwww##",
+    "#Sppppwwwwwww##",
+    "#SSSSSzzzzzzz##",
+    "#SSSSS~~~~~~~##",
+    "###############",
+};
+
+static const ch_prop_t P_PUERTO_E[] = {
+    { 7,  9, PR_BARCO },
+    { 11, 1, PR_PILA },
+    { 3,  3, PR_FAROLA },
+};
+
+static const ch_ent_t EN_PUERTO_E[] = {
+    { E_PUERTA,  0,  5, S_PUERTO,   12,  5, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_CUESTA,    2,  5, 3, NULL, NULL },
+    { E_BLOQUEO,12,  5, F_JEFE_PUERTO, 0, 0, 0,
       N_("CONTROL DEL PUERTO.\n"
       "AL ESTE SUBE LA CUESTA\n"
       "HACIA ALTO VOLTIO.\n"
       "NO SE PASA SIN PASE."),
       N_("EL CONTROL ESTA ABIERTO.\n"
       "AL ESTE: LA CUESTA.") },
-    { E_BLOQUEO,20,  5, F_JEFE_PUERTO, 0, 0, 0,
+    { E_BLOQUEO,12,  6, F_JEFE_PUERTO, 0, 0, 0,
       N_("CONTROL DEL PUERTO.\n"
-      "AL ESTE SUBE LA CUESTA\n"
-      "HACIA ALTO VOLTIO."),
-      N_("EL CONTROL ESTA ABIERTO.") },
-    { E_PUERTA, 21,  4, S_CUESTA,   2, 10, 2, NULL, NULL },
-    { E_PUERTA, 21,  5, S_CUESTA,   2, 11, 2, NULL, NULL },
-    { E_PUERTA, 10,  0, S_BODEGA1, 11, 17, 3, NULL, NULL },
-    { E_PUERTA,  4,  6, S_PUERTO_INT, 11, 16, 2, NULL, NULL },
-    { E_PUERTA, 16,  6, S_PUERTO_INT, 11, 16, 2, NULL, NULL },
-    { E_CARTEL,  9, 12, 0, 0, 0, 0,
-      N_("PUERTO BUJIA\n"
-      "AQUI SE DESCARGA TODO LO\n"
-      "QUE SE OXIDA DESPUES.\n"
-      "AL NORTE: LA BODEGA."), NULL },
-    { E_PNJ,     7, 13, 4, 0, 0, 0,
+      "AL ESTE SUBE LA CUESTA."),
+      N_("EL CONTROL ESTA ABIERTO."), },
+    { E_BLOQUEO,12,  7, F_JEFE_PUERTO, 0, 0, 0,
+      N_("CONTROL DEL PUERTO.\n"
+      "AL ESTE SUBE LA CUESTA."),
+      N_("EL CONTROL ESTA ABIERTO."), },
+    { E_PNJ,     4, 10, 4, 0, 0, 0,
       N_("PESCADORA: EL AGUA SALADA\n"
       "SE COME LOS CIRCUITOS.\n"
       "POR ESO ACA TODO PEGA\n"
       "CON ACIDO."), NULL },
-    { E_PNJ,    12,  9, 2, 0, 0, 0,
-      N_("CHICO: EN LA BODEGA HAY\n"
-      "AGUA HASTA LAS RODILLAS\n"
-      "Y ROBOTS QUE NO SALEN\n"
-      "NUNCA DE AHI."), NULL },
-    { E_PNJ,    19,  9, 3, F_MISION_ANCLA, F_ANCLA, IT_BATERIA2,
+    { E_PNJ,     3,  1, 3, F_MISION_ANCLA, F_ANCLA, IT_BATERIA2,
       N_("CAPITAN: PERDI EL ANCLA\n"
       "DE MI BARCO EN LA BODEGA.\n"
       "TRAEMELA Y TE DOY LA\n"
@@ -790,44 +943,27 @@ static const ch_ent_t EN_PUERTO[] = {
       N_("CAPITAN: EL ANCLA! AHORA\n"
       "SI PUEDO SALIR A PESCAR.\n"
       "TOMA, TE LA GANASTE.") },
-    /* The booth: the other watch. One per town, always at the side of the
-     * square, because it is a place you go to and not a menu you open. */
-    { E_CABINA, 18, 11, 0, 0, 0, 0, NULL, NULL },
-};
-
-static const char *const M_PUERTO_INT[ROWS] = {
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "000|||||||||||||||||000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|------++++++++-|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++ooooooo+++++|000",
-    "000|+++ooooooo+++++|000",
-    "000|+++ooooooo+++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|++++++___++++++|000",
-    "000|||||||___|||||||000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    { E_CABINA,  3,  8, 0, 0, 0, 0, NULL, NULL },
+    /* LA FERIA DEL PUERTO. Va en los muelles y no en el pueblo inicial a
+     * proposito: cuando llegas aca ya sabes que es una pieza y para que sirve
+     * un credito, que es lo que hace que el premio signifique algo. */
+    { E_FERIA,   4,  2, 0, 0, 0, 0,
+      N_("FERIANTE: PASA, PASA.\n"
+      "LA CINTA TRAE CHATARRA\n"
+      "DE TODO EL PUERTO.\n"
+      "AGARRA LAS VERDES Y\n"
+      "DEJA PASAR LAS OXIDADAS.\n"
+      "TE PAGO POR PIEZA."), NULL },
 };
 
 static const ch_prop_t P_PUERTO_INT[] = {
-    { 15,  3, PR_MAQUINA },
-    { 8,   7, PR_MAQUINA },
+    { 2,   2, PR_MAQUINA },
+    { 8,   8, PR_MAQUINA },
 };
 
 static const ch_ent_t EN_PUERTO_INT[] = {
-    { E_PUERTA, 10, 17, S_PUERTO, 16,  7, 3, NULL, NULL },
-    { E_TALLER,  8,  8, 0, 0, 0, 0,
+    { E_PUERTA,  7, 12, S_PUERTO,   11,  5, 3, NULL, NULL },
+    { E_TALLER,  8,  9, 0, 0, 0, 0,
       N_("EL BANCO DEL PUERTO.\n"
       "HUELE A SALITRE PERO\n"
       "DEJA EL ROBOT COMO NUEVO."), NULL },
@@ -835,7 +971,7 @@ static const ch_ent_t EN_PUERTO_INT[] = {
       N_("MECANICO: TENGO DE TODO,\n"
       "Y TODO UN POCO OXIDADO.\n"
       "MIRA TRANQUILO."), NULL },
-    { E_PNJ,    16,  7, 1, 0, 0, 0,
+    { E_PNJ,    11,  6, 1, 0, 0, 0,
       N_("ABUELA TUERCA: TE SEGUI\n"
       "HASTA ACA PARA DECIRTE\n"
       "UNA COSA.\n"
@@ -845,48 +981,54 @@ static const ch_ent_t EN_PUERTO_INT[] = {
       "ACA TODOS PEGAN CON\n"
       "ACIDO. LLEVA ALGO QUE\n"
       "RESISTA."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 static const char *const M_BODEGA1[ROWS] = {
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "XMMMMMMMMX:::XMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMzzzzMMMMMMMMMzzzzMMX",
-    "XMMzzzzMMMMMMMMMzzzzMMX",
-    "XMMzzzzMMMMMMMMMzzzzMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMXXXXXXXXXMMMMMMX",
-    "XMMMMMMXzzzzzzzXMMMMMMX",
-    "XMMMMMMXzzzzzzzXMMMMMMX",
-    "XMMMMMMXzzzzzzzXMMMMMMX",
-    "XMMMMMMXXXX:XXXXMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMzzzzzMMMMMMMzzzzzMMX",
-    "XMMzzzzzMMMMMMMzzzzzMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMX:::XMMMMMMMMX",
-    "XMMMMMMMMX:::XMMMMMMMMX",
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "XXXXXX:::XXXXXX",
+    "XMMMMM:::MMMMMX",
+    "XMMMMMMMMMMMMMX",
+    "XMzzzMMMMMzzzMX",
+    "XMzzzMMMMMzzzMX",
+    "XMMMMMMMMMMMMMX",
+    "XMMMXXXXXXXMMMX",
+    "XMMMXzzzzzXMMMX",
+    "XMMMXzzzzzXMMMX",
+    "XMMMXXX:XXXMMMX",
+    "XMMMMMMMMMMMMMX",
+    "XMMMMM:::MMMMMX",
+    "XMMMMM:::MMMMMX",
+    "XXXXXX:::XXXXXX",
 };
 
 static const ch_prop_t P_BODEGA1[] = {
-    { 2,  1, PR_PILA },
-    { 19,15, PR_PILA },
-    { 17, 6, PR_MAQUINA },
+    { 1,  3, PR_PILA },
+    { 12,10, PR_PILA },
+    { 12, 2, PR_MAQUINA },
 };
 
 static const ch_ent_t EN_BODEGA1[] = {
-    { E_PUERTA, 10, 19, S_PUERTO,  11,  1, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_PUERTO,  11,  1, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_BODEGA2, 11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_BODEGA2, 11, 17, 3, NULL, NULL },
-    { E_COFRE,  11,  9, IT_CHIP, 1, F_COFRE_P3, 0, NULL, NULL },
-    { E_ENEMIGO, 4, 12, 0, F_ENEMIGO_12, 13, 0, NULL, NULL },
-    { E_ENEMIGO,18, 12, 0, F_ENEMIGO_13, 13, 0, NULL, NULL },
-    { E_CARTEL,  6,  2, 0, 0, 0, 0,
+    { E_PUERTA,  6, 13, S_PUERTO,    7,  2, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_BODEGA2,   7, 11, 3, NULL, NULL },
+    { E_COFRE,   7,  7, IT_CHIP, 1, F_COFRE_P3, 0, NULL, NULL },
+    { E_ENEMIGO, 3,  3, 0, F_ENEMIGO_12, 13, 0, NULL, NULL },
+    { E_ENEMIGO,11, 11, 0, F_ENEMIGO_13, 13, 0, NULL, NULL },
+    { E_CARTEL,  3,  2, 0, 0, 0, 0,
       N_("BODEGA MUNICIPAL\n"
       "NIVEL DEL AGUA: ALTO.\n"
       "NO RESPONDEMOS POR\n"
@@ -894,80 +1036,62 @@ static const ch_ent_t EN_BODEGA1[] = {
 };
 
 static const char *const M_BODEGA2[ROWS] = {
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "XMMMMMMMMX:::XMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMzzzzzzzzzzzzzzzzzzzMX",
-    "XMzzzzzzzzzzzzzzzzzzzMX",
-    "XMzzXXXXXzzzzXXXXXzzzMX",
-    "XMzzXxxxXzzzzXxxxXzzzMX",
-    "XMzzXxxxXzzzzXxxxXzzzMX",
-    "XMzzXXX:XzzzzX:XXXzzzMX",
-    "XMzzzzzzzzzzzzzzzzzzzMX",
-    "XMzzzzzzzzzzzzzzzzzzzMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMzzzzzMMMMMMMzzzzzMMX",
-    "XMMzzzzzMMMMMMMzzzzzMMX",
-    "XMMMMMMMMMMMMMMMMMMMMMX",
-    "XMMMMMMMMX:::XMMMMMMMMX",
-    "XMMMMMMMMX:::XMMMMMMMMX",
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "XXXXXX:::XXXXXX",
+    "XMMMMM:::MMMMMX",
+    "XMMMMMMMMMMMMMX",
+    "XzzzzzzzzzzzzzX",
+    "XzXXXzzzzzXXXzX",
+    "XzXxxzzzzzxxXzX",
+    "XzXXXzzzzzXXXzX",
+    "XzzzzzzzzzzzzzX",
+    "XzzzzzzzzzzzzzX",
+    "XMMMMMMMMMMMMMX",
+    "XMzzzMMMMMzzzMX",
+    "XMMMMM:::MMMMMX",
+    "XMMMMM:::MMMMMX",
+    "XXXXXX:::XXXXXX",
 };
 
 static const ch_prop_t P_BODEGA2[] = {
-    { 2, 12, PR_MAQUINA },
-    { 19, 2, PR_PILA },
+    { 1, 10, PR_MAQUINA },
+    { 12, 2, PR_PILA },
 };
 
 static const ch_ent_t EN_BODEGA2[] = {
-    { E_PUERTA, 10, 19, S_BODEGA1, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_BODEGA1, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_JEFE2,   11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_JEFE2,   11, 17, 3, NULL, NULL },
-    { E_COFRE,   6,  7, IT_SOLDADOR, 1, F_COFRE_P2, 0, NULL, NULL },
-    { E_COFRE,  16,  7, IT_ANCLA, 1, F_ANCLA, 0, NULL, NULL },
-    { E_ENEMIGO, 4,  4, 0, F_ENEMIGO_14, 14, 0, NULL, NULL },
-    { E_ENEMIGO,18,  4, 0, F_ENEMIGO_15, 14, 0, NULL, NULL },
-    { E_ENEMIGO,11, 11, 0, F_ENEMIGO_16, 15, 0, NULL, NULL },
+    { E_PUERTA,  6, 13, S_BODEGA1,   7, 11, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_JEFE2,     7, 11, 3, NULL, NULL },
+    { E_COFRE,   3,  5, IT_SOLDADOR, 1, F_COFRE_P2, 0, NULL, NULL },
+    { E_COFRE,  10,  5, IT_ANCLA, 1, F_ANCLA, 0, NULL, NULL },
+    { E_ENEMIGO, 2,  7, 0, F_ENEMIGO_14, 14, 0, NULL, NULL },
+    { E_ENEMIGO,12,  7, 0, F_ENEMIGO_15, 14, 0, NULL, NULL },
+    { E_ENEMIGO, 7,  8, 0, F_ENEMIGO_16, 15, 0, NULL, NULL },
 };
 
 static const char *const M_JEFE2[ROWS] = {
-    "00000XXXXXXXXXXXXX00000",
-    "00000XwwwwwwwwwwwX00000",
-    "00000XwwwwwwwwwwwX00000",
-    "0000XXwwwwwwwwwwwXX0000",
-    "0000XwwwwwwwwwwwwwX0000",
-    "0000XwwwwwwwwwwwwwX0000",
-    "0000XwwwwwwwwwwwwwX0000",
-    "0000XwwwwwwwwwwwwwX0000",
-    "0000XwwwwwwwwwwwwwX0000",
-    "0000XwwwwwwwwwwwwwX0000",
-    "0000XwwwwwwwwwwwwwX0000",
-    "0000XwwwwwwwwwwwwwX0000",
-    "0000XwwwwwwwwwwwwwX0000",
-    "0000XwwwwwwwwwwwwwX0000",
-    "0000XXwwwwwwwwwwwXX0000",
-    "00000XwwwwwwwwwwwX00000",
-    "00000XwwwwwwwwwwwX00000",
-    "00000Xwwwww:::wwwwX0000",
-    "00000Xwwwww:::wwwwX0000",
-    "00000XXXXXX:::XXXXX0000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "XXXXXXXXXXXXXXX",
+    "XwwwwwwwwwwwwwX",
+    "XwwwwwwwwwwwwwX",
+    "XwwwwwwwwwwwwwX",
+    "XwwwwwwwwwwwwwX",
+    "XwwwwwwwwwwwwwX",
+    "XwwwwwwwwwwwwwX",
+    "XwwwwwwwwwwwwwX",
+    "XwwwwwwwwwwwwwX",
+    "XwwwwwwwwwwwwwX",
+    "XwwwwwwwwwwwwwX",
+    "XwwwwwwwwwwwwwX",
+    "Xwwwww:::wwwwwX",
+    "XXXXXX:::XXXXXX",
 };
 
 static const ch_prop_t P_JEFE2[] = {
-    { 6,  2, PR_PILA },
-    { 15, 2, PR_PILA },
+    { 2,  1, PR_PILA },
+    { 11, 1, PR_PILA },
 };
 
 static const ch_ent_t EN_JEFE2[] = {
-    { E_PUERTA, 11, 19, S_BODEGA2, 11,  2, 3, NULL, NULL },
-    { E_JEFE,   11,  6, 7, F_JEFE_PUERTO, 18, IT_PASE,
+    { E_PUERTA,  6, 13, S_BODEGA2,   7, 11, 3, NULL, NULL },
+    { E_JEFE,    7,  4, 7, F_JEFE_PUERTO, 18, IT_PASE,
       N_("CAPATAZ DE LA BODEGA:\n"
       "ASI QUE VOS SOS EL QUE\n"
       "ANDA LEVANTANDO PIEZAS.\n"
@@ -983,311 +1107,237 @@ static const ch_ent_t EN_JEFE2[] = {
  * ========================================================================== */
 
 static const char *const M_CUESTA[ROWS] = {
-    "###########GGG#########",
-    "###########GGG#########",
-    "##  dddd   GGG   dddd##",
-    "##  dddd   GGG   dddd##",
-    "##         GGG        #",
-    "##  GGGGGGGGGGGGGGG   #",
-    "##  GGG        GGG    #",
-    "##  GGG  dddd  GGG    #",
-    "##  GGG  dddd  GGG    #",
-    "##  GGG        GGG    #",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "##  GGG        GGG    #",
-    "##  GGG dddddd GGG    #",
-    "##  GGG dddddd GGG    #",
-    "##  GGG        GGG    #",
-    "##  GGGGGGGGGGGGGG    #",
-    "##                    #",
-    "##   dddd     dddd    #",
-    "##   dddd     dddd    #",
-    "#######################",
+    "###############",
+    "## ddd   ddd ##",
+    "## ddd   ddd ##",
+    "##           ##",
+    "##           ##",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "## ddd ddddd ##",
+    "## ddd ddddd ##",
+    "##           ##",
+    "## ddddd ddd ##",
+    "## ddddd ddd ##",
+    "###############",
 };
 
 static const ch_prop_t P_CUESTA[] = {
-    { 5,  5, PR_TORRE },
-    { 16, 5, PR_TORRE },
-    { 5, 13, PR_TORRE },
-    { 2, 18, PR_PINO },
-    { 18,18, PR_PINO },
-    { 19,13, PR_PILA },
+    {  2,  1, PR_TORRE },
+    { 10,  1, PR_TORRE },
+    {  2,  8, PR_TORRE },
+    { 10,  8, PR_PINO },
 };
 
 static const ch_ent_t EN_CUESTA[] = {
-    { E_PUERTA,  0, 10, S_PUERTO,  19,  4, 2, NULL, NULL },
-    { E_PUERTA,  0, 11, S_PUERTO,  19,  4, 2, NULL, NULL },
-    { E_PUERTA,  0, 12, S_PUERTO,  19,  4, 2, NULL, NULL },
-    { E_PUERTA, 11,  0, S_VOLTIO,  11, 18, 3, NULL, NULL },
-    { E_PUERTA, 11,  1, S_VOLTIO,  11, 18, 3, NULL, NULL },
-    { E_CARTEL, 10,  4, 0, 0, 0, 0,
-      N_("LA CUESTA.\n"
+    { E_PUERTA,  0,  5, S_PUERTO_E, 11,  6, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_VOLTIO,  2,  6, 3, NULL, NULL },
+    { E_CARTEL,  6,  1, 0, 0, 0, 0, N_("LA CUESTA.\n"
       "ARRIBA: ALTO VOLTIO.\n"
       "NO TOQUE LOS CABLES\n"
       "CON LAS MANOS."), NULL },
-    { E_COFRE,   4,  7, IT_BATERIA2, 1, F_COFRE_V1, 0, NULL, NULL },
-    { E_ENEMIGO, 9, 14, 0, F_ENEMIGO_17, 16, 0, NULL, NULL },
-    { E_ENEMIGO,17, 19, 0, F_ENEMIGO_18, 17, 0, NULL, NULL },
-    { E_ENEMIGO, 5,  2, 0, F_ENEMIGO_19, 18, 0, NULL, NULL },
+    { E_COFRE,  9,  2, IT_BATERIA2, 1, F_COFRE_V1, 0, NULL, NULL },
+    { E_ENEMIGO,  6,  8, 0, F_ENEMIGO_17, 16, 0, NULL, NULL },
+    { E_ENEMIGO,  9, 12, 0, F_ENEMIGO_18, 17, 0, NULL, NULL },
+    { E_ENEMIGO,  6, 11, 0, F_ENEMIGO_19, 18, 0, NULL, NULL },
 };
 
 static const char *const M_VOLTIO[ROWS] = {
-    "##########:::##########",
-    "##########:::##########",
-    "#GGGGGGGGGpppGGGGGGGGG#",
-    "#GGGGGGGGGpppGGGGGGGGG#",
-    "#GGGGGGGGGpppGGGGGGGGG#",
-    "#ppppppppppppppppppppp#",
-    "#ppppppppppppppppppppp#",
-    "#GGGGGGGGGpppGGGGGGGGG#",
-    "#GGGGGGGGGpppGGGGGGG###",
-    "#GGGGGGGGGpppGGGGGGGppp",
-    "#GGGGGGGGGpppGGGGGGGppp",
-    "#GGGGGGGGGpppGGGGGGG###",
-    "#ppppppppppppppppppppp#",
-    "#ppppppppppppppppppppp#",
-    "#GGGGGGGGGpppGGGGGGGGG#",
-    "#GGGGGGGGGpppGGGGGGGGG#",
-    "#GGGGGGGGGpppGGGGGGGGG#",
-    "#GGGGGGGGGpppGGGGGGGGG#",
-    "#GGGGGGGGGpppGGGGGGGGG#",
-    "##########:::##########",
-    "##########:::##########",
-    "00000000000000000000000",
+    "######GGG######",
+    "#pppppGGGppppp#",
+    "#pppppGGGppppp#",
+    "#pppppGGGppppp#",
+    "#pppppGGGppppp#",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "#pppppGGGppppp#",
+    "#pppppGGGppppp#",
+    "#pppppGGGppppp#",
+    "#pppppGGGppppp#",
+    "#pppppGGGppppp#",
+    "###############",
 };
 
 static const ch_prop_t P_VOLTIO[] = {
-    { 3,  2, PR_CASA },
-    { 15, 2, PR_TALLER },
-    { 3, 14, PR_TORRE },
-    { 17,14, PR_TORRE },
-    { 6, 16, PR_ESTATUA },
-    { 2,  7, PR_FAROLA },
-    { 18, 7, PR_FAROLA },
+    {  1,  1, PR_CASA },
+    { 10,  1, PR_TALLER },
+    {  1,  9, PR_TORRE },
+    { 10,  9, PR_TORRE },
 };
 
 static const ch_ent_t EN_VOLTIO[] = {
-    { E_PUERTA, 10,  0, S_CUESTA,  11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_CUESTA,  11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 19, S_SUB1,    11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10, 20, S_SUB1,    11, 17, 3, NULL, NULL },
-    { E_PUERTA, 16,  5, S_VOLTIO_INT, 11, 16, 2, NULL, NULL },
-    { E_BLOQUEO,20,  9, F_JEFE_VOLTIO, 0, 0, 0,
-      N_("CONTROL DE ALTO VOLTIO.\n"
-      "AL ESTE BAJA AL VALLE\n"
-      "DEL HUMO. CERRADO HASTA\n"
-      "QUE ALGUIEN ARREGLE LA\n"
-      "SUBESTACION."),
-      N_("CONTROL ABIERTO.\n"
-      "AL ESTE: EL VALLE DEL\n"
-      "HUMO.") },
-    { E_BLOQUEO,20, 10, F_JEFE_VOLTIO, 0, 0, 0,
-      N_("CONTROL DE ALTO VOLTIO.\n"
-      "CERRADO."),
-      N_("CONTROL ABIERTO.") },
-    { E_PUERTA, 21,  9, S_HUMO,     2, 10, 2, NULL, NULL },
-    { E_PUERTA, 21, 10, S_HUMO,     2, 11, 2, NULL, NULL },
-    { E_CARTEL, 13,  6, 0, 0, 0, 0,
-      N_("ALTO VOLTIO\n"
+    { E_PUERTA,  0,  5, S_CUESTA, 12,  5, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_SUB1,  7, 11, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_VOLTIO_E,  2,  6, 3, NULL, NULL },
+    { E_PUERTA, 11,  4, S_VOLTIO_INT,  7, 10, 2, NULL, NULL },
+    { E_CARTEL,  3, 12, 0, 0, 0, 0, N_("ALTO VOLTIO\n"
       "ALTURA: 900 METROS\n"
       "CONSUMO: TODO EL QUE\n"
       "HAGA FALTA."), NULL },
-    { E_PNJ,     6,  6, 2, 0, 0, 0,
-      N_("CHICO: SI TOCAS UN CABLE\n"
+    { E_PNJ, 12, 12, 2, 0, 0, 0, N_("CHICO: SI TOCAS UN CABLE\n"
       "PELADO se te frien los\n"
       "CIRCUITOS.\n"
       "A MI HERMANO LE PASO."), NULL },
-    { E_PNJ,    16, 13, 4, 0, 0, 0,
-      N_("SENORA: LA SUBESTACION\n"
+    { E_PNJ,  3,  7, 4, 0, 0, 0, N_("SENORA: LA SUBESTACION\n"
       "SE LLENO DE ROBOTS Y\n"
       "NADIE PUEDE ENTRAR.\n"
       "SIN ELLA NO HAY LUZ."), NULL },
-    { E_PNJ,     4, 12, 3, F_MISION_FUSIBLE, F_FUSIBLE, IT_CHIP,
-      N_("TECNICO: NECESITO UN\n"
+    { E_PNJ, 11,  7, 3, F_MISION_FUSIBLE, F_FUSIBLE, IT_CHIP, N_("TECNICO: NECESITO UN\n"
       "FUSIBLE GRUESO DE LOS\n"
       "QUE HAY EN LA SUBESTACION.\n"
       "SI ME LO TRAES TE DOY\n"
-      "UN CHIP DE DATOS."),
-      N_("TECNICO: EL FUSIBLE!\n"
+      "UN CHIP DE DATOS."), N_("TECNICO: EL FUSIBLE!\n"
       "AHORA SI PUEDO ARREGLAR\n"
       "EL TABLERO. TOMA.") },
-    /* The booth: the other watch. One per town, always at the side of the
-     * square, because it is a place you go to and not a menu you open. */
-    { E_CABINA, 19, 11, 0, 0, 0, 0, NULL, NULL },
 };
 
 static const char *const M_VOLTIO_INT[ROWS] = {
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "000|||||||||||||||||000",
-    "000|+++++++++++++++|000",
-    "000|-------++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|++ooooooooo++++|000",
-    "000|++ooooooooo++++|000",
-    "000|++ooooooooo++++|000",
-    "000|++ooooooooo++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|++++++___++++++|000",
-    "000|||||||___|||||||000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "000000000000000",
+    "0|||||||||||||0",
+    "0|+++++++++++|0",
+    "0|---------++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0|++ooooooo++|0",
+    "0|++ooooooo++|0",
+    "0|++ooooooo++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0||||||+++||||0",
+    "000000000000000",
 };
 
 static const ch_prop_t P_VOLTIO_INT[] = {
-    { 15,  5, PR_MAQUINA },
-    { 5,  10, PR_MAQUINA },
+    {  2,  2, PR_MAQUINA },
+    {  8,  8, PR_MAQUINA },
 };
 
 static const ch_ent_t EN_VOLTIO_INT[] = {
-    { E_PUERTA, 10, 17, S_VOLTIO, 16,  6, 3, NULL, NULL },
-    { E_TALLER,  5, 11, 0, 0, 0, 0,
-      N_("EL BANCO DE ALTO VOLTIO.\n"
+    { E_PUERTA,  7, 12, S_VOLTIO, 11,  5, 3, NULL, NULL },
+    { E_TALLER,  8,  9, 0, 0, 0, 0, N_("EL BANCO DE ALTO VOLTIO.\n"
       "Aca la corriente sobra."), NULL },
-    { E_TIENDA,  5,  3, 0, 0, 0, 0,
-      N_("TENDERA: BATERIAS,\n"
+    { E_TIENDA,  6,  4, 0, 0, 0, 0, N_("TENDERA: BATERIAS,\n"
       "ACEITE Y LO DE SIEMPRE.\n"
       "TODO CON GARANTIA DE\n"
       "TRES DIAS."), NULL },
-    { E_PNJ,    16,  8, 1, 0, 0, 0,
-      N_("ABUELA TUERCA: PRESTA\n"
+    { E_PNJ, 11,  6, 1, 0, 0, 0, N_("ABUELA TUERCA: PRESTA\n"
       "ATENCION A LA VELOCIDAD.\n"
       "EL QUE PEGA PRIMERO PEGA\n"
       "DOS VECES, PORQUE EL OTRO\n"
       "PUEDE NO LLEGAR A PEGAR.\n"
       "UNAS PIERNAS BUENAS VALEN\n"
       "MAS QUE UN BRAZO CARO."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 static const char *const M_SUB1[ROWS] = {
-    "CCCCCCCCCC:::CCCCCCCCCC",
-    "CccccccccC:::CccccccccC",
-    "CcccccccccccccccccccccC",
-    "CccCCCCCcccccCCCCCCCccC",
-    "CccCcccCcccccCcccccCccC",
-    "CccCcccCcccccCcccccCccC",
-    "CccCCC:CcccccC:CCCCCccC",
-    "CcccccccccccccccccccccC",
-    "CcccccccccccccccccccccC",
-    "CccccccCCCCCCCCCccccccC",
-    "CccccccCcccccccCccccccC",
-    "CccccccCcccccccCccccccC",
-    "CccccccCCCC:CCCCccccccC",
-    "CcccccccccccccccccccccC",
-    "CcccccccccccccccccccccC",
-    "CcccccccccccccccccccccC",
-    "CcccccccccccccccccccccC",
-    "CccccccccC:::CccccccccC",
-    "CccccccccC:::CccccccccC",
-    "CCCCCCCCCC:::CCCCCCCCCC",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "CCCCCC:::CCCCCC",
+    "Cccccc:::cccccC",
+    "CcccccccccccccC",
+    "CcCCCcccccCCCcC",
+    "CcCCCcccccCCCcC",
+    "CcccccccccccccC",
+    "CcccCCCCCCCcccC",
+    "CcccCcccccCcccC",
+    "CcccCcccccCcccC",
+    "CcccCCC:CCCcccC",
+    "CcccccccccccccC",
+    "Cccccc:::cccccC",
+    "Cccccc:::cccccC",
+    "CCCCCC:::CCCCCC",
 };
 
 static const ch_prop_t P_SUB1[] = {
-    { 2, 13, PR_SERVIDOR },
-    { 19, 7, PR_SERVIDOR },
+    {  1,  2, PR_SERVIDOR },
+    { 10,  2, PR_SERVIDOR },
 };
 
 static const ch_ent_t EN_SUB1[] = {
-    { E_PUERTA, 10, 19, S_VOLTIO,  11, 18, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_VOLTIO,  11, 18, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_SUB2,    11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_SUB2,    11, 17, 3, NULL, NULL },
-    { E_COFRE,   5,  4, IT_ACEITE2, 2, F_COFRE_V2, 0, NULL, NULL },
-    { E_COFRE,  16,  4, IT_FUSIBLE, 1, F_FUSIBLE, 0, NULL, NULL },
-    { E_ENEMIGO,11, 10, 0, F_ENEMIGO_20, 19, 0, NULL, NULL },
-    { E_ENEMIGO, 4,  8, 0, F_ENEMIGO_21, 19, 0, NULL, NULL },
-    { E_CARTEL, 18, 14, 0, 0, 0, 0,
-      N_("TABLERO GENERAL.\n"
+    { E_PUERTA,  6, 13, S_VOLTIO,  7,  2, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_SUB2,  7, 11, 3, NULL, NULL },
+    { E_COFRE,  7,  7, IT_ACEITE2, 2, F_COFRE_V2, 0, NULL, NULL },
+    { E_COFRE,  6,  5, IT_FUSIBLE, 1, F_FUSIBLE, 0, NULL, NULL },
+    { E_ENEMIGO,  7, 10, 0, F_ENEMIGO_20, 19, 0, NULL, NULL },
+    { E_ENEMIGO,  5, 11, 0, F_ENEMIGO_21, 19, 0, NULL, NULL },
+    { E_CARTEL, 10, 11, 0, 0, 0, 0, N_("TABLERO GENERAL.\n"
       "NO OPERAR SIN GUANTES.\n"
       "(ALGUIEN TACHO LO DE\n"
       "LOS GUANTES.)"), NULL },
 };
 
 static const char *const M_SUB2[ROWS] = {
-    "CCCCCCCCCC:::CCCCCCCCCC",
-    "CccccccccC:::CccccccccC",
-    "CcccccccccccccccccccccC",
-    "CcccccccccccccccccccccC",
-    "CccCCCCCCCCCCCCCCCCCccC",
-    "CccCcccccccccccccccCccC",
-    "CccCcccccccccccccccCccC",
-    "CccCccCCCCCCCCCCCccCccC",
-    "CccCccCcccccccccCccCccC",
-    "CccCccCcccccccccCccCccC",
-    "CccCccCccCCCCCccCccCccC",
-    "CccCccCccC:::CccCccCccC",
-    "CccCccCccCCCCCccCccCccC",
-    "CccCccCcccccccccCccCccC",
-    "CccCccCCCCCC:CCCCccCccC",
-    "CccCcccccccccccccccCccC",
-    "CccCCCCCCC:CCCCCCCCCccC",
-    "CccccccccC:::CccccccccC",
-    "CccccccccC:::CccccccccC",
-    "CCCCCCCCCC:::CCCCCCCCCC",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "CCCCCC:::CCCCCC",
+    "Cccccc:::cccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcCCCcccccCCCcC",
+    "CcCcccccccccCcC",
+    "CcCCCcccccCCCcC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcCCCcccccCCCcC",
+    "Cccccc:::cccccC",
+    "Cccccc:::cccccC",
+    "CCCCCC:::CCCCCC",
 };
 
 static const ch_prop_t P_SUB2[] = {
-    { 1,  2, PR_SERVIDOR },
-    { 20, 2, PR_SERVIDOR },
+    {  1, 10, PR_SERVIDOR },
+    { 11, 10, PR_SERVIDOR },
 };
 
 static const ch_ent_t EN_SUB2[] = {
-    { E_PUERTA, 10, 19, S_SUB1,   11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_SUB1,   11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_JEFE3,  11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_JEFE3,  11, 17, 3, NULL, NULL },
-    { E_COFRE,  11, 11, IT_SOLDADOR, 1, F_COFRE_V3, 0, NULL, NULL },
-    { E_ENEMIGO, 8, 15, 0, F_ENEMIGO_22, 20, 0, NULL, NULL },
-    { E_ENEMIGO,14,  5, 0, F_ENEMIGO_23, 21, 0, NULL, NULL },
+    { E_PUERTA,  6, 13, S_SUB1,  7,  2, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_JEFE3,  7, 11, 3, NULL, NULL },
+    { E_COFRE,  3,  5, IT_SOLDADOR, 1, F_COFRE_V3, 0, NULL, NULL },
+    { E_ENEMIGO, 10,  5, 0, F_ENEMIGO_22, 20, 0, NULL, NULL },
+    { E_ENEMIGO,  2,  7, 0, F_ENEMIGO_23, 21, 0, NULL, NULL },
 };
 
 static const char *const M_JEFE3[ROWS] = {
-    "0000CCCCCCCCCCCCCCC0000",
-    "0000CcccccccccccccC0000",
-    "0000CcccccccccccccC0000",
-    "000CCcccccccccccccCC000",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CCcccccccccccccCC000",
-    "0000CcccccccccccccC0000",
-    "0000CcccccccccccccC0000",
-    "0000Cccccc:::ccccccC000",
-    "0000Cccccc:::ccccccC000",
-    "0000CCCCCC:::CCCCCCC000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "CCCCCCCCCCCCCCC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "Cccccc:::cccccC",
+    "CCCCCC:::CCCCCC",
 };
 
 static const ch_prop_t P_JEFE3[] = {
-    { 5,  2, PR_SERVIDOR },
-    { 15, 2, PR_SERVIDOR },
+    {  2,  1, PR_SERVIDOR },
+    { 11,  1, PR_SERVIDOR },
 };
 
 static const ch_ent_t EN_JEFE3[] = {
-    { E_PUERTA, 10, 19, S_SUB2,   11,  2, 3, NULL, NULL },
-    { E_JEFE,   11,  6, 11, F_JEFE_VOLTIO, 24, IT_PASE,
-      N_("INGENIERA JEFA:\n"
+    { E_PUERTA,  6, 13, S_SUB2,  7,  2, 3, NULL, NULL },
+    { E_JEFE,  7,  4, 11, F_JEFE_VOLTIO, 24, IT_PASE, N_("INGENIERA JEFA:\n"
       "ASI QUE VENIS A ARREGLAR\n"
       "LA SUBESTACION.\n"
       "PRIMERO ARREGLA ESTO:\n"
@@ -1301,175 +1351,119 @@ static const ch_ent_t EN_JEFE3[] = {
  * ========================================================================== */
 
 static const char *const M_HUMO[ROWS] = {
-    "#######################",
-    "#rrrrrrrrrrrrrrrrrrrrr#",
-    "#rrrLLLLrrrrrrrLLLLrrr#",
-    "#rrrLLLLrrrrrrrLLLLrrr#",
-    "#rrrrrrrrrrrrrrrrrrrrr#",
-    "#rrrrrrrrrrrrrrrrrrrrr#",
-    "#rrrddddrrrrrrrddddrrr#",
-    "#rrrddddrrrrrrrddddrrr#",
-    "#rrrrrrrrrrrrrrrrrrrrr#",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "#rrrrrrrrrrrrrrrrrrrrr#",
-    "#rrrrLLLLLLLLLLLLLrrrr#",
-    "#rrrrLLLLLLLLLLLLLrrrr#",
-    "#rrrrrrrrrrrrrrrrrrrrr#",
-    "#rrrddddddrrrddddddrrr#",
-    "#rrrddddddrrrddddddrrr#",
-    "#rrrrrrrrrrrrrrrrrrrrr#",
-    "#rrrrrrrrrrrrrrrrrrrrr#",
-    "#rrrrrrrrrrrrrrrrrrrrr#",
-    "#######################",
+    "###############",
+    "## ddd   ddd ##",
+    "## ddd   ddd ##",
+    "##           ##",
+    "##           ##",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "## ddd ddddd ##",
+    "## ddd ddddd ##",
+    "##           ##",
+    "## ddddd ddd ##",
+    "## ddddd ddd ##",
+    "###############",
 };
 
 static const ch_prop_t P_HUMO[] = {
-    { 2, 19, PR_PILA },
-    { 19,19, PR_PILA },
-    { 10, 5, PR_MAQUINA },
+    {  2,  1, PR_PILA },
+    { 10,  1, PR_PILA },
+    {  2,  8, PR_MAQUINA },
 };
 
 static const ch_ent_t EN_HUMO[] = {
-    { E_PUERTA,  0,  9, S_VOLTIO,  19,  9, 2, NULL, NULL },
-    { E_PUERTA,  0, 10, S_VOLTIO,  19,  9, 2, NULL, NULL },
-    { E_PUERTA,  0, 11, S_VOLTIO,  19, 10, 2, NULL, NULL },
-    { E_PUERTA, 21,  9, S_FUNDICION, 2,  9, 2, NULL, NULL },
-    { E_PUERTA, 21, 10, S_FUNDICION, 2, 10, 2, NULL, NULL },
-    { E_PUERTA, 21, 11, S_FUNDICION, 2, 10, 2, NULL, NULL },
-    { E_CARTEL, 11, 12, 0, 0, 0, 0,
-      N_("VALLE DEL HUMO.\n"
+    { E_PUERTA,  0,  5, S_VOLTIO_E, 11,  6, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_FUNDICION,  2,  6, 3, NULL, NULL },
+    { E_CARTEL,  6,  1, 0, 0, 0, 0, N_("VALLE DEL HUMO.\n"
       "NO SE DETENGA.\n"
       "EL AIRE NO ES BUENO\n"
       "PARA NADIE."), NULL },
-    { E_COFRE,  19, 17, IT_ACEITE2, 2, F_COFRE_F1, 0, NULL, NULL },
-    { E_ENEMIGO, 5,  6, 0, F_ENEMIGO_24, 22, 0, NULL, NULL },
-    { E_ENEMIGO,17, 16, 0, F_ENEMIGO_25, 23, 0, NULL, NULL },
-    { E_ENEMIGO, 6, 17, 0, F_ENEMIGO_26, 23, 0, NULL, NULL },
+    { E_COFRE,  9,  2, IT_ACEITE2, 2, F_COFRE_F1, 0, NULL, NULL },
+    { E_ENEMIGO,  6,  8, 0, F_ENEMIGO_24, 22, 0, NULL, NULL },
+    { E_ENEMIGO,  9, 12, 0, F_ENEMIGO_25, 23, 0, NULL, NULL },
+    { E_ENEMIGO,  6, 11, 0, F_ENEMIGO_26, 23, 0, NULL, NULL },
 };
 
 static const char *const M_FUNDICION[ROWS] = {
-    "##########:::##########",
-    "##########:::##########",
-    "#rrrrrrrrrGGGrrrrrrrrr#",
-    "#rrrrrrrrrGGGrrrrrrrrr#",
-    "#rrrrrrrrrGGGrrrrrrrrr#",
-    "#rrrrrrrrrGGGrrrrrrrrr#",
-    "#rrrrrrrrrGGGrrrrrrrrr#",
-    "#rrrrrrrrrGGGrrrrrrrrr#",
-    "###rrrrrrrGGGrrrrrrrrr#",
-    "GGGGGGGGGGGGGGGGGGGGGG#",
-    "GGGGGGGGGGGGGGGGGGGGGG#",
-    "###rrrrrrrGGGrrrrrrrrr#",
-    "#rrrrrrrrrGGGrrrrrrrrr#",
-    "#rrrrrrrrrGGGrrrrrrrrr#",
-    "#rrrrrrrrrGGGrrrrrrr###",
-    "#GGGGGGGGGGGGGGGGGGGGGG",
-    "#GGGGGGGGGGGGGGGGGGGGGG",
-    "#rrrrrrrrrGGGrrrrrrr###",
-    "#rrrrrrrrrGGGrrrrrrrrr#",
-    "#rrrrrrrrrGGGrrrrrrrrr#",
-    "#rrrrrrrrrrrrrrrrrrrrr#",
-    "#######################",
+    "######GGG######",
+    "#rrrrrGGGrrrrr#",
+    "#rrrrrGGGrrrrr#",
+    "#rrrrrGGGrrrrr#",
+    "#rrrrrGGGrrrrr#",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "#rrrrrGGGrrrrr#",
+    "#rrrrrGGGrrrrr#",
+    "#rrrrrGGGrrrrr#",
+    "#rrrrrGGGrrrrr#",
+    "#rrrrrGGGrrrrr#",
+    "###############",
 };
 
 static const ch_prop_t P_FUNDICION[] = {
-    { 14, 2, PR_HORNO },
-    { 3,  2, PR_CASA },
-    { 3, 12, PR_TALLER },
-    { 15,12, PR_HORNO },
-    { 6, 18, PR_PILA },
-    { 17,18, PR_PILA },
+    {  1,  1, PR_HORNO },
+    { 10,  1, PR_TALLER },
+    {  1,  9, PR_CASA },
+    { 10,  9, PR_HORNO },
 };
 
 static const ch_ent_t EN_FUNDICION[] = {
-    { E_PUERTA,  0,  9, S_HUMO,    20, 10, 2, NULL, NULL },
-    { E_PUERTA,  0, 10, S_HUMO,    20, 10, 2, NULL, NULL },
-    { E_PUERTA, 10,  0, S_HORNO1,  11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_HORNO1,  11, 17, 3, NULL, NULL },
-    { E_PUERTA,  4, 15, S_FUND_INT, 11, 16, 2, NULL, NULL },
-    { E_BLOQUEO,20, 15, F_JEFE_FUNDICION, 0, 0, 0,
-      N_("CONTROL DE LA FUNDICION.\n"
-      "AL ESTE EMPIEZA EL PASO\n"
-      "HELADO. NO SE PASA SIN\n"
-      "PASE DE SECTOR."),
-      N_("CONTROL ABIERTO.\n"
-      "AL ESTE: EL PASO HELADO.") },
-    { E_BLOQUEO,20, 16, F_JEFE_FUNDICION, 0, 0, 0,
-      N_("CONTROL DE LA FUNDICION.\n"
-      "CERRADO."),
-      N_("CONTROL ABIERTO.") },
-    { E_PUERTA, 21, 15, S_PASO,     2, 10, 2, NULL, NULL },
-    { E_PUERTA, 21, 16, S_PASO,     2, 11, 2, NULL, NULL },
-    { E_CARTEL, 12,  9, 0, 0, 0, 0,
-      N_("FUNDICION\n"
+    { E_PUERTA,  0,  5, S_HUMO, 12,  5, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_HORNO1,  7, 11, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_FUNDICION_E,  2,  6, 3, NULL, NULL },
+    { E_PUERTA, 11,  4, S_FUND_INT,  7, 10, 2, NULL, NULL },
+    { E_CARTEL,  3, 12, 0, 0, 0, 0, N_("FUNDICION\n"
       "AQUI SE FUNDE TODO LO\n"
       "QUE EL PUERTO OXIDA.\n"
       "AL NORTE: EL HORNO."), NULL },
-    { E_PNJ,     7,  6, 3, 0, 0, 0,
-      N_("FUNDIDOR: EL METAL\n"
+    { E_PNJ, 12, 12, 3, 0, 0, 0, N_("FUNDIDOR: EL METAL\n"
       "CALIENTE NO PERDONA.\n"
       "SI TU ROBOT ES DE HIELO,\n"
       "ACA LA VAS A PASAR MAL."), NULL },
-    { E_PNJ,    17,  8, 2, 0, 0, 0,
-      N_("CHICA: DICEN QUE EN EL\n"
+    { E_PNJ,  3,  7, 2, 0, 0, 0, N_("CHICA: DICEN QUE EN EL\n"
       "HORNO VIVE UN ROBOT\n"
       "HECHO DE LAVA.\n"
       "YO NO LO VI, EH."), NULL },
-    { E_PNJ,    15, 17, 4, F_MISION_MOLDE, F_MOLDE, IT_ACEITE2,
-      N_("MOLDEADORA: SE ME QUEDO\n"
+    { E_PNJ, 11,  7, 4, F_MISION_MOLDE, F_MOLDE, IT_ACEITE2, N_("MOLDEADORA: SE ME QUEDO\n"
       "UN MOLDE ADENTRO DEL\n"
       "HORNO Y NO PIENSO IR.\n"
-      "TRAEMELO Y ARREGLAMOS."),
-      N_("MOLDEADORA: EL MOLDE!\n"
+      "TRAEMELO Y ARREGLAMOS."), N_("MOLDEADORA: EL MOLDE!\n"
       "SOS DE FIERRO, PIBE.\n"
       "TOMA ESTO PARA EL CAMINO.") },
-    /* The booth: the other watch. One per town, always at the side of the
-     * square, because it is a place you go to and not a menu you open. */
-    { E_CABINA, 19, 11, 0, 0, 0, 0, NULL, NULL },
 };
 
 static const char *const M_FUND_INT[ROWS] = {
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "000|||||||||||||||||000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|--------_______|000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|___ooooooo_____|000",
-    "000|___ooooooo_____|000",
-    "000|___ooooooo_____|000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|______+++______|000",
-    "000|||||||+++|||||||000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "000000000000000",
+    "0|||||||||||||0",
+    "0|+++++++++++|0",
+    "0|---------++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0|++ooooooo++|0",
+    "0|++ooooooo++|0",
+    "0|++ooooooo++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0||||||+++||||0",
+    "000000000000000",
 };
 
 static const ch_prop_t P_FUND_INT[] = {
-    { 15,  3, PR_HORNO },
-    { 5,  10, PR_MAQUINA },
+    {  2,  2, PR_HORNO },
+    {  8,  8, PR_MAQUINA },
 };
 
 static const ch_ent_t EN_FUND_INT[] = {
-    { E_PUERTA, 10, 17, S_FUNDICION, 4, 16, 3, NULL, NULL },
-    { E_TALLER,  5, 11, 0, 0, 0, 0,
-      N_("EL BANCO DE LA FUNDICION.\n"
+    { E_PUERTA,  7, 12, S_FUNDICION, 11,  5, 3, NULL, NULL },
+    { E_TALLER,  8,  9, 0, 0, 0, 0, N_("EL BANCO DE LA FUNDICION.\n"
       "Se suelda todo de una."), NULL },
-    { E_TIENDA,  5,  4, 0, 0, 0, 0,
-      N_("HERRERO: LO QUE NECESITES\n"
+    { E_TIENDA,  6,  4, 0, 0, 0, 0, N_("HERRERO: LO QUE NECESITES\n"
       "PARA AGUANTAR EL CALOR."), NULL },
-    { E_PNJ,    16,  8, 1, 0, 0, 0,
-      N_("ABUELA TUERCA: ACORDATE\n"
+    { E_PNJ, 11,  6, 1, 0, 0, 0, N_("ABUELA TUERCA: ACORDATE\n"
       "DE MIRAR LOS TIPOS.\n"
       "EL FUEGO DERRITE EL HIELO\n"
       "Y CORROE EL ACIDO, PERO\n"
@@ -1477,121 +1471,108 @@ static const ch_ent_t EN_FUND_INT[] = {
       "NADA.\n"
       "MIRA LA FICHA ANTES DE\n"
       "PEGAR."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 static const char *const M_HORNO1[ROWS] = {
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "XrrrrrrrrX:::XrrrrrrrrX",
-    "XrrrrrrrrrrrrrrrrrrrrrX",
-    "XrrLLLLrrrrrrrrrLLLLrrX",
-    "XrrLLLLrrrrrrrrrLLLLrrX",
-    "XrrrrrrrrrrrrrrrrrrrrrX",
-    "XrrrrrrXXXXXXXXXrrrrrrX",
-    "XrrrrrrXrrrrrrrXrrrrrrX",
-    "XrrrrrrXrrrrrrrXrrrrrrX",
-    "XrrrrrrXrrrrrrrXrrrrrrX",
-    "XrrrrrrXXXX:XXXXrrrrrrX",
-    "XrrrrrrrrrrrrrrrrrrrrrX",
-    "XrrrrrrrrrrrrrrrrrrrrrX",
-    "XrrLLLLLrrrrrrrLLLLLrrX",
-    "XrrLLLLLrrrrrrrLLLLLrrX",
-    "XrrrrrrrrrrrrrrrrrrrrrX",
-    "XrrrrrrrrrrrrrrrrrrrrrX",
-    "XrrrrrrrrX:::XrrrrrrrrX",
-    "XrrrrrrrrX:::XrrrrrrrrX",
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "XXXXXX:::XXXXXX",
+    "Xrrrrr:::rrrrrX",
+    "XrrrrrrrrrrrrrX",
+    "XrLLLrrrrrLLLrX",
+    "XrLLLrrrrrLLLrX",
+    "XrrrrrrrrrrrrrX",
+    "XrrrXXXXXXXrrrX",
+    "XrrrXrrrrrXrrrX",
+    "XrrrXrrrrrXrrrX",
+    "XrrrXXX:XXXrrrX",
+    "XrrrrrrrrrrrrrX",
+    "Xrrrrr:::rrrrrX",
+    "Xrrrrr:::rrrrrX",
+    "XXXXXX:::XXXXXX",
 };
 
 static const ch_prop_t P_HORNO1[] = {
-    { 1, 11, PR_HORNO },
-    { 18, 6, PR_PILA },
+    {  1,  2, PR_HORNO },
+    { 10,  2, PR_PILA },
 };
 
 static const ch_ent_t EN_HORNO1[] = {
-    { E_PUERTA, 10, 19, S_FUNDICION, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_FUNDICION, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_HORNO2,    11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_HORNO2,    11, 17, 3, NULL, NULL },
-    { E_COFRE,  11,  8, IT_MOLDE, 1, F_MOLDE, 0, NULL, NULL },
-    { E_ENEMIGO, 4, 16, 0, F_ENEMIGO_27, 25, 0, NULL, NULL },
-    { E_ENEMIGO,18, 16, 0, F_ENEMIGO_28, 25, 0, NULL, NULL },
+    { E_PUERTA,  6, 13, S_FUNDICION,  7,  2, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_HORNO2,  7, 11, 3, NULL, NULL },
+    { E_COFRE,  7,  7, IT_MOLDE, 1, F_MOLDE, 0, NULL, NULL },
+    { E_ENEMIGO,  6,  5, 0, F_ENEMIGO_27, 25, 0, NULL, NULL },
+    { E_ENEMIGO,  7, 10, 0, F_ENEMIGO_28, 25, 0, NULL, NULL },
 };
 
 static const char *const M_HORNO2[ROWS] = {
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "XrrrrrrrrX:::XrrrrrrrrX",
-    "XrrrrrrrrrrrrrrrrrrrrrX",
-    "XrLLLLLLLLLrLLLLLLLLLrX",
-    "XrLLLLLLLLLrLLLLLLLLLrX",
-    "XrrrrrrrrrrrrrrrrrrrrrX",
-    "XrrrrrrrrrrrrrrrrrrrrrX",
-    "XrLLLLLrrrrrrrrrLLLLLrX",
-    "XrLLLLLrrrrrrrrrLLLLLrX",
-    "XrrrrrrrrrrrrrrrrrrrrrX",
-    "XrrrrXXXXXXXXXXXXXrrrrX",
-    "XrrrrXrrrrrrrrrrrXrrrrX",
-    "XrrrrXrrrrrrrrrrrXrrrrX",
-    "XrrrrXXXXXX:XXXXXXrrrrX",
-    "XrrrrrrrrrrrrrrrrrrrrrX",
-    "XrLLLLLLLrrrrrLLLLLLLrX",
-    "XrLLLLLLLrrrrrLLLLLLLrX",
-    "XrrrrrrrrX:::XrrrrrrrrX",
-    "XrrrrrrrrX:::XrrrrrrrrX",
-    "XXXXXXXXXX:::XXXXXXXXXX",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "XXXXXX:::XXXXXX",
+    "Xrrrrr:::rrrrrX",
+    "XrrrrrrrrrrrrrX",
+    "XrrrrrrrrrrrrrX",
+    "XrXXXrrrrrXXXrX",
+    "XrXrrrrrrrrrXrX",
+    "XrXXXrrrrrXXXrX",
+    "XrrrrrrrrrrrrrX",
+    "XrrrrrrrrrrrrrX",
+    "XrrrrrrrrrrrrrX",
+    "XrLLLrrrrrLLLrX",
+    "Xrrrrr:::rrrrrX",
+    "Xrrrrr:::rrrrrX",
+    "XXXXXX:::XXXXXX",
 };
 
 static const ch_prop_t P_HORNO2[] = {
-    { 1,  5, PR_HORNO },
-    { 18,11, PR_PILA },
+    {  1, 10, PR_HORNO },
+    { 11, 10, PR_PILA },
 };
 
 static const ch_ent_t EN_HORNO2[] = {
-    { E_PUERTA, 10, 19, S_HORNO1, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_HORNO1, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_JEFE4,  11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_JEFE4,  11, 17, 3, NULL, NULL },
-    { E_COFRE,  11, 11, IT_BATERIA2, 2, F_COFRE_F2, 0, NULL, NULL },
-    { E_ENEMIGO, 6,  6, 0, F_ENEMIGO_29, 26, 0, NULL, NULL },
-    { E_ENEMIGO,16, 14, 0, F_ENEMIGO_30, 27, 0, NULL, NULL },
+    { E_PUERTA,  6, 13, S_HORNO1,  7,  2, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_JEFE4,  7, 11, 3, NULL, NULL },
+    { E_COFRE,  3,  5, IT_BATERIA2, 2, F_COFRE_F2, 0, NULL, NULL },
+    { E_ENEMIGO, 10,  5, 0, F_ENEMIGO_29, 26, 0, NULL, NULL },
+    { E_ENEMIGO,  2,  7, 0, F_ENEMIGO_30, 27, 0, NULL, NULL },
 };
 
 static const char *const M_JEFE4[ROWS] = {
-    "0000XXXXXXXXXXXXXXX0000",
-    "0000XrrrrrrrrrrrrrX0000",
-    "0000XrLLLLLLLLLLLrX0000",
-    "000XXrLLLLLLLLLLLrXX000",
-    "000XrrrrrrrrrrrrrrrrX00",
-    "000XrrrrrrrrrrrrrrrrX00",
-    "000XrrrrrrrrrrrrrrrrX00",
-    "000XrrrrrrrrrrrrrrrrX00",
-    "000XrrrrrrrrrrrrrrrrX00",
-    "000XrrrrrrrrrrrrrrrrX00",
-    "000XrrrrrrrrrrrrrrrrX00",
-    "000XrrrrrrrrrrrrrrrrX00",
-    "000XrrrrrrrrrrrrrrrrX00",
-    "000XrLLLLLLLLLLLLLLrX00",
-    "000XXrLLLLLLLLLLLLrXX00",
-    "0000XrrrrrrrrrrrrrX0000",
-    "0000XrrrrrrrrrrrrrX0000",
-    "0000Xrrrrr:::rrrrrX0000",
-    "0000Xrrrrr:::rrrrrX0000",
-    "0000XXXXXX:::XXXXXX0000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "XXXXXXXXXXXXXXX",
+    "XrrrrrrrrrrrrrX",
+    "XrrrrrrrrrrrrrX",
+    "XrrrrrrrrrrrrrX",
+    "XrrrrrrrrrrrrrX",
+    "XrrrrrrrrrrrrrX",
+    "XrrrrrrrrrrrrrX",
+    "XrrrrrrrrrrrrrX",
+    "XrrrrrrrrrrrrrX",
+    "XrrrrrrrrrrrrrX",
+    "XrrrrrrrrrrrrrX",
+    "XrrrrrrrrrrrrrX",
+    "Xrrrrr:::rrrrrX",
+    "XXXXXX:::XXXXXX",
 };
 
 static const ch_prop_t P_JEFE4[] = {
-    { 5,  5, PR_HORNO },
+    {  2,  1, PR_HORNO },
 };
 
 static const ch_ent_t EN_JEFE4[] = {
-    { E_PUERTA, 10, 19, S_HORNO2, 11,  2, 3, NULL, NULL },
-    { E_JEFE,   11,  8, 10, F_JEFE_FUNDICION, 30, IT_PASE,
-      N_("MAESTRO FUNDIDOR:\n"
+    { E_PUERTA,  6, 13, S_HORNO2,  7,  2, 3, NULL, NULL },
+    { E_JEFE,  7,  4, 10, F_JEFE_FUNDICION, 30, IT_PASE, N_("MAESTRO FUNDIDOR:\n"
       "TREINTA ANOS METIENDO\n"
       "CHATARRA EN ESE HORNO.\n"
       "SE CUANDO UNA PIEZA\n"
@@ -1607,183 +1588,124 @@ static const ch_ent_t EN_JEFE4[] = {
  * ========================================================================== */
 
 static const char *const M_PASO[ROWS] = {
-    "#######################",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#nnnhhhhnnnnnnnhhhhnnn#",
-    "#nnnhhhhnnnnnnnhhhhnnn#",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#nnnNNNNnnnnnnnNNNNnnn#",
-    "#nnnNNNNnnnnnnnNNNNnnn#",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#nnnnhhhhhhhhhhhhhnnnn#",
-    "#nnnnhhhhhhhhhhhhhnnnn#",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#nnnNNNNNNnnnNNNNNNnnn#",
-    "#nnnNNNNNNnnnNNNNNNnnn#",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#######################",
+    "###############",
+    "## NNN   NNN ##",
+    "## NNN   NNN ##",
+    "##           ##",
+    "##           ##",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "## NNN NNNNN ##",
+    "## NNN NNNNN ##",
+    "##           ##",
+    "## NNNNN NNN ##",
+    "## NNNNN NNN ##",
+    "###############",
 };
 
 static const ch_prop_t P_PASO[] = {
-    { 2,  1, PR_PINO },
-    { 19, 1, PR_PINO },
-    { 2, 19, PR_PINO },
-    { 19,19, PR_PINO },
-    { 10, 4, PR_PINO },
+    {  2,  1, PR_PINO },
+    { 10,  1, PR_PINO },
+    {  2,  8, PR_PINO },
+    { 10,  8, PR_PINO },
 };
 
 static const ch_ent_t EN_PASO[] = {
-    { E_PUERTA,  0,  9, S_FUNDICION, 19, 15, 2, NULL, NULL },
-    { E_PUERTA,  0, 10, S_FUNDICION, 19, 15, 2, NULL, NULL },
-    { E_PUERTA,  0, 11, S_FUNDICION, 19, 16, 2, NULL, NULL },
-    { E_PUERTA, 21,  9, S_CRIO,      2, 10, 2, NULL, NULL },
-    { E_PUERTA, 21, 10, S_CRIO,      2, 10, 2, NULL, NULL },
-    { E_PUERTA, 21, 11, S_CRIO,      2, 10, 2, NULL, NULL },
-    { E_CARTEL, 11, 12, 0, 0, 0, 0,
-      N_("PASO HELADO.\n"
+    { E_PUERTA,  0,  5, S_FUNDICION_E, 11,  6, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_CRIO,  2,  6, 3, NULL, NULL },
+    { E_CARTEL,  6,  1, 0, 0, 0, 0, N_("PASO HELADO.\n"
       "SI SE LE CONGELAN LOS\n"
       "SERVOS, NO INSISTA.\n"
       "ESPERE AL DESHIELO."), NULL },
-    { E_COFRE,   5, 19, IT_ACEITE2, 2, F_COFRE_C1, 0, NULL, NULL },
-    { E_ENEMIGO, 6,  5, 0, F_ENEMIGO_31, 28, 0, NULL, NULL },
-    { E_ENEMIGO,16, 18, 0, F_ENEMIGO_32, 29, 0, NULL, NULL },
-    { E_ENEMIGO, 5, 15, 0, F_ENEMIGO_33, 29, 0, NULL, NULL },
+    { E_COFRE,  9,  2, IT_ACEITE2, 2, F_COFRE_C1, 0, NULL, NULL },
+    { E_ENEMIGO,  6,  8, 0, F_ENEMIGO_31, 28, 0, NULL, NULL },
+    { E_ENEMIGO,  9, 12, 0, F_ENEMIGO_32, 29, 0, NULL, NULL },
+    { E_ENEMIGO,  6, 11, 0, F_ENEMIGO_33, 29, 0, NULL, NULL },
 };
 
 static const char *const M_CRIO[ROWS] = {
-    "##########:::##########",
-    "##########:::##########",
-    "#nnnnnnnnnGGGnnnnnnnnn#",
-    "#nnnnnnnnnGGGnnnnnnnnn#",
-    "#nnnnnnnnnGGGnnnnnnnnn#",
-    "#nnnnnnnnnGGGnnnnnnnnn#",
-    "#GGGGGGGGGGGGGGGGGGGGG#",
-    "#GGGGGGGGGGGGGGGGGGGGG#",
-    "###nnnnnnnGGGnnnnnnn###",
-    "GGGnnnnnnnGGGnnnnnnnGGG",
-    "GGGnnnnnnnGGGnnnnnnnGGG",
-    "###nnnnnnnGGGnnnnnnn###",
-    "#GGGGGGGGGGGGGGGGGGGGG#",
-    "#GGGGGGGGGGGGGGGGGGGGG#",
-    "#nnnnnnnnnGGGnnnnnnnnn#",
-    "#nnnnnnnnnGGGnnnnnnnnn#",
-    "#nnnnnnnnnGGGnnnnnnnnn#",
-    "#nnnnnnnnnGGGnnnnnnnnn#",
-    "#nnnnnnnnnGGGnnnnnnnnn#",
-    "#nnnnnnnnnGGGnnnnnnnnn#",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#######################",
+    "######GGG######",
+    "#nnnnnGGGnnnnn#",
+    "#nnnnnGGGnnnnn#",
+    "#nnnnnGGGnnnnn#",
+    "#nnnnnGGGnnnnn#",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "#nnnnnGGGnnnnn#",
+    "#nnnnnGGGnnnnn#",
+    "#nnnnnGGGnnnnn#",
+    "#nnnnnGGGnnnnn#",
+    "#nnnnnGGGnnnnn#",
+    "###############",
 };
 
 static const ch_prop_t P_CRIO[] = {
-    { 3,  2, PR_CASA },
-    { 15, 2, PR_TALLER },
-    { 2, 14, PR_PINO },
-    { 18,14, PR_PINO },
-    { 6, 17, PR_PINO },
-    { 15,17, PR_PINO },
-    { 8,  4, PR_FAROLA },
-    { 14, 4, PR_FAROLA },
+    {  1,  1, PR_CASA },
+    { 10,  1, PR_TALLER },
+    {  1,  9, PR_PINO },
+    { 10,  9, PR_PINO },
 };
 
 static const ch_ent_t EN_CRIO[] = {
-    { E_PUERTA,  0,  9, S_PASO,   19, 10, 2, NULL, NULL },
-    { E_PUERTA,  0, 10, S_PASO,   19, 10, 2, NULL, NULL },
-    { E_PUERTA, 10,  0, S_CUEVA1, 11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_CUEVA1, 11, 17, 3, NULL, NULL },
-    { E_PUERTA, 16,  6, S_CRIO_INT, 11, 16, 2, NULL, NULL },
-    { E_BLOQUEO,20,  9, F_JEFE_CRIO, 0, 0, 0,
-      N_("CONTROL DE CRIOVALLE.\n"
-      "AL ESTE BAJA LA AUTOPISTA\n"
-      "A CIUDAD MALLA.\n"
-      "CERRADO POR NIEVE."),
-      N_("CONTROL ABIERTO.\n"
-      "AL ESTE: LA AUTOPISTA.") },
-    { E_BLOQUEO,20, 10, F_JEFE_CRIO, 0, 0, 0,
-      N_("CONTROL DE CRIOVALLE.\n"
-      "CERRADO POR NIEVE."),
-      N_("CONTROL ABIERTO.") },
-    { E_PUERTA, 21,  9, S_AUTOPISTA, 2, 10, 2, NULL, NULL },
-    { E_PUERTA, 21, 10, S_AUTOPISTA, 2, 11, 2, NULL, NULL },
-    { E_CARTEL, 13,  7, 0, 0, 0, 0,
-      N_("CRIOVALLE\n"
+    { E_PUERTA,  0,  5, S_PASO, 12,  5, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_CUEVA1,  7, 11, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_CRIO_E,  2,  6, 3, NULL, NULL },
+    { E_PUERTA, 11,  4, S_CRIO_INT,  7, 10, 2, NULL, NULL },
+    { E_CARTEL,  3, 12, 0, 0, 0, 0, N_("CRIOVALLE\n"
       "TEMPERATURA MEDIA: -12.\n"
       "LOS CIRCUITOS DURAN MAS\n"
       "PERO LAS BATERIAS MENOS."), NULL },
-    { E_PNJ,     6,  7, 2, 0, 0, 0,
-      N_("CHICO: EN LA CUEVA EL\n"
+    { E_PNJ, 12, 12, 2, 0, 0, 0, N_("CHICO: EN LA CUEVA EL\n"
       "PISO ES DE HIELO PURO.\n"
       "MI PAPA DICE QUE ADENTRO\n"
       "HAY ALGO QUE NO SE\n"
       "DERRITE NUNCA."), NULL },
-    { E_PNJ,    17, 13, 3, 0, 0, 0,
-      N_("LENADOR: LOS BICHOS DE\n"
+    { E_PNJ,  3,  7, 3, 0, 0, 0, N_("LENADOR: LOS BICHOS DE\n"
       "ACA PEGAN CON CRIO.\n"
       "SI LLEVAS ALGO DE FUEGO\n"
       "LA VAS A PASAR MEJOR."), NULL },
-    { E_PNJ,     5, 12, 4, F_MISION_TERMO, F_TERMO, IT_SOLDADOR,
-      N_("ABUELA DEL VALLE: SE ME\n"
+    { E_PNJ, 11,  7, 4, F_MISION_TERMO, F_TERMO, IT_SOLDADOR, N_("ABUELA DEL VALLE: SE ME\n"
       "QUEDO EL TERMO EN LA\n"
       "CUEVA Y SIN EL NO HAY\n"
       "MATE.\n"
-      "TRAEMELO, SI?"),
-      N_("ABUELA DEL VALLE: MI\n"
+      "TRAEMELO, SI?"), N_("ABUELA DEL VALLE: MI\n"
       "TERMO! GRACIAS, HIJO.\n"
       "TOMA ESTE SOLDADOR QUE\n"
       "ERA DE MI MARIDO.") },
-    /* The booth: the other watch. One per town, always at the side of the
-     * square, because it is a place you go to and not a menu you open. */
-    { E_CABINA, 19, 11, 0, 0, 0, 0, NULL, NULL },
 };
 
 static const char *const M_CRIO_INT[ROWS] = {
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "000|||||||||||||||||000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|_______--------|000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|____ooooooo____|000",
-    "000|____ooooooo____|000",
-    "000|____ooooooo____|000",
-    "000|____ooooooo____|000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|______+++______|000",
-    "000|||||||+++|||||||000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "000000000000000",
+    "0|||||||||||||0",
+    "0|+++++++++++|0",
+    "0|---------++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0|++ooooooo++|0",
+    "0|++ooooooo++|0",
+    "0|++ooooooo++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0||||||+++||||0",
+    "000000000000000",
 };
 
 static const ch_prop_t P_CRIO_INT[] = {
-    { 4,   3, PR_MAQUINA },
-    { 15, 10, PR_MAQUINA },
+    {  2,  2, PR_MAQUINA },
+    {  8,  8, PR_MAQUINA },
 };
 
 static const ch_ent_t EN_CRIO_INT[] = {
-    { E_PUERTA, 10, 17, S_CRIO, 16,  7, 3, NULL, NULL },
-    { E_TALLER, 15, 11, 0, 0, 0, 0,
-      N_("EL BANCO DE CRIOVALLE.\n"
+    { E_PUERTA,  7, 12, S_CRIO, 11,  5, 3, NULL, NULL },
+    { E_TALLER,  8,  9, 0, 0, 0, 0, N_("EL BANCO DE CRIOVALLE.\n"
       "Hay que soplarle el hielo\n"
       "antes de usarlo."), NULL },
-    { E_TIENDA, 16,  4, 0, 0, 0, 0,
-      N_("TENDERO: ACEITE QUE NO\n"
+    { E_TIENDA,  6,  4, 0, 0, 0, 0, N_("TENDERO: ACEITE QUE NO\n"
       "SE CONGELA. LO DEMAS SI."), NULL },
-    { E_PNJ,     6,  6, 1, 0, 0, 0,
-      N_("ABUELA TUERCA: TE VOY A\n"
+    { E_PNJ, 11,  6, 1, 0, 0, 0, N_("ABUELA TUERCA: TE VOY A\n"
       "DECIR LO ULTIMO Y DESPUES\n"
       "TE DEJO EN PAZ.\n"
       "NO TE ENAMORES DE UNA\n"
@@ -1791,122 +1713,109 @@ static const ch_ent_t EN_CRIO_INT[] = {
       "DEL MUNDO NO SIRVE SI EL\n"
       "TORSO NO LE DA ENERGIA.\n"
       "MIRA EL CONJUNTO."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 static const char *const M_CUEVA1[ROWS] = {
-    "##########:::##########",
-    "#nnnnnnnn#:::#nnnnnnnn#",
-    "#nnnnnnnnnnnnnnnnnnnn##",
-    "#nnhhhhhnnnnnnnhhhhhnn#",
-    "#nnhhhhhnnnnnnnhhhhhnn#",
-    "#nnhhhhhnnnnnnnhhhhhnn#",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#nnnnnn#########nnnnnn#",
-    "#nnnnnn#hhhhhhh#nnnnnn#",
-    "#nnnnnn#hhhhhhh#nnnnnn#",
-    "#nnnnnn####:####nnnnnn#",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#nnhhhhhhhnnnhhhhhhhnn#",
-    "#nnhhhhhhhnnnhhhhhhhnn#",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#nnnnnnnn#:::#nnnnnnnn#",
-    "#nnnnnnnn#:::#nnnnnnnn#",
-    "##########:::##########",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "######:::######",
+    "#nnnnn:::nnnnn#",
+    "#nnnnnnnnnnnnn#",
+    "#nRRRnnnnnRRRn#",
+    "#nRRRnnnnnRRRn#",
+    "#nnnnnnnnnnnnn#",
+    "#nnn#######nnn#",
+    "#nnn#hhhhh#nnn#",
+    "#nnn#hhhhh#nnn#",
+    "#nnn###:###nnn#",
+    "#nnnnnnnnnnnnn#",
+    "#nnnnn:::nnnnn#",
+    "#nnnnn:::nnnnn#",
+    "######:::######",
 };
 
 static const ch_prop_t P_CUEVA1[] = {
-    { 1,  1, PR_PINO },
-    { 19,11, PR_PINO },
+    {  1,  2, PR_PINO },
+    { 10,  2, PR_PINO },
 };
 
 static const ch_ent_t EN_CUEVA1[] = {
-    { E_PUERTA, 10, 19, S_CRIO,   11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_CRIO,   11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_CUEVA2, 11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_CUEVA2, 11, 17, 3, NULL, NULL },
-    { E_COFRE,  11,  8, IT_TERMO, 1, F_TERMO, 0, NULL, NULL },
-    { E_ENEMIGO, 4, 12, 0, F_ENEMIGO_34, 31, 0, NULL, NULL },
-    { E_ENEMIGO,18, 12, 0, F_ENEMIGO_35, 31, 0, NULL, NULL },
+    { E_PUERTA,  6, 13, S_CRIO,  7,  2, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_CUEVA2,  7, 11, 3, NULL, NULL },
+    { E_COFRE,  7,  7, IT_TERMO, 1, F_TERMO, 0, NULL, NULL },
+    { E_ENEMIGO,  6,  5, 0, F_ENEMIGO_34, 31, 0, NULL, NULL },
+    { E_ENEMIGO,  7, 10, 0, F_ENEMIGO_35, 31, 0, NULL, NULL },
 };
 
 static const char *const M_CUEVA2[ROWS] = {
-    "##########:::##########",
-    "#nnnnnnnn#:::#nnnnnnnn#",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#nnnnnnnnnnnnnnnnnnnnn#",
-    "#nhhhhhhhhhhhhhhhhhhhn#",
-    "#nhhhhhhhhhhhhhhhhhhhn#",
-    "#nhhh#############hhhn#",
-    "#nhhh#nnnnnnnnnnn#hhhn#",
-    "#nhhh#nnnnnnnnnnn#hhhn#",
-    "#nhhh#nnn#####nnn#hhhn#",
-    "#nhhh#nnn#hhh#nnn#hhhn#",
-    "#nhhh#nnn#hhh#nnn#hhhn#",
-    "#nhhh#nnn##:##nnn#hhhn#",
-    "#nhhh#nnnnnnnnnnn#hhhn#",
-    "#nhhh####:####nnn#hhhn#",
-    "#nhhhhhhhhhhhhhhhhhhhn#",
-    "#nhhhhhhhhhhhhhhhhhhhn#",
-    "#nnnnnnnn#:::#nnnnnnnn#",
-    "#nnnnnnnn#:::#nnnnnnnn#",
-    "##########:::##########",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "######:::######",
+    "#nnnnn:::nnnnn#",
+    "#nnnnnnnnnnnnn#",
+    "#hhhhhhhhhhhhh#",
+    "#h###hhhhh###h#",
+    "#h#hhhhhhhhh#h#",
+    "#h###hhhhh###h#",
+    "#hhhhhhhhhhhhh#",
+    "#hhhhhhhhhhhhh#",
+    "#nnnnnnnnnnnnn#",
+    "#nRRRnnnnnRRRn#",
+    "#nnnnn:::nnnnn#",
+    "#nnnnn:::nnnnn#",
+    "######:::######",
 };
 
 static const ch_prop_t P_CUEVA2[] = {
-    { 1, 19, PR_PINO },
+    {  1, 10, PR_PINO },
 };
 
 static const ch_ent_t EN_CUEVA2[] = {
-    { E_PUERTA, 10, 19, S_CUEVA1, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_CUEVA1, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_JEFE5,  11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_JEFE5,  11, 17, 3, NULL, NULL },
-    { E_COFRE,  11, 10, IT_BATERIA2, 2, F_COFRE_C2, 0, NULL, NULL },
-    { E_COFRE,   3, 15, IT_CHIP, 1, F_COFRE_C3, 0, NULL, NULL },
-    { E_ENEMIGO, 8, 13, 0, F_ENEMIGO_36, 32, 0, NULL, NULL },
-    { E_ENEMIGO,14,  7, 0, F_ENEMIGO_37, 33, 0, NULL, NULL },
+    { E_PUERTA,  6, 13, S_CUEVA1,  7,  2, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_JEFE5,  7, 11, 3, NULL, NULL },
+    { E_COFRE,  3,  5, IT_BATERIA2, 2, F_COFRE_C2, 0, NULL, NULL },
+    { E_COFRE, 10,  5, IT_CHIP, 1, F_COFRE_C3, 0, NULL, NULL },
+    { E_ENEMIGO,  2,  7, 0, F_ENEMIGO_36, 32, 0, NULL, NULL },
+    { E_ENEMIGO, 12,  7, 0, F_ENEMIGO_37, 33, 0, NULL, NULL },
 };
 
 static const char *const M_JEFE5[ROWS] = {
-    "0000###############0000",
-    "0000#hhhhhhhhhhhhh#0000",
-    "0000#hhhhhhhhhhhhh#0000",
-    "000##hhhhhhhhhhhhh##000",
-    "000#hhhhhhhhhhhhhhhh#00",
-    "000#hhhhhhhhhhhhhhhh#00",
-    "000#hhhhhhhhhhhhhhhh#00",
-    "000#hhhhhhhhhhhhhhhh#00",
-    "000#hhhhhhhhhhhhhhhh#00",
-    "000#hhhhhhhhhhhhhhhh#00",
-    "000#hhhhhhhhhhhhhhhh#00",
-    "000#hhhhhhhhhhhhhhhh#00",
-    "000#hhhhhhhhhhhhhhhh#00",
-    "000#hhhhhhhhhhhhhhhh#00",
-    "000##hhhhhhhhhhhhh##000",
-    "0000#hhhhhhhhhhhhh#0000",
-    "0000#hhhhhhhhhhhhh#0000",
-    "0000#hhhhh:::hhhhh#0000",
-    "0000#hhhhh:::hhhhh#0000",
-    "0000######:::######0000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "###############",
+    "#nnnnnnnnnnnnn#",
+    "#nnnnnnnnnnnnn#",
+    "#nnnnnnnnnnnnn#",
+    "#nnnnnnnnnnnnn#",
+    "#nnnnnnnnnnnnn#",
+    "#nnnnnnnnnnnnn#",
+    "#nnnnnnnnnnnnn#",
+    "#nnnnnnnnnnnnn#",
+    "#nnnnnnnnnnnnn#",
+    "#nnnnnnnnnnnnn#",
+    "#nnnnnnnnnnnnn#",
+    "#nnnnn:::nnnnn#",
+    "######:::######",
 };
 
 static const ch_prop_t P_JEFE5[] = {
-    { 5,  2, PR_PINO },
-    { 15, 2, PR_PINO },
+    {  2,  1, PR_PINO },
+    { 11,  1, PR_PINO },
 };
 
 static const ch_ent_t EN_JEFE5[] = {
-    { E_PUERTA, 10, 19, S_CUEVA2, 11,  2, 3, NULL, NULL },
-    { E_JEFE,   11,  7, 13, F_JEFE_CRIO, 36, IT_PASE,
-      N_("GUARDABOSQUE:\n"
+    { E_PUERTA,  6, 13, S_CUEVA2,  7,  2, 3, NULL, NULL },
+    { E_JEFE,  7,  4, 13, F_JEFE_CRIO, 36, IT_PASE, N_("GUARDABOSQUE:\n"
       "TE VI SUBIR DESDE EL\n"
       "PASO. TARDASTE MENOS DE\n"
       "LO QUE PENSE.\n"
@@ -1922,295 +1831,228 @@ static const ch_ent_t EN_JEFE5[] = {
  * ========================================================================== */
 
 static const char *const M_AUTOPISTA[ROWS] = {
-    "#######################",
-    "#ppppppppppppppppppppp#",
-    "#pdddppppppppppppdddpp#",
-    "#pdddppppppppppppdddpp#",
-    "#ppppppppppppppppppppp#",
-    "#PPPPPPPPPPPPPPPPPPPPP#",
-    "#ppppppppppppppppppppp#",
-    "#ppppppppppppppppppppp#",
-    "#pppppdddddddddddppppp#",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "#pppppdddddddddddppppp#",
-    "#ppppppppppppppppppppp#",
-    "#ppppppppppppppppppppp#",
-    "#PPPPPPPPPPPPPPPPPPPPP#",
-    "#ppppppppppppppppppppp#",
-    "#pdddppppppppppppdddpp#",
-    "#pdddppppppppppppdddpp#",
-    "#ppppppppppppppppppppp#",
-    "#ppppppppppppppppppppp#",
-    "#######################",
+    "PPPPPPPPPPPPPPP",
+    "PP ddd   ddd PP",
+    "PP ddd   ddd PP",
+    "PP           PP",
+    "PP           PP",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "PP ddd ddddd PP",
+    "PP ddd ddddd PP",
+    "PP           PP",
+    "PP ddddd ddd PP",
+    "PP ddddd ddd PP",
+    "PPPPPPPPPPPPPPP",
 };
 
 static const ch_prop_t P_AUTOPISTA[] = {
-    { 8,  1, PR_TORRE },
-    { 14,17, PR_TORRE },
-    { 3, 12, PR_SERVIDOR },
-    { 18, 6, PR_SERVIDOR },
+    {  2,  1, PR_TORRE },
+    { 10,  1, PR_TORRE },
+    {  2,  8, PR_SERVIDOR },
+    { 10,  8, PR_SERVIDOR },
 };
 
 static const ch_ent_t EN_AUTOPISTA[] = {
-    { E_PUERTA,  0,  9, S_CRIO,   19,  9, 2, NULL, NULL },
-    { E_PUERTA,  0, 10, S_CRIO,   19,  9, 2, NULL, NULL },
-    { E_PUERTA,  0, 11, S_CRIO,   19, 10, 2, NULL, NULL },
-    { E_PUERTA, 21,  9, S_MALLA,   2, 10, 2, NULL, NULL },
-    { E_PUERTA, 21, 10, S_MALLA,   2, 11, 2, NULL, NULL },
-    { E_PUERTA, 21, 11, S_MALLA,   2, 11, 2, NULL, NULL },
-    { E_CARTEL, 11,  7, 0, 0, 0, 0,
-      N_("AUTOPISTA A MALLA.\n"
+    { E_PUERTA,  0,  5, S_CRIO_E, 11,  6, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_MALLA,  2,  6, 3, NULL, NULL },
+    { E_CARTEL,  6,  1, 0, 0, 0, 0, N_("AUTOPISTA A MALLA.\n"
       "VELOCIDAD MAXIMA: LA QUE\n"
       "TE DEN LAS PIERNAS."), NULL },
-    { E_COFRE,   3,  2, IT_ACEITE2, 2, F_COFRE_M1, 0, NULL, NULL },
-    { E_ENEMIGO, 8, 12, 0, F_ENEMIGO_38, 34, 0, NULL, NULL },
-    { E_ENEMIGO,15,  8, 0, F_ENEMIGO_39, 35, 0, NULL, NULL },
-    { E_ENEMIGO,18, 18, 0, F_ENEMIGO_40, 35, 0, NULL, NULL },
+    { E_COFRE,  9,  2, IT_ACEITE2, 2, F_COFRE_M1, 0, NULL, NULL },
+    { E_ENEMIGO,  6,  8, 0, F_ENEMIGO_38, 34, 0, NULL, NULL },
+    { E_ENEMIGO,  9, 12, 0, F_ENEMIGO_39, 35, 0, NULL, NULL },
+    { E_ENEMIGO,  6, 11, 0, F_ENEMIGO_40, 35, 0, NULL, NULL },
 };
 
 static const char *const M_MALLA[ROWS] = {
-    "##########:::##########",
-    "##########:::##########",
-    "#pppppppppcccppppppppp#",
-    "#pPPPPPppcccccppPPPPPp#",
-    "#pPPPPPppcccccppPPPPPp#",
-    "#pPPPPPppcccccppPPPPPp#",
-    "#pppppppppcccppppppppp#",
-    "#ccccccccccccccccccccc#",
-    "#ccccccccccccccccccccc#",
-    "#pppppppppcccpppppp####",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "#pppppppppcccpppppp####",
-    "#ccccccccccccccccccccc#",
-    "#ccccccccccccccccccccc#",
-    "#pppppppppcccppppppppp#",
-    "#pPPPPPppcccccppPPPPPp#",
-    "#pPPPPPppcccccppPPPPPp#",
-    "#pPPPPPppcccccppPPPPPp#",
-    "#pppppppppcccppppppppp#",
-    "#ppppppppppppppppppppp#",
-    "#######################",
+    "PPPPPPGGGPPPPPP",
+    "PpppppGGGpppppP",
+    "PpppppGGGpppppP",
+    "PpppppGGGpppppP",
+    "PpppppGGGpppppP",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "PpppppGGGpppppP",
+    "PpppppGGGpppppP",
+    "PpppppGGGpppppP",
+    "PpppppGGGpppppP",
+    "PpppppGGGpppppP",
+    "PPPPPPPPPPPPPPP",
 };
 
 static const ch_prop_t P_MALLA[] = {
-    { 3, 16, PR_SERVIDOR },
-    { 17,16, PR_SERVIDOR },
-    { 8,  1, PR_FAROLA },
-    { 14, 1, PR_FAROLA },
-    { 10,20, PR_ESTATUA },
+    {  1,  1, PR_SERVIDOR },
+    { 10,  1, PR_TALLER },
+    {  1,  9, PR_SERVIDOR },
+    { 10,  9, PR_FAROLA },
 };
 
 static const ch_ent_t EN_MALLA[] = {
-    { E_PUERTA,  0, 10, S_AUTOPISTA, 19, 10, 2, NULL, NULL },
-    { E_PUERTA,  0, 11, S_AUTOPISTA, 19, 10, 2, NULL, NULL },
-    { E_PUERTA, 10,  0, S_SERV1,     11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_SERV1,     11, 17, 3, NULL, NULL },
-    { E_PUERTA,  4,  6, S_MALLA_INT, 11, 16, 2, NULL, NULL },
-    { E_BLOQUEO,19, 10, F_JEFE_MALLA, 0, 0, 0,
-      N_("CONTROL DE MALLA.\n"
-      "AL ESTE EMPIEZA EL\n"
-      "PARAMO. NO SE PASA SIN\n"
-      "PASE DE SECTOR."),
-      N_("CONTROL ABIERTO.\n"
-      "AL ESTE: EL PARAMO.") },
-    { E_BLOQUEO,19, 11, F_JEFE_MALLA, 0, 0, 0,
-      N_("CONTROL DE MALLA.\n"
-      "CERRADO."),
-      N_("CONTROL ABIERTO.") },
-    { E_PUERTA, 21, 10, S_LLANURA,  2, 10, 2, NULL, NULL },
-    { E_PUERTA, 21, 11, S_LLANURA,  2, 11, 2, NULL, NULL },
-    { E_CARTEL, 13,  8, 0, 0, 0, 0,
-      N_("CIUDAD MALLA\n"
+    { E_PUERTA,  0,  5, S_AUTOPISTA, 12,  5, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_SERV1,  7, 11, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_MALLA_E,  2,  6, 3, NULL, NULL },
+    { E_PUERTA, 11,  4, S_MALLA_INT,  7, 10, 2, NULL, NULL },
+    { E_CARTEL,  3, 12, 0, 0, 0, 0, N_("CIUDAD MALLA\n"
       "AQUI NO SE FABRICA NADA.\n"
       "SOLO SE PIENSA."), NULL },
-    { E_PNJ,     7,  8, 2, 0, 0, 0,
-      N_("CHICA: TODO EL PUEBLO\n"
+    { E_PNJ, 12, 12, 2, 0, 0, 0, N_("CHICA: TODO EL PUEBLO\n"
       "CORRE SOBRE EL SERVIDOR\n"
       "DE ABAJO.\n"
       "SI SE APAGA, SE APAGA\n"
       "TODO."), NULL },
-    { E_PNJ,    16, 13, 3, 0, 0, 0,
-      N_("PROGRAMADOR: LOS BICHOS\n"
+    { E_PNJ,  3,  7, 3, 0, 0, 0, N_("PROGRAMADOR: LOS BICHOS\n"
       "DE ACA PEGAN CON PLASMA.\n"
       "EL PLASMA NO PUEDE CON\n"
       "EL CRIO. PENSALO."), NULL },
-    { E_PNJ,     6, 14, 4, F_MISION_CLAVE, F_CLAVE, IT_CHIP,
-      N_("ARCHIVISTA: PERDI LA\n"
+    { E_PNJ, 11,  7, 4, F_MISION_CLAVE, F_CLAVE, IT_CHIP, N_("ARCHIVISTA: PERDI LA\n"
       "CLAVE MAESTRA EN EL\n"
       "SERVIDOR.\n"
       "SIN ELLA NO PUEDO ENTRAR\n"
-      "A MI PROPIA OFICINA."),
-      N_("ARCHIVISTA: LA CLAVE!\n"
+      "A MI PROPIA OFICINA."), N_("ARCHIVISTA: LA CLAVE!\n"
       "TOMA UN CHIP, TE LO\n"
       "GANASTE.") },
-    /* The booth: the other watch. One per town, always at the side of the
-     * square, because it is a place you go to and not a menu you open. */
-    { E_CABINA,  7, 11, 0, 0, 0, 0, NULL, NULL },
 };
 
 static const char *const M_MALLA_INT[ROWS] = {
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "000|||||||||||||||||000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|--------+++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++ooooooooo+++|000",
-    "000|+++ooooooooo+++|000",
-    "000|+++ooooooooo+++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|++++++___++++++|000",
-    "000|||||||___|||||||000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "000000000000000",
+    "0|||||||||||||0",
+    "0|+++++++++++|0",
+    "0|---------++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0|++ooooooo++|0",
+    "0|++ooooooo++|0",
+    "0|++ooooooo++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0||||||+++||||0",
+    "000000000000000",
 };
 
 static const ch_prop_t P_MALLA_INT[] = {
-    { 15,  3, PR_SERVIDOR },
-    { 5,  11, PR_MAQUINA },
+    {  2,  2, PR_SERVIDOR },
+    {  8,  8, PR_MAQUINA },
 };
 
 static const ch_ent_t EN_MALLA_INT[] = {
-    { E_PUERTA, 10, 17, S_MALLA,  4,  7, 3, NULL, NULL },
-    { E_TALLER,  5, 12, 0, 0, 0, 0,
-      N_("EL BANCO DE MALLA.\n"
+    { E_PUERTA,  7, 12, S_MALLA, 11,  5, 3, NULL, NULL },
+    { E_TALLER,  8,  9, 0, 0, 0, 0, N_("EL BANCO DE MALLA.\n"
       "Te lo diagnostica solo."), NULL },
-    { E_TIENDA,  5,  4, 0, 0, 0, 0,
-      N_("TENDERA: TODO CARO, TODO\n"
+    { E_TIENDA,  6,  4, 0, 0, 0, 0, N_("TENDERA: TODO CARO, TODO\n"
       "BUENO. Es una ciudad."), NULL },
-    { E_PNJ,    16,  8, 3, 0, 0, 0,
-      N_("TECNICO: DEJAME VER TU\n"
+    { E_PNJ, 11,  6, 3, 0, 0, 0, N_("TECNICO: DEJAME VER TU\n"
       "ROBOT... MIRA, LE SOBRA\n"
       "ATAQUE Y LE FALTA VIDA.\n"
       "UN TORSO GRANDE TE\n"
       "SALVARIA MAS DE UN\n"
       "COMBATE."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 static const char *const M_SERV1[ROWS] = {
-    "CCCCCCCCCC:::CCCCCCCCCC",
-    "CccccccccC:::CccccccccC",
-    "CcccccccccccccccccccccC",
-    "CccCCCCCCcccccCCCCCCCcC",
-    "CccCcccccccccccccccccCC",
-    "CccCcccCCCCCCCCCCCcccCC",
-    "CccCcccCcccccccccCcccCC",
-    "CccCcccCcccccccccCcccCC",
-    "CccCcccCccCCCCCccCcccCC",
-    "CccCcccCccCcccCccCcccCC",
-    "CccCcccCccCcccCccCcccCC",
-    "CccCcccCccCC:CCccCcccCC",
-    "CccCcccCcccccccccCcccCC",
-    "CccCcccCCCCC:CCCCCcccCC",
-    "CccCcccccccccccccccccCC",
-    "CccCCCCCCCCC:CCCCCCCCCC",
-    "CcccccccccccccccccccccC",
-    "CccccccccC:::CccccccccC",
-    "CccccccccC:::CccccccccC",
-    "CCCCCCCCCC:::CCCCCCCCCC",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "CCCCCC:::CCCCCC",
+    "Cccccc:::cccccC",
+    "CcccccccccccccC",
+    "CcCCCcccccCCCcC",
+    "CcCCCcccccCCCcC",
+    "CcccccccccccccC",
+    "CcccCCCCCCCcccC",
+    "CcccCcccccCcccC",
+    "CcccCcccccCcccC",
+    "CcccCCC:CCCcccC",
+    "CcccccccccccccC",
+    "Cccccc:::cccccC",
+    "Cccccc:::cccccC",
+    "CCCCCC:::CCCCCC",
 };
 
 static const ch_prop_t P_SERV1[] = {
-    { 1,  2, PR_SERVIDOR },
-    { 19,16, PR_SERVIDOR },
+    {  1,  2, PR_SERVIDOR },
+    { 10,  2, PR_SERVIDOR },
 };
 
 static const ch_ent_t EN_SERV1[] = {
-    { E_PUERTA, 10, 19, S_MALLA,  11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_MALLA,  11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_SERV2,  11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_SERV2,  11, 17, 3, NULL, NULL },
-    { E_COFRE,  12,  9, IT_CLAVE, 1, F_CLAVE, 0, NULL, NULL },
-    { E_ENEMIGO, 5, 12, 0, F_ENEMIGO_41, 37, 0, NULL, NULL },
-    { E_ENEMIGO,19,  8, 0, F_ENEMIGO_42, 37, 0, NULL, NULL },
+    { E_PUERTA,  6, 13, S_MALLA,  7,  2, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_SERV2,  7, 11, 3, NULL, NULL },
+    { E_COFRE,  7,  7, IT_CLAVE, 1, F_CLAVE, 0, NULL, NULL },
+    { E_ENEMIGO,  6,  5, 0, F_ENEMIGO_41, 37, 0, NULL, NULL },
+    { E_ENEMIGO,  7, 10, 0, F_ENEMIGO_42, 37, 0, NULL, NULL },
 };
 
 static const char *const M_SERV2[ROWS] = {
-    "CCCCCCCCCC:::CCCCCCCCCC",
-    "CccccccccC:::CccccccccC",
-    "CcccccccccccccccccccccC",
-    "CcCCCCCCCCCCCCCCCCCCCcC",
-    "CcCcccccccccccccccccCcC",
-    "CcCcCCCCCCCCCCCCCCCcCcC",
-    "CcCcCcccccccccccccCcCcC",
-    "CcCcCcCCCCCCCCCCCcCcCcC",
-    "CcCcCcCcccccccccCcCcCcC",
-    "CcCcCcCcCCCCCCcCcCcCcCC",
-    "CcCcCcCcCcccccCcCcCcCcC",
-    "CcCcCcCcCcCCCcCcCcCcCcC",
-    "CcCcCcCcCcccccCcCcCcCcC",
-    "CcCcCcCcCCCCCCcCcCcCcCC",
-    "CcCcCcCcccccccccCcCcCcC",
-    "CcCcCcCCCCCCCCCCCcCcCcC",
-    "CcCcCccccccccccccccCcCC",
-    "CcCcCCCCCC:::CCCCCCCcCC",
-    "CcccccccccC:CCccccccccC",
-    "CCCCCCCCCC:::CCCCCCCCCC",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "CCCCCC:::CCCCCC",
+    "Cccccc:::cccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcCCCcccccCCCcC",
+    "CcCcccccccccCcC",
+    "CcCCCcccccCCCcC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcCCCcccccCCCcC",
+    "Cccccc:::cccccC",
+    "Cccccc:::cccccC",
+    "CCCCCC:::CCCCCC",
 };
 
 static const ch_prop_t P_SERV2[] = {
-    { 1,  2, PR_SERVIDOR },
+    {  1, 10, PR_SERVIDOR },
 };
 
 static const ch_ent_t EN_SERV2[] = {
-    { E_PUERTA, 10, 19, S_SERV1,  11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_JEFE6,  11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_JEFE6,  11, 17, 3, NULL, NULL },
-    { E_COFRE,  11, 11, IT_SOLDADOR, 2, F_COFRE_M2, 0, NULL, NULL },
-    { E_COFRE,   3, 16, IT_BATERIA2, 2, F_COFRE_M3, 0, NULL, NULL },
-    { E_ENEMIGO, 9, 14, 0, F_ENEMIGO_43, 38, 0, NULL, NULL },
-    { E_ENEMIGO,17,  6, 0, F_ENEMIGO_44, 39, 0, NULL, NULL },
+    { E_PUERTA,  6, 13, S_SERV1,  7,  2, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_JEFE6,  7, 11, 3, NULL, NULL },
+    { E_COFRE,  3,  5, IT_SOLDADOR, 2, F_COFRE_M2, 0, NULL, NULL },
+    { E_COFRE, 10,  5, IT_BATERIA2, 2, F_COFRE_M3, 0, NULL, NULL },
+    { E_ENEMIGO,  2,  7, 0, F_ENEMIGO_43, 38, 0, NULL, NULL },
+    { E_ENEMIGO, 12,  7, 0, F_ENEMIGO_44, 39, 0, NULL, NULL },
 };
 
 static const char *const M_JEFE6[ROWS] = {
-    "0000CCCCCCCCCCCCCCC0000",
-    "0000CcccccccccccccC0000",
-    "0000CcccccccccccccC0000",
-    "000CCcccccccccccccCC000",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CccccccccccccccccC00",
-    "000CCcccccccccccccCC000",
-    "0000CcccccccccccccC0000",
-    "0000CcccccccccccccC0000",
-    "0000Cccccc:::ccccccC000",
-    "0000Cccccc:::ccccccC000",
-    "0000CCCCCC:::CCCCCCC000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "CCCCCCCCCCCCCCC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "CcccccccccccccC",
+    "Cccccc:::cccccC",
+    "CCCCCC:::CCCCCC",
 };
 
 static const ch_prop_t P_JEFE6[] = {
-    { 5,  2, PR_SERVIDOR },
-    { 15, 2, PR_SERVIDOR },
+    {  2,  1, PR_SERVIDOR },
+    { 11,  1, PR_SERVIDOR },
 };
 
 static const ch_ent_t EN_JEFE6[] = {
-    { E_PUERTA, 10, 19, S_SERV2, 11,  2, 3, NULL, NULL },
-    { E_JEFE,   11,  7, 14, F_JEFE_MALLA, 42, IT_PASE,
-      N_("ADMINISTRADORA:\n"
+    { E_PUERTA,  6, 13, S_SERV2,  7,  2, 3, NULL, NULL },
+    { E_JEFE,  7,  4, 14, F_JEFE_MALLA, 42, IT_PASE, N_("ADMINISTRADORA:\n"
       "TE ESTUVE MIRANDO DESDE\n"
       "QUE ENTRASTE AL PUEBLO.\n"
       "SE QUE PIEZAS LLEVAS Y\n"
@@ -2227,180 +2069,124 @@ static const ch_ent_t EN_JEFE6[] = {
  * ========================================================================== */
 
 static const char *const M_LLANURA[ROWS] = {
-    "#######################",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#QQdddQQQQQQQQQdddQQQQ#",
-    "#QQdddQQQQQQQQQdddQQQQ#",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#QQQQQQRRRRRRRQQQQQQQQ#",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#QQdddddddQQQdddddddQQ#",
-    "#QQdddddddQQQdddddddQQ#",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#QQQQQRRRRRRRRRRRQQQQQ#",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#QQdddddQQQQQQQdddddQQ#",
-    "#QQdddddQQQQQQQdddddQQ#",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#QQdddQQQQQQQQQdddQQQQ#",
-    "#QQdddQQQQQQQQQdddQQQQ#",
-    "#######################",
+    "###############",
+    "## ddd   ddd ##",
+    "## ddd   ddd ##",
+    "##           ##",
+    "##           ##",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "## ddd ddddd ##",
+    "## ddd ddddd ##",
+    "##           ##",
+    "## ddddd ddd ##",
+    "## ddddd ddd ##",
+    "###############",
 };
 
 static const ch_prop_t P_LLANURA[] = {
-    { 3, 12, PR_PILA },
-    { 18, 4, PR_PILA },
-    { 9, 18, PR_PILA },
-    { 16,12, PR_TORRE },
+    {  2,  1, PR_PILA },
+    { 10,  1, PR_PILA },
+    {  2,  8, PR_PILA },
+    { 10,  8, PR_TORRE },
 };
 
 static const ch_ent_t EN_LLANURA[] = {
-    { E_PUERTA,  0,  9, S_MALLA,  18, 10, 2, NULL, NULL },
-    { E_PUERTA,  0, 10, S_MALLA,  18, 10, 2, NULL, NULL },
-    { E_PUERTA,  0, 11, S_MALLA,  18, 11, 2, NULL, NULL },
-    { E_PUERTA, 21,  9, S_OXIDO,   2, 10, 2, NULL, NULL },
-    { E_PUERTA, 21, 10, S_OXIDO,   2, 10, 2, NULL, NULL },
-    { E_PUERTA, 21, 11, S_OXIDO,   2, 10, 2, NULL, NULL },
-    { E_CARTEL, 11,  6, 0, 0, 0, 0,
-      N_("EL PARAMO.\n"
+    { E_PUERTA,  0,  5, S_MALLA_E, 11,  6, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_OXIDO,  2,  6, 3, NULL, NULL },
+    { E_CARTEL,  6,  1, 0, 0, 0, 0, N_("EL PARAMO.\n"
       "ACA TERMINA TODO LO QUE\n"
       "NO SIRVE.\n"
       "USTED TAMBIEN, SI SE\n"
       "DESCUIDA."), NULL },
-    { E_COFRE,   4, 19, IT_SOLDADOR, 1, F_COFRE_O1, 0, NULL, NULL },
-    { E_ENEMIGO, 6,  7, 0, F_ENEMIGO_45, 40, 0, NULL, NULL },
-    { E_ENEMIGO,17, 15, 0, F_ENEMIGO_46, 41, 0, NULL, NULL },
-    { E_ENEMIGO, 5, 15, 0, F_ENEMIGO_47, 41, 0, NULL, NULL },
+    { E_COFRE,  9,  2, IT_SOLDADOR, 1, F_COFRE_O1, 0, NULL, NULL },
+    { E_ENEMIGO,  6,  8, 0, F_ENEMIGO_45, 40, 0, NULL, NULL },
+    { E_ENEMIGO,  9, 12, 0, F_ENEMIGO_46, 41, 0, NULL, NULL },
+    { E_ENEMIGO,  6, 11, 0, F_ENEMIGO_47, 41, 0, NULL, NULL },
 };
 
 static const char *const M_OXIDO[ROWS] = {
-    "##########:::##########",
-    "##########:::##########",
-    "#QQQQQQQQQGGGQQQQQQQQQ#",
-    "#QQQQQQQQQGGGQQQQQQQQQ#",
-    "#QQQQQQQQQGGGQQQQQQQQQ#",
-    "#QQQQQQQQQGGGQQQQQQQQQ#",
-    "#GGGGGGGGGGGGGGGGGGGGG#",
-    "#GGGGGGGGGGGGGGGGGGGGG#",
-    "###QQQQQQQGGGQQQQQQ####",
-    "GGGQQQQQQQGGGQQQQQQGGGG",
-    "GGGQQQQQQQGGGQQQQQQGGGG",
-    "###QQQQQQQGGGQQQQQQ####",
-    "#GGGGGGGGGGGGGGGGGGGGG#",
-    "#GGGGGGGGGGGGGGGGGGGGG#",
-    "#QQQQQQQQQGGGQQQQQQQQQ#",
-    "#QQQQQQQQQGGGQQQQQQQQQ#",
-    "#QQQQQQQQQGGGQQQQQQQQQ#",
-    "#QQQQQQQQQGGGQQQQQQQQQ#",
-    "#QQQQQQQQQGGGQQQQQQQQQ#",
-    "#QQQQQQQQQGGGQQQQQQQQQ#",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#######################",
+    "######GGG######",
+    "#QQQQQGGGQQQQQ#",
+    "#QQQQQGGGQQQQQ#",
+    "#QQQQQGGGQQQQQ#",
+    "#QQQQQGGGQQQQQ#",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "#QQQQQGGGQQQQQ#",
+    "#QQQQQGGGQQQQQ#",
+    "#QQQQQGGGQQQQQ#",
+    "#QQQQQGGGQQQQQ#",
+    "#QQQQQGGGQQQQQ#",
+    "###############",
 };
 
 static const ch_prop_t P_OXIDO[] = {
-    { 3,  2, PR_CASA },
-    { 15, 2, PR_TALLER },
-    { 3, 15, PR_PILA },
-    { 16,15, PR_PILA },
-    { 6, 18, PR_PILA },
-    { 8,  4, PR_FAROLA },
+    {  1,  1, PR_CASA },
+    { 10,  1, PR_TALLER },
+    {  1,  9, PR_PILA },
+    { 10,  9, PR_PILA },
 };
 
 static const ch_ent_t EN_OXIDO[] = {
-    { E_PUERTA,  0,  9, S_LLANURA, 19, 10, 2, NULL, NULL },
-    { E_PUERTA,  0, 10, S_LLANURA, 19, 10, 2, NULL, NULL },
-    { E_PUERTA, 10,  0, S_CEMENT1, 11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_CEMENT1, 11, 17, 3, NULL, NULL },
-    { E_PUERTA, 16,  6, S_OXIDO_INT, 11, 16, 2, NULL, NULL },
-    { E_BLOQUEO,18,  9, F_JEFE_PARAMO, 0, 0, 0,
-      N_("CONTROL DE VILLA OXIDO.\n"
-      "AL ESTE SOLO QUEDA LA\n"
-      "TORRE PRISMA.\n"
-      "NO SE PASA SIN PASE."),
-      N_("CONTROL ABIERTO.\n"
-      "AL ESTE: LA TORRE.") },
-    { E_BLOQUEO,18, 10, F_JEFE_PARAMO, 0, 0, 0,
-      N_("CONTROL DE VILLA OXIDO.\n"
-      "CERRADO."),
-      N_("CONTROL ABIERTO.") },
-    { E_PUERTA, 21,  9, S_ULTIMO,  2, 10, 2, NULL, NULL },
-    { E_PUERTA, 21, 10, S_ULTIMO,  2, 11, 2, NULL, NULL },
-    { E_CARTEL, 13,  7, 0, 0, 0, 0,
-      N_("VILLA OXIDO\n"
+    { E_PUERTA,  0,  5, S_LLANURA, 12,  5, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_CEMENT1,  7, 11, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_OXIDO_E,  2,  6, 3, NULL, NULL },
+    { E_PUERTA, 11,  4, S_OXIDO_INT,  7, 10, 2, NULL, NULL },
+    { E_CARTEL,  3, 12, 0, 0, 0, 0, N_("VILLA OXIDO\n"
       "EL PUEBLO MAS VIEJO Y EL\n"
       "MAS CERCANO A LA TORRE.\n"
       "NADIE SABE CUAL DE LAS\n"
       "DOS COSAS ES PEOR."), NULL },
-    { E_PNJ,     6,  7, 3, 0, 0, 0,
-      N_("VIEJO: YO SUBI A LA TORRE\n"
+    { E_PNJ, 12, 12, 3, 0, 0, 0, N_("VIEJO: YO SUBI A LA TORRE\n"
       "UNA VEZ. HACE MUCHO.\n"
       "NO TE VOY A CONTAR COMO\n"
       "ME FUE."), NULL },
-    { E_PNJ,    17, 13, 2, 0, 0, 0,
-      N_("CHICO: EN EL CEMENTERIO\n"
+    { E_PNJ,  3,  7, 2, 0, 0, 0, N_("CHICO: EN EL CEMENTERIO\n"
       "LOS ROBOTS SE ARMAN SOLOS\n"
       "CON LO QUE ENCUENTRAN.\n"
       "POR ESO SON TAN RAROS."), NULL },
-    { E_PNJ,     5, 13, 4, F_MISION_ENGRANAJE, F_ENGRANAJE, IT_BATERIA2,
-      N_("CHATARRERA: BUSCO UN\n"
+    { E_PNJ, 11,  7, 4, F_MISION_ENGRANAJE, F_ENGRANAJE, IT_BATERIA2, N_("CHATARRERA: BUSCO UN\n"
       "ENGRANAJE GRANDE, DE LOS\n"
       "VIEJOS. EN EL CEMENTERIO\n"
       "TIENE QUE HABER.\n"
-      "TE PAGO BIEN."),
-      N_("CHATARRERA: MIRA ESO.\n"
+      "TE PAGO BIEN."), N_("CHATARRERA: MIRA ESO.\n"
       "HACIA VEINTE ANOS QUE NO\n"
       "VEIA UNO ENTERO.\n"
       "TOMA, TE LO GANASTE.") },
-    /* The booth: the other watch. One per town, always at the side of the
-     * square, because it is a place you go to and not a menu you open. */
-    { E_CABINA, 17, 11, 0, 0, 0, 0, NULL, NULL },
 };
 
 static const char *const M_OXIDO_INT[ROWS] = {
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "000|||||||||||||||||000",
-    "000|_______________|000",
-    "000|--------_______|000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|__ooooooooooo__|000",
-    "000|__ooooooooooo__|000",
-    "000|__ooooooooooo__|000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|_______________|000",
-    "000|______+++______|000",
-    "000|||||||+++|||||||000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "000000000000000",
+    "0|||||||||||||0",
+    "0|+++++++++++|0",
+    "0|---------++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0|++ooooooo++|0",
+    "0|++ooooooo++|0",
+    "0|++ooooooo++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0||||||+++||||0",
+    "000000000000000",
 };
 
 static const ch_prop_t P_OXIDO_INT[] = {
-    { 15,  3, PR_MAQUINA },
-    { 5,  11, PR_MAQUINA },
+    {  2,  2, PR_MAQUINA },
+    {  8,  8, PR_MAQUINA },
 };
 
 static const ch_ent_t EN_OXIDO_INT[] = {
-    { E_PUERTA, 10, 17, S_OXIDO, 16,  7, 3, NULL, NULL },
-    { E_TALLER,  5, 12, 0, 0, 0, 0,
-      N_("EL BANCO DE VILLA OXIDO.\n"
+    { E_PUERTA,  7, 12, S_OXIDO, 11,  5, 3, NULL, NULL },
+    { E_TALLER,  8,  9, 0, 0, 0, 0, N_("EL BANCO DE VILLA OXIDO.\n"
       "Viejo pero impecable."), NULL },
-    { E_TIENDA,  5,  3, 0, 0, 0, 0,
-      N_("CHATARRERO: LO QUE VES\n"
+    { E_TIENDA,  6,  4, 0, 0, 0, 0, N_("CHATARRERO: LO QUE VES\n"
       "es lo que hay. Alcanza."), NULL },
-    { E_PNJ,    16,  8, 1, 0, 0, 0,
-      N_("ABUELA TUERCA: LLEGASTE\n"
+    { E_PNJ, 11,  6, 1, 0, 0, 0, N_("ABUELA TUERCA: LLEGASTE\n"
       "LEJOS, EH.\n"
       "ARRIBA DE LA TORRE ESTA\n"
       "EL CAMPEON. NO TE VOY A\n"
@@ -2408,122 +2194,111 @@ static const ch_ent_t EN_OXIDO_INT[] = {
       "QUE EL TUYO.\n"
       "PERO EL NO ARMO EL SUYO.\n"
       "SE LO ARMARON."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 static const char *const M_CEMENT1[ROWS] = {
-    "##########:::##########",
-    "#QQQQQQQQ#:::#QQQQQQQQ#",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#QQRRQQQQQQQQQQQQQRRQQ#",
-    "#QQRRQQQdddddddQQQRRQQ#",
-    "#QQQQQQQdddddddQQQQQQQ#",
-    "#QQQQQQQdddddddQQQQQQQ#",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#QQRRRQQQQQQQQQQQRRRQQ#",
-    "#QQRRRQQQQQQQQQQQRRRQQ#",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#QQQQQQdddddddddQQQQQQ#",
-    "#QQQQQQdddddddddQQQQQQ#",
-    "#QQQQQQdddddddddQQQQQQ#",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#QQRRQQQQQQQQQQQQQRRQQ#",
-    "#QQRRQQQQQQQQQQQQQRRQQ#",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#QQQQQQQQ#:::#QQQQQQQQ#",
-    "##########:::##########",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "RRRRRR:::RRRRRR",
+    "RQQQQQ:::QQQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQRRRQQQQQRRRQR",
+    "RQRRRQQQQQRRRQR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQRRRRRRRQQQR",
+    "RQQQRQQQQQRQQQR",
+    "RQQQRQQQQQRQQQR",
+    "RQQQRRR:RRRQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQQQ:::QQQQQR",
+    "RQQQQQ:::QQQQQR",
+    "RRRRRR:::RRRRRR",
 };
 
 static const ch_prop_t P_CEMENT1[] = {
-    { 2,  1, PR_PILA },
-    { 19, 1, PR_PILA },
-    { 7, 16, PR_PILA },
+    {  1,  2, PR_PILA },
+    { 10,  2, PR_PILA },
+    {  1, 10, PR_PILA },
 };
 
 static const ch_ent_t EN_CEMENT1[] = {
-    { E_PUERTA, 10, 19, S_OXIDO,   11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_OXIDO,   11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_CEMENT2, 11, 17, 3, NULL, NULL },
-    { E_COFRE,  11,  5, IT_ENGRANAJE, 1, F_ENGRANAJE, 0, NULL, NULL },
-    { E_ENEMIGO, 5, 12, 0, F_ENEMIGO_48, 43, 0, NULL, NULL },
-    { E_ENEMIGO,17, 12, 0, F_ENEMIGO_49, 43, 0, NULL, NULL },
+    { E_PUERTA,  6, 13, S_OXIDO,  7,  2, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_CEMENT2,  7, 11, 3, NULL, NULL },
+    { E_COFRE,  7,  7, IT_ENGRANAJE, 1, F_ENGRANAJE, 0, NULL, NULL },
+    { E_ENEMIGO,  6,  5, 0, F_ENEMIGO_48, 43, 0, NULL, NULL },
+    { E_ENEMIGO,  7, 10, 0, F_ENEMIGO_49, 43, 0, NULL, NULL },
 };
 
 static const char *const M_CEMENT2[ROWS] = {
-    "##########:::##########",
-    "#QQQQQQQQ#:::#QQQQQQQQ#",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#QRRRRRRRRRRRRRRRRRRRQ#",
-    "#QRQQQQQQQQQQQQQQQQQRQ#",
-    "#QRQRRRRRRRRRRRRRRRQRQ#",
-    "#QRQRQQQQQQQQQQQQQRQRQ#",
-    "#QRQRQRRRRRRRRRRRQRQRQ#",
-    "#QRQRQRddddddddRQRQRQQ#",
-    "#QRQRQRddddddddRQRQRQQ#",
-    "#QRQRQRRRRRRRRRRQRQRQQ#",
-    "#QRQRQQQQQQQQQQQQRQRQQ#",
-    "#QRQRRRRRRRRRRRRRRQRQQ#",
-    "#QRQQQQQQQQQQQQQQQQRQQ#",
-    "#QRRRRRRRRRRRRRRRRRRQQ#",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#QQQQQQQQQQQQQQQQQQQQQ#",
-    "#QQQQQQQQ#:::#QQQQQQQQ#",
-    "#QQQQQQQQ#:::#QQQQQQQQ#",
-    "##########:::##########",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "RRRRRR:::RRRRRR",
+    "RQQQQQ:::QQQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQRRRQQQQQRRRQR",
+    "RQRQQQQQQQQQRQR",
+    "RQRRRQQQQQRRRQR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQRRRQQQQQRRRQR",
+    "RQQQQQ:::QQQQQR",
+    "RQQQQQ:::QQQQQR",
+    "RRRRRR:::RRRRRR",
 };
 
 static const ch_prop_t P_CEMENT2[] = {
-    { 1, 16, PR_PILA },
-    { 19,16, PR_PILA },
+    {  1, 10, PR_PILA },
+    { 11, 10, PR_PILA },
 };
 
 static const ch_ent_t EN_CEMENT2[] = {
-    { E_PUERTA, 10, 19, S_CEMENT1, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_CEMENT1, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_JEFE7,   11, 17, 3, NULL, NULL },
-    { E_COFRE,  10,  8, IT_CHIP, 2, F_COFRE_O2, 0, NULL, NULL },
-    { E_COFRE,  13,  8, IT_ACEITE2, 3, F_COFRE_O3, 0, NULL, NULL },
-    { E_ENEMIGO, 3,  2, 0, F_ENEMIGO_50, 44, 0, NULL, NULL },
-    { E_ENEMIGO,18,  2, 0, F_ENEMIGO_51, 45, 0, NULL, NULL },
+    { E_PUERTA,  6, 13, S_CEMENT1,  7,  2, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_JEFE7,  7, 11, 3, NULL, NULL },
+    { E_COFRE,  3,  5, IT_CHIP, 2, F_COFRE_O2, 0, NULL, NULL },
+    { E_COFRE, 10,  5, IT_ACEITE2, 3, F_COFRE_O3, 0, NULL, NULL },
+    { E_ENEMIGO,  2,  7, 0, F_ENEMIGO_50, 44, 0, NULL, NULL },
+    { E_ENEMIGO, 12,  7, 0, F_ENEMIGO_51, 45, 0, NULL, NULL },
 };
 
 static const char *const M_JEFE7[ROWS] = {
-    "0000###############0000",
-    "0000#QQQQQQQQQQQQQ#0000",
-    "0000#QQQQQQQQQQQQQ#0000",
-    "000##QQQQQQQQQQQQQ##000",
-    "000#QQQQQQQQQQQQQQQQ#00",
-    "000#QQQQQQQQQQQQQQQQ#00",
-    "000#QQQQQQQQQQQQQQQQ#00",
-    "000#QQQQQQQQQQQQQQQQ#00",
-    "000#QQQQQQQQQQQQQQQQ#00",
-    "000#QQQQQQQQQQQQQQQQ#00",
-    "000#QQQQQQQQQQQQQQQQ#00",
-    "000#QQQQQQQQQQQQQQQQ#00",
-    "000#QQQQQQQQQQQQQQQQ#00",
-    "000#QQQQQQQQQQQQQQQQ#00",
-    "000##QQQQQQQQQQQQQ##000",
-    "0000#QQQQQQQQQQQQQ#0000",
-    "0000#QQQQQQQQQQQQQ#0000",
-    "0000#QQQQQ:::QQQQQ#0000",
-    "0000#QQQQQ:::QQQQQ#0000",
-    "0000######:::######0000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "RRRRRRRRRRRRRRR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQQQQQQQQQQQR",
+    "RQQQQQ:::QQQQQR",
+    "RRRRRR:::RRRRRR",
 };
 
 static const ch_prop_t P_JEFE7[] = {
-    { 5,  2, PR_PILA },
-    { 15, 2, PR_PILA },
+    {  2,  1, PR_PILA },
+    { 11,  1, PR_PILA },
 };
 
 static const ch_ent_t EN_JEFE7[] = {
-    { E_PUERTA, 10, 19, S_CEMENT2, 11,  2, 3, NULL, NULL },
-    { E_JEFE,   11,  7, 12, F_JEFE_PARAMO, 48, IT_PASE,
-      N_("CHATARRERO MAYOR:\n"
+    { E_PUERTA,  6, 13, S_CEMENT2,  7,  2, 3, NULL, NULL },
+    { E_JEFE,  7,  4, 12, F_JEFE_PARAMO, 48, IT_PASE, N_("CHATARRERO MAYOR:\n"
       "TODO ESTO ERAN ROBOTS\n"
       "COMO EL TUYO.\n"
       "CADA UNO CREYO QUE ERA\n"
@@ -2540,151 +2315,111 @@ static const ch_ent_t EN_JEFE7[] = {
  * ========================================================================== */
 
 static const char *const M_ULTIMO[ROWS] = {
-    "#######################",
-    "#ppppppppppppppppppppp#",
-    "#pVVVpppppppppppVVVppp#",
-    "#pVVVpppppppppppVVVppp#",
-    "#ppppppppppppppppppppp#",
-    "#pppppddddddddddppppppp",
-    "#pppppddddddddddpppppp#",
-    "#ppppppppppppppppppppp#",
-    "#pVVVVVpppppppVVVVVppp#",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "#pVVVVVpppppppVVVVVppp#",
-    "#ppppppppppppppppppppp#",
-    "#pppppddddddddddpppppp#",
-    "#pppppddddddddddpppppp#",
-    "#ppppppppppppppppppppp#",
-    "#pVVVpppppppppppVVVppp#",
-    "#pVVVpppppppppppVVVppp#",
-    "#ppppppppppppppppppppp#",
-    "#ppppppppppppppppppppp#",
-    "#######################",
+    "VVVVVVVVVVVVVVV",
+    "VV ddd   ddd VV",
+    "VV ddd   ddd VV",
+    "VV           VV",
+    "VV           VV",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "VV ddd ddddd VV",
+    "VV ddd ddddd VV",
+    "VV           VV",
+    "VV ddddd ddd VV",
+    "VV ddddd ddd VV",
+    "VVVVVVVVVVVVVVV",
 };
 
 static const ch_prop_t P_ULTIMO[] = {
-    { 9,  1, PR_ESTATUA },
-    { 12,17, PR_ESTATUA },
+    {  2,  1, PR_ESTATUA },
+    { 10,  1, PR_ESTATUA },
 };
 
 static const ch_ent_t EN_ULTIMO[] = {
-    { E_PUERTA,  0,  9, S_OXIDO,  17, 10, 2, NULL, NULL },
-    { E_PUERTA,  0, 10, S_OXIDO,  17, 10, 2, NULL, NULL },
-    { E_PUERTA,  0, 11, S_OXIDO,  17, 10, 2, NULL, NULL },
-    { E_PUERTA, 21,  9, S_PRISMA,  2, 10, 2, NULL, NULL },
-    { E_PUERTA, 21, 10, S_PRISMA,  2, 11, 2, NULL, NULL },
-    { E_PUERTA, 21, 11, S_PRISMA,  2, 11, 2, NULL, NULL },
-    { E_CARTEL, 11,  7, 0, 0, 0, 0,
-      N_("ULTIMO TRAMO.\n"
+    { E_PUERTA,  0,  5, S_OXIDO_E, 11,  6, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_PRISMA,  2,  6, 3, NULL, NULL },
+    { E_CARTEL,  6,  1, 0, 0, 0, 0, N_("ULTIMO TRAMO.\n"
       "DE ACA NO SE VUELVE\n"
       "IGUAL QUE COMO SE VINO."), NULL },
-    { E_COFRE,   3, 19, IT_BATERIA2, 3, F_COFRE_T1, 0, NULL, NULL },
-    { E_ENEMIGO, 7,  5, 0, F_ENEMIGO_52, 46, 0, NULL, NULL },
-    { E_ENEMIGO,16, 14, 0, F_ENEMIGO_53, 47, 0, NULL, NULL },
+    { E_COFRE,  9,  2, IT_BATERIA2, 3, F_COFRE_T1, 0, NULL, NULL },
+    { E_ENEMIGO,  6,  8, 0, F_ENEMIGO_52, 46, 0, NULL, NULL },
+    { E_ENEMIGO,  9, 12, 0, F_ENEMIGO_53, 47, 0, NULL, NULL },
 };
 
 static const char *const M_PRISMA[ROWS] = {
-    "##########:::##########",
-    "##########:::##########",
-    "#pppppppppcccppppppppp#",
-    "#pVVVVVVppcccppVVVVVVp#",
-    "#pVVVVVVppcccppVVVVVVp#",
-    "#pVVVVVVppcccppVVVVVVp#",
-    "#pppppppppcccppppppppp#",
-    "#ccccccccccccccccccccc#",
-    "#ccccccccccccccccccccc#",
-    "#pppppppppcccppppppppp#",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "GGGGGGGGGGGGGGGGGGGGGGG",
-    "#pppppppppcccppppppppp#",
-    "#ccccccccccccccccccccc#",
-    "#ccccccccccccccccccccc#",
-    "#pppppppppcccppppppppp#",
-    "#pVVVVVVppcccppVVVVVVp#",
-    "#pVVVVVVppcccppVVVVVVp#",
-    "#pVVVVVVppcccppVVVVVVp#",
-    "#pppppppppcccppppppppp#",
-    "#ppppppppppppppppppppp#",
-    "#######################",
+    "VVVVVVGGGVVVVVV",
+    "VpppppGGGpppppV",
+    "VpppppGGGpppppV",
+    "VpppppGGGpppppV",
+    "VpppppGGGpppppV",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "VpppppGGGpppppV",
+    "VpppppGGGpppppV",
+    "VpppppGGGpppppV",
+    "VpppppGGGpppppV",
+    "VpppppGGGpppppV",
+    "VVVVVVVVVVVVVVV",
 };
 
 static const ch_prop_t P_PRISMA[] = {
-    { 3, 20, PR_ESTATUA },
-    { 18,20, PR_ESTATUA },
-    { 8,  1, PR_FAROLA },
-    { 14, 1, PR_FAROLA },
+    {  1,  1, PR_ESTATUA },
+    { 10,  1, PR_TALLER },
+    {  1,  9, PR_ESTATUA },
 };
 
 static const ch_ent_t EN_PRISMA[] = {
-    { E_PUERTA,  0, 10, S_ULTIMO, 19, 10, 2, NULL, NULL },
-    { E_PUERTA,  0, 11, S_ULTIMO, 19, 10, 2, NULL, NULL },
-    { E_PUERTA, 10,  0, S_TORRE1, 11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_TORRE1, 11, 17, 3, NULL, NULL },
-    { E_PUERTA,  4,  7, S_PRISMA_INT, 11, 16, 2, NULL, NULL },
-    { E_CARTEL, 13, 11, 0, 0, 0, 0,
-      N_("PRISMA\n"
+    { E_PUERTA,  0,  5, S_ULTIMO, 12,  5, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_TORRE1,  7, 11, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_PRISMA_E,  2,  6, 3, NULL, NULL },
+    { E_PUERTA, 11,  4, S_PRISMA_INT,  7, 10, 2, NULL, NULL },
+    { E_CARTEL,  3, 12, 0, 0, 0, 0, N_("PRISMA\n"
       "AL NORTE: LA TORRE.\n"
       "SUBEN MUCHOS. BAJAN\n"
       "BASTANTES MENOS."), NULL },
-    { E_PNJ,     7, 13, 2, 0, 0, 0,
-      N_("CHICO: MI HERMANA SUBIO\n"
+    { E_PNJ, 12, 12, 2, 0, 0, 0, N_("CHICO: MI HERMANA SUBIO\n"
       "AYER. TODAVIA NO BAJO.\n"
       "DICE MAMA QUE NO ME\n"
       "PREOCUPE."), NULL },
-    { E_PNJ,    16,  8, 3, 0, 0, 0,
-      N_("GUARDIA: DOS PISOS Y LA\n"
+    { E_PNJ,  3,  7, 3, 0, 0, 0, N_("GUARDIA: DOS PISOS Y LA\n"
       "CUMBRE.\n"
       "REPARA ANTES DE SUBIR.\n"
       "ARRIBA NO HAY BANCO."), NULL },
-    /* The booth: the other watch. One per town, always at the side of the
-     * square, because it is a place you go to and not a menu you open. */
-    { E_CABINA, 19, 11, 0, 0, 0, 0, NULL, NULL },
 };
 
 static const char *const M_PRISMA_INT[ROWS] = {
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "000|||||||||||||||||000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|-------++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|++ooooooooooo++|000",
-    "000|++ooooooooooo++|000",
-    "000|++ooooooooooo++|000",
-    "000|++ooooooooooo++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|+++++++++++++++|000",
-    "000|++++++___++++++|000",
-    "000|||||||___|||||||000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "000000000000000",
+    "0|||||||||||||0",
+    "0|+++++++++++|0",
+    "0|---------++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0|++ooooooo++|0",
+    "0|++ooooooo++|0",
+    "0|++ooooooo++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0|+++++++++++|0",
+    "0||||||+++||||0",
+    "000000000000000",
 };
 
 static const ch_prop_t P_PRISMA_INT[] = {
-    { 15,  3, PR_SERVIDOR },
-    { 5,  13, PR_MAQUINA },
+    {  2,  2, PR_SERVIDOR },
+    {  8,  8, PR_MAQUINA },
 };
 
 static const ch_ent_t EN_PRISMA_INT[] = {
-    { E_PUERTA, 10, 17, S_PRISMA, 4,  8, 3, NULL, NULL },
-    { E_TALLER,  5, 14, 0, 0, 0, 0,
-      N_("EL ULTIMO BANCO ANTES\n"
+    { E_PUERTA,  7, 12, S_PRISMA, 11,  5, 3, NULL, NULL },
+    { E_TALLER,  8,  9, 0, 0, 0, 0, N_("EL ULTIMO BANCO ANTES\n"
       "DE LA TORRE.\n"
       "Usalo bien."), NULL },
-    { E_TIENDA,  5,  4, 0, 0, 0, 0,
-      N_("TENDERO: LLEVA TODO LO\n"
+    { E_TIENDA,  6,  4, 0, 0, 0, 0, N_("TENDERO: LLEVA TODO LO\n"
       "QUE PUEDAS PAGAR.\n"
       "Arriba no se compra nada."), NULL },
-    { E_PNJ,    16,  9, 1, 0, 0, 0,
-      N_("ABUELA TUERCA: BUENO.\n"
+    { E_PNJ, 11,  6, 1, 0, 0, 0, N_("ABUELA TUERCA: BUENO.\n"
       "HASTA ACA TE ACOMPANO.\n"
       "ACORDATE DE UNA COSA\n"
       "SOLA: EL ROBOT QUE VAS A\n"
@@ -2693,135 +2428,117 @@ static const ch_ent_t EN_PRISMA_INT[] = {
       "NINGUNA PIEZA TE LA\n"
       "REGALARON.\n"
       "ANDA."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 static const char *const M_TORRE1[ROWS] = {
-    "CCCCCCCCCC:::CCCCCCCCCC",
-    "CccccccccC:::CccccccccC",
-    "CcccccccccccccccccccccC",
-    "CccVVVVVcccccVVVVVVVccC",
-    "CccVcccVcccccVcccccVccC",
-    "CccVcccVcccccVcccccVccC",
-    "CccVVV:VcccccV:VVVVVccC",
-    "CcccccccccccccccccccccC",
-    "CcccccccccccccccccccccC",
-    "CccccccVVVVVVVVVccccccC",
-    "CccccccVcccccccVccccccC",
-    "CccccccVcccccccVccccccC",
-    "CccccccVVVV:VVVVccccccC",
-    "CcccccccccccccccccccccC",
-    "CcccccccccccccccccccccC",
-    "CcccccccccccccccccccccC",
-    "CcccccccccccccccccccccC",
-    "CccccccccC:::CccccccccC",
-    "CccccccccC:::CccccccccC",
-    "CCCCCCCCCC:::CCCCCCCCCC",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "VVVVVV:::VVVVVV",
+    "Vccccc:::cccccV",
+    "VcccccccccccccV",
+    "VcVVVcccccVVVcV",
+    "VcVVVcccccVVVcV",
+    "VcccccccccccccV",
+    "VcccVVVVVVVcccV",
+    "VcccVcccccVcccV",
+    "VcccVcccccVcccV",
+    "VcccVVV:VVVcccV",
+    "VcccccccccccccV",
+    "Vccccc:::cccccV",
+    "Vccccc:::cccccV",
+    "VVVVVV:::VVVVVV",
 };
 
 static const ch_prop_t P_TORRE1[] = {
-    { 1,  2, PR_SERVIDOR },
+    {  1,  2, PR_SERVIDOR },
 };
 
 static const ch_ent_t EN_TORRE1[] = {
-    { E_PUERTA, 10, 19, S_PRISMA, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_PRISMA, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_TORRE2, 11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_TORRE2, 11, 17, 3, NULL, NULL },
-    { E_COFRE,  11, 11, IT_SOLDADOR, 2, F_COFRE_T2, 0, NULL, NULL },
-    { E_ENEMIGO, 5, 15, 0, F_ENEMIGO_54, 49, 0, NULL, NULL },
-    { E_ENEMIGO,18,  8, 0, F_ENEMIGO_55, 50, 0, NULL, NULL },
+    { E_PUERTA,  6, 13, S_PRISMA,  7,  2, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_TORRE2,  7, 11, 3, NULL, NULL },
+    { E_COFRE,  7,  7, IT_SOLDADOR, 2, F_COFRE_T2, 0, NULL, NULL },
+    { E_ENEMIGO,  6,  5, 0, F_ENEMIGO_54, 49, 0, NULL, NULL },
+    { E_ENEMIGO,  7, 10, 0, F_ENEMIGO_55, 50, 0, NULL, NULL },
 };
 
 static const char *const M_TORRE2[ROWS] = {
-    "CCCCCCCCCC:::CCCCCCCCCC",
-    "CccccccccC:::CccccccccC",
-    "CcccccccccccccccccccccC",
-    "CcccccccccccccccccccccC",
-    "CccVVVVVVVVVVVVVVVVVccC",
-    "CccVcccccccccccccccVccC",
-    "CccVcccccccccccccccVccC",
-    "CccVccVVVVVVVVVVVccVccC",
-    "CccVccVcccccccccVccVccC",
-    "CccVccVcccccccccVccVccC",
-    "CccVccVccVVVVVccVccVccC",
-    "CccVccVccV:::VccVccVccC",
-    "CccVccVccVVVVVccVccVccC",
-    "CccVccVcccccccccVccVccC",
-    "CccVccVVVVVV:VVVVccVccC",
-    "CccVcccccccccccccccVccC",
-    "CccVVVVVVV:VVVVVVVVVccC",
-    "CccccccccC:::CccccccccC",
-    "CccccccccC:::CccccccccC",
-    "CCCCCCCCCC:::CCCCCCCCCC",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "VVVVVV:::VVVVVV",
+    "Vccccc:::cccccV",
+    "VcccccccccccccV",
+    "VcccccccccccccV",
+    "VcVVVcccccVVVcV",
+    "VcVcccccccccVcV",
+    "VcVVVcccccVVVcV",
+    "VcccccccccccccV",
+    "VcccccccccccccV",
+    "VcccccccccccccV",
+    "VcVVVcccccVVVcV",
+    "Vccccc:::cccccV",
+    "Vccccc:::cccccV",
+    "VVVVVV:::VVVVVV",
 };
 
 static const ch_prop_t P_TORRE2[] = {
-    { 20, 2, PR_SERVIDOR },
+    {  1, 10, PR_SERVIDOR },
 };
 
 static const ch_ent_t EN_TORRE2[] = {
-    { E_PUERTA, 10, 19, S_TORRE1, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10, 18, S_TORRE1, 11,  2, 3, NULL, NULL },
-    { E_PUERTA, 10,  0, S_CUMBRE, 11, 17, 3, NULL, NULL },
-    { E_PUERTA, 10,  1, S_CUMBRE, 11, 17, 3, NULL, NULL },
-    { E_COFRE,  11, 11, IT_BATERIA2, 3, F_COFRE_T3, 0, NULL, NULL },
-    { E_ENEMIGO,11,  3, 0, F_ENEMIGO_56, 51, 0, NULL, NULL },
-    { E_ENEMIGO, 3, 16, 0, F_ENEMIGO_57, 52, 0, NULL, NULL },
+    { E_PUERTA,  6, 13, S_TORRE1,  7,  2, 3, NULL, NULL },
+    { E_PUERTA,  6,  0, S_CUMBRE,  7, 11, 3, NULL, NULL },
+    { E_COFRE,  3,  5, IT_BATERIA2, 3, F_COFRE_T3, 0, NULL, NULL },
+    { E_ENEMIGO, 10,  5, 0, F_ENEMIGO_56, 51, 0, NULL, NULL },
+    { E_ENEMIGO,  2,  7, 0, F_ENEMIGO_57, 52, 0, NULL, NULL },
 };
 
 static const char *const M_CUMBRE[ROWS] = {
-    "0000VVVVVVVVVVVVVVV0000",
-    "0000VcccccccccccccV0000",
-    "0000VcccccccccccccV0000",
-    "000VVcccccccccccccVV000",
-    "000VccccccccccccccccV00",
-    "000VccccccccccccccccV00",
-    "000VccccccccccccccccV00",
-    "000VccccccccccccccccV00",
-    "000VccccccccccccccccV00",
-    "000VccccccccccccccccV00",
-    "000VccccccccccccccccV00",
-    "000VccccccccccccccccV00",
-    "000VccccccccccccccccV00",
-    "000VccccccccccccccccV00",
-    "000VVcccccccccccccVV000",
-    "0000VcccccccccccccV0000",
-    "0000VcccccccccccccV0000",
-    "0000Vccccc:::cccccV0000",
-    "0000Vccccc:::cccccV0000",
-    "0000VVVVVV:::VVVVVV0000",
-    "00000000000000000000000",
-    "00000000000000000000000",
+    "VVVVVVVVVVVVVVV",
+    "VcccccccccccccV",
+    "VcccccccccccccV",
+    "VcccccccccccccV",
+    "VcccccccccccccV",
+    "VcccccccccccccV",
+    "VcccccccccccccV",
+    "VcccccccccccccV",
+    "VcccccccccccccV",
+    "VcccccccccccccV",
+    "VcccccccccccccV",
+    "VcccccccccccccV",
+    "Vccccc:::cccccV",
+    "VVVVVV:::VVVVVV",
 };
 
 static const ch_prop_t P_CUMBRE[] = {
-    { 5,  2, PR_ESTATUA },
-    { 15, 2, PR_ESTATUA },
+    {  2,  1, PR_ESTATUA },
+    { 11,  1, PR_ESTATUA },
 };
 
 static const ch_ent_t EN_CUMBRE[] = {
-    { E_PUERTA, 10, 19, S_TORRE2, 11,  2, 3, NULL, NULL },
-    { E_JEFE,   11,  8, 16, F_JEFE_PRISMA, 55, IT_PASE,
-      N_("CAMPEON:\n"
+    { E_PUERTA,  6, 13, S_TORRE2,  7,  2, 3, NULL, NULL },
+    { E_JEFE,  7,  4, 16, F_JEFE_PRISMA, 55, IT_PASE, N_("CAMPEON:\n"
       "TE VI SUBIR PISO POR\n"
       "PISO. NO SALTEASTE\n"
       "NINGUNO.\n"
       "ESO YA TE HACE DISTINTO\n"
       "A CASI TODOS.\n"
       "AHORA VEAMOS EL ROBOT."), NULL },
-    /* The guardian tells the ending. Before you win she says something else:
-     * it is the same two-texts-and-two-flags mechanism as the town's quests,
-     * without a line of code of its own. */
-    { E_PNJ,     8,  4, 3, F_FINAL, F_JEFE_PRISMA, 0,
-      N_("GUARDIANA DE LA CUMBRE:\n"
+    { E_PNJ,  3,  8, 3, F_FINAL, F_JEFE_PRISMA, 0, N_("GUARDIANA DE LA CUMBRE:\n"
       "ESE SILLON DE METAL ES\n"
       "DEL CAMPEON.\n"
-      "TODAVIA NO ES TUYO."),
-      N_("GUARDIANA: SENTATE, DALE.\n"
+      "TODAVIA NO ES TUYO."), N_("GUARDIANA: SENTATE, DALE.\n"
       "TE LO GANASTE.\n"
       "DESDE ACA SE VE TODO:\n"
       "EL PARAMO, LA CIUDAD,\n"
@@ -2841,11 +2558,229 @@ static const ch_ent_t EN_CUMBRE[] = {
 
 #define N(a)    ((uint8_t)(sizeof(a) / sizeof((a)[0])))
 
+/* --------------------------------------------------------------------------
+ * THE EAST SECTORS of the towns of zones 3 to 8
+ *
+ * Same reason as the harbour: a road crossing, a workshop, three neighbours,
+ * the booth and the checkpoint out do not fit in 210 cells without going
+ * back to the cramming that v2 exists to stop.
+ * -------------------------------------------------------------------------- */
+
+static const char *const M_VOLTIO_E[ROWS] = {
+    "###############",
+    "#pppppppppppp##",
+    "#pppppppppppp##",
+    "#pppppppppppp##",
+    "#pppppppppppp##",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "#pppppppppppp##",
+    "#pppppppppppp##",
+    "#pppppppppppp##",
+    "#pppppppppppp##",
+    "#pppppppppppp##",
+    "###############",
+};
+
+static const ch_prop_t P_VOLTIO_E[] = {
+    {  2,  1, PR_FAROLA },
+    {  8,  1, PR_FAROLA },
+};
+
+static const ch_ent_t EN_VOLTIO_E[] = {
+    { E_PUERTA,  0,  5, S_VOLTIO, 12,  6, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_HUMO,  2,  5, 3, NULL, NULL },
+    { E_BLOQUEO, 12,  5, F_JEFE_VOLTIO, 0, 0, 0, N_("CONTROL DE ALTO VOLTIO.\n"
+      "AL ESTE BAJA AL VALLE\n"
+      "DEL HUMO. CERRADO HASTA\n"
+      "QUE ALGUIEN ARREGLE LA\n"
+      "SUBESTACION."), N_("CONTROL ABIERTO.\n"
+      "AL ESTE: EL VALLE DEL\n"
+      "HUMO.") },
+    { E_BLOQUEO, 12,  6, F_JEFE_VOLTIO, 0, 0, 0, N_("CONTROL DE ALTO VOLTIO.\n"
+      "CERRADO."), N_("CONTROL ABIERTO.") },
+    { E_CABINA,  6, 12, 0, 0, 0, 0, NULL, NULL },
+};
+
+static const char *const M_FUNDICION_E[ROWS] = {
+    "###############",
+    "#rrrrrrrrrrrr##",
+    "#rrrrrrrrrrrr##",
+    "#rrrrrrrrrrrr##",
+    "#rrrrrrrrrrrr##",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "#rrrrrrrrrrrr##",
+    "#rrrrrrrrrrrr##",
+    "#rrrrrrrrrrrr##",
+    "#rrrrrrrrrrrr##",
+    "#rrrrrrrrrrrr##",
+    "###############",
+};
+
+static const ch_prop_t P_FUNDICION_E[] = {
+    {  2,  1, PR_PILA },
+    {  8,  1, PR_PILA },
+};
+
+static const ch_ent_t EN_FUNDICION_E[] = {
+    { E_PUERTA,  0,  5, S_FUNDICION, 12,  6, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_PASO,  2,  5, 3, NULL, NULL },
+    { E_BLOQUEO, 12,  5, F_JEFE_FUNDICION, 0, 0, 0, N_("CONTROL DE LA FUNDICION.\n"
+      "AL ESTE EMPIEZA EL PASO\n"
+      "HELADO. NO SE PASA SIN\n"
+      "PASE DE SECTOR."), N_("CONTROL ABIERTO.\n"
+      "AL ESTE: EL PASO HELADO.") },
+    { E_BLOQUEO, 12,  6, F_JEFE_FUNDICION, 0, 0, 0, N_("CONTROL DE LA FUNDICION.\n"
+      "CERRADO."), N_("CONTROL ABIERTO.") },
+    { E_CABINA,  6, 12, 0, 0, 0, 0, NULL, NULL },
+};
+
+static const char *const M_CRIO_E[ROWS] = {
+    "###############",
+    "#nnnnnnnnnnnn##",
+    "#nnnnnnnnnnnn##",
+    "#nnnnnnnnnnnn##",
+    "#nnnnnnnnnnnn##",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "#nnnnnnnnnnnn##",
+    "#nnnnnnnnnnnn##",
+    "#nnnnnnnnnnnn##",
+    "#nnnnnnnnnnnn##",
+    "#nnnnnnnnnnnn##",
+    "###############",
+};
+
+static const ch_prop_t P_CRIO_E[] = {
+    {  2,  1, PR_FAROLA },
+    {  8,  1, PR_FAROLA },
+};
+
+static const ch_ent_t EN_CRIO_E[] = {
+    { E_PUERTA,  0,  5, S_CRIO, 12,  6, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_AUTOPISTA,  2,  5, 3, NULL, NULL },
+    { E_BLOQUEO, 12,  5, F_JEFE_CRIO, 0, 0, 0, N_("CONTROL DE CRIOVALLE.\n"
+      "AL ESTE BAJA LA AUTOPISTA\n"
+      "A CIUDAD MALLA.\n"
+      "CERRADO POR NIEVE."), N_("CONTROL ABIERTO.\n"
+      "AL ESTE: LA AUTOPISTA.") },
+    { E_BLOQUEO, 12,  6, F_JEFE_CRIO, 0, 0, 0, N_("CONTROL DE CRIOVALLE.\n"
+      "CERRADO POR NIEVE."), N_("CONTROL ABIERTO.") },
+    { E_CABINA,  6, 12, 0, 0, 0, 0, NULL, NULL },
+};
+
+static const char *const M_MALLA_E[ROWS] = {
+    "PPPPPPPPPPPPPPP",
+    "PppppppppppppPP",
+    "PppppppppppppPP",
+    "PppppppppppppPP",
+    "PppppppppppppPP",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "PppppppppppppPP",
+    "PppppppppppppPP",
+    "PppppppppppppPP",
+    "PppppppppppppPP",
+    "PppppppppppppPP",
+    "PPPPPPPPPPPPPPP",
+};
+
+static const ch_prop_t P_MALLA_E[] = {
+    {  2,  1, PR_FAROLA },
+    {  8,  1, PR_ESTATUA },
+};
+
+static const ch_ent_t EN_MALLA_E[] = {
+    { E_PUERTA,  0,  5, S_MALLA, 12,  6, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_LLANURA,  2,  5, 3, NULL, NULL },
+    { E_BLOQUEO, 12,  5, F_JEFE_MALLA, 0, 0, 0, N_("CONTROL DE MALLA.\n"
+      "AL ESTE EMPIEZA EL\n"
+      "PARAMO. NO SE PASA SIN\n"
+      "PASE DE SECTOR."), N_("CONTROL ABIERTO.\n"
+      "AL ESTE: EL PARAMO.") },
+    { E_BLOQUEO, 12,  6, F_JEFE_MALLA, 0, 0, 0, N_("CONTROL DE MALLA.\n"
+      "CERRADO."), N_("CONTROL ABIERTO.") },
+    { E_CABINA,  6, 12, 0, 0, 0, 0, NULL, NULL },
+};
+
+static const char *const M_OXIDO_E[ROWS] = {
+    "###############",
+    "#QQQQQQQQQQQQ##",
+    "#QQQQQQQQQQQQ##",
+    "#QQQQQQQQQQQQ##",
+    "#QQQQQQQQQQQQ##",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "#QQQQQQQQQQQQ##",
+    "#QQQQQQQQQQQQ##",
+    "#QQQQQQQQQQQQ##",
+    "#QQQQQQQQQQQQ##",
+    "#QQQQQQQQQQQQ##",
+    "###############",
+};
+
+static const ch_prop_t P_OXIDO_E[] = {
+    {  2,  1, PR_PILA },
+    {  8,  1, PR_FAROLA },
+};
+
+static const ch_ent_t EN_OXIDO_E[] = {
+    { E_PUERTA,  0,  5, S_OXIDO, 12,  6, 3, NULL, NULL },
+    { E_PUERTA, 14,  5, S_ULTIMO,  2,  5, 3, NULL, NULL },
+    { E_BLOQUEO, 12,  5, F_JEFE_PARAMO, 0, 0, 0, N_("CONTROL DE VILLA OXIDO.\n"
+      "AL ESTE SOLO QUEDA LA\n"
+      "TORRE PRISMA.\n"
+      "NO SE PASA SIN PASE."), N_("CONTROL ABIERTO.\n"
+      "AL ESTE: LA TORRE.") },
+    { E_BLOQUEO, 12,  6, F_JEFE_PARAMO, 0, 0, 0, N_("CONTROL DE VILLA OXIDO.\n"
+      "CERRADO."), N_("CONTROL ABIERTO.") },
+    { E_CABINA,  6, 12, 0, 0, 0, 0, NULL, NULL },
+};
+
+static const char *const M_PRISMA_E[ROWS] = {
+    "VVVVVVVVVVVVVVV",
+    "VppppppppppppVV",
+    "VppppppppppppVV",
+    "VppppppppppppVV",
+    "VppppppppppppVV",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "GGGGGGGGGGGGGGG",
+    "VppppppppppppVV",
+    "VppppppppppppVV",
+    "VppppppppppppVV",
+    "VppppppppppppVV",
+    "VppppppppppppVV",
+    "VVVVVVVVVVVVVVV",
+};
+
+static const ch_prop_t P_PRISMA_E[] = {
+    {  2,  1, PR_FAROLA },
+    {  8,  1, PR_FAROLA },
+};
+
+static const ch_ent_t EN_PRISMA_E[] = {
+    { E_PUERTA,  0,  5, S_PRISMA, 12,  6, 3, NULL, NULL },
+    { E_CABINA,  6, 12, 0, 0, 0, 0, NULL, NULL },
+};
+
 const ch_room_t ch_salas[] = {
     { N_("TU CASA"),     TEMA_INTERIOR, M_CASA,      NULL,        0,
       EN_CASA,      N(EN_CASA),      1,   0 , AMB_NADA },
     { N_("VILLA TUERCA"), TEMA_PUEBLO,  M_PUEBLO,    P_PUEBLO,    N(P_PUEBLO),
       EN_PUEBLO,    N(EN_PUEBLO),    1,   0 , AMB_NADA },
+    { N_("TUERCA NORTE"), TEMA_PUEBLO, M_TUERCA_NE, P_TUERCA_NE, N(P_TUERCA_NE),
+      EN_TUERCA_NE, N(EN_TUERCA_NE), 1,   0 , AMB_NADA },
+    { N_("PLAZA DE LA FUENTE"), TEMA_PUEBLO, M_TUERCA_SO, P_TUERCA_SO, N(P_TUERCA_SO),
+      EN_TUERCA_SO, N(EN_TUERCA_SO), 1,   0 , AMB_NADA },
+    { N_("TUERCA ESTE"), TEMA_PUEBLO, M_TUERCA_SE, P_TUERCA_SE, N(P_TUERCA_SE),
+      EN_TUERCA_SE, N(EN_TUERCA_SE), 1,   0 , AMB_NADA },
     { N_("TALLER"),      TEMA_INTERIOR, M_TALLER,    P_TALLER_INT, N(P_TALLER_INT),
       EN_TALLER,    N(EN_TALLER),    1,   0 , AMB_NADA },
     { N_("CASA VECINA"), TEMA_INTERIOR, M_VECINO,    NULL,        0,
@@ -2866,6 +2801,8 @@ const ch_room_t ch_salas[] = {
       EN_COSTA,     N(EN_COSTA),     2,  24 , AMB_NADA },
     { N_("PUERTO BUJIA"), TEMA_PUEBLO,  M_PUERTO,  P_PUERTO,  N(P_PUERTO),
       EN_PUERTO,    N(EN_PUERTO),    2,   0 , AMB_NADA },
+    { N_("MUELLES DE BUJIA"), TEMA_PUEBLO, M_PUERTO_E, P_PUERTO_E, N(P_PUERTO_E),
+      EN_PUERTO_E,  N(EN_PUERTO_E),  2,   0 , AMB_NADA },
     { N_("TALLER DEL PUERTO"), TEMA_INTERIOR, M_PUERTO_INT, P_PUERTO_INT,
       N(P_PUERTO_INT), EN_PUERTO_INT, N(EN_PUERTO_INT), 2, 0 , AMB_NADA },
     { N_("LA BODEGA"), TEMA_DUNGEON, M_BODEGA1, P_BODEGA1, N(P_BODEGA1),
@@ -2880,6 +2817,8 @@ const ch_room_t ch_salas[] = {
       EN_CUESTA,    N(EN_CUESTA),    3,  26 , AMB_NADA },
     { N_("ALTO VOLTIO"), TEMA_PUEBLO, M_VOLTIO, P_VOLTIO, N(P_VOLTIO),
       EN_VOLTIO,    N(EN_VOLTIO),    3,   0 , AMB_NADA },
+    { N_("ALTO VOLTIO ESTE"), TEMA_PUEBLO, M_VOLTIO_E, P_VOLTIO_E, N(P_VOLTIO_E),
+      EN_VOLTIO_E, N(EN_VOLTIO_E), 3, 0 , AMB_NADA },
     { N_("TALLER DE ALTO VOLTIO"), TEMA_INTERIOR, M_VOLTIO_INT, P_VOLTIO_INT,
       N(P_VOLTIO_INT), EN_VOLTIO_INT, N(EN_VOLTIO_INT), 3, 0 , AMB_NADA },
     { N_("LA SUBESTACION"), TEMA_DUNGEON, M_SUB1, P_SUB1, N(P_SUB1),
@@ -2894,6 +2833,8 @@ const ch_room_t ch_salas[] = {
       EN_HUMO,      N(EN_HUMO),      4,  28 , AMB_BRASAS },
     { N_("FUNDICION"), TEMA_CUEVA, M_FUNDICION, P_FUNDICION, N(P_FUNDICION),
       EN_FUNDICION, N(EN_FUNDICION), 4,   0 , AMB_BRASAS },
+    { N_("PLAZA DEL HORNO"), TEMA_CUEVA, M_FUNDICION_E, P_FUNDICION_E, N(P_FUNDICION_E),
+      EN_FUNDICION_E, N(EN_FUNDICION_E), 4, 0 , AMB_NADA },
     { N_("TALLER DE FUNDICION"), TEMA_INTERIOR, M_FUND_INT, P_FUND_INT,
       N(P_FUND_INT), EN_FUND_INT, N(EN_FUND_INT), 4, 0 , AMB_NADA },
     { N_("EL HORNO"), TEMA_DUNGEON, M_HORNO1, P_HORNO1, N(P_HORNO1),
@@ -2908,6 +2849,8 @@ const ch_room_t ch_salas[] = {
       EN_PASO,      N(EN_PASO),      5,  28 , AMB_NIEVE },
     { N_("CRIOVALLE"), TEMA_PUEBLO, M_CRIO, P_CRIO, N(P_CRIO),
       EN_CRIO,      N(EN_CRIO),      5,   0 , AMB_NIEVE },
+    { N_("CRIOVALLE ESTE"), TEMA_PUEBLO, M_CRIO_E, P_CRIO_E, N(P_CRIO_E),
+      EN_CRIO_E, N(EN_CRIO_E), 5, 0 , AMB_NADA },
     { N_("TALLER DE CRIOVALLE"), TEMA_INTERIOR, M_CRIO_INT, P_CRIO_INT,
       N(P_CRIO_INT), EN_CRIO_INT, N(EN_CRIO_INT), 5, 0 , AMB_NADA },
     { N_("CUEVA DE HIELO"), TEMA_CUEVA, M_CUEVA1, P_CUEVA1, N(P_CUEVA1),
@@ -2922,6 +2865,8 @@ const ch_room_t ch_salas[] = {
       EN_AUTOPISTA, N(EN_AUTOPISTA), 6,  28 , AMB_NADA },
     { N_("CIUDAD MALLA"), TEMA_PUEBLO, M_MALLA, P_MALLA, N(P_MALLA),
       EN_MALLA,     N(EN_MALLA),     6,   0 , AMB_NADA },
+    { N_("MALLA ESTE"), TEMA_PUEBLO, M_MALLA_E, P_MALLA_E, N(P_MALLA_E),
+      EN_MALLA_E, N(EN_MALLA_E), 6, 0 , AMB_NADA },
     { N_("TALLER DE MALLA"), TEMA_INTERIOR, M_MALLA_INT, P_MALLA_INT,
       N(P_MALLA_INT), EN_MALLA_INT, N(EN_MALLA_INT), 6, 0 , AMB_NADA },
     { N_("EL SERVIDOR"), TEMA_DUNGEON, M_SERV1, P_SERV1, N(P_SERV1),
@@ -2936,6 +2881,8 @@ const ch_room_t ch_salas[] = {
       EN_LLANURA,   N(EN_LLANURA),   7,  30 , AMB_POLVO },
     { N_("VILLA OXIDO"), TEMA_PUEBLO, M_OXIDO, P_OXIDO, N(P_OXIDO),
       EN_OXIDO,     N(EN_OXIDO),     7,   0 , AMB_POLVO },
+    { N_("PLAZA DEL OXIDO"), TEMA_PUEBLO, M_OXIDO_E, P_OXIDO_E, N(P_OXIDO_E),
+      EN_OXIDO_E, N(EN_OXIDO_E), 7, 0 , AMB_NADA },
     { N_("TALLER DE VILLA OXIDO"), TEMA_INTERIOR, M_OXIDO_INT, P_OXIDO_INT,
       N(P_OXIDO_INT), EN_OXIDO_INT, N(EN_OXIDO_INT), 7, 0 , AMB_NADA },
     { N_("CEMENTERIO DE ROBOTS"), TEMA_PUEBLO, M_CEMENT1, P_CEMENT1, N(P_CEMENT1),
@@ -2950,6 +2897,8 @@ const ch_room_t ch_salas[] = {
       EN_ULTIMO,    N(EN_ULTIMO),    8,  30 , AMB_NADA },
     { N_("PRISMA"), TEMA_PUEBLO, M_PRISMA, P_PRISMA, N(P_PRISMA),
       EN_PRISMA,    N(EN_PRISMA),    8,   0 , AMB_NADA },
+    { N_("PRISMA ESTE"), TEMA_PUEBLO, M_PRISMA_E, P_PRISMA_E, N(P_PRISMA_E),
+      EN_PRISMA_E, N(EN_PRISMA_E), 8, 0 , AMB_NADA },
     { N_("TALLER DE PRISMA"), TEMA_INTERIOR, M_PRISMA_INT, P_PRISMA_INT,
       N(P_PRISMA_INT), EN_PRISMA_INT, N(EN_PRISMA_INT), 8, 0 , AMB_NADA },
     { N_("LA TORRE"), TEMA_DUNGEON, M_TORRE1, P_TORRE1, N(P_TORRE1),
@@ -2982,13 +2931,30 @@ const ch_aire_t ch_aire[ZONAS] = {
     { 0xB072F0, 2 },    /* 8 Prisma       - the summit                       */
 };
 
+/* LA PIEZA DE LA FERIA, una sola vez.
+ *
+ * Vive aca y no en ch_feria.c por lo mismo que el regalo de prueba: el enum de
+ * banderas es privado de este archivo. Devuelve true si la entrego ahora. */
+bool ch_feria_premio(ch_save_t *s, uint32_t *sem)
+{
+    if (ch_flag(s, F_FERIA_PIEZA)) return false;
+    for (int i = 0; i < MOCHILA; i++) {
+        if (s->piezas[i] != 0xFF) continue;
+        s->piezas[i] = (uint8_t)PIEZA_ID(P_TORSO, ch_rnd(sem, PVAR));
+        ch_flag_set(s, F_FERIA_PIEZA);
+        return true;
+    }
+    return false;
+}
+
 const ch_zona_t ch_zonas_tab[ZONAS] = {
-    { N_("VILLA TUERCA"),  F_JEFE_DESGUACE,  S_CASA,   S_JEFE   },
-    { N_("PUERTO BUJIA"),  F_JEFE_PUERTO,    S_COSTA,  S_JEFE2  },
-    { N_("ALTO VOLTIO"),   F_JEFE_VOLTIO,    S_CUESTA, S_JEFE3  },
-    { N_("FUNDICION"),     F_JEFE_FUNDICION, S_HUMO,   S_JEFE4  },
-    { N_("CRIOVALLE"),     F_JEFE_CRIO,      S_PASO,   S_JEFE5  },
-    { N_("CIUDAD MALLA"),  F_JEFE_MALLA,     S_AUTOPISTA, S_JEFE6 },
-    { N_("VILLA OXIDO"),   F_JEFE_PARAMO,    S_LLANURA, S_JEFE7 },
-    { N_("PRISMA"),        F_JEFE_PRISMA,    S_ULTIMO, S_CUMBRE },
+    /*  name              cleared           first     last       visited      home        x   y */
+    { N_("VILLA TUERCA"), F_JEFE_DESGUACE,  S_CASA,   S_JEFE,   F_VISITA_1, S_PUEBLO,    7, 6 },
+    { N_("PUERTO BUJIA"), F_JEFE_PUERTO,    S_COSTA,  S_JEFE2,  F_VISITA_2, S_PUERTO,    7, 6 },
+    { N_("ALTO VOLTIO"),  F_JEFE_VOLTIO,    S_CUESTA, S_JEFE3,  F_VISITA_3, S_VOLTIO,    7, 6 },
+    { N_("FUNDICION"),    F_JEFE_FUNDICION, S_HUMO,   S_JEFE4,  F_VISITA_4, S_FUNDICION, 7, 6 },
+    { N_("CRIOVALLE"),    F_JEFE_CRIO,      S_PASO,   S_JEFE5,  F_VISITA_5, S_CRIO,      7, 6 },
+    { N_("CIUDAD MALLA"), F_JEFE_MALLA,     S_AUTOPISTA, S_JEFE6, F_VISITA_6, S_MALLA,   7, 6 },
+    { N_("VILLA OXIDO"),  F_JEFE_PARAMO,    S_LLANURA, S_JEFE7, F_VISITA_7, S_OXIDO,     7, 6 },
+    { N_("PRISMA"),       F_JEFE_PRISMA,    S_ULTIMO, S_CUMBRE, F_VISITA_8, S_PRISMA,    7, 6 },
 };

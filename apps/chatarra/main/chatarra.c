@@ -50,7 +50,7 @@
 #define FRAME_MS    33          /* 30 frames per second                      */
 
 #define SAVE_MAGIC  0x43485431u /* "CHT1"                                    */
-#define SAVE_VER    4           /* v4: the team of three (see below)         */
+#define SAVE_VER    5           /* v5: v2's world. Nothing older converts.   */
 
 /* --------------------------------------------------------------------------
  * The v2 format, exactly as it was, so it can be converted
@@ -375,8 +375,8 @@ static void nueva_partida(ch_t *g)
     g->s.obj[IT_ACEITE] = 3;
     g->s.creditos = 250;
     g->s.sala = 0;
-    g->s.x = 11;
-    g->s.y = 14;
+    g->s.x = 7;                 /* v2: the house is 15x14 now               */
+    g->s.y = 10;
     g->s.dir = 1;
 }
 
@@ -402,29 +402,25 @@ static bool cargar(ch_t *g)
 
     if (sv.ver == SAVE_VER && sv.largo == (uint16_t)sizeof(ch_save_t)) {
         g->s = sv.s;
-    } else if (sv.ver == 3 && sv.largo == (uint16_t)sizeof(ch_save_v3_t)) {
-        memcpy(&g->s, &sv.s, sizeof(ch_save_v3_t));     /* the tail is already 0 */
-        aos_hal_log("chatarra", "v3 save converted to v4");
-    } else if (sv.ver == 2 && sv.largo == (uint16_t)sizeof(ch_save_v2_t)) {
-        /* Field-by-field conversion, which is the only thing that does not
-         * take care of itself when a size changes. */
-        const ch_save_v2_t *v = (const ch_save_v2_t *)(const void *)&sv.s;
-        g->s.yo        = v->yo;
-        g->s.sala      = v->sala;
-        g->s.x         = v->x;
-        g->s.y         = v->y;
-        g->s.dir       = v->dir;
-        g->s.creditos  = v->creditos;
-        g->s.victorias = v->victorias;
-        g->s.pasos     = v->pasos;
-        memcpy(g->s.obj,     v->obj,     V2_ITEMS);
-        memcpy(g->s.piezas,  v->piezas,  V2_MOCHILA);
-        memcpy(g->s.bandera, v->bandera, sizeof(v->bandera));
-        memcpy(g->s.visto,   v->visto,   sizeof(v->visto));
-        aos_hal_log("chatarra", "v2 save converted to v4");
+
     } else {
-        aos_hal_log("chatarra", "save v%u of %u B: no known conversion",
-                    (unsigned)sv.ver, (unsigned)sv.largo);
+        /* NOTHING OLDER IS CONVERTED, AND THAT IS THE POINT.
+         *
+         * Up to v4 every version converted the one before it, because the
+         * world was the same and only the structure moved. v2 of the GAME
+         * redrew the world: the map went from 23x22 cells to 15x14, the rooms
+         * were rebuilt and renumbered, and the quest flags index errands that
+         * no longer exist. A room number, an x and a y from v1 do not mean
+         * anything here.
+         *
+         * Converting one anyway is how a player ends up standing inside the
+         * wall of a house with no way out, which is exactly what happened on
+         * the board: (11,14) of the old map clamped to (11,13) of the new one,
+         * which is solid. Refusing is the honest answer, and the arrival's
+         * search for a free cell -ch_map_entrar()- is the belt to this braces.
+         */
+        aos_hal_log("chatarra", "save v%u is from the old world: starting fresh",
+                    (unsigned)sv.ver);
         return false;
     }
 
@@ -618,6 +614,8 @@ static void rehacer(app_t *a)
 
     if (g->modo == MODO_COMBATE) {
         ch_bt_dibujar(g);
+    } else if (g->modo == MODO_FERIA) {
+        ch_fe_dibujar(g);
     } else {
         ch_ui_dibujar(g);
     }
@@ -682,6 +680,8 @@ static void present(app_t *a)
     ch_dirty_reset(&g->d_cur);
     if (g->modo == MODO_COMBATE) {
         ch_bt_dibujar(g);
+    } else if (g->modo == MODO_FERIA) {
+        ch_fe_dibujar(g);
     } else {
         ch_ui_dibujar(g);
     }
@@ -776,6 +776,9 @@ static void tick(lv_timer_t *t)
     case MODO_CABINA:
         ch_lk_tick(g);
         g->cuadro++;
+        break;
+    case MODO_FERIA:
+        ch_fe_tick(g);
         break;
     default:
         g->cuadro++;
@@ -971,6 +974,12 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
      *   CH_CHECK=1    checks the doors and decorations of EVERY room
      *   CH_SHOT_ANIM=1 dumps one .ppm per frame while the combat animates
      *   CH_FINAL=1    opens the closing screen straight away
+     *   CH_MENU=0|1|2 opens the menu at that page (root, yours, the game)
+     *   CH_MODO=<n>   opens straight into a screen (see the MODO_ enum)
+     *   CH_CABINA=<n> the booth, at that state (see the LK_ enum): the menu
+     *                 needs a second watch, and its layout does not.
+     *   CH_FERIA=1    la cinta de chatarra, directo
+
      */
     {
         const char *v;
@@ -1037,6 +1046,28 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
         if ((v = getenv("CH_SALA")) && v[0]) {
             a->g.modo = MODO_MAPA;
             ch_map_entrar(&a->g, atoi(v), 11, 14);
+        }
+        if ((v = getenv("CH_MODO")) && v[0]) {
+            a->g.modo_prev = MODO_MAPA;
+            a->g.modo = (uint8_t)atoi(v);
+            a->g.rehacer_fondo = 1;
+        }
+        if ((v = getenv("CH_FERIA")) && v[0]) ch_fe_entrar(&a->g);
+        if ((v = getenv("CH_CABINA")) && v[0]) {
+            a->g.modo = MODO_CABINA;
+            a->g.lk.estado = (uint8_t)atoi(v);
+            snprintf(a->g.lk.nombre, sizeof(a->g.lk.nombre), "RELOJ 2");
+            snprintf(a->g.lk.linea[0], sizeof(a->g.lk.linea[0]),
+                     "ENLACE ABIERTO.");
+            snprintf(a->g.lk.linea[1], sizeof(a->g.lk.linea[1]),
+                     "DEL OTRO LADO: RELOJ 2.");
+            a->g.rehacer_fondo = 1;
+        }
+        if ((v = getenv("CH_MENU")) && v[0]) {
+            /* The menu opens by touching your own robot, and the simulator's
+             * scripted taps are not reliable enough to land on it. */
+            ch_ui_menu(&a->g);
+            a->g.sel2 = (uint8_t)atoi(v);
         }
         if ((v = getenv("CH_COMBATE")) && v[0]) {
             ch_robot_t rival;

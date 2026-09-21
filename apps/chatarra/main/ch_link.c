@@ -150,6 +150,43 @@ _Static_assert(sizeof(msg_equipo_t) <= 242,
 #define BOT_SEP     22
 #define BOT_MAX     4
 
+/* EL MENU DE LA CABINA, EN BALDOSAS.
+ *
+ * Eran cuatro renglones de 20 px, que es la misma lista plana que el resto de
+ * v2 ya dejo atras: en una pantalla de 1.8" un renglon de texto es algo que
+ * hay que acercarse a leer. Cuatro baldosas de 84x44 -168x88 reales- con su
+ * icono dicen lo mismo de un vistazo y se tocan sin apuntar. Los otros
+ * estados de la cabina siguen siendo botones porque lo que muestran es una
+ * LISTA de nombres, que no cabe en una baldosa. */
+#define TL_X        6
+#define TL_Y       76
+#define TL_W      ((CH_W - TL_X * 2 - 4) / 2)
+#define TL_H       44
+
+static int baldosa_en(int bx, int by)
+{
+    for (int i = 0; i < 4; i++) {
+        int x = TL_X + (i & 1) * (TL_W + 4);
+        int y = TL_Y + (i >> 1) * (TL_H + 2);
+        if (bx >= x && bx < x + TL_W && by >= y && by < y + TL_H) return i;
+    }
+    return -1;
+}
+
+static void baldosa(ch_t *g, int i, int icono, const char *txt, bool activo)
+{
+    ch_buf_t *b = &g->bg;
+    int x = TL_X + (i & 1) * (TL_W + 4);
+    int y = TL_Y + (i >> 1) * (TL_H + 2);
+
+    ch_round(b, x, y, TL_W, TL_H, 3, ch_rgb(activo ? 0x1A2133 : 0x111420));
+    ch_frame(b, x, y, TL_W, TL_H, ch_rgb(activo ? 0x3D465F : 0x232B41));
+    ch_rect(b, x + 1, y + 1, TL_W - 2, 1, ch_rgb(0x2C3550));
+    ch_ui_icono(b, x + TL_W / 2 - 12, y + 5, icono, 2);
+    ch_text_center(b, x + TL_W / 2, y + 33, txt,
+                   ch_rgb(activo ? 0xFFFFFF : 0x545C70), ch_rgb(0x05060C));
+}
+
 static int boton_en(int bx, int by)
 {
     if (bx < BOT_X || bx >= BOT_X + BOT_W) return -1;
@@ -699,11 +736,11 @@ void ch_lk_fondo(ch_t *g)
         break;
 
     case LK_MENU:
-        lineas(g, 44);
-        boton(g, 0, _("COMBATIR"), true);
-        boton(g, 1, _("CAMBIAR ROBOT"), true);
-        boton(g, 2, _("CAMBIAR PIEZA"), ch_lk_hay_piezas(g));
-        boton(g, 3, _("COLGAR"), true);
+        lineas(g, 34);
+        baldosa(g, 0, IC_COMBATE, _("COMBATIR"), true);
+        baldosa(g, 1, IC_TRUEQUE, _("ROBOT"), true);
+        baldosa(g, 2, IC_PIEZA,   _("PIEZA"), ch_lk_hay_piezas(g));
+        baldosa(g, 3, IC_COLGAR,  _("COLGAR"), true);
         break;
 
     case LK_ELIGIENDO: {
@@ -754,7 +791,8 @@ void ch_lk_dibujar(ch_t *g)
 
 void ch_lk_toque(ch_t *g, int bx, int by)
 {
-    int b = boton_en(bx, by);
+    /* En el menu la cabina son baldosas; en los demas estados, botones. */
+    int b = (g->lk.estado == LK_MENU) ? baldosa_en(bx, by) : boton_en(bx, by);
 
     switch (g->lk.estado) {
 

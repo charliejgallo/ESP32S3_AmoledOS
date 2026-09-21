@@ -358,6 +358,33 @@ static void RB(const pen_t *p, int x, int y, int w, int h, uint16_t c)
     }
 }
 
+/* MEDIA UNIDAD: donde entra el detalle que la grilla de 26x40 no permite.
+ *
+ * El robot esta dibujado en unidades de esa grilla y se escala entero, asi que
+ * agrandarlo agranda el bloque y no agrega nada: a escala 3 un remache seguia
+ * siendo imposible porque la unidad minima eran tres pixeles. Estas dos
+ * funciones toman las coordenadas en MEDIAS unidades, asi que a escala 1 se
+ * redondean a cero -y no se dibujan- y desde escala 2 son detalle de verdad.
+ *
+ * O sea: el mismo codigo dibuja el robot chico del mapa y el grande de la
+ * ficha, y el grande tiene el doble de resolucion sin una tabla nueva ni un
+ * segundo dibujante que mantener. */
+static void RH(const pen_t *p, int x2, int y2, int w2, int h2, uint16_t c)
+{
+    int e = p->e;
+    int pw = w2 * e / 2, ph = h2 * e / 2;
+
+    if (pw < 1 || ph < 1) return;               /* no hay lugar a esta escala */
+    ch_rect(p->b, p->ox + x2 * e / 2, p->oy + y2 * e / 2, pw, ph, c);
+}
+
+/* Un remache: dos pixeles a escala 2, con la luz arriba. */
+static void REM(const pen_t *p, int x2, int y2, uint16_t c, uint16_t luz)
+{
+    RH(p, x2, y2, 2, 2, c);
+    RH(p, x2, y2, 1, 1, luz);
+}
+
 static void DSC(const pen_t *p, int cx, int cy, int r, uint16_t c)
 {
     /* The disc is drawn at real scale so it does not come out blocky. */
@@ -507,6 +534,19 @@ static void draw_cabeza(const pen_t *p, int var, bool izq)
     default:
         break;
     }
+
+    /* --- el detalle, que solo entra de escala 2 para arriba ------------- */
+    RH(p, x * 2 + 2, y * 2 + 1, (w - 2) * 2, 1, p->br);        /* filo de luz */
+    RH(p, x * 2 + 2, (y + h) * 2 - 3, (w - 2) * 2, 1, p->os);  /* sombra baja */
+    REM(p, x * 2 + 1, y * 2 + 2, p->os, p->cl);                /* remaches    */
+    REM(p, (x + w) * 2 - 3, y * 2 + 2, p->os, p->cl);
+    REM(p, x * 2 + 1, (y + h) * 2 - 4, p->os, p->cl);
+    REM(p, (x + w) * 2 - 3, (y + h) * 2 - 4, p->os, p->cl);
+    if (forma != 6) {                             /* la junta de la quijada */
+        RH(p, x * 2 + 3, (y + h) * 2 - 6, (w - 3) * 2, 1, p->os);
+    }
+    RH(p, BOX_CX * 2 - 3, (y + h) * 2 - 5, 6, 2, p->kk);        /* la boca    */
+    RH(p, BOX_CX * 2 - 2, (y + h) * 2 - 5, 4, 1, p->md);
 }
 
 /* --------------------------------------------------------------------------
@@ -613,6 +653,22 @@ static void draw_torso(const pen_t *p, int var, bool izq)
     default:
         break;
     }
+
+    /* --- el detalle: chapa, cintura, rejillas y remaches ---------------- */
+    RH(p, x * 2 + 2, y * 2 + 1, (w - 2) * 2, 1, p->br);
+    RH(p, x * 2 + 2, (y + h) * 2 - 3, (w - 2) * 2, 1, p->os);
+    RH(p, x * 2 + 3, (y + h) * 2 - 9, (w - 3) * 2, 1, p->os);   /* cintura   */
+    RH(p, x * 2 + 3, (y + h) * 2 - 8, (w - 3) * 2, 1, p->md);
+    for (int i = 0; i < 3; i++) {                               /* rejillas  */
+        RH(p, x * 2 + 3, (y + h) * 2 - 6 + i, 5, 1, (i & 1) ? p->os : p->md);
+        RH(p, (x + w) * 2 - 8, (y + h) * 2 - 6 + i, 5, 1,
+           (i & 1) ? p->os : p->md);
+    }
+    REM(p, x * 2 + 1, y * 2 + 3, p->os, p->cl);
+    REM(p, (x + w) * 2 - 3, y * 2 + 3, p->os, p->cl);
+    REM(p, x * 2 + 1, (y + h) * 2 - 5, p->os, p->cl);
+    REM(p, (x + w) * 2 - 3, (y + h) * 2 - 5, p->os, p->cl);
+    RH(p, BOX_CX * 2 - 4, y * 2 - 1, 8, 1, p->br);              /* el cuello */
 }
 
 /* --------------------------------------------------------------------------
@@ -681,6 +737,14 @@ static void draw_un_brazo(const pen_t *p, int var, int lado, int alza)
         RB(p, x, y + 11, gr, 4, p->cl);
         break;
     }
+
+    /* --- el detalle: hombro, codo y nudillos ---------------------------- */
+    RH(p, x * 2, (y + 3) * 2, gr * 2, 1, p->br);
+    RH(p, x * 2, (y + 8) * 2, gr * 2, 1, p->os);                /* el codo   */
+    RH(p, x * 2, (y + 8) * 2 + 1, gr * 2, 1, p->md);
+    RH(p, x * 2 + 1, (y + 12) * 2, 1, 4, p->os);                /* la mano   */
+    RH(p, x * 2 + gr * 2 - 2, (y + 12) * 2, 1, 4, p->os);
+    REM(p, x * 2 + 1, (y + 4) * 2, p->os, p->cl);
 }
 
 /* --------------------------------------------------------------------------
@@ -755,6 +819,18 @@ static void draw_piernas(const pen_t *p, int var, int paso)
         break;
     }
     }
+
+    /* --- el detalle: rodillas, tobillos y la suela ---------------------- */
+    for (int l = 0; l < 2; l++) {
+        int lx = l ? BOX_CX + 2 : BOX_CX - 6;
+        RH(p, lx * 2, (y + 1) * 2 + 1, 8, 1, p->br);
+        RH(p, lx * 2, (y + h / 2) * 2, 8, 1, p->os);            /* rodilla   */
+        RH(p, lx * 2 + 1, (y + h / 2) * 2 + 1, 6, 1, p->md);
+        RH(p, lx * 2, (y + h) * 2 - 8, 8, 1, p->os);            /* tobillo   */
+        REM(p, lx * 2 + 2, (y + h / 2) * 2 - 2, p->os, p->cl);
+    }
+    RH(p, (BOX_CX - 7) * 2, (y + h) * 2 - 1, 12, 1, p->kk);     /* la suela  */
+    RH(p, (BOX_CX + 1) * 2, (y + h) * 2 - 1, 12, 1, p->kk);
 }
 
 /* --------------------------------------------------------------------------
@@ -819,6 +895,16 @@ void ch_robot_draw(ch_buf_t *b, int cx, int y, const ch_robot_t *r,
  * their robot walking.
  * -------------------------------------------------------------------------- */
 
+/* --------------------------------------------------------------------------
+ * v2 GREW THIS FIGURE BY HALF, AND NOT BY RETYPING IT
+ *
+ * The map figure was 12x16 on an 8 px grid; on v2's 12 px grid it is 18x24.
+ * It is thirty rectangles of small literals, so every coordinate goes through
+ * E() -three halves- instead of being typed again: the proportions cannot
+ * drift, and the day the grid changes again it is one number.
+ * -------------------------------------------------------------------------- */
+#define E(v)    ((v) * 3 / 2)
+
 void ch_mini_draw(ch_buf_t *b, int x, int y, const ch_robot_t *r,
                   int dir, int paso)
 {
@@ -831,59 +917,60 @@ void ch_mini_draw(ch_buf_t *b, int x, int y, const ch_robot_t *r,
     int a = (paso & 2) ? 1 : 0;
 
     /* shadow */
-    ch_rect(b, x + 2, y + 15, 8, 1, ch_rgb(0x1A1E2A));
+    ch_rect(b, x + E(2), y + E(15), E(8), E(1), ch_rgb(0x1A1E2A));
 
     /* legs or wheels */
     if (rueda == 2 || rueda == 3 || rueda == 4 || rueda == 5) {
-        ch_rect(b, x + 1, y + 11, 10, 4, kk);
-        ch_rect(b, x + 2, y + 12, 8, 2, os);
-        ch_rect(b, x + 3 + ((paso >> 1) & 1) * 2, y + 12, 2, 2, md);
+        ch_rect(b, x + E(1), y + E(11), E(10), E(4), kk);
+        ch_rect(b, x + E(2), y + E(12), E(8), E(2), os);
+        ch_rect(b, x + E(3 + ((paso >> 1) & 1) * 2), y + E(12), E(2), E(2), md);
     } else {
-        ch_rect(b, x + 3, y + 11, 2, 4 - a, kk);
-        ch_rect(b, x + 7, y + 11, 2, 4 + a - 1, kk);
+        ch_rect(b, x + E(3), y + E(11), E(2), E(4 - a), kk);
+        ch_rect(b, x + E(7), y + E(11), E(2), E(4 + a - 1), kk);
     }
 
     /* torso */
-    ch_rect(b, x + 2, y + 6, 8, 6, kk);
-    ch_rect(b, x + 3, y + 7, 6, 4, cl);
-    ch_rect(b, x + 3, y + 7, 2, 4, md);
+    ch_rect(b, x + E(2), y + E(6), E(8), E(6), kk);
+    ch_rect(b, x + E(3), y + E(7), E(6), E(4), cl);
+    ch_rect(b, x + E(3), y + E(7), E(2), E(4), md);
 
     /* arms */
-    ch_rect(b, x, y + 6, 2, 4, md);
-    ch_rect(b, x + 10, y + 6, 2, 4, md);
+    ch_rect(b, x, y + E(6), E(2), E(4), md);
+    ch_rect(b, x + E(10), y + E(6), E(2), E(4), md);
 
     /* head */
-    ch_rect(b, x + 2, y + 1, 8, 6, kk);
-    ch_rect(b, x + 3, y + 2, 6, 4, cl);
+    ch_rect(b, x + E(2), y + E(1), E(8), E(6), kk);
+    ch_rect(b, x + E(3), y + E(2), E(6), E(4), cl);
 
     /* the face looks where it walks */
     switch (dir) {
     case 1:                                      /* from behind              */
-        ch_rect(b, x + 4, y + 3, 4, 2, md);
+        ch_rect(b, x + E(4), y + E(3), E(4), E(2), md);
         break;
     case 2:                                      /* to the left              */
-        ch_rect(b, x + 3, y + 3, 2, 2, br);
+        ch_rect(b, x + E(3), y + E(3), E(2), E(2), br);
         break;
     case 3:                                      /* to the right             */
-        ch_rect(b, x + 7, y + 3, 2, 2, br);
+        ch_rect(b, x + E(7), y + E(3), E(2), E(2), br);
         break;
     default:                                     /* front on                 */
-        ch_rect(b, x + 4, y + 3, 1, 2, br);
-        ch_rect(b, x + 7, y + 3, 1, 2, br);
+        ch_rect(b, x + E(4), y + E(3), E(1), E(2), br);
+        ch_rect(b, x + E(7), y + E(3), E(1), E(2), br);
         break;
     }
 
     /* the head's finish travels too: it is what shows most from a distance */
     if (ant == 1 || ant == 4) {
-        ch_rect(b, x + 6, y - 1, 1, 2, os);
-        ch_rect(b, x + 6, y - 2, 1, 1, br);
+        ch_rect(b, x + E(6), y - E(1), E(1), E(2), os);
+        ch_rect(b, x + E(6), y - E(2), E(1), E(1), br);
     } else if (ant == 2 || ant == 5) {
-        ch_rect(b, x + 3, y, 1, 2, os);
-        ch_rect(b, x + 8, y, 1, 2, os);
+        ch_rect(b, x + E(3), y, E(1), E(2), os);
+        ch_rect(b, x + E(8), y, E(1), E(2), os);
     } else if (ant == 3) {
-        ch_rect(b, x + 4, y - 1, 4, 1, md);
+        ch_rect(b, x + E(4), y - E(1), E(4), E(1), md);
     }
 }
+#undef E
 
 /* --------------------------------------------------------------------------
  * Stats
@@ -951,6 +1038,29 @@ void ch_part_draw(ch_buf_t *b, int cat, int var, int cx, int cy, int esc,
     }
 }
 
+int ch_robot_juego(const ch_robot_t *r)
+{
+    uint8_t tipo = ch_partes[PIEZA_ID(P_TORSO, r->pieza[P_TORSO] % PVAR)].tipo;
+    int n = 0;
+
+    for (int c = 0; c < P_CATS; c++) {
+        if (ch_partes[PIEZA_ID(c, r->pieza[c] % PVAR)].tipo == tipo) n++;
+    }
+    return n;
+}
+
+const char *ch_robot_juego_nombre(const ch_robot_t *r, int *pct)
+{
+    static const int8_t BA[5] = { 0, 0, 10, 20, 30 };
+    int j = ch_robot_juego(r) % 5;
+
+    if (pct) *pct = BA[j];
+    if (j >= 4) return N_("JUEGO PURO");
+    if (j == 3) return N_("TRIO");
+    if (j == 2) return N_("DUO");
+    return NULL;
+}
+
 void ch_robot_stats(ch_robot_t *r)
 {
     int bv = 0, ba = 0, bd = 0, bs = 0, be = 0;
@@ -969,6 +1079,27 @@ void ch_robot_stats(ch_robot_t *r)
     r->def = (int16_t)((bd * 2 * nv) / 100 + 6);
     r->vel = (int16_t)((bs * 2 * nv) / 100 + 6);
     r->tipo = ch_partes[PIEZA_ID(P_TORSO, r->pieza[P_TORSO] % PVAR)].tipo;
+
+    /* EL JUEGO: cuantas piezas comparten el tipo del torso.
+     *
+     * El taller era "elegi el numero mas grande": cuatro categorias, cuatro
+     * mejores piezas, listo. Con esto una pieza peor en bruto puede convenir
+     * porque completa el juego, y eso convierte el taller en una decision.
+     * Cuesta un conteo y un porcentaje, sin una tabla nueva.
+     *
+     *   2 del mismo tipo  DUO    +10% ataque
+     *   3                 TRIO   +20% ataque, +10% defensa
+     *   4                 PURO   +30% ataque, +20% defensa, +10% velocidad
+     */
+    {
+        static const int8_t BA[5] = { 0, 0, 10, 20, 30 };
+        static const int8_t BD[5] = { 0, 0,  0, 10, 20 };
+        static const int8_t BS[5] = { 0, 0,  0,  0, 10 };
+        int j = ch_robot_juego(r) % 5;
+        r->atk = (int16_t)(r->atk + r->atk * BA[j] / 100);
+        r->def = (int16_t)(r->def + r->def * BD[j] / 100);
+        r->vel = (int16_t)(r->vel + r->vel * BS[j] / 100);
+    }
 
     /* On levelling up the maximum health grows and the current one rises with
      * it; on changing a part, likewise. What cannot happen is the current one

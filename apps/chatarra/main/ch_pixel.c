@@ -612,6 +612,7 @@ void ch_blit(ch_buf_t *b, int x, int y, const char *const *rows, int nrows)
     }
 }
 
+
 void ch_blit_c(ch_buf_t *b, int cx, int cy, const char *const *rows, int nrows)
 {
     ch_blit(b, cx - ch_sprite_w(rows) / 2, cy - nrows / 2, rows, nrows);

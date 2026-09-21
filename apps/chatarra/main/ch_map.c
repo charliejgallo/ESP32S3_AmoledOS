@@ -82,7 +82,7 @@ static int ent_en(const ch_room_t *r, int x, int y)
  * tests are the SAME ones ch_ent_draw() uses to decide between an arrow and a
  * hatch, and they have to stay the same: a door that is drawn as an arrow out
  * of the room and then fades like a doorway is a door that lies. */
-static int puerta_lado(const ch_ent_t *e)
+int ch_puerta_lado(const ch_ent_t *e)
 {
     if (e->y <= 1)        return 1;         /* up    */
     if (e->y >= ROWS - 3) return 0;         /* down  */
@@ -91,12 +91,44 @@ static int puerta_lado(const ch_ent_t *e)
     return -1;
 }
 
+/* 'premio' is how many cells the opening is, and it runs ALONG THE EDGE the
+ * door is on: across for the top and bottom ones, DOWN for the side ones. It
+ * used to always run in x, which silently capped every side door at a single
+ * cell -24x24 real pixels against the bezel, which is exactly the thing the
+ * comment above warns about.
+ *
+ * And the opening is PUERTA_HONDO cells deep, always growing INWARDS from the
+ * edge, because the outermost row of the map is not touchable. The audit's
+ * envelope (APP-GUIDE) is y 24..410, x 16..352 of the 368x448 real panel, and
+ * a 12 px cell is 24 real: row 0 lives at y 0..23, which is ENTIRELY outside
+ * it. That is why you could walk south between sectors and never back north.
+ * Column 0 has 8 usable pixels out of 24 and column 14 has 17, which is why
+ * the sideways ones "worked" and felt stiff. */
+#define PUERTA_HONDO 2
+
+void ch_puerta_caja(const ch_ent_t *e, int *x0, int *y0, int *w, int *h)
+{
+    int n = e->premio ? e->premio : 1;
+    int f = PUERTA_HONDO;
+
+    *x0 = e->x; *y0 = e->y;
+    switch (ch_puerta_lado(e)) {
+    case 1: *w = n; *h = f;                       break;  /* top:    y .. y+1 */
+    case 0: *w = n; *h = f; *y0 = e->y - f + 1;   break;  /* bottom: y-1 .. y */
+    case 2: *w = f; *h = n;                       break;  /* left:   x .. x+1 */
+    case 3: *w = f; *h = n; *x0 = e->x - f + 1;   break;  /* right:  x-1 .. x */
+    default: *w = n; *h = 1;                      break;  /* a door inside a room */
+    }
+}
+
 static int puerta_en(const ch_room_t *r, int x, int y)
 {
     for (int i = 0; i < r->nents; i++) {
         const ch_ent_t *e = &r->ents[i];
-        int w = e->premio ? e->premio : 1;
-        if (e->tipo == E_PUERTA && e->y == y && x >= e->x && x < e->x + w) {
+        int x0, y0, w, h;
+        if (e->tipo != E_PUERTA) continue;
+        ch_puerta_caja(e, &x0, &y0, &w, &h);
+        if (x >= x0 && x < x0 + w && y >= y0 && y < y0 + h) {
             return i;
         }
     }
@@ -119,6 +151,12 @@ static bool ent_solida(const ch_t *g, const ch_ent_t *e)
     switch (e->tipo) {
     case E_PUERTA:
         return false;                   /* it is walked on, and walking on it crosses it */
+    case E_MUEBLE:
+        return ch_mueble_solido(e->p1);
+    case E_ANIMAL:
+        /* It is not where the table says any more: it walks. What blocks the
+         * way is where it IS, and that is ocupada_por_bicho(). */
+        return false;
     case E_BLOQUEO:
         /* A control blocks the way until its flag is set. That is the whole
          * progression of the game: beating one zone's sub-boss opens the next
@@ -221,6 +259,42 @@ void ch_map_entrar(ch_t *g, int sala, int x, int y)
     const ch_room_t *r;
 
     if (sala < 0 || sala >= ch_nsalas) sala = 0;
+    /* Clamped into the room, always. A destination outside it is not a
+     * theoretical worry: v2 shrank the map from 23x22 cells to 15x14, so every
+     * coordinate written for v1 -a save, a door, a starting position- can now
+     * point off the edge, and a player standing outside the map cannot walk
+     * back into it. */
+    if (x < 0) x = 0; else if (x >= COLS) x = COLS - 1;
+    if (y < 0) y = 0; else if (y >= ROWS) y = ROWS - 1;
+    /* AND IT HAS TO BE A CELL YOU CAN STAND ON.
+     *
+     * Clamping into the map is not enough: (11,13) is inside a 15x14 room and
+     * is also the wall of the house. A player standing in a wall cannot walk
+     * out of it -the path finder will not start from a blocked cell- and the
+     * game is over without a message. That happened on the board with a
+     * position that came from a v1 save.
+     *
+     * So the arrival looks outwards for the nearest cell that is free. It
+     * costs nothing (it happens once per room and nearly always finds the
+     * cell it was given) and it turns a class of silent trap into a step
+     * sideways. */
+    {
+        const ch_room_t *dst = &ch_salas[sala];
+        if (bloqueado(g, dst, x, y)) {
+            for (int rad = 1; rad < COLS; rad++) {
+                int hallado = 0;
+                for (int dy = -rad; dy <= rad && !hallado; dy++) {
+                    for (int dx = -rad; dx <= rad && !hallado; dx++) {
+                        int nx = x + dx, ny = y + dy;
+                        if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+                        if (bloqueado(g, dst, nx, ny)) continue;
+                        x = nx; y = ny; hallado = 1;
+                    }
+                }
+                if (hallado) break;
+            }
+        }
+    }
     g->s.sala = (uint8_t)sala;
     g->s.x = (uint8_t)x;
     g->s.y = (uint8_t)y;
@@ -232,14 +306,27 @@ void ch_map_entrar(ch_t *g, int sala, int x, int y)
     colocar(g);
     flujo_buscar(g);
 
+    /* Being here is what unlocks the map's fast travel to here. It is marked
+     * on ARRIVAL and not on clearing the zone: the point of going back is
+     * usually the workshop, which is open from the first minute. */
+    for (int z = 0; z < ZONAS; z++) {
+        if (g->s.sala >= ch_zonas_tab[z].sala0 &&
+            g->s.sala <= ch_zonas_tab[z].sala1) {
+            ch_flag_set(&g->s, ch_zonas_tab[z].visita);
+            break;
+        }
+    }
+    ch_map_musica(g);
+
     /* The room's creatures. The robot is generated HERE and stored: the one
      * you see walking is exactly the one you fight. Rolling it again when the
      * fight starts would be fighting a different one, and it shows. */
     g->nmov = 0;
     for (int i = 0; i < r->nents && g->nmov < MAX_MOV; i++) {
         const ch_ent_t *e = &r->ents[i];
-        if (e->tipo != E_ENEMIGO && e->tipo != E_JEFE) continue;
-        if (ch_flag(&g->s, e->p2)) continue;             /* already defeated */
+        if (e->tipo != E_ENEMIGO && e->tipo != E_JEFE && e->tipo != E_ANIMAL)
+            continue;
+        if (e->tipo != E_ANIMAL && ch_flag(&g->s, e->p2)) continue;  /* beaten */
 
         int m = g->nmov++;
         g->mov[m].idx  = (uint8_t)i;
@@ -253,6 +340,16 @@ void ch_map_entrar(ch_t *g, int sala, int x, int y)
         g->mov[m].paso = 0;
         g->mov[m].vivo = 1;
         g->mov[m].timer = (uint8_t)(20 + ch_rnd(&g->rng, 40));
+
+        /* An animal has no robot: it walks and that is all it does. Giving it
+         * the creatures' loop instead of a loop of its own is what makes it
+         * cost nothing -it is already a dirty rectangle in a list that was
+         * being drawn anyway- and it is the whole reason a town feels
+         * inhabited rather than laid out. */
+        if (e->tipo == E_ANIMAL) {
+            memset(&g->mov[m].bot, 0, sizeof(g->mov[m].bot));
+            continue;
+        }
 
         /* Seed fixed by room and entity: the same creature, always the same. */
         uint32_t semilla = 0x5BD1u + (uint32_t)sala * 977u + (uint32_t)i * 31u;
@@ -361,6 +458,7 @@ static int buscar_ruta(ch_t *g, int gx, int gy, int tope)
 
 void ch_map_toque(ch_t *g, int bx, int by)
 {
+    g->quieto = 0;
     const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
     int tx = bx / TILE, ty = by / TILE;
 
@@ -380,7 +478,8 @@ void ch_map_toque(ch_t *g, int bx, int by)
      * route. */
     for (int i = 0; i < g->nmov; i++) {
         if (!g->mov[i].vivo || g->mov[i].x != tx || g->mov[i].y != ty) continue;
-        if (buscar_ruta(g, tx, ty, 1) >= 0) {
+        if (buscar_ruta(g, tx, ty, r->ents[g->mov[i].idx].tipo == E_ANIMAL
+                                  ? 2 : 1) >= 0) {
             if (g->nruta == 0) {
                 lanzar_bicho(g, i);
             } else {
@@ -429,7 +528,7 @@ static void al_llegar(ch_t *g)
 
     if (i >= 0) {
         const ch_ent_t *e = &r->ents[i];
-        int lado = puerta_lado(e);
+        int lado = ch_puerta_lado(e);
         ch_map_entrar(g, e->p1, e->p2, e->p3);
         if (lado >= 0) g->trans_dir = (uint8_t)lado;
         return;
@@ -458,6 +557,11 @@ static void lanzar_bicho(ch_t *g, int m)
     const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
     const ch_ent_t *e = &r->ents[g->mov[m].idx];
 
+    if (e->tipo == E_ANIMAL) {
+        if (e->texto) ch_ui_dialogo(g, _(e->texto), g->mov[m].idx, MODO_MAPA);
+        ch_sfx(e->p1 == AN_PAJARO ? 1800 : 520, 70);
+        return;
+    }
     if (e->tipo == E_JEFE && e->texto) {
         g->bt_pendiente = (uint8_t)(m + 1);
         ch_ui_dialogo(g, _(e->texto), g->mov[m].idx, MODO_MAPA);
@@ -469,6 +573,13 @@ static void lanzar_bicho(ch_t *g, int m)
 /* Called by ch_ui.c when a dialogue closes: the boss's fight starts there. */
 void ch_map_dialogo_cerrado(ch_t *g)
 {
+    /* El puesto de la feria: el texto se lee y despues empieza el juego, por
+     * la misma razon que el jefe pelea al CERRAR su dialogo y no al abrirlo. */
+    if (g->feria_pend) {
+        g->feria_pend = 0;
+        ch_fe_entrar(g);
+        return;
+    }
     if (!g->bt_pendiente) return;
     int m = g->bt_pendiente - 1;
     g->bt_pendiente = 0;
@@ -491,6 +602,40 @@ void ch_map_interactuar(ch_t *g, int idx)
     case E_CARTEL:
         if (e->texto) ch_ui_dialogo(g, _(e->texto), idx, MODO_MAPA);
         break;
+
+    case E_FERIA:
+        /* El puesto: el texto primero y el juego despues, para que se sepa
+         * que se esta por empezar. El dialogo se encarga de llamarnos. */
+        if (e->texto) {
+            g->feria_pend = 1;
+            ch_ui_dialogo(g, _(e->texto), idx, MODO_MAPA);
+        } else {
+            ch_fe_entrar(g);
+        }
+        break;
+
+    case E_MUEBLE: {
+        /* A piece of furniture always says something, and CAN hide one thing,
+         * once: p2 is the flag that remembers it and premio the item. Without
+         * the flag it would be a machine for printing potions. */
+        bool cobrado = e->p2 && ch_flag(&g->s, e->p2);
+
+        if (e->p2 && !cobrado && e->premio && e->premio < ITEMS) {
+            static char linea[96];
+            int n = g->s.obj[e->premio] + 1;
+            ch_flag_set(&g->s, e->p2);
+            g->s.obj[e->premio] = (uint8_t)(n > 99 ? 99 : n);
+            ch_sfx(1200, 70);
+            g->hud_sucio = 1;
+            snprintf(linea, sizeof(linea), _("%s\nENCONTRASTE %s!"),
+                     e->texto ? _(e->texto) : "",
+                     _(ch_items[e->premio].nombre));
+            ch_ui_dialogo(g, linea, idx, MODO_MAPA);
+            break;
+        }
+        if (e->texto) ch_ui_dialogo(g, _(e->texto), idx, MODO_MAPA);
+        break;
+    }
 
     case E_PNJ: {
         /* A character with an errand says two things and decides between them
@@ -655,9 +800,29 @@ static void andar_bichos(ch_t *g)
     }
 }
 
+/* EL TEMA DE LA ZONA.
+ *
+ * El mapa estaba mudo -sonaba el titulo y sonaba el combate- y ocho zonas con
+ * ocho cielos y ocho paletas sonaban todas igual, o sea a nada. Se pide al
+ * entrar a cada sala, pero solo se cambia si la zona cambio: volver a mandar
+ * la misma melodia la reiniciaria en cada puerta, y ocho salas de una zona son
+ * ocho reinicios del mismo compas. */
+void ch_map_musica(ch_t *g)
+{
+    const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
+    uint8_t z = r->zona < 1 ? 1 : (r->zona > ZONAS ? ZONAS : r->zona);
+    uint8_t mel = (uint8_t)(CH_MEL_ZONA + z - 1);
+
+    if (g->mel_mapa == mel) return;
+    g->mel_mapa = mel;
+    ch_snd_melodia(g, mel);
+}
+
 void ch_map_tick(ch_t *g)
 {
     g->cuadro++;
+    if (g->andando || g->nruta) g->quieto = 0;
+    else if (g->quieto < 60000)  g->quieto++;
     if (g->trans) g->trans--;
     if (g->cofre_t) g->cofre_t--;
     amb_tick(g);
@@ -813,7 +978,7 @@ static void flujo_buscar(ch_t *g)
 static void flujo_dibujar(ch_t *g)
 {
     const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
-    int fase = (int)((g->cuadro / 6) & 7);
+    int fase = (int)((g->cuadro / 6) % TILE);   /* a full cycle is TILE rows */
 
     if (!g->nflujo) return;
     for (int k = 0; k < FLUJO_POR_CUADRO && k < g->nflujo; k++) {
@@ -918,6 +1083,8 @@ void ch_map_dibujar(ch_t *g)
      * eats half a word. */
     int bot = (g->modo == MODO_DIALOGO) ? DLG_Y : MAP_H;
 
+    const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
+
     ch_clip(&g->fb, 0, 0, CH_W, bot);
 
     /* The ground first: the runs of water and lava go UNDER everything that
@@ -927,6 +1094,11 @@ void ch_map_dibujar(ch_t *g)
 
     for (int i = 0; i < g->nmov; i++) {
         if (!g->mov[i].vivo) continue;
+        if (r->ents[g->mov[i].idx].tipo == E_ANIMAL) {
+            ch_animal_draw(&g->fb, g->mov[i].px, g->mov[i].py,
+                           r->ents[g->mov[i].idx].p1, g->mov[i].dir, g->cuadro);
+            continue;
+        }
         ch_mini_draw(&g->fb, g->mov[i].px, g->mov[i].py, &g->mov[i].bot,
                      g->mov[i].dir, g->mov[i].paso);
         {
@@ -951,8 +1123,23 @@ void ch_map_dibujar(ch_t *g)
         sucio_bicho(g, g->mov[i].px, g->mov[i].py);
     }
 
-    ch_mini_draw(&g->fb, g->px, g->py, &g->s.yo, g->s.dir, g->paso);
-    sucio_mini(g, g->px, g->py);
+    /* LA ESPERA. Pasados cinco segundos sin caminar, el robot mira a un lado
+     * y al otro y se balancea un pixel. No es una animacion nueva: es la
+     * direccion que ya se dibuja, cambiada cada segundo y medio, mas un
+     * pixel de alto. Cuesta lo mismo que estar quieto -el rectangulo sucio
+     * del jugador ya se empuja todos los cuadros- y es lo que separa un
+     * pueblo vivo de una captura de pantalla. */
+    {
+        int dir = g->s.dir, py = g->py;
+        if (g->quieto > QUIETO_ESPERA) {
+            uint16_t t = (uint16_t)(g->quieto - QUIETO_ESPERA);
+            static const uint8_t MIRA[4] = { 2, 0, 3, 0 };
+            dir = MIRA[(t / 45) & 3];
+            if (((t / 8) & 3) == 0) py -= 1;
+        }
+        ch_mini_draw(&g->fb, g->px, py, &g->s.yo, dir, g->paso);
+        sucio_mini(g, g->px, py - 1);
+    }
 
     amb_dibujar(g);
     brillo_dibujar(g);
@@ -1002,11 +1189,21 @@ int ch_map_check(void)
         memset(&tmp, 0, sizeof(tmp));
         tmp.s.sala = (uint8_t)si;
 
+        for (int i = 0; i < r->nprops; i++) {
+            const ch_prop_t *pr = &r->props[i];
+            if (pr->x < 0 || pr->x >= COLS || pr->y < 0 || pr->y >= ROWS) {
+                aos_hal_log("chatarra", "%s: the decoration at %d,%d is off the map",
+                            r->nombre, pr->x, pr->y);
+                malos++;
+            }
+        }
+
         for (int i = 0; i < r->nents; i++) {
             const ch_ent_t *e = &r->ents[i];
 
             if (e->tipo == E_PUERTA) {
-                int w = e->premio ? e->premio : 1;
+                int px, py, w, h;
+                ch_puerta_caja(e, &px, &py, &w, &h);
 
                 if (e->p1 >= ch_nsalas) {
                     aos_hal_log("chatarra", "room %d: door to a room that does not exist", si);
@@ -1019,10 +1216,11 @@ int ch_map_check(void)
                 td.s.sala = e->p1;
 
                 /* every cell of the opening has to be walkable */
-                for (int k = 0; k < w; k++) {
-                    if (bloqueado(&tmp, r, e->x + k, e->y)) {
+                for (int k = 0; k < w * h; k++) {
+                    int cx = px + k % w, cy = py + k / w;
+                    if (bloqueado(&tmp, r, cx, cy)) {
                         aos_hal_log("chatarra", "%s: the doorway at %d,%d is blocked",
-                                    r->nombre, e->x + k, e->y);
+                                    r->nombre, cx, cy);
                         malos++;
                     }
                 }
@@ -1038,6 +1236,18 @@ int ch_map_check(void)
                                 r->nombre, d->nombre, e->p2, e->p3);
                     malos++;
                 }
+            }
+
+            /* OUTSIDE THE MAP. The v1 -> v2 shrink left a workshop machine
+             * at x=15 of a 15-wide map: it drew clipped against the edge and
+             * nothing said a word, because until now the check only looked at
+             * doors. A coordinate that does not exist is the cheapest kind of
+             * bug to find and the most annoying to see. */
+            if (e->x < 0 || e->x >= COLS || e->y < 0 || e->y >= ROWS) {
+                aos_hal_log("chatarra", "%s: the entity at %d,%d is off the map",
+                            r->nombre, e->x, e->y);
+                malos++;
+                continue;
             }
 
             /* a decoration on top of an entity is drawn twice */
