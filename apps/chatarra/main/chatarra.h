@@ -262,6 +262,7 @@ void ch_part_draw(ch_buf_t *b, int cat, int var, int cx, int cy, int esc,
 
 /* The little figure on the map: 12x14, with the head and legs you are wearing.
  * It is not the combat robot shrunk, it is a separate drawing. */
+#define CH_FE_MAX  6            /* piezas en la cinta a la vez        */
 #define QUIETO_ESPERA 150       /* cinco segundos a 30 cuadros        */
 #define MINI_W  18                     /* v2: 12 x 16 on the 8 px grid */
 #define MINI_H  24
@@ -329,6 +330,7 @@ enum {
     E_CABINA,           /* the phone booth: the link to another watch        */
     E_MUEBLE,           /* p1 = which piece, p2 = flag, premio = item        */
     E_ANIMAL,           /* p1 = which animal: it wanders and never fights    */
+    E_FERIA,            /* la cinta de chatarra: un minijuego por creditos   */
 };
 
 /* The furniture. It is an ENTITY and not a decoration so that a room can be
@@ -580,6 +582,8 @@ bool ch_eq_desarmar(ch_save_t *s, int slot);
 
 /* TEMPORAL: entrega piezas de prueba una sola vez. Ver ch_zonas.c. */
 void ch_regalo_piezas(ch_save_t *s);
+/* La pieza que paga la feria, una sola vez. true si la dio ahora. */
+bool ch_feria_premio(ch_save_t *s, uint32_t *sem);
 
 static inline bool ch_flag(const ch_save_t *s, int f)
 {
@@ -609,6 +613,7 @@ enum {
     MODO_MAPAMUNDI,
     MODO_AYUDA,
     MODO_DIARIO,        /* los encargos abiertos y donde                   */
+    MODO_FERIA,         /* la cinta de chatarra del puerto                  */
     MODO_FINAL,
     MODO_COMBATE,
     MODO_TITULO,
@@ -774,6 +779,17 @@ typedef struct {
      * que corre es lo unico muerto de la pantalla. */
     uint16_t   quieto;
     uint8_t    mel_mapa;        /* el tema de zona que esta puesto           */
+    uint8_t    feria_pend;      /* el dialogo del puesto: al cerrar, jugar   */
+
+    /* LA FERIA. Seis piezas en tres carriles, cuarenta segundos. Vive aca y
+     * no en el guardado porque una partida de la feria no sobrevive a cerrar
+     * el juego; lo unico que se guarda es el record. */
+    struct {
+        struct { int16_t x; uint8_t carril, malo, cual, vivo; } p[CH_FE_MAX];
+        uint32_t sem;
+        uint16_t resta;
+        uint8_t  puntos, aviso, record;
+    } fe;
 
     /* mobile entities of the room (the enemies that patrol) */
     struct {
@@ -881,6 +897,13 @@ void ch_map_dibujar(ch_t *g);                   /* what moves                */
 void ch_map_tick(ch_t *g);
 /* Pone el tema de la zona en la que estas, si no estaba ya. */
 void ch_map_musica(ch_t *g);
+
+/* La feria del puerto: la cinta de chatarra. */
+void ch_fe_entrar(ch_t *g);
+void ch_fe_tick(ch_t *g);
+void ch_fe_toque(ch_t *g, int bx, int by);
+void ch_fe_fondo(ch_t *g);
+void ch_fe_dibujar(ch_t *g);
 void ch_map_toque(ch_t *g, int bx, int by);
 void ch_map_interactuar(ch_t *g, int idx);
 void ch_map_dialogo_cerrado(ch_t *g);

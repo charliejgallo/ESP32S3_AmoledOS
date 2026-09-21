@@ -618,6 +618,8 @@ static void rehacer(app_t *a)
 
     if (g->modo == MODO_COMBATE) {
         ch_bt_dibujar(g);
+    } else if (g->modo == MODO_FERIA) {
+        ch_fe_dibujar(g);
     } else {
         ch_ui_dibujar(g);
     }
@@ -682,6 +684,8 @@ static void present(app_t *a)
     ch_dirty_reset(&g->d_cur);
     if (g->modo == MODO_COMBATE) {
         ch_bt_dibujar(g);
+    } else if (g->modo == MODO_FERIA) {
+        ch_fe_dibujar(g);
     } else {
         ch_ui_dibujar(g);
     }
@@ -776,6 +780,9 @@ static void tick(lv_timer_t *t)
     case MODO_CABINA:
         ch_lk_tick(g);
         g->cuadro++;
+        break;
+    case MODO_FERIA:
+        ch_fe_tick(g);
         break;
     default:
         g->cuadro++;
@@ -975,6 +982,7 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
      *   CH_MODO=<n>   opens straight into a screen (see the MODO_ enum)
      *   CH_CABINA=<n> the booth, at that state (see the LK_ enum): the menu
      *                 needs a second watch, and its layout does not.
+     *   CH_FERIA=1    la cinta de chatarra, directo
      *
      * AND ONE THING THAT IS NOT A SWITCH: CH_REGALO_PIEZAS below hands three
      * loose parts to the save the first time it is loaded, so the workshop
@@ -1053,6 +1061,7 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
             a->g.modo = (uint8_t)atoi(v);
             a->g.rehacer_fondo = 1;
         }
+        if ((v = getenv("CH_FERIA")) && v[0]) ch_fe_entrar(&a->g);
         if ((v = getenv("CH_CABINA")) && v[0]) {
             a->g.modo = MODO_CABINA;
             a->g.lk.estado = (uint8_t)atoi(v);

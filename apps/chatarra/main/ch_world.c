@@ -1156,6 +1156,9 @@ static void ent_caja(const ch_ent_t *e, int *x0, int *y0, int *x1, int *y1)
     case E_CABINA:                      /* 42 tall, at y-30: three rows up   */
         *x0 = e->x - 1; *x1 = e->x + 2; *y0 = e->y - 3;
         break;
+    case E_FERIA:                       /* 36 de ancho, 32 de alto, en y-16  */
+        *x0 = e->x - 1; *x1 = e->x + 2; *y0 = e->y - 2;
+        break;
     case E_MUEBLE: {
         const int m = e->p1 % MUEBLES_N;
         int alto = (MUEBLE[m].rows + TILE - 1) / TILE;
@@ -1453,6 +1456,25 @@ void ch_ent_draw(ch_buf_t *b, const ch_room_t *r, const ch_ent_t *e, bool hecho)
     case E_CABINA:
         ch_blit(b, x - 6, y - 30, SP_CABINA, 42);
         break;
+
+    case E_FERIA: {
+        /* El puesto: un toldo a rayas y una cinta. Dibujado con rectangulos
+         * y no con un sprite porque son seis lineas y el toldo a rayas es
+         * justo lo que se lee de lejos. */
+        int i;
+        ch_rect(b, x - 6, y - 4, 36, 14, ch_rgb(0x3D465F));
+        ch_frame(b, x - 6, y - 4, 36, 14, ch_rgb(0x05060C));
+        for (i = 0; i < 6; i++) {
+            ch_rect(b, x - 6 + i * 6, y - 16, 6, 10,
+                    ch_rgb(i & 1 ? 0xFF4A3D : 0xF2DFA8));
+        }
+        ch_frame(b, x - 6, y - 16, 36, 10, ch_rgb(0x05060C));
+        ch_rect(b, x - 6, y - 6, 36, 2, ch_rgb(0x8A93AB));
+        for (i = 0; i < 5; i++) {
+            ch_rect(b, x - 4 + i * 7, y + 1, 4, 4, ch_rgb(0x99A3BC));
+        }
+        break;
+    }
 
     case E_MUEBLE: {
         /* Anchored at the FOOT of its cell, like everything else that stands

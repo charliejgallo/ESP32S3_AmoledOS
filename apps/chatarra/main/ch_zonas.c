@@ -125,6 +125,9 @@ enum {
     /* TEMPORAL: la entrega de piezas de prueba, una sola vez. */
     F_PRUEBA_PIEZAS, F_PRUEBA_PIEZAS2,
 
+    /* La feria paga su pieza una sola vez. */
+    F_FERIA_PIEZA,
+
     /* zone 8 - Torre Prisma */
     F_JEFE_PRISMA, F_FINAL,
     F_COFRE_T1, F_COFRE_T2, F_COFRE_T3,
@@ -938,6 +941,16 @@ static const ch_ent_t EN_PUERTO_E[] = {
       "SI PUEDO SALIR A PESCAR.\n"
       "TOMA, TE LA GANASTE.") },
     { E_CABINA,  3,  8, 0, 0, 0, 0, NULL, NULL },
+    /* LA FERIA DEL PUERTO. Va en los muelles y no en el pueblo inicial a
+     * proposito: cuando llegas aca ya sabes que es una pieza y para que sirve
+     * un credito, que es lo que hace que el premio signifique algo. */
+    { E_FERIA,   4,  2, 0, 0, 0, 0,
+      N_("FERIANTE: PASA, PASA.\n"
+      "LA CINTA TRAE CHATARRA\n"
+      "DE TODO EL PUERTO.\n"
+      "AGARRA LAS VERDES Y\n"
+      "DEJA PASAR LAS OXIDADAS.\n"
+      "TE PAGO POR PIEZA."), NULL },
 };
 
 static const ch_prop_t P_PUERTO_INT[] = {
@@ -2942,6 +2955,22 @@ void ch_regalo_piezas(ch_save_t *s)
         if (s->piezas[i] != 0xFF) continue;
         s->piezas[i] = REGALO[puestas++];
     }
+}
+
+/* LA PIEZA DE LA FERIA, una sola vez.
+ *
+ * Vive aca y no en ch_feria.c por lo mismo que el regalo de prueba: el enum de
+ * banderas es privado de este archivo. Devuelve true si la entrego ahora. */
+bool ch_feria_premio(ch_save_t *s, uint32_t *sem)
+{
+    if (ch_flag(s, F_FERIA_PIEZA)) return false;
+    for (int i = 0; i < MOCHILA; i++) {
+        if (s->piezas[i] != 0xFF) continue;
+        s->piezas[i] = (uint8_t)PIEZA_ID(P_TORSO, ch_rnd(sem, PVAR));
+        ch_flag_set(s, F_FERIA_PIEZA);
+        return true;
+    }
+    return false;
 }
 
 const ch_zona_t ch_zonas_tab[ZONAS] = {

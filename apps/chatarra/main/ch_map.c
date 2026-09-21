@@ -573,6 +573,13 @@ static void lanzar_bicho(ch_t *g, int m)
 /* Called by ch_ui.c when a dialogue closes: the boss's fight starts there. */
 void ch_map_dialogo_cerrado(ch_t *g)
 {
+    /* El puesto de la feria: el texto se lee y despues empieza el juego, por
+     * la misma razon que el jefe pelea al CERRAR su dialogo y no al abrirlo. */
+    if (g->feria_pend) {
+        g->feria_pend = 0;
+        ch_fe_entrar(g);
+        return;
+    }
     if (!g->bt_pendiente) return;
     int m = g->bt_pendiente - 1;
     g->bt_pendiente = 0;
@@ -594,6 +601,17 @@ void ch_map_interactuar(ch_t *g, int idx)
     switch (e->tipo) {
     case E_CARTEL:
         if (e->texto) ch_ui_dialogo(g, _(e->texto), idx, MODO_MAPA);
+        break;
+
+    case E_FERIA:
+        /* El puesto: el texto primero y el juego despues, para que se sepa
+         * que se esta por empezar. El dialogo se encarga de llamarnos. */
+        if (e->texto) {
+            g->feria_pend = 1;
+            ch_ui_dialogo(g, _(e->texto), idx, MODO_MAPA);
+        } else {
+            ch_fe_entrar(g);
+        }
         break;
 
     case E_MUEBLE: {

@@ -2179,6 +2179,7 @@ void ch_ui_fondo(ch_t *g)
     case MODO_REGISTRO: registro_fondo(g); break;
     case MODO_MAPAMUNDI: mapa_fondo(g); break;
     case MODO_DIARIO:  diario_fondo(g); break;
+    case MODO_FERIA:   ch_fe_fondo(g);  break;
     case MODO_AYUDA:   ayuda_fondo(g); break;
     case MODO_FINAL:   final_fondo(g); break;
     case MODO_CABINA:  ch_lk_fondo(g); break;
@@ -2291,6 +2292,7 @@ void ch_ui_toque(ch_t *g, int bx, int by)
 
     case MODO_COMBATE: ch_bt_toque(g, bx, by);   break;
     case MODO_CABINA:  ch_lk_toque(g, bx, by);   break;
+    case MODO_FERIA:   ch_fe_toque(g, bx, by);  break;
 
     default:
         if (by < MAP_H) ch_map_toque(g, bx, by);
