@@ -967,6 +967,7 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
      *   CH_SHOT_ANIM=1 dumps one .ppm per frame while the combat animates
      *   CH_FINAL=1    opens the closing screen straight away
      *   CH_MENU=0|1|2 opens the menu at that page (root, yours, the game)
+     *   CH_MODO=<n>   opens straight into a screen (see the MODO_ enum)
      */
     {
         const char *v;
@@ -1033,6 +1034,11 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
         if ((v = getenv("CH_SALA")) && v[0]) {
             a->g.modo = MODO_MAPA;
             ch_map_entrar(&a->g, atoi(v), 11, 14);
+        }
+        if ((v = getenv("CH_MODO")) && v[0]) {
+            a->g.modo_prev = MODO_MAPA;
+            a->g.modo = (uint8_t)atoi(v);
+            a->g.rehacer_fondo = 1;
         }
         if ((v = getenv("CH_MENU")) && v[0]) {
             /* The menu opens by touching your own robot, and the simulator's

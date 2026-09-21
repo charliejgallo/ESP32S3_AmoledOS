@@ -121,6 +121,43 @@ int ch_wrap(const char *s, int ancho, char dst[][30], int max)
  * playing.
  * -------------------------------------------------------------------------- */
 
+/* THE BAR, WITH A BODY.
+ *
+ * The flat one was four pixels of solid colour in a groove. It reads, but it
+ * reads like a progress bar in a dialogue box: at a glance you cannot tell
+ * half from a third, and half from a third is the whole decision of whether
+ * to drink the oil now or after the next hit. This one is ten tall, framed,
+ * lit along the top and shaded along the bottom so it has a shape, and
+ * notched at every quarter so the eye measures instead of guessing. */
+static void barra_hud(ch_buf_t *b, int x, int y, int w, int h, int v, int vmax,
+                      uint32_t base)
+{
+    int lleno;
+
+    if (vmax < 1) vmax = 1;
+    if (v < 0) v = 0;
+    if (v > vmax) v = vmax;
+    lleno = (w - 2) * v / vmax;
+
+    ch_rect(b, x, y, w, h, ch_rgb(0x05060C));
+    ch_rect(b, x + 1, y + 1, w - 2, h - 2, ch_rgb(0x1A2133));
+
+    if (lleno > 0) {
+        /* Red when little is left: it is the only information you have to be
+         * able to read out of the corner of your eye while playing. */
+        uint16_t col = ch_rgb(base);
+        if (v * 5 <= vmax)          col = ch_rgb(0xFF4A3D);
+        else if (v * 5 <= vmax * 2) col = ch_rgb(0xFF9F0A);
+        ch_rect(b, x + 1, y + 1,     lleno, h - 2, col);
+        ch_rect(b, x + 1, y + 1,     lleno, 1, ch_tone(col,  5));
+        ch_rect(b, x + 1, y + h - 2, lleno, 1, ch_tone(col, -4));
+    }
+    for (int k = 1; k < 4; k++) {                   /* las marcas del cuarto */
+        ch_rect(b, x + 1 + (w - 2) * k / 4, y + 1, 1, h - 2, ch_rgb(0x05060C));
+    }
+    ch_frame(b, x, y, w, h, ch_rgb(0x3D465F));
+}
+
 void ch_ui_hud(ch_t *g)
 {
     ch_buf_t *b = &g->bg;
@@ -129,33 +166,39 @@ void ch_ui_hud(ch_t *g)
     char t[32];
 
     ch_rect(b, 0, HUD_Y, CH_W, HUD_H, ch_rgb(0x0B0D14));
-    ch_hline(b, 0, HUD_Y, CH_W, ch_rgb(0x3D465F));
+    ch_vgrad(b, 0, HUD_Y + 2, CH_W, HUD_Y + 14,
+             ch_rgb(0x161C2E), ch_rgb(0x0B0D14));
+    ch_hline(b, 0, HUD_Y,     CH_W, ch_rgb(0x3D465F));
+    ch_hline(b, 0, HUD_Y + 1, CH_W, ch_rgb(0x1A2133));
 
     /* first line: where you are and how much you have */
-    ch_text(b, 4, HUD_Y + 4, g->aviso_t ? g->aviso : _(r->nombre),
+    ch_text(b, 5, HUD_Y + 4, g->aviso_t ? g->aviso : _(r->nombre),
             g->aviso_t ? ch_rgb(0xFFE45E) : ch_rgb(0xD5DCEB));
     snprintf(t, sizeof(t), _("%dC"), g->s.creditos);
-    ch_text(b, CH_W - 4 - ch_text_w(t), HUD_Y + 4, t, ch_rgb(0xFFE45E));
+    ch_text(b, CH_W - 5 - ch_text_w(t), HUD_Y + 4, t, ch_rgb(0xFFE45E));
 
-    /* the robot */
-    snprintf(t, sizeof(t), _("%s N%d"), ch_robot_nombre(yo), yo->nivel);
-    ch_text(b, 4, HUD_Y + 15, t, ch_rgb(0xFFFFFF));
-
-    ch_text(b, 4, HUD_Y + 26, _("VID"), ch_rgb(0x8A93AB));
-    ch_barra(b, 24, HUD_Y + 25, 96, yo->vida, yo->vida_max, ch_rgb(0x4ADE80));
+    ch_text(b, 5, HUD_Y + 18, _("VID"), ch_rgb(0x8A93AB));
+    barra_hud(b, 26, HUD_Y + 16, 106, 11, yo->vida, yo->vida_max, 0x4ADE80);
     snprintf(t, sizeof(t), "%d/%d", yo->vida, yo->vida_max);
-    ch_text(b, 124, HUD_Y + 26, t, ch_rgb(0xD5DCEB));
+    ch_text(b, CH_W - 5 - ch_text_w(t), HUD_Y + 18, t, ch_rgb(0xD5DCEB));
 
-    ch_text(b, 4, HUD_Y + 36, _("ENE"), ch_rgb(0x8A93AB));
-    ch_barra(b, 24, HUD_Y + 35, 96, yo->ene, yo->ene_max, ch_rgb(0x4A9DF5));
+    ch_text(b, 5, HUD_Y + 32, _("ENE"), ch_rgb(0x8A93AB));
+    barra_hud(b, 26, HUD_Y + 30, 62, 11, yo->ene, yo->ene_max, 0x4A9DF5);
     {
         uint32_t base = ch_exp_nivel(yo->nivel);
         uint32_t sig  = ch_exp_nivel(yo->nivel + 1);
         uint32_t hoy  = yo->exp > base ? yo->exp - base : 0;
         uint32_t tot  = sig > base ? sig - base : 1;
-        ch_text(b, 124, HUD_Y + 36, _("EXP"), ch_rgb(0x8A93AB));
-        ch_barra(b, 144, HUD_Y + 35, 36, (int)hoy, (int)tot, ch_rgb(0xBF5AF2));
+        ch_text(b, 94, HUD_Y + 32, _("EXP"), ch_rgb(0x8A93AB));
+        barra_hud(b, 116, HUD_Y + 30, 63, 11, (int)hoy, (int)tot, 0xBF5AF2);
     }
+
+    /* And who you are, centred, on its own line. It used to share the top row
+     * with the room's name and the two of them fought for the width in every
+     * language but Spanish. */
+    snprintf(t, sizeof(t), _("%s  N%d"), ch_robot_nombre(yo), yo->nivel);
+    ch_hline(b, 8, HUD_Y + 44, CH_W - 16, ch_rgb(0x232B41));
+    ch_text(b, (CH_W - ch_text_w(t)) / 2, HUD_Y + 47, t, ch_rgb(0xFFFFFF));
 
     /* and the copy to what is on screen: nothing covers the HUD, so it does
      * not need to go through the dirty rectangle list */
@@ -278,6 +321,177 @@ static void dlg_avanzar(ch_t *g)
 }
 
 /* --------------------------------------------------------------------------
+ * The menu: two pages of tiles with an icon
+ *
+ * It used to be nine rows of 16 px stacked in one column. On a 1.8" screen
+ * that is a 172x14 strip per entry and the whole list crossed the touch
+ * panel's envelope from end to end: the first row and the last one were the
+ * two worst places on the glass. Now it is two pages -what you carry, and
+ * what the game is- of tiles at least 40 px tall, all of them between y=36
+ * and y=168 of the buffer, which is real 72..336: the middle of the panel.
+ *
+ * The icons are 12x12 written as text. Two layers -body and detail- because
+ * one flat colour at this size reads as a blob, and at x2 (or x3 on the root
+ * page) a 12x12 grid is exactly the resolution the rest of the game draws at.
+ * -------------------------------------------------------------------------- */
+
+typedef struct {
+    const char *fila[12];
+    uint32_t    cuerpo, detalle;
+} icono_t;
+
+enum {
+    IC_TALLER, IC_OBJETOS, IC_EQUIPO, IC_REGISTRO, IC_MAPA,
+    IC_AYUDA, IC_SONIDO, IC_GUARDAR, IC_CERRAR,
+    IC_MOCHILA, IC_AJUSTES,
+    /* one per item, and the errands share one: a list of names with no
+     * pictures is a list you read twice before finding the oil */
+    IC_ACEITE, IC_BATERIA, IC_SOLDADOR, IC_CHIP, IC_IMAN, IC_LLAVE,
+    IC_PASE, IC_TORNILLOS, IC_ANCLA, IC_HERRAMIENTA,
+    NICONOS
+};
+
+/* Which icon each item wears. The two oils share one and so do the two
+ * batteries -they ARE the same thing, bigger- and the errands that are one
+ * object each share the toolbox. */
+static const uint8_t ICONO_ITEM[ITEMS] = {
+    [IT_ACEITE] = IC_ACEITE,    [IT_ACEITE2]  = IC_ACEITE,
+    [IT_BATERIA] = IC_BATERIA,  [IT_BATERIA2] = IC_BATERIA,
+    [IT_SOLDADOR] = IC_SOLDADOR,[IT_CHIP]     = IC_CHIP,
+    [IT_IMAN] = IC_IMAN,        [IT_LLAVE]    = IC_LLAVE,
+    [IT_PASE] = IC_PASE,        [IT_TORNILLOS]= IC_TORNILLOS,
+    [IT_ANCLA] = IC_ANCLA,      [IT_FUSIBLE]  = IC_HERRAMIENTA,
+    [IT_MOLDE] = IC_HERRAMIENTA,[IT_TERMO]    = IC_HERRAMIENTA,
+    [IT_CLAVE] = IC_LLAVE,      [IT_ENGRANAJE]= IC_HERRAMIENTA,
+};
+
+static const icono_t ICONOS[NICONOS] = {
+    [IC_TALLER] = { {              /* a nut: the town is called Villa Tuerca */
+        "....####....", "..########..", ".##########.", "###......###",
+        "##...++...##", "##..++++..##", "##..++++..##", "##...++...##",
+        "###......###", ".##########.", "..########..", "....####....",
+    }, 0xC8CEDC, 0x5A6076 },
+    [IC_OBJETOS] = { {                                          /* a bag    */
+        "...##..##...", "...##..##...", "..########..", ".##########.",
+        "############", "############", "##..++++..##", "##..++++..##",
+        "############", ".##########.", "..########..", "............",
+    }, 0xB97A3E, 0xFFE45E },
+    [IC_EQUIPO] = { {           /* three rows of a roster: portrait and bar */
+        "............", ".###.#######", ".#+#.#######", ".###........",
+        "............", ".###.#######", ".#+#.#######", ".###........",
+        "............", ".###.#######", ".#+#.#######", ".###........",
+    }, 0x8FA6C4, 0x6FE3FF },
+    [IC_REGISTRO] = { {                               /* a page with lines  */
+        ".##########.", ".#........#.", ".#.++++++.#.", ".#........#.",
+        ".#.++++++.#.", ".#........#.", ".#.++++++.#.", ".#........#.",
+        ".#.++++...#.", ".#........#.", ".##########.", "............",
+    }, 0xE8E2D0, 0x8A93AB },
+    [IC_MAPA] = { {                                      /* a sheet + pin   */
+        "############", "#..........#", "#...####...#", "#..##++##..#",
+        "#..##++##..#", "#...####...#", "#....##....#", "#....##....#",
+        "#..........#", "#..........#", "############", "............",
+    }, 0x6FBF73, 0xFF5E5E },
+    [IC_AYUDA] = { {                                     /* a question mark */
+        "............", "...######...", "..##++++##..", "..##....##..",
+        "........##..", ".......##...", ".....###....", ".....##.....",
+        ".....##.....", "............", ".....##.....", "............",
+    }, 0xFFE45E, 0xB99A2E },
+    [IC_SONIDO] = { {                                        /* a speaker   */
+        "............", "......##....", ".....###..+.", "...#####.+..",
+        "..######.+.+", "..######+.+.", "..######.+.+", "...#####.+..",
+        ".....###..+.", "......##....", "............", "............",
+    }, 0xD5DCEB, 0x6FE3FF },
+    [IC_GUARDAR] = { {                                       /* a floppy    */
+        "############", "#++++++++++#", "#+##....##+#", "#+##....##+#",
+        "#+########+#", "#++++++++++#", "#+########+#", "#+#......#+#",
+        "#+#......#+#", "#+########+#", "############", "............",
+    }, 0x3D465F, 0xD5DCEB },
+    [IC_CERRAR] = { {                              /* the way out of a room */
+        ".####.......", ".#..........", ".#..........", ".#....##....",
+        ".#...+##....", ".#..++######", ".#...+##....", ".#....##....",
+        ".#..........", ".#..........", ".####.......", "............",
+    }, 0x8A93AB, 0xFFE45E },
+    [IC_MOCHILA] = { {                          /* root: your robot and you */
+        ".....##.....", ".....##.....", ".##########.", "##........##",
+        "#..######..#", "#..#++++#..#", "#..#++++#..#", "#..######..#",
+        "##........##", ".##########.", "..##....##..", "..##....##..",
+    }, 0x8FA6C4, 0x6FE3FF },
+
+    [IC_ACEITE] = { {                                       /* aceitera */
+        "............", "......kk....", ".....kOOk...", "....kOooOk..",
+        "...kOooooOk.", "..kOoooooOk.", "..kOoooooOk.", "..kOoooooOk.",
+        "kkkOoooooOk.", "kOOOoooooOk.", "..kOOOOOOOk.", "...kkkkkkk..",
+    }, 0xFF9F0A, 0xC05A00 },
+    [IC_BATERIA] = { {                                        /* bateria */
+        "...kk..kk...", "..kGGkkGGk..", ".kkkkkkkkkk.", ".kvvvvvvvvk.",
+        ".kvVVVVVVvk.", ".kvvvvvvvvk.", ".kvVVVVVVvk.", ".kvvvvvvvvk.",
+        ".kvVVVVVVvk.", ".kvvvvvvvvk.", ".kkkkkkkkkk.", "............",
+    }, 0x4ADE80, 0x1E7A3C },
+    [IC_SOLDADOR] = { {                                      /* soldador */
+        "..........kk", ".........kdk", "........kddk", ".......kddk.",
+        "......kddk..", ".....kddk...", "....kGGk....", "...kGGk.....",
+        "..kook......", ".kook.......", "kok.........", "k...........",
+    }, 0x99A3BC, 0xFF9F0A },
+    [IC_CHIP] = { {                                              /* chip */
+        "..k.k.k.k...", ".kkkkkkkkk..", "kkcccccccckk", ".kcCCCCCCck.",
+        ".kcCwwwwCck.", ".kcCwCCwCck.", ".kcCwCCwCck.", ".kcCwwwwCck.",
+        ".kcCCCCCCck.", "kkcccccccckk", ".kkkkkkkkk..", "..k.k.k.k...",
+    }, 0x7BE9FF, 0x18A6D8 },
+    [IC_IMAN] = { {                                              /* iman */
+        "..kkk..kkk..", ".kmmmkkmmmk.", "kmmmmkkmmmmk", "kmmkkkkkkmmk",
+        "kmmk....kmmk", "kmmk....kmmk", "kmmk....kmmk", "kmmk....kmmk",
+        "kGGk....kGGk", "kGGk....kGGk", "kkkk....kkkk", "............",
+    }, 0xFF6FAE, 0xD5DCEB },
+    [IC_LLAVE] = { {                                            /* llave */
+        "...kkkk.....", "..kyyyyk....", ".kyykkyyk...", ".kyk..kyk...",
+        ".kyykkyyk...", "..kyyyyk....", "...kyyk.....", "...kyyk.....",
+        "...kyyk.....", "...kyyykk...", "...kyyk.....", "...kyyykk...",
+    }, 0xFFE45E, 0xE0A800 },
+    [IC_PASE] = { {                                              /* pase */
+        "kkkkkkkkkkkk", "kCCCCCCCCCCk", "kCwwwwCCCCCk", "kCwwwwCGGGCk",
+        "kCwwwwCGGGCk", "kCCCCCCCCCCk", "kCGGGGGGGGCk", "kCGGGGGGGGCk",
+        "kCCCCCCCCCCk", "kCyyyyyyyyCk", "kCCCCCCCCCCk", "kkkkkkkkkkkk",
+    }, 0x18A6D8, 0xD5DCEB },
+    [IC_TORNILLOS] = { {                                    /* tornillos */
+        "............", ".kkkkkkkkkk.", ".kGGGGGGGGk.", ".kGdddddddk.",
+        ".kdGdkGdkGdk", ".kddddddddk.", ".kdkGdkGdkdk", ".kddddddddk.",
+        ".kdGdkGdkGdk", ".kddddddddk.", ".kkkkkkkkkk.", "............",
+    }, 0x99A3BC, 0x3D465F },
+    [IC_ANCLA] = { {                                            /* ancla */
+        "....kkkk....", "...kuuuuk...", "...kukkuk...", "...kuuuuk...",
+        ".kkkkuukkkk.", "....kuuk....", "....kuuk....", "k...kuuk...k",
+        "ku..kuuk..uk", "kuukkuukkuuk", ".kuuuuuuuuk.", "..kkkkkkkk..",
+    }, 0xC06B2E, 0x6E3A16 },
+    [IC_HERRAMIENTA] = { {                              /* encargos varios */
+        "............", "..kkkkkkkk..", ".kGGGGGGGGk.", ".kGddddddGk.",
+        ".kGdyyyydGk.", ".kGdyYYydGk.", ".kGdyYYydGk.", ".kGdyyyydGk.",
+        ".kGddddddGk.", ".kGGGGGGGGk.", "..kkkkkkkk..", "............",
+    }, 0xD5DCEB, 0xFFE45E },
+    [IC_AJUSTES] = { {                                /* root: the settings */
+        "............", ".##########.", ".....##.....", ".....##.....",
+        ".##########.", "...##.......", "...##.......", ".##########.",
+        "........##..", "........##..", ".##########.", "............",
+    }, 0xD5DCEB, 0xFFE45E },
+};
+
+static void icono_draw(ch_buf_t *b, int x, int y, int ic, int esc)
+{
+    const icono_t *o = &ICONOS[ic % NICONOS];
+    uint16_t c = ch_rgb(o->cuerpo), d = ch_rgb(o->detalle);
+
+    for (int fy = 0; fy < 12; fy++) {
+        const char *f = o->fila[fy];
+        if (!f) continue;
+        for (int fx = 0; f[fx]; fx++) {
+            if (f[fx] == '.') continue;
+            ch_rect(b, x + fx * esc, y + fy * esc, esc, esc,
+                    f[fx] == '+' ? d : c);
+        }
+    }
+}
+
+
+/* --------------------------------------------------------------------------
  * Lists
  *
  * Six rows of 18 px from y=64: the last one ends at 172, which is the limit of
@@ -308,6 +522,44 @@ static int fila_en(int bx, int by)
     if (bx < LX || bx >= LX + LW) return -1;
     if (by < s_ly0 || by >= s_ly0 + s_lfilas * s_lfh) return -1;
     return (by - s_ly0) / s_lfh;
+}
+
+/* THE TALL ROW, the one an item lives in.
+ *
+ * The flat row is 21 px: a name, a number at the right, and nothing else. On
+ * a 1.8" screen that is a line of text you have to lean in to read, and in a
+ * shop it is worse -you buy by the name because the description is somewhere
+ * else. This one is 42: the icon, the name, and the description wrapped
+ * underneath, which is the thing you actually needed in order to choose.
+ * Three of them fill the screen and that is on purpose: three items you can
+ * read beat six you cannot. */
+static void fila_item(ch_t *g, int i, int item, const char *der,
+                      uint16_t cder, bool activa)
+{
+    ch_buf_t *b = &g->bg;
+    int y = s_ly0 + i * s_lfh;
+    int h = s_lfh - 4;
+    const ch_item_t *it = &ch_items[item % ITEMS];
+    char lin[2][30];
+    int n;
+
+    ch_rect(b, LX, y, LW, h, activa ? ch_rgb(0x1A2133) : ch_rgb(0x141720));
+    ch_frame(b, LX, y, LW, h, ch_rgb(0x3D465F));
+    ch_rect(b, LX + 1, y + 1, LW - 2, 1, ch_rgb(0x2C3550));
+
+    icono_draw(b, LX + 6, y + h / 2 - 12, ICONO_ITEM[item % ITEMS], 2);
+
+    ch_text(b, LX + 36, y + 6, _(it->nombre),
+            activa ? ch_rgb(0xFFFFFF) : ch_rgb(0x606B85));
+    n = ch_wrap(_(it->desc), 21, lin, 2);
+    for (int k = 0; k < n && k < 2; k++) {
+        ch_text(b, LX + 36, y + 18 + k * 10, lin[k],
+                activa ? ch_rgb(0x8A93AB) : ch_rgb(0x4A5268));
+    }
+    if (der && *der) {
+        ch_text(b, LX + LW - 6 - ch_text_w(der), y + 6, der,
+                activa ? cder : ch_rgb(0x606B85));
+    }
 }
 
 static void fila(ch_t *g, int i, const char *izq, const char *der, bool activa)
@@ -373,106 +625,6 @@ static int flecha_en(int bx, int by)
 /* --------------------------------------------------------------------------
  * Main menu
  * -------------------------------------------------------------------------- */
-
-/* --------------------------------------------------------------------------
- * The menu: two pages of tiles with an icon
- *
- * It used to be nine rows of 16 px stacked in one column. On a 1.8" screen
- * that is a 172x14 strip per entry and the whole list crossed the touch
- * panel's envelope from end to end: the first row and the last one were the
- * two worst places on the glass. Now it is two pages -what you carry, and
- * what the game is- of tiles at least 40 px tall, all of them between y=36
- * and y=168 of the buffer, which is real 72..336: the middle of the panel.
- *
- * The icons are 12x12 written as text. Two layers -body and detail- because
- * one flat colour at this size reads as a blob, and at x2 (or x3 on the root
- * page) a 12x12 grid is exactly the resolution the rest of the game draws at.
- * -------------------------------------------------------------------------- */
-
-typedef struct {
-    const char *fila[12];
-    uint32_t    cuerpo, detalle;
-} icono_t;
-
-enum {
-    IC_TALLER, IC_OBJETOS, IC_EQUIPO, IC_REGISTRO, IC_MAPA,
-    IC_AYUDA, IC_SONIDO, IC_GUARDAR, IC_CERRAR,
-    IC_MOCHILA, IC_AJUSTES, NICONOS
-};
-
-static const icono_t ICONOS[NICONOS] = {
-    [IC_TALLER] = { {              /* a nut: the town is called Villa Tuerca */
-        "....####....", "..########..", ".##########.", "###......###",
-        "##...++...##", "##..++++..##", "##..++++..##", "##...++...##",
-        "###......###", ".##########.", "..########..", "....####....",
-    }, 0xC8CEDC, 0x5A6076 },
-    [IC_OBJETOS] = { {                                          /* a bag    */
-        "...##..##...", "...##..##...", "..########..", ".##########.",
-        "############", "############", "##..++++..##", "##..++++..##",
-        "############", ".##########.", "..########..", "............",
-    }, 0xB97A3E, 0xFFE45E },
-    [IC_EQUIPO] = { {           /* three rows of a roster: portrait and bar */
-        "............", ".###.#######", ".#+#.#######", ".###........",
-        "............", ".###.#######", ".#+#.#######", ".###........",
-        "............", ".###.#######", ".#+#.#######", ".###........",
-    }, 0x8FA6C4, 0x6FE3FF },
-    [IC_REGISTRO] = { {                               /* a page with lines  */
-        ".##########.", ".#........#.", ".#.++++++.#.", ".#........#.",
-        ".#.++++++.#.", ".#........#.", ".#.++++++.#.", ".#........#.",
-        ".#.++++...#.", ".#........#.", ".##########.", "............",
-    }, 0xE8E2D0, 0x8A93AB },
-    [IC_MAPA] = { {                                      /* a sheet + pin   */
-        "############", "#..........#", "#...####...#", "#..##++##..#",
-        "#..##++##..#", "#...####...#", "#....##....#", "#....##....#",
-        "#..........#", "#..........#", "############", "............",
-    }, 0x6FBF73, 0xFF5E5E },
-    [IC_AYUDA] = { {                                     /* a question mark */
-        "............", "...######...", "..##++++##..", "..##....##..",
-        "........##..", ".......##...", ".....###....", ".....##.....",
-        ".....##.....", "............", ".....##.....", "............",
-    }, 0xFFE45E, 0xB99A2E },
-    [IC_SONIDO] = { {                                        /* a speaker   */
-        "............", "......##....", ".....###..+.", "...#####.+..",
-        "..######.+.+", "..######+.+.", "..######.+.+", "...#####.+..",
-        ".....###..+.", "......##....", "............", "............",
-    }, 0xD5DCEB, 0x6FE3FF },
-    [IC_GUARDAR] = { {                                       /* a floppy    */
-        "############", "#++++++++++#", "#+##....##+#", "#+##....##+#",
-        "#+########+#", "#++++++++++#", "#+########+#", "#+#......#+#",
-        "#+#......#+#", "#+########+#", "############", "............",
-    }, 0x3D465F, 0xD5DCEB },
-    [IC_CERRAR] = { {                              /* the way out of a room */
-        ".####.......", ".#..........", ".#..........", ".#....##....",
-        ".#...+##....", ".#..++######", ".#...+##....", ".#....##....",
-        ".#..........", ".#..........", ".####.......", "............",
-    }, 0x8A93AB, 0xFFE45E },
-    [IC_MOCHILA] = { {                          /* root: your robot and you */
-        ".....##.....", ".....##.....", ".##########.", "##........##",
-        "#..######..#", "#..#++++#..#", "#..#++++#..#", "#..######..#",
-        "##........##", ".##########.", "..##....##..", "..##....##..",
-    }, 0x8FA6C4, 0x6FE3FF },
-    [IC_AJUSTES] = { {                                /* root: the settings */
-        "............", ".##########.", ".....##.....", ".....##.....",
-        ".##########.", "...##.......", "...##.......", ".##########.",
-        "........##..", "........##..", ".##########.", "............",
-    }, 0xD5DCEB, 0xFFE45E },
-};
-
-static void icono_draw(ch_buf_t *b, int x, int y, int ic, int esc)
-{
-    const icono_t *o = &ICONOS[ic % NICONOS];
-    uint16_t c = ch_rgb(o->cuerpo), d = ch_rgb(o->detalle);
-
-    for (int fy = 0; fy < 12; fy++) {
-        const char *f = o->fila[fy];
-        if (!f) continue;
-        for (int fx = 0; f[fx]; fx++) {
-            if (f[fx] == '.') continue;
-            ch_rect(b, x + fx * esc, y + fy * esc, esc, esc,
-                    f[fx] == '+' ? d : c);
-        }
-    }
-}
 
 /* What each tile of each page is. The root page has two, and everything the
  * player asked for by name -workshop, items, team, records, map- is on the
@@ -751,7 +903,7 @@ static void objetos_fondo(ch_t *g)
 {
     char t[30], d[12];
 
-    lista_geom(46, 21, 6);
+    lista_geom(38, 42, 3);
     ch_ui_titulo(g, _("OBJETOS"), _("TOCA UNO PARA USARLO"));
 
     s_nlista = 0;
@@ -767,10 +919,9 @@ static void objetos_fondo(ch_t *g)
     for (int i = 0; i < s_lfilas; i++) {
         int k = g->scroll + i;
         if (k >= s_nlista) break;
-        const ch_item_t *it = &ch_items[s_lista[k]];
-        snprintf(t, sizeof(t), "%s", _(it->nombre));
         snprintf(d, sizeof(d), "x%d", g->s.obj[s_lista[k]]);
-        fila(g, i, t, d, true);
+        fila_item(g, i, s_lista[k], d, ch_rgb(0xFFE45E), true);
+        (void)t;
     }
 }
 
@@ -1048,28 +1199,22 @@ static void tienda_fondo(ch_t *g)
 {
     char t[30], d[16];
 
-    lista_geom(46, 21, 6);
+    lista_geom(38, 42, 3);
     ch_ui_titulo(g, _("TIENDA"), NULL);
     snprintf(t, sizeof(t), _("TENES %d CREDITOS"), g->s.creditos);
-    ch_text(&g->bg, 8, 46, t, ch_rgb(0xFFE45E));
+    ch_text(&g->bg, 8, 20, t, ch_rgb(0xFFE45E));
 
-    for (int i = 0; i < s_lfilas && i < NSURTIDO; i++) {
-        const ch_item_t *it = &ch_items[SURTIDO[i]];
-        snprintf(t, sizeof(t), "%s", _(it->nombre));
-        snprintf(d, sizeof(d), _("%dC (x%d)"), it->precio, g->s.obj[SURTIDO[i]]);
-        fila(g, i, t, d, g->s.creditos >= it->precio);
-    }
-
-    /* And what the thing you are looking at does. Buying blind by the name is
-     * what makes nobody buy anything but oil. */
-    {
-        const ch_item_t *it = &ch_items[SURTIDO[g->sel % NSURTIDO]];
-        char lin[2][30];
-        int n = ch_wrap(_(it->desc), 27, lin, 2);
-        ch_panel(&g->bg, 4, 174 - 26, CH_W - 8, 24, ch_rgb(0x3D465F));
-        for (int i = 0; i < n && i < 2; i++) {
-            ch_text(&g->bg, 9, 174 - 22 + i * 10, lin[i], ch_rgb(0xD5DCEB));
-        }
+    flechas(g, g->scroll > 0, g->scroll + s_lfilas < NSURTIDO);
+    for (int i = 0; i < s_lfilas; i++) {
+        int k = g->scroll + i;
+        if (k >= NSURTIDO) break;
+        const ch_item_t *it = &ch_items[SURTIDO[k]];
+        snprintf(d, sizeof(d), _("%dC x%d"), it->precio, g->s.obj[SURTIDO[k]]);
+        /* The description no longer lives in a panel at the bottom that shows
+         * ONE item: it is in every row. Buying blind by the name is what made
+         * nobody buy anything but oil. */
+        fila_item(g, i, SURTIDO[k], d, ch_rgb(0xFFE45E),
+                  g->s.creditos >= it->precio);
     }
 }
 
