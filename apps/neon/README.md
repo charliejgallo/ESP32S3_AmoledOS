@@ -3,6 +3,12 @@
 Neon snakes eat neon fruit on a screen that is black everywhere else. No
 score and no HUD: the snakes, the fruit and the frame of the arena.
 
+<p align="center">
+  <img src="../../docs/img/app-neon-menu.png" width="220" alt="The menu">
+  <img src="../../docs/img/app-neon-normal.png" width="220" alt="Normal">
+  <img src="../../docs/img/app-neon-combat.png" width="220" alt="Battle">
+</p>
+
 | | Normal | Battle |
 | --- | --- | --- |
 | Arena | 21 x 24 cells of 16 px | 34 x 40 cells of 10 px: the camera further away |
