@@ -347,7 +347,7 @@ enum {
     /* one per item, and the errands share one: a list of names with no
      * pictures is a list you read twice before finding the oil */
     IC_ACEITE, IC_BATERIA, IC_SOLDADOR, IC_CHIP, IC_IMAN, IC_LLAVE,
-    IC_PASE, IC_TORNILLOS, IC_ANCLA, IC_HERRAMIENTA,
+    IC_PASE, IC_TORNILLOS, IC_ANCLA, IC_HERRAMIENTA, IC_BARRIL,
     NICONOS
 };
 
@@ -355,7 +355,7 @@ enum {
  * batteries -they ARE the same thing, bigger- and the errands that are one
  * object each share the toolbox. */
 static const uint8_t ICONO_ITEM[ITEMS] = {
-    [IT_ACEITE] = IC_ACEITE,    [IT_ACEITE2]  = IC_ACEITE,
+    [IT_ACEITE] = IC_ACEITE,    [IT_ACEITE2]  = IC_BARRIL,
     [IT_BATERIA] = IC_BATERIA,  [IT_BATERIA2] = IC_BATERIA,
     [IT_SOLDADOR] = IC_SOLDADOR,[IT_CHIP]     = IC_CHIP,
     [IT_IMAN] = IC_IMAN,        [IT_LLAVE]    = IC_LLAVE,
@@ -417,56 +417,61 @@ static const icono_t ICONOS[NICONOS] = {
         "##........##", ".##########.", "..##....##..", "..##....##..",
     }, 0x8FA6C4, 0x6FE3FF },
 
-    [IC_ACEITE] = { {                                       /* aceitera */
-        "............", "......kk....", ".....kOOk...", "....kOooOk..",
-        "...kOooooOk.", "..kOoooooOk.", "..kOoooooOk.", "..kOoooooOk.",
-        "kkkOoooooOk.", "kOOOoooooOk.", "..kOOOOOOOk.", "...kkkkkkk..",
+    [IC_ACEITE] = { {                                 /* aceitera con pico y asa */
+        "............", ".......kk...", "......koK...", ".....koK....",
+        "..kkkkkkk...", ".kwoooooOk..", "koyoooooOk..", "koyoooooOkk.",
+        "koyoooooOk.k", ".kOOOOOOOk.k", "..kkkkkkk.kk", "............",
     }, 0xFF9F0A, 0xC05A00 },
-    [IC_BATERIA] = { {                                        /* bateria */
-        "...kk..kk...", "..kGGkkGGk..", ".kkkkkkkkkk.", ".kvvvvvvvvk.",
-        ".kvVVVVVVvk.", ".kvvvvvvvvk.", ".kvVVVVVVvk.", ".kvvvvvvvvk.",
-        ".kvVVVVVVvk.", ".kvvvvvvvvk.", ".kkkkkkkkkk.", "............",
+    [IC_BATERIA] = { {                                /* bateria con el rayo en el cuerpo */
+        "...kk..kk...", "..kGGkkGGk..", ".kkkkkkkkkk.", ".kvVVVVVVvk.",
+        ".kvVVwwVVvk.", ".kvVVwVVVvk.", ".kvVwwwwVvk.", ".kvVVVwVVvk.",
+        ".kvVVwwVVvk.", ".kvVVVVVVvk.", ".kkkkkkkkkk.", "............",
     }, 0x4ADE80, 0x1E7A3C },
-    [IC_SOLDADOR] = { {                                      /* soldador */
-        "..........kk", ".........kdk", "........kddk", ".......kddk.",
-        "......kddk..", ".....kddk...", "....kGGk....", "...kGGk.....",
-        "..kook......", ".kook.......", "kok.........", "k...........",
+    [IC_SOLDADOR] = { {                               /* soldador con la punta al rojo */
+        "..........kk", ".........krk", "........krrk", ".......kroK.",
+        "......kroK..", ".....kroK...", "....kGGk....", "...kdGk.....",
+        "..kjJk......", ".kjJk.......", "kjJk........", "kkk.........",
     }, 0x99A3BC, 0xFF9F0A },
-    [IC_CHIP] = { {                                              /* chip */
-        "..k.k.k.k...", ".kkkkkkkkk..", "kkcccccccckk", ".kcCCCCCCck.",
-        ".kcCwwwwCck.", ".kcCwCCwCck.", ".kcCwCCwCck.", ".kcCwwwwCck.",
-        ".kcCCCCCCck.", "kkcccccccckk", ".kkkkkkkkk..", "..k.k.k.k...",
+    [IC_CHIP] = { {                                   /* chip con el dado adentro */
+        "..k.k.k.k...", ".kkkkkkkkk..", "kkCCCCCCCCkk", ".kCcccccccCk",
+        ".kCcKKKKKcCk", ".kCcKwwwKcCk", ".kCcKwCwKcCk", ".kCcKKKKKcCk",
+        ".kCcccccccCk", "kkCCCCCCCCkk", ".kkkkkkkkk..", "..k.k.k.k...",
     }, 0x7BE9FF, 0x18A6D8 },
-    [IC_IMAN] = { {                                              /* iman */
-        "..kkk..kkk..", ".kmmmkkmmmk.", "kmmmmkkmmmmk", "kmmkkkkkkmmk",
-        "kmmk....kmmk", "kmmk....kmmk", "kmmk....kmmk", "kmmk....kmmk",
-        "kGGk....kGGk", "kGGk....kGGk", "kkkk....kkkk", "............",
+    [IC_IMAN] = { {                                   /* iman de herradura con los polos */
+        ".kkkk..kkkk.", "kmMMmkkmMMmk", "kmMMmkkmMMmk", "kmMMmkkmMMmk",
+        "kmMMmkkmMMmk", "kmMMmkkmMMmk", "kmMMmkkmMMmk", "kmMMMMMMMMmk",
+        "kwwwwkkGGGGk", "kwwwwkkGGGGk", "kkkkk..kkkkk", "............",
     }, 0xFF6FAE, 0xD5DCEB },
-    [IC_LLAVE] = { {                                            /* llave */
-        "...kkkk.....", "..kyyyyk....", ".kyykkyyk...", ".kyk..kyk...",
-        ".kyykkyyk...", "..kyyyyk....", "...kyyk.....", "...kyyk.....",
-        "...kyyk.....", "...kyyykk...", "...kyyk.....", "...kyyykk...",
+    [IC_LLAVE] = { {                                  /* llave con paleton */
+        "...kkkk.....", "..kyYYyk....", ".kyYkkYyk...", ".kyk..kyk...",
+        ".kyYkkYyk...", "..kyYYyk....", "...kyYk.....", "...kyYk.....",
+        "...kyYkk....", "...kyYk.....", "...kyYkkk...", "...kkkk.....",
     }, 0xFFE45E, 0xE0A800 },
-    [IC_PASE] = { {                                              /* pase */
-        "kkkkkkkkkkkk", "kCCCCCCCCCCk", "kCwwwwCCCCCk", "kCwwwwCGGGCk",
-        "kCwwwwCGGGCk", "kCCCCCCCCCCk", "kCGGGGGGGGCk", "kCGGGGGGGGCk",
-        "kCCCCCCCCCCk", "kCyyyyyyyyCk", "kCCCCCCCCCCk", "kkkkkkkkkkkk",
+    [IC_PASE] = { {                                   /* pase con foto y banda */
+        "kkkkkkkkkkkk", "kCCCCCCCCCCk", "kCkwwkCCCCCk", "kCkwwkCGGGCk",
+        "kCkwwkCGGGCk", "kCkkkkCCCCCk", "kCGGGGGGGGCk", "kCCCCCCCCCCk",
+        "kCyyyyyyyyCk", "kCyKKKKKKyCk", "kCCCCCCCCCCk", "kkkkkkkkkkkk",
     }, 0x18A6D8, 0xD5DCEB },
-    [IC_TORNILLOS] = { {                                    /* tornillos */
-        "............", ".kkkkkkkkkk.", ".kGGGGGGGGk.", ".kGdddddddk.",
-        ".kdGdkGdkGdk", ".kddddddddk.", ".kdkGdkGdkdk", ".kddddddddk.",
-        ".kdGdkGdkGdk", ".kddddddddk.", ".kkkkkkkkkk.", "............",
+    [IC_TORNILLOS] = { {                              /* caja con los tornillos a la vista */
+        ".kkkkkkkkkk.", ".kJJJJJJJJk.", ".kjjjjjjjjk.", ".kkkkkkkkkk.",
+        "kGdGkGdGkGdk", "kdddkdddkddd", "kGdGkGdGkGdk", "kdddkdddkddd",
+        "kGdGkGdGkGdk", ".kjjjjjjjjk.", ".kJJJJJJJJk.", ".kkkkkkkkkk.",
     }, 0x99A3BC, 0x3D465F },
-    [IC_ANCLA] = { {                                            /* ancla */
-        "....kkkk....", "...kuuuuk...", "...kukkuk...", "...kuuuuk...",
-        ".kkkkuukkkk.", "....kuuk....", "....kuuk....", "k...kuuk...k",
-        "ku..kuuk..uk", "kuukkuukkuuk", ".kuuuuuuuuk.", "..kkkkkkkk..",
+    [IC_ANCLA] = { {                                  /* ancla con cepo y brazos */
+        ".....kk.....", "....kuuk....", "....kkkk....", "....kuuk....",
+        ".kkkkuukkkk.", ".kUUkuukUUk.", "....kuuk....", "k...kuuk...k",
+        "ku..kuuk..uk", "kuukkuukkuuk", ".kuUUUUUUuk.", "..kkkkkkkk..",
     }, 0xC06B2E, 0x6E3A16 },
-    [IC_HERRAMIENTA] = { {                              /* encargos varios */
-        "............", "..kkkkkkkk..", ".kGGGGGGGGk.", ".kGddddddGk.",
-        ".kGdyyyydGk.", ".kGdyYYydGk.", ".kGdyYYydGk.", ".kGdyyyydGk.",
-        ".kGddddddGk.", ".kGGGGGGGGk.", "..kkkkkkkk..", "............",
+    [IC_HERRAMIENTA] = { {                            /* caja de herramientas con asa y traba */
+        ".....kk.....", "....kGGk....", "..kkkkkkkk..", ".kGGGGGGGGk.",
+        "kGdddddddddk", "kGdyyyyyyydk", "kGdyKKKKKydk", "kGdyyyyyyydk",
+        "kGdddddddddk", ".kGGGGGGGGk.", "..kkkkkkkk..", "............",
     }, 0xD5DCEB, 0xFFE45E },
+    [IC_BARRIL] = { {                                 /* barril de aceite con zunchos */
+        "..kkkkkkkk..", ".kOOOOOOOOk.", "kOoooooooOk.", "kOoOOOOOoOk.",
+        "kkkkkkkkkkkk", "kOoyyyyyoOk.", "kOoyOOOyoOk.", "kOoyyyyyoOk.",
+        "kkkkkkkkkkkk", "kOoooooooOk.", ".kOOOOOOOOk.", "..kkkkkkkk..",
+    }, 0xFF9F0A, 0xC05A00 },
     [IC_AJUSTES] = { {                                /* root: the settings */
         "............", ".##########.", ".....##.....", ".....##.....",
         ".##########.", "...##.......", "...##.......", ".##########.",
@@ -474,18 +479,28 @@ static const icono_t ICONOS[NICONOS] = {
     }, 0xD5DCEB, 0xFFE45E },
 };
 
+/* TWO COLOURS WAS THE CEILING, and it showed: an item icon came out as a
+ * coloured blob with a hole in it. '#' and '+' still mean body and detail -the
+ * menu's eleven icons are drawn that way and read fine at three times size-
+ * but any other letter is now looked up in the SPRITES' palette, so an icon
+ * can have as much detail as the rest of the game's art. Same table, same
+ * twelve by twelve, no new format to learn. */
 static void icono_draw(ch_buf_t *b, int x, int y, int ic, int esc)
 {
     const icono_t *o = &ICONOS[ic % NICONOS];
-    uint16_t c = ch_rgb(o->cuerpo), d = ch_rgb(o->detalle);
+    uint16_t c = ch_rgb(o->cuerpo), d = ch_rgb(o->detalle), p;
 
     for (int fy = 0; fy < 12; fy++) {
         const char *f = o->fila[fy];
         if (!f) continue;
         for (int fx = 0; f[fx]; fx++) {
+            uint16_t col;
             if (f[fx] == '.') continue;
-            ch_rect(b, x + fx * esc, y + fy * esc, esc, esc,
-                    f[fx] == '+' ? d : c);
+            if (f[fx] == '#')      col = c;
+            else if (f[fx] == '+') col = d;
+            else if (ch_pal(f[fx], &p)) col = p;
+            else                   col = c;
+            ch_rect(b, x + fx * esc, y + fy * esc, esc, esc, col);
         }
     }
 }
@@ -767,7 +782,7 @@ static void taller_fondo(ch_t *g)
     ch_buf_t *b = &g->bg;
     char t[30], d[16];
 
-    lista_geom(62, 21, 5);
+    lista_geom(60, 36, 3);
     ch_ui_titulo(g, _("TALLER"), _("TOCA PARA MONTAR"));
 
     /* At the top, either what you are wearing or -if you touched a part- WHAT
@@ -777,19 +792,27 @@ static void taller_fondo(ch_t *g)
     if (g->sel2) {
         ch_robot_t prueba = g->s.yo;
         uint8_t id = g->s.piezas[(g->sel2 - 1) % MOCHILA];
-        char t2[30];
+        char t2[72];   /* el peor caso que asume gcc: ocho int16 con signo */
 
+        /* DOS CADENAS ALINEADAS A DERECHA EN LA MISMA LINEA SE PISAN.
+         *
+         * Este encabezado tenia el nombre a la izquierda y "AHORA PV.." a la
+         * derecha en y=42, y los numeros nuevos a la izquierda y "TOCA OTRA
+         * VEZ PARA MONTAR" a la derecha en y=52. En castellano entraba por
+         * poco; en ingles, en la placa, quedaba un amasijo. Ahora es una
+         * comparacion en UNA linea -viejo>nuevo- que mide 23 caracteres
+         * siempre, y la pista es corta. */
         prueba.pieza[PIEZA_CAT(id)] = PIEZA_VAR(id);
         ch_robot_stats(&prueba);
         ch_text(b, 6, 42, _(ch_partes[id].nombre), ch_rgb(0xFFE45E));
-        snprintf(t2, sizeof(t2), _("PV%d A%d D%d V%d"),
-                 prueba.vida_max, prueba.atk, prueba.def, prueba.vel);
+        ch_text(b, CH_W - 6 - ch_text_w(_("TOCA 2X")), 42, _("TOCA 2X"),
+                ch_rgb(0x8A93AB));
+        snprintf(t2, sizeof(t2), "PV%d>%d A%d>%d D%d>%d V%d>%d",
+                 g->s.yo.vida_max, prueba.vida_max,
+                 g->s.yo.atk, prueba.atk,
+                 g->s.yo.def, prueba.def,
+                 g->s.yo.vel, prueba.vel);
         ch_text(b, 6, 52, t2, ch_rgb(0xD5DCEB));
-        snprintf(t2, sizeof(t2), _("AHORA PV%d A%d D%d V%d"),
-                 g->s.yo.vida_max, g->s.yo.atk, g->s.yo.def, g->s.yo.vel);
-        ch_text(b, CH_W - 6 - ch_text_w(t2), 42, t2, ch_rgb(0x606B85));
-        ch_text(b, CH_W - 6 - ch_text_w(_("TOCA OTRA VEZ PARA MONTAR")), 52,
-                _("TOCA OTRA VEZ PARA MONTAR"), ch_rgb(0x8A93AB));
     } else {
         for (int c = 0; c < P_CATS; c++) {
             const ch_part_t *p = &ch_partes[PIEZA_ID(c, g->s.yo.pieza[c])];
@@ -819,13 +842,34 @@ static void taller_fondo(ch_t *g)
         int k = g->scroll + i;
         if (k >= MOCHILA) break;
         uint8_t id = g->s.piezas[k];
-        if (id == 0xFF) { fila(g, i, "-", NULL, false); continue; }
+        int y = s_ly0 + i * s_lfh;
+        int h = s_lfh - 4;
+        if (id == 0xFF) {
+            ch_rect(&g->bg, LX, y, LW, h, ch_rgb(0x111420));
+            ch_frame(&g->bg, LX, y, LW, h, ch_rgb(0x232B41));
+            ch_text(&g->bg, LX + 8, y + h / 2 - 3, _("VACIO"), ch_rgb(0x3D465F));
+            continue;
+        }
         const ch_part_t *p = &ch_partes[id];
         int cat = PIEZA_CAT(id);
         const ch_part_t *puesta = &ch_partes[PIEZA_ID(cat, g->s.yo.pieza[cat])];
 
-        snprintf(t, sizeof(t), "%s %s", _(CATS[cat]), _(p->nombre));
-        fila(g, i, t, NULL, true);
+        /* THE PART, DRAWN. A bag listed as "HED SIMPLE EYE" is a list of
+         * words: you cannot see which of your four heads is the square one
+         * without fitting it. The row now shows the piece itself, in your own
+         * colours, which is the same information the grid of the register
+         * gives and it costs one call. */
+        ch_rect(&g->bg, LX, y, LW, h, ch_rgb(0x1A2133));
+        ch_frame(&g->bg, LX, y, LW, h, ch_rgb(0x3D465F));
+        ch_rect(&g->bg, LX + 1, y + 1, LW - 2, 1, ch_rgb(0x2C3550));
+        ch_rect(&g->bg, LX + 3, y + 3, 30, h - 6, ch_rgb(0x0E111A));
+        ch_part_draw(&g->bg, cat, PIEZA_VAR(id), LX + 18, y + h - 6, 1,
+                     (int)g->s.yo.skin);
+        ch_text(&g->bg, LX + 38, y + 5, _(CATS[cat]), ch_rgb(0x8A93AB));
+        ch_text(&g->bg, LX + 38 + ch_text_w(_(CATS[cat])) + 5, y + 5,
+                _(p->nombre), ch_rgb(0xFFFFFF));
+        snprintf(t, sizeof(t), _("PV%d E%d"), p->vida, p->energia);
+        ch_text(&g->bg, LX + 38, y + 17, t, ch_rgb(0x606B85));
 
         /* THE DIFFERENCE, NOT THE BARE NUMBER.
          *
@@ -842,7 +886,7 @@ static void taller_fondo(ch_t *g)
             for (int k = 2; k >= 0; k--) {
                 snprintf(d, sizeof(d), "%s%+d", LET[k], dif[k]);
                 x -= ch_text_w(d) + 4;
-                ch_text(&g->bg, x, s_ly0 + i * s_lfh + 5, d,
+                ch_text(&g->bg, x, s_ly0 + i * s_lfh + 17, d,
                         dif[k] > 0 ? ch_rgb(0x4ADE80)
                                    : (dif[k] < 0 ? ch_rgb(0xFF4A3D)
                                                  : ch_rgb(0x606B85)));
@@ -999,11 +1043,24 @@ static void objetos_toque(ch_t *g, int bx, int by)
  * you would keep a spare head.
  * -------------------------------------------------------------------------- */
 
-#define EQ_Y      36
+/* EQUIPO, medido de arriba hacia abajo y terminando ANTES del HUD.
+ *
+ * Los botones estaban en 156 y miden 16, o sea acababan en 172, y el HUD manda
+ * desde 168: en la placa se veia media palabra. Ahora la pantalla tiene tres
+ * vistas -el robot, sus numeros y sus golpes- y cada una ocupa el mismo hueco
+ * medido, que es lo que hace que ninguna se desborde por agregarle una linea.  */
+#define EQ_Y      34                    /* los tres del equipo               */
 #define EQ_H      24
 #define EQ_W      58
-#define EQ_BY    156                    /* the buttons                       */
-#define EQ_BH     16
+#define EQ_RX     34                    /* el robot, a escala 2: 62..142     */
+#define EQ_RY     62
+#define EQ_PX     72                    /* el panel de la derecha            */
+#define EQ_PW    (CH_W - EQ_PX - 6)
+#define EQ_VY     62                    /* el par de botones del panel       */
+#define EQ_VH     14
+#define EQ_CY     79
+#define EQ_BY    148                    /* los botones de accion: 148..166   */
+#define EQ_BH     18
 
 static int eq_slot_en(int bx, int by)
 {
@@ -1021,6 +1078,30 @@ static int eq_boton_en(int bx, int by)
     return bx < CH_W / 2 ? 0 : 1;
 }
 
+/* Uno de los dos botones del panel: los numeros o los golpes. */
+static void eq_vista(ch_t *g, int i, const char *txt, bool sel)
+{
+    ch_buf_t *b = &g->bg;
+    int w = (EQ_PW - 3) / 2;
+    int x = EQ_PX + i * (w + 3);
+
+    ch_round(b, x, EQ_VY, w, EQ_VH, 3, ch_rgb(sel ? 0x2B3145 : 0x141720));
+    ch_frame(b, x, EQ_VY, w, EQ_VH, ch_rgb(sel ? 0xFFE45E : 0x3D465F));
+    ch_text_center(b, x + w / 2, EQ_VY + 4, txt,
+                   ch_rgb(sel ? 0xFFFFFF : 0x606B85), ch_rgb(0x05060C));
+}
+
+static int eq_vista_en(int bx, int by)
+{
+    int w = (EQ_PW - 3) / 2;
+    if (by < EQ_VY || by >= EQ_VY + EQ_VH) return -1;
+    for (int i = 0; i < 2; i++) {
+        int x = EQ_PX + i * (w + 3);
+        if (bx >= x && bx < x + w) return i;
+    }
+    return -1;
+}
+
 static void eq_boton(ch_t *g, int i, const char *txt, bool activo)
 {
     ch_buf_t *b = &g->bg;
@@ -1029,7 +1110,7 @@ static void eq_boton(ch_t *g, int i, const char *txt, bool activo)
 
     ch_round(b, x, EQ_BY, w, EQ_BH, 3, ch_rgb(activo ? 0x2A3350 : 0x141824));
     ch_frame(b, x, EQ_BY, w, EQ_BH, ch_rgb(activo ? 0x8A93AB : 0x2B3145));
-    ch_text_center(b, x + w / 2, EQ_BY + 5, txt,
+    ch_text_center(b, x + w / 2, EQ_BY + 6, txt,
                    ch_rgb(activo ? 0xFFFFFF : 0x545C70), ch_rgb(0x05060C));
 }
 
@@ -1079,32 +1160,49 @@ static void ficha_fondo(ch_t *g)
                  ch_rgb(q->vida > 0 ? 0x4ADE80 : 0xE05252));
     }
 
-    /* --- the selected robot ----------------------------------------------- */
-    ch_robot_draw(b, 34, 64, r, 2, false, 0, 0);
+    /* --- the selected robot, whole ---------------------------------------- */
+    ch_robot_draw(b, EQ_RX, EQ_RY, r, 2, false, 0, 0);
+    /* Sin barras debajo del robot: a escala 2 llega hasta 142 y lo unico que
+     * queda abajo son los botones. La vida ya esta en la pestana del equipo y
+     * otra vez en el panel de numeros. */
 
-    {
-        int y = 64;
-        snprintf(t, sizeof(t), _("VIDA %d/%d"), r->vida, r->vida_max);
-        ch_text(b, 76, y, t, ch_rgb(0x4ADE80));  y += 10;
-        snprintf(t, sizeof(t), _("ENER %d/%d"), r->ene, r->ene_max);
-        ch_text(b, 76, y, t, ch_rgb(0x4A9DF5));  y += 10;
-        snprintf(t, sizeof(t), _("ATAQUE   %d"), r->atk);
-        ch_text(b, 76, y, t, ch_rgb(0xD5DCEB));  y += 10;
-        snprintf(t, sizeof(t), _("DEFENSA  %d"), r->def);
-        ch_text(b, 76, y, t, ch_rgb(0xD5DCEB));  y += 10;
-        snprintf(t, sizeof(t), _("VELOCID. %d"), r->vel);
-        ch_text(b, 76, y, t, ch_rgb(0xD5DCEB));
-    }
+    /* --- and the panel, which is one of TWO -------------------------------- */
+    eq_vista(g, 0, _("NUMEROS"), g->sel2 == 0);
+    eq_vista(g, 1, _("GOLPES"),  g->sel2 != 0);
+    ch_rect(b, EQ_PX, EQ_CY, EQ_PW, EQ_BY - EQ_CY - 3, ch_rgb(0x111420));
+    ch_frame(b, EQ_PX, EQ_CY, EQ_PW, EQ_BY - EQ_CY - 3, ch_rgb(0x3D465F));
 
-    for (int i = 0; i < r->nmov && i < 4; i++) {
-        const ch_move_t *m = &ch_moves[r->mov[i] % MOVES];
-        int fy = 118 + i * 9;
-        ch_rect(b, 6, fy - 1, CH_W - 12, 8, ch_rgb(0x171B29));
-        ch_text(b, 10, fy, _(m->nombre), ch_rgb(0xFFFFFF));
-        ch_text(b, 104, fy, _(ch_tipo_nombre[m->tipo % TIPOS]),
-                ch_rgb(ch_tipo_color[m->tipo % TIPOS]));
-        snprintf(t, sizeof(t), "%d/%d", m->poder, m->costo);
-        ch_text(b, CH_W - 10 - ch_text_w(t), fy, t, ch_rgb(0x8A93AB));
+    if (g->sel2 == 0) {
+        static const char *const ET[5] = { N_("VIDA"), N_("ENER"), N_("ATAQ"),
+                                           N_("DEFE"), N_("VELO") };
+        int val[5] = { r->vida, r->ene, r->atk, r->def, r->vel };
+        int tope[5] = { r->vida_max, r->ene_max, 0, 0, 0 };
+        uint32_t col[5] = { 0x4ADE80, 0x4A9DF5, 0xFF9F0A, 0x7BE9FF, 0xB072F0 };
+
+        for (int i = 0; i < 5; i++) {
+            int y = EQ_CY + 5 + i * 12;
+            ch_text(b, EQ_PX + 5, y, _(ET[i]), ch_rgb(0x8A93AB));
+            if (tope[i]) snprintf(t, sizeof(t), "%d/%d", val[i], tope[i]);
+            else         snprintf(t, sizeof(t), "%d", val[i]);
+            ch_text(b, EQ_PX + EQ_PW - 5 - ch_text_w(t), y, t, ch_rgb(col[i]));
+        }
+    } else {
+        for (int i = 0; i < 4; i++) {
+            int y = EQ_CY + 3 + i * 16;
+            const ch_move_t *m;
+            if (i) ch_hline(b, EQ_PX + 4, y - 3, EQ_PW - 8, ch_rgb(0x232B41));
+            if (i >= r->nmov) {
+                ch_text(b, EQ_PX + 5, y + 3, "-", ch_rgb(0x3D465F));
+                continue;
+            }
+            m = &ch_moves[r->mov[i] % MOVES];
+            ch_text(b, EQ_PX + 5, y, _(m->nombre), ch_rgb(0xFFFFFF));
+            ch_text(b, EQ_PX + 5, y + 8, _(ch_tipo_nombre[m->tipo % TIPOS]),
+                    ch_rgb(ch_tipo_color[m->tipo % TIPOS]));
+            snprintf(t, sizeof(t), _("%d/%dE"), m->poder, m->costo);
+            ch_text(b, EQ_PX + EQ_PW - 5 - ch_text_w(t), y + 8, t,
+                    ch_rgb(0x8A93AB));
+        }
     }
 
     /* --- what can be done with it ----------------------------------------- */
@@ -1140,6 +1238,16 @@ static void ficha_toque(ch_t *g, int bx, int by)
         }
         g->rehacer_fondo = 1;
         return;
+    }
+
+    {   /* los dos botones del panel: numeros o golpes */
+        int v = eq_vista_en(bx, by);
+        if (v >= 0) {
+            g->sel2 = (uint8_t)v;
+            ch_sfx(1000, 20);
+            g->rehacer_fondo = 1;
+            return;
+        }
     }
 
     b = eq_boton_en(bx, by);
@@ -1259,23 +1367,35 @@ static void tienda_toque(ch_t *g, int bx, int by)
  * one in the bottom strip. It all ends at y=172, which is the touch limit.
  * -------------------------------------------------------------------------- */
 
+/* THE CARD GOES ON TOP, NOT UNDERNEATH.
+ *
+ * It used to live at y=152 and be 22 tall, so it ended at 174 and the HUD -
+ * which owns everything from 168 - ate its second line. The fix is not to
+ * move it up by six: it is that the only thing with a variable number of rows
+ * on this screen is the GRID, so the grid is what takes the leftover space
+ * and everything else is measured from the top. With the card in the header
+ * the grid gets 104 px, which is two rows of 52 - twice the old cell - and
+ * that is what makes the parts big enough to tell apart. */
+#define RG_HDR   40                     /* title + the selected part's card  */
 #define RG_TX     6                     /* tabs                              */
-#define RG_TY    26
+#define RG_TY    42
 #define RG_TW    43
-#define RG_TH    18
+#define RG_TH    16
 #define RG_GX     8                     /* grid                              */
-#define RG_GY    46
+#define RG_GY    60
 #define RG_CW    42
-#define RG_CH    26                     /* 4 rows x 26 = 104: 46..150        */
-#define RG_INFO 152                     /* the card, below the grid          */
+#define RG_CH    52                     /* 2 rows x 52 = 104: 60..164        */
+#define RG_FILAS  2
+#define RG_PAG   (RG_FILAS * 4)
 
 static int rg_celda(int bx, int by)
 {
     int c, f;
+
     if (bx < RG_GX || by < RG_GY) return -1;
     c = (bx - RG_GX) / RG_CW;
     f = (by - RG_GY) / RG_CH;
-    if (c > 3 || f > 3) return -1;
+    if (c > 3 || f >= RG_FILAS) return -1;
     return f * 4 + c;
 }
 
@@ -1283,65 +1403,73 @@ static void registro_fondo(ch_t *g)
 {
     ch_buf_t *b = &g->bg;
     int cat = g->sel2 % P_CATS;
+    int pag = g->scroll ? 1 : 0;
     int n = 0;
     char t[34];
 
     for (int i = 0; i < PIEZAS; i++) if (ch_visto(&g->s, i)) n++;
+
+    ch_rect(b, 0, 0, CH_W, MAP_H, ch_rgb(0x0B0D14));
+    ch_vgrad(b, 0, 0, CH_W, RG_HDR, ch_rgb(0x1B2340), ch_rgb(0x0B0D14));
+    /* The counter goes NEXT TO the title and not in the right-hand corner:
+     * that corner belongs to the page arrows and the two were drawn on top of
+     * each other. */
+    ch_text(b, 8, 5, _("REGISTRO"), ch_rgb(0xFFE45E));
     snprintf(t, sizeof(t), "%d/%d", n, PIEZAS);
-    ch_ui_titulo(g, _("REGISTRO"), NULL);
-    ch_text(b, CH_W - 8 - ch_text_w(t), 9, t, ch_rgb(0xFFE45E));
+    ch_text(b, 8 + ch_text_w(_("REGISTRO")) + 8, 5, t, ch_rgb(0x8A93AB));
+
+    /* The card: the part you are looking at, in the header. */
+    {
+        int var = pag * RG_PAG + (g->sel % RG_PAG);
+        const ch_part_t *p = &ch_partes[PIEZA_ID(cat, var % PVAR)];
+        bool visto = ch_visto(&g->s, PIEZA_ID(cat, var % PVAR));
+
+        if (!visto) {
+            ch_text(b, 8, 18, _("SIN DATOS"), ch_rgb(0x606B85));
+        } else {
+            /* El tipo va en la SEGUNDA linea y no arriba a la derecha: esa
+             * esquina es de las flechas de pagina y se pisaban. */
+            const char *tn = _(ch_tipo_nombre[p->tipo % TIPOS]);
+            ch_text(b, 8, 18, _(p->nombre), ch_rgb(0xFFFFFF));
+            snprintf(t, sizeof(t), _("PV%d A%d D%d V%d E%d"),
+                     p->vida, p->atk, p->def, p->vel, p->energia);
+            ch_text(b, 8, 29, t, ch_rgb(0x8A93AB));
+            ch_text(b, CH_W - 8 - ch_text_w(tn), 29, tn,
+                    ch_rgb(ch_tipo_color[p->tipo % TIPOS]));
+        }
+    }
+    ch_hline(b, 6, RG_HDR - 1, CH_W - 12, ch_rgb(0x3D465F));
+    flechas(g, pag > 0, pag == 0);
 
     for (int c = 0; c < P_CATS; c++) {
         int x = RG_TX + c * (RG_TW + 2);
         bool sel = (c == cat);
         ch_rect(b, x, RG_TY, RG_TW, RG_TH, sel ? ch_rgb(0x2B3145) : ch_rgb(0x141720));
         ch_frame(b, x, RG_TY, RG_TW, RG_TH, sel ? ch_rgb(0xFFE45E) : ch_rgb(0x3D465F));
-        ch_text_center(b, x + RG_TW / 2, RG_TY + 6, _(CATS[c]),
+        ch_text_center(b, x + RG_TW / 2, RG_TY + 5, _(CATS[c]),
                        sel ? ch_rgb(0xFFFFFF) : ch_rgb(0x606B85), ch_rgb(0x05060C));
     }
 
-    for (int i = 0; i < PVAR; i++) {
-        int x = RG_GX + (i % 4) * RG_CW;
-        int y = RG_GY + (i / 4) * RG_CH;
-        bool visto = ch_visto(&g->s, PIEZA_ID(cat, i));
-        bool puesta = (g->s.yo.pieza[cat] == i);
+    for (int k = 0; k < RG_PAG; k++) {
+        int i = pag * RG_PAG + k;
+        int x = RG_GX + (k % 4) * RG_CW;
+        int y = RG_GY + (k / 4) * RG_CH;
+        bool visto, puesta;
+
+        if (i >= PVAR) break;
+        visto  = ch_visto(&g->s, PIEZA_ID(cat, i));
+        puesta = (g->s.yo.pieza[cat] == i);
 
         ch_rect(b, x + 1, y + 1, RG_CW - 3, RG_CH - 3, ch_rgb(0x0E111A));
-        ch_part_draw(b, cat, i, x + RG_CW / 2 - 1, y + RG_CH / 2 + 2, 1,
+        ch_part_draw(b, cat, i, x + RG_CW / 2 - 1, y + RG_CH - 8, 2,
                      visto ? (int)g->s.yo.skin : -1);
         /* Two different frames and not one: GREEN the one you are wearing,
          * YELLOW the one you are looking at. With a single frame you cannot
-         * tell whether the card below is talking about the one fitted or the
-         * one you touched. */
+         * tell whether the card is talking about the one fitted or the one
+         * you touched. */
         if (puesta) ch_frame(b, x, y, RG_CW - 1, RG_CH - 1, ch_rgb(0x4ADE80));
-        if (i == (g->sel % PVAR)) {
+        if (k == (g->sel % RG_PAG)) {
             ch_frame(b, x + 1, y + 1, RG_CW - 3, RG_CH - 3, ch_rgb(0xFFE45E));
-        }
-    }
-
-    /* The selected one's card. 'sel' stores which, within the category. */
-    {
-        int var = g->sel % PVAR;
-        const ch_part_t *p = &ch_partes[PIEZA_ID(cat, var)];
-        bool visto = ch_visto(&g->s, PIEZA_ID(cat, var));
-
-        ch_panel(b, 4, RG_INFO, CH_W - 8, 22, ch_rgb(0x8A93AB));
-        if (!visto) {
-            ch_text_center(b, CH_W / 2, RG_INFO + 7, _("SIN DATOS"),
-                           ch_rgb(0x606B85), ch_rgb(0x05060C));
-        } else {
-            ch_text(b, 9, RG_INFO + 3, _(p->nombre), ch_rgb(0xFFFFFF));
-            ch_text(b, CH_W - 9 - ch_text_w(_(ch_tipo_nombre[p->tipo % TIPOS])),
-                    RG_INFO + 3, _(ch_tipo_nombre[p->tipo % TIPOS]),
-                    ch_rgb(ch_tipo_color[p->tipo % TIPOS]));
-            /* PV and not V: V is already speed in the workshop, and two
-             * identical letters with two meanings on the same line cannot be
-             * read. */
-            snprintf(t, sizeof(t), _("PV%d A%d D%d V%d E%d"),
-                     p->vida, p->atk, p->def, p->vel, p->energia);
-            ch_text(b, 9, RG_INFO + 13, t, ch_rgb(0xD5DCEB));
-            snprintf(t, sizeof(t), _("Z%d"), p->nivel);
-            ch_text(b, CH_W - 9 - ch_text_w(t), RG_INFO + 13, t, ch_rgb(0x8A93AB));
         }
     }
 }
@@ -1359,6 +1487,16 @@ static void registro_toque(ch_t *g, int bx, int by)
             g->rehacer_fondo = 1;
         }
         return;
+    }
+    {   /* the page arrows, which is how the other eight variants are got to */
+        int f = flecha_en(bx, by);
+        if (f) {
+            g->scroll = (uint8_t)(f < 0 ? 0 : 1);
+            g->sel = 0;
+            ch_sfx(1000, 20);
+            g->rehacer_fondo = 1;
+            return;
+        }
     }
     c = rg_celda(bx, by);
     if (c >= 0) {
@@ -1499,14 +1637,71 @@ static void ayuda_fondo(ch_t *g)
  * fields of a table.
  * -------------------------------------------------------------------------- */
 
-#define MM_Y0    40
-#define MM_FH    15
+/* EL MAPA ES OCHO BOTONES, no ocho renglones.
+ *
+ * Era una lista de 15 px por zona que no se podia tocar y no hacia falta que
+ * se pudiera, porque no hacia nada. Ahora cada zona es una ficha de 30 px con
+ * su icono, su estado y -si ya estuviste- el viaje. 128 px de alto para ocho
+ * fichas no entran, asi que van de a cuatro y se pasa de pagina. */
+#define MM_Y0    38
+#define MM_FH    31
+#define MM_FILAS  4
+#define MM_H     28
+
+/* VIAJE RAPIDO. Solo a una zona en la que ya estuviste, y siempre a su
+ * pueblo: aterrizar en una mazmorra a la que entraste una vez seria una
+ * trampa, y el pueblo es donde estan el taller y la tienda, que es para lo
+ * que se vuelve. */
+static void mapa_toque(ch_t *g, int bx, int by)
+{
+    int pag = g->scroll ? 1 : 0;
+    int f = flecha_en(bx, by);
+
+    if (f) {
+        g->scroll = (uint8_t)(f < 0 ? 0 : 1);
+        ch_sfx(1000, 20);
+        g->rehacer_fondo = 1;
+        return;
+    }
+    if (by < MM_Y0 || bx < 6 || bx >= CH_W - 6) {
+        g->modo = MODO_MENU;
+        g->rehacer_fondo = 1;
+        return;
+    }
+    {
+        int i = (by - MM_Y0) / MM_FH;
+        int z = pag * MM_FILAS + i;
+        const ch_zona_t *zo;
+
+        if (i < 0 || i >= MM_FILAS || z >= ZONAS) return;
+        if ((by - MM_Y0) % MM_FH >= MM_H) return;       /* el hueco entre fichas */
+        zo = &ch_zonas_tab[z];
+
+        if (!ch_flag(&g->s, zo->visita)) {
+            ch_sfx(220, 40);
+            ch_ui_aviso(g, _("TODAVIA NO ESTUVISTE AHI"));
+            return;
+        }
+        if (g->s.sala >= zo->sala0 && g->s.sala <= zo->sala1) {
+            ch_sfx(220, 40);
+            ch_ui_aviso(g, _("YA ESTAS AHI"));
+            return;
+        }
+        ch_sfx(1500, 90);
+        ch_ui_aviso(g, _("VIAJANDO..."));
+        g->sel = g->sel2 = g->scroll = 0;
+        g->modo = MODO_MAPA;
+        ch_map_entrar(g, zo->casa, zo->casa_x, zo->casa_y);
+        g->quiere_guardar = 1;
+        g->rehacer_fondo = 1;
+    }
+}
 
 static void mapa_fondo(ch_t *g)
 {
     ch_buf_t *b = &g->bg;
-    int aqui = 0, hechas = 0;
-    char t[8];
+    int aqui = 0, hechas = 0, pag = g->scroll ? 1 : 0;
+    char t[24];
 
     for (int z = 0; z < ZONAS; z++) {
         if (g->s.sala >= ch_zonas_tab[z].sala0 &&
@@ -1515,45 +1710,56 @@ static void mapa_fondo(ch_t *g)
     }
 
     snprintf(t, sizeof(t), "%d/%d", hechas, ZONAS);
-    ch_ui_titulo(g, _("MAPA"), NULL);
-    ch_text(b, CH_W - 8 - ch_text_w(t), 9, t, ch_rgb(0xFFE45E));
+    ch_ui_titulo(g, _("MAPA"), _("TOCA PARA VIAJAR"));
+    ch_text(b, 8 + ch_text_w(_("MAPA")) + 8, 9, t, ch_rgb(0x8A93AB));
+    flechas(g, pag > 0, pag == 0);
 
-    /* The line joining them: it is what says the world is a chain. */
-    ch_vline(b, 18, MM_Y0 + 6, (ZONAS - 1) * MM_FH, ch_rgb(0x3D465F));
+    for (int i = 0; i < MM_FILAS; i++) {
+        int z = pag * MM_FILAS + i;
+        int y = MM_Y0 + i * MM_FH;
+        bool ok, yo, visto;
+        uint16_t marco;
 
-    for (int z = 0; z < ZONAS; z++) {
-        int y = MM_Y0 + z * MM_FH;
-        bool ok = ch_flag(&g->s, ch_zonas_tab[z].bandera);
-        bool yo = (z == aqui);
-        uint16_t c = ok ? ch_rgb(0x4ADE80) : (yo ? ch_rgb(0xFFE45E)
-                                                 : ch_rgb(0x606B85));
+        if (z >= ZONAS) break;
+        ok    = ch_flag(&g->s, ch_zonas_tab[z].bandera);
+        yo    = (z == aqui);
+        visto = ch_flag(&g->s, ch_zonas_tab[z].visita);
+        marco = yo ? ch_rgb(0xFFE45E)
+                   : (visto ? ch_rgb(0x3D465F) : ch_rgb(0x232B41));
 
-        if (yo) {
-            ch_rect(b, 4, y - 2, CH_W - 8, 14, ch_rgb(0x232B41));
-            ch_frame(b, 4, y - 2, CH_W - 8, 14, ch_rgb(0x3D465F));
-        }
-        /* Filled node = cleared, ring = where you are, dot = pending. */
-        if (ok)       ch_disc(b, 18, y + 5, 4, c);
-        else if (yo)  ch_ring(b, 18, y + 5, 4, c);
-        else          ch_disc(b, 18, y + 5, 2, c);
+        ch_round(b, 6, y, CH_W - 12, MM_H, 3,
+                 ch_rgb(yo ? 0x2A3350 : (visto ? 0x161C2E : 0x101320)));
+        ch_frame(b, 6, y, CH_W - 12, MM_H, marco);
 
+        /* El numero de zona, en su propia casilla: es el orden del mundo. */
+        ch_rect(b, 10, y + 4, 20, MM_H - 8,
+                ch_rgb(ok ? 0x1E7A3C : (visto ? 0x232B41 : 0x171B29)));
+        ch_frame(b, 10, y + 4, 20, MM_H - 8, ch_rgb(0x3D465F));
         snprintf(t, sizeof(t), "%d", z + 1);
-        ch_text(b, 8, y + 2, t, ch_rgb(0x8A93AB));
-        ch_text(b, 30, y + 2, _(ch_zonas_tab[z].nombre),
-                yo ? ch_rgb(0xFFFFFF) : (ok ? ch_rgb(0xD5DCEB)
-                                            : ch_rgb(0x606B85)));
-        if (ok) {
-            ch_text(b, CH_W - 10 - ch_text_w(_("OK")), y + 2, _("OK"),
-                    ch_rgb(0x4ADE80));
-        } else if (yo) {
-            ch_text(b, CH_W - 10 - ch_text_w(_("AQUI")), y + 2, _("AQUI"),
-                    ch_rgb(0xFFE45E));
+        ch_text_center(b, 20, y + MM_H / 2 - 3, t,
+                       ch_rgb(visto ? 0xFFFFFF : 0x545C70), ch_rgb(0x05060C));
+
+        ch_text(b, 36, y + 5, _(ch_zonas_tab[z].nombre),
+                ch_rgb(visto ? (yo ? 0xFFFFFF : 0xD5DCEB) : 0x545C70));
+
+        {
+            const char *e = !visto ? _("SIN EXPLORAR")
+                          : yo      ? _("ESTAS AQUI")
+                          : ok      ? _("VENCIDA - VIAJAR")
+                                    : _("VIAJAR");
+            ch_text(b, 36, y + 16, e,
+                    ch_rgb(!visto ? 0x545C70 : yo ? 0xFFE45E
+                                  : ok ? 0x4ADE80 : 0x8A93AB));
+        }
+        /* La flecha de viaje: solo donde se puede viajar. Un boton que no
+         * hace nada es peor que no tener boton. */
+        if (visto && !yo) {
+            for (int k = 0; k < 5; k++) {
+                ch_rect(b, CH_W - 22 + k, y + MM_H / 2 - 5 + k, 1,
+                        11 - k * 2, ch_rgb(0x4ADE80));
+            }
         }
     }
-
-    ch_text_center(b, CH_W / 2, MM_Y0 + ZONAS * MM_FH + 4,
-                   _("VENCE AL SUBJEFE PARA SEGUIR"),
-                   ch_rgb(0x606B85), ch_rgb(0x05060C));
 }
 
 /* --------------------------------------------------------------------------
@@ -1701,7 +1907,7 @@ void ch_ui_toque(ch_t *g, int bx, int by)
     case MODO_TIENDA:  tienda_toque(g, bx, by);  break;
     case MODO_REGISTRO: registro_toque(g, bx, by); break;
     case MODO_FICHA:   ficha_toque(g, bx, by); break;
-    case MODO_MAPAMUNDI: g->modo = MODO_MENU; g->rehacer_fondo = 1; break;
+    case MODO_MAPAMUNDI: mapa_toque(g, bx, by); break;
     case MODO_AYUDA:
         if (++g->sel >= NAYUDA) { g->sel = 0; g->modo = MODO_MENU; }
         ch_sfx(1000, 20);

@@ -407,6 +407,13 @@ typedef struct {
     const char *nombre;         /* N_()                                      */
     uint8_t     bandera;        /* the sub-boss's: set = zone cleared          */
     uint8_t     sala0, sala1;   /* range of rooms, to know where you are      */
+    /* FAST TRAVEL. 'visita' is set the first time you set foot in the zone
+     * and 'casa' is the room the map sends you back to -its town, never a
+     * dungeon-. Two more bytes of a const table; the alternative was walking
+     * six rooms back for one repair. */
+    uint8_t     visita;         /* flag: you have been here                  */
+    uint8_t     casa;           /* where fast travel lands you               */
+    uint8_t     casa_x, casa_y;
 } ch_zona_t;
 
 #define ZONAS 8
@@ -562,6 +569,9 @@ bool ch_eq_puede_armar(const ch_save_t *s);
 /* Takes it apart: its four parts go back to the bag. -1 if there is no room
  * or if it is the last robot standing. */
 bool ch_eq_desarmar(ch_save_t *s, int slot);
+
+/* TEMPORAL: entrega piezas de prueba una sola vez. Ver ch_zonas.c. */
+void ch_regalo_piezas(ch_save_t *s);
 
 static inline bool ch_flag(const ch_save_t *s, int f)
 {

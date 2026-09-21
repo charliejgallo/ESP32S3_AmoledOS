@@ -306,6 +306,17 @@ void ch_map_entrar(ch_t *g, int sala, int x, int y)
     colocar(g);
     flujo_buscar(g);
 
+    /* Being here is what unlocks the map's fast travel to here. It is marked
+     * on ARRIVAL and not on clearing the zone: the point of going back is
+     * usually the workshop, which is open from the first minute. */
+    for (int z = 0; z < ZONAS; z++) {
+        if (g->s.sala >= ch_zonas_tab[z].sala0 &&
+            g->s.sala <= ch_zonas_tab[z].sala1) {
+            ch_flag_set(&g->s, ch_zonas_tab[z].visita);
+            break;
+        }
+    }
+
     /* The room's creatures. The robot is generated HERE and stored: the one
      * you see walking is exactly the one you fight. Rolling it again when the
      * fight starts would be fighting a different one, and it shows. */

@@ -117,6 +117,14 @@ enum {
     F_MUEBLE_1, F_MUEBLE_2, F_MUEBLE_3, F_MUEBLE_4, F_MUEBLE_5,
     F_MUEBLE_6, F_MUEBLE_7, F_MUEBLE_8,
 
+    /* One per zone: set the first time you walk into it, and it is what the
+     * map's fast travel unlocks. */
+    F_VISITA_1, F_VISITA_2, F_VISITA_3, F_VISITA_4,
+    F_VISITA_5, F_VISITA_6, F_VISITA_7, F_VISITA_8,
+
+    /* TEMPORAL: la entrega de piezas de prueba, una sola vez. */
+    F_PRUEBA_PIEZAS,
+
     /* zone 8 - Torre Prisma */
     F_JEFE_PRISMA, F_FINAL,
     F_COFRE_T1, F_COFRE_T2, F_COFRE_T3,
@@ -2907,13 +2915,36 @@ const ch_aire_t ch_aire[ZONAS] = {
     { 0xB072F0, 2 },    /* 8 Prisma       - the summit                       */
 };
 
+/* TEMPORAL -- piezas de prueba.
+ *
+ * Tres piezas sueltas de tres categorias distintas, UNA sola vez, para poder
+ * probar el taller y la pantalla de equipo sin ganar tres combates antes. Va
+ * detras de una bandera porque si no es una maquina de imprimir piezas, y vive
+ * aca porque el enum de banderas es privado de este archivo. Sale cuando el
+ * usuario diga: son quince lineas y una bandera. */
+void ch_regalo_piezas(ch_save_t *s)
+{
+    static const uint8_t REGALO[3] = {
+        PIEZA_ID(P_CABEZA, 5), PIEZA_ID(P_BRAZOS, 7), PIEZA_ID(P_PIERNAS, 3),
+    };
+    int puestas = 0;
+
+    if (ch_flag(s, F_PRUEBA_PIEZAS)) return;
+    for (int i = 0; i < MOCHILA && puestas < 3; i++) {
+        if (s->piezas[i] != 0xFF) continue;
+        s->piezas[i] = REGALO[puestas++];
+    }
+    if (puestas) ch_flag_set(s, F_PRUEBA_PIEZAS);
+}
+
 const ch_zona_t ch_zonas_tab[ZONAS] = {
-    { N_("VILLA TUERCA"),  F_JEFE_DESGUACE,  S_CASA,   S_JEFE   },
-    { N_("PUERTO BUJIA"),  F_JEFE_PUERTO,    S_COSTA,  S_JEFE2  },
-    { N_("ALTO VOLTIO"),   F_JEFE_VOLTIO,    S_CUESTA, S_JEFE3  },
-    { N_("FUNDICION"),     F_JEFE_FUNDICION, S_HUMO,   S_JEFE4  },
-    { N_("CRIOVALLE"),     F_JEFE_CRIO,      S_PASO,   S_JEFE5  },
-    { N_("CIUDAD MALLA"),  F_JEFE_MALLA,     S_AUTOPISTA, S_JEFE6 },
-    { N_("VILLA OXIDO"),   F_JEFE_PARAMO,    S_LLANURA, S_JEFE7 },
-    { N_("PRISMA"),        F_JEFE_PRISMA,    S_ULTIMO, S_CUMBRE },
+    /*  name              cleared           first     last       visited      home        x   y */
+    { N_("VILLA TUERCA"), F_JEFE_DESGUACE,  S_CASA,   S_JEFE,   F_VISITA_1, S_PUEBLO,    7, 6 },
+    { N_("PUERTO BUJIA"), F_JEFE_PUERTO,    S_COSTA,  S_JEFE2,  F_VISITA_2, S_PUERTO,    7, 6 },
+    { N_("ALTO VOLTIO"),  F_JEFE_VOLTIO,    S_CUESTA, S_JEFE3,  F_VISITA_3, S_VOLTIO,    7, 6 },
+    { N_("FUNDICION"),    F_JEFE_FUNDICION, S_HUMO,   S_JEFE4,  F_VISITA_4, S_FUNDICION, 7, 6 },
+    { N_("CRIOVALLE"),    F_JEFE_CRIO,      S_PASO,   S_JEFE5,  F_VISITA_5, S_CRIO,      7, 6 },
+    { N_("CIUDAD MALLA"), F_JEFE_MALLA,     S_AUTOPISTA, S_JEFE6, F_VISITA_6, S_MALLA,   7, 6 },
+    { N_("VILLA OXIDO"),  F_JEFE_PARAMO,    S_LLANURA, S_JEFE7, F_VISITA_7, S_OXIDO,     7, 6 },
+    { N_("PRISMA"),       F_JEFE_PRISMA,    S_ULTIMO, S_CUMBRE, F_VISITA_8, S_PRISMA,    7, 6 },
 };
