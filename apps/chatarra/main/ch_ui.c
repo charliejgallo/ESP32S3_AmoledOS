@@ -813,15 +813,31 @@ static int ta_cat_en(int bx, int by)
     return -1;
 }
 
-/* Las piezas de la mochila de una categoria, en s_lista. */
+/* Las piezas de la mochila de una categoria, en s_lista, CON LA PUESTA
+ * PRIMERA.
+ *
+ * Sin ella la lista contesta "cual de las sueltas" y la pregunta es "cual de
+ * todas": el numero de la que llevas puesta estaba arriba, en otra linea, y
+ * compararla con tres candidatas era ir y venir con la vista. Ahora es una
+ * fila mas, marcada, con los mismos numeros y la misma pieza dibujada. */
+#define TA_PUESTA  0xFE                 /* la marca de "esta es la que llevas" */
+
 static void ta_juntar(ch_t *g, int cat)
 {
     s_nlista = 0;
+    s_lista[s_nlista++] = TA_PUESTA;
     for (int i = 0; i < MOCHILA; i++) {
         if (g->s.piezas[i] == 0xFF) continue;
         if (PIEZA_CAT(g->s.piezas[i]) != cat) continue;
         s_lista[s_nlista++] = (uint8_t)i;
     }
+}
+
+/* Que pieza es una fila de la lista, sea de la mochila o la puesta. */
+static uint8_t ta_pieza(const ch_t *g, int cat, int fila)
+{
+    uint8_t e = s_lista[fila % (s_nlista ? s_nlista : 1)];
+    return e == TA_PUESTA ? PIEZA_ID(cat, g->s.yo.pieza[cat]) : g->s.piezas[e];
 }
 
 static void taller_fondo(ch_t *g)
@@ -880,17 +896,15 @@ static void taller_fondo(ch_t *g)
         snprintf(t, sizeof(t), "%s  %s", _("TALLER"), _(CATS[cat]));
         ch_ui_titulo(g, t, _("TOCA 2 VECES"));
 
-        if (!s_nlista) {
-            ch_text_center(b, CH_W / 2, 100, _("NO TENES PIEZAS DE ESTE TIPO"),
-                           ch_rgb(0x8A93AB), ch_rgb(0x05060C));
-            return;
-        }
         flechas(g, g->scroll > 0, g->scroll + s_lfilas < s_nlista);
+        if (s_nlista == 1) {
+            ch_text(b, 6, 46, _("NO TENES OTRA DE ESTE TIPO"), ch_rgb(0x8A93AB));
+        }
 
         /* Lo que cambiaria, si ya tocaste una fila una vez. */
         if (g->sel) {
             ch_robot_t prueba = g->s.yo;
-            uint8_t id = g->s.piezas[s_lista[(g->sel - 1) % s_nlista]];
+            uint8_t id = ta_pieza(g, cat, g->sel - 1);
             char t2[72];
 
             prueba.pieza[cat] = PIEZA_VAR(id);
@@ -903,10 +917,6 @@ static void taller_fondo(ch_t *g)
                      g->s.yo.atk, prueba.atk, g->s.yo.def, prueba.def,
                      g->s.yo.vel, prueba.vel);
             ch_text(b, 6, 52, t2, ch_rgb(0xD5DCEB));
-        } else {
-            const ch_part_t *p = &ch_partes[PIEZA_ID(cat, g->s.yo.pieza[cat])];
-            snprintf(t, sizeof(t), "%s %s", _("AHORA:"), _(p->nombre));
-            ch_text(b, 6, 46, t, ch_rgb(0x8A93AB));
         }
 
         for (int i = 0; i < s_lfilas; i++) {
@@ -916,14 +926,17 @@ static void taller_fondo(ch_t *g)
             const ch_part_t *p, *puesta;
 
             if (k >= s_nlista) break;
-            id = g->s.piezas[s_lista[k]];
+            id = ta_pieza(g, cat, k);
             p = &ch_partes[id];
             puesta = &ch_partes[PIEZA_ID(cat, g->s.yo.pieza[cat])];
+            bool esta = (s_lista[k] == TA_PUESTA);
 
             ch_rect(b, LX, y, LW, h,
-                    ch_rgb(g->sel == k + 1 ? 0x2A3350 : 0x1A2133));
+                    ch_rgb(g->sel == k + 1 ? 0x2A3350
+                                           : (esta ? 0x14261C : 0x1A2133)));
             ch_frame(b, LX, y, LW, h,
-                     ch_rgb(g->sel == k + 1 ? 0xFFE45E : 0x3D465F));
+                     ch_rgb(g->sel == k + 1 ? 0xFFE45E
+                                            : (esta ? 0x4ADE80 : 0x3D465F)));
             ch_rect(b, LX + 1, y + 1, LW - 2, 1, ch_rgb(0x2C3550));
             ch_rect(b, LX + 3, y + 3, 30, h - 6, ch_rgb(0x0E111A));
             ch_part_draw(b, cat, PIEZA_VAR(id), LX + 18, y + h / 2, 1,
@@ -931,11 +944,15 @@ static void taller_fondo(ch_t *g)
             ch_text(b, LX + 38, y + 5, _(p->nombre), ch_rgb(0xFFFFFF));
             snprintf(t, sizeof(t), _("PV%d E%d"), p->vida, p->energia);
             ch_text(b, LX + 38, y + 17, t, ch_rgb(0x606B85));
+            if (esta) {
+                ch_text(b, LX + LW - 5 - ch_text_w(_("PUESTA")), y + 5,
+                        _("PUESTA"), ch_rgb(0x4ADE80));
+            }
 
             /* LA DIFERENCIA, NO EL NUMERO PELADO. La fila decia "A24 D9 V6" y
              * eso no contesta la unica pregunta que uno tiene delante de la
              * mochila: si es mejor o peor que la que lleva puesta. */
-            {
+            if (!esta) {
                 static const char *const LET[3] = { "A", "D", "V" };
                 int dif[3] = { p->atk - puesta->atk, p->def - puesta->def,
                                p->vel - puesta->vel };
@@ -983,6 +1000,13 @@ static void taller_toque(ch_t *g, int bx, int by)
         if (f < 0) return;
         k = g->scroll + f;
         if (k >= s_nlista) return;
+        if (s_lista[k] == TA_PUESTA) {
+            /* Es la que ya llevas: se muestra para comparar, no para montar. */
+            g->sel = (uint8_t)(k + 1);
+            ch_sfx(900, 20);
+            g->rehacer_fondo = 1;
+            return;
+        }
 
         /* Primer toque: mostrar en que cambiaria. Segundo: montarla. Montar
          * de una hacia facil errarle a la fila y cambiar el robot sin

@@ -1585,12 +1585,12 @@ static const char blob_en_demo_chatarra_lang[] =
     "VIDA\tHP\n"
     "YA ESTAS AHI\tYOU ARE ALREADY THERE\n"
     "TOCA 2X\tTAP 2X\n"
-    "AHORA:\tNOW:\n"
-    "NO TENES PIEZAS DE ESTE TIPO\tNO PARTS OF THIS KIND\n"
     "TOCA 2 VECES\tTAP TWICE\n"
     "TOCA UNA PIEZA\tTAP A PART\n"
     "GANA COMBATES\tWIN FIGHTS\n"
     "PARA ARRANCAR PIEZAS\tTO TEAR PARTS OFF\n"
+    "NO TENES OTRA DE ESTE TIPO\tNO OTHERS OF THIS KIND\n"
+    "PUESTA\tFITTED\n"
     ;
 
 static const char blob_en_demo_cjump_lang[] =
@@ -3350,12 +3350,12 @@ static const char blob_de_demo_chatarra_lang[] =
     "VIDA\tLP\n"
     "YA ESTAS AHI\tDU BIST SCHON DA\n"
     "TOCA 2X\t2X TIPPEN\n"
-    "AHORA:\tJETZT:\n"
-    "NO TENES PIEZAS DE ESTE TIPO\tKEINE TEILE DIESER ART\n"
     "TOCA 2 VECES\tZWEIMAL TIPPEN\n"
     "TOCA UNA PIEZA\tEIN TEIL ANTIPPEN\n"
     "GANA COMBATES\tKAEMPFE GEWINNEN\n"
     "PARA ARRANCAR PIEZAS\tUM TEILE ZU HOLEN\n"
+    "NO TENES OTRA DE ESTE TIPO\tKEINE WEITEREN DIESER ART\n"
+    "PUESTA\tMONTIERT\n"
     ;
 
 static const char blob_de_demo_cjump_lang[] =

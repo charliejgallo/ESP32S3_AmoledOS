@@ -123,7 +123,7 @@ enum {
     F_VISITA_5, F_VISITA_6, F_VISITA_7, F_VISITA_8,
 
     /* TEMPORAL: la entrega de piezas de prueba, una sola vez. */
-    F_PRUEBA_PIEZAS,
+    F_PRUEBA_PIEZAS, F_PRUEBA_PIEZAS2,
 
     /* zone 8 - Torre Prisma */
     F_JEFE_PRISMA, F_FINAL,
@@ -2917,24 +2917,31 @@ const ch_aire_t ch_aire[ZONAS] = {
 
 /* TEMPORAL -- piezas de prueba.
  *
- * Tres piezas sueltas de tres categorias distintas, UNA sola vez, para poder
- * probar el taller y la pantalla de equipo sin ganar tres combates antes. Va
- * detras de una bandera porque si no es una maquina de imprimir piezas, y vive
- * aca porque el enum de banderas es privado de este archivo. Sale cuando el
- * usuario diga: son quince lineas y una bandera. */
+ * DOS de cada categoria, una sola vez, para poder probar el taller, armar el
+ * segundo robot -que pide cuatro piezas de categorias distintas- y todavia
+ * tener con que cambiar. Detras de una bandera porque si no es una maquina de
+ * imprimir piezas, y aca porque el enum de banderas es privado de este
+ * archivo. La segunda bandera es la reparticion ampliada: el guardado de
+ * prueba ya tenia prendida la primera.
+ *
+ * Es para la partida de pruebas del usuario y esta para sacarse. */
 void ch_regalo_piezas(ch_save_t *s)
 {
-    static const uint8_t REGALO[3] = {
-        PIEZA_ID(P_CABEZA, 5), PIEZA_ID(P_BRAZOS, 7), PIEZA_ID(P_PIERNAS, 3),
+    static const uint8_t REGALO[8] = {
+        PIEZA_ID(P_CABEZA, 5),  PIEZA_ID(P_CABEZA, 11),
+        PIEZA_ID(P_TORSO, 3),   PIEZA_ID(P_TORSO, 9),
+        PIEZA_ID(P_BRAZOS, 7),  PIEZA_ID(P_BRAZOS, 13),
+        PIEZA_ID(P_PIERNAS, 3), PIEZA_ID(P_PIERNAS, 10),
     };
     int puestas = 0;
 
-    if (ch_flag(s, F_PRUEBA_PIEZAS)) return;
-    for (int i = 0; i < MOCHILA && puestas < 3; i++) {
+    if (ch_flag(s, F_PRUEBA_PIEZAS2)) return;
+    ch_flag_set(s, F_PRUEBA_PIEZAS);
+    ch_flag_set(s, F_PRUEBA_PIEZAS2);
+    for (int i = 0; i < MOCHILA && puestas < 8; i++) {
         if (s->piezas[i] != 0xFF) continue;
         s->piezas[i] = REGALO[puestas++];
     }
-    if (puestas) ch_flag_set(s, F_PRUEBA_PIEZAS);
 }
 
 const ch_zona_t ch_zonas_tab[ZONAS] = {
