@@ -3,6 +3,53 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.4.5 — 2026-09-20
+
+**Chatarra v2.** The robot RPG redrawn: the map goes from 21x22 cells of 8 px
+to **15x14 of 12 px**, and everything else follows from that one measurement —
+in a dirty-rectangle engine what costs is AREA pushed, not drawing, so fewer
+and bigger cells cost the same and a door is 24 real pixels instead of 16.
+29.2 fps before, 29.5 after.
+
+- **61 rooms** instead of 51: every town is two or four sectors, and the seven
+  zones after the first were rebuilt from seven templates, one per role, which
+  read every text, flag, item and level out of the tables that were already
+  there. The world check reports **0 problems** across all 61.
+- **A team of three** robots, with a reserve to fall back on when one breaks,
+  and a **workshop** that builds any of them: the robot at scale 3 on the left
+  and the four part categories down the right, each opening its own list with
+  the part drawn, its type and the difference against the one fitted.
+- **Parts of the same elemental type work together**: two +10% attack, three
+  +20% and +10% defence, four +30/+20/+10.
+- **A phone booth in every town** — fight or swap robots and parts with another
+  watch over the link — and **the scrap belt** at Bujia docks: a three-lane
+  conveyor for credits and, once, a part.
+- **Fast travel** to any zone you have set foot in, **a diary** of the eight
+  errands that walks the world rather than keeping a table of its own, and
+  **shop stock that grows with the zone**.
+- **Robots at twice the resolution**: two half-unit primitives let the same
+  code draw the small robot on the map and an effective 52x80 one everywhere
+  else, with rivets, plate seams, a waist, vent grilles, elbows and soles.
+- **Towns that are inhabited**: seven new ground tiles, eleven pieces of
+  furniture that are entities and can be looked at, a cat and a bird that walk,
+  and the player looking around after five seconds standing still.
+- **Eight zone themes** on the four-voice synth, and the interface rebuilt out
+  of tiles and tall rows: the menu, the items, the shop, the register, the map
+  and the booth.
+- Its icon travels inside the `.so` (the AIC facility of v0.3.8).
+- Catalogues at **554 strings** in Spanish, English and German.
+
+Firmware: only the embedded language pack changed. Everything else is
+`chatarra.so`.
+
+## v0.4.1 to v0.4.4 — 2026-09-19 and 2026-09-20
+
+Released from `main` with notes on GitHub and not written up here at the time:
+**v0.4.1** two-player Truco over the link, **v0.4.2** Pixel Art sending
+drawings and the Radar (RSSI and real FTM), **v0.4.3** the Walkie with a
+streaming speaker, **v0.4.4** the panel's SPI and LVGL pinned off WiFi's core
+(esp-idf#18527).
+
 ## v0.4.0 — 2026-09-19
 
 Two watches talk. The whole of [docs/LINK.md](docs/LINK.md) is the record:

@@ -580,8 +580,6 @@ bool ch_eq_puede_armar(const ch_save_t *s);
  * or if it is the last robot standing. */
 bool ch_eq_desarmar(ch_save_t *s, int slot);
 
-/* TEMPORAL: entrega piezas de prueba una sola vez. Ver ch_zonas.c. */
-void ch_regalo_piezas(ch_save_t *s);
 /* La pieza que paga la feria, una sola vez. true si la dio ahora. */
 bool ch_feria_premio(ch_save_t *s, uint32_t *sem);
 

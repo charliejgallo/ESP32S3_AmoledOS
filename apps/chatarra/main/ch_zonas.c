@@ -123,6 +123,9 @@ enum {
     F_VISITA_5, F_VISITA_6, F_VISITA_7, F_VISITA_8,
 
     /* TEMPORAL: la entrega de piezas de prueba, una sola vez. */
+    /* Las dos de la reparticion de prueba de la v2. La funcion se fue; las
+     * banderas se quedan, porque sacarlas correria todas las de abajo y un
+     * guardado en curso leeria "cofre abierto" donde dice "jefe vencido". */
     F_PRUEBA_PIEZAS, F_PRUEBA_PIEZAS2,
 
     /* La feria paga su pieza una sola vez. */
@@ -2927,35 +2930,6 @@ const ch_aire_t ch_aire[ZONAS] = {
     { 0xC06B2E, 2 },    /* 7 Villa Oxido  - dust in the air                  */
     { 0xB072F0, 2 },    /* 8 Prisma       - the summit                       */
 };
-
-/* TEMPORAL -- piezas de prueba.
- *
- * DOS de cada categoria, una sola vez, para poder probar el taller, armar el
- * segundo robot -que pide cuatro piezas de categorias distintas- y todavia
- * tener con que cambiar. Detras de una bandera porque si no es una maquina de
- * imprimir piezas, y aca porque el enum de banderas es privado de este
- * archivo. La segunda bandera es la reparticion ampliada: el guardado de
- * prueba ya tenia prendida la primera.
- *
- * Es para la partida de pruebas del usuario y esta para sacarse. */
-void ch_regalo_piezas(ch_save_t *s)
-{
-    static const uint8_t REGALO[8] = {
-        PIEZA_ID(P_CABEZA, 5),  PIEZA_ID(P_CABEZA, 11),
-        PIEZA_ID(P_TORSO, 3),   PIEZA_ID(P_TORSO, 9),
-        PIEZA_ID(P_BRAZOS, 7),  PIEZA_ID(P_BRAZOS, 13),
-        PIEZA_ID(P_PIERNAS, 3), PIEZA_ID(P_PIERNAS, 10),
-    };
-    int puestas = 0;
-
-    if (ch_flag(s, F_PRUEBA_PIEZAS2)) return;
-    ch_flag_set(s, F_PRUEBA_PIEZAS);
-    ch_flag_set(s, F_PRUEBA_PIEZAS2);
-    for (int i = 0; i < MOCHILA && puestas < 8; i++) {
-        if (s->piezas[i] != 0xFF) continue;
-        s->piezas[i] = REGALO[puestas++];
-    }
-}
 
 /* LA PIEZA DE LA FERIA, una sola vez.
  *

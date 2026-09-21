@@ -403,10 +403,6 @@ static bool cargar(ch_t *g)
     if (sv.ver == SAVE_VER && sv.largo == (uint16_t)sizeof(ch_save_t)) {
         g->s = sv.s;
 
-        /* TEMPORAL: tres piezas sueltas para probar el taller sin ganar
-         * tres combates antes. Vive en ch_zonas.c porque las banderas son
-         * privadas de ese archivo. Sale cuando el usuario diga. */
-        ch_regalo_piezas(&g->s);
     } else {
         /* NOTHING OLDER IS CONVERTED, AND THAT IS THE POINT.
          *
@@ -983,12 +979,7 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
      *   CH_CABINA=<n> the booth, at that state (see the LK_ enum): the menu
      *                 needs a second watch, and its layout does not.
      *   CH_FERIA=1    la cinta de chatarra, directo
-     *
-     * AND ONE THING THAT IS NOT A SWITCH: CH_REGALO_PIEZAS below hands three
-     * loose parts to the save the first time it is loaded, so the workshop
-     * can be tried without winning three fights first. It is temporary and
-     * it is meant to come out; it is here and not behind getenv() because the
-     * board has no environment.
+
      */
     {
         const char *v;
