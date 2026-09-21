@@ -233,6 +233,13 @@ typedef struct {
     uint8_t  tipo;              /* the dominant one, the torso's             */
 } ch_robot_t;
 
+/* Cuantas de las cuatro piezas comparten el tipo del torso (1..4). Se CALCULA
+ * y no se guarda: es derivado de las piezas, y un campo mas en ch_robot_t
+ * cambia el tamano de ch_save_t, o sea que tira todas las partidas. */
+int  ch_robot_juego(const ch_robot_t *r);
+/* El nombre del juego (N_()) y su bonificacion de ataque, o NULL si no hay. */
+const char *ch_robot_juego_nombre(const ch_robot_t *r, int *pct);
+
 void ch_robot_stats(ch_robot_t *r);         /* recomputes everything derived */
 void ch_robot_curar(ch_robot_t *r);         /* health and energy to maximum  */
 uint32_t ch_exp_nivel(int nivel);           /* exp accumulated for that level */

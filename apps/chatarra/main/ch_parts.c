@@ -1038,6 +1038,29 @@ void ch_part_draw(ch_buf_t *b, int cat, int var, int cx, int cy, int esc,
     }
 }
 
+int ch_robot_juego(const ch_robot_t *r)
+{
+    uint8_t tipo = ch_partes[PIEZA_ID(P_TORSO, r->pieza[P_TORSO] % PVAR)].tipo;
+    int n = 0;
+
+    for (int c = 0; c < P_CATS; c++) {
+        if (ch_partes[PIEZA_ID(c, r->pieza[c] % PVAR)].tipo == tipo) n++;
+    }
+    return n;
+}
+
+const char *ch_robot_juego_nombre(const ch_robot_t *r, int *pct)
+{
+    static const int8_t BA[5] = { 0, 0, 10, 20, 30 };
+    int j = ch_robot_juego(r) % 5;
+
+    if (pct) *pct = BA[j];
+    if (j >= 4) return N_("JUEGO PURO");
+    if (j == 3) return N_("TRIO");
+    if (j == 2) return N_("DUO");
+    return NULL;
+}
+
 void ch_robot_stats(ch_robot_t *r)
 {
     int bv = 0, ba = 0, bd = 0, bs = 0, be = 0;
@@ -1056,6 +1079,27 @@ void ch_robot_stats(ch_robot_t *r)
     r->def = (int16_t)((bd * 2 * nv) / 100 + 6);
     r->vel = (int16_t)((bs * 2 * nv) / 100 + 6);
     r->tipo = ch_partes[PIEZA_ID(P_TORSO, r->pieza[P_TORSO] % PVAR)].tipo;
+
+    /* EL JUEGO: cuantas piezas comparten el tipo del torso.
+     *
+     * El taller era "elegi el numero mas grande": cuatro categorias, cuatro
+     * mejores piezas, listo. Con esto una pieza peor en bruto puede convenir
+     * porque completa el juego, y eso convierte el taller en una decision.
+     * Cuesta un conteo y un porcentaje, sin una tabla nueva.
+     *
+     *   2 del mismo tipo  DUO    +10% ataque
+     *   3                 TRIO   +20% ataque, +10% defensa
+     *   4                 PURO   +30% ataque, +20% defensa, +10% velocidad
+     */
+    {
+        static const int8_t BA[5] = { 0, 0, 10, 20, 30 };
+        static const int8_t BD[5] = { 0, 0,  0, 10, 20 };
+        static const int8_t BS[5] = { 0, 0,  0,  0, 10 };
+        int j = ch_robot_juego(r) % 5;
+        r->atk = (int16_t)(r->atk + r->atk * BA[j] / 100);
+        r->def = (int16_t)(r->def + r->def * BD[j] / 100);
+        r->vel = (int16_t)(r->vel + r->vel * BS[j] / 100);
+    }
 
     /* On levelling up the maximum health grows and the current one rises with
      * it; on changing a part, likewise. What cannot happen is the current one

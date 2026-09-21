@@ -889,7 +889,18 @@ static void taller_fondo(ch_t *g)
         int sueltas = 0;
         int ew = (TA_BW - 4) / EQUIPO;
 
-        ch_ui_titulo(g, _("TALLER"), _("TOCA UNA PIEZA"));
+        {
+            int pct = 0;
+            const char *j = ch_robot_juego_nombre(r, &pct);
+            if (j) {
+                snprintf(t, sizeof(t), _("%s  %s +%d%%"),
+                         _(ch_tipo_nombre[r->tipo % TIPOS]), _(j), pct);
+            } else {
+                snprintf(t, sizeof(t), _("TIPO %s"),
+                         _(ch_tipo_nombre[r->tipo % TIPOS]));
+            }
+            ch_ui_titulo(g, _("TALLER"), t);
+        }
         ch_robot_draw(b, TA_RX + 39, TA_RY, r, 3, false, 0, 0);
 
         /* LOS TRES DEL EQUIPO. El taller armaba SIEMPRE el robot que sale a
@@ -983,6 +994,14 @@ static void taller_fondo(ch_t *g)
                      r->atk, prueba.atk, r->def, prueba.def,
                      r->vel, prueba.vel);
             ch_text(b, 6, 52, t2, ch_rgb(0xD5DCEB));
+            {   /* y en que quedaria el juego, que es media decision */
+                int ja = ch_robot_juego(r), jb = ch_robot_juego(&prueba);
+                if (ja != jb) {
+                    snprintf(t, sizeof(t), _("JUEGO %d>%d"), ja, jb);
+                    ch_text(b, CH_W - 6 - ch_text_w(t), 52, t,
+                            jb > ja ? ch_rgb(0x4ADE80) : ch_rgb(0xFF4A3D));
+                }
+            }
         }
 
         for (int i = 0; i < s_lfilas; i++) {
@@ -1010,6 +1029,14 @@ static void taller_fondo(ch_t *g)
             ch_text(b, LX + 38, y + 5, _(p->nombre), ch_rgb(0xFFFFFF));
             snprintf(t, sizeof(t), _("PV%d E%d"), p->vida, p->energia);
             ch_text(b, LX + 38, y + 17, t, ch_rgb(0x606B85));
+            /* EL TIPO DE LA PIEZA, que es lo que arma el juego: sin el, la
+             * bonificacion por llevar varias del mismo tipo es un numero que
+             * cambia solo y no se sabe por que. */
+            {
+                const char *tn = _(ch_tipo_nombre[p->tipo % TIPOS]);
+                ch_text(b, LX + 38 + ch_text_w(_(p->nombre)) + 6, y + 5, tn,
+                        ch_rgb(ch_tipo_color[p->tipo % TIPOS]));
+            }
             if (esta) {
                 ch_text(b, LX + LW - 5 - ch_text_w(_("PUESTA")), y + 5,
                         _("PUESTA"), ch_rgb(0x4ADE80));
@@ -1300,8 +1327,17 @@ static void ficha_fondo(ch_t *g)
 
     if (!r) { sel = 0; r = &g->s.yo; g->sel = 0; }
 
-    snprintf(t, sizeof(t), _("NIVEL %d   TIPO %s"), r->nivel,
-             _(ch_tipo_nombre[r->tipo % TIPOS]));
+    {
+        int pct = 0;
+        const char *j = ch_robot_juego_nombre(r, &pct);
+        if (j) {
+            snprintf(t, sizeof(t), _("%s  %s +%d%%"),
+                     _(ch_tipo_nombre[r->tipo % TIPOS]), _(j), pct);
+        } else {
+            snprintf(t, sizeof(t), _("NIVEL %d   TIPO %s"), r->nivel,
+                     _(ch_tipo_nombre[r->tipo % TIPOS]));
+        }
+    }
     ch_ui_titulo(g, ch_robot_nombre(r), t);
 
     /* --- the three tabs --------------------------------------------------- */

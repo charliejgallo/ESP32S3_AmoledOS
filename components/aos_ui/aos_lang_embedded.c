@@ -1584,13 +1584,18 @@ static const char blob_en_demo_chatarra_lang[] =
     "YA ESTAS AHI\tYOU ARE ALREADY THERE\n"
     "TOCA 2X\tTAP 2X\n"
     "TOCA 2 VECES\tTAP TWICE\n"
-    "TOCA UNA PIEZA\tTAP A PART\n"
     "GANA COMBATES\tWIN FIGHTS\n"
     "NO TENES OTRA DE ESTE TIPO\tNO OTHERS OF THIS KIND\n"
     "PUESTA\tFITTED\n"
     "PARA PIEZAS\tFOR PARTS\n"
     "PIEZA\tPART\n"
     "ROBOT\tROBOT\n"
+    "%s  %s +%d%%\t%s  %s +%d%%\n"
+    "DUO\tPAIR\n"
+    "JUEGO %d>%d\tSET %d>%d\n"
+    "JUEGO PURO\tFULL SET\n"
+    "TIPO %s\tTYPE %s\n"
+    "TRIO\tTRIO\n"
     ;
 
 static const char blob_en_demo_cjump_lang[] =
@@ -3349,13 +3354,18 @@ static const char blob_de_demo_chatarra_lang[] =
     "YA ESTAS AHI\tDU BIST SCHON DA\n"
     "TOCA 2X\t2X TIPPEN\n"
     "TOCA 2 VECES\tZWEIMAL TIPPEN\n"
-    "TOCA UNA PIEZA\tEIN TEIL ANTIPPEN\n"
     "GANA COMBATES\tKAEMPFE GEWINNEN\n"
     "NO TENES OTRA DE ESTE TIPO\tKEINE WEITEREN DIESER ART\n"
     "PUESTA\tMONTIERT\n"
     "PARA PIEZAS\tFUER TEILE\n"
     "PIEZA\tTEIL\n"
     "ROBOT\tROBOTER\n"
+    "%s  %s +%d%%\t%s  %s +%d%%\n"
+    "DUO\tPAAR\n"
+    "JUEGO %d>%d\tSATZ %d>%d\n"
+    "JUEGO PURO\tVOLLER SATZ\n"
+    "TIPO %s\tTYP %s\n"
+    "TRIO\tTRIO\n"
     ;
 
 static const char blob_de_demo_cjump_lang[] =
