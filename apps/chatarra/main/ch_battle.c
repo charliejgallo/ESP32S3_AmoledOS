@@ -556,7 +556,6 @@ static void relevo(ch_t *g)
     g->bt.forzado = 1;
     g->bt.pend   = CB_MENU;
     g->rehacer_fondo = 1;
-    ch_snd_melodia(g, CH_MEL_NADA);
 }
 
 static void derrota(ch_t *g)
@@ -668,11 +667,14 @@ static void seguir(ch_t *g)
             break;
         }
         g->modo = MODO_MAPA;
-        ch_snd_melodia(g, CH_MEL_NADA);
+        /* Y de vuelta al tema de la zona, que es de donde se venia: parar la
+         * musica al salir del combate dejaba el mapa mudo otra vez. */
+        g->mel_mapa = 0;
         if (g->bt.huir == 2) {
             ch_eq_curar(&g->s);         /* the workshop repairs the three   */
             ch_map_entrar(g, 0, 11, 14);        /* your house                */
         }
+        ch_map_musica(g);
         g->rehacer_fondo = 1;
         g->hud_sucio = 1;
         break;

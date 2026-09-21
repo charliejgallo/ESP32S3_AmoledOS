@@ -2211,8 +2211,10 @@ void ch_ui_toque(ch_t *g, int bx, int by)
     case MODO_TITULO:
         if (by >= 148 && by < 148 + TIT_BH && bx >= TIT_BX && bx < TIT_BX + TIT_BW) {
             ch_sfx(1200, 60);
-            ch_snd_melodia(g, CH_MEL_NADA);
+            /* Sin parar nada: ch_map_entrar() pone el tema de la zona, y
+             * pararlo aca dejaba un silencio de un cuadro en el medio. */
             g->modo = MODO_MAPA;
+            g->mel_mapa = 0;
             ch_map_entrar(g, g->s.sala, g->s.x, g->s.y);
         }
         break;
@@ -2255,7 +2257,8 @@ void ch_ui_toque(ch_t *g, int bx, int by)
 
     case MODO_FINAL:
         g->modo = MODO_MAPA;
-        ch_snd_melodia(g, CH_MEL_NADA);
+        g->mel_mapa = 0;
+        ch_map_musica(g);
         g->rehacer_fondo = 1;
         break;
 

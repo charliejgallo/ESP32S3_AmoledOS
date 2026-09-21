@@ -83,6 +83,8 @@
 #define C6  1047
 #define E6  1319
 #define G6  1568
+#define AS3  233
+#define DS4  311
 #define SIL    0
 
 /* And the octave below, for the bass line. */
@@ -176,6 +178,109 @@ static const nota_t BAJO_FINAL[] = {
 #define RIT_JEFE     "K.K.S.h.K.K.S.S."
 #define RIT_FINAL    "K.h.S.h.K.S.S.S."
 
+
+/* --------------------------------------------------------------------------
+ * LOS OCHO TEMAS DEL MAPA
+ *
+ * El mapa estaba mudo: sonaba el titulo, sonaba el combate, y caminar por el
+ * mundo era silencio. Cada zona tiene lo suyo, y lo que las separa no es la
+ * melodia sino el PULSO y el registro: Villa Tuerca es lenta y mayor, el
+ * puerto se hamaca, Alto Voltio son arpegios rapidos, la Fundicion es grave y
+ * pesada, Criovalle es aguda y con huecos, Malla es sincopada, Villa Oxido
+ * arrastra, y Prisma sube. Un tema que se escucha media hora tiene que poder
+ * desaparecer, asi que ninguno tiene bateria fuerte salvo los dos de ciudad.
+ * -------------------------------------------------------------------------- */
+
+static const nota_t MEL_Z1[] = {                        /* Villa Tuerca     */
+    {C4,8},{E4,8},{G4,8},{E4,8},{F4,8},{A4,8},{G4,12},{SIL,4},
+    {D4,8},{F4,8},{A4,8},{F4,8},{G4,8},{B4,8},{C5,12},{SIL,4},
+    {E4,8},{G4,8},{C5,12},{B4,4},{A4,8},{G4,8},{F4,12},{SIL,4},
+    {D4,8},{E4,8},{F4,8},{G4,8},{C4,16},{SIL,8},
+};
+static const nota_t BAJO_Z1[] = {
+    {C2,16},{G2,16},{F2,16},{G2,16},{C2,16},{A2,16},{F2,16},{G2,16},
+};
+
+static const nota_t MEL_Z2[] = {                        /* Puerto Bujia     */
+    {A3,12},{C4,4},{E4,12},{D4,4},{C4,12},{A3,4},{E4,16},
+    {F4,12},{A4,4},{C5,12},{A4,4},{G4,12},{E4,4},{C4,16},
+    {D4,12},{F4,4},{A4,12},{G4,4},{F4,12},{D4,4},{A3,16},
+    {E4,12},{G4,4},{C5,16},{B4,8},{A4,16},{SIL,8},
+};
+static const nota_t BAJO_Z2[] = {
+    {A2,12},{A2,4},{E2,16},{F2,12},{F2,4},{C2,16},
+    {D2,12},{D2,4},{A2,16},{E2,12},{E2,4},{A2,16},
+};
+
+static const nota_t MEL_Z3[] = {                        /* Alto Voltio      */
+    {E4,3},{G4,3},{B4,3},{E5,3},{B4,3},{G4,3},{E4,3},{B3,3},
+    {F4,3},{A4,3},{C5,3},{F5,3},{C5,3},{A4,3},{F4,3},{C4,3},
+    {G4,3},{B4,3},{D5,3},{G5,3},{D5,3},{B4,3},{G4,3},{D4,3},
+    {A4,4},{C5,4},{E5,4},{A5,8},{G5,4},{E5,4},{C5,8},{SIL,4},
+};
+static const nota_t BAJO_Z3[] = {
+    {E2,6},{E2,6},{E2,6},{B2,6},{F2,6},{F2,6},{F2,6},{C3,6},
+    {G2,6},{G2,6},{G2,6},{D3,6},{A2,6},{A2,6},{E2,6},{E2,6},
+};
+
+static const nota_t MEL_Z4[] = {                        /* Fundicion        */
+    {C3,10},{D3,10},{C3,10},{AS2,14},{SIL,6},
+    {C3,10},{F3,10},{DS4,10},{D4,14},{SIL,6},
+    {C3,10},{D3,10},{F3,10},{G3,14},{SIL,6},
+    {AS3,10},{A3,10},{G3,10},{F3,18},{SIL,10},
+};
+static const nota_t BAJO_Z4[] = {
+    {C2,20},{C2,20},{AS2,20},{C2,20},{F2,20},{G2,20},{C2,20},{C2,20},
+};
+
+static const nota_t MEL_Z5[] = {                        /* Criovalle        */
+    {C5,10},{SIL,6},{G4,10},{SIL,6},{A4,10},{SIL,6},{E5,14},{SIL,10},
+    {D5,10},{SIL,6},{A4,10},{SIL,6},{B4,10},{SIL,6},{F5,14},{SIL,10},
+    {E5,10},{SIL,6},{C5,10},{SIL,6},{G5,18},{SIL,14},
+};
+static const nota_t BAJO_Z5[] = {
+    {C2,24},{A2,24},{F2,24},{G2,24},
+};
+
+static const nota_t MEL_Z6[] = {                        /* Ciudad Malla     */
+    {A4,4},{SIL,2},{A4,4},{C5,6},{SIL,2},{G4,4},{A4,10},
+    {F4,4},{SIL,2},{F4,4},{A4,6},{SIL,2},{E4,4},{F4,10},
+    {G4,4},{SIL,2},{G4,4},{B4,6},{SIL,2},{D5,4},{G4,10},
+    {E5,4},{D5,4},{C5,4},{B4,4},{A4,12},{SIL,6},
+};
+static const nota_t BAJO_Z6[] = {
+    {A2,4},{SIL,4},{A2,4},{E2,4},{F2,4},{SIL,4},{F2,4},{C2,4},
+    {G2,4},{SIL,4},{G2,4},{D2,4},{A2,4},{A2,4},{E2,4},{E2,4},
+};
+
+static const nota_t MEL_Z7[] = {                        /* Villa Oxido      */
+    {D4,14},{F4,10},{E4,14},{D4,10},{C4,20},{SIL,8},
+    {F4,14},{A4,10},{G4,14},{F4,10},{D4,20},{SIL,8},
+    {A3,14},{C4,10},{D4,14},{F4,10},{E4,24},{SIL,12},
+};
+static const nota_t BAJO_Z7[] = {
+    {D2,24},{D2,24},{F2,24},{C2,24},{A2,24},{D2,24},
+};
+
+static const nota_t MEL_Z8[] = {                        /* Prisma           */
+    {C4,6},{E4,6},{G4,6},{C5,6},{E5,6},{G5,10},{E5,6},{C5,10},
+    {D4,6},{F4,6},{A4,6},{D5,6},{F5,6},{A5,10},{F5,6},{D5,10},
+    {E4,6},{G4,6},{B4,6},{E5,6},{G5,6},{C6,14},{SIL,6},
+    {G5,8},{E5,8},{C5,8},{G4,16},{SIL,8},
+};
+static const nota_t BAJO_Z8[] = {
+    {C2,12},{G2,12},{C2,12},{G2,12},{D2,12},{A2,12},{E2,12},{G2,12},
+};
+
+#define RIT_Z1   "h.......h......."
+#define RIT_Z2   "K...h...S...h..."
+#define RIT_Z3   "K.h.K.h.S.h.K.h."
+#define RIT_Z4   "K.......K...S..."
+#define RIT_Z5   "h.......h...h..."
+#define RIT_Z6   "K.hhS.h.K.hhS.hh"
+#define RIT_Z7   "K...........S..."
+#define RIT_Z8   "h.h.S.h.h.h.S.h."
+
 typedef struct {
     const nota_t *lead;  uint8_t n_lead;
     const nota_t *bajo;  uint8_t n_bajo;    /* NULL: lead alone              */
@@ -197,6 +302,15 @@ static const cancion_t CANCIONES[] = {
     { N(MEL_NIVEL),    NULL, 0,         NULL,        0 },
     { N(MEL_DERROTA),  NULL, 0,         NULL,        0 },
     { N(MEL_FINAL),    N(BAJO_FINAL),   RIT_FINAL,   0 },
+    /* Los ocho del mapa, en el orden de las zonas. */
+    { N(MEL_Z1), N(BAJO_Z1), RIT_Z1, 1 },
+    { N(MEL_Z2), N(BAJO_Z2), RIT_Z2, 1 },
+    { N(MEL_Z3), N(BAJO_Z3), RIT_Z3, 1 },
+    { N(MEL_Z4), N(BAJO_Z4), RIT_Z4, 1 },
+    { N(MEL_Z5), N(BAJO_Z5), RIT_Z5, 1 },
+    { N(MEL_Z6), N(BAJO_Z6), RIT_Z6, 1 },
+    { N(MEL_Z7), N(BAJO_Z7), RIT_Z7, 1 },
+    { N(MEL_Z8), N(BAJO_Z8), RIT_Z8, 1 },
 };
 
 #define NCANCIONES ((int)(sizeof(CANCIONES) / sizeof(CANCIONES[0])))

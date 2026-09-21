@@ -773,6 +773,7 @@ typedef struct {
      * alrededor: un personaje inmovil en un pueblo con gato, pajaro y agua
      * que corre es lo unico muerto de la pantalla. */
     uint16_t   quieto;
+    uint8_t    mel_mapa;        /* el tema de zona que esta puesto           */
 
     /* mobile entities of the room (the enemies that patrol) */
     struct {
@@ -878,6 +879,8 @@ void ch_map_entrar(ch_t *g, int sala, int x, int y);
 void ch_map_fondo(ch_t *g);                     /* repaints the whole bg     */
 void ch_map_dibujar(ch_t *g);                   /* what moves                */
 void ch_map_tick(ch_t *g);
+/* Pone el tema de la zona en la que estas, si no estaba ya. */
+void ch_map_musica(ch_t *g);
 void ch_map_toque(ch_t *g, int bx, int by);
 void ch_map_interactuar(ch_t *g, int idx);
 void ch_map_dialogo_cerrado(ch_t *g);
@@ -957,6 +960,8 @@ enum {
     CH_MEL_NIVEL,
     CH_MEL_DERROTA,
     CH_MEL_FINAL,
+    /* Uno por zona, en orden: CH_MEL_ZONA + (zona - 1). */
+    CH_MEL_ZONA,
 };
 
 void ch_snd_melodia(ch_t *g, int id);

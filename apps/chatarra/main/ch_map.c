@@ -316,6 +316,7 @@ void ch_map_entrar(ch_t *g, int sala, int x, int y)
             break;
         }
     }
+    ch_map_musica(g);
 
     /* The room's creatures. The robot is generated HERE and stored: the one
      * you see walking is exactly the one you fight. Rolling it again when the
@@ -779,6 +780,24 @@ static void andar_bichos(ch_t *g)
         g->mov[i].dir = (uint8_t)d;
         g->mov[i].paso = TILE;              /* one pixel per frame           */
     }
+}
+
+/* EL TEMA DE LA ZONA.
+ *
+ * El mapa estaba mudo -sonaba el titulo y sonaba el combate- y ocho zonas con
+ * ocho cielos y ocho paletas sonaban todas igual, o sea a nada. Se pide al
+ * entrar a cada sala, pero solo se cambia si la zona cambio: volver a mandar
+ * la misma melodia la reiniciaria en cada puerta, y ocho salas de una zona son
+ * ocho reinicios del mismo compas. */
+void ch_map_musica(ch_t *g)
+{
+    const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
+    uint8_t z = r->zona < 1 ? 1 : (r->zona > ZONAS ? ZONAS : r->zona);
+    uint8_t mel = (uint8_t)(CH_MEL_ZONA + z - 1);
+
+    if (g->mel_mapa == mel) return;
+    g->mel_mapa = mel;
+    ch_snd_melodia(g, mel);
 }
 
 void ch_map_tick(ch_t *g)
