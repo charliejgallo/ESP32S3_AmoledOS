@@ -1070,6 +1070,15 @@ int ch_map_check(void)
         memset(&tmp, 0, sizeof(tmp));
         tmp.s.sala = (uint8_t)si;
 
+        for (int i = 0; i < r->nprops; i++) {
+            const ch_prop_t *pr = &r->props[i];
+            if (pr->x < 0 || pr->x >= COLS || pr->y < 0 || pr->y >= ROWS) {
+                aos_hal_log("chatarra", "%s: the decoration at %d,%d is off the map",
+                            r->nombre, pr->x, pr->y);
+                malos++;
+            }
+        }
+
         for (int i = 0; i < r->nents; i++) {
             const ch_ent_t *e = &r->ents[i];
 
@@ -1108,6 +1117,18 @@ int ch_map_check(void)
                                 r->nombre, d->nombre, e->p2, e->p3);
                     malos++;
                 }
+            }
+
+            /* OUTSIDE THE MAP. The v1 -> v2 shrink left a workshop machine
+             * at x=15 of a 15-wide map: it drew clipped against the edge and
+             * nothing said a word, because until now the check only looked at
+             * doors. A coordinate that does not exist is the cheapest kind of
+             * bug to find and the most annoying to see. */
+            if (e->x < 0 || e->x >= COLS || e->y < 0 || e->y >= ROWS) {
+                aos_hal_log("chatarra", "%s: the entity at %d,%d is off the map",
+                            r->nombre, e->x, e->y);
+                malos++;
+                continue;
             }
 
             /* a decoration on top of an entity is drawn twice */
