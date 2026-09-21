@@ -340,16 +340,6 @@ typedef struct {
     uint32_t    cuerpo, detalle;
 } icono_t;
 
-enum {
-    IC_TALLER, IC_OBJETOS, IC_EQUIPO, IC_REGISTRO, IC_MAPA,
-    IC_AYUDA, IC_SONIDO, IC_GUARDAR, IC_CERRAR,
-    IC_MOCHILA, IC_AJUSTES,
-    /* one per item, and the errands share one: a list of names with no
-     * pictures is a list you read twice before finding the oil */
-    IC_ACEITE, IC_BATERIA, IC_SOLDADOR, IC_CHIP, IC_IMAN, IC_LLAVE,
-    IC_PASE, IC_TORNILLOS, IC_ANCLA, IC_HERRAMIENTA, IC_BARRIL,
-    NICONOS
-};
 
 /* Which icon each item wears. The two oils share one and so do the two
  * batteries -they ARE the same thing, bigger- and the errands that are one
@@ -472,6 +462,26 @@ static const icono_t ICONOS[NICONOS] = {
         "kkkkkkkkkkkk", "kOoyyyyyoOk.", "kOoyOOOyoOk.", "kOoyyyyyoOk.",
         "kkkkkkkkkkkk", "kOoooooooOk.", ".kOOOOOOOOk.", "..kkkkkkkk..",
     }, 0xFF9F0A, 0xC05A00 },
+    [IC_COMBATE] = { {                              /* dos cunas que chocan */
+        "kk........kk", "kGk......kGk", "kGGk....kGGk", "kGGGk..kGGGk",
+        "kGGGGkkGGGGk", "kGGGkrrkGGGk", "kGGGkrrkGGGk", "kGGGGkkGGGGk",
+        "kGGGk..kGGGk", "kGGk....kGGk", "kGk......kGk", "kk........kk",
+    }, 0xD5DCEB, 0xFF4A3D },
+    [IC_TRUEQUE] = { {                              /* una flecha para cada lado */
+        "....v.......", "...vvv......", "..vvvvv.....", "....v.......",
+        "....v.......", "....v..n....", "....v..n....", "....v..n....",
+        "....v..n....", ".......n....", "....nnnnn...", ".....nnn....",
+    }, 0x4ADE80, 0x2AF0C8 },
+    [IC_PIEZA] = { {                                /* una cabeza suelta */
+        "............", "..kkkkkkkk..", ".kGGGGGGGGk.", "kGGkGGGGkGGk",
+        "kGGkGGGGkGGk", "kGGGGGGGGGGk", "kGGccGGccGGk", "kGGccGGccGGk",
+        "kGGGGGGGGGGk", ".kGGGGGGGGk.", "..kkkkkkkk..", "............",
+    }, 0x8FA6C4, 0x7BE9FF },
+    [IC_COLGAR] = { {                               /* el tubo y la flecha abajo */
+        "kkk......kkk", "kBBk....kBBk", "kBBk....kBBk", "kBBkkkkkkBBk",
+        "kBBBBBBBBBBk", "kkkkkkkkkkkk", "............", "....rrrr....",
+        "....rrrr....", "..rrrrrrrr..", "...rrrrrr...", "....rrrr....",
+    }, 0x4A9DF5, 0xFF4A3D },
     [IC_AJUSTES] = { {                                /* root: the settings */
         "............", ".##########.", ".....##.....", ".....##.....",
         ".##########.", "...##.......", "...##.......", ".##########.",
@@ -485,7 +495,7 @@ static const icono_t ICONOS[NICONOS] = {
  * but any other letter is now looked up in the SPRITES' palette, so an icon
  * can have as much detail as the rest of the game's art. Same table, same
  * twelve by twelve, no new format to learn. */
-static void icono_draw(ch_buf_t *b, int x, int y, int ic, int esc)
+void ch_ui_icono(ch_buf_t *b, int x, int y, int ic, int esc)
 {
     const icono_t *o = &ICONOS[ic % NICONOS];
     uint16_t c = ch_rgb(o->cuerpo), d = ch_rgb(o->detalle), p;
@@ -562,7 +572,7 @@ static void fila_item(ch_t *g, int i, int item, const char *der,
     ch_frame(b, LX, y, LW, h, ch_rgb(0x3D465F));
     ch_rect(b, LX + 1, y + 1, LW - 2, 1, ch_rgb(0x2C3550));
 
-    icono_draw(b, LX + 6, y + h / 2 - 12, ICONO_ITEM[item % ITEMS], 2);
+    ch_ui_icono(b, LX + 6, y + h / 2 - 12, ICONO_ITEM[item % ITEMS], 2);
 
     ch_text(b, LX + 36, y + 6, _(it->nombre),
             activa ? ch_rgb(0xFFFFFF) : ch_rgb(0x606B85));
@@ -735,7 +745,7 @@ static void menu_fondo(ch_t *g)
         ch_rect(b, x + 1, y + 1, w - 2, 1, ch_rgb(0x2C3550));
 
         if (w >= 120) {                 /* wide: the icon to the left of the text */
-            icono_draw(b, x + 14, y + h / 2 - 18, p[i].icono, 3);
+            ch_ui_icono(b, x + 14, y + h / 2 - 18, p[i].icono, 3);
             ch_text(b, x + 62, y + h / 2 - 4, txt, ch_rgb(0xFFFFFF));
         } else {                        /* narrow: the icon over the text     */
             /* Centred as ONE block -icon, label and, if there is one, the
@@ -744,7 +754,7 @@ static void menu_fondo(ch_t *g)
             int alto = 24 + 6 + 7 + (sub ? 9 : 0);
             int iy = y + (h - alto) / 2;
 
-            icono_draw(b, x + w / 2 - 12, iy, p[i].icono, 2);
+            ch_ui_icono(b, x + w / 2 - 12, iy, p[i].icono, 2);
             ch_text(b, x + (w - ch_text_w(txt)) / 2, iy + 30, txt,
                     ch_rgb(0xFFFFFF));
             if (sub) {
@@ -799,18 +809,45 @@ static int     s_nlista;
 #define TA_CY     34                    /* el contenido: 34..166             */
 #define TA_RX      6                    /* el robot, a escala 3              */
 #define TA_RY     38
-#define TA_BX     90                    /* los cuatro botones de categoria   */
+#define TA_BX     90                    /* la columna de la derecha          */
 #define TA_BW    (CH_W - TA_BX - 6)
-#define TA_BH     29
+#define TA_EY     34                    /* los tres robots del equipo        */
+#define TA_EH     22
+#define TA_BY     60                    /* los cuatro botones de categoria   */
+#define TA_BH     26
+
+/* Cual de los robots del equipo se esta armando. Vive fuera de ch_t porque no
+ * es estado del juego: al salir del taller no significa nada. */
+static uint8_t s_ta_bot;
+
+static int ta_bot_en(int bx, int by)
+{
+    int w = (TA_BW - 4) / EQUIPO;
+
+    if (by < TA_EY || by >= TA_EY + TA_EH) return -1;
+    for (int i = 0; i < EQUIPO; i++) {
+        int x = TA_BX + i * (w + 2);
+        if (bx >= x && bx < x + w) return i;
+    }
+    return -1;
+}
 
 static int ta_cat_en(int bx, int by)
 {
     if (bx < TA_BX || bx >= TA_BX + TA_BW) return -1;
     for (int c = 0; c < P_CATS; c++) {
-        int y = TA_CY + 4 + c * TA_BH;
+        int y = TA_BY + c * TA_BH;
         if (by >= y && by < y + TA_BH - 3) return c;
     }
     return -1;
+}
+
+/* El robot que se esta armando: el activo, o el de la reserva que elegiste. */
+static ch_robot_t *ta_robot(ch_t *g)
+{
+    ch_robot_t *r = ch_eq(&g->s, s_ta_bot % EQUIPO);
+    if (!r) { s_ta_bot = 0; r = &g->s.yo; }
+    return r;
 }
 
 /* Las piezas de la mochila de una categoria, en s_lista, CON LA PUESTA
@@ -834,10 +871,11 @@ static void ta_juntar(ch_t *g, int cat)
 }
 
 /* Que pieza es una fila de la lista, sea de la mochila o la puesta. */
-static uint8_t ta_pieza(const ch_t *g, int cat, int fila)
+static uint8_t ta_pieza(ch_t *g, int cat, int fila)
 {
     uint8_t e = s_lista[fila % (s_nlista ? s_nlista : 1)];
-    return e == TA_PUESTA ? PIEZA_ID(cat, g->s.yo.pieza[cat]) : g->s.piezas[e];
+    return e == TA_PUESTA ? PIEZA_ID(cat, ta_robot(g)->pieza[cat])
+                          : g->s.piezas[e];
 }
 
 static void taller_fondo(ch_t *g)
@@ -847,14 +885,41 @@ static void taller_fondo(ch_t *g)
 
     if (g->sel2 == 0) {
         /* --- la vista general ------------------------------------------- */
+        ch_robot_t *r = ta_robot(g);
         int sueltas = 0;
+        int ew = (TA_BW - 4) / EQUIPO;
 
         ch_ui_titulo(g, _("TALLER"), _("TOCA UNA PIEZA"));
-        ch_robot_draw(b, TA_RX + 39, TA_RY, &g->s.yo, 3, false, 0, 0);
+        ch_robot_draw(b, TA_RX + 39, TA_RY, r, 3, false, 0, 0);
+
+        /* LOS TRES DEL EQUIPO. El taller armaba SIEMPRE el robot que sale a
+         * pelear, asi que las piezas del segundo y del tercero no se podian
+         * tocar sin cambiar cual sale primero. Son tres botones. */
+        for (int i = 0; i < EQUIPO; i++) {
+            const ch_robot_t *q = ch_eq(&g->s, i);
+            int x = TA_BX + i * (ew + 2);
+            bool aqui = (i == s_ta_bot % EQUIPO);
+
+            ch_round(b, x, TA_EY, ew, TA_EH, 3,
+                     ch_rgb(aqui ? 0x2B3145 : 0x141720));
+            ch_frame(b, x, TA_EY, ew, TA_EH,
+                     ch_rgb(aqui ? 0xFFE45E : 0x3D465F));
+            if (!q) {
+                ch_text_center(b, x + ew / 2, TA_EY + 8, "-",
+                               ch_rgb(0x3D465F), ch_rgb(0x05060C));
+                continue;
+            }
+            snprintf(t, sizeof(t), "%.4s", ch_robot_nombre(q));
+            ch_text_center(b, x + ew / 2, TA_EY + 3, t,
+                           ch_rgb(aqui ? 0xFFFFFF : 0x606B85), ch_rgb(0x05060C));
+            snprintf(t, sizeof(t), _("N%d"), q->nivel);
+            ch_text_center(b, x + ew / 2, TA_EY + 12, t,
+                           ch_rgb(aqui ? 0xFFE45E : 0x606B85), ch_rgb(0x05060C));
+        }
 
         for (int c = 0; c < P_CATS; c++) {
-            const ch_part_t *p = &ch_partes[PIEZA_ID(c, g->s.yo.pieza[c])];
-            int y = TA_CY + 4 + c * TA_BH;
+            const ch_part_t *p = &ch_partes[PIEZA_ID(c, r->pieza[c])];
+            int y = TA_BY + c * TA_BH;
             int n = 0;
 
             for (int i = 0; i < MOCHILA; i++) {
@@ -864,14 +929,14 @@ static void taller_fondo(ch_t *g)
             ch_round(b, TA_BX, y, TA_BW, TA_BH - 3, 3, ch_rgb(0x1A2133));
             ch_frame(b, TA_BX, y, TA_BW, TA_BH - 3,
                      ch_rgb(n ? 0x8A93AB : 0x3D465F));
-            ch_text(b, TA_BX + 5, y + 4, _(CATS[c]), ch_rgb(0x8A93AB));
+            ch_text(b, TA_BX + 5, y + 3, _(CATS[c]), ch_rgb(0x8A93AB));
             if (n) {
                 snprintf(t, sizeof(t), "+%d", n);
-                ch_text(b, TA_BX + TA_BW - 5 - ch_text_w(t), y + 4, t,
+                ch_text(b, TA_BX + TA_BW - 5 - ch_text_w(t), y + 3, t,
                         ch_rgb(0x4ADE80));
             }
             snprintf(t, sizeof(t), "%.14s", _(p->nombre));
-            ch_text(b, TA_BX + 5, y + 14, t, ch_rgb(0xFFFFFF));
+            ch_text(b, TA_BX + 5, y + 13, t, ch_rgb(0xFFFFFF));
             sueltas += n;
         }
         /* Y si no hay NADA suelto, decirlo: cuatro botones que se abren a una
@@ -879,9 +944,9 @@ static void taller_fondo(ch_t *g)
         if (!sueltas) {
             /* En dos lineas: de una sola son 34 caracteres, o sea 204 px de
              * ancho en una pantalla de 184. */
-            ch_text_center(b, CH_W / 2, 148, _("GANA COMBATES"),
+            ch_text_center(b, 46, 146, _("GANA COMBATES"),
                            ch_rgb(0x606B85), ch_rgb(0x05060C));
-            ch_text_center(b, CH_W / 2, 158, _("PARA ARRANCAR PIEZAS"),
+            ch_text_center(b, 46, 156, _("PARA PIEZAS"),
                            ch_rgb(0x606B85), ch_rgb(0x05060C));
         }
         return;
@@ -903,7 +968,8 @@ static void taller_fondo(ch_t *g)
 
         /* Lo que cambiaria, si ya tocaste una fila una vez. */
         if (g->sel) {
-            ch_robot_t prueba = g->s.yo;
+            ch_robot_t *r = ta_robot(g);
+            ch_robot_t prueba = *r;
             uint8_t id = ta_pieza(g, cat, g->sel - 1);
             char t2[72];
 
@@ -913,9 +979,9 @@ static void taller_fondo(ch_t *g)
             ch_text(b, CH_W - 6 - ch_text_w(_("TOCA 2X")), 42, _("TOCA 2X"),
                     ch_rgb(0x8A93AB));
             snprintf(t2, sizeof(t2), "PV%d>%d A%d>%d D%d>%d V%d>%d",
-                     g->s.yo.vida_max, prueba.vida_max,
-                     g->s.yo.atk, prueba.atk, g->s.yo.def, prueba.def,
-                     g->s.yo.vel, prueba.vel);
+                     r->vida_max, prueba.vida_max,
+                     r->atk, prueba.atk, r->def, prueba.def,
+                     r->vel, prueba.vel);
             ch_text(b, 6, 52, t2, ch_rgb(0xD5DCEB));
         }
 
@@ -928,7 +994,7 @@ static void taller_fondo(ch_t *g)
             if (k >= s_nlista) break;
             id = ta_pieza(g, cat, k);
             p = &ch_partes[id];
-            puesta = &ch_partes[PIEZA_ID(cat, g->s.yo.pieza[cat])];
+            puesta = &ch_partes[PIEZA_ID(cat, ta_robot(g)->pieza[cat])];
             bool esta = (s_lista[k] == TA_PUESTA);
 
             ch_rect(b, LX, y, LW, h,
@@ -940,7 +1006,7 @@ static void taller_fondo(ch_t *g)
             ch_rect(b, LX + 1, y + 1, LW - 2, 1, ch_rgb(0x2C3550));
             ch_rect(b, LX + 3, y + 3, 30, h - 6, ch_rgb(0x0E111A));
             ch_part_draw(b, cat, PIEZA_VAR(id), LX + 18, y + h / 2, 1,
-                         (int)g->s.yo.skin);
+                         (int)ta_robot(g)->skin);
             ch_text(b, LX + 38, y + 5, _(p->nombre), ch_rgb(0xFFFFFF));
             snprintf(t, sizeof(t), _("PV%d E%d"), p->vida, p->energia);
             ch_text(b, LX + 38, y + 17, t, ch_rgb(0x606B85));
@@ -973,7 +1039,15 @@ static void taller_fondo(ch_t *g)
 static void taller_toque(ch_t *g, int bx, int by)
 {
     if (g->sel2 == 0) {
-        int c = ta_cat_en(bx, by);
+        int c = ta_bot_en(bx, by);
+        if (c >= 0) {
+            if (!ch_eq(&g->s, c)) { ch_sfx(220, 40); return; }
+            s_ta_bot = (uint8_t)c;
+            ch_sfx(1000, 25);
+            g->rehacer_fondo = 1;
+            return;
+        }
+        c = ta_cat_en(bx, by);
         if (c < 0) return;
         g->sel2 = (uint8_t)(c + 1);
         g->sel = 0;
@@ -1017,14 +1091,17 @@ static void taller_toque(ch_t *g, int bx, int by)
             g->rehacer_fondo = 1;
             return;
         }
-        id = g->s.piezas[s_lista[k]];
-        antes = PIEZA_ID(cat, g->s.yo.pieza[cat]);
-        g->s.yo.pieza[cat] = PIEZA_VAR(id);
-        g->s.piezas[s_lista[k]] = antes;
-        ch_ver(&g->s, id);
-        ch_ver(&g->s, antes);
-        ch_robot_stats(&g->s.yo);
-        if (g->s.yo.vida > g->s.yo.vida_max) g->s.yo.vida = g->s.yo.vida_max;
+        {
+            ch_robot_t *r = ta_robot(g);
+            id = g->s.piezas[s_lista[k]];
+            antes = PIEZA_ID(cat, r->pieza[cat]);
+            r->pieza[cat] = PIEZA_VAR(id);
+            g->s.piezas[s_lista[k]] = antes;
+            ch_ver(&g->s, id);
+            ch_ver(&g->s, antes);
+            ch_robot_stats(r);
+            if (r->vida > r->vida_max) r->vida = r->vida_max;
+        }
 
         ch_sfx(1200, 40);
         ch_ui_aviso(g, _(ch_partes[id].nombre));
@@ -1994,7 +2071,7 @@ void ch_ui_toque(ch_t *g, int bx, int by)
         case AC_PAG1:    g->sel2 = 1; break;
         case AC_PAG2:    g->sel2 = 2; break;
         case AC_TALLER:  g->modo = MODO_TALLER;  g->sel2 = 0;
-                         g->sel = 0; g->scroll = 0; break;
+                         g->sel = 0; g->scroll = 0; s_ta_bot = 0; break;
         case AC_OBJETOS: g->modo = MODO_OBJETOS; g->sel2 = 0; break;
         case AC_EQUIPO:  g->modo = MODO_FICHA;   g->sel2 = 0; break;
         case AC_REGISTRO:g->modo = MODO_REGISTRO;g->sel2 = 0; break;

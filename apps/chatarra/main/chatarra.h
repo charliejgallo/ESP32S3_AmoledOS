@@ -880,6 +880,23 @@ bool ch_ui_atras(ch_t *g);                      /* back gesture              */
 void ch_ui_toque(ch_t *g, int bx, int by);
 void ch_ui_dialogo(ch_t *g, const char *texto, int ent, int luego);
 void ch_ui_aviso(ch_t *g, const char *texto);
+/* LOS ICONOS DE 12x12 son de toda la interfaz y no del menu: la cabina los
+ * usa igual. Cualquier letra que no sea '#' (cuerpo) ni '+' (detalle) se busca
+ * en la paleta de los sprites, asi que un icono puede tener tanto detalle como
+ * el resto del arte. */
+enum {
+    IC_TALLER, IC_OBJETOS, IC_EQUIPO, IC_REGISTRO, IC_MAPA,
+    IC_AYUDA, IC_SONIDO, IC_GUARDAR, IC_CERRAR,
+    IC_MOCHILA, IC_AJUSTES,
+    /* one per item, and the errands share one: a list of names with no
+     * pictures is a list you read twice before finding the oil */
+    IC_ACEITE, IC_BATERIA, IC_SOLDADOR, IC_CHIP, IC_IMAN, IC_LLAVE,
+    IC_PASE, IC_TORNILLOS, IC_ANCLA, IC_HERRAMIENTA, IC_BARRIL,
+    IC_COMBATE, IC_TRUEQUE, IC_PIEZA, IC_COLGAR,
+    NICONOS
+};
+
+void ch_ui_icono(ch_buf_t *b, int x, int y, int ic, int esc);
 void ch_ui_menu(ch_t *g);
 /* Drawing helpers shared by every mode. */
 void ch_panel(ch_buf_t *b, int x, int y, int w, int h, uint16_t borde);

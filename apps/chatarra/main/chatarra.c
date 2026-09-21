@@ -973,6 +973,8 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
      *   CH_FINAL=1    opens the closing screen straight away
      *   CH_MENU=0|1|2 opens the menu at that page (root, yours, the game)
      *   CH_MODO=<n>   opens straight into a screen (see the MODO_ enum)
+     *   CH_CABINA=<n> the booth, at that state (see the LK_ enum): the menu
+     *                 needs a second watch, and its layout does not.
      *
      * AND ONE THING THAT IS NOT A SWITCH: CH_REGALO_PIEZAS below hands three
      * loose parts to the save the first time it is loaded, so the workshop
@@ -1049,6 +1051,16 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
         if ((v = getenv("CH_MODO")) && v[0]) {
             a->g.modo_prev = MODO_MAPA;
             a->g.modo = (uint8_t)atoi(v);
+            a->g.rehacer_fondo = 1;
+        }
+        if ((v = getenv("CH_CABINA")) && v[0]) {
+            a->g.modo = MODO_CABINA;
+            a->g.lk.estado = (uint8_t)atoi(v);
+            snprintf(a->g.lk.nombre, sizeof(a->g.lk.nombre), "RELOJ 2");
+            snprintf(a->g.lk.linea[0], sizeof(a->g.lk.linea[0]),
+                     "ENLACE ABIERTO.");
+            snprintf(a->g.lk.linea[1], sizeof(a->g.lk.linea[1]),
+                     "DEL OTRO LADO: RELOJ 2.");
             a->g.rehacer_fondo = 1;
         }
         if ((v = getenv("CH_MENU")) && v[0]) {

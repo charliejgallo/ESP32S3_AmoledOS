@@ -1151,8 +1151,6 @@ static const char blob_en_demo_chatarra_lang[] =
     "SIN PAREJA\tNO PARTNER\n"
     "SALIR\tLEAVE\n"
     "COMBATIR\tFIGHT\n"
-    "CAMBIAR ROBOT\tSWAP A ROBOT\n"
-    "CAMBIAR PIEZA\tSWAP A PART\n"
     "COLGAR\tHANG UP\n"
     "%d-%d DE %d\t%d-%d OF %d\n"
     "RETIRAR\tTAKE IT BACK\n"
@@ -1588,9 +1586,11 @@ static const char blob_en_demo_chatarra_lang[] =
     "TOCA 2 VECES\tTAP TWICE\n"
     "TOCA UNA PIEZA\tTAP A PART\n"
     "GANA COMBATES\tWIN FIGHTS\n"
-    "PARA ARRANCAR PIEZAS\tTO TEAR PARTS OFF\n"
     "NO TENES OTRA DE ESTE TIPO\tNO OTHERS OF THIS KIND\n"
     "PUESTA\tFITTED\n"
+    "PARA PIEZAS\tFOR PARTS\n"
+    "PIEZA\tPART\n"
+    "ROBOT\tROBOT\n"
     ;
 
 static const char blob_en_demo_cjump_lang[] =
@@ -2916,8 +2916,6 @@ static const char blob_de_demo_chatarra_lang[] =
     "SIN PAREJA\tKEIN PARTNER\n"
     "SALIR\tRAUS\n"
     "COMBATIR\tKAMPFEN\n"
-    "CAMBIAR ROBOT\tROBOTER TAUSCHEN\n"
-    "CAMBIAR PIEZA\tTEIL TAUSCHEN\n"
     "COLGAR\tAUFLEGEN\n"
     "%d-%d DE %d\t%d-%d VON %d\n"
     "RETIRAR\tZURUCKZIEHEN\n"
@@ -3353,9 +3351,11 @@ static const char blob_de_demo_chatarra_lang[] =
     "TOCA 2 VECES\tZWEIMAL TIPPEN\n"
     "TOCA UNA PIEZA\tEIN TEIL ANTIPPEN\n"
     "GANA COMBATES\tKAEMPFE GEWINNEN\n"
-    "PARA ARRANCAR PIEZAS\tUM TEILE ZU HOLEN\n"
     "NO TENES OTRA DE ESTE TIPO\tKEINE WEITEREN DIESER ART\n"
     "PUESTA\tMONTIERT\n"
+    "PARA PIEZAS\tFUER TEILE\n"
+    "PIEZA\tTEIL\n"
+    "ROBOT\tROBOTER\n"
     ;
 
 static const char blob_de_demo_cjump_lang[] =
