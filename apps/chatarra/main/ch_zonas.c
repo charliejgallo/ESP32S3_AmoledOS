@@ -131,6 +131,8 @@ enum {
     /* La feria paga su pieza una sola vez. */
     F_FERIA_PIEZA,
 
+    F_ULTIMA_DEL_MUNDO,
+
     /* zone 8 - Torre Prisma */
     F_JEFE_PRISMA, F_FINAL,
     F_COFRE_T1, F_COFRE_T2, F_COFRE_T3,
@@ -261,6 +263,9 @@ static const ch_ent_t EN_CASA[] = {
       N_("UNA VASIJA CON RETAZOS\n"
       "DE CHAPA."), NULL },
 };
+
+_Static_assert(F_ULTIMA_DEL_MUNDO < F_CFG,
+               "las banderas del mundo pisan la reserva de configuracion");
 
 /* --------------------------------------------------------------------------
  * ROOM 1 - VILLA TUERCA
@@ -471,6 +476,11 @@ static const ch_ent_t EN_TUERCA_SE[] = {
     { E_ANIMAL, 12,  2, AN_PAJARO, 0, 0, 0,
       N_("UN PAJARO EN EL CANTERO.\n"
       "SE VA APENAS TE ACERCAS."), NULL },
+    { E_CHATARRERO,  2, 11, 0, 0, 0, 0,
+      N_("CHATARRERO: TRAEME LO\n"
+      "QUE NO USES.\n"
+      "TE LO PAGO POR LO QUE\n"
+      "PESA, NO POR LO QUE FUE."), NULL },
 };
 
 static const ch_prop_t P_TALLER_INT[] = {
@@ -954,6 +964,11 @@ static const ch_ent_t EN_PUERTO_E[] = {
       "AGARRA LAS VERDES Y\n"
       "DEJA PASAR LAS OXIDADAS.\n"
       "TE PAGO POR PIEZA."), NULL },
+    { E_CHATARRERO, 11,  1, 0, 0, 0, 0,
+      N_("CHATARRERO: TRAEME LO\n"
+      "QUE NO USES.\n"
+      "TE LO PAGO POR LO QUE\n"
+      "PESA, NO POR LO QUE FUE."), NULL },
 };
 
 static const ch_prop_t P_PUERTO_INT[] = {
@@ -2577,6 +2592,11 @@ static const ch_ent_t EN_VOLTIO_E[] = {
     { E_BLOQUEO, 12,  6, F_JEFE_VOLTIO, 0, 0, 0, N_("CONTROL DE ALTO VOLTIO.\n"
       "CERRADO."), N_("CONTROL ABIERTO.") },
     { E_CABINA,  6, 11, 0, 0, 0, 0, NULL, NULL },
+    { E_CHATARRERO,  6, 11, 0, 0, 0, 0,
+      N_("CHATARRERO: TRAEME LO\n"
+      "QUE NO USES.\n"
+      "TE LO PAGO POR LO QUE\n"
+      "PESA, NO POR LO QUE FUE."), NULL },
 };
 
 static const char *const M_FUNDICION_E[ROWS] = {
@@ -2612,6 +2632,11 @@ static const ch_ent_t EN_FUNDICION_E[] = {
     { E_BLOQUEO, 12,  6, F_JEFE_FUNDICION, 0, 0, 0, N_("CONTROL DE LA FUNDICION.\n"
       "CERRADO."), N_("CONTROL ABIERTO.") },
     { E_CABINA,  6, 12, 0, 0, 0, 0, NULL, NULL },
+    { E_CHATARRERO,  2,  1, 0, 0, 0, 0,
+      N_("CHATARRERO: TRAEME LO\n"
+      "QUE NO USES.\n"
+      "TE LO PAGO POR LO QUE\n"
+      "PESA, NO POR LO QUE FUE."), NULL },
 };
 
 static const char *const M_CRIO_E[ROWS] = {
@@ -2647,6 +2672,11 @@ static const ch_ent_t EN_CRIO_E[] = {
     { E_BLOQUEO, 12,  6, F_JEFE_CRIO, 0, 0, 0, N_("CONTROL DE CRIOVALLE.\n"
       "CERRADO POR NIEVE."), N_("CONTROL ABIERTO.") },
     { E_CABINA,  6,  9, 0, 0, 0, 0, NULL, NULL },
+    { E_CHATARRERO,  2, 12, 0, 0, 0, 0,
+      N_("CHATARRERO: TRAEME LO\n"
+      "QUE NO USES.\n"
+      "TE LO PAGO POR LO QUE\n"
+      "PESA, NO POR LO QUE FUE."), NULL },
 };
 
 static const char *const M_MALLA_E[ROWS] = {
@@ -2682,6 +2712,11 @@ static const ch_ent_t EN_MALLA_E[] = {
     { E_BLOQUEO, 12,  6, F_JEFE_MALLA, 0, 0, 0, N_("CONTROL DE MALLA.\n"
       "CERRADO."), N_("CONTROL ABIERTO.") },
     { E_CABINA,  6, 11, 0, 0, 0, 0, NULL, NULL },
+    { E_CHATARRERO,  2, 11, 0, 0, 0, 0,
+      N_("CHATARRERO: TRAEME LO\n"
+      "QUE NO USES.\n"
+      "TE LO PAGO POR LO QUE\n"
+      "PESA, NO POR LO QUE FUE."), NULL },
 };
 
 static const char *const M_OXIDO_E[ROWS] = {
@@ -2717,6 +2752,11 @@ static const ch_ent_t EN_OXIDO_E[] = {
     { E_BLOQUEO, 12,  6, F_JEFE_PARAMO, 0, 0, 0, N_("CONTROL DE VILLA OXIDO.\n"
       "CERRADO."), N_("CONTROL ABIERTO.") },
     { E_CABINA,  6, 12, 0, 0, 0, 0, NULL, NULL },
+    { E_CHATARRERO,  2, 12, 0, 0, 0, 0,
+      N_("CHATARRERO: TRAEME LO\n"
+      "QUE NO USES.\n"
+      "TE LO PAGO POR LO QUE\n"
+      "PESA, NO POR LO QUE FUE."), NULL },
 };
 
 static const char *const M_PRISMA_E[ROWS] = {
@@ -2744,6 +2784,11 @@ static const ch_prop_t P_PRISMA_E[] = {
 static const ch_ent_t EN_PRISMA_E[] = {
     { E_PUERTA,  0,  5, S_PRISMA, 12,  6, 3, NULL, NULL },
     { E_CABINA,  6,  9, 0, 0, 0, 0, NULL, NULL },
+    { E_CHATARRERO,  2, 12, 0, 0, 0, 0,
+      N_("CHATARRERO: TRAEME LO\n"
+      "QUE NO USES.\n"
+      "TE LO PAGO POR LO QUE\n"
+      "PESA, NO POR LO QUE FUE."), NULL },
 };
 
 const ch_room_t ch_salas[] = {
@@ -2922,6 +2967,19 @@ bool ch_feria_premio(ch_save_t *s, uint32_t *sem)
     }
     return false;
 }
+
+/* El truco de cada subjefe, en el orden de las zonas. */
+const uint8_t ch_trucos[ZONAS] = {
+    TRUCO_REPARA,   /* 1 Guardian del Desguace: se repara y hay que rehacerlo */
+    TRUCO_DRENA,    /* 2 Capataz: cada golpe suyo lo cura un poco            */
+    TRUCO_CORTO,    /* 3 Ingeniera Jefa: entras en cortocircuito             */
+    TRUCO_FURIA,    /* 4 Maestro Fundidor: mientras menos vida, mas pega     */
+    TRUCO_ESCUDO,   /* 5 Guardabosque: se blinda cada tres turnos            */
+    TRUCO_DOBLE,    /* 6 Administradora: cada tres turnos pega dos veces     */
+    TRUCO_QUEMA,    /* 7 Chatarrero Mayor: te deja recalentado de entrada    */
+    TRUCO_FURIA,    /* 8 El Campeon: el ultimo no necesita un truco nuevo,
+                     *   necesita que el que tiene duela */
+};
 
 const ch_zona_t ch_zonas_tab[ZONAS] = {
     /*  name              cleared           first     last       visited      home        x   y */

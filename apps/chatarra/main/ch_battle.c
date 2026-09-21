@@ -173,6 +173,16 @@ void ch_bt_empezar(ch_t *g, const ch_robot_t *rival, int jefe, int zona)
     memset(&g->bt, 0, sizeof(g->bt));
     g->bt.rival = *rival;
     g->bt.jefe  = (uint8_t)jefe;
+    g->bt.truco = 0;
+    g->bt.truco_usado = 0;
+    g->bt.turnos = 0;
+    if (jefe && zona >= 1 && zona <= ZONAS) {
+        g->bt.truco = ch_trucos[zona - 1];
+        /* Los dos que actuan AL ENTRAR lo hacen antes del primer turno: el
+         * jugador tiene que ver que empezo en desventaja y decidir con eso. */
+        if (g->bt.truco == TRUCO_QUEMA) g->bt.quema[0] = 5;
+        if (g->bt.truco == TRUCO_CORTO) g->bt.corto[0] = 4;
+    }
     g->bt.zona  = (uint8_t)zona;
     g->bt.origen = 0xFF;
     g->bt.premio_pieza = 0xFF;
@@ -230,6 +240,25 @@ static int danio(ch_t *g, const ch_robot_t *at, const ch_robot_t *df,
     if (bt_rnd(g, 100) < 10) {
         base = base * 3 / 2;
         g->bt.critico = 1;
+    }
+
+    /* LA DIFICULTAD, en el unico lugar donde se puede tocar de una vez.
+     *
+     * No cambia estadisticas ni niveles -eso desincroniza el registro y el
+     * juego de piezas-: cambia lo que DUELE. En facil pegas un 20% mas y te
+     * pegan un 25% menos; en duro, al reves. Con eso una pelea que no sale se
+     * vuelve ganable sin que el jugador tenga que entender por que. */
+    /* LA FURIA: el subjefe pega mas cuanto menos vida le queda. Se nota sin
+     * anunciarse, que es justo lo que se quiere de un jefe acorralado. */
+    if (g->bt.truco == TRUCO_FURIA && at == &g->bt.rival &&
+        at->vida * 3 <= at->vida_max) {
+        base = base * 3 / 2;
+    }
+    {
+        int d = ch_dificultad(&g->s);
+        bool me_pegan = (at != &g->s.yo);
+        if (d == DIF_FACIL) base = me_pegan ? base * 3 / 4 : base * 6 / 5;
+        else if (d == DIF_DURO) base = me_pegan ? base * 5 / 4 : base * 5 / 6;
     }
     return base < 1 ? 1 : base;
 }
@@ -312,6 +341,22 @@ static bool atacar(ch_t *g, int quien, int mv)
         else if (ef > 8) snprintf(l2, sizeof(l2), _("MUY EFICAZ! %d DE DANO"), d);
         else if (ef < 8) snprintf(l2, sizeof(l2), _("POCO EFICAZ. %d DE DANO"), d);
         else             snprintf(l2, sizeof(l2), _("%d DE DANO."), d);
+    }
+
+    /* EL TRUCO QUE SE RESUELVE AL GOLPEAR: el Capataz se cura con lo que
+     * hace, y la Administradora pega dos veces cada tres turnos. */
+    if (quien == 1 && d > 0) {
+        if (g->bt.truco == TRUCO_DRENA) {
+            int cura = d / 3;
+            at->vida = (int16_t)(at->vida + cura);
+            if (at->vida > at->vida_max) at->vida = at->vida_max;
+            if (cura) snprintf(l3, sizeof(l3), _("SE CURA %d."), cura);
+        } else if (g->bt.truco == TRUCO_DOBLE && (g->bt.turnos % 3) == 0) {
+            int extra = d / 2;
+            df->vida = (int16_t)(df->vida - extra);
+            if (df->vida < 0) df->vida = 0;
+            snprintf(l3, sizeof(l3), _("Y OTRA VEZ: %d MAS."), extra);
+        }
     }
 
     /* The effect, if there is one and if it lands. */
@@ -487,7 +532,7 @@ static void victoria(ch_t *g)
         int cat = ch_rnd(&g->rng, P_CATS);
         uint8_t id = PIEZA_ID(cat, r->pieza[cat]);
         bool entro = false;
-        for (int i = 0; i < MOCHILA; i++) {
+        for (int i = 0; i < ch_mochila(&g->s); i++) {
             if (g->s.piezas[i] == 0xFF) {
                 g->s.piezas[i] = id; g->bt.premio_pieza = id; entro = true; break;
             }
@@ -760,8 +805,51 @@ static void sacar_rival(ch_t *g, int slot)
     g->bt.hp_ver[1] = g->bt.rival.vida;
 }
 
+/* EL TRUCO, ANTES DEL TURNO.
+ *
+ * Los tres que dependen del estado -repararse, blindarse, pegar dos veces-
+ * se resuelven aca y AVISAN por el panel: un jefe que hace algo raro y no lo
+ * dice es un jefe que parece roto. El cuarto (furia) y el quinto (drena)
+ * viven dentro del calculo del dano, que es donde se notan.
+ */
+static bool truco_antes(ch_t *g)
+{
+    ch_robot_t *r = &g->bt.rival;
+
+    g->bt.turnos++;
+    switch (g->bt.truco) {
+    case TRUCO_REPARA:
+        if (!g->bt.truco_usado && r->vida * 2 <= r->vida_max) {
+            g->bt.truco_usado = 1;
+            r->vida = (int16_t)(r->vida + r->vida_max / 2);
+            if (r->vida > r->vida_max) r->vida = r->vida_max;
+            msg(g, _("SE REPARA SOLO!"),
+                        _("VUELVE A EMPEZAR."), "");
+            return true;
+        }
+        break;
+    case TRUCO_ESCUDO:
+        if ((g->bt.turnos % 3) == 0 && g->bt.et_def[1] < 4) {
+            g->bt.et_def[1]++;
+            msg(g, _("SE BLINDA."), _("SUBE SU DEFENSA."), "");
+            return true;
+        }
+        break;
+    default:
+        break;
+    }
+    return false;
+}
+
 static void jugar_turno(ch_t *g, int mv)
 {
+    if (truco_antes(g)) {
+        /* El truco se come el turno del rival: el jugador ve lo que hizo y
+         * sigue jugando, que es lo contrario de un jefe que hace dos cosas a
+         * la vez y no se entiende ninguna. */
+        g->bt.pend = CB_MENU;
+        return;
+    }
     g->bt.mov_j = (uint8_t)mv;
     g->bt.mov_r = (uint8_t)elegir_rival(g);
 

@@ -198,6 +198,13 @@ const ch_item_t ch_items[ITEMS] = {
     { N_("Termo"),          N_("Todavia tiene agua caliente."),       0, 0,   0 },
     { N_("Clave Maestra"),  N_("Abre lo que no deberia."),            0, 0,   0 },
     { N_("Engranaje Grande"), N_("De una maquina que ya no existe."), 0, 0,   0 },
+
+    /* Los tres que se compran y cambian como se juega, no como se pelea. Los
+     * dos permanentes valen UNA vez: el aviso lo dice y el segundo no se
+     * cobra. */
+    { N_("Repelente"),      N_("200 pasos sin encuentros."),        120, 0, 200 },
+    { N_("Orugas"),         N_("Caminas al doble. Para siempre."),  600, 0,   0 },
+    { N_("Bolsa Grande"),   N_("+2 lugares en la mochila."),        500, 0,   0 },
 };
 
 /* --------------------------------------------------------------------------
@@ -1222,7 +1229,7 @@ static int calidad(int id)
 static int mejor_en_mochila(const ch_save_t *s, int cat)
 {
     int mejor = -1, mejorq = -1;
-    for (int i = 0; i < MOCHILA; i++) {
+    for (int i = 0; i < ch_mochila(s); i++) {
         int id = s->piezas[i];
         if (id >= PIEZAS || PIEZA_CAT(id) != cat) continue;
         if (calidad(id) > mejorq) { mejorq = calidad(id); mejor = i; }
@@ -1282,11 +1289,11 @@ bool ch_eq_desarmar(ch_save_t *s, int slot)
     int libres = 0;
 
     if (slot <= 0 || !r) return false;          /* the active one, never     */
-    for (int i = 0; i < MOCHILA; i++) if (s->piezas[i] >= PIEZAS) libres++;
+    for (int i = 0; i < ch_mochila(s); i++) if (s->piezas[i] >= PIEZAS) libres++;
     if (libres < P_CATS) return false;
 
     for (int c = 0; c < P_CATS; c++) {
-        for (int i = 0; i < MOCHILA; i++) {
+        for (int i = 0; i < ch_mochila(s); i++) {
             if (s->piezas[i] < PIEZAS) continue;
             s->piezas[i] = PIEZA_ID(c, r->pieza[c]);
             break;

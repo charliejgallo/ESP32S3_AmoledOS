@@ -538,13 +538,24 @@ static void al_llegar(ch_t *g)
 
     /* Random encounter: only on cells that allow it and only when a cell has
      * just been crossed, not on every frame. */
-    if (r->encuentros && ch_tile_encuentro(suelo(r, g->s.x, g->s.y)) &&
-        ch_rnd(&g->rng, 256) < r->encuentros) {
-        ch_robot_t rival;
-        int nv = g->s.yo.nivel + 1 - ch_rnd(&g->rng, 3);
-        if (nv < 2) nv = 2;
-        ch_robot_random(&rival, &g->rng, nv, r->zona);
-        empezar_combate(g, &rival, 0, 0xFF);
+    /* El repelente y la dificultad entran los dos aca, que es el unico lugar
+     * donde se decide si hay pelea. En facil se pelea la mitad; en duro, un
+     * tercio mas. */
+    {
+        int prob = r->encuentros;
+        int d = ch_dificultad(&g->s);
+        if (g->repele) { g->repele--; prob = 0; }
+        else if (d == DIF_FACIL) prob = prob / 2;
+        else if (d == DIF_DURO)  prob = prob * 4 / 3;
+        if (prob && ch_tile_encuentro(suelo(r, g->s.x, g->s.y)) &&
+            ch_rnd(&g->rng, 256) < prob) {
+            ch_robot_t rival;
+            int nv = g->s.yo.nivel + 1 - ch_rnd(&g->rng, 3);
+            if (nv < 2) nv = 2;
+            ch_robot_random(&rival, &g->rng, nv, r->zona);
+            empezar_combate(g, &rival, 0, 0xFF);
+        }
+        return;
     }
 }
 
@@ -580,6 +591,12 @@ void ch_map_dialogo_cerrado(ch_t *g)
         ch_fe_entrar(g);
         return;
     }
+    if (g->vender_pend) {
+        g->vender_pend = 0;
+        g->modo = MODO_VENDER;
+        g->rehacer_fondo = 1;
+        return;
+    }
     if (!g->bt_pendiente) return;
     int m = g->bt_pendiente - 1;
     g->bt_pendiente = 0;
@@ -601,6 +618,14 @@ void ch_map_interactuar(ch_t *g, int idx)
     switch (e->tipo) {
     case E_CARTEL:
         if (e->texto) ch_ui_dialogo(g, _(e->texto), idx, MODO_MAPA);
+        break;
+
+    case E_CHATARRERO:
+        g->sel = 0;
+        g->scroll = 0;
+        g->vender_pend = 1;
+        if (e->texto) ch_ui_dialogo(g, _(e->texto), idx, MODO_MAPA);
+        else { g->vender_pend = 0; g->modo = MODO_VENDER; g->rehacer_fondo = 1; }
         break;
 
     case E_FERIA:
@@ -829,9 +854,14 @@ void ch_map_tick(ch_t *g)
     brillo_tick(g);
 
     if (g->andando) {
+        /* LAS ORUGAS: seis pixeles por cuadro en vez de dos, o sea la celda
+         * en dos cuadros y no en seis. Son una bandera y dos lineas porque el
+         * paso ya estaba parametrizado; lo unico que hay que cuidar es que
+         * TILE sea divisible por el paso, o el robot queda entre celdas. */
+        int paso = ch_flag(&g->s, F_CFG_ORUGAS) ? WALK_STEP * 3 : WALK_STEP;
         int d = g->ruta[g->iruta];
-        g->px = (int16_t)(g->px + DX[d] * WALK_STEP);
-        g->py = (int16_t)(g->py + DY[d] * WALK_STEP);
+        g->px = (int16_t)(g->px + DX[d] * paso);
+        g->py = (int16_t)(g->py + DY[d] * paso);
         g->paso++;
         g->s.dir = (uint8_t)d;
 
@@ -852,7 +882,8 @@ void ch_map_tick(ch_t *g)
         if (bloqueado(g, r, g->s.x + DX[d], g->s.y + DY[d])) {
             g->nruta = g->iruta = 0;
         } else {
-            g->andando = TILE / WALK_STEP;
+            g->andando = (uint8_t)(TILE /
+                (ch_flag(&g->s, F_CFG_ORUGAS) ? WALK_STEP * 3 : WALK_STEP));
         }
     }
 

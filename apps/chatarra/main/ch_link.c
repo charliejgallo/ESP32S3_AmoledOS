@@ -416,7 +416,7 @@ static void cerrar_trueque(ch_t *g)
         }
         decir(g, _("CAMBIO HECHO!"), ch_robot_nombre(&g->lk.robot_e), "");
     } else {
-        if (g->lk.ofrezco < MOCHILA && g->lk.ofrecen < PIEZAS) {
+        if (g->lk.ofrezco < ch_mochila(&g->s) && g->lk.ofrecen < PIEZAS) {
             g->s.piezas[g->lk.ofrezco] = g->lk.ofrecen;
             ch_ver(&g->s, g->lk.ofrecen);
         }
@@ -441,7 +441,8 @@ static void mandar_oferta(ch_t *g)
         const ch_robot_t *r = ch_eq(&g->s, g->lk.ofrezco);
         if (r) m.robot = *r;
     } else {
-        m.pieza = g->lk.ofrezco < MOCHILA ? g->s.piezas[g->lk.ofrezco] : 0xFF;
+        m.pieza = g->lk.ofrezco < ch_mochila(&g->s) ? g->s.piezas[g->lk.ofrezco]
+                                                   : 0xFF;
     }
     ch_net_mandar(&m, (int)sizeof(m));
 }
@@ -696,7 +697,7 @@ static int opciones(const ch_t *g, uint8_t *ids, int max)
     if (g->lk.clase == 0) {
         for (int i = 0; i < ch_eq_n(&g->s) && n < max; i++) ids[n++] = (uint8_t)i;
     } else {
-        for (int i = 0; i < MOCHILA && n < max; i++) {
+        for (int i = 0; i < ch_mochila(&g->s) && n < max; i++) {
             if (g->s.piezas[i] < PIEZAS) ids[n++] = (uint8_t)i;
         }
     }
@@ -744,8 +745,8 @@ void ch_lk_fondo(ch_t *g)
         break;
 
     case LK_ELIGIENDO: {
-        uint8_t ids[MOCHILA];
-        int n = opciones(g, ids, MOCHILA);
+        uint8_t ids[CH_MAX_MOCHILA];
+        int n = opciones(g, ids, CH_MAX_MOCHILA);
         lineas(g, 40);
         for (int i = 0; i < BOT_MAX; i++) {
             int k = g->lk.sel + i;
@@ -821,8 +822,8 @@ void ch_lk_toque(ch_t *g, int bx, int by)
         return;
 
     case LK_ELIGIENDO: {
-        uint8_t ids[MOCHILA];
-        int n = opciones(g, ids, MOCHILA);
+        uint8_t ids[CH_MAX_MOCHILA];
+        int n = opciones(g, ids, CH_MAX_MOCHILA);
         /* Touching the title pages the list: there is no room for arrows next
          * to buttons this size, and paging by the header is what the register
          * already does. */
@@ -883,6 +884,6 @@ bool ch_lk_atras(ch_t *g)
 
 bool ch_lk_hay_piezas(const ch_t *g)
 {
-    for (int i = 0; i < MOCHILA; i++) if (g->s.piezas[i] < PIEZAS) return true;
+    for (int i = 0; i < ch_mochila(&g->s); i++) if (g->s.piezas[i] < PIEZAS) return true;
     return false;
 }

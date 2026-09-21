@@ -353,6 +353,8 @@ static const uint8_t ICONO_ITEM[ITEMS] = {
     [IT_ANCLA] = IC_ANCLA,      [IT_FUSIBLE]  = IC_HERRAMIENTA,
     [IT_MOLDE] = IC_HERRAMIENTA,[IT_TERMO]    = IC_HERRAMIENTA,
     [IT_CLAVE] = IC_LLAVE,      [IT_ENGRANAJE]= IC_HERRAMIENTA,
+    [IT_REPELENTE] = IC_ACEITE, [IT_ORUGAS]   = IC_TRUEQUE,
+    [IT_BOLSA] = IC_OBJETOS,
 };
 
 static const icono_t ICONOS[NICONOS] = {
@@ -663,7 +665,8 @@ static int flecha_en(int bx, int by)
 typedef struct { uint8_t icono; const char *txt; uint8_t accion; } baldosa_t;
 
 enum { AC_TALLER = 1, AC_OBJETOS, AC_EQUIPO, AC_REGISTRO, AC_MAPA,
-       AC_DIARIO, AC_AYUDA, AC_SONIDO, AC_GUARDAR, AC_CERRAR,
+       AC_DIARIO, AC_AYUDA, AC_SONIDO, AC_DIFICULTAD, AC_GUARDAR,
+       AC_CERRAR,
        AC_PAG1, AC_PAG2 };
 
 static const baldosa_t PAG_RAIZ[] = {
@@ -679,10 +682,15 @@ static const baldosa_t PAG_TUYO[] = {
     { IC_DIARIO,   N_("DIARIO"),   AC_DIARIO },
 };
 static const baldosa_t PAG_JUEGO[] = {
-    { IC_AYUDA,   N_("AYUDA"),    AC_AYUDA },
-    { IC_SONIDO,  N_("SONIDO"),   AC_SONIDO },
-    { IC_GUARDAR, N_("GUARDAR"),  AC_GUARDAR },
-    { IC_CERRAR,  N_("CERRAR"),   AC_CERRAR },
+    { IC_AYUDA,    N_("AYUDA"),      AC_AYUDA },
+    { IC_SONIDO,   N_("SONIDO"),     AC_SONIDO },
+    { IC_COMBATE,  N_("DIFICULTAD"), AC_DIFICULTAD },
+    { IC_GUARDAR,  N_("GUARDAR"),    AC_GUARDAR },
+    { IC_CERRAR,   N_("CERRAR"),     AC_CERRAR },
+};
+
+static const char *const DIFICULTADES_N[DIFICULTADES] = {
+    N_("NORMAL"), N_("FACIL"), N_("DURO"),
 };
 
 static const char *const SONIDOS[3] = { N_("MUDO"), N_("EFECTOS"), N_("TODO") };
@@ -744,7 +752,10 @@ static void menu_fondo(ch_t *g)
         int x, y, w, h;
         const char *txt = _(p[i].txt);
         const char *sub = p[i].accion == AC_SONIDO
-                        ? _(SONIDOS[ch_sonido_get() % 3]) : NULL;
+                        ? _(SONIDOS[ch_sonido_get() % 3])
+                        : (p[i].accion == AC_DIFICULTAD
+                           ? _(DIFICULTADES_N[ch_dificultad(&g->s) % DIFICULTADES])
+                           : NULL);
 
         baldosa_caja(i, n, cols, &x, &y, &w, &h);
         ch_rect(b, x, y, w, h, ch_rgb(0x1A2133));
@@ -870,7 +881,7 @@ static void ta_juntar(ch_t *g, int cat)
 {
     s_nlista = 0;
     s_lista[s_nlista++] = TA_PUESTA;
-    for (int i = 0; i < MOCHILA; i++) {
+    for (int i = 0; i < ch_mochila(&g->s); i++) {
         if (g->s.piezas[i] == 0xFF) continue;
         if (PIEZA_CAT(g->s.piezas[i]) != cat) continue;
         s_lista[s_nlista++] = (uint8_t)i;
@@ -940,7 +951,7 @@ static void taller_fondo(ch_t *g)
             int y = TA_BY + c * TA_BH;
             int n = 0;
 
-            for (int i = 0; i < MOCHILA; i++) {
+            for (int i = 0; i < ch_mochila(&g->s); i++) {
                 if (g->s.piezas[i] != 0xFF &&
                     PIEZA_CAT(g->s.piezas[i]) == c) n++;
             }
@@ -1198,6 +1209,29 @@ static void objetos_toque(ch_t *g, int bx, int by)
     char aviso[26];
 
     switch (it) {
+    case IT_REPELENTE:
+        g->repele = (uint16_t)d->valor;
+        snprintf(aviso, sizeof(aviso), "%s", _("NADA SE TE ACERCA"));
+        g->s.obj[it]--;
+        break;
+
+    case IT_ORUGAS:
+        /* Permanente: la bandera vale una vez y la segunda no se cobra. */
+        if (ch_flag(&g->s, F_CFG_ORUGAS)) { ch_sfx(220, 40); return; }
+        ch_flag_set(&g->s, F_CFG_ORUGAS);
+        snprintf(aviso, sizeof(aviso), "%s", _("AHORA CAMINAS AL DOBLE"));
+        g->s.obj[it]--;
+        break;
+
+    case IT_BOLSA:
+        if (ch_mochila(&g->s) >= CH_MAX_MOCHILA) { ch_sfx(220, 40); return; }
+        ch_flag_set(&g->s, ch_flag(&g->s, F_CFG_BOLSA_A) ? F_CFG_BOLSA_B
+                                                         : F_CFG_BOLSA_A);
+        snprintf(aviso, sizeof(aviso), _("MOCHILA: %d LUGARES"),
+                 ch_mochila(&g->s));
+        g->s.obj[it]--;
+        break;
+
     case IT_ACEITE: case IT_ACEITE2: {
         if (g->s.yo.vida >= g->s.yo.vida_max) { ch_sfx(220, 40); return; }
         int cura = d->valor;
@@ -1529,10 +1563,10 @@ static void ficha_toque(ch_t *g, int bx, int by)
  * Es una tabla de cuantos items del arreglo se ven, no ocho arreglos: el
  * orden ya es de barato a caro. */
 static const uint8_t SURTIDO[] = {
-    IT_ACEITE, IT_BATERIA, IT_ACEITE2, IT_BATERIA2, IT_CHIP, IT_IMAN,
-    IT_SOLDADOR,
+    IT_ACEITE, IT_BATERIA, IT_REPELENTE, IT_ACEITE2, IT_BATERIA2, IT_ORUGAS,
+    IT_CHIP, IT_IMAN, IT_BOLSA, IT_SOLDADOR,
 };
-static const uint8_t SURTIDO_ZONA[ZONAS] = { 2, 3, 4, 5, 5, 6, 7, 7 };
+static const uint8_t SURTIDO_ZONA[ZONAS] = { 3, 5, 6, 7, 8, 9, 10, 10 };
 
 static int surtido_n(const ch_t *g)
 {
@@ -1899,6 +1933,126 @@ static void diario_juntar(ch_t *g)
     }
 }
 
+/* --------------------------------------------------------------------------
+ * EL CHATARRERO
+ *
+ * Un agujero que abrimos nosotros: entre la feria, los cofres y lo que le
+ * arrancas a cada rival, la mochila se llena de piezas PEORES que las puestas
+ * y no habia nada que hacer con ellas. Vender cierra el circulo -pelear,
+ * arrancar, vender, comprar aceite- y le da una razon mas para volver al
+ * pueblo.
+ *
+ * El precio sale de la pieza y no de una tabla: vida + ataque + defensa +
+ * velocidad por cuatro. Una pieza mala vale poco y una buena vale la pena
+ * pensarla, que es exactamente la decision que uno quiere que exista.
+ * -------------------------------------------------------------------------- */
+static int precio_pieza(uint8_t id)
+{
+    const ch_part_t *p = &ch_partes[id % PIEZAS];
+    return (p->vida + p->atk + p->def + p->vel) * 4;
+}
+
+static void vender_juntar(ch_t *g)
+{
+    s_nlista = 0;
+    for (int i = 0; i < ch_mochila(&g->s); i++) {
+        if (g->s.piezas[i] < PIEZAS) s_lista[s_nlista++] = (uint8_t)i;
+    }
+}
+
+static void vender_fondo(ch_t *g)
+{
+    ch_buf_t *b = &g->bg;
+    char t[40];
+
+    vender_juntar(g);
+    lista_geom(38, 42, 3);
+    snprintf(t, sizeof(t), _("TENES %d CREDITOS"), g->s.creditos);
+    ch_ui_titulo(g, _("CHATARRERO"), t);
+
+    if (!s_nlista) {
+        ch_text_center(b, CH_W / 2, 100, _("NO TENES PIEZAS SUELTAS"),
+                       ch_rgb(0x8A93AB), ch_rgb(0x05060C));
+        return;
+    }
+    flechas(g, g->scroll > 0, g->scroll + s_lfilas < s_nlista);
+
+    for (int i = 0; i < s_lfilas; i++) {
+        int k = g->scroll + i;
+        int y = s_ly0 + i * s_lfh, h = s_lfh - 4;
+        uint8_t id;
+        const ch_part_t *p;
+
+        if (k >= s_nlista) break;
+        id = g->s.piezas[s_lista[k]];
+        p = &ch_partes[id];
+
+        ch_rect(b, LX, y, LW, h,
+                ch_rgb(g->sel == k + 1 ? 0x2A3350 : 0x1A2133));
+        ch_frame(b, LX, y, LW, h,
+                 ch_rgb(g->sel == k + 1 ? 0xFFE45E : 0x3D465F));
+        ch_rect(b, LX + 1, y + 1, LW - 2, 1, ch_rgb(0x2C3550));
+        ch_rect(b, LX + 3, y + 3, 30, h - 6, ch_rgb(0x0E111A));
+        ch_part_draw(b, PIEZA_CAT(id), PIEZA_VAR(id), LX + 18, y + h / 2, 1,
+                     (int)g->s.yo.skin);
+        ch_text(b, LX + 38, y + 5, _(p->nombre), ch_rgb(0xFFFFFF));
+        ch_text(b, LX + 38 + ch_text_w(_(p->nombre)) + 6, y + 5,
+                _(ch_tipo_nombre[p->tipo % TIPOS]),
+                ch_rgb(ch_tipo_color[p->tipo % TIPOS]));
+        snprintf(t, sizeof(t), _("PV%d E%d"), p->vida, p->energia);
+        ch_text(b, LX + 38, y + 17, t, ch_rgb(0x606B85));
+        snprintf(t, sizeof(t), _("%dC"), precio_pieza(id));
+        ch_text(b, LX + LW - 6 - ch_text_w(t), y + 17, t, ch_rgb(0xFFE45E));
+        if (g->sel == k + 1) {
+            ch_text(b, LX + LW - 6 - ch_text_w(_("TOCA 2X")), y + 5,
+                    _("TOCA 2X"), ch_rgb(0x8A93AB));
+        }
+    }
+}
+
+static void vender_toque(ch_t *g, int bx, int by)
+{
+    int f = flecha_en(bx, by), k;
+
+    if (f) {
+        int n = (int)g->scroll + f;
+        if (n >= 0 && n + s_lfilas <= s_nlista) {
+            g->scroll = (uint8_t)n;
+            g->rehacer_fondo = 1;
+        }
+        return;
+    }
+    f = fila_en(bx, by);
+    if (f < 0) return;
+    k = g->scroll + f;
+    if (k >= s_nlista) return;
+
+    /* El segundo toque vende: una pieza vendida no se recupera. */
+    if (g->sel != (uint8_t)(k + 1)) {
+        g->sel = (uint8_t)(k + 1);
+        ch_sfx(900, 20);
+        g->rehacer_fondo = 1;
+        return;
+    }
+    {
+        uint8_t id = g->s.piezas[s_lista[k]];
+        int cr = precio_pieza(id);
+        char aviso[30];
+
+        g->s.piezas[s_lista[k]] = 0xFF;
+        g->s.creditos = (uint16_t)(g->s.creditos + cr > 9999 ? 9999
+                                                  : g->s.creditos + cr);
+        snprintf(aviso, sizeof(aviso), _("+%dC"), cr);
+        ch_ui_aviso(g, aviso);
+        ch_sfx(1300, 60);
+        g->sel = 0;
+        g->scroll = 0;
+        g->quiere_guardar = 1;
+        g->hud_sucio = 1;
+        g->rehacer_fondo = 1;
+    }
+}
+
 static void diario_fondo(ch_t *g)
 {
     ch_buf_t *b = &g->bg;
@@ -2179,6 +2333,7 @@ void ch_ui_fondo(ch_t *g)
     case MODO_REGISTRO: registro_fondo(g); break;
     case MODO_MAPAMUNDI: mapa_fondo(g); break;
     case MODO_DIARIO:  diario_fondo(g); break;
+    case MODO_VENDER:  vender_fondo(g); break;
     case MODO_FERIA:   ch_fe_fondo(g);  break;
     case MODO_AYUDA:   ayuda_fondo(g); break;
     case MODO_FINAL:   final_fondo(g); break;
@@ -2247,6 +2402,14 @@ void ch_ui_toque(ch_t *g, int bx, int by)
                          g->scroll = 0; break;
         case AC_AYUDA:   g->modo = MODO_AYUDA;   g->sel2 = 0; break;
         case AC_SONIDO:  ch_sonido_set((ch_sonido_get() + 1) % 3); break;
+        case AC_DIFICULTAD:
+            /* Se puede cambiar cuando uno quiera, a proposito: el que se
+             * traba en un jefe a las once de la noche no quiere volver a
+             * empezar la partida, quiere pasar de ahi. */
+            ch_dificultad_set(&g->s,
+                (ch_dificultad(&g->s) + 1) % DIFICULTADES);
+            g->quiere_guardar = 1;
+            break;
         case AC_GUARDAR: g->quiere_guardar = 1;
                          ch_ui_aviso(g, _("PARTIDA GUARDADA")); break;
         case AC_CERRAR:  g->modo = MODO_MAPA;    g->sel2 = 0; break;
@@ -2293,6 +2456,7 @@ void ch_ui_toque(ch_t *g, int bx, int by)
     case MODO_COMBATE: ch_bt_toque(g, bx, by);   break;
     case MODO_CABINA:  ch_lk_toque(g, bx, by);   break;
     case MODO_FERIA:   ch_fe_toque(g, bx, by);  break;
+    case MODO_VENDER:  vender_toque(g, bx, by); break;
 
     default:
         if (by < MAP_H) ch_map_toque(g, bx, by);
@@ -2330,6 +2494,9 @@ bool ch_ui_atras(ch_t *g)
         g->rehacer_fondo = 1;
         return true;
     case MODO_TIENDA:
+    case MODO_VENDER:           /* al chatarrero se entra desde el mundo */
+        g->sel = 0;
+        g->scroll = 0;
         g->modo = MODO_MAPA;
         g->rehacer_fondo = 1;
         return true;

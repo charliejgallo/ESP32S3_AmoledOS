@@ -296,6 +296,13 @@ enum {
     IT_TERMO,           /* the Criovalle grandmother's errand                 */
     IT_CLAVE,           /* the Malla archivist's errand                       */
     IT_ENGRANAJE,       /* the Paramo scrap dealer's errand                   */
+
+    /* Los tres que cambian COMO se juega y no como se pelea. Entran sin tocar
+     * el tamano del guardado: obj[] mide CH_MAX_OBJ = 32 y el juego usa 17,
+     * que es justamente el margen que dejo el arreglo del bug de las x255. */
+    IT_REPELENTE,       /* 200 pasos sin encuentros                          */
+    IT_ORUGAS,          /* permanente: se camina al doble                    */
+    IT_BOLSA,           /* permanente: +2 lugares en la mochila              */
     ITEMS
 };
 
@@ -331,6 +338,7 @@ enum {
     E_MUEBLE,           /* p1 = which piece, p2 = flag, premio = item        */
     E_ANIMAL,           /* p1 = which animal: it wanders and never fights    */
     E_FERIA,            /* la cinta de chatarra: un minijuego por creditos   */
+    E_CHATARRERO,       /* compra las piezas sueltas que no usas             */
 };
 
 /* The furniture. It is an ENTITY and not a decoration so that a room can be
@@ -428,6 +436,7 @@ typedef struct {
 
 #define ZONAS 8
 extern const ch_zona_t ch_zonas_tab[ZONAS];
+extern const uint8_t   ch_trucos[ZONAS];
 
 /* --------------------------------------------------------------------------
  * The air of each zone
@@ -485,7 +494,23 @@ bool ch_celda_tapada(const ch_room_t *r, int tx, int ty);
  * -------------------------------------------------------------------------- */
 
 #define BANDERAS    256                 /* chests, NPCs, bosses, quests      */
-#define MOCHILA     12                  /* stored parts                      */
+
+/* LOS AJUSTES VIVEN EN BANDERAS ALTAS.
+ *
+ * Dificultad, tamano de la mochila y las mejoras del jugador hay que
+ * guardarlos, y `ch_save_t` se acepta por TAMANO: un campo nuevo tira todas
+ * las partidas en curso. El arreglo de banderas ya esta y sobra, asi que la
+ * reserva de arriba es para configuracion. El enum del mundo vive abajo y no
+ * puede llegar hasta aca (`_Static_assert` en ch_zonas.c). */
+#define F_CFG        240
+#define F_CFG_DIF_A  (F_CFG + 0)        /* dos bits: 0 normal, 1 facil, 2 duro */
+#define F_CFG_DIF_B  (F_CFG + 1)
+#define F_CFG_BOLSA_A (F_CFG + 2)       /* +2 lugares cada una                */
+#define F_CFG_BOLSA_B (F_CFG + 3)
+#define F_CFG_ORUGAS (F_CFG + 4)        /* las orugas: se camina al doble     */
+
+enum { DIF_NORMAL = 0, DIF_FACIL, DIF_DURO, DIFICULTADES };
+#define MOCHILA     12                  /* stored parts, de fabrica          */
 #define EQUIPO      3                   /* robots you can carry at once      */
 
 /* --------------------------------------------------------------------------
@@ -583,6 +608,10 @@ bool ch_eq_desarmar(ch_save_t *s, int slot);
 /* La pieza que paga la feria, una sola vez. true si la dio ahora. */
 bool ch_feria_premio(ch_save_t *s, uint32_t *sem);
 
+/* La dificultad y el tamano de la mochila, guardados en banderas. */
+static inline int ch_dificultad(const ch_save_t *s);
+static inline int ch_mochila(const ch_save_t *s);
+
 static inline bool ch_flag(const ch_save_t *s, int f)
 {
     return f > 0 && f < BANDERAS && (s->bandera[f >> 3] & (1u << (f & 7)));
@@ -590,6 +619,28 @@ static inline bool ch_flag(const ch_save_t *s, int f)
 static inline void ch_flag_set(ch_save_t *s, int f)
 {
     if (f > 0 && f < BANDERAS) s->bandera[f >> 3] |= (uint8_t)(1u << (f & 7));
+}
+
+static inline int ch_dificultad(const ch_save_t *s)
+{
+    return (ch_flag(s, F_CFG_DIF_A) ? 1 : 0) + (ch_flag(s, F_CFG_DIF_B) ? 2 : 0);
+}
+
+static inline void ch_dificultad_set(ch_save_t *s, int d)
+{
+    s->bandera[F_CFG_DIF_A >> 3] &= (uint8_t)~(1u << (F_CFG_DIF_A & 7));
+    s->bandera[F_CFG_DIF_B >> 3] &= (uint8_t)~(1u << (F_CFG_DIF_B & 7));
+    if (d & 1) ch_flag_set(s, F_CFG_DIF_A);
+    if (d & 2) ch_flag_set(s, F_CFG_DIF_B);
+}
+
+/* 12 de fabrica, 14 y 16 compradas. El guardado siempre tuvo 16 lugares: el
+ * ensanche no le agrega un byte, solo deja de ignorar los ultimos cuatro. */
+static inline int ch_mochila(const ch_save_t *s)
+{
+    int n = MOCHILA + (ch_flag(s, F_CFG_BOLSA_A) ? 2 : 0)
+                    + (ch_flag(s, F_CFG_BOLSA_B) ? 2 : 0);
+    return n > CH_MAX_MOCHILA ? CH_MAX_MOCHILA : n;
 }
 
 /* --------------------------------------------------------------------------
@@ -612,10 +663,29 @@ enum {
     MODO_AYUDA,
     MODO_DIARIO,        /* los encargos abiertos y donde                   */
     MODO_FERIA,         /* la cinta de chatarra del puerto                  */
+    MODO_VENDER,        /* el chatarrero: vender piezas sueltas             */
     MODO_FINAL,
     MODO_COMBATE,
     MODO_TITULO,
     MODO_CABINA,        /* the phone booth: the other watch                  */
+};
+
+/* EL TRUCO DE CADA SUBJEFE.
+ *
+ * Los ocho eran la misma pelea con otras estadisticas y otro torso: ninguno se
+ * recordaba. Cada uno tiene ahora UNA cosa que hace y que el jugador tiene que
+ * notar y responder. Es una tabla de ocho filas y un caso en el turno del
+ * rival: no hay maquina de estados ni guion. */
+enum {
+    TRUCO_NADA = 0,
+    TRUCO_REPARA,       /* a la mitad de vida se repara una vez, y avisa     */
+    TRUCO_ESCUDO,       /* sube defensa cada tres turnos                     */
+    TRUCO_FURIA,        /* bajo de vida, pega mucho mas                      */
+    TRUCO_QUEMA,        /* deja recalentado al entrar                        */
+    TRUCO_DOBLE,        /* cada tres turnos pega dos veces                   */
+    TRUCO_DRENA,        /* se cura con una parte del dano que hace           */
+    TRUCO_CORTO,        /* cortocircuita al entrar                           */
+    TRUCOS
 };
 
 /* --------------------------------------------------------------------------
@@ -642,6 +712,9 @@ typedef struct {
     uint8_t    zona;
     int8_t     et_atk[2], et_def[2];    /* stages from -6 to +6              */
     uint8_t    quema[2], corto[2];
+    uint8_t    truco;           /* el del subjefe, 0 si no lo es            */
+    uint8_t    truco_usado;     /* el que vale una vez                      */
+    uint8_t    turnos;          /* para los que van cada N                  */
     uint8_t    sel;             /* chosen option                             */
     uint8_t    pend;            /* what to do when the message closes        */
     uint8_t    mov_j, mov_r;
@@ -778,6 +851,11 @@ typedef struct {
     uint16_t   quieto;
     uint8_t    mel_mapa;        /* el tema de zona que esta puesto           */
     uint8_t    feria_pend;      /* el dialogo del puesto: al cerrar, jugar   */
+    /* Pasos que quedan de repelente. Vive aca y no en el guardado -que se
+     * acepta por tamano- asi que se pierde al cerrar el juego, que es lo que
+     * uno espera de algo que dura doscientos pasos. */
+    uint16_t   repele;
+    uint8_t    vender_pend;     /* el dialogo del chatarrero: al cerrar, vender */
 
     /* LA FERIA. Seis piezas en tres carriles, cuarenta segundos. Vive aca y
      * no en el guardado porque una partida de la feria no sobrevive a cerrar
