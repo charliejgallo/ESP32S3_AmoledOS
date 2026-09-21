@@ -1632,6 +1632,8 @@ static const char blob_en_demo_chatarra_lang[] =
     "SE REPARA SOLO!\tIT REPAIRS ITSELF!\n"
     "VUELVE A EMPEZAR.\tBACK TO THE START.\n"
     "Y OTRA VEZ: %d MAS.\tAND AGAIN: %d MORE.\n"
+    "PERO NO TENES LUGAR\tBUT YOU HAVE NO ROOM\n"
+    "TE GANASTE UNA PIEZA\tYOU WON A PART\n"
     ;
 
 static const char blob_en_demo_cjump_lang[] =
@@ -3438,6 +3440,8 @@ static const char blob_de_demo_chatarra_lang[] =
     "SE REPARA SOLO!\tES REPARIERT SICH SELBST!\n"
     "VUELVE A EMPEZAR.\tZURUECK ZUM ANFANG.\n"
     "Y OTRA VEZ: %d MAS.\tUND NOCHMAL: %d MEHR.\n"
+    "PERO NO TENES LUGAR\tABER DU HAST KEINEN PLATZ\n"
+    "TE GANASTE UNA PIEZA\tDU HAST EIN TEIL GEWONNEN\n"
     ;
 
 static const char blob_de_demo_cjump_lang[] =

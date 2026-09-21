@@ -605,8 +605,9 @@ bool ch_eq_puede_armar(const ch_save_t *s);
  * or if it is the last robot standing. */
 bool ch_eq_desarmar(ch_save_t *s, int slot);
 
-/* La pieza que paga la feria, una sola vez. true si la dio ahora. */
-bool ch_feria_premio(ch_save_t *s, uint32_t *sem);
+/* La pieza que paga la feria, una sola vez. */
+enum { FE_PREMIO_NADA = 0, FE_PREMIO_DADA, FE_PREMIO_LLENA };
+int  ch_feria_premio(ch_save_t *s, uint32_t *sem);
 
 /* La dificultad y el tamano de la mochila, guardados en banderas. */
 /* LA HORA DEL MUNDO, en pasos dados. 300 pasos la hora, asi que el dia entero
@@ -872,7 +873,9 @@ typedef struct {
         struct { int16_t x; uint8_t carril, malo, cual, vivo; } p[CH_FE_MAX];
         uint32_t sem;
         uint16_t resta;
-        uint8_t  puntos, aviso, record;
+        uint8_t  puntos, record;
+        uint8_t  aviso;         /* cuadros del destello rojo al agarrar mal  */
+        uint8_t  premio;        /* FE_PREMIO_*: lo que paso con la pieza     */
     } fe;
 
     /* mobile entities of the room (the enemies that patrol) */

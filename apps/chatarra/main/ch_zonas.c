@@ -2955,17 +2955,23 @@ const ch_aire_t ch_aire[ZONAS] = {
 /* LA PIEZA DE LA FERIA, una sola vez.
  *
  * Vive aca y no en ch_feria.c por lo mismo que el regalo de prueba: el enum de
- * banderas es privado de este archivo. Devuelve true si la entrego ahora. */
-bool ch_feria_premio(ch_save_t *s, uint32_t *sem)
+ * banderas es privado de este archivo.
+ *
+ * Devuelve FE_PREMIO_DADA si la entrego, FE_PREMIO_LLENA si no habia lugar y
+ * FE_PREMIO_NADA si no correspondia. La diferencia entre las dos primeras es
+ * el aviso: la mochila llena se comia el premio en silencio y el jugador se
+ * iba creyendo que veinte puntos no alcanzaban. Y la bandera NO se prende si
+ * no entro, asi que la pieza sigue esperando a que hagas lugar. */
+int ch_feria_premio(ch_save_t *s, uint32_t *sem)
 {
-    if (ch_flag(s, F_FERIA_PIEZA)) return false;
-    for (int i = 0; i < MOCHILA; i++) {
+    if (ch_flag(s, F_FERIA_PIEZA)) return FE_PREMIO_NADA;
+    for (int i = 0; i < ch_mochila(s); i++) {
         if (s->piezas[i] != 0xFF) continue;
         s->piezas[i] = (uint8_t)PIEZA_ID(P_TORSO, ch_rnd(sem, PVAR));
         ch_flag_set(s, F_FERIA_PIEZA);
-        return true;
+        return FE_PREMIO_DADA;
     }
-    return false;
+    return FE_PREMIO_LLENA;
 }
 
 /* El truco de cada subjefe, en el orden de las zonas. */

@@ -73,8 +73,11 @@ void ch_fe_tick(ch_t *g)
         /* La pieza, UNA sola vez. Va en una bandera y no en un campo nuevo:
          * ch_save_t se acepta por tamano, asi que un byte mas tira todas las
          * partidas en curso. Misma leccion que el juego de piezas. */
-        if (g->fe.puntos >= FE_META && ch_feria_premio(&g->s, &g->fe.sem)) {
-            g->fe.aviso = 1;            /* la pantalla final lo dice */
+        if (g->fe.puntos >= FE_META) {
+            /* 1 = te ganaste la pieza, 2 = te la ganaste y no entraba. Las dos
+             * se dicen en la pantalla final: enterarse de que llegaste y no
+             * habia lugar es lo que te manda al chatarrero. */
+            g->fe.premio = (uint8_t)ch_feria_premio(&g->s, &g->fe.sem);
         }
         ch_snd_melodia(g, g->fe.puntos >= FE_META ? CH_MEL_VICTORIA
                                                   : CH_MEL_DERROTA);
@@ -156,19 +159,28 @@ void ch_fe_dibujar(ch_t *g)
 
     if (g->fe.resta == 0) {
         int cr = g->fe.puntos * FE_PREMIO_CR;
-        ch_panel(b, 12, 60, CH_W - 24, 70, ch_rgb(0x8A93AB));
+        /* 78 de alto y no 70: el aviso de "no tenes lugar" son DOS lineas y
+         * la segunda se salia por el borde de abajo. */
+        ch_panel(b, 12, 58, CH_W - 24, 78, ch_rgb(0x8A93AB));
         snprintf(t, sizeof(t), _("%d PIEZAS"), g->fe.puntos);
-        ch_text_center(b, CH_W / 2, 70, t, ch_rgb(0xFFFFFF), ch_rgb(0x05060C));
+        ch_text_center(b, CH_W / 2, 66, t, ch_rgb(0xFFFFFF), ch_rgb(0x05060C));
         snprintf(t, sizeof(t), _("+%d CREDITOS"), cr);
-        ch_text_center(b, CH_W / 2, 84, t, ch_rgb(0xFFE45E), ch_rgb(0x05060C));
+        ch_text_center(b, CH_W / 2, 80, t, ch_rgb(0xFFE45E), ch_rgb(0x05060C));
         snprintf(t, sizeof(t), _("RECORD %d"), g->fe.record);
-        ch_text_center(b, CH_W / 2, 100, t, ch_rgb(0x8A93AB), ch_rgb(0x05060C));
-        ch_text_center(b, CH_W / 2, 116,
-                       g->fe.aviso ? _("TE GANASTE UNA PIEZA!")
-                                   : _("TOCA PARA SALIR"),
-                       g->fe.aviso ? ch_rgb(0x4ADE80) : ch_rgb(0xD5DCEB),
-                       ch_rgb(0x05060C));
-        ch_dirty_add(&g->d_cur, 12, 60, CH_W - 24, 70);
+        ch_text_center(b, CH_W / 2, 96, t, ch_rgb(0x8A93AB), ch_rgb(0x05060C));
+        if (g->fe.premio == FE_PREMIO_DADA) {
+            ch_text_center(b, CH_W / 2, 116, _("TE GANASTE UNA PIEZA!"),
+                           ch_rgb(0x4ADE80), ch_rgb(0x05060C));
+        } else if (g->fe.premio == FE_PREMIO_LLENA) {
+            ch_text_center(b, CH_W / 2, 112, _("TE GANASTE UNA PIEZA"),
+                           ch_rgb(0xFFE45E), ch_rgb(0x05060C));
+            ch_text_center(b, CH_W / 2, 122, _("PERO NO TENES LUGAR"),
+                           ch_rgb(0xFF4A3D), ch_rgb(0x05060C));
+        } else {
+            ch_text_center(b, CH_W / 2, 116, _("TOCA PARA SALIR"),
+                           ch_rgb(0xD5DCEB), ch_rgb(0x05060C));
+        }
+        ch_dirty_add(&g->d_cur, 12, 58, CH_W - 24, 78);
         return;
     }
 

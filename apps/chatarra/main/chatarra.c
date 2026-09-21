@@ -979,6 +979,8 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
      *   CH_CABINA=<n> the booth, at that state (see the LK_ enum): the menu
      *                 needs a second watch, and its layout does not.
      *   CH_FERIA=1    la cinta de chatarra, directo
+     *   CH_FERIA=<n>  con n>1, termina ya con n piezas: es la unica forma de
+     *                 ver la pantalla de premio sin jugar cuarenta segundos
      *   CH_HORA=<0..23> la hora del mundo: el dia entero son dos horas de
      *                 juego, asi que verlo sin esto es esperar
 
@@ -1059,7 +1061,11 @@ static void *chatarra_create(aos_app_t *self, lv_obj_t *root)
             a->g.modo = (uint8_t)atoi(v);
             a->g.rehacer_fondo = 1;
         }
-        if ((v = getenv("CH_FERIA")) && v[0]) ch_fe_entrar(&a->g);
+        if ((v = getenv("CH_FERIA")) && v[0]) {
+            int n = atoi(v);
+            ch_fe_entrar(&a->g);
+            if (n > 1) { a->g.fe.puntos = (uint8_t)n; a->g.fe.resta = 1; }
+        }
         if ((v = getenv("CH_CABINA")) && v[0]) {
             a->g.modo = MODO_CABINA;
             a->g.lk.estado = (uint8_t)atoi(v);
