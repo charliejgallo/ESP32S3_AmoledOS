@@ -3,6 +3,48 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.4.6 — 2026-09-21
+
+**Chatarra: the world drawn by hand, and six things that change how it is
+played.** Same save as v0.4.5 (`ch_save_t` is 200 bytes in both), so a game in
+progress carries straight over.
+
+- **The 42 rooms of zones 3 to 8 are drawn one at a time** instead of coming
+  out of seven templates per role. Each zone has a shape now: Alto Voltio
+  climbs a zig-zag of terraces, Fundicion is crossed on walkways — the lava
+  tile is SOLID, so it draws the path rather than decorating it — Criovalle
+  pinches between rock, Ciudad Malla is a grid, Villa Oxido is open with a
+  broken one, and Prisma closes in a spiral around the last chest. World check
+  clean across all 61.
+- **Difficulty** in Settings, changeable whenever: easy deals 20% more, takes
+  25% less and halves the encounters; hard the other way. It does not touch
+  stats or levels, only what hurts.
+- **A scrap dealer in every town** who buys the spare parts you will never
+  fit, at four times the part's four stats. Between the fair, the chests and
+  what you tear off rivals, the bag filled with parts worse than the ones
+  fitted and there was nothing to do with them.
+- **A bigger bag** (12 to 16 slots, bought twice) and **two upgrades**: a
+  repellent worth 200 steps with no encounters, and treads that make you walk
+  three times the step.
+- **Eight sub-bosses that are no longer the same fight**: one repairs itself
+  once at half health, one drinks a third of what it deals, one
+  short-circuits you on the way in, one hits harder the less health it has,
+  one armours up every three turns, one hits twice, one leaves you
+  overheating. The three that need it announce themselves.
+- **A clock and weather.** The hour is `pasos / 300` — 300 steps an hour, a
+  whole day about two hours of play — and outdoors the map takes a wash on
+  top of the zone's air: blue at night, orange at dawn and dusk. Each zone has
+  weather on certain hours: the harbour wakes clear and rains mid-morning, the
+  foundry's ash falls at night, Rust Town's dust blows in the afternoon.
+  Cryovale snows around the clock.
+
+None of it needed a new field in the save: the flag array reserves 240 upward
+for settings, `obj[]` had 15 spare slots and `piezas[]` was always 16 long
+while the game used 12.
+
+Firmware: only the embedded language pack changed (575 strings). Everything
+else is `chatarra.so`.
+
 ## v0.4.5 — 2026-09-20
 
 **Chatarra v2.** The robot RPG redrawn: the map goes from 21x22 cells of 8 px

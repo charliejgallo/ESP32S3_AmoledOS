@@ -1213,3 +1213,94 @@ between 155 and 223 used as a Y in a drawing call.
 - Board: **29.5 fps** on the map, with music, the idle, the animals and the
   furniture — the same as the empty v1 map.
 - Catalogues: 554 strings in Spanish, English and German.
+
+---
+
+## 19. The world by hand, and six things that change how it is played (2026-09-21)
+
+<p align="center">
+  <img src="../../docs/img/app-chatarra-voltio.png" width="190" alt="The Slope: a zig-zag of terraces climbing to the plateau">
+  <img src="../../docs/img/app-chatarra-tower.png" width="190" alt="The Tower: a spiral closing on the last chest">
+  <img src="../../docs/img/app-chatarra-night.png" width="190" alt="Crab Coast at eleven at night, washed blue">
+</p>
+
+### The 42 rooms are drawn, not generated
+
+Section 18 explains why the last seven zones came out of seven templates, one
+per role: 42 rooms correct at once is what took the world check from 671
+problems to zero. What it could not do is make a place feel like somewhere —
+every approach was the same crossroads with a different green.
+
+They are hand-drawn now, and each zone has a shape:
+
+| Zone | What its plan says |
+| --- | --- |
+| Alto Voltio | it CLIMBS: the Slope is a zig-zag of terraces, and the substation is transformer cells off a central corridor |
+| Fundicion | it is CROSSED: the lava tile is solid, so it draws the walkways instead of decorating them |
+| Criovalle | it PINCHES: a pass between rock, a village around a frozen pond, caves of pillars |
+| Ciudad Malla | it is a GRID: a highway of lanes, city blocks, server halls in rows |
+| Villa Oxido | it is OPEN: a dead plain with loose rock, and a town whose grid is broken |
+| Prisma | it CLOSES: two floors that spiral inwards, with the last chest at the centre |
+
+The harness is the templates turned inside out: the maps are hand-drawn and
+the only thing automatic is that it keeps every text, flag, item and level
+from the tables that were already there and gives them the cells the new plan
+has. Five rounds of the world check, four causes, all mine — and all of them
+the kind that only a checker finds:
+
+1. **The workbench has to be the FIRST entity of an interior**, because it is
+   the one exempt from having a decoration on top of it, and the slots are
+   handed out in table order.
+2. The town's workshop building is **4 x 3**: it covers x10..13 of rows 1..3.
+3. **A landing cell cannot be on the door it came through.**
+4. **The inner door is TWO cells wide**, so 12,4 is part of the opening and
+   not a free slot.
+
+### Where the new state lives, which is the whole trick
+
+Difficulty, bag size and the upgrades all have to be remembered, and
+`ch_save_t` is accepted by SIZE: a new field throws away every game in
+progress. None of them is a new field.
+
+| What | Where it lives | Why it fits |
+| --- | --- | --- |
+| difficulty, bag size, treads | flags **240 and up** | the array is 256 bits and the world uses 131; a `_Static_assert` stops the world's enum ever reaching the reserve |
+| three new items | `obj[]` | it is `CH_MAX_OBJ` = 32 with 17 used — exactly the slack the x255 fix left |
+| +4 bag slots | `piezas[]` | it was always 16 long while the game used 12: the upgrade stops ignoring the last four |
+| the hour | `pasos` | it has been in the save since the first version |
+| the fair's record | `ch_t` | a run of the fair has no business surviving the game closing |
+
+`ch_save_t` is **200 bytes in v0.4.5 and 200 in v0.4.6**, measured, so a game
+in progress carries straight over.
+
+### The six
+
+- **Difficulty** in Settings, changeable whenever — whoever is stuck on a boss
+  at eleven at night does not want to restart. It does not touch stats or
+  levels, which would desynchronise the register and the set bonus: it touches
+  what hurts, and how often you are stopped.
+- **The scrap dealer** closes a hole we opened ourselves. The price comes from
+  the part — its four stats times four — and not from a table, so a good part
+  is worth thinking about instead of being a button.
+- **A bigger bag**, a **repellent** and **treads**. `TILE` has to divide by the
+  walking step or the robot lands between cells.
+- **Eight sub-bosses with one trick each.** The three that need it ANNOUNCE
+  themselves: a boss that does something strange without saying so reads as a
+  broken boss.
+- **A clock**, and a wash on top of the zone's air. The first try used five
+  sixteenths of blue; the difference was real — 326,700 bytes of 494,592
+  changed between noon and midnight — and it still did not READ as night,
+  which is the only thing that matters.
+- **Weather on certain hours**, because if it rains always it is not weather,
+  it is a texture. A room that declares its own ambience keeps it: the hold's
+  leak is the hold's, and it drips at four in the morning too.
+
+### Measured
+
+- `CH_CHECK=1`: **0 problems** across the 61 rooms.
+- Board: **29.3 fps** on the map, with the clock, the weather, the animals and
+  the idle.
+- Catalogues: 575 strings in Spanish, English and German.
+- New switches: `CH_HORA=<0..23>`, which has to run **before** `CH_SALA` —
+  the room builds its background on entry, so setting the hour afterwards
+  tints nothing.
