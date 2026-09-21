@@ -1304,3 +1304,29 @@ in progress carries straight over.
 - New switches: `CH_HORA=<0..23>`, which has to run **before** `CH_SALA` —
   the room builds its background on entry, so setting the hour afterwards
   tints nothing.
+
+---
+
+## 20. One corner, three problems (2026-09-21)
+
+The fair can hand you a part and the bag can be full. What the corner actually
+held:
+
+1. **The part vanished silently.** You walked out of a twenty-point run
+   thinking twenty points was not enough. It says so now — and the flag is NOT
+   set when it does not fit, so the part waits for you to make room, which is
+   what sends you to the scrap dealer.
+2. **The prize loop ran to `MOCHILA` and not `ch_mochila()`**, so the four
+   slots you can buy were never used for it. One of seven bag loops converted
+   when the big bag went in, missed because it lives in `ch_zonas.c` with the
+   flags rather than with the other six. If a constant becomes a function,
+   grep for the constant afterwards — the compiler cannot help, because both
+   still compile.
+3. **The result went into `fe.aviso`**, which is the red flash of grabbing a
+   rusty part and is decremented every frame by the tick: the message would
+   have lasted exactly one. Reusing a field that something else already
+   decrements is a bug that looks like a rendering bug.
+
+And the check that closed it: the other two places a bag can be full. Combat
+already announced it; the link swaps one part for one part in the same slot,
+so it has no full case. Three places, three answers, none of them assumed.

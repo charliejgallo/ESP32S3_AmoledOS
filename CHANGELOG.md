@@ -3,6 +3,24 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.4.7 — 2026-09-21
+
+**Chatarra**: the fair's prize no longer disappears into a full bag. Same save
+as v0.4.5 and v0.4.6 (`ch_save_t` is 200 bytes in all three).
+
+- The prize screen **says when there was no room**, in two lines, and the flag
+  is not set when the part does not fit: it is still waiting for you to make
+  space. Which is what sends you to the scrap dealer, so the two things added
+  in v0.4.6 finally point at each other.
+- The prize loop ran to the factory twelve slots and **not to the bag's real
+  size**, so the four slots you can buy were never used for it.
+
+Combat already announced a full bag; the link swaps one part for one part, so
+it has no full case.
+
+Firmware: only the embedded language pack changed (577 strings). Everything
+else is `chatarra.so`.
+
 ## v0.4.6 — 2026-09-21
 
 **Chatarra: the world drawn by hand, and six things that change how it is
