@@ -151,6 +151,12 @@ static bool ent_solida(const ch_t *g, const ch_ent_t *e)
     switch (e->tipo) {
     case E_PUERTA:
         return false;                   /* it is walked on, and walking on it crosses it */
+    case E_MUEBLE:
+        return ch_mueble_solido(e->p1);
+    case E_ANIMAL:
+        /* It is not where the table says any more: it walks. What blocks the
+         * way is where it IS, and that is ocupada_por_bicho(). */
+        return false;
     case E_BLOQUEO:
         /* A control blocks the way until its flag is set. That is the whole
          * progression of the game: beating one zone's sub-boss opens the next
@@ -306,8 +312,9 @@ void ch_map_entrar(ch_t *g, int sala, int x, int y)
     g->nmov = 0;
     for (int i = 0; i < r->nents && g->nmov < MAX_MOV; i++) {
         const ch_ent_t *e = &r->ents[i];
-        if (e->tipo != E_ENEMIGO && e->tipo != E_JEFE) continue;
-        if (ch_flag(&g->s, e->p2)) continue;             /* already defeated */
+        if (e->tipo != E_ENEMIGO && e->tipo != E_JEFE && e->tipo != E_ANIMAL)
+            continue;
+        if (e->tipo != E_ANIMAL && ch_flag(&g->s, e->p2)) continue;  /* beaten */
 
         int m = g->nmov++;
         g->mov[m].idx  = (uint8_t)i;
@@ -321,6 +328,16 @@ void ch_map_entrar(ch_t *g, int sala, int x, int y)
         g->mov[m].paso = 0;
         g->mov[m].vivo = 1;
         g->mov[m].timer = (uint8_t)(20 + ch_rnd(&g->rng, 40));
+
+        /* An animal has no robot: it walks and that is all it does. Giving it
+         * the creatures' loop instead of a loop of its own is what makes it
+         * cost nothing -it is already a dirty rectangle in a list that was
+         * being drawn anyway- and it is the whole reason a town feels
+         * inhabited rather than laid out. */
+        if (e->tipo == E_ANIMAL) {
+            memset(&g->mov[m].bot, 0, sizeof(g->mov[m].bot));
+            continue;
+        }
 
         /* Seed fixed by room and entity: the same creature, always the same. */
         uint32_t semilla = 0x5BD1u + (uint32_t)sala * 977u + (uint32_t)i * 31u;
@@ -448,7 +465,8 @@ void ch_map_toque(ch_t *g, int bx, int by)
      * route. */
     for (int i = 0; i < g->nmov; i++) {
         if (!g->mov[i].vivo || g->mov[i].x != tx || g->mov[i].y != ty) continue;
-        if (buscar_ruta(g, tx, ty, 1) >= 0) {
+        if (buscar_ruta(g, tx, ty, r->ents[g->mov[i].idx].tipo == E_ANIMAL
+                                  ? 2 : 1) >= 0) {
             if (g->nruta == 0) {
                 lanzar_bicho(g, i);
             } else {
@@ -526,6 +544,11 @@ static void lanzar_bicho(ch_t *g, int m)
     const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
     const ch_ent_t *e = &r->ents[g->mov[m].idx];
 
+    if (e->tipo == E_ANIMAL) {
+        if (e->texto) ch_ui_dialogo(g, _(e->texto), g->mov[m].idx, MODO_MAPA);
+        ch_sfx(e->p1 == AN_PAJARO ? 1800 : 520, 70);
+        return;
+    }
     if (e->tipo == E_JEFE && e->texto) {
         g->bt_pendiente = (uint8_t)(m + 1);
         ch_ui_dialogo(g, _(e->texto), g->mov[m].idx, MODO_MAPA);
@@ -559,6 +582,29 @@ void ch_map_interactuar(ch_t *g, int idx)
     case E_CARTEL:
         if (e->texto) ch_ui_dialogo(g, _(e->texto), idx, MODO_MAPA);
         break;
+
+    case E_MUEBLE: {
+        /* A piece of furniture always says something, and CAN hide one thing,
+         * once: p2 is the flag that remembers it and premio the item. Without
+         * the flag it would be a machine for printing potions. */
+        bool cobrado = e->p2 && ch_flag(&g->s, e->p2);
+
+        if (e->p2 && !cobrado && e->premio && e->premio < ITEMS) {
+            static char linea[96];
+            int n = g->s.obj[e->premio] + 1;
+            ch_flag_set(&g->s, e->p2);
+            g->s.obj[e->premio] = (uint8_t)(n > 99 ? 99 : n);
+            ch_sfx(1200, 70);
+            g->hud_sucio = 1;
+            snprintf(linea, sizeof(linea), _("%s\nENCONTRASTE %s!"),
+                     e->texto ? _(e->texto) : "",
+                     _(ch_items[e->premio].nombre));
+            ch_ui_dialogo(g, linea, idx, MODO_MAPA);
+            break;
+        }
+        if (e->texto) ch_ui_dialogo(g, _(e->texto), idx, MODO_MAPA);
+        break;
+    }
 
     case E_PNJ: {
         /* A character with an errand says two things and decides between them
@@ -986,6 +1032,8 @@ void ch_map_dibujar(ch_t *g)
      * eats half a word. */
     int bot = (g->modo == MODO_DIALOGO) ? DLG_Y : MAP_H;
 
+    const ch_room_t *r = &ch_salas[g->s.sala % ch_nsalas];
+
     ch_clip(&g->fb, 0, 0, CH_W, bot);
 
     /* The ground first: the runs of water and lava go UNDER everything that
@@ -995,6 +1043,11 @@ void ch_map_dibujar(ch_t *g)
 
     for (int i = 0; i < g->nmov; i++) {
         if (!g->mov[i].vivo) continue;
+        if (r->ents[g->mov[i].idx].tipo == E_ANIMAL) {
+            ch_animal_draw(&g->fb, g->mov[i].px, g->mov[i].py,
+                           r->ents[g->mov[i].idx].p1, g->mov[i].dir, g->cuadro);
+            continue;
+        }
         ch_mini_draw(&g->fb, g->mov[i].px, g->mov[i].py, &g->mov[i].bot,
                      g->mov[i].dir, g->mov[i].paso);
         {

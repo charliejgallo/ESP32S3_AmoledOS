@@ -257,6 +257,7 @@ void ch_part_draw(ch_buf_t *b, int cat, int var, int cx, int cy, int esc,
  * It is not the combat robot shrunk, it is a separate drawing. */
 #define MINI_W  18                     /* v2: 12 x 16 on the 8 px grid */
 #define MINI_H  24
+void ch_animal_draw(ch_buf_t *b, int x, int y, int cual, int dir, int cuadro);
 void ch_mini_draw(ch_buf_t *b, int x, int y, const ch_robot_t *r,
                   int dir, int paso);
 
@@ -318,7 +319,18 @@ enum {
     E_ROCA,             /* p1 = flag: it stands aside if you have the upgrade */
     E_BLOQUEO,          /* p1 = flag that opens it, p2 = item required       */
     E_CABINA,           /* the phone booth: the link to another watch        */
+    E_MUEBLE,           /* p1 = which piece, p2 = flag, premio = item        */
+    E_ANIMAL,           /* p1 = which animal: it wanders and never fights    */
 };
+
+/* The furniture. It is an ENTITY and not a decoration so that a room can be
+ * furnished AND the furniture can be touched: a house with a table you cannot
+ * look at is a house with a picture of a table in it. p2 is a flag and premio
+ * an item, so any of them can hide something, once. */
+enum { MU_MESA = 0, MU_SILLA, MU_ESTANTE, MU_COMPU, MU_PLANTA, MU_VASIJA,
+       MU_CUADRO, MU_CAMA, MU_BANCO, MU_CESTO, MU_MACETA, MUEBLES_N };
+
+enum { AN_GATO = 0, AN_PAJARO, ANIMALES_N };
 
 /* On the three parameters and the two texts:
  *
@@ -442,6 +454,7 @@ void ch_prop_draw(ch_buf_t *b, const ch_prop_t *pr);
  * character with their business settled. */
 void ch_ent_draw(ch_buf_t *b, const ch_room_t *r, const ch_ent_t *e, bool hecho);
 /* Height in cells of the decoration, and whether it blocks that cell. */
+bool ch_mueble_solido(int cual);
 bool ch_prop_solido(const ch_room_t *r, int tx, int ty);
 /* Is anything -a prop, an entity- painted over this cell in the background?
  * The flowing ground asks before animating a tile, or it wipes what stands on

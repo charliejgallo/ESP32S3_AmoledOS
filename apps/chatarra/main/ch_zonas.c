@@ -112,6 +112,11 @@ enum {
     F_ENEMIGO_45, F_ENEMIGO_46, F_ENEMIGO_47, F_ENEMIGO_48,
     F_ENEMIGO_49, F_ENEMIGO_50, F_ENEMIGO_51,
 
+    /* What a piece of furniture hides. One flag each, so it is found ONCE:
+     * without it a bookcase is a machine for printing oil. */
+    F_MUEBLE_1, F_MUEBLE_2, F_MUEBLE_3, F_MUEBLE_4, F_MUEBLE_5,
+    F_MUEBLE_6, F_MUEBLE_7, F_MUEBLE_8,
+
     /* zone 8 - Torre Prisma */
     F_JEFE_PRISMA, F_FINAL,
     F_COFRE_T1, F_COFRE_T2, F_COFRE_T3,
@@ -225,6 +230,22 @@ static const ch_ent_t EN_CASA[] = {
       "DE UN ROBOT ENORME.\n"
       "ABAJO DICE:\n"
       "CAMPEONA, ANO 12."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -233,74 +254,70 @@ static const ch_ent_t EN_CASA[] = {
 
 static const char *const M_PUEBLO[ROWS] = {
     "===============",
-    "=     ...      ",
-    "=     ...      ",
-    "=     ...      ",
-    "=     ...      ",
-    "=..............",
-    "=..............",
-    "=..............",
-    "=     ...      ",
-    "= ~~~ ...      ",
-    "= ~~~ ...      ",
-    "= ~~~ ...      ",
-    "=     ...      ",
-    "=     ...      ",
-
+    "=     jjj      ",
+    "=     jjj      ",
+    "=     jjj      ",
+    "=  ee jjj  vv  ",
+    "=jjjjjjjjjjjjjj",
+    "=jjjjjjjjjjjjjj",
+    "=jjjjjjjjjjjjjj",
+    "=  vv jjj      ",
+    "= ~~~ jjj      ",
+    "= ~~~ jjj      ",
+    "= ~~~ jjj   ee ",
+    "=  ee jjj   ee ",
+    "=     jjj      ",
 };
 
 static const char *const M_TUERCA_NE[ROWS] = {
     "=====.....=====",
     "     .....     ",
-    "     .....     ",
-    "      ...      ",
-    "      ...      ",
-    "..............=",
-    "..............=",
-    "..............=",
-    "      ...     =",
-    "      ...     =",
-    "      ...     =",
-    "      ...     =",
-    "      ...     =",
-    "      ...     =",
-
+    "     vv..vv    ",
+    "      jjj      ",
+    "   ee jjj  ee  ",
+    "jjjjjjjjjjjjjj=",
+    "jjjjjjjjjjjjjj=",
+    "jjjjjjjjjjjjjj=",
+    "      jjj  vv =",
+    "  ee  jjj     =",
+    "  ee  jjj     =",
+    "      jjj     =",
+    "      jjj  vv =",
+    "      jjj     =",
 };
 
 static const char *const M_TUERCA_SO[ROWS] = {
-    "=     ...      ",
-    "=     ...      ",
-    "=     ...      ",
-    "=     ...      ",
-    "=..............",
-    "=..............",
-    "=..............",
-    "=     ...      ",
-    "=     ...      ",
-    "=     ...      ",
-    "=     ...      ",
-    "=     ...      ",
-    "=     ...      ",
+    "=     jjj      ",
+    "=     jjj      ",
+    "=     jjj      ",
+    "=  vv jjj   ee ",
+    "=jjjjjjjjjjjjjj",
+    "=jjjjjjjjjjjjjj",
+    "=jjjjjjjjjjjjjj",
+    "=  ee jjj      ",
+    "=     jjj  vv  ",
+    "=     jjj      ",
+    "=  vv jjj      ",
+    "=     jjj   ee ",
+    "=     jjj      ",
     "===============",
-
 };
 
 static const char *const M_TUERCA_SE[ROWS] = {
-    "      ...     =",
-    "      ...     =",
-    "      ...     =",
-    "      ...     =",
-    "..............=",
-    "..............=",
-    "..............=",
-    "      ...     =",
-    "      ...     =",
-    "      ...     =",
-    "      ...     =",
-    "      ...     =",
-    "      ...     =",
+    "      jjj     =",
+    "      jjj     =",
+    "   ee jjj  vv =",
+    "      jjj     =",
+    "jjjjjjjjjjjjjj=",
+    "jjjjjjjjjjjjjj=",
+    "jjjjjjjjjjjjjj=",
+    "   vv jjj     =",
+    "      jjj  ee =",
+    "      jjj     =",
+    "   ee jjj     =",
+    "      jjj  vv =",
+    "      jjj     =",
     "===============",
-
 };
 
 static const ch_prop_t P_PUEBLO[] = {
@@ -329,6 +346,18 @@ static const ch_ent_t EN_PUEBLO[] = {
       N_("VECINO: MIS TORNILLOS!\n"
       "TOMA, ESTE SOLDADOR ERA\n"
       "DE MI PADRE.") },
+    { E_MUEBLE,  1,  8, MU_BANCO, 0, 0, 0,
+      N_("UN BANCO DE PLAZA.\n"
+      "MIRA AL ESTANQUE."), NULL },
+    { E_MUEBLE, 13,  4, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  9,  8, MU_MACETA, 0, 0, 0,
+      N_("UNA MACETA DE LA VEREDA.\n"
+      "ALGUIEN LE PUSO UN\n"
+      "CARTELITO: NO PISAR."), NULL },
+    { E_ANIMAL, 12,  4, AN_GATO, 0, 0, 0,
+      N_("UN GATO NEGRO.\n"
+      "TE MIRA, BOSTEZA, Y\n"
+      "SIGUE EN LO SUYO."), NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -362,6 +391,17 @@ static const ch_ent_t EN_TUERCA_NE[] = {
       "SI TE ROMPEN EL ROBOT,\n"
       "TE LO DEJA COMO NUEVO\n"
       "Y NO TE COBRA."), NULL },
+    { E_MUEBLE,  2,  4, MU_BANCO, 0, 0, 0,
+      N_("UN BANCO GASTADO.\n"
+      "ACA ESPERAN LOS QUE\n"
+      "DEJAN EL ROBOT EN EL\n"
+      "TALLER."), NULL },
+    { E_MUEBLE,  4,  8, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_ANIMAL,  3, 12, AN_PAJARO, 0, 0, 0,
+      N_("UN PAJARO PICOTEA\n"
+      "TORNILLOS DEL PISO.\n"
+      "NO PARECE UNA BUENA\n"
+      "DIETA."), NULL },
 };
 
 static const ch_prop_t P_TUERCA_SO[] = {
@@ -385,6 +425,16 @@ static const ch_ent_t EN_TUERCA_SO[] = {
       "PIEZAS BUENISIMAS.\n"
       "YO NO ENTRARIA. HAY\n"
       "ROBOTS SUELTOS."), NULL },
+    { E_MUEBLE,  9,  8, MU_BANCO, F_MUEBLE_2, 0, IT_ACEITE,
+      N_("UN BANCO FRENTE A LA\n"
+      "FUENTE.\n"
+      "ABAJO HAY ALGO."), NULL },
+    { E_MUEBLE,  1,  3, MU_MACETA, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE, 13,  7, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_ANIMAL,  7, 11, AN_GATO, 0, 0, 0,
+      N_("OTRO GATO. O EL MISMO,\n"
+      "QUE SE MUEVE MAS RAPIDO\n"
+      "DE LO QUE PARECE."), NULL },
 };
 
 static const ch_prop_t P_TUERCA_SE[] = {
@@ -399,6 +449,14 @@ static const ch_ent_t EN_TUERCA_SE[] = {
     /* The booth: the other watch. One per town, always at the side of the
      * square, because it is a place you go to and not a menu you open. */
     { E_CABINA, 11,  9, 0, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  4,  8, MU_BANCO, 0, 0, 0,
+      N_("UN BANCO AL LADO DE LA\n"
+      "CABINA.\n"
+      "PARA ESPERAR TURNO."), NULL },
+    { E_MUEBLE, 10, 11, MU_MACETA, 0, 0, 0, NULL, NULL },
+    { E_ANIMAL, 12,  2, AN_PAJARO, 0, 0, 0,
+      N_("UN PAJARO EN EL CANTERO.\n"
+      "SE VA APENAS TE ACERCAS."), NULL },
 };
 
 static const ch_prop_t P_TALLER_INT[] = {
@@ -432,6 +490,22 @@ static const ch_ent_t EN_TALLER[] = {
       "ESAS VAN A LA MOCHILA\n"
       "Y SE MONTAN DESDE EL\n"
       "MENU, EN TALLER."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -439,17 +513,61 @@ static const ch_ent_t EN_TALLER[] = {
  * -------------------------------------------------------------------------- */
 
 static const char *const M_VECINO[ROWS] = {
-    "000000000000000", "0|||||||||||||0",
-    "0|___________|0", "0|___________|0",
-    "0|___________|0", "0|___________|0",
-    "0|___________|0", "0|___________|0",
-    "0|___________|0", "0|___________|0",
-    "0|___________|0", "0|___________|0",
-    "0||||||___||||0", "000000000000000",
+    "000000000000000",
+    "0|||||||||||||0",
+    "0|WWWWWWWWWWW|0",
+    "0|WWWWWWWWWWW|0",
+    "0|WWWWWWWWWWW|0",
+    "0|WWooooooWWW|0",
+    "0|WWooooooWWW|0",
+    "0|WWooooooWWW|0",
+    "0|WWWWWWWWWWW|0",
+    "0|WWWWWWWWWWW|0",
+    "0|WWWWWWWWWWW|0",
+    "0|WWWWWWWWWWW|0",
+    "0||||||WWW||||0",
+    "000000000000000",
 };
 
 static const ch_ent_t EN_VECINO[] = {
-    { E_PUERTA,  7, 12, S_TUERCA_SO, 11, 5, 3, NULL, NULL },
+    { E_PUERTA,  7, 12, S_TUERCA_SO, 11,  5, 3, NULL, NULL },
+    { E_MUEBLE,  3,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN CUADRO DE UN LAGO.\n"
+      "LA FIRMA DICE: TUERCA,\n"
+      "ANO 9."), NULL },
+    { E_MUEBLE,  6,  2, MU_CUADRO, 0, 0, 0,
+      N_("LA FOTO DE UN ROBOT\n"
+      "VIEJO, CON UNA MEDALLA.\n"
+      "ATRAS ALGUIEN ESCRIBIO:\n"
+      "SIEMPRE VOLVIA."), NULL },
+    { E_MUEBLE,  9,  4, MU_ESTANTE, F_MUEBLE_1, 0, IT_ACEITE,
+      N_("UNA BIBLIOTECA LLENA DE\n"
+      "MANUALES.\n"
+      "ATRAS DE UN TOMO HAY\n"
+      "ALGO GUARDADO."), NULL },
+    { E_MUEBLE,  2,  3, MU_COMPU, 0, 0, 0,
+      N_("UNA TERMINAL VIEJA.\n"
+      "EN LA PANTALLA PARPADEA\n"
+      "UNA PARTIDA DE AJEDREZ\n"
+      "SIN TERMINAR."), NULL },
+    { E_MUEBLE, 12,  4, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA DE BARRO.\n"
+      "ADENTRO HAY TORNILLOS\n"
+      "DE TODAS LAS MEDIDAS."), NULL },
+    { E_MUEBLE,  4,  6, MU_MESA, 0, 0, 0,
+      N_("LA MESA, PUESTA PARA\n"
+      "DOS.\n"
+      "HACE RATO QUE ESPERA."), NULL },
+    { E_MUEBLE,  3,  6, MU_SILLA, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  6,  6, MU_SILLA, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE, 10,  9, MU_CAMA, 0, 0, 0,
+      N_("LA CAMA, TENDIDA.\n"
+      "MEJOR NO."), NULL },
+    { E_MUEBLE,  2, 10, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA DE INTERIOR.\n"
+      "ALGUIEN LA RIEGA TODOS\n"
+      "LOS DIAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
 };
 
 /* --------------------------------------------------------------------------
@@ -839,6 +957,22 @@ static const ch_ent_t EN_PUERTO_INT[] = {
       "ACA TODOS PEGAN CON\n"
       "ACIDO. LLEVA ALGO QUE\n"
       "RESISTA."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 static const char *const M_BODEGA1[ROWS] = {
@@ -1072,6 +1206,22 @@ static const ch_ent_t EN_VOLTIO_INT[] = {
       "PUEDE NO LLEGAR A PEGAR.\n"
       "UNAS PIERNAS BUENAS VALEN\n"
       "MAS QUE UN BRAZO CARO."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 static const char *const M_SUB1[ROWS] = {
@@ -1297,6 +1447,22 @@ static const ch_ent_t EN_FUND_INT[] = {
       "NADA.\n"
       "MIRA LA FICHA ANTES DE\n"
       "PEGAR."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 static const char *const M_HORNO1[ROWS] = {
@@ -1523,6 +1689,22 @@ static const ch_ent_t EN_CRIO_INT[] = {
       "DEL MUNDO NO SIRVE SI EL\n"
       "TORSO NO LE DA ENERGIA.\n"
       "MIRA EL CONJUNTO."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 static const char *const M_CUEVA1[ROWS] = {
@@ -1744,6 +1926,22 @@ static const ch_ent_t EN_MALLA_INT[] = {
       "UN TORSO GRANDE TE\n"
       "SALVARIA MAS DE UN\n"
       "COMBATE."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 static const char *const M_SERV1[ROWS] = {
@@ -1972,6 +2170,22 @@ static const ch_ent_t EN_OXIDO_INT[] = {
       "QUE EL TUYO.\n"
       "PERO EL NO ARMO EL SUYO.\n"
       "SE LO ARMARON."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 static const char *const M_CEMENT1[ROWS] = {
@@ -2190,6 +2404,22 @@ static const ch_ent_t EN_PRISMA_INT[] = {
       "NINGUNA PIEZA TE LA\n"
       "REGALARON.\n"
       "ANDA."), NULL },
+    { E_MUEBLE, 11,  2, MU_ESTANTE, 0, 0, 0,
+      N_("UNA ESTANTERIA DE\n"
+      "REPUESTOS.\n"
+      "TODO ETIQUETADO A MANO."), NULL },
+    { E_MUEBLE,  2,  6, MU_PLANTA, 0, 0, 0,
+      N_("UNA PLANTA EN UN RINCON.\n"
+      "SOBREVIVE AL ACEITE."), NULL },
+    { E_MUEBLE,  7,  2, MU_CUADRO, 0, 0, 0,
+      N_("UN PLANO DE UN ROBOT,\n"
+      "CLAVADO A LA PARED.\n"
+      "TIENE CORRECCIONES DE\n"
+      "TRES LETRAS DISTINTAS."), NULL },
+    { E_MUEBLE, 12, 10, MU_CESTO, 0, 0, 0, NULL, NULL },
+    { E_MUEBLE,  2, 10, MU_VASIJA, 0, 0, 0,
+      N_("UNA VASIJA CON RETAZOS\n"
+      "DE CHAPA."), NULL },
 };
 
 static const char *const M_TORRE1[ROWS] = {
