@@ -2,10 +2,10 @@
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
 368x448 AMOLED you can hold in your hand. Seven watchfaces, twenty-one
-built-in apps, thirty-three more loaded from the microSD as shared objects — one
+built-in apps, thirty-four more loaded from the microSD as shared objects — one
 of them a Lua interpreter, so a text file on the card is an app too — a web
 portal, iPhone notifications over BLE, a link between two watches over ESP-NOW
-with nine apps on it, and a desktop simulator that runs the same UI code so
+with ten apps on it, and a desktop simulator that runs the same UI code so
 you can build the whole thing without the board.
 
 <p align="center">
@@ -211,6 +211,31 @@ same stage at once, each seeing the other as a ghost.
   <img src="docs/img/turbo-pipeline.png" width="690" alt="The lighting pass, the region ids, and three paints coloured from them on the watch">
 </p>
 
+#### Monster Hop, a hop-by-hop monster maze
+
+<p align="center">
+  <img src="docs/img/app-monsterhop-sewers.png" width="160" alt="Monster Hop: Tommy in the sewers of Zombie Town, next to a crate, with a zombie and steam vents">
+  <img src="docs/img/app-monsterhop-moat.png" width="160" alt="Monster Hop: the castle moat, rafts sliding across violet water and a vampire on the bank">
+  <img src="docs/img/app-monsterhop-river.png" width="160" alt="Monster Hop: the forest river with logs and lily pads, lanterns on the bank">
+  <img src="docs/img/app-monsterhop-brute.png" width="160" alt="Monster Hop: City Hall, the Brute boss next to Tommy on the plaza">
+  <img src="docs/img/app-monsterhop-wardrobe.png" width="160" alt="Monster Hop: the wardrobe, Tommy in a crown and a cape with a black kitten">
+</p>
+
+The third game from Blender renders, and the first built as a world of
+blocks. Tommy, eleven and in a cap, hops cell by cell through sixteen levels
+of Zombie Town, Vampire Castle, Mummy Desert and Werewolf Forest, collecting
+five keys in each while zombies lunge, vampires turn into bats, mummies push
+boulders and werewolves charge, with a boss in every zone's last level.
+BOOT is the action: a lever, a chest, a crate to push into the water, or a
+super hop. Every block, prop, monster and each of Tommy's caps, capes and
+pets is a sprite with a depth pass: the watch builds each level from them
+into a background cache that knows the depth of every pixel, and the
+sprites are tested against it pixel by pixel, so Tommy walks behind a wall
+and shows through it as a silhouette. Tommy's house is the hub: wardrobe,
+shop, a sticker album with one sticker hidden per level, trophies. 25 fps on
+the board. Two paired watches race for the same keys. More in
+[apps/monsterhop/README.md](apps/monsterhop/README.md).
+
 #### The others
 
 | | | |
@@ -312,7 +337,9 @@ in lockstep, v0.4.9 **Golf**: only the shots travel, each with the
 place the ball stopped, so the two watches can check they agree, and
 v0.4.10 **Turbo**: both watches race the same stage at once and see each
 other as a ghost car; when both have built the stage they start together,
-34 ms apart on two boards.
+34 ms apart on two boards. v0.4.13 **Monster Hop** races for keys: both
+play the same level with the same clock, the keys, levers, crates and chests
+are shared, and a key both grabbed goes to whoever grabbed it first.
 
 <p align="center">
   <img src="docs/img/photo-walkie.jpg" width="640" alt="The walkie on two watches, one in Spanish and one in English">
@@ -386,7 +413,7 @@ with no WiFi. Everything measured is in [docs/USB.md](docs/USB.md).
 ## Flash it without building
 
 The [latest release](https://github.com/charliejgallo/ESP32S3_AmoledOS/releases/latest)
-carries the firmware and the thirty-two dynamic apps already built, for the
+carries the firmware and the thirty-four dynamic apps already built, for the
 Waveshare ESP32-S3-Touch-AMOLED-1.8.
 
 ```bash
@@ -453,7 +480,7 @@ components/
   aos_dynapp/         .so loader and symbol table
   aos_ble/            NimBLE: ANCS, AMS, pairing
   aos_web/            the web portal, embedded in the binary
-apps/                 33 dynamic apps
+apps/                 34 dynamic apps
 tools/                generators, test benches, board utilities
 ```
 

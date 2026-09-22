@@ -520,6 +520,55 @@ firmware. For any app with levels, maps or characters added over time:
   it, measures, and `clean` puts everything back. No taps, and the file is
   not forgotten.
 
+### 6.10 A world of blocks with depth (Monster Hop)
+
+Monster Hop (`apps/monsterhop/`, v0.4.13) draws a three-quarter view of a
+grid of blocks, with actors that walk behind walls. What it adds to the
+recipes of Golf and Turbo:
+
+- **Build the level on the watch, not in Blender.** The card reads ~470 KB/s,
+  so a whole level rendered as one picture is out. Every block and prop is a
+  sprite with a **depth pass** (8 bits relative to its anchor), and the
+  level is drawn into a background cache (a toroidal 512×576 image with 16
+  bits of depth per pixel, in 64×64 blocks redrawn as they come into view).
+  The moving sprites are then tested against that depth per pixel, and what
+  is hidden is drawn as a flat silhouette: an x-ray for free.
+- **A projection with whole pixels.** The camera was picked so one metre on
+  each axis is a whole number of pixels ((60, 14) and (20, −42), a floor 23
+  px): blocks tile with no seams and no rounding, and the watch places a
+  sprite with an add, not a matrix.
+- **Colour at the end.** As in Golf and Turbo, sprites are a light pass and
+  region ids, coloured through a 16×64 table per palette: one render of a
+  cap's shape serves it in every colour the shop sells, one of Tommy serves
+  fifteen skins.
+- **Free the menus before the level.** The map (1 MB), the logo, the
+  house, the emblems and trophies, and the album's cards and the shop's
+  turntables once they have been opened are pictures nobody sees while
+  playing. The map alone was let go at first; letting all of it go when a
+  level loads (and reloading it when the menus come back) took free PSRAM
+  in a level from 308 KB to 888 KB. The same exit must
+  run from every way out of a level: the pause's "back to the map" skipped
+  it and left the level loaded.
+- **More than 8 MB of art goes in parts.** The portal takes 8 MB per upload;
+  the packer writes the pack in 7 MB parts (`x.pak`, `x.pak.1`...) and the
+  reader treats them as one file, with one `read_at(offset)`.
+- **A loading bar that measures.** Count the bytes read from the card and
+  compare them with what the same load read last time (a preference whose
+  key carries a tag of the pack's size, so a new pack starts over). Show it
+  only past 2 s.
+- **Levels as text, checked by a script.** Each level is two character maps
+  (tiles and floors) plus a list of things in Python; the checker proves
+  every key, the exit and the sticker are reachable with the hops the rules
+  allow, and that nothing stands on a prop or walks through one. It found
+  real mistakes in levels already played.
+- **Two watches on one clock.** Lanes, traps and platforms are functions of
+  the level's clock, so they agree on both watches with nothing sent. Only
+  what a player changes travels (keys, levers, crates, chests), and a
+  conflict is settled by a rule both sides apply to the same data (the
+  earlier grab by the level's clock, the host on a tie). **Only one side
+  corrects its clock**: when both eased towards the other, they chased each
+  other's old times and both ran fast.
+
 ## 7. The icon
 
 It travels with the app, as a few dozen bytes of shapes handed over from
@@ -1173,6 +1222,19 @@ PSRAM, so both paths are far away; but if `heap_int` in the heartbeat ever
 falls far below its usual 160-185 KB, this is what it will look like. Spend
 less internal RAM: a screen with many identical elements is a canvas, not an
 object per element.
+
+**The portal takes 8 MB per upload.** A bigger file comes back as
+`archivo demasiado grande` and nothing is written. Split the file (6.10) or
+copy it to the card by hand.
+
+**`/api/captura` fails when PSRAM is short, and never sees a blit.** It needs
+a full frame of PSRAM (330 KB) and answers 503 without it; and what an app
+pushes with `aos_hal_display_blit()` is not in LVGL's buffer, so a game in
+play captures black. Capture the menus on the board and the play in the
+simulator.
+
+**Right after a restart, the first `/api/accion` may be lost.** Wake the
+watch, check the answer, and only then `abrir`.
 
 ## 16. Two watches
 

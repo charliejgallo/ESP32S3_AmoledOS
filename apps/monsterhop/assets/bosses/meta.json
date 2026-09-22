@@ -1,0 +1,8828 @@
+{
+ "_projection": {
+  "depth_empty": 255,
+  "depth_unit_m": 0.03125,
+  "floor_m": 0.5092285591855548,
+  "floor_px": 23,
+  "px_per_m": 63.245553203367585,
+  "px_x": [
+   60,
+   14
+  ],
+  "px_y": [
+   20,
+   -42
+  ],
+  "view_dir": [
+   -0.2258317917585373,
+   0.6774953603744507,
+   -0.699999988079071
+  ]
+ },
+ "alpha_howl_e_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 53,
+  "ay": 115,
+  "boss": "alpha",
+  "dir": "e",
+  "files": {
+   "id": "alpha_howl_e_00_id.png",
+   "img": "alpha_howl_e_00.png",
+   "sh": "alpha_howl_e_00_sh.png",
+   "z": "alpha_howl_e_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 5,
+  "h": 150,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 194
+ },
+ "alpha_howl_e_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 53,
+  "ay": 119,
+  "boss": "alpha",
+  "dir": "e",
+  "files": {
+   "id": "alpha_howl_e_01_id.png",
+   "img": "alpha_howl_e_01.png",
+   "sh": "alpha_howl_e_01_sh.png",
+   "z": "alpha_howl_e_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 5,
+  "h": 149,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 190
+ },
+ "alpha_howl_e_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 53,
+  "ay": 115,
+  "boss": "alpha",
+  "dir": "e",
+  "files": {
+   "id": "alpha_howl_e_02_id.png",
+   "img": "alpha_howl_e_02.png",
+   "sh": "alpha_howl_e_02_sh.png",
+   "z": "alpha_howl_e_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 5,
+  "h": 142,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 175
+ },
+ "alpha_howl_e_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 53,
+  "ay": 115,
+  "boss": "alpha",
+  "dir": "e",
+  "files": {
+   "id": "alpha_howl_e_03_id.png",
+   "img": "alpha_howl_e_03.png",
+   "sh": "alpha_howl_e_03_sh.png",
+   "z": "alpha_howl_e_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 5,
+  "h": 142,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 175
+ },
+ "alpha_howl_e_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 52,
+  "ay": 116,
+  "boss": "alpha",
+  "dir": "e",
+  "files": {
+   "id": "alpha_howl_e_04_id.png",
+   "img": "alpha_howl_e_04.png",
+   "sh": "alpha_howl_e_04_sh.png",
+   "z": "alpha_howl_e_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 5,
+  "h": 150,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 193
+ },
+ "alpha_howl_n_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 47,
+  "ay": 128,
+  "boss": "alpha",
+  "dir": "n",
+  "files": {
+   "id": "alpha_howl_n_00_id.png",
+   "img": "alpha_howl_n_00.png",
+   "sh": "alpha_howl_n_00_sh.png",
+   "z": "alpha_howl_n_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 5,
+  "h": 163,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 166
+ },
+ "alpha_howl_n_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 47,
+  "ay": 129,
+  "boss": "alpha",
+  "dir": "n",
+  "files": {
+   "id": "alpha_howl_n_01_id.png",
+   "img": "alpha_howl_n_01.png",
+   "sh": "alpha_howl_n_01_sh.png",
+   "z": "alpha_howl_n_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 5,
+  "h": 163,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 164
+ },
+ "alpha_howl_n_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 48,
+  "ay": 122,
+  "boss": "alpha",
+  "dir": "n",
+  "files": {
+   "id": "alpha_howl_n_02_id.png",
+   "img": "alpha_howl_n_02.png",
+   "sh": "alpha_howl_n_02_sh.png",
+   "z": "alpha_howl_n_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 5,
+  "h": 156,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 163
+ },
+ "alpha_howl_n_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 48,
+  "ay": 122,
+  "boss": "alpha",
+  "dir": "n",
+  "files": {
+   "id": "alpha_howl_n_03_id.png",
+   "img": "alpha_howl_n_03.png",
+   "sh": "alpha_howl_n_03_sh.png",
+   "z": "alpha_howl_n_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 5,
+  "h": 156,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 163
+ },
+ "alpha_howl_n_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 47,
+  "ay": 130,
+  "boss": "alpha",
+  "dir": "n",
+  "files": {
+   "id": "alpha_howl_n_04_id.png",
+   "img": "alpha_howl_n_04.png",
+   "sh": "alpha_howl_n_04_sh.png",
+   "z": "alpha_howl_n_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 5,
+  "h": 164,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 164
+ },
+ "alpha_howl_s_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 55,
+  "ay": 104,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "alpha_howl_s_00_id.png",
+   "img": "alpha_howl_s_00.png",
+   "sh": "alpha_howl_s_00_sh.png",
+   "z": "alpha_howl_s_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 5,
+  "h": 135,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 171
+ },
+ "alpha_howl_s_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 48,
+  "ay": 116,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "alpha_howl_s_01_id.png",
+   "img": "alpha_howl_s_01.png",
+   "sh": "alpha_howl_s_01_sh.png",
+   "z": "alpha_howl_s_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 5,
+  "h": 140,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 170
+ },
+ "alpha_howl_s_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 44,
+  "ay": 121,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "alpha_howl_s_02_id.png",
+   "img": "alpha_howl_s_02.png",
+   "sh": "alpha_howl_s_02_sh.png",
+   "z": "alpha_howl_s_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 5,
+  "h": 141,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 163
+ },
+ "alpha_howl_s_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 44,
+  "ay": 121,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "alpha_howl_s_03_id.png",
+   "img": "alpha_howl_s_03.png",
+   "sh": "alpha_howl_s_03_sh.png",
+   "z": "alpha_howl_s_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 5,
+  "h": 141,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 163
+ },
+ "alpha_howl_s_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 53,
+  "ay": 109,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "alpha_howl_s_04_id.png",
+   "img": "alpha_howl_s_04.png",
+   "sh": "alpha_howl_s_04_sh.png",
+   "z": "alpha_howl_s_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 5,
+  "h": 137,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 171
+ },
+ "alpha_howl_w_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 59,
+  "ay": 117,
+  "boss": "alpha",
+  "dir": "w",
+  "files": {
+   "id": "alpha_howl_w_00_id.png",
+   "img": "alpha_howl_w_00.png",
+   "sh": "alpha_howl_w_00_sh.png",
+   "z": "alpha_howl_w_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 5,
+  "h": 145,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 165
+ },
+ "alpha_howl_w_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 46,
+  "ay": 114,
+  "boss": "alpha",
+  "dir": "w",
+  "files": {
+   "id": "alpha_howl_w_01_id.png",
+   "img": "alpha_howl_w_01.png",
+   "sh": "alpha_howl_w_01_sh.png",
+   "z": "alpha_howl_w_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 5,
+  "h": 142,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 164
+ },
+ "alpha_howl_w_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 33,
+  "ay": 117,
+  "boss": "alpha",
+  "dir": "w",
+  "files": {
+   "id": "alpha_howl_w_02_id.png",
+   "img": "alpha_howl_w_02.png",
+   "sh": "alpha_howl_w_02_sh.png",
+   "z": "alpha_howl_w_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 5,
+  "h": 145,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 163
+ },
+ "alpha_howl_w_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 33,
+  "ay": 117,
+  "boss": "alpha",
+  "dir": "w",
+  "files": {
+   "id": "alpha_howl_w_03_id.png",
+   "img": "alpha_howl_w_03.png",
+   "sh": "alpha_howl_w_03_sh.png",
+   "z": "alpha_howl_w_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 5,
+  "h": 145,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 163
+ },
+ "alpha_howl_w_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 54,
+  "ay": 115,
+  "boss": "alpha",
+  "dir": "w",
+  "files": {
+   "id": "alpha_howl_w_04_id.png",
+   "img": "alpha_howl_w_04.png",
+   "sh": "alpha_howl_w_04_sh.png",
+   "z": "alpha_howl_w_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 5,
+  "h": 143,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 162
+ },
+ "alpha_run_e_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 66,
+  "ay": 75,
+  "boss": "alpha",
+  "dir": "e",
+  "files": {
+   "id": "alpha_run_e_00_id.png",
+   "img": "alpha_run_e_00.png",
+   "sh": "alpha_run_e_00_sh.png",
+   "z": "alpha_run_e_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 115,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 200
+ },
+ "alpha_run_e_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 57,
+  "ay": 76,
+  "boss": "alpha",
+  "dir": "e",
+  "files": {
+   "id": "alpha_run_e_01_id.png",
+   "img": "alpha_run_e_01.png",
+   "sh": "alpha_run_e_01_sh.png",
+   "z": "alpha_run_e_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 116,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 190
+ },
+ "alpha_run_e_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 57,
+  "ay": 74,
+  "boss": "alpha",
+  "dir": "e",
+  "files": {
+   "id": "alpha_run_e_02_id.png",
+   "img": "alpha_run_e_02.png",
+   "sh": "alpha_run_e_02_sh.png",
+   "z": "alpha_run_e_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 114,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 189
+ },
+ "alpha_run_e_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 58,
+  "ay": 83,
+  "boss": "alpha",
+  "dir": "e",
+  "files": {
+   "id": "alpha_run_e_03_id.png",
+   "img": "alpha_run_e_03.png",
+   "sh": "alpha_run_e_03_sh.png",
+   "z": "alpha_run_e_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 119,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 196
+ },
+ "alpha_run_e_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 58,
+  "ay": 84,
+  "boss": "alpha",
+  "dir": "e",
+  "files": {
+   "id": "alpha_run_e_04_id.png",
+   "img": "alpha_run_e_04.png",
+   "sh": "alpha_run_e_04_sh.png",
+   "z": "alpha_run_e_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 121,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 197
+ },
+ "alpha_run_e_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 64,
+  "ay": 76,
+  "boss": "alpha",
+  "dir": "e",
+  "files": {
+   "id": "alpha_run_e_05_id.png",
+   "img": "alpha_run_e_05.png",
+   "sh": "alpha_run_e_05_sh.png",
+   "z": "alpha_run_e_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 116,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 197
+ },
+ "alpha_run_n_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 42,
+  "ay": 113,
+  "boss": "alpha",
+  "dir": "n",
+  "files": {
+   "id": "alpha_run_n_00_id.png",
+   "img": "alpha_run_n_00.png",
+   "sh": "alpha_run_n_00_sh.png",
+   "z": "alpha_run_n_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 158,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 135
+ },
+ "alpha_run_n_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 40,
+  "ay": 112,
+  "boss": "alpha",
+  "dir": "n",
+  "files": {
+   "id": "alpha_run_n_01_id.png",
+   "img": "alpha_run_n_01.png",
+   "sh": "alpha_run_n_01_sh.png",
+   "z": "alpha_run_n_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 147,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 132
+ },
+ "alpha_run_n_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 38,
+  "ay": 111,
+  "boss": "alpha",
+  "dir": "n",
+  "files": {
+   "id": "alpha_run_n_02_id.png",
+   "img": "alpha_run_n_02.png",
+   "sh": "alpha_run_n_02_sh.png",
+   "z": "alpha_run_n_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 146,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 130
+ },
+ "alpha_run_n_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 37,
+  "ay": 118,
+  "boss": "alpha",
+  "dir": "n",
+  "files": {
+   "id": "alpha_run_n_03_id.png",
+   "img": "alpha_run_n_03.png",
+   "sh": "alpha_run_n_03_sh.png",
+   "z": "alpha_run_n_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 153,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 136
+ },
+ "alpha_run_n_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 37,
+  "ay": 119,
+  "boss": "alpha",
+  "dir": "n",
+  "files": {
+   "id": "alpha_run_n_04_id.png",
+   "img": "alpha_run_n_04.png",
+   "sh": "alpha_run_n_04_sh.png",
+   "z": "alpha_run_n_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 155,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 137
+ },
+ "alpha_run_n_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 40,
+  "ay": 112,
+  "boss": "alpha",
+  "dir": "n",
+  "files": {
+   "id": "alpha_run_n_05_id.png",
+   "img": "alpha_run_n_05.png",
+   "sh": "alpha_run_n_05_sh.png",
+   "z": "alpha_run_n_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 157,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 133
+ },
+ "alpha_run_s_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 57,
+  "ay": 88,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "alpha_run_s_00_id.png",
+   "img": "alpha_run_s_00.png",
+   "sh": "alpha_run_s_00_sh.png",
+   "z": "alpha_run_s_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 144,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 139
+ },
+ "alpha_run_s_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 55,
+  "ay": 91,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "alpha_run_s_01_id.png",
+   "img": "alpha_run_s_01.png",
+   "sh": "alpha_run_s_01_sh.png",
+   "z": "alpha_run_s_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 145,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 138
+ },
+ "alpha_run_s_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 53,
+  "ay": 86,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "alpha_run_s_02_id.png",
+   "img": "alpha_run_s_02.png",
+   "sh": "alpha_run_s_02_sh.png",
+   "z": "alpha_run_s_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 138,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 132
+ },
+ "alpha_run_s_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 51,
+  "ay": 88,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "alpha_run_s_03_id.png",
+   "img": "alpha_run_s_03.png",
+   "sh": "alpha_run_s_03_sh.png",
+   "z": "alpha_run_s_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 137,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 134
+ },
+ "alpha_run_s_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 52,
+  "ay": 86,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "alpha_run_s_04_id.png",
+   "img": "alpha_run_s_04.png",
+   "sh": "alpha_run_s_04_sh.png",
+   "z": "alpha_run_s_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 134,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 136
+ },
+ "alpha_run_s_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 56,
+  "ay": 82,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "alpha_run_s_05_id.png",
+   "img": "alpha_run_s_05.png",
+   "sh": "alpha_run_s_05_sh.png",
+   "z": "alpha_run_s_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 133,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 133
+ },
+ "alpha_run_w_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 82,
+  "ay": 88,
+  "boss": "alpha",
+  "dir": "w",
+  "files": {
+   "id": "alpha_run_w_00_id.png",
+   "img": "alpha_run_w_00.png",
+   "sh": "alpha_run_w_00_sh.png",
+   "z": "alpha_run_w_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 117,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 185
+ },
+ "alpha_run_w_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 82,
+  "ay": 87,
+  "boss": "alpha",
+  "dir": "w",
+  "files": {
+   "id": "alpha_run_w_01_id.png",
+   "img": "alpha_run_w_01.png",
+   "sh": "alpha_run_w_01_sh.png",
+   "z": "alpha_run_w_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 114,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 187
+ },
+ "alpha_run_w_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 82,
+  "ay": 86,
+  "boss": "alpha",
+  "dir": "w",
+  "files": {
+   "id": "alpha_run_w_02_id.png",
+   "img": "alpha_run_w_02.png",
+   "sh": "alpha_run_w_02_sh.png",
+   "z": "alpha_run_w_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 111,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 183
+ },
+ "alpha_run_w_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 80,
+  "ay": 94,
+  "boss": "alpha",
+  "dir": "w",
+  "files": {
+   "id": "alpha_run_w_03_id.png",
+   "img": "alpha_run_w_03.png",
+   "sh": "alpha_run_w_03_sh.png",
+   "z": "alpha_run_w_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 116,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 183
+ },
+ "alpha_run_w_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 79,
+  "ay": 95,
+  "boss": "alpha",
+  "dir": "w",
+  "files": {
+   "id": "alpha_run_w_04_id.png",
+   "img": "alpha_run_w_04.png",
+   "sh": "alpha_run_w_04_sh.png",
+   "z": "alpha_run_w_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 118,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 180
+ },
+ "alpha_run_w_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 80,
+  "ay": 88,
+  "boss": "alpha",
+  "dir": "w",
+  "files": {
+   "id": "alpha_run_w_05_id.png",
+   "img": "alpha_run_w_05.png",
+   "sh": "alpha_run_w_05_sh.png",
+   "z": "alpha_run_w_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 115,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 177
+ },
+ "alpha_stun_e_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 64,
+  "ay": 91,
+  "boss": "alpha",
+  "dir": "e",
+  "files": {
+   "id": "alpha_stun_e_00_id.png",
+   "img": "alpha_stun_e_00.png",
+   "sh": "alpha_stun_e_00_sh.png",
+   "z": "alpha_stun_e_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 4,
+  "h": 123,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 146
+ },
+ "alpha_stun_e_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 64,
+  "ay": 99,
+  "boss": "alpha",
+  "dir": "e",
+  "files": {
+   "id": "alpha_stun_e_01_id.png",
+   "img": "alpha_stun_e_01.png",
+   "sh": "alpha_stun_e_01_sh.png",
+   "z": "alpha_stun_e_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 4,
+  "h": 131,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 146
+ },
+ "alpha_stun_e_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 63,
+  "ay": 102,
+  "boss": "alpha",
+  "dir": "e",
+  "files": {
+   "id": "alpha_stun_e_02_id.png",
+   "img": "alpha_stun_e_02.png",
+   "sh": "alpha_stun_e_02_sh.png",
+   "z": "alpha_stun_e_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 4,
+  "h": 134,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 145
+ },
+ "alpha_stun_e_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 64,
+  "ay": 99,
+  "boss": "alpha",
+  "dir": "e",
+  "files": {
+   "id": "alpha_stun_e_03_id.png",
+   "img": "alpha_stun_e_03.png",
+   "sh": "alpha_stun_e_03_sh.png",
+   "z": "alpha_stun_e_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 4,
+  "h": 131,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 146
+ },
+ "alpha_stun_n_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 51,
+  "ay": 77,
+  "boss": "alpha",
+  "dir": "n",
+  "files": {
+   "id": "alpha_stun_n_00_id.png",
+   "img": "alpha_stun_n_00.png",
+   "sh": "alpha_stun_n_00_sh.png",
+   "z": "alpha_stun_n_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 4,
+  "h": 134,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 152
+ },
+ "alpha_stun_n_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 52,
+  "ay": 77,
+  "boss": "alpha",
+  "dir": "n",
+  "files": {
+   "id": "alpha_stun_n_01_id.png",
+   "img": "alpha_stun_n_01.png",
+   "sh": "alpha_stun_n_01_sh.png",
+   "z": "alpha_stun_n_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 4,
+  "h": 134,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 144
+ },
+ "alpha_stun_n_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 54,
+  "ay": 77,
+  "boss": "alpha",
+  "dir": "n",
+  "files": {
+   "id": "alpha_stun_n_02_id.png",
+   "img": "alpha_stun_n_02.png",
+   "sh": "alpha_stun_n_02_sh.png",
+   "z": "alpha_stun_n_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 4,
+  "h": 134,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 131
+ },
+ "alpha_stun_n_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 52,
+  "ay": 77,
+  "boss": "alpha",
+  "dir": "n",
+  "files": {
+   "id": "alpha_stun_n_03_id.png",
+   "img": "alpha_stun_n_03.png",
+   "sh": "alpha_stun_n_03_sh.png",
+   "z": "alpha_stun_n_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 4,
+  "h": 134,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 144
+ },
+ "alpha_stun_s_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 49,
+  "ay": 99,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "alpha_stun_s_00_id.png",
+   "img": "alpha_stun_s_00.png",
+   "sh": "alpha_stun_s_00_sh.png",
+   "z": "alpha_stun_s_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 4,
+  "h": 136,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 143
+ },
+ "alpha_stun_s_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 49,
+  "ay": 99,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "alpha_stun_s_01_id.png",
+   "img": "alpha_stun_s_01.png",
+   "sh": "alpha_stun_s_01_sh.png",
+   "z": "alpha_stun_s_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 4,
+  "h": 136,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 152
+ },
+ "alpha_stun_s_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 50,
+  "ay": 99,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "alpha_stun_s_02_id.png",
+   "img": "alpha_stun_s_02.png",
+   "sh": "alpha_stun_s_02_sh.png",
+   "z": "alpha_stun_s_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 4,
+  "h": 136,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 161
+ },
+ "alpha_stun_s_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 49,
+  "ay": 99,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "alpha_stun_s_03_id.png",
+   "img": "alpha_stun_s_03.png",
+   "sh": "alpha_stun_s_03_sh.png",
+   "z": "alpha_stun_s_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 4,
+  "h": 136,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 152
+ },
+ "alpha_stun_w_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 54,
+  "ay": 95,
+  "boss": "alpha",
+  "dir": "w",
+  "files": {
+   "id": "alpha_stun_w_00_id.png",
+   "img": "alpha_stun_w_00.png",
+   "sh": "alpha_stun_w_00_sh.png",
+   "z": "alpha_stun_w_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 4,
+  "h": 150,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 162
+ },
+ "alpha_stun_w_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 54,
+  "ay": 91,
+  "boss": "alpha",
+  "dir": "w",
+  "files": {
+   "id": "alpha_stun_w_01_id.png",
+   "img": "alpha_stun_w_01.png",
+   "sh": "alpha_stun_w_01_sh.png",
+   "z": "alpha_stun_w_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 4,
+  "h": 145,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 163
+ },
+ "alpha_stun_w_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 54,
+  "ay": 82,
+  "boss": "alpha",
+  "dir": "w",
+  "files": {
+   "id": "alpha_stun_w_02_id.png",
+   "img": "alpha_stun_w_02.png",
+   "sh": "alpha_stun_w_02_sh.png",
+   "z": "alpha_stun_w_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 4,
+  "h": 134,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 163
+ },
+ "alpha_stun_w_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 54,
+  "ay": 91,
+  "boss": "alpha",
+  "dir": "w",
+  "files": {
+   "id": "alpha_stun_w_03_id.png",
+   "img": "alpha_stun_w_03.png",
+   "sh": "alpha_stun_w_03_sh.png",
+   "z": "alpha_stun_w_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 4,
+  "h": 145,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "char",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 163
+ },
+ "brute_stomp_e_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 45,
+  "ay": 110,
+  "boss": "brute",
+  "dir": "e",
+  "files": {
+   "id": "brute_stomp_e_00_id.png",
+   "img": "brute_stomp_e_00.png",
+   "sh": "brute_stomp_e_00_sh.png",
+   "z": "brute_stomp_e_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 172,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 170
+ },
+ "brute_stomp_e_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 44,
+  "ay": 146,
+  "boss": "brute",
+  "dir": "e",
+  "files": {
+   "id": "brute_stomp_e_01_id.png",
+   "img": "brute_stomp_e_01.png",
+   "sh": "brute_stomp_e_01_sh.png",
+   "z": "brute_stomp_e_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 180,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 185
+ },
+ "brute_stomp_e_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 70,
+  "ay": 163,
+  "boss": "brute",
+  "dir": "e",
+  "files": {
+   "id": "brute_stomp_e_02_id.png",
+   "img": "brute_stomp_e_02.png",
+   "sh": "brute_stomp_e_02_sh.png",
+   "z": "brute_stomp_e_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 195,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 183
+ },
+ "brute_stomp_e_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 38,
+  "ay": 96,
+  "boss": "brute",
+  "dir": "e",
+  "files": {
+   "id": "brute_stomp_e_03_id.png",
+   "img": "brute_stomp_e_03.png",
+   "sh": "brute_stomp_e_03_sh.png",
+   "z": "brute_stomp_e_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 137,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 152
+ },
+ "brute_stomp_e_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 38,
+  "ay": 92,
+  "boss": "brute",
+  "dir": "e",
+  "files": {
+   "id": "brute_stomp_e_04_id.png",
+   "img": "brute_stomp_e_04.png",
+   "sh": "brute_stomp_e_04_sh.png",
+   "z": "brute_stomp_e_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 133,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 150
+ },
+ "brute_stomp_e_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 34,
+  "ay": 106,
+  "boss": "brute",
+  "dir": "e",
+  "files": {
+   "id": "brute_stomp_e_05_id.png",
+   "img": "brute_stomp_e_05.png",
+   "sh": "brute_stomp_e_05_sh.png",
+   "z": "brute_stomp_e_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 166,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 158
+ },
+ "brute_stomp_n_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 93,
+  "ay": 115,
+  "boss": "brute",
+  "dir": "n",
+  "files": {
+   "id": "brute_stomp_n_00_id.png",
+   "img": "brute_stomp_n_00.png",
+   "sh": "brute_stomp_n_00_sh.png",
+   "z": "brute_stomp_n_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 144,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 217
+ },
+ "brute_stomp_n_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 64,
+  "ay": 136,
+  "boss": "brute",
+  "dir": "n",
+  "files": {
+   "id": "brute_stomp_n_01_id.png",
+   "img": "brute_stomp_n_01.png",
+   "sh": "brute_stomp_n_01_sh.png",
+   "z": "brute_stomp_n_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 159,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 223
+ },
+ "brute_stomp_n_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 72,
+  "ay": 112,
+  "boss": "brute",
+  "dir": "n",
+  "files": {
+   "id": "brute_stomp_n_02_id.png",
+   "img": "brute_stomp_n_02.png",
+   "sh": "brute_stomp_n_02_sh.png",
+   "z": "brute_stomp_n_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 147,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 227
+ },
+ "brute_stomp_n_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 55,
+  "ay": 101,
+  "boss": "brute",
+  "dir": "n",
+  "files": {
+   "id": "brute_stomp_n_03_id.png",
+   "img": "brute_stomp_n_03.png",
+   "sh": "brute_stomp_n_03_sh.png",
+   "z": "brute_stomp_n_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 125,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 173
+ },
+ "brute_stomp_n_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 54,
+  "ay": 98,
+  "boss": "brute",
+  "dir": "n",
+  "files": {
+   "id": "brute_stomp_n_04_id.png",
+   "img": "brute_stomp_n_04.png",
+   "sh": "brute_stomp_n_04_sh.png",
+   "z": "brute_stomp_n_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 122,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 170
+ },
+ "brute_stomp_n_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 62,
+  "ay": 112,
+  "boss": "brute",
+  "dir": "n",
+  "files": {
+   "id": "brute_stomp_n_05_id.png",
+   "img": "brute_stomp_n_05.png",
+   "sh": "brute_stomp_n_05_sh.png",
+   "z": "brute_stomp_n_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 133,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 186
+ },
+ "brute_stomp_s_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 93,
+  "ay": 91,
+  "boss": "brute",
+  "dir": "s",
+  "files": {
+   "id": "brute_stomp_s_00_id.png",
+   "img": "brute_stomp_s_00.png",
+   "sh": "brute_stomp_s_00_sh.png",
+   "z": "brute_stomp_s_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 119,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 218
+ },
+ "brute_stomp_s_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 62,
+  "ay": 127,
+  "boss": "brute",
+  "dir": "s",
+  "files": {
+   "id": "brute_stomp_s_01_id.png",
+   "img": "brute_stomp_s_01.png",
+   "sh": "brute_stomp_s_01_sh.png",
+   "z": "brute_stomp_s_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 150,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 217
+ },
+ "brute_stomp_s_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 56,
+  "ay": 160,
+  "boss": "brute",
+  "dir": "s",
+  "files": {
+   "id": "brute_stomp_s_02_id.png",
+   "img": "brute_stomp_s_02.png",
+   "sh": "brute_stomp_s_02_sh.png",
+   "z": "brute_stomp_s_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 181,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 234
+ },
+ "brute_stomp_s_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 65,
+  "ay": 70,
+  "boss": "brute",
+  "dir": "s",
+  "files": {
+   "id": "brute_stomp_s_03_id.png",
+   "img": "brute_stomp_s_03.png",
+   "sh": "brute_stomp_s_03_sh.png",
+   "z": "brute_stomp_s_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 127,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 173
+ },
+ "brute_stomp_s_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 66,
+  "ay": 66,
+  "boss": "brute",
+  "dir": "s",
+  "files": {
+   "id": "brute_stomp_s_04_id.png",
+   "img": "brute_stomp_s_04.png",
+   "sh": "brute_stomp_s_04_sh.png",
+   "z": "brute_stomp_s_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 125,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 170
+ },
+ "brute_stomp_s_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 90,
+  "ay": 83,
+  "boss": "brute",
+  "dir": "s",
+  "files": {
+   "id": "brute_stomp_s_05_id.png",
+   "img": "brute_stomp_s_05.png",
+   "sh": "brute_stomp_s_05_sh.png",
+   "z": "brute_stomp_s_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 140,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 207
+ },
+ "brute_stomp_w_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 50,
+  "ay": 112,
+  "boss": "brute",
+  "dir": "w",
+  "files": {
+   "id": "brute_stomp_w_00_id.png",
+   "img": "brute_stomp_w_00.png",
+   "sh": "brute_stomp_w_00_sh.png",
+   "z": "brute_stomp_w_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 174,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 144
+ },
+ "brute_stomp_w_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 42,
+  "ay": 149,
+  "boss": "brute",
+  "dir": "w",
+  "files": {
+   "id": "brute_stomp_w_01_id.png",
+   "img": "brute_stomp_w_01.png",
+   "sh": "brute_stomp_w_01_sh.png",
+   "z": "brute_stomp_w_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 186,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 171
+ },
+ "brute_stomp_w_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 34,
+  "ay": 147,
+  "boss": "brute",
+  "dir": "w",
+  "files": {
+   "id": "brute_stomp_w_02_id.png",
+   "img": "brute_stomp_w_02.png",
+   "sh": "brute_stomp_w_02_sh.png",
+   "z": "brute_stomp_w_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 184,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 210
+ },
+ "brute_stomp_w_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 83,
+  "ay": 103,
+  "boss": "brute",
+  "dir": "w",
+  "files": {
+   "id": "brute_stomp_w_03_id.png",
+   "img": "brute_stomp_w_03.png",
+   "sh": "brute_stomp_w_03_sh.png",
+   "z": "brute_stomp_w_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 136,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 155
+ },
+ "brute_stomp_w_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 85,
+  "ay": 101,
+  "boss": "brute",
+  "dir": "w",
+  "files": {
+   "id": "brute_stomp_w_04_id.png",
+   "img": "brute_stomp_w_04.png",
+   "sh": "brute_stomp_w_04_sh.png",
+   "z": "brute_stomp_w_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 134,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 154
+ },
+ "brute_stomp_w_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 87,
+  "ay": 110,
+  "boss": "brute",
+  "dir": "w",
+  "files": {
+   "id": "brute_stomp_w_05_id.png",
+   "img": "brute_stomp_w_05.png",
+   "sh": "brute_stomp_w_05_sh.png",
+   "z": "brute_stomp_w_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 149,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 173
+ },
+ "brute_walk_e_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 42,
+  "ay": 110,
+  "boss": "brute",
+  "dir": "e",
+  "files": {
+   "id": "brute_walk_e_00_id.png",
+   "img": "brute_walk_e_00.png",
+   "sh": "brute_walk_e_00_sh.png",
+   "z": "brute_walk_e_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 165,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 169
+ },
+ "brute_walk_e_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 33,
+  "ay": 113,
+  "boss": "brute",
+  "dir": "e",
+  "files": {
+   "id": "brute_walk_e_01_id.png",
+   "img": "brute_walk_e_01.png",
+   "sh": "brute_walk_e_01_sh.png",
+   "z": "brute_walk_e_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 165,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 162
+ },
+ "brute_walk_e_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 38,
+  "ay": 114,
+  "boss": "brute",
+  "dir": "e",
+  "files": {
+   "id": "brute_walk_e_02_id.png",
+   "img": "brute_walk_e_02.png",
+   "sh": "brute_walk_e_02_sh.png",
+   "z": "brute_walk_e_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 161,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 167
+ },
+ "brute_walk_e_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 47,
+  "ay": 111,
+  "boss": "brute",
+  "dir": "e",
+  "files": {
+   "id": "brute_walk_e_03_id.png",
+   "img": "brute_walk_e_03.png",
+   "sh": "brute_walk_e_03_sh.png",
+   "z": "brute_walk_e_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 157,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 174
+ },
+ "brute_walk_e_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 35,
+  "ay": 112,
+  "boss": "brute",
+  "dir": "e",
+  "files": {
+   "id": "brute_walk_e_04_id.png",
+   "img": "brute_walk_e_04.png",
+   "sh": "brute_walk_e_04_sh.png",
+   "z": "brute_walk_e_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 162,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 163
+ },
+ "brute_walk_e_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 35,
+  "ay": 112,
+  "boss": "brute",
+  "dir": "e",
+  "files": {
+   "id": "brute_walk_e_05_id.png",
+   "img": "brute_walk_e_05.png",
+   "sh": "brute_walk_e_05_sh.png",
+   "z": "brute_walk_e_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 166,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 163
+ },
+ "brute_walk_n_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 74,
+  "ay": 116,
+  "boss": "brute",
+  "dir": "n",
+  "files": {
+   "id": "brute_walk_n_00_id.png",
+   "img": "brute_walk_n_00.png",
+   "sh": "brute_walk_n_00_sh.png",
+   "z": "brute_walk_n_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 146,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 201
+ },
+ "brute_walk_n_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 71,
+  "ay": 119,
+  "boss": "brute",
+  "dir": "n",
+  "files": {
+   "id": "brute_walk_n_01_id.png",
+   "img": "brute_walk_n_01.png",
+   "sh": "brute_walk_n_01_sh.png",
+   "z": "brute_walk_n_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 143,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 198
+ },
+ "brute_walk_n_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 63,
+  "ay": 119,
+  "boss": "brute",
+  "dir": "n",
+  "files": {
+   "id": "brute_walk_n_02_id.png",
+   "img": "brute_walk_n_02.png",
+   "sh": "brute_walk_n_02_sh.png",
+   "z": "brute_walk_n_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 144,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 190
+ },
+ "brute_walk_n_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 59,
+  "ay": 116,
+  "boss": "brute",
+  "dir": "n",
+  "files": {
+   "id": "brute_walk_n_03_id.png",
+   "img": "brute_walk_n_03.png",
+   "sh": "brute_walk_n_03_sh.png",
+   "z": "brute_walk_n_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 147,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 187
+ },
+ "brute_walk_n_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 63,
+  "ay": 117,
+  "boss": "brute",
+  "dir": "n",
+  "files": {
+   "id": "brute_walk_n_04_id.png",
+   "img": "brute_walk_n_04.png",
+   "sh": "brute_walk_n_04_sh.png",
+   "z": "brute_walk_n_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 140,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 196
+ },
+ "brute_walk_n_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 70,
+  "ay": 117,
+  "boss": "brute",
+  "dir": "n",
+  "files": {
+   "id": "brute_walk_n_05_id.png",
+   "img": "brute_walk_n_05.png",
+   "sh": "brute_walk_n_05_sh.png",
+   "z": "brute_walk_n_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 143,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 202
+ },
+ "brute_walk_s_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 81,
+  "ay": 90,
+  "boss": "brute",
+  "dir": "s",
+  "files": {
+   "id": "brute_walk_s_00_id.png",
+   "img": "brute_walk_s_00.png",
+   "sh": "brute_walk_s_00_sh.png",
+   "z": "brute_walk_s_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 123,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 202
+ },
+ "brute_walk_s_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 77,
+  "ay": 94,
+  "boss": "brute",
+  "dir": "s",
+  "files": {
+   "id": "brute_walk_s_01_id.png",
+   "img": "brute_walk_s_01.png",
+   "sh": "brute_walk_s_01_sh.png",
+   "z": "brute_walk_s_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 124,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 203
+ },
+ "brute_walk_s_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 69,
+  "ay": 92,
+  "boss": "brute",
+  "dir": "s",
+  "files": {
+   "id": "brute_walk_s_02_id.png",
+   "img": "brute_walk_s_02.png",
+   "sh": "brute_walk_s_02_sh.png",
+   "z": "brute_walk_s_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 134,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 196
+ },
+ "brute_walk_s_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 67,
+  "ay": 87,
+  "boss": "brute",
+  "dir": "s",
+  "files": {
+   "id": "brute_walk_s_03_id.png",
+   "img": "brute_walk_s_03.png",
+   "sh": "brute_walk_s_03_sh.png",
+   "z": "brute_walk_s_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 134,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 190
+ },
+ "brute_walk_s_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 73,
+  "ay": 89,
+  "boss": "brute",
+  "dir": "s",
+  "files": {
+   "id": "brute_walk_s_04_id.png",
+   "img": "brute_walk_s_04.png",
+   "sh": "brute_walk_s_04_sh.png",
+   "z": "brute_walk_s_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 127,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 197
+ },
+ "brute_walk_s_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 78,
+  "ay": 91,
+  "boss": "brute",
+  "dir": "s",
+  "files": {
+   "id": "brute_walk_s_05_id.png",
+   "img": "brute_walk_s_05.png",
+   "sh": "brute_walk_s_05_sh.png",
+   "z": "brute_walk_s_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 120,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 201
+ },
+ "brute_walk_w_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 54,
+  "ay": 114,
+  "boss": "brute",
+  "dir": "w",
+  "files": {
+   "id": "brute_walk_w_00_id.png",
+   "img": "brute_walk_w_00.png",
+   "sh": "brute_walk_w_00_sh.png",
+   "z": "brute_walk_w_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 164,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 147
+ },
+ "brute_walk_w_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 54,
+  "ay": 114,
+  "boss": "brute",
+  "dir": "w",
+  "files": {
+   "id": "brute_walk_w_01_id.png",
+   "img": "brute_walk_w_01.png",
+   "sh": "brute_walk_w_01_sh.png",
+   "z": "brute_walk_w_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 162,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 151
+ },
+ "brute_walk_w_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 62,
+  "ay": 115,
+  "boss": "brute",
+  "dir": "w",
+  "files": {
+   "id": "brute_walk_w_02_id.png",
+   "img": "brute_walk_w_02.png",
+   "sh": "brute_walk_w_02_sh.png",
+   "z": "brute_walk_w_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 157,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 157
+ },
+ "brute_walk_w_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 70,
+  "ay": 114,
+  "boss": "brute",
+  "dir": "w",
+  "files": {
+   "id": "brute_walk_w_03_id.png",
+   "img": "brute_walk_w_03.png",
+   "sh": "brute_walk_w_03_sh.png",
+   "z": "brute_walk_w_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 153,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 159
+ },
+ "brute_walk_w_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 57,
+  "ay": 118,
+  "boss": "brute",
+  "dir": "w",
+  "files": {
+   "id": "brute_walk_w_04_id.png",
+   "img": "brute_walk_w_04.png",
+   "sh": "brute_walk_w_04_sh.png",
+   "z": "brute_walk_w_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 160,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 149
+ },
+ "brute_walk_w_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 53,
+  "ay": 118,
+  "boss": "brute",
+  "dir": "w",
+  "files": {
+   "id": "brute_walk_w_05_id.png",
+   "img": "brute_walk_w_05.png",
+   "sh": "brute_walk_w_05_sh.png",
+   "z": "brute_walk_w_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 165,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "char",
+  "ms": 140,
+  "shadow_z": 0.0,
+  "w": 147
+ },
+ "card_alpha": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 68,
+  "ay": 105,
+  "boss": "alpha",
+  "dir": "s",
+  "files": {
+   "id": "card_alpha_id.png",
+   "img": "card_alpha.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "h": 165,
+  "height_m": 2.0,
+  "ids": {
+   "1": "fur",
+   "11": "belt",
+   "2": "fur B (muzzle, chest, ruff, ear inside)",
+   "3": "dark (nose, mouth, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "fur C (back stripe, ear tips)",
+   "7": "vest",
+   "8": "shorts"
+  },
+  "kind": "card",
+  "w": 118,
+  "zoom": 1.2
+ },
+ "card_brute": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 96,
+  "ay": 107,
+  "boss": "brute",
+  "dir": "s",
+  "files": {
+   "id": "card_brute_id.png",
+   "img": "card_brute.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "h": 145,
+  "height_m": 2.0,
+  "ids": {
+   "1": "skin",
+   "10": "boots",
+   "11": "hard hat",
+   "12": "tie",
+   "2": "skin B (lips, patch)",
+   "3": "dark (mouth, brow)",
+   "4": "teeth",
+   "5": "eye glow",
+   "6": "hair tuft",
+   "7": "suit jacket",
+   "8": "shirt",
+   "9": "trousers"
+  },
+  "kind": "card",
+  "w": 184,
+  "zoom": 1.2
+ },
+ "card_count": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 48,
+  "ay": 118,
+  "boss": "count",
+  "dir": "s",
+  "files": {
+   "id": "card_count_id.png",
+   "img": "card_count.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 0,
+  "h": 121,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "card",
+  "w": 93,
+  "zoom": 1.2
+ },
+ "card_pharaoh": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 67,
+  "ay": 112,
+  "boss": "pharaoh",
+  "dir": "s",
+  "files": {
+   "id": "card_pharaoh_id.png",
+   "img": "card_pharaoh.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "h": 139,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "card",
+  "w": 116,
+  "zoom": 1.2
+ },
+ "count_cast_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 42,
+  "ay": 101,
+  "boss": "count",
+  "dir": "e",
+  "files": {
+   "id": "count_cast_e_00_id.png",
+   "img": "count_cast_e_00.png",
+   "sh": "count_cast_e_00_sh.png",
+   "z": "count_cast_e_00_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 127,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 123
+ },
+ "count_cast_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 43,
+  "ay": 102,
+  "boss": "count",
+  "dir": "e",
+  "files": {
+   "id": "count_cast_e_01_id.png",
+   "img": "count_cast_e_01.png",
+   "sh": "count_cast_e_01_sh.png",
+   "z": "count_cast_e_01_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 132,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 124
+ },
+ "count_cast_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 45,
+  "ay": 103,
+  "boss": "count",
+  "dir": "e",
+  "files": {
+   "id": "count_cast_e_02_id.png",
+   "img": "count_cast_e_02.png",
+   "sh": "count_cast_e_02_sh.png",
+   "z": "count_cast_e_02_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 133,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 131
+ },
+ "count_cast_e_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 45,
+  "ay": 103,
+  "boss": "count",
+  "dir": "e",
+  "files": {
+   "id": "count_cast_e_03_id.png",
+   "img": "count_cast_e_03.png",
+   "sh": "count_cast_e_03_sh.png",
+   "z": "count_cast_e_03_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 133,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 131
+ },
+ "count_cast_e_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 45,
+  "ay": 103,
+  "boss": "count",
+  "dir": "e",
+  "files": {
+   "id": "count_cast_e_04_id.png",
+   "img": "count_cast_e_04.png",
+   "sh": "count_cast_e_04_sh.png",
+   "z": "count_cast_e_04_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 133,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 130
+ },
+ "count_cast_e_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 43,
+  "ay": 102,
+  "boss": "count",
+  "dir": "e",
+  "files": {
+   "id": "count_cast_e_05_id.png",
+   "img": "count_cast_e_05.png",
+   "sh": "count_cast_e_05_sh.png",
+   "z": "count_cast_e_05_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 130,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 124
+ },
+ "count_cast_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 38,
+  "ay": 82,
+  "boss": "count",
+  "dir": "n",
+  "files": {
+   "id": "count_cast_n_00_id.png",
+   "img": "count_cast_n_00.png",
+   "sh": "count_cast_n_00_sh.png",
+   "z": "count_cast_n_00_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 106,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 135
+ },
+ "count_cast_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 41,
+  "ay": 82,
+  "boss": "count",
+  "dir": "n",
+  "files": {
+   "id": "count_cast_n_01_id.png",
+   "img": "count_cast_n_01.png",
+   "sh": "count_cast_n_01_sh.png",
+   "z": "count_cast_n_01_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 109,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 138
+ },
+ "count_cast_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 43,
+  "ay": 82,
+  "boss": "count",
+  "dir": "n",
+  "files": {
+   "id": "count_cast_n_02_id.png",
+   "img": "count_cast_n_02.png",
+   "sh": "count_cast_n_02_sh.png",
+   "z": "count_cast_n_02_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 111,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 151
+ },
+ "count_cast_n_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 43,
+  "ay": 82,
+  "boss": "count",
+  "dir": "n",
+  "files": {
+   "id": "count_cast_n_03_id.png",
+   "img": "count_cast_n_03.png",
+   "sh": "count_cast_n_03_sh.png",
+   "z": "count_cast_n_03_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 110,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 151
+ },
+ "count_cast_n_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 43,
+  "ay": 82,
+  "boss": "count",
+  "dir": "n",
+  "files": {
+   "id": "count_cast_n_04_id.png",
+   "img": "count_cast_n_04.png",
+   "sh": "count_cast_n_04_sh.png",
+   "z": "count_cast_n_04_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 109,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 151
+ },
+ "count_cast_n_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 38,
+  "ay": 82,
+  "boss": "count",
+  "dir": "n",
+  "files": {
+   "id": "count_cast_n_05_id.png",
+   "img": "count_cast_n_05.png",
+   "sh": "count_cast_n_05_sh.png",
+   "z": "count_cast_n_05_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 107,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 135
+ },
+ "count_cast_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 43,
+  "ay": 104,
+  "boss": "count",
+  "dir": "s",
+  "files": {
+   "id": "count_cast_s_00_id.png",
+   "img": "count_cast_s_00.png",
+   "sh": "count_cast_s_00_sh.png",
+   "z": "count_cast_s_00_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 123,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 151
+ },
+ "count_cast_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 47,
+  "ay": 106,
+  "boss": "count",
+  "dir": "s",
+  "files": {
+   "id": "count_cast_s_01_id.png",
+   "img": "count_cast_s_01.png",
+   "sh": "count_cast_s_01_sh.png",
+   "z": "count_cast_s_01_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 122,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 156
+ },
+ "count_cast_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 47,
+  "ay": 107,
+  "boss": "count",
+  "dir": "s",
+  "files": {
+   "id": "count_cast_s_02_id.png",
+   "img": "count_cast_s_02.png",
+   "sh": "count_cast_s_02_sh.png",
+   "z": "count_cast_s_02_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 121,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 157
+ },
+ "count_cast_s_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 47,
+  "ay": 107,
+  "boss": "count",
+  "dir": "s",
+  "files": {
+   "id": "count_cast_s_03_id.png",
+   "img": "count_cast_s_03.png",
+   "sh": "count_cast_s_03_sh.png",
+   "z": "count_cast_s_03_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 121,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 157
+ },
+ "count_cast_s_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 48,
+  "ay": 107,
+  "boss": "count",
+  "dir": "s",
+  "files": {
+   "id": "count_cast_s_04_id.png",
+   "img": "count_cast_s_04.png",
+   "sh": "count_cast_s_04_sh.png",
+   "z": "count_cast_s_04_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 121,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 158
+ },
+ "count_cast_s_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 45,
+  "ay": 105,
+  "boss": "count",
+  "dir": "s",
+  "files": {
+   "id": "count_cast_s_05_id.png",
+   "img": "count_cast_s_05.png",
+   "sh": "count_cast_s_05_sh.png",
+   "z": "count_cast_s_05_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 122,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 153
+ },
+ "count_cast_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 32,
+  "ay": 93,
+  "boss": "count",
+  "dir": "w",
+  "files": {
+   "id": "count_cast_w_00_id.png",
+   "img": "count_cast_w_00.png",
+   "sh": "count_cast_w_00_sh.png",
+   "z": "count_cast_w_00_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 119,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 144
+ },
+ "count_cast_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 32,
+  "ay": 94,
+  "boss": "count",
+  "dir": "w",
+  "files": {
+   "id": "count_cast_w_01_id.png",
+   "img": "count_cast_w_01.png",
+   "sh": "count_cast_w_01_sh.png",
+   "z": "count_cast_w_01_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 122,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 146
+ },
+ "count_cast_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 26,
+  "ay": 98,
+  "boss": "count",
+  "dir": "w",
+  "files": {
+   "id": "count_cast_w_02_id.png",
+   "img": "count_cast_w_02.png",
+   "sh": "count_cast_w_02_sh.png",
+   "z": "count_cast_w_02_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 127,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 143
+ },
+ "count_cast_w_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 26,
+  "ay": 98,
+  "boss": "count",
+  "dir": "w",
+  "files": {
+   "id": "count_cast_w_03_id.png",
+   "img": "count_cast_w_03.png",
+   "sh": "count_cast_w_03_sh.png",
+   "z": "count_cast_w_03_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 127,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 143
+ },
+ "count_cast_w_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 26,
+  "ay": 97,
+  "boss": "count",
+  "dir": "w",
+  "files": {
+   "id": "count_cast_w_04_id.png",
+   "img": "count_cast_w_04.png",
+   "sh": "count_cast_w_04_sh.png",
+   "z": "count_cast_w_04_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 126,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 142
+ },
+ "count_cast_w_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "cast",
+  "ax": 32,
+  "ay": 93,
+  "boss": "count",
+  "dir": "w",
+  "files": {
+   "id": "count_cast_w_05_id.png",
+   "img": "count_cast_w_05.png",
+   "sh": "count_cast_w_05_sh.png",
+   "z": "count_cast_w_05_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 119,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 146
+ },
+ "count_glide_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 39,
+  "ay": 100,
+  "boss": "count",
+  "dir": "e",
+  "files": {
+   "id": "count_glide_e_00_id.png",
+   "img": "count_glide_e_00.png",
+   "sh": "count_glide_e_00_sh.png",
+   "z": "count_glide_e_00_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 126,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 132
+ },
+ "count_glide_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 41,
+  "ay": 101,
+  "boss": "count",
+  "dir": "e",
+  "files": {
+   "id": "count_glide_e_01_id.png",
+   "img": "count_glide_e_01.png",
+   "sh": "count_glide_e_01_sh.png",
+   "z": "count_glide_e_01_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 127,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 135
+ },
+ "count_glide_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 42,
+  "ay": 101,
+  "boss": "count",
+  "dir": "e",
+  "files": {
+   "id": "count_glide_e_02_id.png",
+   "img": "count_glide_e_02.png",
+   "sh": "count_glide_e_02_sh.png",
+   "z": "count_glide_e_02_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 126,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 136
+ },
+ "count_glide_e_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 40,
+  "ay": 100,
+  "boss": "count",
+  "dir": "e",
+  "files": {
+   "id": "count_glide_e_03_id.png",
+   "img": "count_glide_e_03.png",
+   "sh": "count_glide_e_03_sh.png",
+   "z": "count_glide_e_03_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 125,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 133
+ },
+ "count_glide_e_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 37,
+  "ay": 99,
+  "boss": "count",
+  "dir": "e",
+  "files": {
+   "id": "count_glide_e_04_id.png",
+   "img": "count_glide_e_04.png",
+   "sh": "count_glide_e_04_sh.png",
+   "z": "count_glide_e_04_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 124,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 129
+ },
+ "count_glide_e_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 36,
+  "ay": 99,
+  "boss": "count",
+  "dir": "e",
+  "files": {
+   "id": "count_glide_e_05_id.png",
+   "img": "count_glide_e_05.png",
+   "sh": "count_glide_e_05_sh.png",
+   "z": "count_glide_e_05_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 125,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 128
+ },
+ "count_glide_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 38,
+  "ay": 90,
+  "boss": "count",
+  "dir": "n",
+  "files": {
+   "id": "count_glide_n_00_id.png",
+   "img": "count_glide_n_00.png",
+   "sh": "count_glide_n_00_sh.png",
+   "z": "count_glide_n_00_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 116,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 138
+ },
+ "count_glide_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 38,
+  "ay": 91,
+  "boss": "count",
+  "dir": "n",
+  "files": {
+   "id": "count_glide_n_01_id.png",
+   "img": "count_glide_n_01.png",
+   "sh": "count_glide_n_01_sh.png",
+   "z": "count_glide_n_01_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 119,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 139
+ },
+ "count_glide_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 37,
+  "ay": 91,
+  "boss": "count",
+  "dir": "n",
+  "files": {
+   "id": "count_glide_n_02_id.png",
+   "img": "count_glide_n_02.png",
+   "sh": "count_glide_n_02_sh.png",
+   "z": "count_glide_n_02_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 120,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 138
+ },
+ "count_glide_n_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 35,
+  "ay": 90,
+  "boss": "count",
+  "dir": "n",
+  "files": {
+   "id": "count_glide_n_03_id.png",
+   "img": "count_glide_n_03.png",
+   "sh": "count_glide_n_03_sh.png",
+   "z": "count_glide_n_03_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 117,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 135
+ },
+ "count_glide_n_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 35,
+  "ay": 89,
+  "boss": "count",
+  "dir": "n",
+  "files": {
+   "id": "count_glide_n_04_id.png",
+   "img": "count_glide_n_04.png",
+   "sh": "count_glide_n_04_sh.png",
+   "z": "count_glide_n_04_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 114,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 133
+ },
+ "count_glide_n_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 36,
+  "ay": 89,
+  "boss": "count",
+  "dir": "n",
+  "files": {
+   "id": "count_glide_n_05_id.png",
+   "img": "count_glide_n_05.png",
+   "sh": "count_glide_n_05_sh.png",
+   "z": "count_glide_n_05_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 114,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 134
+ },
+ "count_glide_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 41,
+  "ay": 99,
+  "boss": "count",
+  "dir": "s",
+  "files": {
+   "id": "count_glide_s_00_id.png",
+   "img": "count_glide_s_00.png",
+   "sh": "count_glide_s_00_sh.png",
+   "z": "count_glide_s_00_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 118,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 146
+ },
+ "count_glide_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 41,
+  "ay": 101,
+  "boss": "count",
+  "dir": "s",
+  "files": {
+   "id": "count_glide_s_01_id.png",
+   "img": "count_glide_s_01.png",
+   "sh": "count_glide_s_01_sh.png",
+   "z": "count_glide_s_01_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 120,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 147
+ },
+ "count_glide_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 41,
+  "ay": 101,
+  "boss": "count",
+  "dir": "s",
+  "files": {
+   "id": "count_glide_s_02_id.png",
+   "img": "count_glide_s_02.png",
+   "sh": "count_glide_s_02_sh.png",
+   "z": "count_glide_s_02_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 120,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 147
+ },
+ "count_glide_s_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 40,
+  "ay": 99,
+  "boss": "count",
+  "dir": "s",
+  "files": {
+   "id": "count_glide_s_03_id.png",
+   "img": "count_glide_s_03.png",
+   "sh": "count_glide_s_03_sh.png",
+   "z": "count_glide_s_03_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 118,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 145
+ },
+ "count_glide_s_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 40,
+  "ay": 97,
+  "boss": "count",
+  "dir": "s",
+  "files": {
+   "id": "count_glide_s_04_id.png",
+   "img": "count_glide_s_04.png",
+   "sh": "count_glide_s_04_sh.png",
+   "z": "count_glide_s_04_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 116,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 144
+ },
+ "count_glide_s_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 41,
+  "ay": 97,
+  "boss": "count",
+  "dir": "s",
+  "files": {
+   "id": "count_glide_s_05_id.png",
+   "img": "count_glide_s_05.png",
+   "sh": "count_glide_s_05_sh.png",
+   "z": "count_glide_s_05_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 116,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 145
+ },
+ "count_glide_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 30,
+  "ay": 95,
+  "boss": "count",
+  "dir": "w",
+  "files": {
+   "id": "count_glide_w_00_id.png",
+   "img": "count_glide_w_00.png",
+   "sh": "count_glide_w_00_sh.png",
+   "z": "count_glide_w_00_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 121,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 133
+ },
+ "count_glide_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 31,
+  "ay": 97,
+  "boss": "count",
+  "dir": "w",
+  "files": {
+   "id": "count_glide_w_01_id.png",
+   "img": "count_glide_w_01.png",
+   "sh": "count_glide_w_01_sh.png",
+   "z": "count_glide_w_01_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 123,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 136
+ },
+ "count_glide_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 32,
+  "ay": 97,
+  "boss": "count",
+  "dir": "w",
+  "files": {
+   "id": "count_glide_w_02_id.png",
+   "img": "count_glide_w_02.png",
+   "sh": "count_glide_w_02_sh.png",
+   "z": "count_glide_w_02_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 122,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 137
+ },
+ "count_glide_w_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 32,
+  "ay": 95,
+  "boss": "count",
+  "dir": "w",
+  "files": {
+   "id": "count_glide_w_03_id.png",
+   "img": "count_glide_w_03.png",
+   "sh": "count_glide_w_03_sh.png",
+   "z": "count_glide_w_03_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 119,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 135
+ },
+ "count_glide_w_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 32,
+  "ay": 93,
+  "boss": "count",
+  "dir": "w",
+  "files": {
+   "id": "count_glide_w_04_id.png",
+   "img": "count_glide_w_04.png",
+   "sh": "count_glide_w_04_sh.png",
+   "z": "count_glide_w_04_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 117,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 133
+ },
+ "count_glide_w_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 31,
+  "ay": 93,
+  "boss": "count",
+  "dir": "w",
+  "files": {
+   "id": "count_glide_w_05_id.png",
+   "img": "count_glide_w_05.png",
+   "sh": "count_glide_w_05_sh.png",
+   "z": "count_glide_w_05_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 118,
+  "height_m": 1.6,
+  "ids": {
+   "1": "skin",
+   "10": "trousers, boots",
+   "11": "medallion + chain",
+   "12": "medallion gem",
+   "2": "skin B (ears inside, lips)",
+   "3": "dark (brows, mouth)",
+   "4": "white (fangs, cravat, cuffs)",
+   "5": "eye glow",
+   "6": "hair",
+   "7": "cape outer + collar",
+   "8": "cape inner (red)",
+   "9": "waistcoat, sleeves"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 132
+ },
+ "pharaoh_walk_e_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 34,
+  "ay": 94,
+  "boss": "pharaoh",
+  "dir": "e",
+  "files": {
+   "id": "pharaoh_walk_e_00_id.png",
+   "img": "pharaoh_walk_e_00.png",
+   "sh": "pharaoh_walk_e_00_sh.png",
+   "z": "pharaoh_walk_e_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 130,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 148
+ },
+ "pharaoh_walk_e_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 34,
+  "ay": 98,
+  "boss": "pharaoh",
+  "dir": "e",
+  "files": {
+   "id": "pharaoh_walk_e_01_id.png",
+   "img": "pharaoh_walk_e_01.png",
+   "sh": "pharaoh_walk_e_01_sh.png",
+   "z": "pharaoh_walk_e_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 132,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 149
+ },
+ "pharaoh_walk_e_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 34,
+  "ay": 98,
+  "boss": "pharaoh",
+  "dir": "e",
+  "files": {
+   "id": "pharaoh_walk_e_02_id.png",
+   "img": "pharaoh_walk_e_02.png",
+   "sh": "pharaoh_walk_e_02_sh.png",
+   "z": "pharaoh_walk_e_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 132,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 149
+ },
+ "pharaoh_walk_e_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 33,
+  "ay": 94,
+  "boss": "pharaoh",
+  "dir": "e",
+  "files": {
+   "id": "pharaoh_walk_e_03_id.png",
+   "img": "pharaoh_walk_e_03.png",
+   "sh": "pharaoh_walk_e_03_sh.png",
+   "z": "pharaoh_walk_e_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 130,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 147
+ },
+ "pharaoh_walk_e_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 33,
+  "ay": 94,
+  "boss": "pharaoh",
+  "dir": "e",
+  "files": {
+   "id": "pharaoh_walk_e_04_id.png",
+   "img": "pharaoh_walk_e_04.png",
+   "sh": "pharaoh_walk_e_04_sh.png",
+   "z": "pharaoh_walk_e_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 131,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 149
+ },
+ "pharaoh_walk_e_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 33,
+  "ay": 94,
+  "boss": "pharaoh",
+  "dir": "e",
+  "files": {
+   "id": "pharaoh_walk_e_05_id.png",
+   "img": "pharaoh_walk_e_05.png",
+   "sh": "pharaoh_walk_e_05_sh.png",
+   "z": "pharaoh_walk_e_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 131,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 149
+ },
+ "pharaoh_walk_n_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 42,
+  "ay": 100,
+  "boss": "pharaoh",
+  "dir": "n",
+  "files": {
+   "id": "pharaoh_walk_n_00_id.png",
+   "img": "pharaoh_walk_n_00.png",
+   "sh": "pharaoh_walk_n_00_sh.png",
+   "z": "pharaoh_walk_n_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 123,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 163
+ },
+ "pharaoh_walk_n_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 44,
+  "ay": 100,
+  "boss": "pharaoh",
+  "dir": "n",
+  "files": {
+   "id": "pharaoh_walk_n_01_id.png",
+   "img": "pharaoh_walk_n_01.png",
+   "sh": "pharaoh_walk_n_01_sh.png",
+   "z": "pharaoh_walk_n_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 123,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 165
+ },
+ "pharaoh_walk_n_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 44,
+  "ay": 100,
+  "boss": "pharaoh",
+  "dir": "n",
+  "files": {
+   "id": "pharaoh_walk_n_02_id.png",
+   "img": "pharaoh_walk_n_02.png",
+   "sh": "pharaoh_walk_n_02_sh.png",
+   "z": "pharaoh_walk_n_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 123,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 165
+ },
+ "pharaoh_walk_n_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 42,
+  "ay": 100,
+  "boss": "pharaoh",
+  "dir": "n",
+  "files": {
+   "id": "pharaoh_walk_n_03_id.png",
+   "img": "pharaoh_walk_n_03.png",
+   "sh": "pharaoh_walk_n_03_sh.png",
+   "z": "pharaoh_walk_n_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 123,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 163
+ },
+ "pharaoh_walk_n_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 40,
+  "ay": 103,
+  "boss": "pharaoh",
+  "dir": "n",
+  "files": {
+   "id": "pharaoh_walk_n_04_id.png",
+   "img": "pharaoh_walk_n_04.png",
+   "sh": "pharaoh_walk_n_04_sh.png",
+   "z": "pharaoh_walk_n_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 125,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 164
+ },
+ "pharaoh_walk_n_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 40,
+  "ay": 103,
+  "boss": "pharaoh",
+  "dir": "n",
+  "files": {
+   "id": "pharaoh_walk_n_05_id.png",
+   "img": "pharaoh_walk_n_05.png",
+   "sh": "pharaoh_walk_n_05_sh.png",
+   "z": "pharaoh_walk_n_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 125,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 164
+ },
+ "pharaoh_walk_s_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 57,
+  "ay": 94,
+  "boss": "pharaoh",
+  "dir": "s",
+  "files": {
+   "id": "pharaoh_walk_s_00_id.png",
+   "img": "pharaoh_walk_s_00.png",
+   "sh": "pharaoh_walk_s_00_sh.png",
+   "z": "pharaoh_walk_s_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 129,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 154
+ },
+ "pharaoh_walk_s_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 55,
+  "ay": 95,
+  "boss": "pharaoh",
+  "dir": "s",
+  "files": {
+   "id": "pharaoh_walk_s_01_id.png",
+   "img": "pharaoh_walk_s_01.png",
+   "sh": "pharaoh_walk_s_01_sh.png",
+   "z": "pharaoh_walk_s_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 131,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 156
+ },
+ "pharaoh_walk_s_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 55,
+  "ay": 95,
+  "boss": "pharaoh",
+  "dir": "s",
+  "files": {
+   "id": "pharaoh_walk_s_02_id.png",
+   "img": "pharaoh_walk_s_02.png",
+   "sh": "pharaoh_walk_s_02_sh.png",
+   "z": "pharaoh_walk_s_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 131,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 156
+ },
+ "pharaoh_walk_s_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 57,
+  "ay": 94,
+  "boss": "pharaoh",
+  "dir": "s",
+  "files": {
+   "id": "pharaoh_walk_s_03_id.png",
+   "img": "pharaoh_walk_s_03.png",
+   "sh": "pharaoh_walk_s_03_sh.png",
+   "z": "pharaoh_walk_s_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 129,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 154
+ },
+ "pharaoh_walk_s_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 58,
+  "ay": 97,
+  "boss": "pharaoh",
+  "dir": "s",
+  "files": {
+   "id": "pharaoh_walk_s_04_id.png",
+   "img": "pharaoh_walk_s_04.png",
+   "sh": "pharaoh_walk_s_04_sh.png",
+   "z": "pharaoh_walk_s_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 130,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 154
+ },
+ "pharaoh_walk_s_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 58,
+  "ay": 97,
+  "boss": "pharaoh",
+  "dir": "s",
+  "files": {
+   "id": "pharaoh_walk_s_05_id.png",
+   "img": "pharaoh_walk_s_05.png",
+   "sh": "pharaoh_walk_s_05_sh.png",
+   "z": "pharaoh_walk_s_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 130,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 154
+ },
+ "pharaoh_walk_w_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 59,
+  "ay": 109,
+  "boss": "pharaoh",
+  "dir": "w",
+  "files": {
+   "id": "pharaoh_walk_w_00_id.png",
+   "img": "pharaoh_walk_w_00.png",
+   "sh": "pharaoh_walk_w_00_sh.png",
+   "z": "pharaoh_walk_w_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 134,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 155
+ },
+ "pharaoh_walk_w_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 60,
+  "ay": 110,
+  "boss": "pharaoh",
+  "dir": "w",
+  "files": {
+   "id": "pharaoh_walk_w_01_id.png",
+   "img": "pharaoh_walk_w_01.png",
+   "sh": "pharaoh_walk_w_01_sh.png",
+   "z": "pharaoh_walk_w_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 136,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 157
+ },
+ "pharaoh_walk_w_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 60,
+  "ay": 110,
+  "boss": "pharaoh",
+  "dir": "w",
+  "files": {
+   "id": "pharaoh_walk_w_02_id.png",
+   "img": "pharaoh_walk_w_02.png",
+   "sh": "pharaoh_walk_w_02_sh.png",
+   "z": "pharaoh_walk_w_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 136,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 157
+ },
+ "pharaoh_walk_w_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 59,
+  "ay": 109,
+  "boss": "pharaoh",
+  "dir": "w",
+  "files": {
+   "id": "pharaoh_walk_w_03_id.png",
+   "img": "pharaoh_walk_w_03.png",
+   "sh": "pharaoh_walk_w_03_sh.png",
+   "z": "pharaoh_walk_w_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 134,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 155
+ },
+ "pharaoh_walk_w_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 57,
+  "ay": 111,
+  "boss": "pharaoh",
+  "dir": "w",
+  "files": {
+   "id": "pharaoh_walk_w_04_id.png",
+   "img": "pharaoh_walk_w_04.png",
+   "sh": "pharaoh_walk_w_04_sh.png",
+   "z": "pharaoh_walk_w_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 134,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 156
+ },
+ "pharaoh_walk_w_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 57,
+  "ay": 111,
+  "boss": "pharaoh",
+  "dir": "w",
+  "files": {
+   "id": "pharaoh_walk_w_05_id.png",
+   "img": "pharaoh_walk_w_05.png",
+   "sh": "pharaoh_walk_w_05_sh.png",
+   "z": "pharaoh_walk_w_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 134,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 130,
+  "shadow_z": 0.0,
+  "w": 156
+ },
+ "pharaoh_whip_e_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 35,
+  "ay": 109,
+  "boss": "pharaoh",
+  "dir": "e",
+  "files": {
+   "id": "pharaoh_whip_e_00_id.png",
+   "img": "pharaoh_whip_e_00.png",
+   "sh": "pharaoh_whip_e_00_sh.png",
+   "z": "pharaoh_whip_e_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 143,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 128
+ },
+ "pharaoh_whip_e_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 34,
+  "ay": 98,
+  "boss": "pharaoh",
+  "dir": "e",
+  "files": {
+   "id": "pharaoh_whip_e_01_id.png",
+   "img": "pharaoh_whip_e_01.png",
+   "sh": "pharaoh_whip_e_01_sh.png",
+   "z": "pharaoh_whip_e_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 134,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 153
+ },
+ "pharaoh_whip_e_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 34,
+  "ay": 92,
+  "boss": "pharaoh",
+  "dir": "e",
+  "files": {
+   "id": "pharaoh_whip_e_02_id.png",
+   "img": "pharaoh_whip_e_02.png",
+   "sh": "pharaoh_whip_e_02_sh.png",
+   "z": "pharaoh_whip_e_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 127,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 238
+ },
+ "pharaoh_whip_e_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 33,
+  "ay": 91,
+  "boss": "pharaoh",
+  "dir": "e",
+  "files": {
+   "id": "pharaoh_whip_e_03_id.png",
+   "img": "pharaoh_whip_e_03.png",
+   "sh": "pharaoh_whip_e_03_sh.png",
+   "z": "pharaoh_whip_e_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 126,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 265
+ },
+ "pharaoh_whip_e_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 33,
+  "ay": 92,
+  "boss": "pharaoh",
+  "dir": "e",
+  "files": {
+   "id": "pharaoh_whip_e_04_id.png",
+   "img": "pharaoh_whip_e_04.png",
+   "sh": "pharaoh_whip_e_04_sh.png",
+   "z": "pharaoh_whip_e_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 128,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 218
+ },
+ "pharaoh_whip_e_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 33,
+  "ay": 94,
+  "boss": "pharaoh",
+  "dir": "e",
+  "files": {
+   "id": "pharaoh_whip_e_05_id.png",
+   "img": "pharaoh_whip_e_05.png",
+   "sh": "pharaoh_whip_e_05_sh.png",
+   "z": "pharaoh_whip_e_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 130,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 137
+ },
+ "pharaoh_whip_n_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 45,
+  "ay": 91,
+  "boss": "pharaoh",
+  "dir": "n",
+  "files": {
+   "id": "pharaoh_whip_n_00_id.png",
+   "img": "pharaoh_whip_n_00.png",
+   "sh": "pharaoh_whip_n_00_sh.png",
+   "z": "pharaoh_whip_n_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 114,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 170
+ },
+ "pharaoh_whip_n_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 41,
+  "ay": 108,
+  "boss": "pharaoh",
+  "dir": "n",
+  "files": {
+   "id": "pharaoh_whip_n_01_id.png",
+   "img": "pharaoh_whip_n_01.png",
+   "sh": "pharaoh_whip_n_01_sh.png",
+   "z": "pharaoh_whip_n_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 131,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 163
+ },
+ "pharaoh_whip_n_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 43,
+  "ay": 164,
+  "boss": "pharaoh",
+  "dir": "n",
+  "files": {
+   "id": "pharaoh_whip_n_02_id.png",
+   "img": "pharaoh_whip_n_02.png",
+   "sh": "pharaoh_whip_n_02_sh.png",
+   "z": "pharaoh_whip_n_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 187,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 160
+ },
+ "pharaoh_whip_n_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 45,
+  "ay": 170,
+  "boss": "pharaoh",
+  "dir": "n",
+  "files": {
+   "id": "pharaoh_whip_n_03_id.png",
+   "img": "pharaoh_whip_n_03.png",
+   "sh": "pharaoh_whip_n_03_sh.png",
+   "z": "pharaoh_whip_n_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 193,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 160
+ },
+ "pharaoh_whip_n_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 44,
+  "ay": 144,
+  "boss": "pharaoh",
+  "dir": "n",
+  "files": {
+   "id": "pharaoh_whip_n_04_id.png",
+   "img": "pharaoh_whip_n_04.png",
+   "sh": "pharaoh_whip_n_04_sh.png",
+   "z": "pharaoh_whip_n_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 167,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 162
+ },
+ "pharaoh_whip_n_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 43,
+  "ay": 96,
+  "boss": "pharaoh",
+  "dir": "n",
+  "files": {
+   "id": "pharaoh_whip_n_05_id.png",
+   "img": "pharaoh_whip_n_05.png",
+   "sh": "pharaoh_whip_n_05_sh.png",
+   "z": "pharaoh_whip_n_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 119,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 164
+ },
+ "pharaoh_whip_s_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 56,
+  "ay": 101,
+  "boss": "pharaoh",
+  "dir": "s",
+  "files": {
+   "id": "pharaoh_whip_s_00_id.png",
+   "img": "pharaoh_whip_s_00.png",
+   "sh": "pharaoh_whip_s_00_sh.png",
+   "z": "pharaoh_whip_s_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 123,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 173
+ },
+ "pharaoh_whip_s_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 57,
+  "ay": 94,
+  "boss": "pharaoh",
+  "dir": "s",
+  "files": {
+   "id": "pharaoh_whip_s_01_id.png",
+   "img": "pharaoh_whip_s_01.png",
+   "sh": "pharaoh_whip_s_01_sh.png",
+   "z": "pharaoh_whip_s_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 120,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 160
+ },
+ "pharaoh_whip_s_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 56,
+  "ay": 89,
+  "boss": "pharaoh",
+  "dir": "s",
+  "files": {
+   "id": "pharaoh_whip_s_02_id.png",
+   "img": "pharaoh_whip_s_02.png",
+   "sh": "pharaoh_whip_s_02_sh.png",
+   "z": "pharaoh_whip_s_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 184,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 150
+ },
+ "pharaoh_whip_s_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 55,
+  "ay": 87,
+  "boss": "pharaoh",
+  "dir": "s",
+  "files": {
+   "id": "pharaoh_whip_s_03_id.png",
+   "img": "pharaoh_whip_s_03.png",
+   "sh": "pharaoh_whip_s_03_sh.png",
+   "z": "pharaoh_whip_s_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 235,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 148
+ },
+ "pharaoh_whip_s_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 56,
+  "ay": 90,
+  "boss": "pharaoh",
+  "dir": "s",
+  "files": {
+   "id": "pharaoh_whip_s_04_id.png",
+   "img": "pharaoh_whip_s_04.png",
+   "sh": "pharaoh_whip_s_04_sh.png",
+   "z": "pharaoh_whip_s_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 188,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 151
+ },
+ "pharaoh_whip_s_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 57,
+  "ay": 94,
+  "boss": "pharaoh",
+  "dir": "s",
+  "files": {
+   "id": "pharaoh_whip_s_05_id.png",
+   "img": "pharaoh_whip_s_05.png",
+   "sh": "pharaoh_whip_s_05_sh.png",
+   "z": "pharaoh_whip_s_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 138,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 154
+ },
+ "pharaoh_whip_w_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 30,
+  "ay": 113,
+  "boss": "pharaoh",
+  "dir": "w",
+  "files": {
+   "id": "pharaoh_whip_w_00_id.png",
+   "img": "pharaoh_whip_w_00.png",
+   "sh": "pharaoh_whip_w_00_sh.png",
+   "z": "pharaoh_whip_w_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 136,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 136
+ },
+ "pharaoh_whip_w_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 50,
+  "ay": 109,
+  "boss": "pharaoh",
+  "dir": "w",
+  "files": {
+   "id": "pharaoh_whip_w_01_id.png",
+   "img": "pharaoh_whip_w_01.png",
+   "sh": "pharaoh_whip_w_01_sh.png",
+   "z": "pharaoh_whip_w_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 132,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 147
+ },
+ "pharaoh_whip_w_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 147,
+  "ay": 105,
+  "boss": "pharaoh",
+  "dir": "w",
+  "files": {
+   "id": "pharaoh_whip_w_02_id.png",
+   "img": "pharaoh_whip_w_02.png",
+   "sh": "pharaoh_whip_w_02_sh.png",
+   "z": "pharaoh_whip_w_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 132,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 237
+ },
+ "pharaoh_whip_w_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 214,
+  "ay": 103,
+  "boss": "pharaoh",
+  "dir": "w",
+  "files": {
+   "id": "pharaoh_whip_w_03_id.png",
+   "img": "pharaoh_whip_w_03.png",
+   "sh": "pharaoh_whip_w_03_sh.png",
+   "z": "pharaoh_whip_w_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 132,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 302
+ },
+ "pharaoh_whip_w_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 146,
+  "ay": 106,
+  "boss": "pharaoh",
+  "dir": "w",
+  "files": {
+   "id": "pharaoh_whip_w_04_id.png",
+   "img": "pharaoh_whip_w_04.png",
+   "sh": "pharaoh_whip_w_04_sh.png",
+   "z": "pharaoh_whip_w_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 134,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 238
+ },
+ "pharaoh_whip_w_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "whip",
+  "ax": 69,
+  "ay": 109,
+  "boss": "pharaoh",
+  "dir": "w",
+  "files": {
+   "id": "pharaoh_whip_w_05_id.png",
+   "img": "pharaoh_whip_w_05.png",
+   "sh": "pharaoh_whip_w_05_sh.png",
+   "z": "pharaoh_whip_w_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 137,
+  "height_m": 1.9,
+  "ids": {
+   "1": "wraps A",
+   "11": "gold (headdress, mask, collar, crook)",
+   "12": "blue stripes",
+   "2": "wraps B (overlapping, loose ends)",
+   "3": "dark (eye sockets, mouth)",
+   "4": "white",
+   "5": "eye glow",
+   "7": "kilt",
+   "8": "apron"
+  },
+  "kind": "char",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 166
+ }
+}

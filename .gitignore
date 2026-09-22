@@ -46,3 +46,11 @@ apps/golf/tools/blender/preview/
 apps/turbo/assets/cars_preview/
 apps/turbo/assets/props_preview/
 sim/build-asan/
+# Monster Hop: what the tools regenerate. The renders and monsterhop.pak are
+# tracked (as Turbo's are); these are not:
+# the agents' contact sheets and scenes (tools/blender/*_sheet.py, *_scene.py)
+apps/monsterhop/assets/*/_*
+# the pack again, in parts for the portal's 8 MB uploads (tools/pack_assets.py)
+apps/monsterhop/assets/card/
+# the compiled levels and their previews (tools/levels.py [--preview])
+apps/monsterhop/assets/levels/

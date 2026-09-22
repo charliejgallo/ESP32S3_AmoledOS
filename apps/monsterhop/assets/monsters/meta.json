@@ -1,0 +1,11887 @@
+{
+ "_projection": {
+  "depth_empty": 255,
+  "depth_unit_m": 0.03125,
+  "floor_m": 0.5092285591855548,
+  "floor_px": 23,
+  "px_per_m": 63.245553203367585,
+  "px_x": [
+   60,
+   14
+  ],
+  "px_y": [
+   20,
+   -42
+  ],
+  "view_dir": [
+   -0.2258317917585373,
+   0.6774953603744507,
+   -0.699999988079071
+  ]
+ },
+ "armor_idle_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 19,
+  "ay": 64,
+  "dir": "e",
+  "files": {
+   "id": "armor_idle_e_00_id.png",
+   "img": "armor_idle_e_00.png",
+   "sh": "armor_idle_e_00_sh.png",
+   "z": "armor_idle_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 77,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "armor_idle_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 20,
+  "ay": 64,
+  "dir": "e",
+  "files": {
+   "id": "armor_idle_e_01_id.png",
+   "img": "armor_idle_e_01.png",
+   "sh": "armor_idle_e_01_sh.png",
+   "z": "armor_idle_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 77,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 81
+ },
+ "armor_idle_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 22,
+  "ay": 59,
+  "dir": "n",
+  "files": {
+   "id": "armor_idle_n_00_id.png",
+   "img": "armor_idle_n_00.png",
+   "sh": "armor_idle_n_00_sh.png",
+   "z": "armor_idle_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 71,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "armor_idle_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 22,
+  "ay": 59,
+  "dir": "n",
+  "files": {
+   "id": "armor_idle_n_01_id.png",
+   "img": "armor_idle_n_01.png",
+   "sh": "armor_idle_n_01_sh.png",
+   "z": "armor_idle_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 71,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "armor_idle_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 22,
+  "ay": 69,
+  "dir": "s",
+  "files": {
+   "id": "armor_idle_s_00_id.png",
+   "img": "armor_idle_s_00.png",
+   "sh": "armor_idle_s_00_sh.png",
+   "z": "armor_idle_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 81,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 87
+ },
+ "armor_idle_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 22,
+  "ay": 69,
+  "dir": "s",
+  "files": {
+   "id": "armor_idle_s_01_id.png",
+   "img": "armor_idle_s_01.png",
+   "sh": "armor_idle_s_01_sh.png",
+   "z": "armor_idle_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 81,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "armor_idle_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 18,
+  "ay": 61,
+  "dir": "w",
+  "files": {
+   "id": "armor_idle_w_00_id.png",
+   "img": "armor_idle_w_00.png",
+   "sh": "armor_idle_w_00_sh.png",
+   "z": "armor_idle_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 74,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 89
+ },
+ "armor_idle_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 18,
+  "ay": 61,
+  "dir": "w",
+  "files": {
+   "id": "armor_idle_w_01_id.png",
+   "img": "armor_idle_w_01.png",
+   "sh": "armor_idle_w_01_sh.png",
+   "z": "armor_idle_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 74,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 89
+ },
+ "armor_walk_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 19,
+  "ay": 64,
+  "dir": "e",
+  "files": {
+   "id": "armor_walk_e_00_id.png",
+   "img": "armor_walk_e_00.png",
+   "sh": "armor_walk_e_00_sh.png",
+   "z": "armor_walk_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 77,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 79
+ },
+ "armor_walk_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 19,
+  "ay": 65,
+  "dir": "e",
+  "files": {
+   "id": "armor_walk_e_01_id.png",
+   "img": "armor_walk_e_01.png",
+   "sh": "armor_walk_e_01_sh.png",
+   "z": "armor_walk_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 80,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "armor_walk_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 19,
+  "ay": 65,
+  "dir": "e",
+  "files": {
+   "id": "armor_walk_e_02_id.png",
+   "img": "armor_walk_e_02.png",
+   "sh": "armor_walk_e_02_sh.png",
+   "z": "armor_walk_e_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 80,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "armor_walk_e_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 19,
+  "ay": 64,
+  "dir": "e",
+  "files": {
+   "id": "armor_walk_e_03_id.png",
+   "img": "armor_walk_e_03.png",
+   "sh": "armor_walk_e_03_sh.png",
+   "z": "armor_walk_e_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 77,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 79
+ },
+ "armor_walk_e_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 19,
+  "ay": 63,
+  "dir": "e",
+  "files": {
+   "id": "armor_walk_e_04_id.png",
+   "img": "armor_walk_e_04.png",
+   "sh": "armor_walk_e_04_sh.png",
+   "z": "armor_walk_e_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 76,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 79
+ },
+ "armor_walk_e_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 19,
+  "ay": 63,
+  "dir": "e",
+  "files": {
+   "id": "armor_walk_e_05_id.png",
+   "img": "armor_walk_e_05.png",
+   "sh": "armor_walk_e_05_sh.png",
+   "z": "armor_walk_e_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 76,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 79
+ },
+ "armor_walk_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 22,
+  "ay": 58,
+  "dir": "n",
+  "files": {
+   "id": "armor_walk_n_00_id.png",
+   "img": "armor_walk_n_00.png",
+   "sh": "armor_walk_n_00_sh.png",
+   "z": "armor_walk_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 70,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "armor_walk_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 23,
+  "ay": 59,
+  "dir": "n",
+  "files": {
+   "id": "armor_walk_n_01_id.png",
+   "img": "armor_walk_n_01.png",
+   "sh": "armor_walk_n_01_sh.png",
+   "z": "armor_walk_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 71,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "armor_walk_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 23,
+  "ay": 59,
+  "dir": "n",
+  "files": {
+   "id": "armor_walk_n_02_id.png",
+   "img": "armor_walk_n_02.png",
+   "sh": "armor_walk_n_02_sh.png",
+   "z": "armor_walk_n_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 71,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "armor_walk_n_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 22,
+  "ay": 58,
+  "dir": "n",
+  "files": {
+   "id": "armor_walk_n_03_id.png",
+   "img": "armor_walk_n_03.png",
+   "sh": "armor_walk_n_03_sh.png",
+   "z": "armor_walk_n_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 70,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "armor_walk_n_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 21,
+  "ay": 58,
+  "dir": "n",
+  "files": {
+   "id": "armor_walk_n_04_id.png",
+   "img": "armor_walk_n_04.png",
+   "sh": "armor_walk_n_04_sh.png",
+   "z": "armor_walk_n_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 70,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "armor_walk_n_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 21,
+  "ay": 58,
+  "dir": "n",
+  "files": {
+   "id": "armor_walk_n_05_id.png",
+   "img": "armor_walk_n_05.png",
+   "sh": "armor_walk_n_05_sh.png",
+   "z": "armor_walk_n_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 70,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "armor_walk_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 22,
+  "ay": 68,
+  "dir": "s",
+  "files": {
+   "id": "armor_walk_s_00_id.png",
+   "img": "armor_walk_s_00.png",
+   "sh": "armor_walk_s_00_sh.png",
+   "z": "armor_walk_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 80,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "armor_walk_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 22,
+  "ay": 68,
+  "dir": "s",
+  "files": {
+   "id": "armor_walk_s_01_id.png",
+   "img": "armor_walk_s_01.png",
+   "sh": "armor_walk_s_01_sh.png",
+   "z": "armor_walk_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 80,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 88
+ },
+ "armor_walk_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 22,
+  "ay": 68,
+  "dir": "s",
+  "files": {
+   "id": "armor_walk_s_02_id.png",
+   "img": "armor_walk_s_02.png",
+   "sh": "armor_walk_s_02_sh.png",
+   "z": "armor_walk_s_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 80,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 88
+ },
+ "armor_walk_s_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 22,
+  "ay": 68,
+  "dir": "s",
+  "files": {
+   "id": "armor_walk_s_03_id.png",
+   "img": "armor_walk_s_03.png",
+   "sh": "armor_walk_s_03_sh.png",
+   "z": "armor_walk_s_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 80,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "armor_walk_s_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 23,
+  "ay": 69,
+  "dir": "s",
+  "files": {
+   "id": "armor_walk_s_04_id.png",
+   "img": "armor_walk_s_04.png",
+   "sh": "armor_walk_s_04_sh.png",
+   "z": "armor_walk_s_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 81,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "armor_walk_s_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 23,
+  "ay": 69,
+  "dir": "s",
+  "files": {
+   "id": "armor_walk_s_05_id.png",
+   "img": "armor_walk_s_05.png",
+   "sh": "armor_walk_s_05_sh.png",
+   "z": "armor_walk_s_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 81,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "armor_walk_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 18,
+  "ay": 60,
+  "dir": "w",
+  "files": {
+   "id": "armor_walk_w_00_id.png",
+   "img": "armor_walk_w_00.png",
+   "sh": "armor_walk_w_00_sh.png",
+   "z": "armor_walk_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 73,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 88
+ },
+ "armor_walk_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 19,
+  "ay": 60,
+  "dir": "w",
+  "files": {
+   "id": "armor_walk_w_01_id.png",
+   "img": "armor_walk_w_01.png",
+   "sh": "armor_walk_w_01_sh.png",
+   "z": "armor_walk_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 74,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 89
+ },
+ "armor_walk_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 19,
+  "ay": 60,
+  "dir": "w",
+  "files": {
+   "id": "armor_walk_w_02_id.png",
+   "img": "armor_walk_w_02.png",
+   "sh": "armor_walk_w_02_sh.png",
+   "z": "armor_walk_w_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 74,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 89
+ },
+ "armor_walk_w_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 18,
+  "ay": 60,
+  "dir": "w",
+  "files": {
+   "id": "armor_walk_w_03_id.png",
+   "img": "armor_walk_w_03.png",
+   "sh": "armor_walk_w_03_sh.png",
+   "z": "armor_walk_w_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 73,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 88
+ },
+ "armor_walk_w_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 18,
+  "ay": 61,
+  "dir": "w",
+  "files": {
+   "id": "armor_walk_w_04_id.png",
+   "img": "armor_walk_w_04.png",
+   "sh": "armor_walk_w_04_sh.png",
+   "z": "armor_walk_w_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 74,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 89
+ },
+ "armor_walk_w_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 18,
+  "ay": 61,
+  "dir": "w",
+  "files": {
+   "id": "armor_walk_w_05_id.png",
+   "img": "armor_walk_w_05.png",
+   "sh": "armor_walk_w_05_sh.png",
+   "z": "armor_walk_w_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 74,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "char",
+  "monster": "armor",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 89
+ },
+ "bat_fly_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 17,
+  "ay": 54,
+  "dir": "e",
+  "files": {
+   "id": "bat_fly_e_00_id.png",
+   "img": "bat_fly_e_00.png",
+   "sh": "bat_fly_e_00_sh.png",
+   "z": "bat_fly_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 64,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 66
+ },
+ "bat_fly_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 16,
+  "ay": 55,
+  "dir": "e",
+  "files": {
+   "id": "bat_fly_e_01_id.png",
+   "img": "bat_fly_e_01.png",
+   "sh": "bat_fly_e_01_sh.png",
+   "z": "bat_fly_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 61,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 64
+ },
+ "bat_fly_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 17,
+  "ay": 54,
+  "dir": "e",
+  "files": {
+   "id": "bat_fly_e_02_id.png",
+   "img": "bat_fly_e_02.png",
+   "sh": "bat_fly_e_02_sh.png",
+   "z": "bat_fly_e_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 64,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 66
+ },
+ "bat_fly_e_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 18,
+  "ay": 55,
+  "dir": "e",
+  "files": {
+   "id": "bat_fly_e_03_id.png",
+   "img": "bat_fly_e_03.png",
+   "sh": "bat_fly_e_03_sh.png",
+   "z": "bat_fly_e_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 65,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 67
+ },
+ "bat_fly_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 21,
+  "ay": 50,
+  "dir": "n",
+  "files": {
+   "id": "bat_fly_n_00_id.png",
+   "img": "bat_fly_n_00.png",
+   "sh": "bat_fly_n_00_sh.png",
+   "z": "bat_fly_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 52,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 78
+ },
+ "bat_fly_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 19,
+  "ay": 49,
+  "dir": "n",
+  "files": {
+   "id": "bat_fly_n_01_id.png",
+   "img": "bat_fly_n_01.png",
+   "sh": "bat_fly_n_01_sh.png",
+   "z": "bat_fly_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 51,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 76
+ },
+ "bat_fly_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 21,
+  "ay": 50,
+  "dir": "n",
+  "files": {
+   "id": "bat_fly_n_02_id.png",
+   "img": "bat_fly_n_02.png",
+   "sh": "bat_fly_n_02_sh.png",
+   "z": "bat_fly_n_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 52,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 75
+ },
+ "bat_fly_n_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 18,
+  "ay": 51,
+  "dir": "n",
+  "files": {
+   "id": "bat_fly_n_03_id.png",
+   "img": "bat_fly_n_03.png",
+   "sh": "bat_fly_n_03_sh.png",
+   "z": "bat_fly_n_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 53,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 72
+ },
+ "bat_fly_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 21,
+  "ay": 51,
+  "dir": "s",
+  "files": {
+   "id": "bat_fly_s_00_id.png",
+   "img": "bat_fly_s_00.png",
+   "sh": "bat_fly_s_00_sh.png",
+   "z": "bat_fly_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 55,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 78
+ },
+ "bat_fly_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 18,
+  "ay": 51,
+  "dir": "s",
+  "files": {
+   "id": "bat_fly_s_01_id.png",
+   "img": "bat_fly_s_01.png",
+   "sh": "bat_fly_s_01_sh.png",
+   "z": "bat_fly_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 56,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 76
+ },
+ "bat_fly_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 21,
+  "ay": 51,
+  "dir": "s",
+  "files": {
+   "id": "bat_fly_s_02_id.png",
+   "img": "bat_fly_s_02.png",
+   "sh": "bat_fly_s_02_sh.png",
+   "z": "bat_fly_s_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 55,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 75
+ },
+ "bat_fly_s_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 18,
+  "ay": 52,
+  "dir": "s",
+  "files": {
+   "id": "bat_fly_s_03_id.png",
+   "img": "bat_fly_s_03.png",
+   "sh": "bat_fly_s_03_sh.png",
+   "z": "bat_fly_s_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 56,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 73
+ },
+ "bat_fly_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 9,
+  "ay": 54,
+  "dir": "w",
+  "files": {
+   "id": "bat_fly_w_00_id.png",
+   "img": "bat_fly_w_00.png",
+   "sh": "bat_fly_w_00_sh.png",
+   "z": "bat_fly_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 64,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 63
+ },
+ "bat_fly_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 9,
+  "ay": 54,
+  "dir": "w",
+  "files": {
+   "id": "bat_fly_w_01_id.png",
+   "img": "bat_fly_w_01.png",
+   "sh": "bat_fly_w_01_sh.png",
+   "z": "bat_fly_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 62,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 62
+ },
+ "bat_fly_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 9,
+  "ay": 54,
+  "dir": "w",
+  "files": {
+   "id": "bat_fly_w_02_id.png",
+   "img": "bat_fly_w_02.png",
+   "sh": "bat_fly_w_02_sh.png",
+   "z": "bat_fly_w_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 65,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 63
+ },
+ "bat_fly_w_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 10,
+  "ay": 54,
+  "dir": "w",
+  "files": {
+   "id": "bat_fly_w_03_id.png",
+   "img": "bat_fly_w_03.png",
+   "sh": "bat_fly_w_03_sh.png",
+   "z": "bat_fly_w_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 64,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "char",
+  "monster": "bat",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 65
+ },
+ "card_armor": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 43,
+  "ay": 137,
+  "files": {
+   "id": "card_armor_id.png",
+   "img": "card_armor.png"
+  },
+  "h": 154,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   5,
+   11,
+   12
+  ],
+  "kind": "card",
+  "monster": "armor",
+  "pose": "idle_s_00",
+  "w": 86,
+  "zoom": 2.0
+ },
+ "card_bat": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 41,
+  "ay": 102,
+  "files": {
+   "id": "card_bat_id.png",
+   "img": "card_bat.png"
+  },
+  "h": 64,
+  "height_m": 0.35,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "kind": "card",
+  "monster": "bat",
+  "pose": "fly_s_00",
+  "w": 82,
+  "zoom": 2.0
+ },
+ "card_crow": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 29,
+  "ay": 46,
+  "files": {
+   "id": "card_crow_id.png",
+   "img": "card_crow.png"
+  },
+  "h": 55,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "card",
+  "monster": "crow",
+  "pose": "perch_s_00",
+  "w": 55,
+  "zoom": 2.0
+ },
+ "card_mummy": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 51,
+  "ay": 112,
+  "files": {
+   "id": "card_mummy_id.png",
+   "img": "card_mummy.png"
+  },
+  "h": 126,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "card",
+  "monster": "mummy",
+  "pose": "idle_s_00",
+  "w": 115,
+  "zoom": 2.0
+ },
+ "card_scarab": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 33,
+  "ay": 33,
+  "files": {
+   "id": "card_scarab_id.png",
+   "img": "card_scarab.png"
+  },
+  "h": 62,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "card",
+  "monster": "scarab",
+  "pose": "crawl_s_00",
+  "w": 68,
+  "zoom": 2.0
+ },
+ "card_vampire": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 48,
+  "ay": 126,
+  "files": {
+   "id": "card_vampire_id.png",
+   "img": "card_vampire.png"
+  },
+  "h": 134,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "card",
+  "monster": "vampire",
+  "pose": "idle_s_00",
+  "w": 99,
+  "zoom": 2.0
+ },
+ "card_werewolf": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 53,
+  "ay": 113,
+  "files": {
+   "id": "card_werewolf_id.png",
+   "img": "card_werewolf.png"
+  },
+  "h": 136,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "card",
+  "monster": "werewolf",
+  "pose": "idle_s_00",
+  "w": 98,
+  "zoom": 2.0
+ },
+ "card_zombie": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 59,
+  "ay": 117,
+  "files": {
+   "id": "card_zombie_id.png",
+   "img": "card_zombie.png"
+  },
+  "h": 135,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "card",
+  "monster": "zombie",
+  "pose": "idle_s_00",
+  "w": 103,
+  "zoom": 2.0
+ },
+ "card_zombiedog": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 28,
+  "ay": 61,
+  "files": {
+   "id": "card_zombiedog_id.png",
+   "img": "card_zombiedog.png"
+  },
+  "h": 79,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "card",
+  "monster": "zombiedog",
+  "pose": "idle_s_00",
+  "w": 49,
+  "zoom": 2.0
+ },
+ "crow_dive_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "dive",
+  "ax": 19,
+  "ay": 73,
+  "dir": "e",
+  "files": {
+   "id": "crow_dive_e_00_id.png",
+   "img": "crow_dive_e_00.png",
+   "sh": "crow_dive_e_00_sh.png",
+   "z": "crow_dive_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 3,
+  "h": 81,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "crow_dive_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "dive",
+  "ax": 18,
+  "ay": 56,
+  "dir": "e",
+  "files": {
+   "id": "crow_dive_e_01_id.png",
+   "img": "crow_dive_e_01.png",
+   "sh": "crow_dive_e_01_sh.png",
+   "z": "crow_dive_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 3,
+  "h": 62,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 68
+ },
+ "crow_dive_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "dive",
+  "ax": 21,
+  "ay": 42,
+  "dir": "e",
+  "files": {
+   "id": "crow_dive_e_02_id.png",
+   "img": "crow_dive_e_02.png",
+   "sh": "crow_dive_e_02_sh.png",
+   "z": "crow_dive_e_02_z.png"
+  },
+  "frame": 2,
+  "frames": 3,
+  "h": 54,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 60
+ },
+ "crow_dive_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "dive",
+  "ax": 22,
+  "ay": 65,
+  "dir": "n",
+  "files": {
+   "id": "crow_dive_n_00_id.png",
+   "img": "crow_dive_n_00.png",
+   "sh": "crow_dive_n_00_sh.png",
+   "z": "crow_dive_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 3,
+  "h": 72,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 98
+ },
+ "crow_dive_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "dive",
+  "ax": 17,
+  "ay": 48,
+  "dir": "n",
+  "files": {
+   "id": "crow_dive_n_01_id.png",
+   "img": "crow_dive_n_01.png",
+   "sh": "crow_dive_n_01_sh.png",
+   "z": "crow_dive_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 3,
+  "h": 56,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 74
+ },
+ "crow_dive_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "dive",
+  "ax": 19,
+  "ay": 37,
+  "dir": "n",
+  "files": {
+   "id": "crow_dive_n_02_id.png",
+   "img": "crow_dive_n_02.png",
+   "sh": "crow_dive_n_02_sh.png",
+   "z": "crow_dive_n_02_z.png"
+  },
+  "frame": 2,
+  "frames": 3,
+  "h": 50,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 67
+ },
+ "crow_dive_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "dive",
+  "ax": 22,
+  "ay": 65,
+  "dir": "s",
+  "files": {
+   "id": "crow_dive_s_00_id.png",
+   "img": "crow_dive_s_00.png",
+   "sh": "crow_dive_s_00_sh.png",
+   "z": "crow_dive_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 3,
+  "h": 73,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 99
+ },
+ "crow_dive_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "dive",
+  "ax": 15,
+  "ay": 51,
+  "dir": "s",
+  "files": {
+   "id": "crow_dive_s_01_id.png",
+   "img": "crow_dive_s_01.png",
+   "sh": "crow_dive_s_01_sh.png",
+   "z": "crow_dive_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 3,
+  "h": 61,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 74
+ },
+ "crow_dive_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "dive",
+  "ax": 21,
+  "ay": 32,
+  "dir": "s",
+  "files": {
+   "id": "crow_dive_s_02_id.png",
+   "img": "crow_dive_s_02.png",
+   "sh": "crow_dive_s_02_sh.png",
+   "z": "crow_dive_s_02_z.png"
+  },
+  "frame": 2,
+  "frames": 3,
+  "h": 43,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 66
+ },
+ "crow_dive_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "dive",
+  "ax": 19,
+  "ay": 72,
+  "dir": "w",
+  "files": {
+   "id": "crow_dive_w_00_id.png",
+   "img": "crow_dive_w_00.png",
+   "sh": "crow_dive_w_00_sh.png",
+   "z": "crow_dive_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 3,
+  "h": 81,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 87
+ },
+ "crow_dive_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "dive",
+  "ax": 19,
+  "ay": 55,
+  "dir": "w",
+  "files": {
+   "id": "crow_dive_w_01_id.png",
+   "img": "crow_dive_w_01.png",
+   "sh": "crow_dive_w_01_sh.png",
+   "z": "crow_dive_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 3,
+  "h": 62,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 72
+ },
+ "crow_dive_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "dive",
+  "ax": 18,
+  "ay": 43,
+  "dir": "w",
+  "files": {
+   "id": "crow_dive_w_02_id.png",
+   "img": "crow_dive_w_02.png",
+   "sh": "crow_dive_w_02_sh.png",
+   "z": "crow_dive_w_02_z.png"
+  },
+  "frame": 2,
+  "frames": 3,
+  "h": 53,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 52
+ },
+ "crow_fly_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 21,
+  "ay": 71,
+  "dir": "e",
+  "files": {
+   "id": "crow_fly_e_00_id.png",
+   "img": "crow_fly_e_00.png",
+   "sh": "crow_fly_e_00_sh.png",
+   "z": "crow_fly_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 83,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 87
+ },
+ "crow_fly_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 21,
+  "ay": 71,
+  "dir": "e",
+  "files": {
+   "id": "crow_fly_e_01_id.png",
+   "img": "crow_fly_e_01.png",
+   "sh": "crow_fly_e_01_sh.png",
+   "z": "crow_fly_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 80,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "crow_fly_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 21,
+  "ay": 68,
+  "dir": "e",
+  "files": {
+   "id": "crow_fly_e_02_id.png",
+   "img": "crow_fly_e_02.png",
+   "sh": "crow_fly_e_02_sh.png",
+   "z": "crow_fly_e_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 81,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 87
+ },
+ "crow_fly_e_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 21,
+  "ay": 62,
+  "dir": "e",
+  "files": {
+   "id": "crow_fly_e_03_id.png",
+   "img": "crow_fly_e_03.png",
+   "sh": "crow_fly_e_03_sh.png",
+   "z": "crow_fly_e_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 73,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 88
+ },
+ "crow_fly_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 25,
+  "ay": 66,
+  "dir": "n",
+  "files": {
+   "id": "crow_fly_n_00_id.png",
+   "img": "crow_fly_n_00.png",
+   "sh": "crow_fly_n_00_sh.png",
+   "z": "crow_fly_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 75,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 103
+ },
+ "crow_fly_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 19,
+  "ay": 68,
+  "dir": "n",
+  "files": {
+   "id": "crow_fly_n_01_id.png",
+   "img": "crow_fly_n_01.png",
+   "sh": "crow_fly_n_01_sh.png",
+   "z": "crow_fly_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 77,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 97
+ },
+ "crow_fly_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 28,
+  "ay": 66,
+  "dir": "n",
+  "files": {
+   "id": "crow_fly_n_02_id.png",
+   "img": "crow_fly_n_02.png",
+   "sh": "crow_fly_n_02_sh.png",
+   "z": "crow_fly_n_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 75,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 101
+ },
+ "crow_fly_n_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 26,
+  "ay": 67,
+  "dir": "n",
+  "files": {
+   "id": "crow_fly_n_03_id.png",
+   "img": "crow_fly_n_03.png",
+   "sh": "crow_fly_n_03_sh.png",
+   "z": "crow_fly_n_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 76,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 89
+ },
+ "crow_fly_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 27,
+  "ay": 60,
+  "dir": "s",
+  "files": {
+   "id": "crow_fly_s_00_id.png",
+   "img": "crow_fly_s_00.png",
+   "sh": "crow_fly_s_00_sh.png",
+   "z": "crow_fly_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 68,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 103
+ },
+ "crow_fly_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 23,
+  "ay": 61,
+  "dir": "s",
+  "files": {
+   "id": "crow_fly_s_01_id.png",
+   "img": "crow_fly_s_01.png",
+   "sh": "crow_fly_s_01_sh.png",
+   "z": "crow_fly_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 69,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 97
+ },
+ "crow_fly_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 27,
+  "ay": 60,
+  "dir": "s",
+  "files": {
+   "id": "crow_fly_s_02_id.png",
+   "img": "crow_fly_s_02.png",
+   "sh": "crow_fly_s_02_sh.png",
+   "z": "crow_fly_s_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 68,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 100
+ },
+ "crow_fly_s_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 22,
+  "ay": 61,
+  "dir": "s",
+  "files": {
+   "id": "crow_fly_s_03_id.png",
+   "img": "crow_fly_s_03.png",
+   "sh": "crow_fly_s_03_sh.png",
+   "z": "crow_fly_s_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 69,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 88
+ },
+ "crow_fly_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 19,
+  "ay": 72,
+  "dir": "w",
+  "files": {
+   "id": "crow_fly_w_00_id.png",
+   "img": "crow_fly_w_00.png",
+   "sh": "crow_fly_w_00_sh.png",
+   "z": "crow_fly_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 83,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 83
+ },
+ "crow_fly_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 19,
+  "ay": 74,
+  "dir": "w",
+  "files": {
+   "id": "crow_fly_w_01_id.png",
+   "img": "crow_fly_w_01.png",
+   "sh": "crow_fly_w_01_sh.png",
+   "z": "crow_fly_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 80,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "crow_fly_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 19,
+  "ay": 67,
+  "dir": "w",
+  "files": {
+   "id": "crow_fly_w_02_id.png",
+   "img": "crow_fly_w_02.png",
+   "sh": "crow_fly_w_02_sh.png",
+   "z": "crow_fly_w_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 81,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 83
+ },
+ "crow_fly_w_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "fly",
+  "ax": 19,
+  "ay": 64,
+  "dir": "w",
+  "files": {
+   "id": "crow_fly_w_03_id.png",
+   "img": "crow_fly_w_03.png",
+   "sh": "crow_fly_w_03_sh.png",
+   "z": "crow_fly_w_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 77,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 60,
+  "shadow_z": 0.0,
+  "w": 84
+ },
+ "crow_perch_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "perch",
+  "ax": 20,
+  "ay": 26,
+  "dir": "e",
+  "files": {
+   "id": "crow_perch_e_00_id.png",
+   "img": "crow_perch_e_00.png",
+   "sh": "crow_perch_e_00_sh.png",
+   "z": "crow_perch_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 33,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 300,
+  "shadow_z": 0.0,
+  "w": 51
+ },
+ "crow_perch_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "perch",
+  "ax": 19,
+  "ay": 25,
+  "dir": "e",
+  "files": {
+   "id": "crow_perch_e_01_id.png",
+   "img": "crow_perch_e_01.png",
+   "sh": "crow_perch_e_01_sh.png",
+   "z": "crow_perch_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 32,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 300,
+  "shadow_z": 0.0,
+  "w": 49
+ },
+ "crow_perch_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "perch",
+  "ax": 13,
+  "ay": 28,
+  "dir": "n",
+  "files": {
+   "id": "crow_perch_n_00_id.png",
+   "img": "crow_perch_n_00.png",
+   "sh": "crow_perch_n_00_sh.png",
+   "z": "crow_perch_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 42,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 300,
+  "shadow_z": 0.0,
+  "w": 41
+ },
+ "crow_perch_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "perch",
+  "ax": 13,
+  "ay": 29,
+  "dir": "n",
+  "files": {
+   "id": "crow_perch_n_01_id.png",
+   "img": "crow_perch_n_01.png",
+   "sh": "crow_perch_n_01_sh.png",
+   "z": "crow_perch_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 43,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 300,
+  "shadow_z": 0.0,
+  "w": 40
+ },
+ "crow_perch_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "perch",
+  "ax": 15,
+  "ay": 23,
+  "dir": "s",
+  "files": {
+   "id": "crow_perch_s_00_id.png",
+   "img": "crow_perch_s_00.png",
+   "sh": "crow_perch_s_00_sh.png",
+   "z": "crow_perch_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 31,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 300,
+  "shadow_z": 0.0,
+  "w": 42
+ },
+ "crow_perch_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "perch",
+  "ax": 10,
+  "ay": 24,
+  "dir": "s",
+  "files": {
+   "id": "crow_perch_s_01_id.png",
+   "img": "crow_perch_s_01.png",
+   "sh": "crow_perch_s_01_sh.png",
+   "z": "crow_perch_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 36,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 300,
+  "shadow_z": 0.0,
+  "w": 35
+ },
+ "crow_perch_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "perch",
+  "ax": 17,
+  "ay": 27,
+  "dir": "w",
+  "files": {
+   "id": "crow_perch_w_00_id.png",
+   "img": "crow_perch_w_00.png",
+   "sh": "crow_perch_w_00_sh.png",
+   "z": "crow_perch_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 36,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 300,
+  "shadow_z": 0.0,
+  "w": 41
+ },
+ "crow_perch_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "perch",
+  "ax": 18,
+  "ay": 27,
+  "dir": "w",
+  "files": {
+   "id": "crow_perch_w_01_id.png",
+   "img": "crow_perch_w_01.png",
+   "sh": "crow_perch_w_01_sh.png",
+   "z": "crow_perch_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 36,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "crow",
+  "ms": 300,
+  "shadow_z": 0.0,
+  "w": 42
+ },
+ "mummy_idle_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 19,
+  "ay": 57,
+  "dir": "e",
+  "files": {
+   "id": "mummy_idle_e_00_id.png",
+   "img": "mummy_idle_e_00.png",
+   "sh": "mummy_idle_e_00_sh.png",
+   "z": "mummy_idle_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 73,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 77
+ },
+ "mummy_idle_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 19,
+  "ay": 57,
+  "dir": "e",
+  "files": {
+   "id": "mummy_idle_e_01_id.png",
+   "img": "mummy_idle_e_01.png",
+   "sh": "mummy_idle_e_01_sh.png",
+   "z": "mummy_idle_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 73,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 77
+ },
+ "mummy_idle_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 32,
+  "ay": 56,
+  "dir": "n",
+  "files": {
+   "id": "mummy_idle_n_00_id.png",
+   "img": "mummy_idle_n_00.png",
+   "sh": "mummy_idle_n_00_sh.png",
+   "z": "mummy_idle_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 69,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 91
+ },
+ "mummy_idle_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 32,
+  "ay": 56,
+  "dir": "n",
+  "files": {
+   "id": "mummy_idle_n_01_id.png",
+   "img": "mummy_idle_n_01.png",
+   "sh": "mummy_idle_n_01_sh.png",
+   "z": "mummy_idle_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 69,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 91
+ },
+ "mummy_idle_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 26,
+  "ay": 56,
+  "dir": "s",
+  "files": {
+   "id": "mummy_idle_s_00_id.png",
+   "img": "mummy_idle_s_00.png",
+   "sh": "mummy_idle_s_00_sh.png",
+   "z": "mummy_idle_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 72,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "mummy_idle_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 26,
+  "ay": 56,
+  "dir": "s",
+  "files": {
+   "id": "mummy_idle_s_01_id.png",
+   "img": "mummy_idle_s_01.png",
+   "sh": "mummy_idle_s_01_sh.png",
+   "z": "mummy_idle_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 72,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "mummy_idle_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 27,
+  "ay": 57,
+  "dir": "w",
+  "files": {
+   "id": "mummy_idle_w_00_id.png",
+   "img": "mummy_idle_w_00.png",
+   "sh": "mummy_idle_w_00_sh.png",
+   "z": "mummy_idle_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 80,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 85
+ },
+ "mummy_idle_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 27,
+  "ay": 57,
+  "dir": "w",
+  "files": {
+   "id": "mummy_idle_w_01_id.png",
+   "img": "mummy_idle_w_01.png",
+   "sh": "mummy_idle_w_01_sh.png",
+   "z": "mummy_idle_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 80,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 85
+ },
+ "mummy_push_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 17,
+  "ay": 54,
+  "dir": "e",
+  "files": {
+   "id": "mummy_push_e_00_id.png",
+   "img": "mummy_push_e_00.png",
+   "sh": "mummy_push_e_00_sh.png",
+   "z": "mummy_push_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 70,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "mummy_push_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 17,
+  "ay": 54,
+  "dir": "e",
+  "files": {
+   "id": "mummy_push_e_01_id.png",
+   "img": "mummy_push_e_01.png",
+   "sh": "mummy_push_e_01_sh.png",
+   "z": "mummy_push_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 70,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 83
+ },
+ "mummy_push_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 17,
+  "ay": 54,
+  "dir": "e",
+  "files": {
+   "id": "mummy_push_e_02_id.png",
+   "img": "mummy_push_e_02.png",
+   "sh": "mummy_push_e_02_sh.png",
+   "z": "mummy_push_e_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 70,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "mummy_push_e_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 17,
+  "ay": 53,
+  "dir": "e",
+  "files": {
+   "id": "mummy_push_e_03_id.png",
+   "img": "mummy_push_e_03.png",
+   "sh": "mummy_push_e_03_sh.png",
+   "z": "mummy_push_e_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 69,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "mummy_push_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 32,
+  "ay": 60,
+  "dir": "n",
+  "files": {
+   "id": "mummy_push_n_00_id.png",
+   "img": "mummy_push_n_00.png",
+   "sh": "mummy_push_n_00_sh.png",
+   "z": "mummy_push_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 73,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 91
+ },
+ "mummy_push_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 32,
+  "ay": 61,
+  "dir": "n",
+  "files": {
+   "id": "mummy_push_n_01_id.png",
+   "img": "mummy_push_n_01.png",
+   "sh": "mummy_push_n_01_sh.png",
+   "z": "mummy_push_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 74,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 91
+ },
+ "mummy_push_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 32,
+  "ay": 60,
+  "dir": "n",
+  "files": {
+   "id": "mummy_push_n_02_id.png",
+   "img": "mummy_push_n_02.png",
+   "sh": "mummy_push_n_02_sh.png",
+   "z": "mummy_push_n_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 73,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 91
+ },
+ "mummy_push_n_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 32,
+  "ay": 60,
+  "dir": "n",
+  "files": {
+   "id": "mummy_push_n_03_id.png",
+   "img": "mummy_push_n_03.png",
+   "sh": "mummy_push_n_03_sh.png",
+   "z": "mummy_push_n_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 73,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 91
+ },
+ "mummy_push_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 27,
+  "ay": 48,
+  "dir": "s",
+  "files": {
+   "id": "mummy_push_s_00_id.png",
+   "img": "mummy_push_s_00.png",
+   "sh": "mummy_push_s_00_sh.png",
+   "z": "mummy_push_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 66,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 87
+ },
+ "mummy_push_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 26,
+  "ay": 46,
+  "dir": "s",
+  "files": {
+   "id": "mummy_push_s_01_id.png",
+   "img": "mummy_push_s_01.png",
+   "sh": "mummy_push_s_01_sh.png",
+   "z": "mummy_push_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 63,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "mummy_push_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 27,
+  "ay": 48,
+  "dir": "s",
+  "files": {
+   "id": "mummy_push_s_02_id.png",
+   "img": "mummy_push_s_02.png",
+   "sh": "mummy_push_s_02_sh.png",
+   "z": "mummy_push_s_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 66,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 87
+ },
+ "mummy_push_s_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 27,
+  "ay": 49,
+  "dir": "s",
+  "files": {
+   "id": "mummy_push_s_03_id.png",
+   "img": "mummy_push_s_03.png",
+   "sh": "mummy_push_s_03_sh.png",
+   "z": "mummy_push_s_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 67,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 87
+ },
+ "mummy_push_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 29,
+  "ay": 56,
+  "dir": "w",
+  "files": {
+   "id": "mummy_push_w_00_id.png",
+   "img": "mummy_push_w_00.png",
+   "sh": "mummy_push_w_00_sh.png",
+   "z": "mummy_push_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 79,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 76
+ },
+ "mummy_push_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 29,
+  "ay": 56,
+  "dir": "w",
+  "files": {
+   "id": "mummy_push_w_01_id.png",
+   "img": "mummy_push_w_01.png",
+   "sh": "mummy_push_w_01_sh.png",
+   "z": "mummy_push_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 79,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 74
+ },
+ "mummy_push_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 29,
+  "ay": 56,
+  "dir": "w",
+  "files": {
+   "id": "mummy_push_w_02_id.png",
+   "img": "mummy_push_w_02.png",
+   "sh": "mummy_push_w_02_sh.png",
+   "z": "mummy_push_w_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 79,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 76
+ },
+ "mummy_push_w_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "push",
+  "ax": 29,
+  "ay": 56,
+  "dir": "w",
+  "files": {
+   "id": "mummy_push_w_03_id.png",
+   "img": "mummy_push_w_03.png",
+   "sh": "mummy_push_w_03_sh.png",
+   "z": "mummy_push_w_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 79,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 77
+ },
+ "mummy_walk_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 17,
+  "ay": 57,
+  "dir": "e",
+  "files": {
+   "id": "mummy_walk_e_00_id.png",
+   "img": "mummy_walk_e_00.png",
+   "sh": "mummy_walk_e_00_sh.png",
+   "z": "mummy_walk_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 73,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 76
+ },
+ "mummy_walk_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 19,
+  "ay": 58,
+  "dir": "e",
+  "files": {
+   "id": "mummy_walk_e_01_id.png",
+   "img": "mummy_walk_e_01.png",
+   "sh": "mummy_walk_e_01_sh.png",
+   "z": "mummy_walk_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 73,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "mummy_walk_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 19,
+  "ay": 58,
+  "dir": "e",
+  "files": {
+   "id": "mummy_walk_e_02_id.png",
+   "img": "mummy_walk_e_02.png",
+   "sh": "mummy_walk_e_02_sh.png",
+   "z": "mummy_walk_e_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 73,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "mummy_walk_e_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 17,
+  "ay": 57,
+  "dir": "e",
+  "files": {
+   "id": "mummy_walk_e_03_id.png",
+   "img": "mummy_walk_e_03.png",
+   "sh": "mummy_walk_e_03_sh.png",
+   "z": "mummy_walk_e_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 73,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 76
+ },
+ "mummy_walk_e_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 19,
+  "ay": 57,
+  "dir": "e",
+  "files": {
+   "id": "mummy_walk_e_04_id.png",
+   "img": "mummy_walk_e_04.png",
+   "sh": "mummy_walk_e_04_sh.png",
+   "z": "mummy_walk_e_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 74,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 77
+ },
+ "mummy_walk_e_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 19,
+  "ay": 57,
+  "dir": "e",
+  "files": {
+   "id": "mummy_walk_e_05_id.png",
+   "img": "mummy_walk_e_05.png",
+   "sh": "mummy_walk_e_05_sh.png",
+   "z": "mummy_walk_e_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 74,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 77
+ },
+ "mummy_walk_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 32,
+  "ay": 56,
+  "dir": "n",
+  "files": {
+   "id": "mummy_walk_n_00_id.png",
+   "img": "mummy_walk_n_00.png",
+   "sh": "mummy_walk_n_00_sh.png",
+   "z": "mummy_walk_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 69,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 91
+ },
+ "mummy_walk_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 35,
+  "ay": 57,
+  "dir": "n",
+  "files": {
+   "id": "mummy_walk_n_01_id.png",
+   "img": "mummy_walk_n_01.png",
+   "sh": "mummy_walk_n_01_sh.png",
+   "z": "mummy_walk_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 71,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "mummy_walk_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 35,
+  "ay": 57,
+  "dir": "n",
+  "files": {
+   "id": "mummy_walk_n_02_id.png",
+   "img": "mummy_walk_n_02.png",
+   "sh": "mummy_walk_n_02_sh.png",
+   "z": "mummy_walk_n_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 71,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "mummy_walk_n_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 32,
+  "ay": 56,
+  "dir": "n",
+  "files": {
+   "id": "mummy_walk_n_03_id.png",
+   "img": "mummy_walk_n_03.png",
+   "sh": "mummy_walk_n_03_sh.png",
+   "z": "mummy_walk_n_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 69,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 91
+ },
+ "mummy_walk_n_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 34,
+  "ay": 55,
+  "dir": "n",
+  "files": {
+   "id": "mummy_walk_n_04_id.png",
+   "img": "mummy_walk_n_04.png",
+   "sh": "mummy_walk_n_04_sh.png",
+   "z": "mummy_walk_n_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 67,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 97
+ },
+ "mummy_walk_n_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 34,
+  "ay": 55,
+  "dir": "n",
+  "files": {
+   "id": "mummy_walk_n_05_id.png",
+   "img": "mummy_walk_n_05.png",
+   "sh": "mummy_walk_n_05_sh.png",
+   "z": "mummy_walk_n_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 67,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 97
+ },
+ "mummy_walk_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 26,
+  "ay": 55,
+  "dir": "s",
+  "files": {
+   "id": "mummy_walk_s_00_id.png",
+   "img": "mummy_walk_s_00.png",
+   "sh": "mummy_walk_s_00_sh.png",
+   "z": "mummy_walk_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 72,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "mummy_walk_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 24,
+  "ay": 54,
+  "dir": "s",
+  "files": {
+   "id": "mummy_walk_s_01_id.png",
+   "img": "mummy_walk_s_01.png",
+   "sh": "mummy_walk_s_01_sh.png",
+   "z": "mummy_walk_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 71,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 89
+ },
+ "mummy_walk_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 24,
+  "ay": 54,
+  "dir": "s",
+  "files": {
+   "id": "mummy_walk_s_02_id.png",
+   "img": "mummy_walk_s_02.png",
+   "sh": "mummy_walk_s_02_sh.png",
+   "z": "mummy_walk_s_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 71,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 89
+ },
+ "mummy_walk_s_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 26,
+  "ay": 55,
+  "dir": "s",
+  "files": {
+   "id": "mummy_walk_s_03_id.png",
+   "img": "mummy_walk_s_03.png",
+   "sh": "mummy_walk_s_03_sh.png",
+   "z": "mummy_walk_s_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 72,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "mummy_walk_s_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 28,
+  "ay": 56,
+  "dir": "s",
+  "files": {
+   "id": "mummy_walk_s_04_id.png",
+   "img": "mummy_walk_s_04.png",
+   "sh": "mummy_walk_s_04_sh.png",
+   "z": "mummy_walk_s_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 72,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 91
+ },
+ "mummy_walk_s_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 27,
+  "ay": 56,
+  "dir": "s",
+  "files": {
+   "id": "mummy_walk_s_05_id.png",
+   "img": "mummy_walk_s_05.png",
+   "sh": "mummy_walk_s_05_sh.png",
+   "z": "mummy_walk_s_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 72,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "mummy_walk_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 27,
+  "ay": 56,
+  "dir": "w",
+  "files": {
+   "id": "mummy_walk_w_00_id.png",
+   "img": "mummy_walk_w_00.png",
+   "sh": "mummy_walk_w_00_sh.png",
+   "z": "mummy_walk_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 79,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 84
+ },
+ "mummy_walk_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 27,
+  "ay": 54,
+  "dir": "w",
+  "files": {
+   "id": "mummy_walk_w_01_id.png",
+   "img": "mummy_walk_w_01.png",
+   "sh": "mummy_walk_w_01_sh.png",
+   "z": "mummy_walk_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 77,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "mummy_walk_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 27,
+  "ay": 54,
+  "dir": "w",
+  "files": {
+   "id": "mummy_walk_w_02_id.png",
+   "img": "mummy_walk_w_02.png",
+   "sh": "mummy_walk_w_02_sh.png",
+   "z": "mummy_walk_w_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 77,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "mummy_walk_w_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 27,
+  "ay": 56,
+  "dir": "w",
+  "files": {
+   "id": "mummy_walk_w_03_id.png",
+   "img": "mummy_walk_w_03.png",
+   "sh": "mummy_walk_w_03_sh.png",
+   "z": "mummy_walk_w_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 79,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 84
+ },
+ "mummy_walk_w_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 27,
+  "ay": 59,
+  "dir": "w",
+  "files": {
+   "id": "mummy_walk_w_04_id.png",
+   "img": "mummy_walk_w_04.png",
+   "sh": "mummy_walk_w_04_sh.png",
+   "z": "mummy_walk_w_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 83,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 85
+ },
+ "mummy_walk_w_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 27,
+  "ay": 59,
+  "dir": "w",
+  "files": {
+   "id": "mummy_walk_w_05_id.png",
+   "img": "mummy_walk_w_05.png",
+   "sh": "mummy_walk_w_05_sh.png",
+   "z": "mummy_walk_w_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 83,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "mummy",
+  "ms": 110,
+  "shadow_z": 0.0,
+  "w": 85
+ },
+ "scarab_crawl_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 16,
+  "ay": 16,
+  "dir": "e",
+  "files": {
+   "id": "scarab_crawl_e_00_id.png",
+   "img": "scarab_crawl_e_00.png",
+   "sh": "scarab_crawl_e_00_sh.png",
+   "z": "scarab_crawl_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 29,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 44
+ },
+ "scarab_crawl_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 16,
+  "ay": 15,
+  "dir": "e",
+  "files": {
+   "id": "scarab_crawl_e_01_id.png",
+   "img": "scarab_crawl_e_01.png",
+   "sh": "scarab_crawl_e_01_sh.png",
+   "z": "scarab_crawl_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 29,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 43
+ },
+ "scarab_crawl_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 17,
+  "ay": 15,
+  "dir": "e",
+  "files": {
+   "id": "scarab_crawl_e_02_id.png",
+   "img": "scarab_crawl_e_02.png",
+   "sh": "scarab_crawl_e_02_sh.png",
+   "z": "scarab_crawl_e_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 29,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 45
+ },
+ "scarab_crawl_e_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 16,
+  "ay": 15,
+  "dir": "e",
+  "files": {
+   "id": "scarab_crawl_e_03_id.png",
+   "img": "scarab_crawl_e_03.png",
+   "sh": "scarab_crawl_e_03_sh.png",
+   "z": "scarab_crawl_e_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 29,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 43
+ },
+ "scarab_crawl_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 18,
+  "ay": 23,
+  "dir": "n",
+  "files": {
+   "id": "scarab_crawl_n_00_id.png",
+   "img": "scarab_crawl_n_00.png",
+   "sh": "scarab_crawl_n_00_sh.png",
+   "z": "scarab_crawl_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 34,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 38
+ },
+ "scarab_crawl_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 17,
+  "ay": 22,
+  "dir": "n",
+  "files": {
+   "id": "scarab_crawl_n_01_id.png",
+   "img": "scarab_crawl_n_01.png",
+   "sh": "scarab_crawl_n_01_sh.png",
+   "z": "scarab_crawl_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 34,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 37
+ },
+ "scarab_crawl_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 15,
+  "ay": 23,
+  "dir": "n",
+  "files": {
+   "id": "scarab_crawl_n_02_id.png",
+   "img": "scarab_crawl_n_02.png",
+   "sh": "scarab_crawl_n_02_sh.png",
+   "z": "scarab_crawl_n_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 36,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 35
+ },
+ "scarab_crawl_n_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 17,
+  "ay": 22,
+  "dir": "n",
+  "files": {
+   "id": "scarab_crawl_n_03_id.png",
+   "img": "scarab_crawl_n_03.png",
+   "sh": "scarab_crawl_n_03_sh.png",
+   "z": "scarab_crawl_n_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 34,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 37
+ },
+ "scarab_crawl_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 17,
+  "ay": 17,
+  "dir": "s",
+  "files": {
+   "id": "scarab_crawl_s_00_id.png",
+   "img": "scarab_crawl_s_00.png",
+   "sh": "scarab_crawl_s_00_sh.png",
+   "z": "scarab_crawl_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 32,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 36
+ },
+ "scarab_crawl_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 19,
+  "ay": 17,
+  "dir": "s",
+  "files": {
+   "id": "scarab_crawl_s_01_id.png",
+   "img": "scarab_crawl_s_01.png",
+   "sh": "scarab_crawl_s_01_sh.png",
+   "z": "scarab_crawl_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 32,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 37
+ },
+ "scarab_crawl_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 19,
+  "ay": 17,
+  "dir": "s",
+  "files": {
+   "id": "scarab_crawl_s_02_id.png",
+   "img": "scarab_crawl_s_02.png",
+   "sh": "scarab_crawl_s_02_sh.png",
+   "z": "scarab_crawl_s_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 32,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 37
+ },
+ "scarab_crawl_s_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 18,
+  "ay": 17,
+  "dir": "s",
+  "files": {
+   "id": "scarab_crawl_s_03_id.png",
+   "img": "scarab_crawl_s_03.png",
+   "sh": "scarab_crawl_s_03_sh.png",
+   "z": "scarab_crawl_s_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 32,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 37
+ },
+ "scarab_crawl_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 21,
+  "ay": 17,
+  "dir": "w",
+  "files": {
+   "id": "scarab_crawl_w_00_id.png",
+   "img": "scarab_crawl_w_00.png",
+   "sh": "scarab_crawl_w_00_sh.png",
+   "z": "scarab_crawl_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 30,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 41
+ },
+ "scarab_crawl_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 21,
+  "ay": 16,
+  "dir": "w",
+  "files": {
+   "id": "scarab_crawl_w_01_id.png",
+   "img": "scarab_crawl_w_01.png",
+   "sh": "scarab_crawl_w_01_sh.png",
+   "z": "scarab_crawl_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 29,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 41
+ },
+ "scarab_crawl_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 21,
+  "ay": 17,
+  "dir": "w",
+  "files": {
+   "id": "scarab_crawl_w_02_id.png",
+   "img": "scarab_crawl_w_02.png",
+   "sh": "scarab_crawl_w_02_sh.png",
+   "z": "scarab_crawl_w_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 29,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 41
+ },
+ "scarab_crawl_w_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "crawl",
+  "ax": 21,
+  "ay": 16,
+  "dir": "w",
+  "files": {
+   "id": "scarab_crawl_w_03_id.png",
+   "img": "scarab_crawl_w_03.png",
+   "sh": "scarab_crawl_w_03_sh.png",
+   "z": "scarab_crawl_w_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 29,
+  "height_m": 0.4,
+  "ids": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "kind": "char",
+  "monster": "scarab",
+  "ms": 40,
+  "shadow_z": 0.0,
+  "w": 41
+ },
+ "vampire_glide_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 32,
+  "ay": 68,
+  "dir": "e",
+  "files": {
+   "id": "vampire_glide_e_00_id.png",
+   "img": "vampire_glide_e_00.png",
+   "sh": "vampire_glide_e_00_sh.png",
+   "z": "vampire_glide_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 84,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 100
+ },
+ "vampire_glide_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 30,
+  "ay": 69,
+  "dir": "e",
+  "files": {
+   "id": "vampire_glide_e_01_id.png",
+   "img": "vampire_glide_e_01.png",
+   "sh": "vampire_glide_e_01_sh.png",
+   "z": "vampire_glide_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 83,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 98
+ },
+ "vampire_glide_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 27,
+  "ay": 69,
+  "dir": "e",
+  "files": {
+   "id": "vampire_glide_e_02_id.png",
+   "img": "vampire_glide_e_02.png",
+   "sh": "vampire_glide_e_02_sh.png",
+   "z": "vampire_glide_e_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 83,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 95
+ },
+ "vampire_glide_e_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 26,
+  "ay": 68,
+  "dir": "e",
+  "files": {
+   "id": "vampire_glide_e_03_id.png",
+   "img": "vampire_glide_e_03.png",
+   "sh": "vampire_glide_e_03_sh.png",
+   "z": "vampire_glide_e_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 83,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 94
+ },
+ "vampire_glide_e_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 28,
+  "ay": 67,
+  "dir": "e",
+  "files": {
+   "id": "vampire_glide_e_04_id.png",
+   "img": "vampire_glide_e_04.png",
+   "sh": "vampire_glide_e_04_sh.png",
+   "z": "vampire_glide_e_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 84,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 96
+ },
+ "vampire_glide_e_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 31,
+  "ay": 67,
+  "dir": "e",
+  "files": {
+   "id": "vampire_glide_e_05_id.png",
+   "img": "vampire_glide_e_05.png",
+   "sh": "vampire_glide_e_05_sh.png",
+   "z": "vampire_glide_e_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 84,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 99
+ },
+ "vampire_glide_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 29,
+  "ay": 65,
+  "dir": "n",
+  "files": {
+   "id": "vampire_glide_n_00_id.png",
+   "img": "vampire_glide_n_00.png",
+   "sh": "vampire_glide_n_00_sh.png",
+   "z": "vampire_glide_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 86,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 101
+ },
+ "vampire_glide_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 30,
+  "ay": 66,
+  "dir": "n",
+  "files": {
+   "id": "vampire_glide_n_01_id.png",
+   "img": "vampire_glide_n_01.png",
+   "sh": "vampire_glide_n_01_sh.png",
+   "z": "vampire_glide_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 86,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 103
+ },
+ "vampire_glide_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 29,
+  "ay": 66,
+  "dir": "n",
+  "files": {
+   "id": "vampire_glide_n_02_id.png",
+   "img": "vampire_glide_n_02.png",
+   "sh": "vampire_glide_n_02_sh.png",
+   "z": "vampire_glide_n_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 84,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 102
+ },
+ "vampire_glide_n_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 27,
+  "ay": 65,
+  "dir": "n",
+  "files": {
+   "id": "vampire_glide_n_03_id.png",
+   "img": "vampire_glide_n_03.png",
+   "sh": "vampire_glide_n_03_sh.png",
+   "z": "vampire_glide_n_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 82,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 99
+ },
+ "vampire_glide_n_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 26,
+  "ay": 65,
+  "dir": "n",
+  "files": {
+   "id": "vampire_glide_n_04_id.png",
+   "img": "vampire_glide_n_04.png",
+   "sh": "vampire_glide_n_04_sh.png",
+   "z": "vampire_glide_n_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 84,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 98
+ },
+ "vampire_glide_n_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 27,
+  "ay": 65,
+  "dir": "n",
+  "files": {
+   "id": "vampire_glide_n_05_id.png",
+   "img": "vampire_glide_n_05.png",
+   "sh": "vampire_glide_n_05_sh.png",
+   "z": "vampire_glide_n_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 85,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 99
+ },
+ "vampire_glide_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 25,
+  "ay": 61,
+  "dir": "s",
+  "files": {
+   "id": "vampire_glide_s_00_id.png",
+   "img": "vampire_glide_s_00.png",
+   "sh": "vampire_glide_s_00_sh.png",
+   "z": "vampire_glide_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 71,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 98
+ },
+ "vampire_glide_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 25,
+  "ay": 63,
+  "dir": "s",
+  "files": {
+   "id": "vampire_glide_s_01_id.png",
+   "img": "vampire_glide_s_01.png",
+   "sh": "vampire_glide_s_01_sh.png",
+   "z": "vampire_glide_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 73,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 99
+ },
+ "vampire_glide_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 25,
+  "ay": 63,
+  "dir": "s",
+  "files": {
+   "id": "vampire_glide_s_02_id.png",
+   "img": "vampire_glide_s_02.png",
+   "sh": "vampire_glide_s_02_sh.png",
+   "z": "vampire_glide_s_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 74,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 99
+ },
+ "vampire_glide_s_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 25,
+  "ay": 62,
+  "dir": "s",
+  "files": {
+   "id": "vampire_glide_s_03_id.png",
+   "img": "vampire_glide_s_03.png",
+   "sh": "vampire_glide_s_03_sh.png",
+   "z": "vampire_glide_s_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 73,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 98
+ },
+ "vampire_glide_s_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 25,
+  "ay": 60,
+  "dir": "s",
+  "files": {
+   "id": "vampire_glide_s_04_id.png",
+   "img": "vampire_glide_s_04.png",
+   "sh": "vampire_glide_s_04_sh.png",
+   "z": "vampire_glide_s_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 71,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 97
+ },
+ "vampire_glide_s_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 25,
+  "ay": 60,
+  "dir": "s",
+  "files": {
+   "id": "vampire_glide_s_05_id.png",
+   "img": "vampire_glide_s_05.png",
+   "sh": "vampire_glide_s_05_sh.png",
+   "z": "vampire_glide_s_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 71,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 97
+ },
+ "vampire_glide_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 20,
+  "ay": 68,
+  "dir": "w",
+  "files": {
+   "id": "vampire_glide_w_00_id.png",
+   "img": "vampire_glide_w_00.png",
+   "sh": "vampire_glide_w_00_sh.png",
+   "z": "vampire_glide_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 87,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "vampire_glide_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 20,
+  "ay": 68,
+  "dir": "w",
+  "files": {
+   "id": "vampire_glide_w_01_id.png",
+   "img": "vampire_glide_w_01.png",
+   "sh": "vampire_glide_w_01_sh.png",
+   "z": "vampire_glide_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 88,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 83
+ },
+ "vampire_glide_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 21,
+  "ay": 68,
+  "dir": "w",
+  "files": {
+   "id": "vampire_glide_w_02_id.png",
+   "img": "vampire_glide_w_02.png",
+   "sh": "vampire_glide_w_02_sh.png",
+   "z": "vampire_glide_w_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 87,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 85
+ },
+ "vampire_glide_w_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 21,
+  "ay": 68,
+  "dir": "w",
+  "files": {
+   "id": "vampire_glide_w_03_id.png",
+   "img": "vampire_glide_w_03.png",
+   "sh": "vampire_glide_w_03_sh.png",
+   "z": "vampire_glide_w_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 86,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 83
+ },
+ "vampire_glide_w_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 21,
+  "ay": 67,
+  "dir": "w",
+  "files": {
+   "id": "vampire_glide_w_04_id.png",
+   "img": "vampire_glide_w_04.png",
+   "sh": "vampire_glide_w_04_sh.png",
+   "z": "vampire_glide_w_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 84,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "vampire_glide_w_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "glide",
+  "ax": 21,
+  "ay": 67,
+  "dir": "w",
+  "files": {
+   "id": "vampire_glide_w_05_id.png",
+   "img": "vampire_glide_w_05.png",
+   "sh": "vampire_glide_w_05_sh.png",
+   "z": "vampire_glide_w_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 85,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "vampire_idle_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 24,
+  "ay": 69,
+  "dir": "e",
+  "files": {
+   "id": "vampire_idle_e_00_id.png",
+   "img": "vampire_idle_e_00.png",
+   "sh": "vampire_idle_e_00_sh.png",
+   "z": "vampire_idle_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 85,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 88
+ },
+ "vampire_idle_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 24,
+  "ay": 69,
+  "dir": "e",
+  "files": {
+   "id": "vampire_idle_e_01_id.png",
+   "img": "vampire_idle_e_01.png",
+   "sh": "vampire_idle_e_01_sh.png",
+   "z": "vampire_idle_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 85,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 88
+ },
+ "vampire_idle_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 26,
+  "ay": 62,
+  "dir": "n",
+  "files": {
+   "id": "vampire_idle_n_00_id.png",
+   "img": "vampire_idle_n_00.png",
+   "sh": "vampire_idle_n_00_sh.png",
+   "z": "vampire_idle_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 77,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 96
+ },
+ "vampire_idle_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 26,
+  "ay": 62,
+  "dir": "n",
+  "files": {
+   "id": "vampire_idle_n_01_id.png",
+   "img": "vampire_idle_n_01.png",
+   "sh": "vampire_idle_n_01_sh.png",
+   "z": "vampire_idle_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 77,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 96
+ },
+ "vampire_idle_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 24,
+  "ay": 63,
+  "dir": "s",
+  "files": {
+   "id": "vampire_idle_s_00_id.png",
+   "img": "vampire_idle_s_00.png",
+   "sh": "vampire_idle_s_00_sh.png",
+   "z": "vampire_idle_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 77,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 98
+ },
+ "vampire_idle_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 24,
+  "ay": 63,
+  "dir": "s",
+  "files": {
+   "id": "vampire_idle_s_01_id.png",
+   "img": "vampire_idle_s_01.png",
+   "sh": "vampire_idle_s_01_sh.png",
+   "z": "vampire_idle_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 77,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 98
+ },
+ "vampire_idle_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 21,
+  "ay": 66,
+  "dir": "w",
+  "files": {
+   "id": "vampire_idle_w_00_id.png",
+   "img": "vampire_idle_w_00.png",
+   "sh": "vampire_idle_w_00_sh.png",
+   "z": "vampire_idle_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 83,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "vampire_idle_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 21,
+  "ay": 66,
+  "dir": "w",
+  "files": {
+   "id": "vampire_idle_w_01_id.png",
+   "img": "vampire_idle_w_01.png",
+   "sh": "vampire_idle_w_01_sh.png",
+   "z": "vampire_idle_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 83,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "vampire_transform_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "transform",
+  "ax": 24,
+  "ay": 64,
+  "dir": "s",
+  "files": {
+   "id": "vampire_transform_s_00_id.png",
+   "img": "vampire_transform_s_00.png",
+   "sh": "vampire_transform_s_00_sh.png",
+   "z": "vampire_transform_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 5,
+  "h": 78,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 98
+ },
+ "vampire_transform_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "transform",
+  "ax": 23,
+  "ay": 62,
+  "dir": "s",
+  "files": {
+   "id": "vampire_transform_s_01_id.png",
+   "img": "vampire_transform_s_01.png",
+   "sh": "vampire_transform_s_01_sh.png",
+   "z": "vampire_transform_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 5,
+  "h": 73,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 93
+ },
+ "vampire_transform_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "transform",
+  "ax": 18,
+  "ay": 56,
+  "dir": "s",
+  "files": {
+   "id": "vampire_transform_s_02_id.png",
+   "img": "vampire_transform_s_02.png",
+   "sh": "vampire_transform_s_02_sh.png",
+   "z": "vampire_transform_s_02_z.png"
+  },
+  "frame": 2,
+  "frames": 5,
+  "h": 63,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 81
+ },
+ "vampire_transform_s_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "transform",
+  "ax": 12,
+  "ay": 47,
+  "dir": "s",
+  "files": {
+   "id": "vampire_transform_s_03_id.png",
+   "img": "vampire_transform_s_03.png",
+   "sh": "vampire_transform_s_03_sh.png",
+   "z": "vampire_transform_s_03_z.png"
+  },
+  "frame": 3,
+  "frames": 5,
+  "h": 52,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 63
+ },
+ "vampire_transform_s_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "transform",
+  "ax": 18,
+  "ay": 47,
+  "dir": "s",
+  "files": {
+   "id": "vampire_transform_s_04_id.png",
+   "img": "vampire_transform_s_04.png",
+   "sh": "vampire_transform_s_04_sh.png",
+   "z": "vampire_transform_s_04_z.png"
+  },
+  "frame": 4,
+  "frames": 5,
+  "h": 55,
+  "height_m": 1.15,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "vampire",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 68
+ },
+ "werewolf_howl_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 30,
+  "ay": 57,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_howl_e_00_id.png",
+   "img": "werewolf_howl_e_00.png",
+   "sh": "werewolf_howl_e_00_sh.png",
+   "z": "werewolf_howl_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 5,
+  "h": 77,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 111
+ },
+ "werewolf_howl_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 28,
+  "ay": 68,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_howl_e_01_id.png",
+   "img": "werewolf_howl_e_01.png",
+   "sh": "werewolf_howl_e_01_sh.png",
+   "z": "werewolf_howl_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 5,
+  "h": 87,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 93
+ },
+ "werewolf_howl_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 43,
+  "ay": 62,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_howl_e_02_id.png",
+   "img": "werewolf_howl_e_02.png",
+   "sh": "werewolf_howl_e_02_sh.png",
+   "z": "werewolf_howl_e_02_z.png"
+  },
+  "frame": 2,
+  "frames": 5,
+  "h": 76,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 93
+ },
+ "werewolf_howl_e_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 45,
+  "ay": 56,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_howl_e_03_id.png",
+   "img": "werewolf_howl_e_03.png",
+   "sh": "werewolf_howl_e_03_sh.png",
+   "z": "werewolf_howl_e_03_z.png"
+  },
+  "frame": 3,
+  "frames": 5,
+  "h": 70,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 93
+ },
+ "werewolf_howl_e_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 27,
+  "ay": 68,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_howl_e_04_id.png",
+   "img": "werewolf_howl_e_04.png",
+   "sh": "werewolf_howl_e_04_sh.png",
+   "z": "werewolf_howl_e_04_z.png"
+  },
+  "frame": 4,
+  "frames": 5,
+  "h": 86,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "werewolf_howl_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 22,
+  "ay": 75,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_howl_n_00_id.png",
+   "img": "werewolf_howl_n_00.png",
+   "sh": "werewolf_howl_n_00_sh.png",
+   "z": "werewolf_howl_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 5,
+  "h": 95,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 93
+ },
+ "werewolf_howl_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 26,
+  "ay": 61,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_howl_n_01_id.png",
+   "img": "werewolf_howl_n_01.png",
+   "sh": "werewolf_howl_n_01_sh.png",
+   "z": "werewolf_howl_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 5,
+  "h": 79,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 87
+ },
+ "werewolf_howl_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 30,
+  "ay": 50,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_howl_n_02_id.png",
+   "img": "werewolf_howl_n_02.png",
+   "sh": "werewolf_howl_n_02_sh.png",
+   "z": "werewolf_howl_n_02_z.png"
+  },
+  "frame": 2,
+  "frames": 5,
+  "h": 75,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 84
+ },
+ "werewolf_howl_n_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 29,
+  "ay": 49,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_howl_n_03_id.png",
+   "img": "werewolf_howl_n_03.png",
+   "sh": "werewolf_howl_n_03_sh.png",
+   "z": "werewolf_howl_n_03_z.png"
+  },
+  "frame": 3,
+  "frames": 5,
+  "h": 76,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 84
+ },
+ "werewolf_howl_n_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 27,
+  "ay": 60,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_howl_n_04_id.png",
+   "img": "werewolf_howl_n_04.png",
+   "sh": "werewolf_howl_n_04_sh.png",
+   "z": "werewolf_howl_n_04_z.png"
+  },
+  "frame": 4,
+  "frames": 5,
+  "h": 78,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "werewolf_howl_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 29,
+  "ay": 43,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_howl_s_00_id.png",
+   "img": "werewolf_howl_s_00.png",
+   "sh": "werewolf_howl_s_00_sh.png",
+   "z": "werewolf_howl_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 5,
+  "h": 67,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 84
+ },
+ "werewolf_howl_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 29,
+  "ay": 70,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_howl_s_01_id.png",
+   "img": "werewolf_howl_s_01.png",
+   "sh": "werewolf_howl_s_01_sh.png",
+   "z": "werewolf_howl_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 5,
+  "h": 84,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 99
+ },
+ "werewolf_howl_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 21,
+  "ay": 74,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_howl_s_02_id.png",
+   "img": "werewolf_howl_s_02.png",
+   "sh": "werewolf_howl_s_02_sh.png",
+   "z": "werewolf_howl_s_02_z.png"
+  },
+  "frame": 2,
+  "frames": 5,
+  "h": 86,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 88
+ },
+ "werewolf_howl_s_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 21,
+  "ay": 73,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_howl_s_03_id.png",
+   "img": "werewolf_howl_s_03.png",
+   "sh": "werewolf_howl_s_03_sh.png",
+   "z": "werewolf_howl_s_03_z.png"
+  },
+  "frame": 3,
+  "frames": 5,
+  "h": 85,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "werewolf_howl_s_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 26,
+  "ay": 72,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_howl_s_04_id.png",
+   "img": "werewolf_howl_s_04.png",
+   "sh": "werewolf_howl_s_04_sh.png",
+   "z": "werewolf_howl_s_04_z.png"
+  },
+  "frame": 4,
+  "frames": 5,
+  "h": 84,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 96
+ },
+ "werewolf_howl_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 39,
+  "ay": 68,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_howl_w_00_id.png",
+   "img": "werewolf_howl_w_00.png",
+   "sh": "werewolf_howl_w_00_sh.png",
+   "z": "werewolf_howl_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 5,
+  "h": 83,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "werewolf_howl_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 22,
+  "ay": 62,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_howl_w_01_id.png",
+   "img": "werewolf_howl_w_01.png",
+   "sh": "werewolf_howl_w_01_sh.png",
+   "z": "werewolf_howl_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 5,
+  "h": 78,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 94
+ },
+ "werewolf_howl_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 16,
+  "ay": 53,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_howl_w_02_id.png",
+   "img": "werewolf_howl_w_02.png",
+   "sh": "werewolf_howl_w_02_sh.png",
+   "z": "werewolf_howl_w_02_z.png"
+  },
+  "frame": 2,
+  "frames": 5,
+  "h": 70,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 100
+ },
+ "werewolf_howl_w_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 16,
+  "ay": 52,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_howl_w_03_id.png",
+   "img": "werewolf_howl_w_03.png",
+   "sh": "werewolf_howl_w_03_sh.png",
+   "z": "werewolf_howl_w_03_z.png"
+  },
+  "frame": 3,
+  "frames": 5,
+  "h": 69,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 100
+ },
+ "werewolf_howl_w_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "howl",
+  "ax": 20,
+  "ay": 60,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_howl_w_04_id.png",
+   "img": "werewolf_howl_w_04.png",
+   "sh": "werewolf_howl_w_04_sh.png",
+   "z": "werewolf_howl_w_04_z.png"
+  },
+  "frame": 4,
+  "frames": 5,
+  "h": 76,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 96
+ },
+ "werewolf_idle_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 30,
+  "ay": 65,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_idle_e_00_id.png",
+   "img": "werewolf_idle_e_00.png",
+   "sh": "werewolf_idle_e_00_sh.png",
+   "z": "werewolf_idle_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 83,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 100
+ },
+ "werewolf_idle_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 30,
+  "ay": 65,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_idle_e_01_id.png",
+   "img": "werewolf_idle_e_01.png",
+   "sh": "werewolf_idle_e_01_sh.png",
+   "z": "werewolf_idle_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 83,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 100
+ },
+ "werewolf_idle_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 23,
+  "ay": 68,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_idle_n_00_id.png",
+   "img": "werewolf_idle_n_00.png",
+   "sh": "werewolf_idle_n_00_sh.png",
+   "z": "werewolf_idle_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 87,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 93
+ },
+ "werewolf_idle_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 23,
+  "ay": 68,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_idle_n_01_id.png",
+   "img": "werewolf_idle_n_01.png",
+   "sh": "werewolf_idle_n_01_sh.png",
+   "z": "werewolf_idle_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 87,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 93
+ },
+ "werewolf_idle_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 27,
+  "ay": 57,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_idle_s_00_id.png",
+   "img": "werewolf_idle_s_00.png",
+   "sh": "werewolf_idle_s_00_sh.png",
+   "z": "werewolf_idle_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 76,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 91
+ },
+ "werewolf_idle_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 27,
+  "ay": 57,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_idle_s_01_id.png",
+   "img": "werewolf_idle_s_01.png",
+   "sh": "werewolf_idle_s_01_sh.png",
+   "z": "werewolf_idle_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 76,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 91
+ },
+ "werewolf_idle_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 33,
+  "ay": 68,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_idle_w_00_id.png",
+   "img": "werewolf_idle_w_00.png",
+   "sh": "werewolf_idle_w_00_sh.png",
+   "z": "werewolf_idle_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 82,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "werewolf_idle_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 33,
+  "ay": 68,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_idle_w_01_id.png",
+   "img": "werewolf_idle_w_01.png",
+   "sh": "werewolf_idle_w_01_sh.png",
+   "z": "werewolf_idle_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 82,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "werewolf_run_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 31,
+  "ay": 51,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_run_e_00_id.png",
+   "img": "werewolf_run_e_00.png",
+   "sh": "werewolf_run_e_00_sh.png",
+   "z": "werewolf_run_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 73,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 107
+ },
+ "werewolf_run_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 32,
+  "ay": 51,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_run_e_01_id.png",
+   "img": "werewolf_run_e_01.png",
+   "sh": "werewolf_run_e_01_sh.png",
+   "z": "werewolf_run_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 74,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 111
+ },
+ "werewolf_run_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 32,
+  "ay": 49,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_run_e_02_id.png",
+   "img": "werewolf_run_e_02.png",
+   "sh": "werewolf_run_e_02_sh.png",
+   "z": "werewolf_run_e_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 72,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 114
+ },
+ "werewolf_run_e_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 31,
+  "ay": 47,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_run_e_03_id.png",
+   "img": "werewolf_run_e_03.png",
+   "sh": "werewolf_run_e_03_sh.png",
+   "z": "werewolf_run_e_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 69,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 113
+ },
+ "werewolf_run_e_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 30,
+  "ay": 48,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_run_e_04_id.png",
+   "img": "werewolf_run_e_04.png",
+   "sh": "werewolf_run_e_04_sh.png",
+   "z": "werewolf_run_e_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 67,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 111
+ },
+ "werewolf_run_e_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 30,
+  "ay": 50,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_run_e_05_id.png",
+   "img": "werewolf_run_e_05.png",
+   "sh": "werewolf_run_e_05_sh.png",
+   "z": "werewolf_run_e_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 69,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 107
+ },
+ "werewolf_run_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 19,
+  "ay": 69,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_run_n_00_id.png",
+   "img": "werewolf_run_n_00.png",
+   "sh": "werewolf_run_n_00_sh.png",
+   "z": "werewolf_run_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 90,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 84
+ },
+ "werewolf_run_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 19,
+  "ay": 72,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_run_n_01_id.png",
+   "img": "werewolf_run_n_01.png",
+   "sh": "werewolf_run_n_01_sh.png",
+   "z": "werewolf_run_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 94,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "werewolf_run_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 19,
+  "ay": 74,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_run_n_02_id.png",
+   "img": "werewolf_run_n_02.png",
+   "sh": "werewolf_run_n_02_sh.png",
+   "z": "werewolf_run_n_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 95,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 87
+ },
+ "werewolf_run_n_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 21,
+  "ay": 73,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_run_n_03_id.png",
+   "img": "werewolf_run_n_03.png",
+   "sh": "werewolf_run_n_03_sh.png",
+   "z": "werewolf_run_n_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 94,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 87
+ },
+ "werewolf_run_n_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 22,
+  "ay": 72,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_run_n_04_id.png",
+   "img": "werewolf_run_n_04.png",
+   "sh": "werewolf_run_n_04_sh.png",
+   "z": "werewolf_run_n_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 92,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 88
+ },
+ "werewolf_run_n_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 21,
+  "ay": 70,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_run_n_05_id.png",
+   "img": "werewolf_run_n_05.png",
+   "sh": "werewolf_run_n_05_sh.png",
+   "z": "werewolf_run_n_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 90,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 87
+ },
+ "werewolf_run_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 31,
+  "ay": 35,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_run_s_00_id.png",
+   "img": "werewolf_run_s_00.png",
+   "sh": "werewolf_run_s_00_sh.png",
+   "z": "werewolf_run_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 64,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "werewolf_run_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 33,
+  "ay": 35,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_run_s_01_id.png",
+   "img": "werewolf_run_s_01.png",
+   "sh": "werewolf_run_s_01_sh.png",
+   "z": "werewolf_run_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 64,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "werewolf_run_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 33,
+  "ay": 34,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_run_s_02_id.png",
+   "img": "werewolf_run_s_02.png",
+   "sh": "werewolf_run_s_02_sh.png",
+   "z": "werewolf_run_s_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 64,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "werewolf_run_s_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 31,
+  "ay": 33,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_run_s_03_id.png",
+   "img": "werewolf_run_s_03.png",
+   "sh": "werewolf_run_s_03_sh.png",
+   "z": "werewolf_run_s_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 64,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 76
+ },
+ "werewolf_run_s_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 31,
+  "ay": 32,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_run_s_04_id.png",
+   "img": "werewolf_run_s_04.png",
+   "sh": "werewolf_run_s_04_sh.png",
+   "z": "werewolf_run_s_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 62,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 77
+ },
+ "werewolf_run_s_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 31,
+  "ay": 33,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_run_s_05_id.png",
+   "img": "werewolf_run_s_05.png",
+   "sh": "werewolf_run_s_05_sh.png",
+   "z": "werewolf_run_s_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 62,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 79
+ },
+ "werewolf_run_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 45,
+  "ay": 62,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_run_w_00_id.png",
+   "img": "werewolf_run_w_00.png",
+   "sh": "werewolf_run_w_00_sh.png",
+   "z": "werewolf_run_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 75,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "werewolf_run_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 46,
+  "ay": 64,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_run_w_01_id.png",
+   "img": "werewolf_run_w_01.png",
+   "sh": "werewolf_run_w_01_sh.png",
+   "z": "werewolf_run_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 76,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 89
+ },
+ "werewolf_run_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 47,
+  "ay": 64,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_run_w_02_id.png",
+   "img": "werewolf_run_w_02.png",
+   "sh": "werewolf_run_w_02_sh.png",
+   "z": "werewolf_run_w_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 77,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "werewolf_run_w_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 47,
+  "ay": 62,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_run_w_03_id.png",
+   "img": "werewolf_run_w_03.png",
+   "sh": "werewolf_run_w_03_sh.png",
+   "z": "werewolf_run_w_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 77,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 87
+ },
+ "werewolf_run_w_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 47,
+  "ay": 62,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_run_w_04_id.png",
+   "img": "werewolf_run_w_04.png",
+   "sh": "werewolf_run_w_04_sh.png",
+   "z": "werewolf_run_w_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 78,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "werewolf_run_w_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 46,
+  "ay": 62,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_run_w_05_id.png",
+   "img": "werewolf_run_w_05.png",
+   "sh": "werewolf_run_w_05_sh.png",
+   "z": "werewolf_run_w_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 77,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 85
+ },
+ "werewolf_stun_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 25,
+  "ay": 61,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_stun_e_00_id.png",
+   "img": "werewolf_stun_e_00.png",
+   "sh": "werewolf_stun_e_00_sh.png",
+   "z": "werewolf_stun_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 80,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "werewolf_stun_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 26,
+  "ay": 69,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_stun_e_01_id.png",
+   "img": "werewolf_stun_e_01.png",
+   "sh": "werewolf_stun_e_01_sh.png",
+   "z": "werewolf_stun_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 88,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "werewolf_stun_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 28,
+  "ay": 64,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_stun_e_02_id.png",
+   "img": "werewolf_stun_e_02.png",
+   "sh": "werewolf_stun_e_02_sh.png",
+   "z": "werewolf_stun_e_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 83,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 78
+ },
+ "werewolf_stun_e_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 25,
+  "ay": 53,
+  "dir": "e",
+  "files": {
+   "id": "werewolf_stun_e_03_id.png",
+   "img": "werewolf_stun_e_03.png",
+   "sh": "werewolf_stun_e_03_sh.png",
+   "z": "werewolf_stun_e_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 72,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 77
+ },
+ "werewolf_stun_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 26,
+  "ay": 58,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_stun_n_00_id.png",
+   "img": "werewolf_stun_n_00.png",
+   "sh": "werewolf_stun_n_00_sh.png",
+   "z": "werewolf_stun_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 75,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 88
+ },
+ "werewolf_stun_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 32,
+  "ay": 51,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_stun_n_01_id.png",
+   "img": "werewolf_stun_n_01.png",
+   "sh": "werewolf_stun_n_01_sh.png",
+   "z": "werewolf_stun_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 68,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 81
+ },
+ "werewolf_stun_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 28,
+  "ay": 49,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_stun_n_02_id.png",
+   "img": "werewolf_stun_n_02.png",
+   "sh": "werewolf_stun_n_02_sh.png",
+   "z": "werewolf_stun_n_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 66,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "werewolf_stun_n_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 25,
+  "ay": 49,
+  "dir": "n",
+  "files": {
+   "id": "werewolf_stun_n_03_id.png",
+   "img": "werewolf_stun_n_03.png",
+   "sh": "werewolf_stun_n_03_sh.png",
+   "z": "werewolf_stun_n_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 65,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 94
+ },
+ "werewolf_stun_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 27,
+  "ay": 55,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_stun_s_00_id.png",
+   "img": "werewolf_stun_s_00.png",
+   "sh": "werewolf_stun_s_00_sh.png",
+   "z": "werewolf_stun_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 74,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 89
+ },
+ "werewolf_stun_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 27,
+  "ay": 60,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_stun_s_01_id.png",
+   "img": "werewolf_stun_s_01.png",
+   "sh": "werewolf_stun_s_01_sh.png",
+   "z": "werewolf_stun_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 79,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 102
+ },
+ "werewolf_stun_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 27,
+  "ay": 69,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_stun_s_02_id.png",
+   "img": "werewolf_stun_s_02.png",
+   "sh": "werewolf_stun_s_02_sh.png",
+   "z": "werewolf_stun_s_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 88,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 94
+ },
+ "werewolf_stun_s_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 27,
+  "ay": 63,
+  "dir": "s",
+  "files": {
+   "id": "werewolf_stun_s_03_id.png",
+   "img": "werewolf_stun_s_03.png",
+   "sh": "werewolf_stun_s_03_sh.png",
+   "z": "werewolf_stun_s_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 82,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "werewolf_stun_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 26,
+  "ay": 61,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_stun_w_00_id.png",
+   "img": "werewolf_stun_w_00.png",
+   "sh": "werewolf_stun_w_00_sh.png",
+   "z": "werewolf_stun_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 78,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 79
+ },
+ "werewolf_stun_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 26,
+  "ay": 49,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_stun_w_01_id.png",
+   "img": "werewolf_stun_w_01.png",
+   "sh": "werewolf_stun_w_01_sh.png",
+   "z": "werewolf_stun_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 68,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "werewolf_stun_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 26,
+  "ay": 54,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_stun_w_02_id.png",
+   "img": "werewolf_stun_w_02.png",
+   "sh": "werewolf_stun_w_02_sh.png",
+   "z": "werewolf_stun_w_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 71,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 100
+ },
+ "werewolf_stun_w_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "stun",
+  "ax": 26,
+  "ay": 65,
+  "dir": "w",
+  "files": {
+   "id": "werewolf_stun_w_03_id.png",
+   "img": "werewolf_stun_w_03.png",
+   "sh": "werewolf_stun_w_03_sh.png",
+   "z": "werewolf_stun_w_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 82,
+  "height_m": 1.2,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "kind": "char",
+  "monster": "werewolf",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 91
+ },
+ "zombie_idle_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 15,
+  "ay": 64,
+  "dir": "e",
+  "files": {
+   "id": "zombie_idle_e_00_id.png",
+   "img": "zombie_idle_e_00.png",
+   "sh": "zombie_idle_e_00_sh.png",
+   "z": "zombie_idle_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 83,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "zombie_idle_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 15,
+  "ay": 64,
+  "dir": "e",
+  "files": {
+   "id": "zombie_idle_e_01_id.png",
+   "img": "zombie_idle_e_01.png",
+   "sh": "zombie_idle_e_01_sh.png",
+   "z": "zombie_idle_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 83,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "zombie_idle_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 22,
+  "ay": 63,
+  "dir": "n",
+  "files": {
+   "id": "zombie_idle_n_00_id.png",
+   "img": "zombie_idle_n_00.png",
+   "sh": "zombie_idle_n_00_sh.png",
+   "z": "zombie_idle_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 70,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 81
+ },
+ "zombie_idle_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 22,
+  "ay": 63,
+  "dir": "n",
+  "files": {
+   "id": "zombie_idle_n_01_id.png",
+   "img": "zombie_idle_n_01.png",
+   "sh": "zombie_idle_n_01_sh.png",
+   "z": "zombie_idle_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 70,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 81
+ },
+ "zombie_idle_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 30,
+  "ay": 59,
+  "dir": "s",
+  "files": {
+   "id": "zombie_idle_s_00_id.png",
+   "img": "zombie_idle_s_00.png",
+   "sh": "zombie_idle_s_00_sh.png",
+   "z": "zombie_idle_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 76,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 94
+ },
+ "zombie_idle_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 30,
+  "ay": 59,
+  "dir": "s",
+  "files": {
+   "id": "zombie_idle_s_01_id.png",
+   "img": "zombie_idle_s_01.png",
+   "sh": "zombie_idle_s_01_sh.png",
+   "z": "zombie_idle_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 76,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 94
+ },
+ "zombie_idle_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 27,
+  "ay": 59,
+  "dir": "w",
+  "files": {
+   "id": "zombie_idle_w_00_id.png",
+   "img": "zombie_idle_w_00.png",
+   "sh": "zombie_idle_w_00_sh.png",
+   "z": "zombie_idle_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 70,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "zombie_idle_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 27,
+  "ay": 59,
+  "dir": "w",
+  "files": {
+   "id": "zombie_idle_w_01_id.png",
+   "img": "zombie_idle_w_01.png",
+   "sh": "zombie_idle_w_01_sh.png",
+   "z": "zombie_idle_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 70,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 86
+ },
+ "zombie_lunge_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "lunge",
+  "ax": 22,
+  "ay": 66,
+  "dir": "e",
+  "files": {
+   "id": "zombie_lunge_e_00_id.png",
+   "img": "zombie_lunge_e_00.png",
+   "sh": "zombie_lunge_e_00_sh.png",
+   "z": "zombie_lunge_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 3,
+  "h": 79,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 79
+ },
+ "zombie_lunge_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "lunge",
+  "ax": 12,
+  "ay": 55,
+  "dir": "e",
+  "files": {
+   "id": "zombie_lunge_e_01_id.png",
+   "img": "zombie_lunge_e_01.png",
+   "sh": "zombie_lunge_e_01_sh.png",
+   "z": "zombie_lunge_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 3,
+  "h": 74,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 85
+ },
+ "zombie_lunge_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "lunge",
+  "ax": 12,
+  "ay": 52,
+  "dir": "e",
+  "files": {
+   "id": "zombie_lunge_e_02_id.png",
+   "img": "zombie_lunge_e_02.png",
+   "sh": "zombie_lunge_e_02_sh.png",
+   "z": "zombie_lunge_e_02_z.png"
+  },
+  "frame": 2,
+  "frames": 3,
+  "h": 72,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 88
+ },
+ "zombie_lunge_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "lunge",
+  "ax": 24,
+  "ay": 57,
+  "dir": "n",
+  "files": {
+   "id": "zombie_lunge_n_00_id.png",
+   "img": "zombie_lunge_n_00.png",
+   "sh": "zombie_lunge_n_00_sh.png",
+   "z": "zombie_lunge_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 3,
+  "h": 68,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 83
+ },
+ "zombie_lunge_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "lunge",
+  "ax": 15,
+  "ay": 68,
+  "dir": "n",
+  "files": {
+   "id": "zombie_lunge_n_01_id.png",
+   "img": "zombie_lunge_n_01.png",
+   "sh": "zombie_lunge_n_01_sh.png",
+   "z": "zombie_lunge_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 3,
+  "h": 75,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 81
+ },
+ "zombie_lunge_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "lunge",
+  "ax": 14,
+  "ay": 69,
+  "dir": "n",
+  "files": {
+   "id": "zombie_lunge_n_02_id.png",
+   "img": "zombie_lunge_n_02.png",
+   "sh": "zombie_lunge_n_02_sh.png",
+   "z": "zombie_lunge_n_02_z.png"
+  },
+  "frame": 2,
+  "frames": 3,
+  "h": 77,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "zombie_lunge_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "lunge",
+  "ax": 24,
+  "ay": 65,
+  "dir": "s",
+  "files": {
+   "id": "zombie_lunge_s_00_id.png",
+   "img": "zombie_lunge_s_00.png",
+   "sh": "zombie_lunge_s_00_sh.png",
+   "z": "zombie_lunge_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 3,
+  "h": 73,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 91
+ },
+ "zombie_lunge_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "lunge",
+  "ax": 30,
+  "ay": 50,
+  "dir": "s",
+  "files": {
+   "id": "zombie_lunge_s_01_id.png",
+   "img": "zombie_lunge_s_01.png",
+   "sh": "zombie_lunge_s_01_sh.png",
+   "z": "zombie_lunge_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 3,
+  "h": 72,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 87
+ },
+ "zombie_lunge_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "lunge",
+  "ax": 30,
+  "ay": 45,
+  "dir": "s",
+  "files": {
+   "id": "zombie_lunge_s_02_id.png",
+   "img": "zombie_lunge_s_02.png",
+   "sh": "zombie_lunge_s_02_sh.png",
+   "z": "zombie_lunge_s_02_z.png"
+  },
+  "frame": 2,
+  "frames": 3,
+  "h": 69,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 83
+ },
+ "zombie_lunge_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "lunge",
+  "ax": 15,
+  "ay": 59,
+  "dir": "w",
+  "files": {
+   "id": "zombie_lunge_w_00_id.png",
+   "img": "zombie_lunge_w_00.png",
+   "sh": "zombie_lunge_w_00_sh.png",
+   "z": "zombie_lunge_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 3,
+  "h": 70,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 83
+ },
+ "zombie_lunge_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "lunge",
+  "ax": 34,
+  "ay": 63,
+  "dir": "w",
+  "files": {
+   "id": "zombie_lunge_w_01_id.png",
+   "img": "zombie_lunge_w_01.png",
+   "sh": "zombie_lunge_w_01_sh.png",
+   "z": "zombie_lunge_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 3,
+  "h": 73,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 82
+ },
+ "zombie_lunge_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "lunge",
+  "ax": 35,
+  "ay": 64,
+  "dir": "w",
+  "files": {
+   "id": "zombie_lunge_w_02_id.png",
+   "img": "zombie_lunge_w_02.png",
+   "sh": "zombie_lunge_w_02_sh.png",
+   "z": "zombie_lunge_w_02_z.png"
+  },
+  "frame": 2,
+  "frames": 3,
+  "h": 74,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 80,
+  "shadow_z": 0.0,
+  "w": 76
+ },
+ "zombie_notice_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "notice",
+  "ax": 27,
+  "ay": 62,
+  "dir": "e",
+  "files": {
+   "id": "zombie_notice_e_00_id.png",
+   "img": "zombie_notice_e_00.png",
+   "sh": "zombie_notice_e_00_sh.png",
+   "z": "zombie_notice_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 75,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "zombie_notice_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "notice",
+  "ax": 21,
+  "ay": 62,
+  "dir": "e",
+  "files": {
+   "id": "zombie_notice_e_01_id.png",
+   "img": "zombie_notice_e_01.png",
+   "sh": "zombie_notice_e_01_sh.png",
+   "z": "zombie_notice_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 78,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 79
+ },
+ "zombie_notice_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "notice",
+  "ax": 20,
+  "ay": 54,
+  "dir": "n",
+  "files": {
+   "id": "zombie_notice_n_00_id.png",
+   "img": "zombie_notice_n_00.png",
+   "sh": "zombie_notice_n_00_sh.png",
+   "z": "zombie_notice_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 67,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 83
+ },
+ "zombie_notice_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "notice",
+  "ax": 21,
+  "ay": 58,
+  "dir": "n",
+  "files": {
+   "id": "zombie_notice_n_01_id.png",
+   "img": "zombie_notice_n_01.png",
+   "sh": "zombie_notice_n_01_sh.png",
+   "z": "zombie_notice_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 68,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 83
+ },
+ "zombie_notice_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "notice",
+  "ax": 25,
+  "ay": 69,
+  "dir": "s",
+  "files": {
+   "id": "zombie_notice_s_00_id.png",
+   "img": "zombie_notice_s_00.png",
+   "sh": "zombie_notice_s_00_sh.png",
+   "z": "zombie_notice_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 79,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 89
+ },
+ "zombie_notice_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "notice",
+  "ax": 28,
+  "ay": 64,
+  "dir": "s",
+  "files": {
+   "id": "zombie_notice_s_01_id.png",
+   "img": "zombie_notice_s_01.png",
+   "sh": "zombie_notice_s_01_sh.png",
+   "z": "zombie_notice_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 76,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 92
+ },
+ "zombie_notice_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "notice",
+  "ax": 20,
+  "ay": 62,
+  "dir": "w",
+  "files": {
+   "id": "zombie_notice_w_00_id.png",
+   "img": "zombie_notice_w_00.png",
+   "sh": "zombie_notice_w_00_sh.png",
+   "z": "zombie_notice_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 72,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 92
+ },
+ "zombie_notice_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "notice",
+  "ax": 22,
+  "ay": 62,
+  "dir": "w",
+  "files": {
+   "id": "zombie_notice_w_01_id.png",
+   "img": "zombie_notice_w_01.png",
+   "sh": "zombie_notice_w_01_sh.png",
+   "z": "zombie_notice_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 72,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 150,
+  "shadow_z": 0.0,
+  "w": 89
+ },
+ "zombie_walk_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 12,
+  "ay": 63,
+  "dir": "e",
+  "files": {
+   "id": "zombie_walk_e_00_id.png",
+   "img": "zombie_walk_e_00.png",
+   "sh": "zombie_walk_e_00_sh.png",
+   "z": "zombie_walk_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 81,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 79
+ },
+ "zombie_walk_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 13,
+  "ay": 66,
+  "dir": "e",
+  "files": {
+   "id": "zombie_walk_e_01_id.png",
+   "img": "zombie_walk_e_01.png",
+   "sh": "zombie_walk_e_01_sh.png",
+   "z": "zombie_walk_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 83,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 83
+ },
+ "zombie_walk_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 13,
+  "ay": 66,
+  "dir": "e",
+  "files": {
+   "id": "zombie_walk_e_02_id.png",
+   "img": "zombie_walk_e_02.png",
+   "sh": "zombie_walk_e_02_sh.png",
+   "z": "zombie_walk_e_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 82,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 83
+ },
+ "zombie_walk_e_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 12,
+  "ay": 63,
+  "dir": "e",
+  "files": {
+   "id": "zombie_walk_e_03_id.png",
+   "img": "zombie_walk_e_03.png",
+   "sh": "zombie_walk_e_03_sh.png",
+   "z": "zombie_walk_e_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 81,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "zombie_walk_e_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 13,
+  "ay": 58,
+  "dir": "e",
+  "files": {
+   "id": "zombie_walk_e_04_id.png",
+   "img": "zombie_walk_e_04.png",
+   "sh": "zombie_walk_e_04_sh.png",
+   "z": "zombie_walk_e_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 78,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 81
+ },
+ "zombie_walk_e_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 13,
+  "ay": 58,
+  "dir": "e",
+  "files": {
+   "id": "zombie_walk_e_05_id.png",
+   "img": "zombie_walk_e_05.png",
+   "sh": "zombie_walk_e_05_sh.png",
+   "z": "zombie_walk_e_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 78,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "zombie_walk_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 22,
+  "ay": 64,
+  "dir": "n",
+  "files": {
+   "id": "zombie_walk_n_00_id.png",
+   "img": "zombie_walk_n_00.png",
+   "sh": "zombie_walk_n_00_sh.png",
+   "z": "zombie_walk_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 71,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 81
+ },
+ "zombie_walk_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 26,
+  "ay": 65,
+  "dir": "n",
+  "files": {
+   "id": "zombie_walk_n_01_id.png",
+   "img": "zombie_walk_n_01.png",
+   "sh": "zombie_walk_n_01_sh.png",
+   "z": "zombie_walk_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 74,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 79
+ },
+ "zombie_walk_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 26,
+  "ay": 65,
+  "dir": "n",
+  "files": {
+   "id": "zombie_walk_n_02_id.png",
+   "img": "zombie_walk_n_02.png",
+   "sh": "zombie_walk_n_02_sh.png",
+   "z": "zombie_walk_n_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 74,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 79
+ },
+ "zombie_walk_n_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 21,
+  "ay": 64,
+  "dir": "n",
+  "files": {
+   "id": "zombie_walk_n_03_id.png",
+   "img": "zombie_walk_n_03.png",
+   "sh": "zombie_walk_n_03_sh.png",
+   "z": "zombie_walk_n_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 71,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "zombie_walk_n_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 16,
+  "ay": 64,
+  "dir": "n",
+  "files": {
+   "id": "zombie_walk_n_04_id.png",
+   "img": "zombie_walk_n_04.png",
+   "sh": "zombie_walk_n_04_sh.png",
+   "z": "zombie_walk_n_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 71,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 81
+ },
+ "zombie_walk_n_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 16,
+  "ay": 64,
+  "dir": "n",
+  "files": {
+   "id": "zombie_walk_n_05_id.png",
+   "img": "zombie_walk_n_05.png",
+   "sh": "zombie_walk_n_05_sh.png",
+   "z": "zombie_walk_n_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 71,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 81
+ },
+ "zombie_walk_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 29,
+  "ay": 56,
+  "dir": "s",
+  "files": {
+   "id": "zombie_walk_s_00_id.png",
+   "img": "zombie_walk_s_00.png",
+   "sh": "zombie_walk_s_00_sh.png",
+   "z": "zombie_walk_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 74,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 92
+ },
+ "zombie_walk_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 27,
+  "ay": 53,
+  "dir": "s",
+  "files": {
+   "id": "zombie_walk_s_01_id.png",
+   "img": "zombie_walk_s_01.png",
+   "sh": "zombie_walk_s_01_sh.png",
+   "z": "zombie_walk_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 71,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 95
+ },
+ "zombie_walk_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 27,
+  "ay": 53,
+  "dir": "s",
+  "files": {
+   "id": "zombie_walk_s_02_id.png",
+   "img": "zombie_walk_s_02.png",
+   "sh": "zombie_walk_s_02_sh.png",
+   "z": "zombie_walk_s_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 71,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 95
+ },
+ "zombie_walk_s_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 29,
+  "ay": 55,
+  "dir": "s",
+  "files": {
+   "id": "zombie_walk_s_03_id.png",
+   "img": "zombie_walk_s_03.png",
+   "sh": "zombie_walk_s_03_sh.png",
+   "z": "zombie_walk_s_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 73,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 92
+ },
+ "zombie_walk_s_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 31,
+  "ay": 57,
+  "dir": "s",
+  "files": {
+   "id": "zombie_walk_s_04_id.png",
+   "img": "zombie_walk_s_04.png",
+   "sh": "zombie_walk_s_04_sh.png",
+   "z": "zombie_walk_s_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 74,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 89
+ },
+ "zombie_walk_s_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 30,
+  "ay": 57,
+  "dir": "s",
+  "files": {
+   "id": "zombie_walk_s_05_id.png",
+   "img": "zombie_walk_s_05.png",
+   "sh": "zombie_walk_s_05_sh.png",
+   "z": "zombie_walk_s_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 74,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 88
+ },
+ "zombie_walk_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 29,
+  "ay": 59,
+  "dir": "w",
+  "files": {
+   "id": "zombie_walk_w_00_id.png",
+   "img": "zombie_walk_w_00.png",
+   "sh": "zombie_walk_w_00_sh.png",
+   "z": "zombie_walk_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 69,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 85
+ },
+ "zombie_walk_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 29,
+  "ay": 54,
+  "dir": "w",
+  "files": {
+   "id": "zombie_walk_w_01_id.png",
+   "img": "zombie_walk_w_01.png",
+   "sh": "zombie_walk_w_01_sh.png",
+   "z": "zombie_walk_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 68,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "zombie_walk_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 29,
+  "ay": 55,
+  "dir": "w",
+  "files": {
+   "id": "zombie_walk_w_02_id.png",
+   "img": "zombie_walk_w_02.png",
+   "sh": "zombie_walk_w_02_sh.png",
+   "z": "zombie_walk_w_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 69,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "zombie_walk_w_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 28,
+  "ay": 59,
+  "dir": "w",
+  "files": {
+   "id": "zombie_walk_w_03_id.png",
+   "img": "zombie_walk_w_03.png",
+   "sh": "zombie_walk_w_03_sh.png",
+   "z": "zombie_walk_w_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 70,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 83
+ },
+ "zombie_walk_w_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 28,
+  "ay": 63,
+  "dir": "w",
+  "files": {
+   "id": "zombie_walk_w_04_id.png",
+   "img": "zombie_walk_w_04.png",
+   "sh": "zombie_walk_w_04_sh.png",
+   "z": "zombie_walk_w_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 74,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 84
+ },
+ "zombie_walk_w_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "walk",
+  "ax": 28,
+  "ay": 63,
+  "dir": "w",
+  "files": {
+   "id": "zombie_walk_w_05_id.png",
+   "img": "zombie_walk_w_05.png",
+   "sh": "zombie_walk_w_05_sh.png",
+   "z": "zombie_walk_w_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 74,
+  "height_m": 1.1,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   12
+  ],
+  "kind": "char",
+  "monster": "zombie",
+  "ms": 100,
+  "shadow_z": 0.0,
+  "w": 85
+ },
+ "zombiedog_idle_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 17,
+  "ay": 30,
+  "dir": "e",
+  "files": {
+   "id": "zombiedog_idle_e_00_id.png",
+   "img": "zombiedog_idle_e_00.png",
+   "sh": "zombiedog_idle_e_00_sh.png",
+   "z": "zombiedog_idle_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 38,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 58
+ },
+ "zombiedog_idle_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 17,
+  "ay": 30,
+  "dir": "e",
+  "files": {
+   "id": "zombiedog_idle_e_01_id.png",
+   "img": "zombiedog_idle_e_01.png",
+   "sh": "zombiedog_idle_e_01_sh.png",
+   "z": "zombiedog_idle_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 38,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 58
+ },
+ "zombiedog_idle_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 11,
+  "ay": 35,
+  "dir": "n",
+  "files": {
+   "id": "zombiedog_idle_n_00_id.png",
+   "img": "zombiedog_idle_n_00.png",
+   "sh": "zombiedog_idle_n_00_sh.png",
+   "z": "zombiedog_idle_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 45,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 43
+ },
+ "zombiedog_idle_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 11,
+  "ay": 35,
+  "dir": "n",
+  "files": {
+   "id": "zombiedog_idle_n_01_id.png",
+   "img": "zombiedog_idle_n_01.png",
+   "sh": "zombiedog_idle_n_01_sh.png",
+   "z": "zombiedog_idle_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 45,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 43
+ },
+ "zombiedog_idle_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 14,
+  "ay": 31,
+  "dir": "s",
+  "files": {
+   "id": "zombiedog_idle_s_00_id.png",
+   "img": "zombiedog_idle_s_00.png",
+   "sh": "zombiedog_idle_s_00_sh.png",
+   "z": "zombiedog_idle_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 48,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 45
+ },
+ "zombiedog_idle_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 14,
+  "ay": 31,
+  "dir": "s",
+  "files": {
+   "id": "zombiedog_idle_s_01_id.png",
+   "img": "zombiedog_idle_s_01.png",
+   "sh": "zombiedog_idle_s_01_sh.png",
+   "z": "zombiedog_idle_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 48,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 45
+ },
+ "zombiedog_idle_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 25,
+  "ay": 30,
+  "dir": "w",
+  "files": {
+   "id": "zombiedog_idle_w_00_id.png",
+   "img": "zombiedog_idle_w_00.png",
+   "sh": "zombiedog_idle_w_00_sh.png",
+   "z": "zombiedog_idle_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 2,
+  "h": 38,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 59
+ },
+ "zombiedog_idle_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 25,
+  "ay": 30,
+  "dir": "w",
+  "files": {
+   "id": "zombiedog_idle_w_01_id.png",
+   "img": "zombiedog_idle_w_01.png",
+   "sh": "zombiedog_idle_w_01_sh.png",
+   "z": "zombiedog_idle_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 2,
+  "h": 38,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 400,
+  "shadow_z": 0.0,
+  "w": 59
+ },
+ "zombiedog_run_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 20,
+  "ay": 28,
+  "dir": "e",
+  "files": {
+   "id": "zombiedog_run_e_00_id.png",
+   "img": "zombiedog_run_e_00.png",
+   "sh": "zombiedog_run_e_00_sh.png",
+   "z": "zombiedog_run_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 38,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 60
+ },
+ "zombiedog_run_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 23,
+  "ay": 30,
+  "dir": "e",
+  "files": {
+   "id": "zombiedog_run_e_01_id.png",
+   "img": "zombiedog_run_e_01.png",
+   "sh": "zombiedog_run_e_01_sh.png",
+   "z": "zombiedog_run_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 39,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 63
+ },
+ "zombiedog_run_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 22,
+  "ay": 31,
+  "dir": "e",
+  "files": {
+   "id": "zombiedog_run_e_02_id.png",
+   "img": "zombiedog_run_e_02.png",
+   "sh": "zombiedog_run_e_02_sh.png",
+   "z": "zombiedog_run_e_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 40,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 64
+ },
+ "zombiedog_run_e_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 20,
+  "ay": 28,
+  "dir": "e",
+  "files": {
+   "id": "zombiedog_run_e_03_id.png",
+   "img": "zombiedog_run_e_03.png",
+   "sh": "zombiedog_run_e_03_sh.png",
+   "z": "zombiedog_run_e_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 38,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 59
+ },
+ "zombiedog_run_n_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 13,
+  "ay": 36,
+  "dir": "n",
+  "files": {
+   "id": "zombiedog_run_n_00_id.png",
+   "img": "zombiedog_run_n_00.png",
+   "sh": "zombiedog_run_n_00_sh.png",
+   "z": "zombiedog_run_n_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 48,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 46
+ },
+ "zombiedog_run_n_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 12,
+  "ay": 37,
+  "dir": "n",
+  "files": {
+   "id": "zombiedog_run_n_01_id.png",
+   "img": "zombiedog_run_n_01.png",
+   "sh": "zombiedog_run_n_01_sh.png",
+   "z": "zombiedog_run_n_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 52,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 47
+ },
+ "zombiedog_run_n_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 13,
+  "ay": 38,
+  "dir": "n",
+  "files": {
+   "id": "zombiedog_run_n_02_id.png",
+   "img": "zombiedog_run_n_02.png",
+   "sh": "zombiedog_run_n_02_sh.png",
+   "z": "zombiedog_run_n_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 52,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 48
+ },
+ "zombiedog_run_n_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 11,
+  "ay": 36,
+  "dir": "n",
+  "files": {
+   "id": "zombiedog_run_n_03_id.png",
+   "img": "zombiedog_run_n_03.png",
+   "sh": "zombiedog_run_n_03_sh.png",
+   "z": "zombiedog_run_n_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 48,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 44
+ },
+ "zombiedog_run_s_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 16,
+  "ay": 31,
+  "dir": "s",
+  "files": {
+   "id": "zombiedog_run_s_00_id.png",
+   "img": "zombiedog_run_s_00.png",
+   "sh": "zombiedog_run_s_00_sh.png",
+   "z": "zombiedog_run_s_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 48,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 46
+ },
+ "zombiedog_run_s_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 16,
+  "ay": 32,
+  "dir": "s",
+  "files": {
+   "id": "zombiedog_run_s_01_id.png",
+   "img": "zombiedog_run_s_01.png",
+   "sh": "zombiedog_run_s_01_sh.png",
+   "z": "zombiedog_run_s_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 47,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 45
+ },
+ "zombiedog_run_s_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 15,
+  "ay": 33,
+  "dir": "s",
+  "files": {
+   "id": "zombiedog_run_s_02_id.png",
+   "img": "zombiedog_run_s_02.png",
+   "sh": "zombiedog_run_s_02_sh.png",
+   "z": "zombiedog_run_s_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 49,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 46
+ },
+ "zombiedog_run_s_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 16,
+  "ay": 34,
+  "dir": "s",
+  "files": {
+   "id": "zombiedog_run_s_03_id.png",
+   "img": "zombiedog_run_s_03.png",
+   "sh": "zombiedog_run_s_03_sh.png",
+   "z": "zombiedog_run_s_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 51,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 45
+ },
+ "zombiedog_run_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 25,
+  "ay": 30,
+  "dir": "w",
+  "files": {
+   "id": "zombiedog_run_w_00_id.png",
+   "img": "zombiedog_run_w_00.png",
+   "sh": "zombiedog_run_w_00_sh.png",
+   "z": "zombiedog_run_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 37,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 61
+ },
+ "zombiedog_run_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 24,
+  "ay": 32,
+  "dir": "w",
+  "files": {
+   "id": "zombiedog_run_w_01_id.png",
+   "img": "zombiedog_run_w_01.png",
+   "sh": "zombiedog_run_w_01_sh.png",
+   "z": "zombiedog_run_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 41,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 61
+ },
+ "zombiedog_run_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 25,
+  "ay": 33,
+  "dir": "w",
+  "files": {
+   "id": "zombiedog_run_w_02_id.png",
+   "img": "zombiedog_run_w_02.png",
+   "sh": "zombiedog_run_w_02_sh.png",
+   "z": "zombiedog_run_w_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 42,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 63
+ },
+ "zombiedog_run_w_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 25,
+  "ay": 30,
+  "dir": "w",
+  "files": {
+   "id": "zombiedog_run_w_03_id.png",
+   "img": "zombiedog_run_w_03.png",
+   "sh": "zombiedog_run_w_03_sh.png",
+   "z": "zombiedog_run_w_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 38,
+  "height_m": 0.5,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   11,
+   12,
+   13
+  ],
+  "kind": "char",
+  "monster": "zombiedog",
+  "ms": 50,
+  "shadow_z": 0.0,
+  "w": 63
+ }
+}

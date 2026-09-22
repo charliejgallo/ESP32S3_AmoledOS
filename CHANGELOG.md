@@ -3,6 +3,48 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.4.13 — 2026-09-22
+
+**Monster Hop**, a hop-by-hop action game in sixteen levels, with its art
+rendered in Blender.
+
+- **Tommy**, an eleven-year-old in a cap, hops cell by cell through Zombie
+  Town, Vampire Castle, Mummy Desert and Werewolf Forest, four levels each,
+  collecting five keys to open the exit. Zombies notice and lunge, vampires
+  turn into bats, mummies push boulders, werewolves charge on sight, and a
+  second monster per zone: zombie dogs, marching armour, scarabs, diving
+  crows. The fourth level of each zone is a lair with a boss: the Brute, the
+  Count, the Pharaoh, the Alpha.
+- Swipe to hop, tap to hop up the screen; **BOOT** pulls levers, opens
+  chests, pushes crates into the water, or makes a super hop. Runaway cars,
+  sewer water, rafts, logs and lily pads, quicksand, spikes, darts, bear
+  traps, moving platforms. Three difficulties, stars by time and lives, and
+  zones that open with stars.
+- **Tommy's house**: a wardrobe and a shop (caps, shirts, capes, things in
+  hand, three pets that follow him, trails, skin and hair, and seven odd
+  skins bought with coins), a sticker album with one sticker hidden in every
+  level, fourteen trophies, stats.
+- **The key race** with the paired watch: both play the same level with the
+  same clock, each sees the other's Tommy as a ghost, and the keys, levers,
+  crates and chests are shared. A key is a point and the first one out gets
+  two more.
+- How it draws: every level is built on the watch from block and prop
+  sprites into a background cache that keeps the depth of every pixel, and
+  the sprites are tested against it one pixel at a time, so Tommy walks
+  behind walls and shows through them as a silhouette. 25.5 fps on the
+  board over a minute of play.
+- The art is **13 MB** in `monsterhop.pak`, which the watch reads in two
+  parts (`monsterhop.pak` and `monsterhop.pak.1`) because the portal takes 8
+  MB per upload; `apps.zip` carries the parts. A loading bar shows when
+  opening the game or a level takes more than 2 s (about 4 s on the board).
+- Two more zones, a witch swamp and a skeleton graveyard, are planned in
+  `apps/monsterhop/ZONE-IDEAS.md`.
+
+The firmware changed only in its catalogues (Monster Hop in English and
+German); `monsterhop.so` needs **v0.4.10** or later. The simulator keeps up
+to 512 preference lines (it kept 64 and silently cut the rest, the language
+among them).
+
 ## v0.4.12 — 2026-09-22
 
 **Turbo: two new stages**, and ready for more.

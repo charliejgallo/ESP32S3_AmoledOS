@@ -1,0 +1,1183 @@
+{
+ "_projection": {
+  "depth_empty": 255,
+  "depth_unit_m": 0.03125,
+  "floor_m": 0.5092285591855548,
+  "floor_px": 23,
+  "px_per_m": 63.245553203367585,
+  "px_x": [
+   60,
+   14
+  ],
+  "px_y": [
+   20,
+   -42
+  ],
+  "view_dir": [
+   -0.2258317917585373,
+   0.6774953603744507,
+   -0.699999988079071
+  ]
+ },
+ "forest_beartrap_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 22,
+  "ay": 18,
+  "files": {
+   "img": "forest_beartrap_00.png",
+   "sh": "forest_beartrap_00_sh.png",
+   "z": "forest_beartrap_00_z.png"
+  },
+  "h": 38,
+  "height_m": 0.08,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "state": "open",
+  "w": 55
+ },
+ "forest_beartrap_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 22,
+  "ay": 21,
+  "files": {
+   "img": "forest_beartrap_01.png",
+   "sh": "forest_beartrap_01_sh.png",
+   "z": "forest_beartrap_01_z.png"
+  },
+  "h": 41,
+  "height_m": 0.3,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "state": "snapped",
+  "w": 55
+ },
+ "forest_blk_grass_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_grass_v0.png",
+   "z": "forest_blk_grass_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_grass_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_grass_v1.png",
+   "z": "forest_blk_grass_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_grass_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_grass_v2.png",
+   "z": "forest_blk_grass_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_moss_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_moss_v0.png",
+   "z": "forest_blk_moss_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_moss_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_moss_v1.png",
+   "z": "forest_blk_moss_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_moss_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_moss_v2.png",
+   "z": "forest_blk_moss_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_mud_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_mud_v0.png",
+   "z": "forest_blk_mud_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_mud_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_mud_v1.png",
+   "z": "forest_blk_mud_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_mud_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_mud_v2.png",
+   "z": "forest_blk_mud_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_path_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_path_v0.png",
+   "z": "forest_blk_path_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_path_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_path_v1.png",
+   "z": "forest_blk_path_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_path_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_path_v2.png",
+   "z": "forest_blk_path_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_plank_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_plank_v0.png",
+   "z": "forest_blk_plank_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_plank_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_plank_v1.png",
+   "z": "forest_blk_plank_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_plank_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_plank_v2.png",
+   "z": "forest_blk_plank_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_rock_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_rock_v0.png",
+   "z": "forest_blk_rock_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_rock_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_rock_v1.png",
+   "z": "forest_blk_rock_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_blk_rock_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_blk_rock_v2.png",
+   "z": "forest_blk_rock_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_bridge_x": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 41,
+  "ay": 29,
+  "deck_z": 0.0,
+  "files": {
+   "img": "forest_bridge_x.png",
+   "sh": "forest_bridge_x_sh.png",
+   "z": "forest_bridge_x_z.png"
+  },
+  "h": 65,
+  "kind": "bridge",
+  "over": "forest_surf_river",
+  "shadow_z": -0.18,
+  "w": 90,
+  "walk": "x"
+ },
+ "forest_bridge_y": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 30,
+  "deck_z": 0.0,
+  "files": {
+   "img": "forest_bridge_y.png",
+   "sh": "forest_bridge_y_sh.png",
+   "z": "forest_bridge_y_z.png"
+  },
+  "h": 68,
+  "kind": "bridge",
+  "over": "forest_surf_river",
+  "shadow_z": -0.18,
+  "w": 86,
+  "walk": "y"
+ },
+ "forest_bush": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 32,
+  "ay": 42,
+  "files": {
+   "img": "forest_bush.png",
+   "sh": "forest_bush_sh.png",
+   "z": "forest_bush_z.png"
+  },
+  "h": 62,
+  "height_m": 0.66,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 79
+ },
+ "forest_cabin": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 93,
+  "ay": 168,
+  "files": {
+   "gl": "forest_cabin_gl.png",
+   "img": "forest_cabin.png",
+   "sh": "forest_cabin_sh.png",
+   "z": "forest_cabin_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "h": 255,
+  "height_m": 2.66,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 300
+ },
+ "forest_crate": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 41,
+  "ay": 55,
+  "files": {
+   "img": "forest_crate.png",
+   "sh": "forest_crate_sh.png",
+   "z": "forest_crate_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "h": 85,
+  "height_m": 0.5092,
+  "kind": "dyn",
+  "pushable": true,
+  "shadow_z": 0.0,
+  "w": 105
+ },
+ "forest_fence_x": {
+  "along": "x",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 34,
+  "ay": 46,
+  "files": {
+   "img": "forest_fence_x.png",
+   "sh": "forest_fence_x_sh.png",
+   "z": "forest_fence_x_z.png"
+  },
+  "h": 56,
+  "height_m": 0.93,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 98
+ },
+ "forest_fence_y": {
+  "along": "y",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 16,
+  "ay": 57,
+  "files": {
+   "img": "forest_fence_y.png",
+   "sh": "forest_fence_y_sh.png",
+   "z": "forest_fence_y_z.png"
+  },
+  "h": 80,
+  "height_m": 0.93,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 62
+ },
+ "forest_fern": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 30,
+  "ay": 25,
+  "files": {
+   "img": "forest_fern.png",
+   "sh": "forest_fern_sh.png",
+   "z": "forest_fern_z.png"
+  },
+  "h": 49,
+  "height_m": 0.5,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 66
+ },
+ "forest_fill_earth": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_fill_earth.png",
+   "z": "forest_fill_earth_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_fill_rock": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_fill_rock.png",
+   "z": "forest_fill_rock_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "forest_flowers": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 19,
+  "ay": 25,
+  "files": {
+   "img": "forest_flowers.png",
+   "sh": "forest_flowers_sh.png",
+   "z": "forest_flowers_z.png"
+  },
+  "h": 37,
+  "height_m": 0.36,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 56
+ },
+ "forest_gate_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 32,
+  "ay": 107,
+  "exit": true,
+  "files": {
+   "img": "forest_gate_00.png",
+   "sh": "forest_gate_00_sh.png",
+   "z": "forest_gate_00_z.png"
+  },
+  "frame": 0,
+  "frames": 7,
+  "h": 119,
+  "height_m": 2.33,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 145
+ },
+ "forest_gate_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 32,
+  "ay": 107,
+  "exit": true,
+  "files": {
+   "img": "forest_gate_01.png",
+   "sh": "forest_gate_01_sh.png",
+   "z": "forest_gate_01_z.png"
+  },
+  "frame": 1,
+  "frames": 7,
+  "h": 119,
+  "height_m": 2.33,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 145
+ },
+ "forest_gate_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 32,
+  "ay": 107,
+  "exit": true,
+  "files": {
+   "img": "forest_gate_02.png",
+   "sh": "forest_gate_02_sh.png",
+   "z": "forest_gate_02_z.png"
+  },
+  "frame": 2,
+  "frames": 7,
+  "h": 121,
+  "height_m": 2.33,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 145
+ },
+ "forest_gate_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 32,
+  "ay": 107,
+  "exit": true,
+  "files": {
+   "img": "forest_gate_03.png",
+   "sh": "forest_gate_03_sh.png",
+   "z": "forest_gate_03_z.png"
+  },
+  "frame": 3,
+  "frames": 7,
+  "h": 126,
+  "height_m": 2.33,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 145
+ },
+ "forest_gate_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 32,
+  "ay": 107,
+  "exit": true,
+  "files": {
+   "img": "forest_gate_04.png",
+   "sh": "forest_gate_04_sh.png",
+   "z": "forest_gate_04_z.png"
+  },
+  "frame": 4,
+  "frames": 7,
+  "h": 130,
+  "height_m": 2.33,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 145
+ },
+ "forest_gate_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 34,
+  "ay": 107,
+  "exit": true,
+  "files": {
+   "img": "forest_gate_05.png",
+   "sh": "forest_gate_05_sh.png",
+   "z": "forest_gate_05_z.png"
+  },
+  "frame": 5,
+  "frames": 7,
+  "h": 132,
+  "height_m": 2.33,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 147
+ },
+ "forest_gate_06": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 100,
+  "ay": 107,
+  "exit": true,
+  "files": {
+   "gl": "forest_gate_06_gl.png",
+   "img": "forest_gate_06.png",
+   "sh": "forest_gate_06_sh.png",
+   "z": "forest_gate_06_z.png"
+  },
+  "frame": 6,
+  "frames": 7,
+  "h": 174,
+  "height_m": 2.33,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 213
+ },
+ "forest_lantern": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 117,
+  "ay": 87,
+  "files": {
+   "gl": "forest_lantern_gl.png",
+   "img": "forest_lantern.png",
+   "sh": "forest_lantern_sh.png",
+   "z": "forest_lantern_z.png"
+  },
+  "h": 178,
+  "height_m": 1.65,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 253
+ },
+ "forest_lily_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "sink",
+  "ax": 29,
+  "ay": 22,
+  "files": {
+   "img": "forest_lily_00.png",
+   "sh": "forest_lily_00_sh.png",
+   "z": "forest_lily_00_z.png"
+  },
+  "float_z": -0.17,
+  "frame": 0,
+  "frames": 4,
+  "h": 44,
+  "kind": "dyn",
+  "note": "anchor = the pad top; the watch puts it 1 cm above the water",
+  "shadow_z": -0.01,
+  "standable": true,
+  "w": 59
+ },
+ "forest_lily_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "sink",
+  "ax": 31,
+  "ay": 23,
+  "files": {
+   "img": "forest_lily_01.png",
+   "sh": "forest_lily_01_sh.png",
+   "z": "forest_lily_01_z.png"
+  },
+  "float_z": -0.17,
+  "frame": 1,
+  "frames": 4,
+  "h": 48,
+  "kind": "dyn",
+  "note": "anchor = the pad top; the watch puts it 1 cm above the water",
+  "shadow_z": -0.01,
+  "standable": false,
+  "w": 63
+ },
+ "forest_lily_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "sink",
+  "ax": 31,
+  "ay": 23,
+  "files": {
+   "img": "forest_lily_02.png",
+   "sh": "forest_lily_02_sh.png",
+   "z": "forest_lily_02_z.png"
+  },
+  "float_z": -0.17,
+  "frame": 2,
+  "frames": 4,
+  "h": 50,
+  "kind": "dyn",
+  "note": "anchor = the pad top; the watch puts it 1 cm above the water",
+  "shadow_z": -0.01,
+  "standable": false,
+  "w": 63
+ },
+ "forest_lily_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "sink",
+  "ax": 31,
+  "ay": 23,
+  "files": {
+   "img": "forest_lily_03.png",
+   "sh": "forest_lily_03_sh.png",
+   "z": "forest_lily_03_z.png"
+  },
+  "float_z": -0.17,
+  "frame": 3,
+  "frames": 4,
+  "h": 54,
+  "kind": "dyn",
+  "note": "anchor = the pad top; the watch puts it 1 cm above the water",
+  "shadow_z": -0.01,
+  "standable": false,
+  "w": 63
+ },
+ "forest_log_x": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 34,
+  "ay": 35,
+  "files": {
+   "img": "forest_log_x.png",
+   "sh": "forest_log_x_sh.png",
+   "z": "forest_log_x_z.png"
+  },
+  "footprint": [
+   2,
+   1
+  ],
+  "h": 68,
+  "height_m": 0.5,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 145
+ },
+ "forest_log_y": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 27,
+  "ay": 86,
+  "files": {
+   "img": "forest_log_y.png",
+   "sh": "forest_log_y_sh.png",
+   "z": "forest_log_y_z.png"
+  },
+  "footprint": [
+   1,
+   2
+  ],
+  "h": 110,
+  "height_m": 0.5,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 88
+ },
+ "forest_logfloat_e": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 15,
+  "files": {
+   "img": "forest_logfloat_e.png",
+   "sh": "forest_logfloat_e_sh.png",
+   "z": "forest_logfloat_e_z.png"
+  },
+  "float_z": -0.02,
+  "footprint": [
+   1,
+   1
+  ],
+  "h": 46,
+  "height_m": 0.2,
+  "kind": "dyn",
+  "part": "e",
+  "shadow_z": -0.16,
+  "w": 75
+ },
+ "forest_logfloat_m": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 15,
+  "files": {
+   "img": "forest_logfloat_m.png",
+   "sh": "forest_logfloat_m_sh.png",
+   "z": "forest_logfloat_m_z.png"
+  },
+  "float_z": -0.02,
+  "footprint": [
+   1,
+   1
+  ],
+  "h": 48,
+  "height_m": 0.2,
+  "kind": "dyn",
+  "part": "m",
+  "shadow_z": -0.16,
+  "w": 81
+ },
+ "forest_logfloat_w": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 32,
+  "ay": 13,
+  "files": {
+   "img": "forest_logfloat_w.png",
+   "sh": "forest_logfloat_w_sh.png",
+   "z": "forest_logfloat_w_z.png"
+  },
+  "float_z": -0.02,
+  "footprint": [
+   1,
+   1
+  ],
+  "h": 46,
+  "height_m": 0.2,
+  "kind": "dyn",
+  "part": "w",
+  "shadow_z": -0.16,
+  "w": 74
+ },
+ "forest_mill": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 42,
+  "ay": 172,
+  "files": {
+   "img": "forest_mill.png",
+   "sh": "forest_mill_sh.png",
+   "z": "forest_mill_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "h": 202,
+  "height_m": 2.5,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 210
+ },
+ "forest_mushroom": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 107,
+  "ay": 83,
+  "files": {
+   "gl": "forest_mushroom_gl.png",
+   "img": "forest_mushroom.png",
+   "sh": "forest_mushroom_sh.png",
+   "z": "forest_mushroom_z.png"
+  },
+  "h": 158,
+  "height_m": 1.45,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 215
+ },
+ "forest_oak": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 47,
+  "ay": 155,
+  "canopy_overhang_m": 0.3,
+  "files": {
+   "img": "forest_oak.png",
+   "sh": "forest_oak_sh.png",
+   "z": "forest_oak_z.png"
+  },
+  "h": 175,
+  "height_m": 3.06,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 203
+ },
+ "forest_pine": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 45,
+  "ay": 140,
+  "files": {
+   "img": "forest_pine.png",
+   "sh": "forest_pine_sh.png",
+   "z": "forest_pine_z.png"
+  },
+  "h": 170,
+  "height_m": 3.02,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 180
+ },
+ "forest_rock": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 29,
+  "ay": 35,
+  "files": {
+   "img": "forest_rock.png",
+   "sh": "forest_rock_sh.png",
+   "z": "forest_rock_z.png"
+  },
+  "h": 55,
+  "height_m": 0.58,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 75
+ },
+ "forest_shrine": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 26,
+  "ay": 63,
+  "files": {
+   "img": "forest_shrine.png",
+   "sh": "forest_shrine_sh.png",
+   "z": "forest_shrine_z.png"
+  },
+  "h": 82,
+  "height_m": 1.24,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 94
+ },
+ "forest_stump": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 30,
+  "ay": 34,
+  "files": {
+   "img": "forest_stump.png",
+   "sh": "forest_stump_sh.png",
+   "z": "forest_stump_z.png"
+  },
+  "h": 56,
+  "height_m": 0.5,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 67
+ },
+ "forest_surf_river_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_surf_river_v0.png",
+   "z": "forest_surf_river_v0_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "w": 88
+ },
+ "forest_surf_river_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_surf_river_v1.png",
+   "z": "forest_surf_river_v1_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "w": 88
+ },
+ "forest_surf_river_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "forest_surf_river_v2.png",
+   "z": "forest_surf_river_v2_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "w": 88
+ }
+}

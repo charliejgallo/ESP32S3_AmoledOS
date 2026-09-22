@@ -1,0 +1,210 @@
+{
+ "_projection": {
+  "depth_empty": 255,
+  "depth_unit_m": 0.03125,
+  "floor_m": 0.5092285591855548,
+  "floor_px": 23,
+  "px_per_m": 63.245553203367585,
+  "px_x": [
+   60,
+   14
+  ],
+  "px_y": [
+   20,
+   -42
+  ],
+  "view_dir": [
+   -0.2258317917585373,
+   0.6774953603744507,
+   -0.699999988079071
+  ]
+ },
+ "emblem_castle": {
+  "files": {
+   "img": "emblem_castle.png"
+  },
+  "h": 96,
+  "kind": "ui",
+  "w": 96,
+  "zone": "castle"
+ },
+ "emblem_city": {
+  "files": {
+   "img": "emblem_city.png"
+  },
+  "h": 96,
+  "kind": "ui",
+  "w": 96,
+  "zone": "city"
+ },
+ "emblem_desert": {
+  "files": {
+   "img": "emblem_desert.png"
+  },
+  "h": 96,
+  "kind": "ui",
+  "w": 96,
+  "zone": "desert"
+ },
+ "emblem_forest": {
+  "files": {
+   "img": "emblem_forest.png"
+  },
+  "h": 96,
+  "kind": "ui",
+  "w": 96,
+  "zone": "forest"
+ },
+ "emblem_graveyard": {
+  "files": {
+   "img": "emblem_graveyard.png"
+  },
+  "h": 96,
+  "kind": "ui",
+  "w": 96,
+  "zone": "graveyard"
+ },
+ "emblem_lock": {
+  "files": {
+   "img": "emblem_lock.png"
+  },
+  "h": 96,
+  "kind": "ui",
+  "w": 96,
+  "zone": "lock"
+ },
+ "emblem_swamp": {
+  "files": {
+   "img": "emblem_swamp.png"
+  },
+  "h": 96,
+  "kind": "ui",
+  "w": 96,
+  "zone": "swamp"
+ },
+ "house": {
+  "door_px": [
+   166.0,
+   135.4
+  ],
+  "files": {
+   "img": "house.png"
+  },
+  "h": 200,
+  "kind": "ui",
+  "w": 368,
+  "what": "Tommy's house, the hub screen backdrop"
+ },
+ "logo": {
+  "files": {
+   "img": "logo.png"
+  },
+  "h": 130,
+  "kind": "ui",
+  "w": 340,
+  "what": "MONSTER HOP logo"
+ },
+ "map": {
+  "draft": false,
+  "files": {
+   "img": "map.png"
+  },
+  "h": 900,
+  "house": [
+   269.4,
+   842.0
+  ],
+  "kind": "ui",
+  "levels": {
+   "castle": [
+    [
+     140.5,
+     651.9
+    ],
+    [
+     235.5,
+     607.0
+    ],
+    [
+     256.9,
+     562.0
+    ],
+    [
+     257.2,
+     517.4
+    ]
+   ],
+   "city": [
+    [
+     224.8,
+     816.9
+    ],
+    [
+     164.4,
+     776.3
+    ],
+    [
+     124.1,
+     736.0
+    ],
+    [
+     87.6,
+     694.5
+    ]
+   ],
+   "desert": [
+    [
+     196.8,
+     473.2
+    ],
+    [
+     102.5,
+     429.8
+    ],
+    [
+     102.6,
+     385.7
+    ],
+    [
+     144.1,
+     342.7
+    ]
+   ],
+   "forest": [
+    [
+     189.9,
+     301.3
+    ],
+    [
+     258.3,
+     265.3
+    ],
+    [
+     287.1,
+     229.3
+    ],
+    [
+     238.0,
+     194.7
+    ]
+   ],
+   "house": [
+    269.4,
+    842.0
+   ]
+  },
+  "locked": {
+   "graveyard": [
+    257.6,
+    120.7
+   ],
+   "swamp": [
+    88.9,
+    131.8
+   ]
+  },
+  "pad_radius_px": 12.9,
+  "scroll": "vertical, zone 1 at the bottom",
+  "w": 368
+ }
+}

@@ -1,0 +1,1494 @@
+{
+ "_projection": {
+  "depth_empty": 255,
+  "depth_unit_m": 0.03125,
+  "floor_m": 0.5092285591855548,
+  "floor_px": 23,
+  "px_per_m": 63.245553203367585,
+  "px_x": [
+   60,
+   14
+  ],
+  "px_y": [
+   20,
+   -42
+  ],
+  "view_dir": [
+   -0.2258317917585373,
+   0.6774953603744507,
+   -0.699999988079071
+  ]
+ },
+ "desert_blk_brick_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_brick_v0.png",
+   "z": "desert_blk_brick_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_brick_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_brick_v1.png",
+   "z": "desert_blk_brick_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_brick_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_brick_v2.png",
+   "z": "desert_blk_brick_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_brick_win": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_brick_win.png",
+   "z": "desert_blk_brick_win_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_cracked_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_cracked_v0.png",
+   "z": "desert_blk_cracked_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_cracked_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_cracked_v1.png",
+   "z": "desert_blk_cracked_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_cracked_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_cracked_v2.png",
+   "z": "desert_blk_cracked_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_gold_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_gold_v0.png",
+   "z": "desert_blk_gold_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_gold_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_gold_v1.png",
+   "z": "desert_blk_gold_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_gold_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_gold_v2.png",
+   "z": "desert_blk_gold_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_oasis_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_oasis_v0.png",
+   "z": "desert_blk_oasis_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_oasis_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_oasis_v1.png",
+   "z": "desert_blk_oasis_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_oasis_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_oasis_v2.png",
+   "z": "desert_blk_oasis_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_sand_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_sand_v0.png",
+   "z": "desert_blk_sand_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_sand_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_sand_v1.png",
+   "z": "desert_blk_sand_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_sand_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_sand_v2.png",
+   "z": "desert_blk_sand_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_sandstone_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_sandstone_v0.png",
+   "z": "desert_blk_sandstone_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_sandstone_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_sandstone_v1.png",
+   "z": "desert_blk_sandstone_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_blk_sandstone_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_blk_sandstone_v2.png",
+   "z": "desert_blk_sandstone_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_boulder_x_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "x",
+  "files": {
+   "img": "desert_boulder_x_00.png",
+   "sh": "desert_boulder_x_00_sh.png",
+   "z": "desert_boulder_x_00_z.png"
+  },
+  "frame": 0,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -x",
+  "rolls_towards": "+x",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_boulder_x_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "x",
+  "files": {
+   "img": "desert_boulder_x_01.png",
+   "sh": "desert_boulder_x_01_sh.png",
+   "z": "desert_boulder_x_01_z.png"
+  },
+  "frame": 1,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -x",
+  "rolls_towards": "+x",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_boulder_x_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "x",
+  "files": {
+   "img": "desert_boulder_x_02.png",
+   "sh": "desert_boulder_x_02_sh.png",
+   "z": "desert_boulder_x_02_z.png"
+  },
+  "frame": 2,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -x",
+  "rolls_towards": "+x",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_boulder_x_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "x",
+  "files": {
+   "img": "desert_boulder_x_03.png",
+   "sh": "desert_boulder_x_03_sh.png",
+   "z": "desert_boulder_x_03_z.png"
+  },
+  "frame": 3,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -x",
+  "rolls_towards": "+x",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_boulder_x_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "x",
+  "files": {
+   "img": "desert_boulder_x_04.png",
+   "sh": "desert_boulder_x_04_sh.png",
+   "z": "desert_boulder_x_04_z.png"
+  },
+  "frame": 4,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -x",
+  "rolls_towards": "+x",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_boulder_x_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "x",
+  "files": {
+   "img": "desert_boulder_x_05.png",
+   "sh": "desert_boulder_x_05_sh.png",
+   "z": "desert_boulder_x_05_z.png"
+  },
+  "frame": 5,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -x",
+  "rolls_towards": "+x",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_boulder_x_06": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "x",
+  "files": {
+   "img": "desert_boulder_x_06.png",
+   "sh": "desert_boulder_x_06_sh.png",
+   "z": "desert_boulder_x_06_z.png"
+  },
+  "frame": 6,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -x",
+  "rolls_towards": "+x",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_boulder_x_07": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "x",
+  "files": {
+   "img": "desert_boulder_x_07.png",
+   "sh": "desert_boulder_x_07_sh.png",
+   "z": "desert_boulder_x_07_z.png"
+  },
+  "frame": 7,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -x",
+  "rolls_towards": "+x",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_boulder_y_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "y",
+  "files": {
+   "img": "desert_boulder_y_00.png",
+   "sh": "desert_boulder_y_00_sh.png",
+   "z": "desert_boulder_y_00_z.png"
+  },
+  "frame": 0,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -y",
+  "rolls_towards": "+y",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_boulder_y_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "y",
+  "files": {
+   "img": "desert_boulder_y_01.png",
+   "sh": "desert_boulder_y_01_sh.png",
+   "z": "desert_boulder_y_01_z.png"
+  },
+  "frame": 1,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -y",
+  "rolls_towards": "+y",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_boulder_y_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "y",
+  "files": {
+   "img": "desert_boulder_y_02.png",
+   "sh": "desert_boulder_y_02_sh.png",
+   "z": "desert_boulder_y_02_z.png"
+  },
+  "frame": 2,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -y",
+  "rolls_towards": "+y",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_boulder_y_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "y",
+  "files": {
+   "img": "desert_boulder_y_03.png",
+   "sh": "desert_boulder_y_03_sh.png",
+   "z": "desert_boulder_y_03_z.png"
+  },
+  "frame": 3,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -y",
+  "rolls_towards": "+y",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_boulder_y_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "y",
+  "files": {
+   "img": "desert_boulder_y_04.png",
+   "sh": "desert_boulder_y_04_sh.png",
+   "z": "desert_boulder_y_04_z.png"
+  },
+  "frame": 4,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -y",
+  "rolls_towards": "+y",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_boulder_y_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "y",
+  "files": {
+   "img": "desert_boulder_y_05.png",
+   "sh": "desert_boulder_y_05_sh.png",
+   "z": "desert_boulder_y_05_z.png"
+  },
+  "frame": 5,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -y",
+  "rolls_towards": "+y",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_boulder_y_06": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "y",
+  "files": {
+   "img": "desert_boulder_y_06.png",
+   "sh": "desert_boulder_y_06_sh.png",
+   "z": "desert_boulder_y_06_z.png"
+  },
+  "frame": 6,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -y",
+  "rolls_towards": "+y",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_boulder_y_07": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 32,
+  "ay": 52,
+  "deg_per_frame": 11.25,
+  "dir": "y",
+  "files": {
+   "img": "desert_boulder_y_07.png",
+   "sh": "desert_boulder_y_07_sh.png",
+   "z": "desert_boulder_y_07_z.png"
+  },
+  "frame": 7,
+  "frames": 8,
+  "h": 73,
+  "height_m": 0.9,
+  "kind": "dyn",
+  "loop_m": 0.7069,
+  "ms": 50,
+  "note": "play the frames backwards to roll towards -y",
+  "rolls_towards": "+y",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_brazier": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 108,
+  "ay": 76,
+  "files": {
+   "gl": "desert_brazier_gl.png",
+   "img": "desert_brazier.png",
+   "sh": "desert_brazier_sh.png",
+   "z": "desert_brazier_z.png"
+  },
+  "h": 152,
+  "height_m": 1.35,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 216
+ },
+ "desert_bridge_x": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 42,
+  "ay": 25,
+  "deck_z": 0.0,
+  "files": {
+   "img": "desert_bridge_x.png",
+   "sh": "desert_bridge_x_sh.png",
+   "z": "desert_bridge_x_z.png"
+  },
+  "h": 60,
+  "kind": "bridge",
+  "over": "desert_surf_water",
+  "shadow_z": -0.18,
+  "w": 90,
+  "walk": "x"
+ },
+ "desert_bridge_y": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 37,
+  "ay": 29,
+  "deck_z": 0.0,
+  "files": {
+   "img": "desert_bridge_y.png",
+   "sh": "desert_bridge_y_sh.png",
+   "z": "desert_bridge_y_z.png"
+  },
+  "h": 67,
+  "kind": "bridge",
+  "over": "desert_surf_water",
+  "shadow_z": -0.18,
+  "w": 80,
+  "walk": "y"
+ },
+ "desert_cactus": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 27,
+  "ay": 71,
+  "files": {
+   "img": "desert_cactus.png",
+   "sh": "desert_cactus_sh.png",
+   "z": "desert_cactus_z.png"
+  },
+  "h": 82,
+  "height_m": 1.45,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 103
+ },
+ "desert_cactus_small": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 19,
+  "ay": 27,
+  "files": {
+   "img": "desert_cactus_small.png",
+   "sh": "desert_cactus_small_sh.png",
+   "z": "desert_cactus_small_z.png"
+  },
+  "h": 44,
+  "height_m": 0.46,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 44
+ },
+ "desert_camel": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 23,
+  "ay": 52,
+  "faces": "+x",
+  "files": {
+   "img": "desert_camel.png",
+   "sh": "desert_camel_sh.png",
+   "z": "desert_camel_z.png"
+  },
+  "footprint": [
+   2,
+   1
+  ],
+  "h": 80,
+  "height_m": 1.33,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 160
+ },
+ "desert_column": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 32,
+  "ay": 154,
+  "files": {
+   "img": "desert_column.png",
+   "sh": "desert_column_sh.png",
+   "z": "desert_column_z.png"
+  },
+  "h": 173,
+  "height_m": 3.0,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 187
+ },
+ "desert_crate": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 42,
+  "ay": 53,
+  "files": {
+   "img": "desert_crate.png",
+   "z": "desert_crate_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "h": 83,
+  "height_m": 0.5092,
+  "kind": "dyn",
+  "pushable": true,
+  "w": 84
+ },
+ "desert_dart_x": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 50,
+  "ay": 37,
+  "files": {
+   "img": "desert_dart_x.png",
+   "sh": "desert_dart_x_sh.png",
+   "z": "desert_dart_x_z.png"
+  },
+  "flies_towards": "+x",
+  "h": 41,
+  "height_m": 0.5,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "w": 90
+ },
+ "desert_dart_y": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 8,
+  "ay": 59,
+  "files": {
+   "img": "desert_dart_y.png",
+   "sh": "desert_dart_y_sh.png",
+   "z": "desert_dart_y_z.png"
+  },
+  "flies_towards": "-y",
+  "h": 69,
+  "height_m": 0.5,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "w": 49
+ },
+ "desert_dartwall": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "dart_dirs": [
+   "-y",
+   "+x"
+  ],
+  "files": {
+   "img": "desert_dartwall.png",
+   "z": "desert_dartwall_z.png"
+  },
+  "h": 86,
+  "holes_z_m": 0.28,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_fill_brick": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_fill_brick.png",
+   "z": "desert_fill_brick_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_fill_sand": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_fill_sand.png",
+   "z": "desert_fill_sand_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_fill_sandstone": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_fill_sandstone.png",
+   "z": "desert_fill_sandstone_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "desert_gate_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 37,
+  "ay": 131,
+  "exit": true,
+  "files": {
+   "img": "desert_gate_00.png",
+   "sh": "desert_gate_00_sh.png",
+   "z": "desert_gate_00_z.png"
+  },
+  "frame": 0,
+  "frames": 7,
+  "h": 148,
+  "height_m": 2.48,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 181
+ },
+ "desert_gate_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 37,
+  "ay": 131,
+  "exit": true,
+  "files": {
+   "img": "desert_gate_01.png",
+   "sh": "desert_gate_01_sh.png",
+   "z": "desert_gate_01_z.png"
+  },
+  "frame": 1,
+  "frames": 7,
+  "h": 148,
+  "height_m": 2.48,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 181
+ },
+ "desert_gate_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 37,
+  "ay": 131,
+  "exit": true,
+  "files": {
+   "img": "desert_gate_02.png",
+   "sh": "desert_gate_02_sh.png",
+   "z": "desert_gate_02_z.png"
+  },
+  "frame": 2,
+  "frames": 7,
+  "h": 148,
+  "height_m": 2.48,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 181
+ },
+ "desert_gate_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 37,
+  "ay": 131,
+  "exit": true,
+  "files": {
+   "img": "desert_gate_03.png",
+   "sh": "desert_gate_03_sh.png",
+   "z": "desert_gate_03_z.png"
+  },
+  "frame": 3,
+  "frames": 7,
+  "h": 148,
+  "height_m": 2.48,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 181
+ },
+ "desert_gate_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 37,
+  "ay": 131,
+  "exit": true,
+  "files": {
+   "img": "desert_gate_04.png",
+   "sh": "desert_gate_04_sh.png",
+   "z": "desert_gate_04_z.png"
+  },
+  "frame": 4,
+  "frames": 7,
+  "h": 148,
+  "height_m": 2.48,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 181
+ },
+ "desert_gate_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 37,
+  "ay": 131,
+  "exit": true,
+  "files": {
+   "img": "desert_gate_05.png",
+   "sh": "desert_gate_05_sh.png",
+   "z": "desert_gate_05_z.png"
+  },
+  "frame": 5,
+  "frames": 7,
+  "h": 148,
+  "height_m": 2.48,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 181
+ },
+ "desert_gate_06": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 104,
+  "ay": 131,
+  "exit": true,
+  "files": {
+   "gl": "desert_gate_06_gl.png",
+   "img": "desert_gate_06.png",
+   "sh": "desert_gate_06_sh.png",
+   "z": "desert_gate_06_z.png"
+  },
+  "frame": 6,
+  "frames": 7,
+  "h": 206,
+  "height_m": 2.48,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 248
+ },
+ "desert_obelisk": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 36,
+  "ay": 139,
+  "files": {
+   "img": "desert_obelisk.png",
+   "sh": "desert_obelisk_sh.png",
+   "z": "desert_obelisk_z.png"
+  },
+  "h": 165,
+  "height_m": 3.0,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 170
+ },
+ "desert_palm": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 63,
+  "ay": 146,
+  "files": {
+   "img": "desert_palm.png",
+   "sh": "desert_palm_sh.png",
+   "z": "desert_palm_z.png"
+  },
+  "h": 163,
+  "height_m": 2.8,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 204
+ },
+ "desert_rock": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 35,
+  "ay": 37,
+  "files": {
+   "img": "desert_rock.png",
+   "sh": "desert_rock_sh.png",
+   "z": "desert_rock_z.png"
+  },
+  "h": 56,
+  "height_m": 0.52,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 73
+ },
+ "desert_scarab": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 32,
+  "ay": 39,
+  "files": {
+   "img": "desert_scarab.png",
+   "sh": "desert_scarab_sh.png",
+   "z": "desert_scarab_z.png"
+  },
+  "h": 63,
+  "height_m": 0.82,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 74
+ },
+ "desert_sphinx": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 37,
+  "ay": 86,
+  "files": {
+   "img": "desert_sphinx.png",
+   "sh": "desert_sphinx_sh.png",
+   "z": "desert_sphinx_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "h": 127,
+  "height_m": 1.7,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 160
+ },
+ "desert_statue": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 36,
+  "ay": 90,
+  "files": {
+   "img": "desert_statue.png",
+   "sh": "desert_statue_sh.png",
+   "z": "desert_statue_z.png"
+  },
+  "h": 116,
+  "height_m": 1.75,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 125
+ },
+ "desert_surf_quicksand_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_surf_quicksand_v0.png",
+   "z": "desert_surf_quicksand_v0_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "w": 88
+ },
+ "desert_surf_quicksand_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_surf_quicksand_v1.png",
+   "z": "desert_surf_quicksand_v1_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "w": 88
+ },
+ "desert_surf_quicksand_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_surf_quicksand_v2.png",
+   "z": "desert_surf_quicksand_v2_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "w": 88
+ },
+ "desert_surf_water_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_surf_water_v0.png",
+   "z": "desert_surf_water_v0_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "w": 88
+ },
+ "desert_surf_water_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_surf_water_v1.png",
+   "z": "desert_surf_water_v1_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "w": 88
+ },
+ "desert_surf_water_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "desert_surf_water_v2.png",
+   "z": "desert_surf_water_v2_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "w": 88
+ },
+ "desert_tent": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 37,
+  "ay": 109,
+  "files": {
+   "img": "desert_tent.png",
+   "sh": "desert_tent_sh.png",
+   "z": "desert_tent_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "h": 149,
+  "height_m": 1.75,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 206
+ },
+ "desert_urn": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 18,
+  "ay": 40,
+  "files": {
+   "img": "desert_urn.png",
+   "sh": "desert_urn_sh.png",
+   "z": "desert_urn_z.png"
+  },
+  "h": 52,
+  "height_m": 0.8,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 60
+ }
+}

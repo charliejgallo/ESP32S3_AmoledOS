@@ -1,0 +1,73 @@
+{
+ "_projection": {
+  "depth_empty": 255,
+  "depth_unit_m": 0.03125,
+  "floor_m": 0.5092285591855548,
+  "floor_px": 23,
+  "px_per_m": 63.245553203367585,
+  "px_x": [
+   60,
+   14
+  ],
+  "px_y": [
+   20,
+   -42
+  ],
+  "view_dir": [
+   -0.2258317917585373,
+   0.6774953603744507,
+   -0.699999988079071
+  ]
+ },
+ "blk_dirt": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "blk_dirt.png",
+   "z": "blk_dirt_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "blk_grass": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "blk_grass.png",
+   "z": "blk_grass_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "tommy_test": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 20,
+  "ay": 53,
+  "files": {
+   "id": "tommy_test_id.png",
+   "img": "tommy_test.png",
+   "sh": "tommy_test_sh.png",
+   "z": "tommy_test_z.png"
+  },
+  "h": 64,
+  "kind": "char",
+  "shadow_z": 0.0,
+  "w": 76
+ }
+}
