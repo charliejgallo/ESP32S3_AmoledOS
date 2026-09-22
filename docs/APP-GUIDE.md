@@ -459,7 +459,8 @@ of that kind:
 - **Skip LVGL for the frame.** A full-screen canvas through LVGL is ~95 ms;
   `aos_hal_display_blit()` pushes the same 330 KB in 16.5 ms. Render in the
   worker into PSRAM buffers (three: one on the panel, one ready, one being
-  drawn) and push the newest from an LVGL timer. Anything on top (the clock,
+  drawn; a fourth when there is room, see below) and push the newest from
+  an LVGL timer. Anything on top (the clock,
   the pedals, banners) is drawn into the frame; render its words from `_()`
   into masks once, in `create()`, and bake them into sprites.
 - **Put the worker on core 0** with `aos_hal_worker_start_on()`. LVGL is
@@ -481,8 +482,43 @@ of that kind:
   race and writes one line per race to a file on the card: the log's ring
   turns over in minutes.
 
-Measured: 24 to 27 fps over whole races on five stages (it started at 12).
+- **A fourth buffer when there is room** (v0.4.11). With three, the worker
+  often finished a frame before LVGL had pushed the previous one and slept a
+  whole tick: 2-4 ms per frame. Ask for it after the race's first frame,
+  once the peak of colouring the car has passed, and only if 600 KB stay
+  free after it; give it back when a stage loads. No setting.
+
+Measured: 25 to 31 fps over whole races on seven stages (it started at 12).
 The breakdown and the order of the fixes are in `apps/turbo/README.md`.
+
+### 6.9 An app that grows with content
+
+Turbo went from five stages to seven in v0.4.12 without touching the
+firmware. For any app with levels, maps or characters added over time:
+
+- **Keep in PSRAM only what this round uses.** Each level is a row of a
+  table (its props, its vehicles, how it opens); loading it loads its assets
+  and frees the rest. That freed 0.4-0.9 MB per race, and the budget for a
+  new stage comes from measuring: props plus its traffic's vehicles up to
+  ~3.7 MB keep the fourth buffer.
+- **The memory peak is when the level CHANGES**, not while playing: the old
+  level with its caches and the new one half loaded live together. Dropping
+  the caches before loading raised the floor from 371 KB to 1.1 MB.
+- **Numbers that are stored or sent are forever.** A stage's number keys its
+  records (`tb_best<n>`) and is what the link sends: the order on screen is
+  separate (`tb_stage_order()`), and new stages go at the end of the enum
+  even when the list shows them in the middle.
+- **One preference per number, not packed bits.** Four bits of paint per car
+  in one key capped it at 16 paints and 8 cars; one key per car, with the
+  old key read once and carried over, has no cap.
+- **Version the link protocol.** A version number and variable-length lists
+  in the hello; with another version the lobby says so instead of hanging.
+  Then install the app on both watches together.
+- **A switch file on the card for measuring on the board.** Turbo reads
+  `apps/turbo_dev.txt` (`auto unlock go N`: the bot drives, everything is
+  open, that stage starts by itself; `reset`); `tools/board_race.sh` writes
+  it, measures, and `clean` puts everything back. No taps, and the file is
+  not forgotten.
 
 ## 7. The icon
 
@@ -526,6 +562,13 @@ python3 tools/gen_lang.py unmarked        # interface text you did not wrap
 
 `template` never overwrites a translation: it adds new keys and flags the
 orphans. A whole new language is the same command with another code.
+
+**New strings go to two places**: the firmware's built-in catalogue
+(`python3 tools/gen_lang.py embed en de`, both codes: with one, the other
+language is dropped whole) and the card's pack (`install_lang.sh <ip> en
+de`). **A pack on the card wins over the firmware's**: with an old one in
+`/sdcard/lang/en`, new strings show in Spanish even though the firmware has
+them.
 
 ## 9. Data from the internet
 
@@ -1290,6 +1333,8 @@ pauses: an app without `KEEP_AWAKE` is closed when the screen times out.
 - [ ] anything recomputed every frame over a list compares before writing a style, and invalidates under 32 objects a frame
 - [ ] nothing clickable beyond the touch window; checked with `audit_layout.sh`, not by eye
 - [ ] no `lv_font_montserrat_*`: `aos_font_*` or `aos_montserrat_*`
+- [ ] new strings in both the built-in catalogue (`embed en de`) and the card's pack
+- [ ] if it talks over the link: a protocol version in the hello, and a message when they differ
 - [ ] every visible string in `_()`, `gen_lang.py unmarked` clean, every `N_()` paired with a `_()`, the app's name in `_sistema.lang`
 - [ ] `gen_lang.py check <lang>` clean, `audit_layout.sh es en de xx` without regressions
 - [ ] if it draws with a bitmap font of its own, those strings are transliterated and widths are counted in characters, not bytes
