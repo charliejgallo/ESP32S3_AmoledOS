@@ -67,6 +67,8 @@ bool tb_art_ok(void);
 bool tb_art_load_vehicles(void);
 /* one car's near frames (the one driven, or looked at in the garage) */
 bool tb_art_load_near(int car);
+/* the near frames are only needed until the renderer colours them (~350 KB) */
+void tb_art_drop_near(void);
 /* the backdrop is only needed until the renderer composites it */
 void tb_art_drop_backdrop(void);
 /* the props a track uses and its backdrop (drops the previous stage's) */

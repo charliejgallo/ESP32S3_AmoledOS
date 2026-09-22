@@ -3,6 +3,16 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.4.11 — 2026-09-22
+
+**Turbo** gets a fourth frame buffer when PSRAM allows (asked for after the
+race's first frame, only with 600 KB left over): with three the worker waited
+2-4 ms a frame for LVGL to push one. Measured on the board: 26.7 fps in the
+city (24.9), 30.3 on the coast (26.0), 31.5 in the desert (26.6), 24.7 in the
+mountains (24.0), 28.9 in space (25.3). The player's car frames are dropped
+once coloured and the coloured car while a stage loads, which lifts the
+lowest free PSRAM from 371 to 723 KB. Needs no new firmware.
+
 ## v0.4.10 — 2026-09-22
 
 **Turbo**, a new dynamic app (`turbo.so` + `turbo.pak`, `demo.turbo`): an

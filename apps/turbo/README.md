@@ -81,7 +81,7 @@ times even when the two never race at once.
 
 A full-screen canvas through LVGL costs ~95 ms a frame (docs/VIDEO.md), so
 the race does not use LVGL at all: the app's worker steps the race and
-renders into three PSRAM buffers, and an LVGL timer pushes the newest one
+renders into three PSRAM buffers (four when there is room), and an LVGL timer pushes the newest one
 with `aos_hal_display_blit()` (16.5 ms). The HUD is drawn into the frame;
 its words are rendered once from `_()` by LVGL into masks when the app opens,
 so they follow the language. The panels (menu, garage, results) are LVGL
@@ -127,11 +127,11 @@ Frames per second over whole races with the bot driving (charlie.local,
 
 | Stage | fps | render | |
 | --- | --- | --- | --- |
-| Metro Freeway | 24.9 | 36 ms | props 12, copy 7, road 6, car 4, HUD 3, sky 2 |
-| Costa Azul | 26.0 | 31 ms | |
-| Red Canyon | 26.6 | 30 ms | |
-| Snow Pass | 24.0 | 39 ms | road 12 (the headlights) |
-| Orbit 9 | 25.3 | 34 ms | |
+| Metro Freeway | 26.7 | 36 ms | props 12, copy 7, road 6, car 4, HUD 3, sky 2 |
+| Costa Azul | 30.3 | 32 ms | |
+| Red Canyon | 31.5 | 30 ms | |
+| Snow Pass | 24.7 | 39 ms | road 12 (the headlights) |
+| Orbit 9 | 28.9 | 34 ms | |
 
 It started at 12 fps. What moved it, in order: the worker off LVGL's core
 (16 → 19); `tb_blend()` inline instead of a call into another file for every
@@ -140,14 +140,22 @@ segment, the HUD formatted once, the player's car coloured once per paint
 with its opaque middle copied by `memcpy`, the traffic's colour tables
 rebuilt only when their fog step changes (19 → 24.5); at night the headlights
 painting each row in five pieces from brighter palettes instead of scaling
-every pixel after painting it (Snow Pass 19.5 → 24). The frame is drawn in
+every pixel after painting it (Snow Pass 19.5 → 24); and a fourth frame
+buffer, because with three the worker waited 2-4 ms a frame for LVGL to push
+one (its sleep is a whole 10 ms tick): 24.9 → 26.7 in the city, 26 → 30 on
+the coast, 26.6 → 31.5 in the desert. The frame is drawn in
 bands of 64 rows in internal RAM and copied out, which by itself did not
 speed anything up (the CPU is the wall, not the PSRAM) but is what the rest
 is built on.
 
-Memory: internal RAM 46 KB for the band plus the worker's 12 KB stack;
-PSRAM ~1.1 MB free while racing (the three frames, the canvas, the vehicles,
-the stage's props and the player's coloured car).
+Memory: internal RAM 46 KB for the band plus the worker's 12 KB stack. The
+fourth frame (330 KB of PSRAM) is asked for after the race's first frame,
+once the car is coloured, and only if 600 KB stay free after it; it is given
+back when a stage loads or the menu opens. Measured while racing with four:
+0.84 MB free in the city, 1.02 on the coast, 1.37 in the mountains; the
+lowest point since boot is 0.72 MB, when the app opens (the coloured car is
+dropped while a stage loads, or its 600 KB plus the new stage's backdrop
+left 371 KB at the worst moment).
 
 Each race appends a line to `/sdcard/apps/turbo_stats.txt` with its frame
 rate and the milliseconds of every part of the frame (the log's ring turns

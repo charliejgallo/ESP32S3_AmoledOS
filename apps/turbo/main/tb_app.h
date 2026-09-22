@@ -26,7 +26,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define TB_NFB      3
+#define TB_NFB      4           /* at most; the 4th only when PSRAM allows */
+#define TB_FB_SPARE (600 * 1024) /* PSRAM that must stay free after the 4th  */
 #define TB_BAND     64          /* rows per band of internal RAM (46 KB)  */
 
 enum { FB_FREE = 0, FB_BUSY, FB_READY, FB_SHOWN };
@@ -61,6 +62,8 @@ struct app {
     volatile uint32_t fb_seq[TB_NFB];
     uint32_t    seq;
     int         shown;              /* the buffer on the panel, -1 none      */
+    volatile int nfb;               /* buffers in use, 3 or 4                */
+    bool        spare_checked;      /* the 4th was asked for (spare_frame)   */
 
     /* the worker's side */
     volatile int  job;              /* JOB_*, set by the UI, cleared when done */

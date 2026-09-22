@@ -29,6 +29,8 @@ tb_render_t *tb_render_new(void);
 void tb_render_free(tb_render_t *r);
 /* a stage's colours and textures (after tb_art_load_stage) */
 void tb_render_stage(tb_render_t *r, const tb_track_t *t);
+/* frees the player's coloured car (~600 KB); the next frame colours it again */
+void tb_render_car_drop(tb_render_t *r);
 /* the player's paint (the garage) */
 void tb_render_paint(tb_render_t *r, const tb_paint_t *p, const tb_paint_t *rival);
 /* one frame of the world: sky, road, scenery, traffic, the car */

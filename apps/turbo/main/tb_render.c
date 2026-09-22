@@ -478,12 +478,19 @@ static void car_cache_free(tb_render_t *r)
     r->cc_valid = false;
 }
 
+void tb_render_car_drop(tb_render_t *r)
+{
+    car_cache_free(r);
+}
+
 static void car_cache(tb_render_t *r, int car)
 {
     bool night = r->th.night;
     if (r->cc_valid && r->cc_car == car && r->cc_night == night &&
         !memcmp(&r->cc_paint, &r->paint_player, sizeof(tb_paint_t))) return;
     car_cache_free(r);
+    /* the frames as ids and light, read again if they were dropped */
+    tb_art_load_near(car);
     tb_lut_t lut;
     tb_lut_build(&lut, &r->paint_player, 0, 0, false, night);
     for (int f = 0; f < TB_NEAR_FRAMES; f++) {
@@ -527,6 +534,8 @@ static void car_cache(tb_render_t *r, int car)
     r->cc_paint = r->paint_player;
     r->cc_valid = true;
     tb_lut_build(&r->lut_brake, &r->paint_player, 0, 0, true, night);
+    /* coloured: the id + light frames are not needed until the paint changes */
+    tb_art_drop_near();
 }
 
 /* the frame's geometry, once: where every segment lands, which rows each

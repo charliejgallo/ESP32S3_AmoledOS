@@ -198,7 +198,7 @@ screen, and checkpoints refill the clock.
 
 A full frame through LVGL is 95 ms, so the race skips LVGL: a worker on the
 other core renders into PSRAM buffers, in bands of internal RAM, and an LVGL
-timer pushes each frame straight to the panel. 24 to 27 fps on the board,
+timer pushes each frame straight to the panel. 25 to 31 fps on the board,
 measured over whole races; the story of how it got there from 12 is in
 [apps/turbo/README.md](apps/turbo/README.md). Two paired watches race the
 same stage at once, each seeing the other as a ghost.

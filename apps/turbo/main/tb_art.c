@@ -575,6 +575,11 @@ bool tb_art_load_near(int car)
     return ok == TB_NEAR_FRAMES;
 }
 
+void tb_art_drop_near(void)
+{
+    free_near();
+}
+
 void tb_art_drop_backdrop(void)
 {
     free(s_bg.px);

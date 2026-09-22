@@ -144,6 +144,10 @@ static void ensure_stage(app_t *a, int stage)
 {
     if (a->loaded_stage == stage) return;
     uint64_t t0 = aos_hal_uptime_ms();
+    /* the coloured car goes while the stage loads: the new props and the
+     * backdrop (490 KB until composited) with it still in memory left
+     * 371 KB of PSRAM free at the worst moment */
+    tb_render_car_drop(a->ren);
     tb_track_free(&a->trk);
     if (!tb_track_build(&a->trk, stage)) {
         aos_hal_log("turbo", "stage %d: out of memory", stage);
@@ -164,7 +168,6 @@ static void ensure_stage(app_t *a, int stage)
 static void render_scene(app_t *a)
 {
     ensure_stage(a, a->job_stage);
-    tb_art_load_near(a->scene_car);
     if (a->loaded_stage < 0) return;
     tb_paint_t p;
     tb_paint_get(a->scene_paint, &p);
@@ -209,7 +212,6 @@ static void run_job(app_t *a, int j)
     }
     case JOB_STAGE:
         ensure_stage(a, a->job_stage);
-        tb_art_load_near(a->car);
         break;
     case JOB_SCENE:
         render_scene(a);
@@ -221,10 +223,32 @@ static void run_job(app_t *a, int j)
 
 static int free_fb(app_t *a)
 {
-    for (int i = 0; i < TB_NFB; i++) {
+    for (int i = 0; i < a->nfb; i++) {
         if (a->fb_state[i] == FB_FREE) return i;
     }
     return -1;
+}
+
+/* A fourth frame if PSRAM allows: with three the worker waited 2-4 ms a
+ * frame for LVGL to push one (its sleep is a whole 10 ms tick), and a
+ * fourth made the stages 1-5 fps faster. Asked for after the first frame,
+ * when the player's car is coloured (at night it is coloured again at the
+ * start, and that peak is what the spare margin must survive). */
+static void spare_frame(app_t *a)
+{
+    a->spare_checked = true;
+    uint32_t hi = 0, hp = 0;
+    aos_hal_heap_info(&hi, &hp);
+    if (!a->fb[3] && hp > (uint32_t)(TB_W * TB_H * 2) + TB_FB_SPARE) {
+        uint16_t *f = (uint16_t *)tb_malloc((size_t)TB_W * TB_H * 2);
+        if (f) {
+            a->fb_state[3] = FB_FREE;
+            a->fb[3] = f;
+            a->nfb = 4;                 /* last: the UI loops up to nfb */
+        }
+    }
+    aos_hal_heap_info(&hi, &hp);
+    aos_hal_log("turbo", "race with %d frame buffers | psram %u B free", a->nfb, (unsigned)hp);
 }
 
 static void race_frame(app_t *a)
@@ -305,6 +329,7 @@ static void race_frame(app_t *a)
     a->w_frames++;
     a->fb_seq[i] = ++a->seq;
     a->fb_state[i] = FB_READY;
+    if (!a->spare_checked) spare_frame(a);
     worker_yield();
 }
 
@@ -520,6 +545,17 @@ static void hud_build(app_t *a)
 
 static void menu_refresh(app_t *a);
 static void select_refresh(app_t *a);
+
+/* the 4th frame is only for racing: loading a stage or recolouring the car
+ * in the garage want the room */
+static void spare_free(app_t *a)
+{
+    if (!a->fb[3] || a->racing) return;
+    if (a->shown == 3) a->shown = -1;
+    a->nfb = 3;
+    free(a->fb[3]);
+    a->fb[3] = NULL;
+}
 static void garage_refresh(app_t *a);
 static void settings_refresh(app_t *a);
 
@@ -539,6 +575,7 @@ void tba_set_state(app_t *a, int st)
     a->st_ms = 0;
     switch (st) {
     case ST_MENU:
+        spare_free(a);
         menu_refresh(a);
         show_panel(a, a->p_menu);
         if (prev != ST_BOOT) scene(a, a->loaded_stage >= 0 ? a->loaded_stage : 0, a->car, a->paint[a->car], 0);
@@ -581,6 +618,8 @@ void tba_set_state(app_t *a, int st)
 
 void tba_race_start(app_t *a, int stage)
 {
+    /* each race decides again, after its stage and its car are in memory */
+    spare_free(a);
     a->stage = stage;
     char b[64];
     snprintf(b, sizeof b, "%s\n%s", _("Cargando"), tb_stage_name(stage));
@@ -613,6 +652,10 @@ static void race_go(app_t *a)
     a->gas = a->brake = false;
     a->steer = 0;
     a->ev_r = a->ev_w;
+    /* the race starts with three frames; the worker adds a fourth after
+     * its first frame, once the car is coloured (spare_frame) */
+    a->nfb = a->fb[3] ? 4 : 3;
+    a->spare_checked = false;
     for (int i = 0; i < TB_NFB; i++) a->fb_state[i] = FB_FREE;
     a->shown = -1;
     a->paused = false;
@@ -842,7 +885,7 @@ static void push_frame(app_t *a)
 {
     int best = -1;
     uint32_t bs = 0;
-    for (int i = 0; i < TB_NFB; i++) {
+    for (int i = 0; i < a->nfb; i++) {
         if (a->fb_state[i] == FB_READY && (best < 0 || a->fb_seq[i] > bs)) {
             best = i;
             bs = a->fb_seq[i];
@@ -850,7 +893,7 @@ static void push_frame(app_t *a)
     }
     if (best < 0) return;
     /* older ready frames are dropped */
-    for (int i = 0; i < TB_NFB; i++) {
+    for (int i = 0; i < a->nfb; i++) {
         if (i != best && a->fb_state[i] == FB_READY) a->fb_state[i] = FB_FREE;
     }
     if (!aos_hal_display_blit(0, 0, TB_W, TB_H, a->fb[best])) {
@@ -1502,10 +1545,11 @@ static void *turbo_create(aos_app_t *self, lv_obj_t *root)
     aos_hal_heap_info(&hi, &hp);
     aos_hal_log("turbo", "opening | internal %u B, psram %u B", (unsigned)hi, (unsigned)hp);
     bool ok = true;
-    for (int i = 0; i < TB_NFB; i++) {
+    for (int i = 0; i < 3; i++) {
         a->fb[i] = (uint16_t *)tb_malloc((size_t)TB_W * TB_H * 2);
         if (!a->fb[i]) ok = false;
     }
+    a->nfb = 3;
     a->cv = (uint16_t *)tb_malloc((size_t)TB_W * TB_H * 2);
     a->band = (uint16_t *)tb_malloc_internal((size_t)TB_W * TB_BAND * 2);
     a->ren = tb_render_new();

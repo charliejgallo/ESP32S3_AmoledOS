@@ -16,6 +16,13 @@ H=http://${2:-192.168.1.107}
 tap() { curl -s -m 6 "$H/api/mem?tap=$1" > /dev/null; }
 stats() { curl -s -m 6 "$H/api/download?dir=apps&name=turbo_stats.txt"; }
 
+# the count before this race, once the portal answers (right after a boot
+# the download comes back empty and every old line looked new)
+for i in $(seq 1 30); do
+    code=$(curl -s -m 6 -o /dev/null -w "%{http_code}" "$H/api/download?dir=apps&name=turbo_stats.txt")
+    [ "$code" = "200" ] || [ "$code" = "404" ] && break
+    sleep 2
+done
 before=$(stats | grep -c "race:")
 tap 184,20; sleep 1
 apps=$(curl -s -m 8 "$H/api/apps")
