@@ -63,8 +63,10 @@ void tb_paint_traffic(int i, tb_paint_t *out);
 bool tb_art_open(const char *path);         /* the table                      */
 void tb_art_close(void);                    /* everything                     */
 bool tb_art_ok(void);
-/* every vehicle's far views and the cars' shadows (~1.5 MB) */
-bool tb_art_load_vehicles(void);
+/* the far views of the vehicles in mask (1 << VH_* / CAR_*), freeing the
+ * others; the first call also reads the cars' shadows */
+bool tb_art_load_vehicles(uint32_t mask);
+uint32_t tb_art_vehicles_loaded(void);
 /* one car's near frames (the one driven, or looked at in the garage) */
 bool tb_art_load_near(int car);
 /* the near frames are only needed until the renderer colours them (~350 KB) */

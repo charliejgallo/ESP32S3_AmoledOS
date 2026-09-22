@@ -924,14 +924,16 @@ def build_wedge():
 # Shared helpers for the other vehicles
 # ---------------------------------------------------------------------------
 
-def cut_with(car, ob, cmb):
+def cut_with(car, ob, cmb, use_self=False):
     """boolean-difference the (hidden) MB cmb out of ob; cut faces take the
-    cutter's material keys"""
+    cutter's material keys (use_self: for a loft that the solver otherwise
+    reads inside-out and returns empty, e.g. the hearse's greenhouse)"""
     cut = mb_object(car.key + '_cutter', cmb, car.coll, smooth_angle=30)
     cut.hide_render = True
     m = ob.modifiers.new('cut', 'BOOLEAN')
     m.operation = 'DIFFERENCE'
     m.solver = 'EXACT'
+    m.use_self = use_self
     m.object = cut
     apply_modifiers(ob)
     bpy.data.objects.remove(cut)
@@ -1470,10 +1472,243 @@ def build_truck():
     return car
 
 
+# --- the hearse (added v0.4.12, traffic, far views only) --------------------
+
+def cabin_side_x(b, y, z):
+    """outer x of the cabin (greenhouse) at (y, z)"""
+    ring = b.cabin_prof(y)
+    half = ring[:len(ring) // 2 + 1]
+    best = None
+    for (x0, z0), (x1, z1) in zip(half[:-1], half[1:]):
+        if x0 < 0 or x1 < 0:
+            continue
+        if (z0 - z) * (z1 - z) <= 0 and abs(z1 - z0) > 1e-6:
+            x = x0 + (x1 - x0) * (z - z0) / (z1 - z0)
+            best = x if best is None else max(best, x)
+    return best if best is not None else max(x for x, _ in half)
+
+
+def hexa(mb, pts, key):
+    """hexahedron from 8 corners ordered like MB.box: for z (lo, hi), for y (lo, hi), for x (lo, hi)"""
+    base = len(mb.v)
+    for p in pts:
+        mb.v.append(Vector(p))
+    for q in ((0, 2, 3, 1), (4, 5, 7, 6), (0, 1, 5, 4), (2, 6, 7, 3), (0, 4, 6, 2), (1, 3, 7, 5)):
+        mb.face([base + i for i in q], key)
+
+
+def sweep(mb, path, a, b, key, outward, n=10, cap=True):
+    """tube along path (list of Vector) with an elliptic section: half-width a
+    across the path in the surface, half-depth b along `outward`"""
+    outward = Vector(outward)
+    rings = []
+    m = len(path)
+    for i, p in enumerate(path):
+        t = (path[min(i + 1, m - 1)] - path[max(i - 1, 0)]).normalized()
+        nrm = (outward - t * outward.dot(t)).normalized()
+        bi = t.cross(nrm)
+        rings.append([mb.vert(p + bi * a * math.cos(2 * math.pi * k / n) + nrm * b * math.sin(2 * math.pi * k / n))
+                      for k in range(n)])
+    for j in range(m - 1):
+        for k in range(n):
+            k2 = (k + 1) % n
+            mb.face((rings[j][k], rings[j][k2], rings[j + 1][k2], rings[j + 1][k]), key)
+    if cap:
+        mb.face(rings[0][::-1], key)
+        mb.face(rings[-1], key)
+
+
+def prism_y(mb, ring, y0, y1, key):
+    """a closed prism along Y with the (x, z) ring as its section"""
+    a = [mb.vert((x, y0, z)) for x, z in ring]
+    b_ = [mb.vert((x, y1, z)) for x, z in ring]
+    n = len(ring)
+    for i in range(n):
+        j = (i + 1) % n
+        mb.face((a[i], a[j], b_[j], b_[i]), key)
+    mb.face(a[::-1], key)
+    mb.face(b_, key)
+
+
+def drape(mb, o, u, v, nrm, W, H, period, amp, key, seg=12):
+    """a hanging curtain: a sheet from o, W along u and H along v, pleated
+    (a cosine ripple of the given period and amplitude) along nrm"""
+    nu = max(2, int(round(W / period * seg)))
+    rows = []
+    for j in range(3):
+        row = []
+        for i in range(nu + 1):
+            a = W * i / nu
+            d = amp * math.cos(2 * math.pi * a / period) * (1.0 + 0.25 * math.sin(2 * math.pi * a / (period * 3.7)))
+            row.append(mb.vert(o + u * a + v * (H * j / 2) + nrm * d))
+        rows.append(row)
+    for j in range(2):
+        for i in range(nu):
+            mb.face((rows[j][i], rows[j][i + 1], rows[j + 1][i + 1], rows[j + 1][i]), key)
+
+
+def bez3(p0, p1, p2, p3, t):
+    u = 1 - t
+    return tuple(u ** 3 * a + 3 * u * u * t * b_ + 3 * u * t * t * c + t ** 3 * d
+                 for a, b_, c, d in zip(p0, p1, p2, p3))
+
+
+def build_hearse():
+    """long 1980s American hearse on a station-wagon body: formal flat roof
+    running to the rear door, curtained rear windows, chrome landau bars on
+    the blind rear quarters, fender skirts, a thin paint-B pinstripe"""
+    car = Car('hearse')
+    L = 5.76
+    bk = [
+        (0.00, dict(zb=0.36, zs=0.92, zt=0.95, wb=0.88, wc=0.995, ws=0.965, rt=0.05, rb=0.04, zcf=0.5)),
+        (0.16, dict(zb=0.27)),
+        (0.45, dict(wb=0.92, wc=1.025, ws=0.99)),
+        (3.95, dict(zs=0.93, zt=0.96)),
+        (4.40, dict(zs=0.91, zt=0.945)),
+        (5.47, dict(zs=0.86, zt=0.895, zb=0.29)),
+        (5.76, dict(zs=0.78, zt=0.82, wb=0.84, wc=0.94, ws=0.90, zb=0.36)),
+    ]
+    C0 = 0.015                       # the cabin's rear face (the rear door's upper half)
+    ck = [
+        (C0, dict(zr=1.44, wbase=0.945, wroof=0.885, rr=0.05, dz=0.03)),
+        (0.12, dict(zr=1.50)),
+        (3.30, dict(zr=1.50)),
+        (3.45, dict(zr=1.475)),
+        (4.02, dict(zr=0.97, wroof=0.84)),
+    ]
+    b = Body(bk, ck, L, sig={'*': 0.08, 'zb': 0.03}, csig=0.04)
+    RY, FY, R = 1.32, 4.94, 0.36
+
+    # paint B: a thin pinstripe along the flanks, wrapping across the tail
+    pin = [gt('z', 0.842), lt('z', 0.874)]
+    make_material('hearse_body', [('paintB', [pin + [gt('anx', 0.5)], pin + [lt('ny', -0.5)]])], 'paintA')
+    ws = poly(('ax', 'z'), [(0.0, 1.00), (0.78, 1.00), (0.70, 1.45), (0.0, 1.45)])
+    front = poly(('y', 'z'), [(2.58, 1.03), (3.86, 1.03), (3.40, 1.43), (2.58, 1.43)])
+    make_material('hearse_cabin', [('glass', [ws + [gt('ny', 0.25)], front + [gt('anx', 0.35)]])], 'paintA')
+
+    # rear wheels behind fender skirts: only the front arches are cut
+    body_part(car, b, L, 'hearse_body', 0.04, 0.12, [(FY, (R + 0.045, R))], 0.64)
+    cab = cabin_part(car, b, 'hearse_cabin')
+
+    # curtained windows: shallow pockets in the greenhouse (the reveal is black
+    # trim) with a draped, pleated curtain and a valance inside (interior)
+    SW = (1.50, 2.40, 1.05, 1.41)            # rear side window: y0, y1, z0, z1
+    RW = (0.52, 1.08, 1.39, 0.03, 0.09)      # rear window: half width, z0, z1, corner radii bottom/top
+    D = 0.035
+    cmb = MB()
+    y0, y1, z0, z1 = SW
+    for s in (1, -1):
+        pts = []
+        for z in (z0, z1):
+            for y in (y0, y1):
+                xs = cabin_side_x(b, y, z)
+                xa, xb = xs - D, 1.4
+                pts += [(s * xa, y, z), (s * xb, y, z)] if s > 0 else [(s * xb, y, z), (s * xa, y, z)]
+        hexa(cmb, pts, 'black')
+    hw, rz0, rz1, rcb, rct = RW
+    prism_y(cmb, rrect_ring(-hw, hw, rz0, rz1, rcb, rct, n=6), C0 - 0.4, C0 + D, 'black')
+    cut_with(car, cab, cmb, use_self=True)
+    if not len(cab.data.vertices):
+        raise SystemExit('hearse: the window pockets emptied the greenhouse')
+
+    mb = MB()
+    xb0, xb1 = cabin_side_x(b, 2.0, z0), cabin_side_x(b, 2.0, z1)
+    lean = Vector((xb1 - xb0, 0.0, z1 - z0))
+    ang = math.atan2(xb1 - xb0, z1 - z0)
+    for s in (1, -1):
+        up = Vector((s * lean.x, 0, lean.z)).normalized()
+        drape(mb, Vector((s * (xb0 - D + 0.014), y0 - 0.02, z0 - 0.02)), Vector((0, 1, 0)), up,
+              Vector((s, 0, 0)), y1 - y0 + 0.04, lean.length + 0.04, 0.075, 0.009, 'interior')
+        zv = z1 - 0.03
+        xv = xb0 + (xb1 - xb0) * (zv - z0) / (z1 - z0) - D + 0.014
+        mb.box((s * xv, (y0 + y1) / 2, zv), (0.03, y1 - y0, 0.07), 'interior',
+               rot=Matrix.Rotation(s * ang, 3, 'Y'))
+    drape(mb, Vector((-hw - 0.02, C0 + D - 0.014, rz0 - 0.02)), Vector((1, 0, 0)), Vector((0, 0, 1)),
+          Vector((0, -1, 0)), 2 * hw + 0.04, rz1 - rz0 + 0.04, 0.075, 0.009, 'interior')
+    mb.boxr((-hw, C0 + D - 0.03, rz1 - 0.07), (hw, C0 + D, rz1), 'interior')
+    car.add('curtains', mb)
+
+    # chrome: window surrounds, landau bars, drip rails, belt mouldings
+    mb = MB()
+    t = 0.024
+    ring = rrect_ring(-hw - t / 2, hw + t / 2, rz0 - t / 2, rz1 + t / 2, rcb + t / 2, rct + t / 2, n=6)
+    ring = [Vector((x, C0 - 0.002, z)) for x, z in ring]
+    sweep(mb, ring + [ring[0], ring[1]], t / 2, 0.009, 'chrome', (0, -1, 0), n=6)
+    for s in (1, -1):
+        # side window surround: a flat ring on the greenhouse's surface
+        def on_side(y, z, dx=0.004):
+            return Vector((s * (cabin_side_x(b, y, z) + dx), y, z))
+        frame = [on_side(y0 - t / 2, z0 - t / 2), on_side(y1 + t / 2, z0 - t / 2), on_side(y1 + t / 2, z1 + t / 2),
+                 on_side(y0 - t / 2, z1 + t / 2), on_side(y0 - t / 2, z0 - t / 2)]
+        for p, q in zip(frame[:-1], frame[1:]):
+            k = 6
+            sweep(mb, [p.lerp(q, i / k) for i in range(k + 1)], t / 2, 0.009, 'chrome', (s, 0, 0), n=6)
+        # the landau bar: a fat chrome S across the blind rear quarter, scroll
+        # bosses at both ends (arcade-sized: it is what makes the flank read)
+        P = [(0.27, 1.08), (0.98, 0.98), (0.68, 1.45), (1.33, 1.37)]
+        path = []
+        for i in range(33):
+            y, z = bez3(*P, i / 32)
+            path.append(Vector((s * (cabin_side_x(b, y, z) + 0.010), y, z)))
+        sweep(mb, path, 0.056, 0.036, 'chrome', (s, 0, 0), n=12)
+        for (y, z) in (P[0], P[3]):
+            xs = cabin_side_x(b, y, z)
+            mb.cyl((s * (xs + 0.016), y, z), (1, 0, 0), 0.078, 0.04, 'chrome', n=20)
+        # drip rail along the whole roof edge (makes the long roofline read)
+        rail = []
+        k = NB + NF1 + NS + NF2 // 2
+        for i in range(41):
+            y = 0.08 + (3.36 - 0.08) * i / 40
+            x, z = b.cabin_prof(y)[k]
+            rail.append(Vector((s * (x + 0.010), y, z + 0.004)))
+        sweep(mb, rail, 0.022, 0.022, 'chrome', (s, 0, 0), n=8)
+        # belt moulding on the body's shoulder, rear to cowl
+        belt = []
+        for i in range(41):
+            y = 0.06 + (3.98 - 0.06) * i / 40
+            x, z = half_profile(b.prof(y))[k]
+            belt.append(Vector((s * (x + 0.008), y, z + 0.004)))
+        sweep(mb, belt, 0.017, 0.017, 'chrome', (s, 0, 0), n=8)
+    car.add('chrome', mb)
+
+    add_wheels(car, [(0.785, RY, R, 0.23, 'turbine', 0.60, None), (0.82, FY, R, 0.23, 'turbine', 0.60, None)])
+    add_wells(car, [(FY, R + 0.04, 0.68, 0.18, R)])
+
+    mb = MB()
+    # tall tail lamps on the rear corners in chrome bezels, plate, handle, bumper
+    sym_boxr(mb, (0.80, -0.016, 0.47), (0.978, 0.07, 0.90), 'tail')
+    sym_boxr(mb, (0.78, -0.006, 0.45), (0.988, 0.07, 0.92), 'chrome')
+    mb.boxr((-0.22, -0.014, 0.52), (0.22, 0.04, 0.64), 'plate')
+    mb.boxr((-0.245, -0.006, 0.50), (0.245, 0.04, 0.66), 'chrome')
+    mb.boxr((-0.12, -0.016, 0.80), (0.12, 0.03, 0.83), 'chrome')                    # door handle
+    mb.boxr((-0.70, -0.004, 0.93), (0.70, 0.03, 0.945), 'black')                    # door seam
+    mb.boxr((-1.01, -0.085, 0.24), (1.01, 0.16, 0.45), 'chrome')
+    mb.boxr((-0.97, -0.098, 0.325), (0.97, -0.07, 0.365), 'black')                 # rub strip
+    for s in (1, -1):
+        mb.box((s * 0.985, 0.13, 0.345), (0.07, 0.30, 0.21), 'chrome', rot=Matrix.Rotation(math.radians(-s * 22), 3, 'Z'))
+        mb.box((s * 1.005, 0.36, 0.66), (0.03, 0.12, 0.05), 'tail')                 # side marker
+        mb.box((s * 1.005, L - 0.40, 0.64), (0.03, 0.12, 0.05), 'amber')
+    mb.cyl((-0.55, 0.15, 0.22), (0, 1, 0), 0.04, 0.36, 'under', n=16)
+    # front: chrome bumper, chrome grille on black, quad headlamps
+    mb.boxr((-0.97, L - 0.12, 0.26), (0.97, L + 0.07, 0.47), 'chrome')
+    mb.boxr((-0.40, L - 0.05, 0.53), (0.40, L + 0.005, 0.82), 'black')
+    for i in range(7):
+        x = -0.36 + 0.12 * i
+        mb.boxr((x - 0.012, L - 0.04, 0.54), (x + 0.012, L + 0.02, 0.81), 'chrome')
+    mb.boxr((-0.42, L - 0.03, 0.80), (0.42, L + 0.025, 0.84), 'chrome')
+    for s in (1, -1):
+        mb.boxr((s * 0.46 if s > 0 else -0.86, L - 0.06, 0.62), (0.86 if s > 0 else -0.46, L + 0.01, 0.76), 'head')
+        mb.boxr((s * 0.46 if s > 0 else -0.86, L - 0.06, 0.53), (0.86 if s > 0 else -0.46, L + 0.005, 0.59), 'amber')
+    mirrors(mb, b, 3.66, 1.06, 'chrome')
+    car.add('trim', mb, bevel=0.008)
+    return car
+
+
 BUILDERS = {'wedge': build_wedge, 'muscle': build_muscle, 'rally': build_rally, 'pickup': build_pickup,
-            'sedan': build_sedan, 'compact': build_compact, 'van': build_van, 'truck': build_truck}
+            'sedan': build_sedan, 'compact': build_compact, 'van': build_van, 'truck': build_truck,
+            'hearse': build_hearse}
 PLAYER = ['wedge', 'muscle', 'rally', 'pickup']
-TRAFFIC = ['sedan', 'compact', 'van', 'truck']
+TRAFFIC = ['sedan', 'compact', 'van', 'truck', 'hearse']
 
 
 # ---------------------------------------------------------------------------
@@ -1855,6 +2090,7 @@ def main():
     far_views = [] if args.nofar else [v for v in args.far.split(',') if v]
 
     cars = {}
+    done = set()
     for k in keys:
         t0 = time.time()
         car = BUILDERS[k]()
@@ -1881,6 +2117,7 @@ def main():
                 anchor = project(sc, cam, (0, NEAR_REAR_Y, 0))
                 meta['renders'][name] = {'size': [NEAR_W, NEAR_H], 'anchor': anchor, 'yaw_deg': YAWS[fi],
                                          'bbox': bbox}
+                done.add(name)
                 print('%s: anchor %s bbox %s (w %d px) uncovered %d  id2 %d px  %.1fs' % (
                     name, anchor, bbox, bbox[2] - bbox[0] + 1 if bbox else 0, bad, car.last_counts.get(2, 0),
                     time.time() - t0))
@@ -1897,11 +2134,24 @@ def main():
                 want = (pps[v][0] + FAR_F * (0 - cx) / FAR_Y, pps[v][1] + FAR_F * CAM_Z / FAR_Y)
                 meta['renders'][name] = {'size': [W, H], 'anchor': anchor, 'ppm': FAR_F / FAR_Y, 'bbox': bbox,
                                          'camera_x': cx}
-                print('%s: %dx%d anchor %s (expected %s) bbox %s uncovered %d  id2 %d px  %.1fs' % (
-                    name, W, H, anchor, want, bbox, bad, car.last_counts.get(2, 0), time.time() - t0))
+                done.add(name)
+                ok = abs(anchor[0] - want[0]) < 0.1 and abs(anchor[1] - want[1]) < 0.1
+                print('%s: %dx%d anchor %s (expected %s: %s) bbox %s uncovered %d  id2 %d px  %.1fs' % (
+                    name, W, H, anchor, want, 'OK' if ok else 'FAIL', bbox, bad, car.last_counts.get(2, 0),
+                    time.time() - t0))
         car.hide(True)
+    # merge into the file as it is on disk NOW: only the vehicles built and the
+    # renders made by this run are added/replaced, every other entry stays as is
+    cur = json.load(open(meta_path)) if os.path.exists(meta_path) else {}
+    for key, val in meta.items():
+        if key == 'vehicles':
+            cur.setdefault(key, {}).update({k: val[k] for k in cars})
+        elif key == 'renders':
+            cur.setdefault(key, {}).update({n: val[n] for n in sorted(done)})
+        else:
+            cur[key] = val              # the header: camera, sun, ids (constants)
     with open(meta_path, 'w') as f:
-        json.dump(meta, f, indent=1)
+        json.dump(cur, f, indent=1)
     import shutil
     shutil.rmtree(tmp, ignore_errors=True)
     print('done in %.1fs' % (time.time() - t_all))

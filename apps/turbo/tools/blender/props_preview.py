@@ -13,6 +13,11 @@ Per stage it writes into --out:
                      a 3-lane road in perspective with the game camera (focal 300 px,
                      principal point (184, 150), height 2 m) and props placed beside
                      it, scaled by (300 / Z) / ppm. Also road_<stage>_x2.png.
+                     A tunnel_portal gets the tunnel the watch draws behind its
+                     opening (walls at +-8 m, a flat ceiling at 7 m, lamps every
+                     12 m, as main/tb_render.c); tunnels also writes
+                     road_tunnels_near.png with the portal close, to check that
+                     the arch lines up with those walls.
 """
 
 import argparse
@@ -38,7 +43,12 @@ PROPS = META.get("props", {})
 SKY = json.load(open(os.path.join(D, "sky.json"))) if os.path.exists(os.path.join(D, "sky.json")) else {}
 
 SW, SH, F, CX, HOR, CAMH = 368, 448, 300.0, 184.0, 150.0, 2.0
-STAGES = ["city", "coast", "desert", "mountain", "space"]
+STAGES = ["city", "coast", "desert", "mountain", "space", "halloween", "tunnels"]
+NIGHT = ("space", "mountain", "halloween")
+# props a stage borrows from another one (shown on its sheet)
+EXTRA = {"tunnels": ["guardrail"]}
+# spanning props: never mirrored
+SPAN = ("overpass", "checkpoint", "finish", "ring_gate", "sign_gantry", "tunnel_portal")
 
 
 def hx(h):
@@ -92,7 +102,7 @@ def sky_bg(w, h, st, horizon):
     bg = np.zeros((h, w, 3), float)
     t = np.linspace(0, 1, max(1, horizon))[:, None] ** 1.3
     bg[:horizon] = (hx(s["sky_top"]) * (1 - t) + hx(s["sky_horizon"]) * t)[:, None, :]
-    if st == "space" or st == "mountain":
+    if st in NIGHT:
         rng = np.random.RandomState(4)
         n = int(w * horizon / 90)
         xs, ys = rng.randint(0, w, n), rng.randint(0, max(1, horizon), n)
@@ -133,7 +143,8 @@ def stage_props(st):
 
 
 def sheet(st):
-    names = stage_props(st) + (stage_props("common") if st != "common" else [])
+    names = stage_props(st) + [n for n in EXTRA.get(st, []) if n in PROPS] \
+        + (stage_props("common") if st != "common" else [])
     items = [(n, load(PROPS[n]["file"])) for n in names]
     items = [(n, im) for n, im in items if im is not None]
     if not items:
@@ -212,7 +223,7 @@ def road_scene(st, placements, car=True, outname=None):
     hor = int(HOR)
     t = np.linspace(0, 1, hor)[:, None] ** 1.2
     bg[:hor] = (hx(s["sky_top"]) * (1 - t) + hx(s["sky_horizon"]) * t)[:, None, :]
-    if st in ("space", "mountain"):
+    if st in NIGHT:
         rng = np.random.RandomState(7)
         n = 160 if st == "space" else 70
         for x, y, v in zip(rng.randint(0, SW, n), rng.randint(0, hor, n), rng.uniform(0.3, 1, n) ** 2):
@@ -266,7 +277,9 @@ def road_scene(st, placements, car=True, outname=None):
         if im is None:
             continue
         k = (F / Z) / m["ppm"]
-        mirror = X < 0 and name not in ("overpass", "checkpoint", "finish", "ring_gate", "sign_gantry")
+        mirror = X < 0 and name not in SPAN
+        if name == "tunnel_portal":
+            draw_tunnel(bg, s, Z)
         px, py = CX + F * X / Z, HOR + F * CAMH / Z
         if m.get("shadow_file"):
             sh = load(m["shadow_file"], "L")
@@ -300,6 +313,56 @@ def road_scene(st, placements, car=True, outname=None):
     outname = outname or st
     save(bg, "road_%s.png" % outname)
     save(bg, "road_%s_x2.png" % outname, zoom=2)
+
+
+TUN_HW, TUN_H, TUN_LEN, LAMP_EVERY = 8.0, 7.0, 320.0, 12.0
+
+
+def mix(a, b, t):
+    return a * (1 - t) + b * t
+
+
+def draw_tunnel(bg, s, Zp):
+    """The inside of a tunnel whose mouth is at depth Zp, as the watch draws
+    it: a box (walls at +-8 m, a flat ceiling 7 m over the road), lamp strips
+    down the middle third of the ceiling every 12 m, darker with depth, the
+    exit a bright rectangle. Every pixel whose ray leaves the box beyond Zp."""
+    wall = hx(s.get("tunnel_wall", "#b8b2a4"))
+    ceil = hx(s.get("tunnel_ceiling", "#6e6a62"))
+    lamp = hx(s.get("tunnel_lamp", "#ffb050"))
+    yy, xx = np.mgrid[0:SH, 0:SW] + 0.5
+    dx = (xx - CX) / F
+    dz = -(yy - HOR) / F
+    with np.errstate(divide="ignore", invalid="ignore"):
+        t_w = np.where(np.abs(dx) > 1e-9, TUN_HW / np.abs(dx), np.inf)
+        t_c = np.where(dz > 1e-9, (TUN_H - CAMH) / dz, np.inf)
+        t_f = np.where(dz < -1e-9, CAMH / -dz, np.inf)
+    t = np.minimum(np.minimum(t_w, t_c), t_f)
+    seen = t >= Zp
+    if not seen.any():
+        return
+    dk = np.clip(1.0 - (t - Zp) / 260.0, 0.25, 1.0)[..., None]
+    out = bg.copy()
+    is_w = (t == t_w) & seen
+    is_c = (t == t_c) & seen & ~is_w
+    is_f = (t == t_f) & seen & ~is_w & ~is_c
+    out[is_w] = (wall * dk)[is_w]
+    zc = (Zp + t) % LAMP_EVERY
+    lampm = is_c & (np.abs(dx * t) < TUN_HW * 0.3) & (zc < 1.4)
+    out[is_c] = (ceil * dk)[is_c]
+    out[lampm] = np.clip(lamp * (dk[..., 0][lampm][:, None] + 0.25), 0, 255)
+    # the floor: the road (already painted) dimmed and warmed, the walkway beyond the rumble
+    X = dx * t
+    road = is_f & (np.abs(X) < 6.0)
+    rumble = is_f & ~road & (np.abs(X) < 6.0 + 0.6)
+    walk = is_f & ~road & ~rumble
+    out[road] = mix(bg[road], hx("#201408"), 0.3) * dk[road]
+    out[rumble] = (wall * dk)[rumble]
+    out[walk] = (mix(wall, np.zeros(3), 0.35) * dk)[walk]
+    # the exit, far away: the outside seen through the far end
+    ex = seen & (t > Zp + TUN_LEN)
+    out[ex] = hx(s["fog"])
+    bg[seen] = out[seen]
 
 
 def draw_car(bg, st):
@@ -360,6 +423,17 @@ SCENES = {
     "space": [("ring_gate", 0, 45), ("ring_gate", 0, 110), ("crystal", 14, 20), ("crystal", -16, 55),
               ("asteroid_a", -26, 70), ("asteroid_b", 20, 36), ("satellite", 30, 90), ("beacon", 8, 14),
               ("beacon", -8, 26), ("beacon", 8, 38), ("asteroid_b", -40, 140), ("finish", 0, 160)],
+    "halloween": [("haunted_house", -34, 150), ("dead_tree_twisted", 11, 19), ("dead_tree_twisted", -12, 36),
+                  ("pumpkins", 7.6, 17), ("pumpkins", -7.8, 24), ("pumpkins", 7.8, 52), ("tombstones", 11.5, 30),
+                  ("tombstones", -12.5, 58), ("cemetery_fence", 8.6, 36), ("cemetery_fence", 8.6, 41),
+                  ("cemetery_fence", 8.6, 46), ("scarecrow", -15, 44), ("dead_tree_twisted", 17, 75),
+                  ("dead_tree_twisted", -20, 95)] + lampline("gas_lamp", 7.6, 15, 120, 28),
+    "tunnels": [("tunnel_portal", 0, 62), ("waterfall_cliff", -26, 48), ("rock_granite", 17, 30), ("pylon", 26, 44),
+                ("pine_day", 11, 15), ("pine_day", -11, 22), ("pine_day", 12, 38), ("pine_day", -14, 32),
+                ("guardrail", 7.2, 9), ("guardrail", 7.2, 13), ("guardrail", 7.2, 17), ("guardrail", 7.2, 21),
+                ("guardrail", -7.2, 11), ("guardrail", -7.2, 15), ("guardrail", -7.2, 19)],
+    "tunnels_near": [("tunnel_portal", 0, 16), ("guardrail", 7.2, 7), ("guardrail", 7.2, 11),
+                     ("guardrail", -7.2, 8), ("guardrail", -7.2, 12)],
     "common": [("checkpoint", 0, 30), ("finish", 0, 80), ("cone", 4, 10), ("cone", 5, 13), ("cone", 6, 16),
                ("sign_curve_l", 8, 18), ("barrier", 7.2, 12), ("barrier", -7.2, 12), ("barrier", 7.2, 14.2)],
 }
@@ -368,3 +442,5 @@ stages = [s for s in args.stage.split(",") if s] or STAGES + ["common"]
 for st in stages:
     sheet(st)
     road_scene(st if st != "common" else "city", SCENES.get(st, []), outname=st)
+    if st == "tunnels":
+        road_scene("tunnels", SCENES["tunnels_near"], car=True, outname="tunnels_near")

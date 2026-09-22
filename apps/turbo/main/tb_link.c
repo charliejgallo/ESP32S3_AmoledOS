@@ -32,8 +32,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define PROTO       1
+/* 2 (v0.4.12): the records travel as a count and a list, so a new stage
+ * does not change the message's layout; the protocol still has to match on
+ * both watches, and a mismatch says so instead of waiting forever */
+#define PROTO       2
 #define LINK_APP    "turbo"
+#define MAX_BESTS   24
 
 enum { MSG_HELLO = 1, MSG_START, MSG_READY, MSG_LOADED, MSG_POS, MSG_RESULT, MSG_BYE };
 enum { LK_OFF = 0, LK_LOBBY, LK_LOADING, LK_PLAY, LK_GONE };
@@ -43,8 +47,11 @@ typedef struct __attribute__((packed)) {
     uint32_t nonce;
     uint8_t  mac[6];
     uint8_t  car, paint, stage;
-    uint16_t best[STAGE_N];
+    uint8_t  nbest;                 /* how many records follow               */
+    uint16_t best[MAX_BESTS];       /* only nbest are sent                   */
 } msg_hello_t;
+
+#define HELLO_BASE (sizeof(msg_hello_t) - sizeof(uint16_t) * MAX_BESTS)
 
 typedef struct __attribute__((packed)) {
     uint8_t  type, proto;
@@ -75,7 +82,7 @@ typedef struct __attribute__((packed)) {
     float    elapsed, progress;
 } msg_result_t;
 
-static bool     s_role_known, s_started_link, s_me_loaded, s_peer_loaded;
+static bool     s_role_known, s_started_link, s_me_loaded, s_peer_loaded, s_mismatch_told;
 static uint32_t s_hello_ms, s_away_ms;
 static uint8_t  s_their_mac[6];
 
@@ -86,8 +93,9 @@ static void send_hello(app_t *a)
     msg_hello_t h = { .type = MSG_HELLO, .proto = PROTO, .nonce = a->link_nonce,
                       .car = (uint8_t)a->car, .paint = a->paint[a->car], .stage = (uint8_t)a->stage };
     memcpy(h.mac, st.own_mac, 6);
-    for (int i = 0; i < STAGE_N; i++) h.best[i] = (uint16_t)(a->best[i] > 65535 ? 65535 : a->best[i]);
-    aos_hal_link_send_partner(&h, sizeof h);
+    h.nbest = STAGE_N < MAX_BESTS ? STAGE_N : MAX_BESTS;
+    for (int i = 0; i < h.nbest; i++) h.best[i] = (uint16_t)(a->best[i] > 65535 ? 65535 : a->best[i]);
+    aos_hal_link_send_partner(&h, HELLO_BASE + sizeof(uint16_t) * h.nbest);
 }
 
 bool tbl_available(app_t *a, char *name, int n)
@@ -133,6 +141,7 @@ void tbl_begin(app_t *a)
     a->rival_done = false;
     s_role_known = false;
     s_me_loaded = s_peer_loaded = false;
+    s_mismatch_told = false;
     s_hello_ms = 0;
     a->partner[0] = 0;
     aos_link_partner_t p;
@@ -194,14 +203,30 @@ static void begin_loading(app_t *a, int stage)
 
 static void handle(app_t *a, const uint8_t *d, int len, bool reliable)
 {
-    if (len < 2 || d[1] != PROTO) return;
+    if (len < 2) return;
+    if (d[1] != PROTO) {
+        /* another version of Turbo on the other watch: say it once, in the
+         * lobby, instead of waiting for a START that will never come */
+        if (d[0] == MSG_HELLO && a->link_state == LK_LOBBY && !s_mismatch_told) {
+            s_mismatch_told = true;
+            char buf[128];
+            snprintf(buf, sizeof buf, "%s\n\n%s", _("El otro reloj tiene otra versión de Turbo."),
+                     _("Actualizá los dos para correr juntos."));
+            lv_label_set_text(a->lobby_lbl, buf);
+        }
+        return;
+    }
     switch (d[0]) {
     case MSG_HELLO: {
-        if (len < (int)sizeof(msg_hello_t)) return;
+        if (len < (int)HELLO_BASE) return;
         const msg_hello_t *h = (const msg_hello_t *)d;
-        /* its records, always */
+        int nb = h->nbest;
+        if (nb > MAX_BESTS) nb = MAX_BESTS;
+        if (len < (int)(HELLO_BASE + sizeof(uint16_t) * (size_t)nb)) return;
+        if (nb > STAGE_N) nb = STAGE_N;
+        /* its records, always (as many as both know) */
         bool changed = false;
-        for (int i = 0; i < STAGE_N; i++) {
+        for (int i = 0; i < nb; i++) {
             if (h->best[i] && h->best[i] != a->rival_best[i]) {
                 a->rival_best[i] = h->best[i];
                 changed = true;

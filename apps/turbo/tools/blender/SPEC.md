@@ -123,6 +123,12 @@ Vehicles: the four player cars above **plus four traffic vehicles**:
 | `van` | a boxy minivan / delivery van |
 | `truck` | a box truck (cab + tall cargo box), ~7.5 m long, 3.3 m tall; the box's rear is doors (paint B) |
 
+Added in v0.4.12, traffic only (far views, no near frames):
+
+| key | vehicle |
+| --- | --- |
+| `hearse` | a long 1980s American hearse on a station-wagon body: black paint A, a chrome **landau bar** (id 4) on each rear side panel, curtained rear side windows (curtains = id 11), a thin paint-B pinstripe, chrome bumpers, ~5.9 m long, 2.0 m wide, 1.5 m tall |
+
 Traffic vehicles use the same region ids (1/2 are their paint; the watch
 picks random colours).
 
@@ -181,6 +187,8 @@ bold: most props are seen 20-120 px tall.
 | **coast** | `palm`, `palm_tall`, `rock_cliff` (a sea-side cliff chunk ~15 m tall), `lighthouse`, `beach_hut`, `guardrail` (a 4 m section) |
 | **desert** | `saguaro`, `saguaro_small`, `butte` (a red sandstone mesa, ~60 m tall, seen far), `rock_red`, `dead_tree`, `diner_sign` (a tall roadside sign on a pole, no text) |
 | **mountain** (snow, played at NIGHT) | `pine_snow`, `pine`, `rock_snow`, `snowbank`, `cabin` (log cabin, windows lit warm), `lamp_night` (a road lamp that is ON: bright head, warm light pool baked into its alpha as a soft glow) — render the night props with a dim moonlit blue sun and warm emitters so they sit in a night scene |
+| **halloween** (added v0.4.12: a night road through a haunted valley, NIGHT lighting like the mountain) | `dead_tree_twisted` (a gnarled leafless tree, crooked branches like claws, ~9 m), `pumpkins` (a cluster of 3 carved jack-o'-lanterns, glowing orange from inside, the glow baked into colour + alpha, ~1.2 m wide), `tombstones` (a cluster of 3-4 crooked gravestones and a cross, mossy, ~2 m wide), `cemetery_fence` (a 5 m section of wrought-iron fence with spiked bars between two stone posts, turned ~35° like the guardrail so its face shows), `scarecrow` (a ragged scarecrow on a post, sack head with a stitched face and a pointed hat, ~2.5 m), `haunted_house` (a crooked Victorian mansion with a tower, a few windows lit warm orange, dark roof, on a small rise, ~16 m tall, seen from far), `gas_lamp` (an old cast-iron street lamp, its flame ON with a sickly green-white glow baked like `lamp_night`, modelled for the RIGHT side) |
+| **tunnels** (added v0.4.12: an alpine gorge in DAYLIGHT with road tunnels) | `tunnel_portal` (**a rock mountain face with a road tunnel entrance**: a concrete arch portal ~16 m wide and ~7 m high at the crown, its opening TRANSPARENT (alpha 0) so the watch sees the tunnel it draws behind; the rock face around it big, ~60 m wide and ~30 m tall, so it hides the sky around the opening; the anchor is the road centre at the portal's base plane; the arch's inner edge must be where the watch's tunnel walls are: walls at x = ±8 m, crown 7 m up), `rock_granite` (a grey granite outcrop with lichen, ~10 m), `waterfall_cliff` (a grey cliff with a white waterfall and a pool, ~18 m tall), `pylon` (a steel electricity pylon, lattice, ~25 m, from the dam's power line), and reuse `pine` and `guardrail` from the mountain / coast sets (daylight versions: render `pine_day` and `guardrail` if the mountain pine is night-lit) |
 | **space** (the bonus stage: a highway floating in space) | `asteroid_a`, `asteroid_b`, `crystal` (a glowing crystal spire, emissive cyan/magenta), `ring_gate` (a neon ring the road passes through, ~16 m diameter, anchor at the road centre under it), `satellite`, `beacon` (a pylon with a pulsing light) |
 
 ## Backdrops (`props.py` too)
@@ -199,6 +207,8 @@ image) or by laying out distant geometry. Files `bg_<stage>.png`:
 | desert | mesas and buttes, red rock, heat haze |
 | mountain | snowy peaks at night under a moon, dark blue |
 | space | a big ringed planet and nebula wisps (alpha where space is, the watch draws stars) |
+| halloween | a huge full ORANGE moon low in a violet night sky with thin clouds, a castle on a crag silhouetted against it, a ragged line of dead forest and hills; bats as tiny silhouettes (alpha where the sky shows) |
+| tunnels | an alpine gorge by day: steep rock walls, snowy peaks far away, a concrete arch DAM spanning the gorge with a lake glint, pine slopes (alpha where the sky shows) |
 
 Also `sky.json`: per stage the sky gradient (top colour, horizon colour), the
 fog colour, and the ground colours the watch should use for the roadside

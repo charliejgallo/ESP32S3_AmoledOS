@@ -896,6 +896,317 @@
    "light": "space",
    "note": "second frame of the pulsing beacon (light dim); same size and anchor as beacon",
    "render_s": 0.8
+  },
+  "tunnel_portal": {
+   "stage": "tunnels",
+   "file": "tunnel_portal.png",
+   "size": [
+    512,
+    212
+   ],
+   "ppm": 7.4793,
+   "anchor": [
+    261.95,
+    206.82
+   ],
+   "width_m": 62.66,
+   "height_m": 35.54,
+   "depth_m": 24.74,
+   "light": "day",
+   "note": "spans the road (never mirrored); anchor = road centre on the portal's front plane; the opening is transparent: the watch draws the tunnel behind it (walls +-8 m, ceiling 7 m)",
+   "opening": {
+    "half_width_m": 8.0,
+    "crown_m": 7.0,
+    "spring_m": 4.0,
+    "shape": "jambs at x = +-8 m from the road up to 4 m, then a half ellipse (semi-axes 8 x 3 m) to the crown at 7 m; alpha 0 inside (matches TB_TUNNEL_HW / TB_TUNNEL_H)",
+    "px": {
+     "x0": 202.12,
+     "x1": 321.78,
+     "y_base": 206.82,
+     "y_spring": 176.9,
+     "y_crown": 154.46
+    },
+    "size_px": [
+     119.67,
+     52.36
+    ],
+    "alpha_max_inside": 0.0
+   },
+   "render_s": 19.3
+  },
+  "dead_tree_twisted": {
+   "stage": "halloween",
+   "file": "dead_tree_twisted.png",
+   "size": [
+    354,
+    320
+   ],
+   "ppm": 35.9472,
+   "anchor": [
+    181.24,
+    310.22
+   ],
+   "width_m": 9.69,
+   "height_m": 8.96,
+   "depth_m": 7.07,
+   "light": "haunted",
+   "note": "its long arm reaches -X (the road)",
+   "shadow_file": "dead_tree_twisted_shadow.png",
+   "shadow_size": [
+    372,
+    24
+   ],
+   "shadow_anchor": [
+    83.71,
+    15.44
+   ],
+   "render_s": 6.4
+  },
+  "pumpkins": {
+   "stage": "halloween",
+   "file": "pumpkins.png",
+   "size": [
+    326,
+    112
+   ],
+   "ppm": 121.907,
+   "anchor": [
+    163.0,
+    94.29
+   ],
+   "width_m": 1.28,
+   "height_m": 0.66,
+   "depth_m": 0.79,
+   "light": "haunted",
+   "note": "carved faces lit from inside: the glow and a warm pool on the ground are in the colour+alpha",
+   "render_s": 2.5
+  },
+  "tombstones": {
+   "stage": "halloween",
+   "file": "tombstones.png",
+   "size": [
+    196,
+    128
+   ],
+   "ppm": 78.874,
+   "anchor": [
+    96.53,
+    114.7
+   ],
+   "width_m": 2.42,
+   "height_m": 1.43,
+   "depth_m": 1.94,
+   "light": "haunted",
+   "yaw_deg": 20,
+   "shadow_file": "tombstones_shadow.png",
+   "shadow_size": [
+    198,
+    16
+   ],
+   "shadow_anchor": [
+    97.53,
+    7.41
+   ],
+   "render_s": 3.5
+  },
+  "cemetery_fence": {
+   "stage": "halloween",
+   "file": "cemetery_fence.png",
+   "size": [
+    130,
+    96
+   ],
+   "ppm": 34.2077,
+   "anchor": [
+    61.71,
+    88.44
+   ],
+   "width_m": 3.64,
+   "height_m": 2.5,
+   "depth_m": 5.26,
+   "light": "haunted",
+   "yaw_deg": 35,
+   "note": "runs along the road (Y), rendered yawed 35 deg to show its road side",
+   "shadow_file": "cemetery_fence_shadow.png",
+   "shadow_size": [
+    172,
+    18
+   ],
+   "shadow_anchor": [
+    62.99,
+    9.65
+   ],
+   "render_s": 2.3
+  },
+  "scarecrow": {
+   "stage": "halloween",
+   "file": "scarecrow.png",
+   "size": [
+    160,
+    192
+   ],
+   "ppm": 62.0303,
+   "anchor": [
+    80.56,
+    182.15
+   ],
+   "width_m": 2.25,
+   "height_m": 2.78,
+   "depth_m": 0.68,
+   "light": "haunted",
+   "note": "eyes glow orange; the crow sits on the road-side (-X) arm",
+   "shadow_file": "scarecrow_shadow.png",
+   "shadow_size": [
+    148,
+    12
+   ],
+   "shadow_anchor": [
+    18.29,
+    8.39
+   ],
+   "render_s": 2.6
+  },
+  "haunted_house": {
+   "stage": "halloween",
+   "file": "haunted_house.png",
+   "size": [
+    276,
+    256
+   ],
+   "ppm": 12.064,
+   "anchor": [
+    142.25,
+    215.64
+   ],
+   "width_m": 20.33,
+   "height_m": 16.55,
+   "depth_m": 17.54,
+   "light": "haunted",
+   "yaw_deg": 28,
+   "note": "seen from far: on a small rise, some windows lit warm",
+   "render_s": 5.8
+  },
+  "gas_lamp": {
+   "stage": "halloween",
+   "file": "gas_lamp.png",
+   "size": [
+    230,
+    192
+   ],
+   "ppm": 33.784,
+   "anchor": [
+    162.3,
+    166.52
+   ],
+   "width_m": 1.56,
+   "height_m": 4.34,
+   "depth_m": 0.6,
+   "light": "haunted",
+   "note": "lamp ON: a sickly green-white flame; the lantern hangs over -X (the road); glow and pool in colour+alpha",
+   "render_s": 1.1
+  },
+  "rock_granite": {
+   "stage": "tunnels",
+   "file": "rock_granite.png",
+   "size": [
+    390,
+    224
+   ],
+   "ppm": 21.3587,
+   "anchor": [
+    203.66,
+    210.81
+   ],
+   "width_m": 17.38,
+   "height_m": 9.93,
+   "depth_m": 8.58,
+   "light": "day",
+   "shadow_file": "rock_granite_shadow.png",
+   "shadow_size": [
+    392,
+    18
+   ],
+   "shadow_anchor": [
+    204.66,
+    9.25
+   ],
+   "render_s": 10.9
+  },
+  "waterfall_cliff": {
+   "stage": "tunnels",
+   "file": "waterfall_cliff.png",
+   "size": [
+    422,
+    320
+   ],
+   "ppm": 13.9789,
+   "anchor": [
+    221.16,
+    311.04
+   ],
+   "width_m": 28.31,
+   "height_m": 23.69,
+   "depth_m": 19.07,
+   "light": "day",
+   "yaw_deg": 20,
+   "note": "faces the road a little (yaw 20); the pool is at the foot, towards the camera",
+   "render_s": 29.0
+  },
+  "pylon": {
+   "stage": "tunnels",
+   "file": "pylon.png",
+   "size": [
+    180,
+    384
+   ],
+   "ppm": 13.2147,
+   "anchor": [
+    92.96,
+    378.15
+   ],
+   "width_m": 13.28,
+   "height_m": 28.4,
+   "depth_m": 8.42,
+   "light": "day",
+   "yaw_deg": 12,
+   "shadow_file": "pylon_shadow.png",
+   "shadow_size": [
+    232,
+    18
+   ],
+   "shadow_anchor": [
+    56.23,
+    10.91
+   ],
+   "render_s": 5.8
+  },
+  "pine_day": {
+   "stage": "tunnels",
+   "file": "pine_day.png",
+   "size": [
+    134,
+    288
+   ],
+   "ppm": 22.1728,
+   "anchor": [
+    63.36,
+    282.39
+   ],
+   "width_m": 5.73,
+   "height_m": 12.64,
+   "depth_m": 6.07,
+   "light": "day",
+   "note": "the mountain pine (same model and seed) lit by day; the tunnels stage also reuses guardrail (coast)",
+   "shadow_file": "pine_day_shadow.png",
+   "shadow_size": [
+    188,
+    16
+   ],
+   "shadow_anchor": [
+    58.31,
+    9.65
+   ],
+   "render_s": 12.5
   }
  },
  "backdrops": {
@@ -968,6 +1279,34 @@
    "px_per_deg": 2.8444,
    "centre_column_looks": "+Y",
    "render_s": 10.0
+  },
+  "halloween": {
+   "file": "bg_halloween.png",
+   "size": [
+    1024,
+    160
+   ],
+   "lat_deg": [
+    0.0,
+    56.25
+   ],
+   "px_per_deg": 2.8444,
+   "centre_column_looks": "+Y",
+   "render_s": 8.5
+  },
+  "tunnels": {
+   "file": "bg_tunnels.png",
+   "size": [
+    1024,
+    160
+   ],
+   "lat_deg": [
+    0.0,
+    56.25
+   ],
+   "px_per_deg": 2.8444,
+   "centre_column_looks": "+Y",
+   "render_s": 27.8
   }
  }
 }

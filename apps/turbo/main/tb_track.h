@@ -25,8 +25,15 @@ enum {
     STAGE_DESERT,
     STAGE_MOUNTAIN,
     STAGE_SPACE,
+    STAGE_HALLOWEEN,            /* v0.4.12 */
+    STAGE_TUNNELS,              /* v0.4.12 */
     STAGE_N
 };
+
+/* how a stage opens in the time trial */
+enum { UNL_OPEN = 0, UNL_AFTER, UNL_TOUR };
+
+#define TB_TRAFFIC_KINDS 8      /* vehicle models one stage's traffic uses   */
 
 /* what lies beside the road */
 enum { GR_GRASS = 0, GR_SAND, GR_SEA, GR_SNOW, GR_VOID, GR_CONCRETE, GR_ROCK, GR_N };
@@ -44,6 +51,10 @@ enum {
     PR_PINE_SNOW, PR_PINE, PR_ROCK_SNOW, PR_SNOWBANK, PR_CABIN, PR_LAMP_NIGHT,
     /* space */
     PR_ASTEROID_A, PR_ASTEROID_B, PR_CRYSTAL, PR_RING_GATE, PR_SATELLITE, PR_BEACON,
+    /* halloween */
+    PR_DEAD_TWISTED, PR_PUMPKINS, PR_TOMBSTONES, PR_CEM_FENCE, PR_SCARECROW, PR_HAUNTED, PR_GAS_LAMP,
+    /* tunnels */
+    PR_PORTAL, PR_ROCK_GRANITE, PR_WATERFALL, PR_PYLON, PR_PINE_DAY,
     PR_N
 };
 
@@ -52,6 +63,11 @@ enum {
 #define SF_FINISH       0x02
 #define SF_START        0x04
 #define SF_DARK         0x08        /* alternate shade band               */
+#define SF_TUNNEL       0x10        /* inside a tunnel: walls, a ceiling  */
+
+#define TB_TUNNEL_HW    8.0f        /* tunnel walls, metres from the centre */
+#define TB_TUNNEL_H     7.0f        /* its ceiling over the road          */
+#define TB_TUNNELS      8           /* at most per stage                  */
 
 typedef struct {
     uint8_t  kind;              /* PR_*                                      */
@@ -86,6 +102,8 @@ typedef struct {
     bool     night;             /* headlights, dark ground                   */
     bool     stars;             /* draw stars in the sky                     */
     bool     neon;              /* glowing road edges (space)                */
+    uint32_t tunnel_wall, tunnel_ceiling, tunnel_lamp;
+    uint16_t bg_start;          /* backdrop column at the left edge at start  */
 } tb_theme_t;
 
 typedef struct {
@@ -100,9 +118,29 @@ typedef struct {
     float      start_time;
     int        stage;
     tb_theme_t theme;
+    /* the traffic: which vehicle models (VH_* / CAR_*) and how often; only
+     * these are loaded for a race (tb_track_vehicles) */
+    uint8_t    traffic_model[TB_TRAFFIC_KINDS];
+    uint8_t    traffic_weight[TB_TRAFFIC_KINDS];
+    int        ntraffic_kinds;
+    uint8_t    ghost_pct;       /* traffic that is a ghost (see-through, no hit) */
+    /* the tunnels, as segment ranges [start, end) */
+    int16_t    tunnel_s[TB_TUNNELS], tunnel_e[TB_TUNNELS];
+    int        ntunnels;
 } tb_track_t;
 
 const char *tb_stage_name(int stage);           /* proper name, not translated */
+/* how the stage opens: UNL_OPEN, UNL_AFTER (finishing *after* opens it) or
+ * UNL_TOUR (finishing the tour) */
+int  tb_stage_unlock(int stage, int *after);
+uint32_t tb_stage_open_mask(void);              /* the stages open from the start */
+/* the stage list's order (not the stages' numbers, which key the records) */
+int  tb_stage_order(int i);
+/* the tour: its stages in order */
+int  tb_tour_len(void);
+int  tb_tour_stage(int i);
+/* the vehicle models a track's traffic uses, as a bit mask (1 << model) */
+uint32_t tb_track_vehicles(const tb_track_t *t);
 /* builds a stage; false if out of memory */
 bool tb_track_build(tb_track_t *t, int stage);
 void tb_track_free(tb_track_t *t);

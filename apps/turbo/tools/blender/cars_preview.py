@@ -8,7 +8,10 @@ cast shadow, and lay them out as contact sheets (full size and 1/4 size).
 
 Writes <out>/near_sheet.png, near_sheet_q.png (1/4), far_sheet.png,
 far_sheet_q.png, one near_<car>_y3.png per car, and with --qa an id
-false-colour sheet (red = shade pixel with no id).
+false-colour sheet (red = shade pixel with no id).  A vehicle with extra
+colourings (VARIANTS, e.g. the hearse in black and in white) also gets its own
+small far_<car>.png: every colouring at full size, 1/4, and scaled so the
+vehicle is 60 and 40 px wide (the sizes traffic is seen at).
 """
 import argparse
 import json
@@ -18,7 +21,7 @@ from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PLAYER = ['wedge', 'muscle', 'rally', 'pickup']
-TRAFFIC = ['sedan', 'compact', 'van', 'truck']
+TRAFFIC = ['sedan', 'compact', 'van', 'truck', 'hearse']
 
 
 def hexc(s):
@@ -50,6 +53,11 @@ PALETTES = {
     'compact': pal('#E0E0DA', '#B01818'),
     'van': pal('#8C1F2A', '#D8D8D2'),
     'truck': pal('#F2F2EE', '#3060C0'),
+    'hearse': pal('#202224', '#7A1E1E'),                   # black, dark red pinstripe
+}
+# extra colourings shown next to the default one: [(tag, palette)]
+VARIANTS = {
+    'hearse': [('white', pal('#E8E8E4', '#5A5E64'))],     # white, grey pinstripe
 }
 BRAKE = '#FF5A48'
 
@@ -138,6 +146,56 @@ def crop(img, box, m=6):
     return img[max(0, y0 - m):y1 + m + 1, max(0, x0 - m):x1 + m + 1]
 
 
+def vehicle_sheet(d, out, car, meta):
+    """far_<car>.png: each colouring's l/c/r cropped to the vehicle + shadow,
+    at full size, then 1/4 and at 60 / 40 px wide (same scale for l/c/r)"""
+    rows = [('', PALETTES[car])] + VARIANTS.get(car, [])
+    ims = {}
+    for tag, p in rows:
+        for v in 'lcr':
+            im = compose(d, 'far_%s_%s' % (car, v), p)
+            if im is not None:
+                ims[tag, v] = im
+    if not ims:
+        return
+    # crop every view to its non-empty area (car or shadow) plus a margin
+    boxes = {}
+    for v in 'lcr':
+        sh = load(os.path.join(d, 'far_%s_%s_shade.png' % (car, v)), 'RGBA')
+        sd = load(os.path.join(d, 'far_%s_%s_shadow.png' % (car, v)), 'L')
+        if sh is None:
+            continue
+        m = (sh[..., 3] > 0) | ((sd > 8) if sd is not None else False)
+        ys, xs = np.nonzero(m)
+        boxes[v] = (int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max()))
+    rc = meta.get('renders', {}).get('far_%s_c' % car, {}).get('bbox')
+    car_w = (rc[2] - rc[0] + 1) if rc else 200
+    blocks = []
+    for label, sc in (('full (100 px/m)', 1.0), ('1/4', 0.25), ('60 px wide', 60.0 / car_w),
+                      ('40 px wide', 40.0 / car_w)):
+        tiles, labs = [], []
+        for tag, _ in rows:
+            for v in 'lcr':
+                if (tag, v) not in ims:
+                    continue
+                t = crop(ims[tag, v], boxes[v])
+                if sc != 1.0:
+                    t = np.asarray(Image.fromarray(t).resize((max(1, round(t.shape[1] * sc)),
+                                                              max(1, round(t.shape[0] * sc))), Image.LANCZOS))
+                tiles.append(t)
+                labs.append('%s %s' % (v, tag or 'default'))
+        blocks.append(sheet(tiles, labs if sc == 1.0 else [''] * len(labs), 3 if sc == 1.0 else 6,
+                            '%s far, %s' % (car, label)))
+    W = max(b.size[0] for b in blocks)
+    H = sum(b.size[1] for b in blocks)
+    img = Image.new('RGB', (W, H), (24, 24, 28))
+    y = 0
+    for b in blocks:
+        img.paste(b, (0, y))
+        y += b.size[1]
+    img.save(os.path.join(out, 'far_%s.png' % car))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--dir', default=os.path.join(HERE, '..', '..', 'assets', 'cars'))
@@ -188,22 +246,25 @@ def main():
     for car in PLAYER + TRAFFIC:
         if only and car not in only:
             continue
-        for v in 'lcr':
-            name = 'far_%s_%s' % (car, v)
-            im = compose(d, name, PALETTES[car])
-            if im is None:
-                continue
-            tiles.append(im)
-            labels.append(name)
-            if args.qa:
-                qtiles.append(qa_ids(d, name)[0])
+        for tag, p in [('', PALETTES[car])] + VARIANTS.get(car, []):
+            for v in 'lcr':
+                name = 'far_%s_%s' % (car, v)
+                im = compose(d, name, p)
+                if im is None:
+                    continue
+                tiles.append(im)
+                labels.append(name + (' ' + tag if tag else ''))
+                if args.qa and not tag:
+                    qtiles.append(qa_ids(d, name)[0])
+        if car in VARIANTS:
+            vehicle_sheet(d, out, car, meta)
     if tiles:
         sheet(tiles, labels, 6, 'far renders (100 px/m at the rear)').save(os.path.join(out, 'far_sheet.png'))
         sheet(tiles, labels, 6, 'far 1/4 (25 px/m: traffic at ~48 m)', 0.25).save(
             os.path.join(out, 'far_sheet_q.png'))
         sheet(tiles, labels, 6, 'far 1/2', 0.5).save(os.path.join(out, 'far_sheet_h.png'))
     if qtiles:
-        sheet(qtiles, labels, 6, 'far ids').save(os.path.join(out, 'qa_far_ids.png'))
+        sheet(qtiles, [l for l in labels if ' ' not in l], 6, 'far ids').save(os.path.join(out, 'qa_far_ids.png'))
     print('previews in', out)
 
 

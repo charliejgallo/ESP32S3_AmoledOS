@@ -19,7 +19,8 @@ Props
   Colour: RGBA PNG, straight alpha, transparent pixels carry the nearest
   edge colour. Optional <name>_shadow.png: L 0..255 = how much the prop
   darkens the ground, same camera, its own image size and anchor.
-  Night (mountain) props are lit by a dim blue moon with warm emitters, and
+  Night (mountain, halloween) props are lit by a dim blue moon with warm
+  (or, for the gas lamp, sickly green) emitters, and
   space props by a cold key light; their emitters get a soft glow baked into
   the colour and alpha.
 
@@ -71,7 +72,7 @@ TMP = tempfile.mkdtemp(prefix="turbo_props_")
 
 CAM_H = 2.0
 PROP_Y = 40.0
-STAGES = ["common", "city", "coast", "desert", "mountain", "space"]
+STAGES = ["common", "city", "coast", "desert", "mountain", "space", "halloween", "tunnels"]
 
 # ---------------------------------------------------------------------------
 # Colour helpers
@@ -110,6 +111,9 @@ LIGHTS = {
                 sky_top="#5b8fd6", sky_hor="#c9dcf0", sky=0.9, ground="#8a8a80", glow=0.0),
     "night": dict(sun_from=(-1, -1), elev=50, sun_col=(0.62, 0.74, 1.0), sun=1.1,
                   sky_top="#0a1430", sky_hor="#1f3560", sky=0.55, ground="#5a6a88", glow=1.0),
+    # halloween: the mountain's moonlit night, the sky fill a little violet
+    "haunted": dict(sun_from=(-1, -1), elev=50, sun_col=(0.64, 0.70, 1.0), sun=1.15,
+                    sky_top="#120a2c", sky_hor="#3a2462", sky=0.6, ground="#40384e", glow=1.0),
     "space": dict(sun_from=(-1, -1), elev=45, sun_col=(0.92, 0.9, 1.0), sun=2.6,
                   sky_top="#12052a", sky_hor="#3a1760", sky=0.45, ground="#301848", glow=1.0,
                   rim=((1.0, 1.0), 20, 5.0, (1.0, 0.35, 0.85))),
@@ -1349,6 +1353,8 @@ def render_prop(name, spec):
         meta["yaw_deg"] = spec["yaw"]
     if spec.get("note"):
         meta["note"] = spec["note"]
+    if spec.get("extra_meta"):
+        meta.update(spec["extra_meta"](meta, f, cx, cy, W, H, out))
     print("  %s: %dx%d ppm %.2f anchor %.1f,%.1f" % (name, W, H, ppm, bx[0], by[0]))
     # shadow
     if spec.get("shadow"):
@@ -1386,6 +1392,10 @@ def render_shadow(name, P, f, light):
     set_world("#000000", "#000000", 0.0)
     for o in objs:
         o.visible_camera = False
+    # a prop's own lamps (kept point lights) would light the catcher: off here
+    kept = [o for o in bpy.context.scene.objects if o.type == "LIGHT" and o.get("keep")]
+    for o in kept:
+        o.hide_render = True
     bpy.ops.mesh.primitive_plane_add(size=4000, location=(0, PROP_Y, 0))
     catcher = bpy.context.active_object
     catcher.name = "catcher"
@@ -1396,6 +1406,8 @@ def render_shadow(name, P, f, light):
     bpy.data.objects.remove(catcher)
     for o in objs:
         o.visible_camera = True
+    for o in kept:
+        o.hide_render = False
     write_png(os.path.join(OUT, name + "_shadow.png"), to_u8(np.clip(pm[..., 3], 0, 1)))
     bx, by = project(np.array([[0, PROP_Y, 0.0]]), f, cx, cy)
     return dict(shadow_file=name + "_shadow.png", shadow_size=[W, H],
@@ -2504,6 +2516,1092 @@ def build_beacon_off(rng):
 
 
 # ---------------------------------------------------------------------------
+# PROPS: halloween (night like the mountain: a dim moon, a violet sky fill,
+# warm and sickly emitters whose glow is baked into the colour and alpha)
+
+
+def rot_vec(v, axis, ang):
+    """Rodrigues: v rotated by ang (radians) around the unit axis."""
+    v = np.asarray(v, float)
+    k = np.asarray(axis, float)
+    k = k / np.linalg.norm(k)
+    return v * math.cos(ang) + np.cross(k, v) * math.sin(ang) + k * np.dot(k, v) * (1 - math.cos(ang))
+
+
+def place_group(fn, loc=(0, 0, 0), scale=1.0, rotz=0.0):
+    """Run a builder at the origin, then move what it made."""
+    before = set(bpy.context.scene.objects)
+    fn()
+    bpy.context.view_layer.update()
+    Mt = Matrix.Translation(Vector(loc)) @ Matrix.Rotation(rotz, 4, "Z") @ Matrix.Scale(scale, 4)
+    for o in list(bpy.context.scene.objects):
+        if o not in before and o.parent is None:
+            o.matrix_world = Mt @ o.matrix_world
+
+
+def gnarled_tube(name, path, radii, mat, ribs=6, amp=0.14, twist=3.0, nring=28, rng=None, lumps=0.08):
+    """A twisted, fluted trunk: a star cross-section that turns along the
+    path (twist radians over its length) with lumpy noise."""
+    path = np.asarray(path, float)
+    radii = np.asarray(radii, float)
+    n = len(path)
+    tan = np.gradient(path, axis=0)
+    tan /= np.linalg.norm(tan, axis=1, keepdims=True)
+    nz = Noise3(rng or np.random.RandomState(0), 2.2)
+    V, F = [], []
+    ref = np.array([1.0, 0, 0])
+    for i in range(n):
+        t = tan[i]
+        a = ref - t * np.dot(ref, t)
+        if np.linalg.norm(a) < 1e-3:
+            a = np.array([0, 1.0, 0]) - t * t[1]
+        a /= np.linalg.norm(a)
+        b = np.cross(t, a)
+        u = i / (n - 1)
+        for k in range(nring):
+            ph = 2 * math.pi * k / nring
+            d = math.cos(ph) * a + math.sin(ph) * b
+            rr = radii[i] * (1 + amp * math.cos(ribs * ph + twist * u))
+            rr *= 1 + lumps * nz((path[i] + d * radii[i])[None, :])[0]
+            V.append(path[i] + rr * d)
+    for i in range(n - 1):
+        for k in range(nring):
+            a0 = i * nring + k
+            a1 = i * nring + (k + 1) % nring
+            F.append([a0, a1, a1 + nring, a0 + nring])
+    V.append(path[-1] + tan[-1] * radii[-1] * 0.3)
+    c = len(V) - 1
+    for k in range(nring):
+        F.append([(n - 1) * nring + k, (n - 1) * nring + (k + 1) % nring, c])
+    return mesh(name, V, F, mat, smooth=True)
+
+
+def claw_branch(rng, mat, p, d, length, r, depth, curl, tag="b", n=9, up=0.06, spread=0.75):
+    """A crooked branch: it bends around a slowly turning axis and the last
+    segments hook like a claw; children leave from its outer half."""
+    pts = [np.array(p, float)]
+    dd = np.array(d, float)
+    dd /= np.linalg.norm(dd)
+    ax = np.cross(dd, rng.normal(size=3))
+    ax /= np.linalg.norm(ax)
+    for i in range(n):
+        t = (i + 1) / n
+        ax = rot_vec(ax, dd, rng.normal(0, 0.35))
+        dd = rot_vec(dd, ax, curl * (0.25 + 1.8 * t ** 3)) + rng.normal(0, 0.1, 3)
+        dd[2] += up * (1 - t)
+        dd /= np.linalg.norm(dd)
+        pts.append(pts[-1] + dd * length / n)
+    u = np.linspace(0, 1, n + 1)
+    radii = r * (1 - 0.82 * u ** 0.9)
+    tube("br_" + tag, pts, radii, mat, bevel_res=2)
+    if depth <= 0:
+        return
+    k = 3 if depth >= 2 else 2
+    for j in range(k):
+        i = int(rng.uniform(0.35, 0.85) * n)
+        q = pts[i]
+        side = rot_vec(np.cross(dd, [0, 0, 1.0]) + 1e-3, dd, rng.uniform(0, 2 * math.pi))
+        nd = pts[min(i + 1, n)] - pts[i]
+        nd = nd / np.linalg.norm(nd) + spread * side / (np.linalg.norm(side) + 1e-9)
+        nd[2] = abs(nd[2]) * 0.5 + 0.12
+        nd /= np.linalg.norm(nd)
+        claw_branch(rng, mat, q, nd, length * rng.uniform(0.45, 0.62), radii[i] * 0.72, depth - 1,
+                    curl * rng.uniform(0.9, 1.3) * (1 if rng.random() < 0.7 else -1), tag + str(j), n=7)
+
+
+def build_dead_tree_twisted(rng):
+    """A gnarled leafless tree ~9 m: a twisted fluted trunk on flared roots,
+    crooked limbs ending in hooked claws, one long arm reaching to the road
+    (-X), and a knot-hole face in the bark."""
+    bark = M_noise("#231c1e", "#5c4e4a", scale=4.0, bump=0.8, bump_dist=0.05, rough=0.9, name="gnarl_bark",
+                   c3="#3e4a34", c3_amt=0.14, c3_scale=1.2)
+    hole = M("#070406", rough=1.0, spec=0.0)
+    tp = smooth_path([[0, 0, -0.05], [0.12, 0.02, 1.2], [-0.25, 0.05, 2.4], [0.1, -0.05, 3.6], [0.35, 0.0, 4.4]], 26)
+    rr = 0.28 + 0.34 * (1 - np.linspace(0, 1, 26)) ** 1.6
+    rr[:4] *= [1.55, 1.3, 1.12, 1.04]
+    gnarled_tube("trunk", tp, rr, bark, ribs=5, amp=0.16, twist=4.5, rng=rng)
+    # flared roots gripping the ground
+    for k in range(6):
+        a = 2 * math.pi * k / 6 + rng.normal(0, 0.25)
+        dirh = np.array([math.cos(a), math.sin(a), 0])
+        pts = smooth_path([[0, 0, 0.8], dirh * 0.45 + [0, 0, 0.35], dirh * (1.1 + 0.4 * rng.random()) + [0, 0, 0.08],
+                           dirh * (1.7 + 0.5 * rng.random()) + [0, 0, 0.02]], 10)
+        tube("root%d" % k, pts, np.linspace(0.3, 0.05, 10), bark, bevel_res=2)
+    top = tp[-1]
+    # main limbs from the crown, and the long arm towards the road
+    limbs = [((-1.0, 0.1, 0.55), 4.6, 0.26, 0.28), ((0.9, 0.3, 0.75), 3.8, 0.24, -0.3),
+             ((0.1, -0.8, 0.85), 3.2, 0.2, 0.32), ((-0.3, 0.9, 0.9), 3.4, 0.2, -0.26),
+             ((0.35, 0.1, 1.0), 3.0, 0.2, 0.3)]
+    for i, (d, Ln, r, curl) in enumerate(limbs):
+        claw_branch(rng, bark, top - [0, 0, 0.25], d, Ln, r, 2, curl, "L%d" % i)
+    arm0 = tp[14]
+    claw_branch(rng, bark, arm0, (-1.0, -0.15, 0.22), 4.4, 0.22, 2, 0.3, "arm", up=0.02)
+    claw_branch(rng, bark, tp[18], (0.9, -0.3, 0.3), 2.8, 0.17, 1, -0.35, "arm2")
+    # a knot-hole face: two slanted eye hollows and a gaping mouth on the front
+    zf = 1.55
+    yf = -0.50
+
+    def hollow(nm, x, z, sx, sz, rot):
+        ob = uvsphere(nm, (x, yf, z), 1.0, hole, scale=(sx, 0.06, sz), u=16, v=8)
+        ob.rotation_euler = (0, rot, 0)
+    hollow("eyeL", -0.17, zf + 0.33, 0.09, 0.055, 0.35)
+    hollow("eyeR", 0.17, zf + 0.33, 0.09, 0.055, -0.35)
+    hollow("mouth", 0.0, zf, 0.13, 0.17, 0.1)
+    # grown to the ~9 m of the spec
+    bpy.context.view_layer.update()
+    for o in scene_objs():
+        if o.parent is None:
+            o.matrix_world = Matrix.Scale(1.22, 4) @ o.matrix_world
+
+
+def pumpkin_body(name, R, mat, squash=0.8, ribs=10, depth=0.085):
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=80, v_segments=40, radius=1.0)
+    for v in bm.verts:
+        x, y, z = v.co
+        rxy = math.hypot(x, y)
+        phi = math.atan2(y, x)
+        k = 1 - depth + depth * abs(math.sin(ribs * phi / 2)) ** 0.55
+        z2 = z * squash
+        z2 -= (0.2 if z > 0 else -0.08) * math.exp(-(rxy / 0.32) ** 2)
+        v.co = Vector((x * k * R, y * k * R, z2 * R))
+    return _obj_from_bm(name, bm, mat, True)
+
+
+def face_cutter(name, polys, R, squash, mats, y0=-1.6, y1=-0.52):
+    """Prisms along Y for the carved holes: the sides become the cut walls
+    (mats[0], the flesh) and the back cap the lit pocket floor (mats[1])."""
+    bm = bmesh.new()
+    mi = []
+    for poly in polys:
+        pts = [(x * R, z * R * squash) for x, z in poly]
+        n = len(pts)
+        f_ = [bm.verts.new((x, y0 * R, z)) for x, z in pts]
+        b_ = [bm.verts.new((x, y1 * R, z)) for x, z in pts]
+        faces = [bm.faces.new(f_), bm.faces.new(b_[::-1])]
+        faces[0].material_index = 1
+        faces[1].material_index = 1
+        for k in range(n):
+            fc = bm.faces.new([f_[k], f_[(k + 1) % n], b_[(k + 1) % n], b_[k]])
+            fc.material_index = 0
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _obj_from_bm(name, bm, list(mats), False)
+    return ob
+
+
+def carve(target, cutter):
+    m = target.modifiers.new("carve", "BOOLEAN")
+    m.operation = "DIFFERENCE"
+    m.solver = "EXACT"
+    m.object = cutter
+    try:
+        m.material_mode = "TRANSFER"
+    except Exception:
+        pass
+    bpy.context.view_layer.objects.active = target
+    bpy.ops.object.select_all(action="DESELECT")
+    target.select_set(True)
+    bpy.ops.object.modifier_apply(modifier="carve")
+    bpy.data.objects.remove(cutter)
+
+
+def grin(w=0.6, top=-0.1, low=0.42, up=0.15, teeth=(-0.3, 0.0, 0.3), tooth=0.13):
+    """A jagged jack-o'-lantern grin: a lower arc and a zigzag upper lip."""
+    pts = []
+    for x in np.linspace(-w, w, 13):
+        pts.append((x, top - low * (1 - (x / w) ** 2)))
+    xs = np.linspace(w, -w, 25)
+    for x in xs:
+        z = top - up * (1 - (x / w) ** 2)
+        if any(abs(x - t) < 1e-6 for t in teeth):
+            z -= tooth
+        pts.append((x, z))
+    return pts[:-1]
+
+
+def tri(p0, p1, p2):
+    return [p0, p1, p2]
+
+
+def ngon(cx, cz, rx, rz, n=10, rot=0.0):
+    return [(cx + rx * math.cos(rot + 2 * math.pi * k / n), cz + rz * math.sin(rot + 2 * math.pi * k / n))
+            for k in range(n)]
+
+
+def build_pumpkins(rng):
+    """Three carved jack-o'-lanterns, lit from inside, ~1.2 m wide."""
+    skin = M_noise("#d8560a", "#ff8a1c", scale=3.0, bump=0.2, rough=0.45, spec=0.45, name="pumpkin",
+                   c3="#b8400a", c3_amt=0.25, c3_scale=2.0, emit_col="#ff6a10", emit_str=0.12)
+    flesh = M("#ffb040", rough=0.6, emit="#ff9a20", emit_str=2.4, name="flesh")
+    glow = M_emit("#ffb838", 9.0, "pumpkin_glow")
+    stem_m = M_noise("#3e4a1c", "#6a6428", scale=8, bump=0.4, rough=0.8, name="stem")
+    specs = [
+        # R, loc, turn, face
+        (0.31, (0.06, 0.08), 0.12, [tri((-0.46, 0.14), (-0.1, 0.14), (-0.29, 0.46)),
+                                     tri((0.1, 0.14), (0.46, 0.14), (0.29, 0.46)),
+                                     tri((-0.08, -0.02), (0.08, -0.02), (0.0, 0.13)), grin()]),
+        (0.235, (-0.43, -0.14), -0.35, [ngon(-0.27, 0.22, 0.13, 0.15, 7), ngon(0.27, 0.22, 0.13, 0.15, 7),
+                                        ngon(0.0, -0.28, 0.2, 0.22, 9)]),
+        (0.18, (0.44, -0.22), 0.45, [tri((-0.48, 0.34), (-0.1, 0.12), (-0.42, 0.1)),
+                                      tri((0.48, 0.34), (0.1, 0.12), (0.42, 0.1)),
+                                      grin(0.55, -0.12, 0.36, 0.1, teeth=(0.0,), tooth=0.16)]),
+    ]
+    for i, (R, (x, y), turn, face) in enumerate(specs):
+        sq = 0.8 - 0.04 * i
+        pk = pumpkin_body("pk%d" % i, R, skin, squash=sq, ribs=10 if i != 2 else 8)
+        ct = face_cutter("cut%d" % i, face, R, sq, (flesh, glow))
+        carve(pk, ct)
+        zc = (sq - 0.04) * R
+        pk.location = (x, y, zc)
+        pk.rotation_euler = (0, 0, turn)
+        # the stem, curled
+        z0 = zc + (sq - 0.2) * R
+        sp = smooth_path([[x, y, z0 - 0.02], [x + 0.02, y, z0 + 0.12 * R / 0.3],
+                          [x + 0.07 * R / 0.3, y + 0.01, z0 + 0.2 * R / 0.3]], 8)
+        tube("stem%d" % i, sp, np.linspace(0.075, 0.045, 8) * R / 0.3, stem_m, bevel_res=3)
+    # a curled vine and two leaves on the ground between them
+    leaf = M("#2e4a1a", rough=0.7, name="pk_leaf")
+    for j, (x, y, a) in enumerate(((-0.18, -0.22, 0.4), (0.28, -0.05, -0.7))):
+        ob = uvsphere("leaf%d" % j, (x, y, 0.03), 1.0, leaf, scale=(0.14, 0.1, 0.02), u=12, v=6)
+        ob.rotation_euler = (0.2, 0, a)
+    vine = smooth_path([[-0.1, -0.02, 0.03], [-0.25, -0.3, 0.04], [-0.05, -0.38, 0.06], [0.1, -0.32, 0.04]], 14)
+    tube("vine", vine, 0.012, stem_m, bevel_res=2)
+
+
+def arch_poly(w, h, n=12):
+    r = w / 2
+    pts = [(-r, 0.0), (r, 0.0)]
+    for k in range(n + 1):
+        a = math.pi * k / n
+        pts.append((r * math.cos(a), h - r + r * math.sin(a)))
+    return pts
+
+
+def gothic_poly(w, h, n=8):
+    """A pointed (equilateral) arch top on straight sides, total height h."""
+    rise = w * math.sin(math.pi / 3)
+    zs = h - rise
+    right = [(-w / 2 + w * math.cos(a), zs + w * math.sin(a)) for a in np.linspace(0, math.pi / 3, n + 1)]
+    left = [(-x, z) for x, z in right[::-1][1:]]
+    return [(-w / 2, 0.0), (w / 2, 0.0)] + right + left
+
+
+def build_tombstones(rng):
+    """3 crooked gravestones and a stone cross, mossy, ~2 m wide."""
+    stone = M_noise("#6a6c74", "#a8aab2", scale=3.0, bump=0.45, bump_dist=0.02, rough=0.9, name="grave",
+                    c3="#3e5a2e", c3_amt=0.28, c3_scale=2.2, snow=0.9, snow_col="#4e6a34", snow_lo=0.62, snow_hi=0.8)
+    stone2 = M_noise("#5a5a60", "#8e8c90", scale=3.5, bump=0.5, bump_dist=0.02, rough=0.9, name="grave2",
+                     c3="#3a5230", c3_amt=0.3, c3_scale=2.0)
+    dark = M("#1e1c22", rough=0.9)
+    dirt = M_noise("#2a221c", "#4a3c2c", scale=4, bump=0.3, rough=0.95, name="dirt",
+                   c3="#34422a", c3_amt=0.35, c3_scale=3.0)
+
+    def slab(nm, poly, thick, mat, loc, rot, bev=0.025):
+        ob = prism(nm, poly, -thick / 2, thick / 2, mat)
+        bevel(ob, bev, 2)
+        ob.location = loc
+        ob.rotation_euler = rot
+        return ob
+    # the big round-topped headstone with an engraved cross, leaning back-left
+    hs = slab("head", arch_poly(0.72, 1.18), 0.16, stone, (-0.1, 0.1, -0.03), (math.radians(-7), math.radians(-5), 0.1))
+    for nm, lo, hi in (("engv", (-0.03, -0.1, 0.55), (0.03, -0.07, 0.95)),
+                       ("engh", (-0.13, -0.1, 0.78), (0.13, -0.07, 0.84))):
+        ob = box2(nm, lo, hi, dark)
+        ob.parent = hs
+    # a plinth under it
+    box("plinth", (-0.1, 0.12, 0.06), (0.9, 0.34, 0.14), stone2, bev=0.02)
+    # a gothic pointed stone, tilted towards the road
+    slab("goth", gothic_poly(0.52, 0.98), 0.13, stone2, (0.78, 0.3, -0.03), (math.radians(4), math.radians(-11), -0.25))
+    # a small broken slab
+    brk = [(-0.25, 0), (0.25, 0), (0.25, 0.42), (0.12, 0.52), (0.05, 0.4), (-0.08, 0.55), (-0.25, 0.46)]
+    slab("broken", brk, 0.12, stone, (0.42, -0.35, -0.02), (math.radians(-12), math.radians(8), 0.3))
+    # the stone cross, leaning
+    cp = [(-0.08, 0), (0.08, 0), (0.08, 0.98), (0.34, 0.98), (0.34, 1.14), (0.08, 1.14), (0.08, 1.48),
+          (-0.08, 1.48), (-0.08, 1.14), (-0.34, 1.14), (-0.34, 0.98), (-0.08, 0.98)]
+    slab("cross", cp, 0.14, stone2, (-0.88, 0.25, -0.03), (math.radians(-3), math.radians(13), 0.2), bev=0.015)
+    box("cbase", (-0.9, 0.25, 0.08), (0.42, 0.42, 0.16), stone, bev=0.02)
+    # grave mounds in front
+    rock("mound", (-0.1, -0.55, -0.05), 1.0, dirt, rng, scale=(0.42, 0.8, 0.17), amp=0.12, freq=2.0)
+    rock("mound2", (0.8, -0.2, -0.05), 1.0, dirt, rng, scale=(0.32, 0.6, 0.13), amp=0.12, freq=2.2)
+
+
+def build_cemetery_fence(rng):
+    """A 5 m wrought-iron fence along the road (Y) between two stone posts:
+    spiked bars, two rails, a band of rings; yawed like the guardrail."""
+    iron = M("#22202a", rough=0.4, spec=0.55, metallic=0.7, name="iron")
+    tip = M("#3a3440", rough=0.35, spec=0.6, metallic=0.8, name="iron_tip")
+    stone = M_noise("#62646c", "#9c9ea6", scale=3.0, bump=0.4, bump_dist=0.02, rough=0.9, name="fpost",
+                    c3="#3e5a2e", c3_amt=0.25, c3_scale=2.0)
+    L = 2.5
+    for s in (-1, 1):
+        y = s * L
+        box("post%d" % s, (0, y, 0.95), (0.44, 0.44, 1.9), stone, bev=0.03)
+        box("pcap%d" % s, (0, y, 1.96), (0.56, 0.56, 0.14), stone, bev=0.03)
+        cyl("pyr%d" % s, (0, y, 2.03), (0, y, 2.35), 0.25, stone, r1=0.02, n=4, smooth=False).rotation_euler.z += math.pi / 4
+        sphere("ball%d" % s, (0, y, 2.4), 0.1, stone, subdiv=2)
+    y0, y1 = -L + 0.26, L - 0.26
+    for z in (0.22, 1.32):
+        box2("rail%.1f" % z, (-0.03, y0, z - 0.03), (0.03, y1, z + 0.03), iron)
+    box2("rail_b", (-0.025, y0, 1.08), (0.025, y1, 1.12), iron)
+    nb = 24
+    for i in range(nb + 1):
+        y = y0 + (y1 - y0) * i / nb
+        top = 1.62 if i % 2 == 0 else 1.5
+        box2("bar%d" % i, (-0.018, y - 0.018, 0.05), (0.018, y + 0.018, top), iron)
+        # spear head: a flattened diamond
+        cyl("sp%d" % i, (0, y, top), (0, y, top + 0.16), 0.045, tip, r1=0.0, n=4, smooth=False)
+        if i < nb:
+            yc = y + (y1 - y0) / nb / 2
+            bpy.ops.mesh.primitive_torus_add(major_radius=0.052, minor_radius=0.011, major_segments=16,
+                                             minor_segments=4, location=(0, yc, 1.2), rotation=(0, math.pi / 2, 0))
+            bpy.context.active_object.data.materials.append(iron)
+    # a little grass along the foot
+    grass = M_noise("#2e3a22", "#46502e", scale=6, bump=0.3, rough=0.9, name="fgrass")
+    rock("tuft", (0, 0, -0.02), 1.0, grass, rng, scale=(0.22, L, 0.09), amp=0.25, freq=3.0)
+
+
+def build_scarecrow(rng):
+    """A ragged scarecrow on a post: plaid shirt, straw, a sack head with a
+    stitched grin and glowing eyes, a crooked pointed hat, a crow on its arm."""
+    wood = M_noise("#4a3824", "#7a6040", scale=6, bump=0.5, rough=0.85, name="scwood")
+    plaid = M_checker("#7a1e1a", "#3a1414", 0.09, rough=0.85)
+    patch = M("#5a6a3a", rough=0.9)
+    denim = M_noise("#2e3a5a", "#46587a", scale=6, bump=0.3, rough=0.9, name="denim")
+    straw = M_noise("#c8a040", "#f0d070", scale=10, rough=0.8, name="straw")
+    sack = M_noise("#9a7a48", "#c8a468", scale=9, bump=0.5, bump_dist=0.01, rough=0.95, name="sack")
+    stitch = M("#1a1210", rough=0.9)
+    hat = M_noise("#1e1624", "#3a2c40", scale=5, bump=0.3, rough=0.85, name="hat")
+    band = M("#e0701a", rough=0.6, emit="#ff7010", emit_str=0.25)
+    eye = M_emit("#ffa020", 7.0, "sc_eye")
+    crow = M("#0e0c12", rough=0.35, spec=0.6)
+    beak = M("#8a7020", rough=0.5)
+    # post and crossbar
+    box2("post", (-0.06, 0.05, 0), (0.06, 0.17, 2.1), wood)
+    box2("bar", (-0.95, 0.05, 1.62), (0.95, 0.15, 1.72), wood)
+    # torso (shirt), ragged hem
+    ob = cyl("torso", (0, 0.0, 0.95), (0, 0.0, 1.75), 0.24, plaid, r1=0.2, n=18)
+    ob.scale = (1.2, 0.75, 1)
+    for k in range(9):
+        a = 2 * math.pi * k / 9 + 0.2
+        x, y = 0.27 * math.cos(a), 0.18 * math.sin(a)
+        cyl("tat%d" % k, (x, y, 0.98), (x * 1.1, y * 1.1, 0.8 - 0.06 * (k % 3)), 0.06, plaid, r1=0.005, n=4, smooth=False)
+    box2("patch", (0.05, -0.2, 1.3), (0.2, -0.17, 1.45), patch)
+    # sleeves on the bar, straw bursting from the cuffs
+    for s in (-1, 1):
+        cyl("sleeve%d" % s, (s * 0.2, 0.0, 1.62), (s * 0.82, 0.0, 1.6), 0.12, plaid, r1=0.1, n=12)
+        for k in range(9):
+            a = 2 * math.pi * k / 9
+            d = np.array([s * 1.0, 0.45 * math.cos(a), 0.45 * math.sin(a) - 0.35])
+            d /= np.linalg.norm(d)
+            p0 = np.array([s * 0.8, 0.0, 1.6])
+            cyl("str%d_%d" % (s, k), tuple(p0), tuple(p0 + d * rng.uniform(0.2, 0.34)), 0.025, straw, r1=0.004, n=4,
+                smooth=False)
+    # trousers hanging, straw at the ankles
+    for s in (-1, 1):
+        cyl("leg%d" % s, (s * 0.11, 0.0, 1.0), (s * 0.15, -0.03, 0.42), 0.1, denim, r1=0.085, n=12)
+        for k in range(6):
+            a = 2 * math.pi * k / 6
+            d = np.array([0.35 * math.cos(a), 0.35 * math.sin(a), -1.0])
+            d /= np.linalg.norm(d)
+            p0 = np.array([s * 0.15, -0.03, 0.44])
+            cyl("ank%d_%d" % (s, k), tuple(p0), tuple(p0 + d * 0.2), 0.022, straw, r1=0.004, n=4, smooth=False)
+    # the neck: straw and a rope
+    for k in range(10):
+        a = 2 * math.pi * k / 10
+        d = np.array([math.cos(a), math.sin(a), 0.5])
+        d /= np.linalg.norm(d)
+        cyl("nk%d" % k, (0, 0, 1.78), tuple(np.array([0, 0, 1.78]) + d * 0.2), 0.022, straw, r1=0.004, n=4, smooth=False)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.1, minor_radius=0.022, location=(0, 0, 1.84))
+    bpy.context.active_object.data.materials.append(M("#8a6a3a", rough=0.9))
+    # sack head, a little squashed
+    hc = np.array([0.0, 0.0, 2.04])
+    hr = np.array([0.22, 0.2, 0.235])
+    uvsphere("head", tuple(hc), 1.0, sack, scale=tuple(hr), u=32, v=16)
+
+    def on_face(x, z, out=0.004):
+        q = 1 - (x / hr[0]) ** 2 - ((z - hc[2]) / hr[2]) ** 2
+        return -hr[1] * math.sqrt(max(q, 0.0)) - out
+    # glowing triangular eyes and a stitched grin on the front (-Y)
+    for s_ in (-1, 1):
+        x, z = s_ * 0.085, 2.1
+        yf = on_face(x, z)
+        prism("eye%d" % s_, [(x - 0.05, z + 0.03), (x + 0.05, z + 0.03), (x + s_ * 0.025, z - 0.045)],
+              yf - 0.02, yf + 0.03, eye)
+    mouth = []
+    for x in np.linspace(-0.12, 0.12, 11):
+        z = 1.975 + 0.035 * (x / 0.12) ** 2
+        mouth.append((x, on_face(x, z, 0.002), z))
+    tube("grin", mouth, 0.009, stitch, bevel_res=1)
+    for x in np.linspace(-0.1, 0.1, 6):
+        z = 1.975 + 0.035 * (x / 0.12) ** 2
+        yf = on_face(x, z, 0.004)
+        cyl("st%.2f" % x, (x, yf, z - 0.032), (x, yf, z + 0.032), 0.007, stitch, n=4)
+    # the hat: a floppy brim and a crooked point
+    cyl("brim", (0.0, 0.0, 2.2), (0.0, 0.0, 2.23), 0.34, hat, n=24).rotation_euler = (math.radians(-6), math.radians(8), 0)
+    hp = smooth_path([[0, 0, 2.2], [0.0, 0.0, 2.45], [0.05, 0.0, 2.62], [0.2, 0.02, 2.72], [0.3, 0.0, 2.66]], 14)
+    tube("hatcone", hp, np.linspace(0.2, 0.012, 14), hat, bevel_res=4)
+    cyl("band", (0.0, 0.0, 2.23), (0.0, 0.0, 2.3), 0.19, band, r1=0.175, n=24)
+    # a crow perched on the road-side arm
+    cx, cz = -0.62, 1.8
+    uvsphere("crow_b", (cx, 0.0, cz), 0.1, crow, scale=(1.5, 0.85, 0.9), u=16, v=8).rotation_euler = (0, math.radians(-25), 0)
+    sphere("crow_h", (cx - 0.13, 0.0, cz + 0.1), 0.06, crow, subdiv=2)
+    cyl("crow_k", (cx - 0.18, 0.0, cz + 0.1), (cx - 0.27, 0.0, cz + 0.09), 0.022, beak, r1=0.002, n=6)
+    tail = [(cx + 0.12, -0.04, cz - 0.02), (cx + 0.12, 0.04, cz - 0.02), (cx + 0.3, 0.06, cz - 0.1), (cx + 0.3, -0.06, cz - 0.1)]
+    mesh("crow_t", tail, [[0, 1, 2, 3]], crow)
+    sphere("crow_e", (cx - 0.16, -0.045, cz + 0.12), 0.012, M_emit("#ffd040", 4.0, "crow_eye"), subdiv=1)
+
+
+def build_haunted_house(rng):
+    """A crooked Victorian mansion on a small rise: a tower, steep dark
+    roofs, lap siding, a few windows lit warm; ~16 m tall, seen far."""
+    siding = M_bands(["#4e4858", "#443e4e"], axis="Z", size=0.22, rough=0.9, spec=0.2)
+    siding2 = M_bands(["#48424f", "#3e3848"], axis="Z", size=0.22, rough=0.9, spec=0.2)
+    trim = M("#7a7484", rough=0.8)
+    roof = M_noise("#1a1622", "#2e2838", scale=2.0, bump=0.4, rough=0.8, name="slate", c3="#3a4a3a",
+                   c3_amt=0.15, c3_scale=0.8)
+    lit = M_emit("#ffa040", 7.0, "hh_lit")
+    lit2 = M_emit("#ff8a28", 5.0, "hh_lit2")
+    dark_w = M("#141820", rough=0.2, spec=0.7)
+    board = M("#5a4a3a", rough=0.9)
+    brick = M_noise("#4a2a26", "#6a3a30", scale=4, bump=0.4, rough=0.9, name="hhbrick")
+    grass = M_noise("#34321e", "#4a4a2c", scale=0.8, bump=0.3, rough=0.95, name="hill", c3="#3a2c1e",
+                    c3_amt=0.3, c3_scale=0.5)
+    zb = 1.2      # the floor on top of the rise
+    rock("rise", (0.3, 0.2, -1.1), 1.0, grass, rng, scale=(10.0, 8.5, 2.35), amp=0.1, freq=0.6)
+    W, D, Hs = 10.0, 7.0, 6.6
+    body = box2("body", (-W / 2, -D / 2, zb - 0.5), (W / 2, D / 2, zb + Hs), siding)
+    band_ = box2("floorband", (-W / 2 - 0.08, -D / 2 - 0.08, zb + 3.2), (W / 2 + 0.08, D / 2 + 0.08, zb + 3.45), trim)
+    # the main roof: a steep gable along X, slightly sagging (crooked)
+    ridge = zb + Hs + 4.2
+    ang = math.atan2(ridge - zb - Hs, D / 2)
+    Lr = math.hypot(D / 2, ridge - zb - Hs) + 0.6
+    for s in (-1, 1):
+        ob = box("roof%d" % s, (0, s * (D / 4 + 0.15), (zb + Hs + ridge) / 2 + 0.1), (W + 1.0, Lr, 0.22), roof)
+        ob.rotation_euler = (-s * ang, math.radians(1.5), 0)
+    for s in (-1, 1):
+        g = prism("gable%d" % s, [(-D / 2, zb + Hs), (D / 2, zb + Hs), (0, ridge)], 0, 0.1, siding2)
+        g.rotation_euler = (0, 0, math.pi / 2)
+        g.location = (s * W / 2 - (0.1 if s > 0 else 0), 0, 0)
+    # a front cross gable over the porch (left part of the front)
+    gx, gw = -2.2, 4.4
+    gz0, gz1 = zb + Hs, zb + Hs + 3.8
+    prism("fgable", [(gx - gw / 2, gz0), (gx + gw / 2, gz0), (gx, gz1)], -D / 2 - 0.9, -D / 2 + 1.0, siding2)
+    box2("fbay", (gx - gw / 2, -D / 2 - 0.9, zb), (gx + gw / 2, -D / 2, zb + Hs), siding)
+    ga = math.atan2(gz1 - gz0, gw / 2)
+    Lg = math.hypot(gw / 2, gz1 - gz0) + 0.35
+    for s in (-1, 1):
+        ob = box("froof%d" % s, (gx + s * (gw / 4 + 0.1), -D / 2 - 0.4, (gz0 + gz1) / 2 + 0.12), (Lg, 3.2, 0.2), roof)
+        ob.rotation_euler = (0, s * ga, 0)
+    # the tower on the front-right corner, leaning a little
+    tx, ty, tr = 4.2, -2.9, 1.7
+    zt = zb + 9.8
+    tower = [cyl("tower", (tx, ty, zb - 0.5), (tx, ty, zt), tr, siding2, n=8, smooth=False),
+             cyl("tband", (tx, ty, zb + 3.2), (tx, ty, zb + 3.45), tr + 0.08, trim, n=8, smooth=False),
+             cyl("tband2", (tx, ty, zt - 0.3), (tx, ty, zt), tr + 0.12, trim, n=8, smooth=False),
+             cyl("troof", (tx, ty, zt), (tx, ty, zt + 4.6), tr + 0.45, roof, r1=0.02, n=8, smooth=False),
+             cyl("finial", (tx, ty, zt + 4.4), (tx, ty, zt + 5.4), 0.05, trim, n=6)]
+    # windows: tall and narrow; lit ones glow, one boarded
+    wins = []   # (x, y, z, face, lit)
+    for fl, z in enumerate((zb + 0.9, zb + 4.1)):
+        for j, x in enumerate((0.45, 1.75)):
+            wins.append((x, -D / 2, z, "y", (("dark", "board"), ("lit", "dark"))[fl][j]))
+        for j, x in enumerate((-3.4, -1.0)):
+            wins.append((x, -D / 2 - 0.9, z, "y", (("lit2", "dark"), ("dark", "lit"))[fl][j]))
+        for j, y in enumerate((-1.8, 0.4, 2.2)):
+            wins.append((-W / 2, y, z, "x", (("dark", "lit", "board"), ("lit2", "dark", "dark"))[fl][j]))
+    wins.append((gx, -D / 2 - 0.9, gz0 + 0.9, "y", "lit"))   # the attic window in the gable
+    for i, (x, y, z, face, kind) in enumerate(wins):
+        if kind is None:
+            continue
+        w, h = 0.8, 1.7
+        if face == "y":
+            box2("wf%d" % i, (x - w / 2 - 0.12, y - 0.1, z - 0.12), (x + w / 2 + 0.12, y + 0.02, z + h + 0.25), trim)
+            m = {"lit": lit, "lit2": lit2}.get(kind, dark_w)
+            box2("w%d" % i, (x - w / 2, y - 0.14, z), (x + w / 2, y - 0.05, z + h), m)
+            if kind == "board":
+                for k, a in enumerate((0.5, -0.4)):
+                    ob = box("bd%d_%d" % (i, k), (x, y - 0.18, z + h / 2), (1.1, 0.05, 0.16), board)
+                    ob.rotation_euler = (0, a, 0)
+        else:
+            box2("wf%d" % i, (x - 0.1, y - w / 2 - 0.12, z - 0.12), (x + 0.02, y + w / 2 + 0.12, z + h + 0.25), trim)
+            m = {"lit": lit, "lit2": lit2}.get(kind, dark_w)
+            box2("w%d" % i, (x - 0.14, y - w / 2, z), (x - 0.05, y + w / 2, z + h), m)
+            if kind == "board":
+                for k, a in enumerate((0.5, -0.4)):
+                    ob = box("bd%d_%d" % (i, k), (x - 0.18, y, z + h / 2), (0.05, 1.1, 0.16), board)
+                    ob.rotation_euler = (a, 0, 0)
+    # tower windows: one lit high up, facing the road and the front
+    ap = tr * math.cos(math.pi / 8)
+    for k, a in enumerate((math.radians(-112.5), math.radians(-157.5))):
+        for z, m in ((zb + 4.3, dark_w if k else lit2), (zb + 7.2, lit if k == 0 else dark_w)):
+            ca, sa = math.cos(a), math.sin(a)
+            ob = box("twf%d_%.0f" % (k, z), (tx + (ap + 0.03) * ca, ty + (ap + 0.03) * sa, z + 0.8), (0.1, 0.95, 1.8), trim)
+            ob.rotation_euler = (0, 0, a)
+            ob = box("tw%d_%.0f" % (k, z), (tx + (ap + 0.08) * ca, ty + (ap + 0.08) * sa, z + 0.8), (0.1, 0.7, 1.5), m)
+            ob.rotation_euler = (0, 0, a)
+    # porch: a lean-to roof on thin posts, steps, a dark door with a lit fanlight
+    px0, px1 = gx - gw / 2 - 0.2, gx + gw / 2 + 2.6
+    for x in np.linspace(px0 + 0.2, px1 - 0.2, 5):
+        cyl("pp%.1f" % x, (x, -D / 2 - 2.6, zb), (x, -D / 2 - 2.6, zb + 2.9), 0.09, trim, n=8)
+    ob = box2("proof", (px0, -D / 2 - 2.9, zb + 2.9), (px1, -D / 2 - 0.9, zb + 3.1), roof)
+    ob.rotation_euler = (math.radians(-9), 0, 0)
+    box2("pfloor", (px0, -D / 2 - 2.8, zb - 0.1), (px1, -D / 2, zb + 0.15), board)
+    box2("skirt", (px0, -D / 2 - 2.75, -0.5), (px1, -D / 2 - 0.1, zb - 0.1), M("#2a2630", rough=0.9))
+    for k in range(3):
+        zt_ = zb - 0.1 - 0.35 * k
+        box2("step%d" % k, (gx - 0.9, -D / 2 - 2.8 - 0.35 * (k + 1), -0.5), (gx + 0.9, -D / 2 - 2.8 - 0.35 * k, zt_), board)
+    box2("door", (gx - 0.55, -D / 2 - 0.98, zb + 0.15), (gx + 0.55, -D / 2 - 0.9, zb + 2.4), M("#2a1a1a", rough=0.7))
+    box2("fan", (gx - 0.5, -D / 2 - 1.0, zb + 2.45), (gx + 0.5, -D / 2 - 0.9, zb + 2.75), lit2)
+    # two crooked brick chimneys
+    for i, (x, y, lean) in enumerate(((-3.6, 1.2, 4), (2.2, 1.6, -6))):
+        ob = box("chim%d" % i, (x, y, ridge - 0.6), (0.8, 0.8, 4.2), brick)
+        ob.rotation_euler = (math.radians(2), math.radians(lean), 0)
+        ob = box("chcap%d" % i, (x + 0.12 * lean / 4, y, ridge + 1.55), (1.0, 1.0, 0.2), trim)
+        ob.rotation_euler = (math.radians(2), math.radians(lean), 0)
+    # a small dead tree beside it and a bat-wing weathervane
+    place_group(lambda: build_dead_tree(rng), loc=(-6.8, -1.5, 0.55), scale=1.1)
+    vane = [(0, 0), (0.6, 0.25), (0.45, 0.02), (0.8, -0.05), (0.35, -0.12), (0, -0.02), (-0.35, -0.12), (-0.8, -0.05),
+            (-0.45, 0.02), (-0.6, 0.25)]
+    prism("vane", [(tx + x, zt + 5.3 + z) for x, z in vane], ty - 0.02, ty + 0.02, trim)
+
+
+def build_gas_lamp(rng):
+    """An old cast-iron street lamp: fluted column, a crook arm reaching the
+    road (-X) with a hanging lantern whose flame burns a sickly green-white."""
+    iron = M("#1e1c22", rough=0.4, spec=0.5, metallic=0.75, name="cast_iron")
+    iron2 = M("#2c2a32", rough=0.35, spec=0.55, metallic=0.8, name="cast_iron2")
+    glass = M("#c8f4b8", rough=0.15, spec=0.6, emit="#b8ff98", emit_str=8.0, name="lamp_glass")
+    flame = M_emit("#e8ffd0", 30.0, "gas_flame")
+    # plinth, fluted column, collars
+    cyl("foot", (0, 0, 0), (0, 0, 0.18), 0.3, iron, r1=0.26, n=8, smooth=False)
+    cyl("plinth", (0, 0, 0.18), (0, 0, 0.62), 0.22, iron2, r1=0.17, n=8, smooth=False)
+    cyl("collar0", (0, 0, 0.62), (0, 0, 0.72), 0.19, iron, n=16)
+    pts = np.array([[0, 0, 0.72], [0, 0, 2.2], [0, 0, 3.55]])
+    ribbed_tube("column", smooth_path(pts, 12), np.linspace(0.105, 0.075, 12), iron2, ribs=10, rib_amp=0.12, nring=40)
+    cyl("collar1", (0, 0, 1.5), (0, 0, 1.6), 0.13, iron, n=16)
+    cyl("collar2", (0, 0, 3.45), (0, 0, 3.58), 0.12, iron, n=16)
+    # ladder bar with ball ends
+    cyl("ladder", (-0.34, 0, 3.25), (0.34, 0, 3.25), 0.028, iron, n=8)
+    for s in (-1, 1):
+        sphere("lb%d" % s, (s * 0.36, 0, 3.25), 0.045, iron, subdiv=2)
+    sphere("top", (0, 0, 3.62), 0.08, iron, subdiv=2)
+    # the crook: up, over and down towards -X, with a scroll under it
+    crook = smooth_path([[0, 0, 3.5], [0, 0, 3.95], [-0.25, 0, 4.25], [-0.62, 0, 4.28], [-0.88, 0, 4.12],
+                         [-0.95, 0, 3.95]], 24)
+    tube("crook", crook, np.linspace(0.05, 0.038, 24), iron, bevel_res=3)
+    th = np.linspace(0, 1.7 * math.pi, 30)
+    scroll = np.stack([-0.18 - 0.16 * np.exp(-0.25 * th) * np.cos(th), np.zeros_like(th),
+                       3.72 + 0.16 * np.exp(-0.25 * th) * np.sin(th)], axis=1)
+    tube("scroll", scroll, np.linspace(0.022, 0.012, 30), iron, bevel_res=2)
+    tube("brace", smooth_path([[0, 0, 3.62], [-0.35, 0, 3.86], [-0.7, 0, 4.18]], 10), 0.02, iron, bevel_res=2)
+    # the lantern hanging from the crook: a tapered four-sided box of glass
+    lx, lz0, lz1 = -0.95, 3.2, 3.78
+    V = []
+    for z, r in ((lz0, 0.12), (lz1, 0.19)):
+        for k in range(4):
+            a = math.pi / 4 + k * math.pi / 2
+            V.append((lx + r * math.cos(a), r * math.sin(a), z))
+    F = [[0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7], [3, 2, 1, 0]]
+    mesh("glass", V, F, glass)
+    for k in range(4):
+        tube("edge%d" % k, [V[k], V[k + 4]], 0.014, iron, bevel_res=1)
+    cyl("lroof", (lx, 0, lz1), (lx, 0, lz1 + 0.2), 0.3, iron2, r1=0.03, n=4, smooth=False).rotation_euler.z += math.pi / 4
+    cyl("lrim", (lx, 0, lz1 - 0.02), (lx, 0, lz1 + 0.03), 0.28, iron, n=4, smooth=False).rotation_euler.z += math.pi / 4
+    cyl("lbot", (lx, 0, lz0 - 0.12), (lx, 0, lz0), 0.02, iron2, r1=0.16, n=4, smooth=False).rotation_euler.z += math.pi / 4
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.05, minor_radius=0.012, location=(lx, 0, lz1 + 0.24),
+                                     rotation=(math.pi / 2, 0, 0))
+    bpy.context.active_object.data.materials.append(iron)
+    uvsphere("flame", (lx, 0, (lz0 + lz1) / 2 - 0.02), 0.065, flame, scale=(1, 1, 1.5), u=12, v=8)
+    lamp = add_point((lx, 0.0, (lz0 + lz1) / 2), 60.0, (0.72, 1.0, 0.62), radius=0.1, name="gas_pt")
+    lamp["keep"] = True
+
+
+# ---------------------------------------------------------------------------
+# PROPS: tunnels (an alpine gorge by day)
+
+# The opening of tunnel_portal: jambs at x = +-TUN_HW from the road up to
+# TUN_SPRING, then a half ellipse to the crown at TUN_H. The watch draws the
+# tunnel behind it as walls at +-8 m and a flat ceiling at 7 m (TB_TUNNEL_HW,
+# TB_TUNNEL_H in main/tb_track.h): the arch touches both, so only the
+# tunnel's inside is ever seen through it.
+TUN_HW, TUN_H, TUN_SPRING = 8.0, 7.0, 4.0
+
+
+def tunnel_profile(n_arch=64, hw=TUN_HW, spring=TUN_SPRING, crown=TUN_H):
+    """The opening as (x, z), from the right foot, over the crown, to the left foot."""
+    pts = [(hw, 0.0)]
+    for i in range(n_arch + 1):
+        a = math.pi * i / n_arch
+        pts.append((hw * math.cos(a), spring + (crown - spring) * math.sin(a)))
+    pts.append((-hw, 0.0))
+    return pts
+
+
+def inside_profile(X, Z, margin=0.0, hw=TUN_HW, spring=TUN_SPRING, crown=TUN_H):
+    """Mask of the points (arrays, metres) inside the opening shrunk by margin."""
+    a, b = hw - margin, crown - spring - margin
+    arch = (X / a) ** 2 + ((Z - spring) / b) ** 2 < 1.0
+    return (np.abs(X) < a) & (Z > margin) & ((Z <= spring) | arch)
+
+
+def profile_t(c, s, hw=TUN_HW, spring=TUN_SPRING, crown=TUN_H):
+    """Distance from (0, 0) along the ray (c, s) (s >= 0) to the profile."""
+    if abs(c) > 1e-9:
+        t = hw / abs(c)
+        if t * s <= spring + 1e-9:
+            return t
+    b = crown - spring
+    A = (c / hw) ** 2 + (s / b) ** 2
+    B = -2 * s * spring / b ** 2
+    C = (spring / b) ** 2 - 1
+    return (-B + math.sqrt(max(B * B - 4 * A * C, 0.0))) / (2 * A)
+
+
+def rect_t(c, s, X0, Z0):
+    t = 1e9
+    if abs(c) > 1e-9:
+        t = X0 / abs(c)
+    if s > 1e-9:
+        t = min(t, Z0 / s)
+    return t
+
+
+def ray_band(name, inner, outer, thetas, y0, mat, origin=(0.0, 0.0), y1=None, outer_side=False):
+    """The flat face at y = y0 between two curves met by rays from `origin`
+    at the angles `thetas`; with y1, also the outer edge's side wall."""
+    ox, oz = origin
+    V, F = [], []
+    for th in thetas:
+        c, s = math.cos(th), math.sin(th)
+        ti, to = inner(c, s), outer(c, s)
+        V.append((ox + ti * c, y0, oz + ti * s))
+        V.append((ox + to * c, y0, oz + to * s))
+    n = len(thetas)
+    for k in range(n - 1):
+        a, b = 2 * k, 2 * (k + 1)
+        F.append([a, a + 1, b + 1, b])
+    if y1 is not None and outer_side:
+        base = len(V)
+        for k in range(n):
+            x, _, z = V[2 * k + 1]
+            V.append((x, y0, z))
+            V.append((x, y1, z))
+        for k in range(n - 1):
+            a, b = base + 2 * k, base + 2 * (k + 1)
+            F.append([a, b, b + 1, a + 1])
+    return mesh(name, V, F, mat)
+
+
+def M_stripes(c1, c2, width, angle_deg=45.0, rough=0.5, spec=0.3):
+    """Diagonal hazard stripes in the object's XZ plane."""
+    mat = bpy.data.materials.new("stripes")
+    nt, N, L = _nodes(mat)
+    out = N.new("ShaderNodeOutputMaterial")
+    tc = N.new("ShaderNodeTexCoord")
+    sep = N.new("ShaderNodeSeparateXYZ")
+    L.new(tc.outputs["Object"], sep.inputs[0])
+    a = math.radians(angle_deg)
+    m1 = N.new("ShaderNodeMath"); m1.operation = "MULTIPLY"
+    L.new(sep.outputs["X"], m1.inputs[0]); m1.inputs[1].default_value = math.cos(a) / (2 * width)
+    m2 = N.new("ShaderNodeMath"); m2.operation = "MULTIPLY_ADD"
+    L.new(sep.outputs["Z"], m2.inputs[0]); m2.inputs[1].default_value = math.sin(a) / (2 * width)
+    L.new(m1.outputs[0], m2.inputs[2])
+    fr = N.new("ShaderNodeMath"); fr.operation = "FRACT"
+    L.new(m2.outputs[0], fr.inputs[0])
+    lt = N.new("ShaderNodeMath"); lt.operation = "LESS_THAN"
+    L.new(fr.outputs[0], lt.inputs[0]); lt.inputs[1].default_value = 0.5
+    mx = N.new("ShaderNodeMixRGB")
+    L.new(lt.outputs[0], mx.inputs[0])
+    mx.inputs[1].default_value = hexcol(c1)
+    mx.inputs[2].default_value = hexcol(c2)
+    b = N.new("ShaderNodeBsdfPrincipled")
+    b.inputs["Roughness"].default_value = rough
+    b.inputs["Specular"].default_value = spec
+    L.new(mx.outputs[0], b.inputs["Base Color"])
+    L.new(b.outputs[0], out.inputs["Surface"])
+    return mat
+
+
+def alpine_rock(name="alpine_rock", scale=0.7):
+    return M_noise("#77756e", "#aeaaa0", scale=scale, bump=0.9, bump_dist=0.3, strata=0.2,
+                   strata_col="#56544e", strata_scale=0.2, snow=1.0, snow_col="#5a8636",
+                   snow_lo=0.72, snow_hi=0.86, rough=0.9, c3="#8a7a58", c3_amt=0.16, c3_scale=0.25, name=name)
+
+
+def sheet_mesh(name, mat, xs, ztop, yfun, nz=110, keep=None):
+    """A rock face as a grid: columns at xs, each from z = 0 up to ztop[i],
+    pushed back to y = yfun(X, Z). keep(X, Z) -> bool mask of faces to keep."""
+    v = np.linspace(0, 1, nz)
+    X = np.broadcast_to(xs[None, :], (nz, len(xs)))
+    Z = ztop[None, :] * v[:, None]
+    Y = yfun(X, Z)
+    V = np.stack([X, Y, Z], axis=2).reshape(-1, 3)
+    nx = len(xs)
+    idx = np.arange(nz * nx).reshape(nz, nx)
+    a, b, c, d = idx[:-1, :-1], idx[:-1, 1:], idx[1:, 1:], idx[1:, :-1]
+    F = np.stack([a.ravel(), b.ravel(), c.ravel(), d.ravel()], axis=1)
+    if keep is not None:
+        Xc = (X[:-1, :-1] + X[1:, 1:]) / 2
+        Zc = (Z[:-1, :-1] + Z[1:, 1:]) / 2
+        F = F[keep(Xc, Zc).ravel()]
+    ob = mesh_from_arrays(name, V, F, mat=mat, smooth=True)
+    return ob
+
+
+def fbm_x(rng, freqs=(0.07, 0.17, 0.4, 0.9), amps=(1.0, 0.5, 0.25, 0.12)):
+    ph = rng.uniform(0, 2 * math.pi, (len(freqs), 2))
+
+    def f(x):
+        x = np.asarray(x, float)
+        out = np.zeros_like(x)
+        for (fr, am), (p1, p2) in zip(zip(freqs, amps), ph):
+            out += am * (0.6 * np.sin(fr * x + p1) + 0.4 * np.sin(1.7 * fr * x + p2))
+        return out / sum(amps)
+    return f
+
+
+def build_tunnel_portal(rng):
+    """A rock mountain face ~62 m wide and ~31 m tall with a concrete road
+    tunnel portal: an arch ring (the opening: jambs at x = +-8 m, crown at
+    7 m) in a board-formed headwall under a coping. Everything inside the
+    opening is held out (alpha 0): the watch draws the tunnel there."""
+    ring_m = M_noise("#bdb9ae", "#d8d4ca", scale=1.2, c3="#8e897e", c3_amt=0.22, c3_scale=0.6, rough=0.8,
+                     bump=0.12, name="portal_ring")
+    wall_m = M_grid("#8e8a80", "#aaa69b", cell=(2.4, 1.2), frac=(0.985, 0.93), wall2="#8a867c", win_var=0.08,
+                    rough_win=0.85, spec_win=0.25, name="headwall")
+    cope_m = M_noise("#a8a498", "#c6c2b6", scale=1.5, c3="#7e796e", c3_amt=0.3, c3_scale=0.4, rough=0.85,
+                     bump=0.1, name="coping")
+    hz = M_stripes("#f2c418", "#1a1a1a", 0.28, 45.0, rough=0.45, spec=0.4)
+    rk = alpine_rock()
+    hw, cr, sp = TUN_HW, TUN_H, TUN_SPRING
+    RW = 1.15                       # the ring's width
+    X0, Z0 = 12.8, 10.6             # the headwall
+    # the ring: two jamb blocks and 13 voussoirs radiating from the arch centre
+    for s in (-1, 1):
+        for k, (z0, z1) in enumerate(((0.0, 1.9), (1.93, sp))):
+            box2("jamb%d_%d" % (s, k), (min(s * hw, s * (hw + RW)), 0.0, z0),
+                 (max(s * hw, s * (hw + RW)), 0.4, z1), ring_m)
+        box2("haz%d" % s, (min(s * hw, s * (hw + RW)), -0.03, 0.0), (max(s * hw, s * (hw + RW)), 0.0, 1.6), hz)
+    a_in, b_in = hw, cr - sp
+    a_out, b_out = hw + RW, cr - sp + RW
+    ell = lambda a_, b_: (lambda c, s: 1.0 / math.sqrt((c / a_) ** 2 + (s / b_) ** 2))
+    nv = 13
+    gap = 0.02
+    for k in range(nv):
+        t0, t1 = math.pi * k / nv + gap / 2, math.pi * (k + 1) / nv - gap / 2
+        if k == 0:
+            t0 = 0.0
+        if k == nv - 1:
+            t1 = math.pi
+        ths = np.linspace(t0, t1, 8)
+        ray_band("vous%d" % k, ell(a_in, b_in), ell(a_out, b_out), ths, 0.0, ring_m, origin=(0.0, sp),
+                 y1=0.4, outer_side=True)
+        # the voussoirs' soffit strip is not modelled: it would show through the opening
+    # the keystone, proud of the ring
+    box2("key", (-0.62, -0.14, cr + 0.01), (0.62, 0.4, cr + RW + 0.35), ring_m, bev=0.03)
+    # the headwall: from the opening to its rectangle, behind the ring
+    ths = np.unique(np.concatenate([np.linspace(0, math.pi, 241),
+                                    [math.atan2(sp, hw), math.pi - math.atan2(sp, hw),
+                                     math.atan2(Z0, X0), math.pi - math.atan2(Z0, X0)]]))
+    ray_band("headwall", lambda c, s: profile_t(c, s), lambda c, s: rect_t(c, s, X0, Z0), ths, 0.4, wall_m,
+             y1=3.2, outer_side=True)
+    # coping and a little parapet rail on top
+    box2("coping", (-X0 - 0.5, -0.25, Z0), (X0 + 0.5, 3.4, Z0 + 0.6), cope_m, bev=0.04)
+    box2("coping_drip", (-X0 - 0.5, -0.3, Z0 - 0.08), (X0 + 0.5, -0.2, Z0 + 0.02), M("#6a665e", rough=0.8))
+    rail = M("#7a8088", rough=0.4, metallic=0.8)
+    box2("rail_t", (-X0, 0.1, Z0 + 1.55), (X0, 0.18, Z0 + 1.62), rail)
+    for x in np.linspace(-X0 + 0.3, X0 - 0.3, 15):
+        box2("rp%.1f" % x, (x - 0.04, 0.1, Z0 + 0.6), (x + 0.04, 0.18, Z0 + 1.6), rail)
+    # a small signal (red off, green on) and a blue emergency-niche plate on the right
+    box2("sig", (10.5, -0.35, 4.3), (11.1, 0.4, 5.9), M("#1c1e22", rough=0.5))
+    sphere("sig_r", (10.8, -0.38, 5.45), 0.2, M("#5a1010", rough=0.3, spec=0.6), subdiv=2)
+    sphere("sig_g", (10.8, -0.38, 4.75), 0.2, M("#60ff90", emit="#40ff80", emit_str=4.0), subdiv=2)
+    box2("niche", (9.9, 0.3, 1.2), (11.5, 0.42, 2.4), M("#1a5ac8", rough=0.5))
+    box2("niche_i", (10.45, 0.28, 1.5), (10.95, 0.3, 2.1), M("#f0f0f0", rough=0.5))
+    # the opening is held out: whatever lies behind it renders as alpha 0
+    prof = tunnel_profile()
+    hold = mesh("opening_holdout", [(x, 0.02, z) for x, z in prof], [list(range(len(prof)))], M_holdout())
+    hold["noframe"] = True
+    # the mountain face around it: a massif with two craggy summits
+    xc = -3.0
+    ridge = fbm_x(rng)
+    teeth = fbm_x(rng, (0.5, 1.1, 2.3), (1.0, 0.6, 0.35))
+    xs = np.linspace(-31.0, 31.0, 300)
+    u = np.clip(np.abs(xs - xc) / 35.0, 0, 1)
+    zt = 24.0 * (1 - u ** 1.5) + 1.8 * ridge(xs)
+    for (xp, hp, wp) in ((-8.0, 11.0, 10.0), (12.5, 6.5, 7.0), (-21.0, 4.5, 5.0), (23.0, 3.5, 5.0)):
+        zt = zt + hp * np.clip(1 - np.abs(xs - xp) / wp, 0, 1) ** 1.25
+    zt = zt + 1.3 * (1 - np.abs(teeth(xs))) ** 3 * 2.0
+    zt = np.maximum(zt, 1.2)
+    nA = Noise3(rng, 0.07)
+    nG = Noise3(rng, 0.5)
+    nF = Noise3(rng, 1.1)
+    nL = Noise3(rng, 0.2)
+    nM = Noise3(rng, 0.15)
+
+    def yface(X, Z):
+        P = np.stack([X.ravel(), Z.ravel(), np.zeros(X.size)], axis=1)
+        sh = X.shape
+        y = 0.9 + 0.2 * Z + 0.006 * Z ** 2
+        y = y + 1.5 * nA(P).reshape(sh) + 1.4 * np.abs(X) / 31.0
+        # buttresses and gullies: ridged, stretched up the face
+        rib = 1 - np.abs(nG(P * [1.0, 0.16, 1.0]).reshape(sh)) / 1.5
+        y = y - 1.9 * rib ** 2.2
+        y = y + 0.25 * nF(P).reshape(sh)
+        # broken ledges: steps every ~3.5 m where the noise lets them
+        lz = Z / 3.5 + 0.7 * nL(P).reshape(sh)
+        step = np.floor(lz) + np.clip((lz - np.floor(lz) - 0.82) / 0.18, 0, 1)
+        y = y + 0.3 * step * np.clip(0.5 + nM(P).reshape(sh), 0, 1)
+        # talus at the foot beside the headwall
+        side = np.clip((np.abs(X) - 13.0) / 4.0, 0, 1)
+        y = y - 3.2 * np.exp(-Z / 2.6) * side
+        # keep clear of the headwall block
+        near = (np.abs(X) < X0 + 0.4) & (Z < Z0 + 0.7)
+        return np.where(near, np.maximum(y, 3.3), y)
+    sheet_mesh("face", rk, xs, zt, yface, nz=150,
+               keep=lambda X, Z: ~((np.abs(X) < X0 - 0.5) & (Z < Z0 - 0.5)))
+    # boulders at the ends and on the talus
+    for (x, y, sc) in ((-28.5, -1.5, 2.2), (-24.0, -3.2, 1.4), (27.5, -1.2, 2.4), (22.5, -3.4, 1.2),
+                       (-17.5, -3.6, 1.0), (16.5, -3.8, 0.9)):
+        rock("bould%.0f" % x, (x, y, 0), 1.0, rk, rng, scale=(sc * 1.3, sc, sc * 0.9), amp=0.22, freq=1.4)
+    # pines on the ledges and at the foot
+    Zt = {}
+    for x in (-24.0, -19.5, -11.0, 7.0, 14.5, 21.0):
+        i = int(np.argmin(np.abs(xs - x)))
+        z = zt[i] - 0.6
+        y = float(yface(np.array([[x]]), np.array([[z]]))[0, 0]) + 0.8
+        H = rng.uniform(6.5, 9.0)
+        place_group(lambda H=H: pine(rng, H, H * 0.24, 0.0), loc=(x, y, z))
+    for x, y in ((-26.5, -5.0), (25.5, -5.2)):
+        H = rng.uniform(9.0, 10.5)
+        place_group(lambda H=H: pine(rng, H, H * 0.24, 0.0), loc=(x, y, 0.0))
+
+
+def portal_meta(meta, f, cx, cy, W, H, out):
+    ppm = f / PROP_Y
+    ax, ay = meta["anchor"]
+    yy, xx = np.mgrid[0:H, 0:W] + 0.5
+    X = (xx - ax) / ppm
+    Z = (ay - yy) / ppm
+    ins = inside_profile(X, Z, margin=1.0 / ppm)
+    amax = float(out[..., 3][ins].max()) if ins.any() else -1.0
+    print("  opening: max alpha inside %.4f" % amax)
+    return {"opening": {
+        "half_width_m": TUN_HW, "crown_m": TUN_H, "spring_m": TUN_SPRING,
+        "shape": "jambs at x = +-%.0f m from the road up to %.0f m, then a half ellipse (semi-axes %.0f x %.0f m) "
+                 "to the crown at %.0f m; alpha 0 inside (matches TB_TUNNEL_HW / TB_TUNNEL_H)"
+                 % (TUN_HW, TUN_SPRING, TUN_HW, TUN_H - TUN_SPRING, TUN_H),
+        "px": {"x0": round(ax - TUN_HW * ppm, 2), "x1": round(ax + TUN_HW * ppm, 2), "y_base": round(ay, 2),
+               "y_spring": round(ay - TUN_SPRING * ppm, 2), "y_crown": round(ay - TUN_H * ppm, 2)},
+        "size_px": [round(2 * TUN_HW * ppm, 2), round(TUN_H * ppm, 2)],
+        "alpha_max_inside": round(amax, 4)}}
+
+
+def boulder(name, c, size, mat, rng, e=0.45, amp=0.07, freq=0.8, rot=(0, 0, 0), subdiv=4):
+    """A rounded block (a noisy superquadric) of the full size `size`."""
+    bm = bmesh.new()
+    bmesh.ops.create_icosphere(bm, subdivisions=subdiv, radius=1.0)
+    P = np.array([v.co[:] for v in bm.verts])
+    Q = np.sign(P) * np.abs(P) ** e
+    nz, nz2 = Noise3(rng, freq), Noise3(rng, freq * 3.3)
+    Q = Q * (1 + amp * nz(P * 1.0) + 0.35 * amp * nz2(P))[:, None]
+    Q = Q * (np.asarray(size, float) / 2)
+    for v, q in zip(bm.verts, Q):
+        v.co = Vector(q)
+    ob = _obj_from_bm(name, bm, mat, True)
+    ob.data.use_auto_smooth = True
+    ob.data.auto_smooth_angle = math.radians(60)
+    ob.location = c
+    ob.rotation_euler = rot
+    return ob
+
+
+def build_rock_granite(rng):
+    """A grey granite tor ~10 m: big rounded blocks side by side, more piled
+    across them, a balanced stone on top; lichen, moss only on flat tops."""
+    gr = M_noise("#7a7874", "#aeaba4", scale=2.2, bump=0.6, bump_dist=0.04, rough=0.85,
+                 c3="#b4ac52", c3_amt=0.24, c3_scale=0.55, snow=1.0, snow_col="#5e7a3a",
+                 snow_lo=0.8, snow_hi=0.92, name="granite")
+    gr2 = M_noise("#72706c", "#a6a29a", scale=2.6, bump=0.6, bump_dist=0.04, rough=0.85,
+                  c3="#c8a060", c3_amt=0.2, c3_scale=0.7, snow=1.0, snow_col="#5e7a3a",
+                  snow_lo=0.8, snow_hi=0.92, name="granite2")
+    blocks = [((-2.2, 0.3, 2.0), (6.6, 6.0, 4.3), (0.08, 0.0, 0.3), gr, 0.5),
+              ((3.1, 0.8, 1.6), (5.6, 5.0, 3.4), (-0.06, -0.1, -0.4), gr2, 0.42),
+              ((-0.6, 0.6, 5.2), (5.4, 4.2, 2.7), (0.05, 0.12, 0.15), gr2, 0.38),
+              ((-1.8, 0.4, 7.4), (3.6, 3.1, 2.2), (-0.1, -0.15, 0.55), gr, 0.45),
+              ((-1.1, 0.6, 9.0), (2.3, 2.0, 1.5), (0.12, 0.25, -0.2), gr2, 0.5),
+              ((6.0, -0.4, 0.95), (2.9, 2.6, 1.9), (0.1, 0.15, 0.25), gr, 0.4),
+              ((-6.0, -0.8, 1.05), (3.2, 2.9, 2.1), (-0.05, 0.1, 0.7), gr2, 0.55),
+              ((1.2, -3.6, 0.5), (1.6, 1.4, 1.05), (0.2, 0.1, 0.6), gr, 0.5),
+              ((-3.8, -3.2, 0.35), (1.1, 1.0, 0.75), (0.1, 0.2, 1.0), gr2, 0.55)]
+    for i, (c, sz, r, m, e) in enumerate(blocks):
+        boulder("blk%d" % i, c, sz, m, rng, e=e, amp=0.08, freq=0.7, rot=r)
+    shrub = M_noise("#2c4a22", "#4e7a34", scale=5, bump=0.6, rough=0.9, name="shrub")
+    for (x, y, sc) in ((-7.4, -1.6, 0.8), (7.6, -1.0, 0.7), (2.6, -3.4, 0.55), (-2.6, -3.9, 0.45)):
+        rock("shrub%.0f" % x, (x, y, 0), 1.0, shrub, rng, scale=(sc * 1.3, sc, sc * 0.9), amp=0.3, freq=3.0)
+
+
+def build_waterfall_cliff(rng):
+    """A grey cliff ~18 m tall: a white waterfall drops from a notch in its
+    lip down a recessed gully into a pool ringed by boulders."""
+    rk = alpine_rock("wf_rock", scale=0.3)
+    water = bpy.data.materials.new("fall")
+    nt, N, L = _nodes(water)
+    out = N.new("ShaderNodeOutputMaterial")
+    co = _coord(N, L, "Object", (5.0, 5.0, 0.25))
+    nz = N.new("ShaderNodeTexNoise")
+    nz.inputs["Scale"].default_value = 3.0
+    nz.inputs["Detail"].default_value = 8
+    L.new(co, nz.inputs[0])
+    ramp = N.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].position = 0.35
+    ramp.color_ramp.elements[0].color = hexcol("#8ab4d0")
+    ramp.color_ramp.elements[1].position = 0.62
+    ramp.color_ramp.elements[1].color = hexcol("#ffffff")
+    L.new(nz.outputs["Fac"], ramp.inputs[0])
+    b = N.new("ShaderNodeBsdfPrincipled")
+    b.inputs["Roughness"].default_value = 0.25
+    b.inputs["Specular"].default_value = 0.5
+    L.new(ramp.outputs[0], b.inputs["Base Color"])
+    L.new(ramp.outputs[0], b.inputs["Emission"])
+    b.inputs["Emission Strength"].default_value = 0.35
+    L.new(b.outputs[0], out.inputs["Surface"])
+    foam = M_noise("#dce8f0", "#ffffff", scale=4, bump=0.3, rough=0.6, name="foam", emit_col="#e8f0f8", emit_str=0.25)
+    pool = M("#1c4e5e", rough=0.06, spec=0.6, name="pool")
+    Wd = 26.0
+    ridge = fbm_x(rng, (0.25, 0.6, 1.4), (1.0, 0.5, 0.25))
+    teeth = fbm_x(rng, (1.1, 2.3, 4.1), (1.0, 0.6, 0.3))
+    xs = np.linspace(-Wd / 2, Wd / 2, 220)
+    zt = 17.4 + 1.0 * ridge(xs) + 0.7 * teeth(xs) - 1.9 * np.exp(-(xs / 1.4) ** 2)
+    zt = zt - 12.5 * np.clip((np.abs(xs) - 8.8) / 4.2, 0, 1) ** 1.2
+    nA = Noise3(rng, 0.18)
+    nG = Noise3(rng, 0.6)
+    nF = Noise3(rng, 1.8)
+    gul = lambda X: 1.6 * np.exp(-(X / 2.3) ** 2)
+
+    def yface(X, Z):
+        P = np.stack([X.ravel(), Z.ravel(), np.zeros(X.size)], axis=1)
+        y = 0.14 * Z + 0.004 * Z ** 2 + gul(X)
+        y = y + 0.9 * nA(P).reshape(X.shape) - 0.9 * (1 - np.abs(nG(P * [1.0, 0.25, 1.0]).reshape(X.shape)) / 1.5) ** 2
+        y = y + 0.15 * nF(P).reshape(X.shape)
+        lz = Z / 2.6
+        y = y + 0.4 * (np.floor(lz) + np.clip((lz - np.floor(lz) - 0.8) / 0.2, 0, 1))
+        y = y - 2.2 * np.exp(-Z / 2.0) * np.clip((np.abs(X) - 3.5) / 2.0, 0, 1)
+        return y
+    sheet_mesh("cliff", rk, xs, zt, yface, nz=120)
+    # the fall: a ribbon from the lip to the pool, leaping a little off the face
+    ztop = float(zt[np.argmin(np.abs(xs))])
+    ylip = float(yface(np.array([[0.0]]), np.array([[ztop]]))[0, 0])
+    nzw, nxw = 70, 14
+    V, F = [], []
+    wob = Noise3(rng, 0.9)
+    for j in range(nzw):
+        t = j / (nzw - 1)
+        z = ztop * (1 - t) + 0.05
+        w = 1.1 + 1.0 * t
+        yb = float(yface(np.array([[0.0]]), np.array([[z]]))[0, 0])
+        y = min(ylip - 0.5 - (ylip - 0.2) * t ** 0.6, yb - 0.45)
+        for i in range(nxw):
+            s = i / (nxw - 1) * 2 - 1
+            x = s * w + 0.12 * wob(np.array([[s * 3, z, 0.0]]))[0]
+            V.append((x, y - 0.12 * (1 - s * s), z))
+    for j in range(nzw - 1):
+        for i in range(nxw - 1):
+            a = j * nxw + i
+            F.append([a, a + 1, a + nxw + 1, a + nxw])
+    mesh("fall", V, F, water, smooth=True)
+    # foam and spray at the foot, the pool and its boulders
+    for k in range(9):
+        x = rng.uniform(-2.2, 2.2)
+        rock("foam%d" % k, (x, rng.uniform(-0.8, 0.4), rng.uniform(0.0, 0.3)), 1.0, foam, rng,
+             scale=(rng.uniform(0.6, 1.1), 0.6, rng.uniform(0.4, 0.8)), amp=0.3, freq=2.5, flat_bottom=True)
+    ob = cyl("pool", (0, -2.6, 0.0), (0, -2.6, 0.06), 1.0, pool, n=48)
+    ob.scale = (5.4, 3.4, 1)
+    for k, a in enumerate(np.linspace(math.radians(200), math.radians(340), 9)):
+        x, y = 5.6 * math.cos(a), -2.6 + 3.6 * math.sin(a)
+        sc = rng.uniform(0.45, 0.85)
+        rock("pr%d" % k, (x, y, 0), 1.0, rk, rng, scale=(sc * 1.4, sc, sc * 0.8), amp=0.25, freq=2.0)
+    for x, y, sc in ((-12.4, -1.4, 1.9), (12.6, -1.0, 2.2), (-7.0, -3.4, 0.9), (7.6, -3.0, 0.8)):
+        rock("pb%.0f" % x, (x, y, 0), 1.0, rk, rng, scale=(sc * 1.3, sc, sc), amp=0.22, freq=1.5)
+    # pines on the top and a young one by the pool
+    for x in (-8.2, -4.0, 5.2, 9.6):
+        i = int(np.argmin(np.abs(xs - x)))
+        z = zt[i] - 0.5
+        y = float(yface(np.array([[x]]), np.array([[z]]))[0, 0]) + 0.6
+        H = rng.uniform(5.5, 7.0)
+        place_group(lambda H=H: pine(rng, H, H * 0.25, 0.0), loc=(x, y, z))
+    place_group(lambda: pine(rng, 7.5, 1.8, 0.0), loc=(-11.0, -2.8, 0.0))
+
+
+def build_pylon(rng):
+    """A steel lattice electricity pylon ~27 m: tapering legs with X bracing,
+    three cross-arms each side with insulator strings, an earth-wire peak."""
+    steel = M("#a2a8ae", rough=0.45, spec=0.5, metallic=0.8, name="galv")
+    steel_d = M("#868c92", rough=0.5, spec=0.45, metallic=0.8, name="galv_d")
+    ins = M("#4e8a7e", rough=0.15, spec=0.8, name="insulator")
+    conc = M("#a8a49a", rough=0.85)
+    sign = M("#f2c418", rough=0.4)
+    zs = [0.0, 3.4, 6.5, 9.2, 11.6, 13.7, 15.5, 17.0, 18.75, 20.5, 22.25, 24.0, 25.6, 27.2]
+
+    def hw(z):
+        if z <= 17.0:
+            return 3.1 + (1.05 - 3.1) * z / 17.0
+        return 1.05 + (0.45 - 1.05) * (z - 17.0) / 10.2
+    corners = [(-1, -1), (1, -1), (1, 1), (-1, 1)]
+    for k, (a, b) in enumerate(corners):
+        for i in range(len(zs) - 1):
+            z0, z1 = zs[i], zs[i + 1]
+            cyl("leg%d_%d" % (k, i), (a * hw(z0), b * hw(z0), z0), (a * hw(z1), b * hw(z1), z1), 0.13, steel, n=5,
+                smooth=False)
+        box("fnd%d" % k, (a * 3.1, b * 3.1, 0.25), (0.9, 0.9, 0.6), conc)
+    for i in range(len(zs) - 1):
+        z0, z1 = zs[i], zs[i + 1]
+        for k in range(4):
+            a0, b0 = corners[k]
+            a1, b1 = corners[(k + 1) % 4]
+            p00 = (a0 * hw(z0), b0 * hw(z0), z0)
+            p10 = (a1 * hw(z0), b1 * hw(z0), z0)
+            p01 = (a0 * hw(z1), b0 * hw(z1), z1)
+            p11 = (a1 * hw(z1), b1 * hw(z1), z1)
+            cyl("bx%d_%d" % (i, k), p00, p11, 0.055, steel_d, n=4, smooth=False)
+            cyl("by%d_%d" % (i, k), p10, p01, 0.055, steel_d, n=4, smooth=False)
+            cyl("bh%d_%d" % (i, k), p01, p11, 0.06, steel_d, n=4, smooth=False)
+    # cross-arms: a triangular truss each side, insulators hanging from the tips
+    for za, span in ((17.0, 5.6), (20.5, 6.6), (24.0, 5.0)):
+        h0 = hw(za)
+        zt_ = za + 1.75
+        ht = hw(zt_)
+        for s in (-1, 1):
+            tip = np.array([s * span, 0.0, za])
+            for b in (-1, 1):
+                cyl("ab%.0f%d%d" % (za, s, b), (s * h0, b * h0, za), tuple(tip + [0, b * 0.15, 0]), 0.09, steel, n=4,
+                    smooth=False)
+                cyl("at%.0f%d%d" % (za, s, b), (s * ht, b * ht, zt_), tuple(tip + [0, b * 0.15, 0.1]), 0.07, steel,
+                    n=4, smooth=False)
+            nl = 5
+            for j in range(nl):
+                t0, t1 = j / nl, (j + 1) / nl
+                pa = np.array([s * (h0 + (span - h0) * t0), 0.0, za])
+                pb = np.array([s * (ht + (span - ht) * t1), 0.0, zt_ + (za + 0.1 - zt_) * t1])
+                for b in (-1, 1):
+                    cyl("al%.0f%d%d%d" % (za, s, j, b), tuple(pa + [0, b * h0 * (1 - t0), 0]), tuple(pb), 0.04, steel_d,
+                        n=4, smooth=False)
+            # the insulator string: a stack of glass discs
+            zi = za - 0.1
+            cyl("rod%.0f%d" % (za, s), tuple(tip + [0, 0, -0.05]), tuple(tip + [0, 0, -2.3]), 0.03, steel_d, n=6)
+            for q in range(9):
+                zq = zi - 0.25 - q * 0.2
+                cyl("disc%.0f%d%d" % (za, s, q), (tip[0], 0, zq), (tip[0], 0, zq - 0.08), 0.15, ins, r1=0.1, n=12)
+            box("clamp%.0f%d" % (za, s), (tip[0], 0, zi - 2.3), (0.35, 0.12, 0.12), steel_d)
+    # the earth-wire peak
+    cyl("peak", (0, 0, 27.2), (0, 0, 28.4), 0.1, steel, n=6)
+    for s in (-1, 1):
+        cyl("ew%d" % s, (s * 0.45, 0, 27.2), (s * 1.6, 0, 28.0), 0.06, steel, n=4, smooth=False)
+    # a yellow warning plate on the road-side leg
+    prism("plate", [(-2.85 - 0.3, 3.0), (-2.85 + 0.3, 3.0), (-2.85, 3.55)], -2.95, -2.9, sign)
+
+
+# ---------------------------------------------------------------------------
 # Registry: name -> (stage, builder, seed, spec)
 
 PROPS = {}
@@ -2564,6 +3662,32 @@ reg("satellite", "space", build_satellite, 1, h=128, light="space", glow_px=12, 
 reg("beacon", "space", build_beacon_on, 1, h=160, light="space", glow_px=22)
 reg("beacon_off", "space", build_beacon_off, 1, h=160, light="space", glow_px=22,
     note="second frame of the pulsing beacon (light dim); same size and anchor as beacon")
+# halloween (v0.4.12): night, the mountain's approach with a violet sky fill
+reg("dead_tree_twisted", "halloween", build_dead_tree_twisted, 17, h=320, shadow=True, light="haunted",
+    note="its long arm reaches -X (the road)")
+reg("pumpkins", "halloween", build_pumpkins, 3, h=112, light="haunted", glow_px=12, glow=1.0,
+    pool=(0.0, -0.2, 1.3, "#ff8a28", 1.2), frame_pts=[(-1.2, -0.6, 0), (1.2, -0.6, 0)],
+    note="carved faces lit from inside: the glow and a warm pool on the ground are in the colour+alpha")
+reg("tombstones", "halloween", build_tombstones, 5, h=128, shadow=True, light="haunted", yaw=20)
+reg("cemetery_fence", "halloween", build_cemetery_fence, 2, h=96, shadow=True, light="haunted", yaw=35,
+    note="runs along the road (Y), rendered yawed 35 deg to show its road side")
+reg("scarecrow", "halloween", build_scarecrow, 4, h=192, shadow=True, light="haunted", glow_px=8,
+    note="eyes glow orange; the crow sits on the road-side (-X) arm")
+reg("haunted_house", "halloween", build_haunted_house, 8, h=256, light="haunted", yaw=28, glow_px=10,
+    note="seen from far: on a small rise, some windows lit warm")
+reg("gas_lamp", "halloween", build_gas_lamp, 1, h=192, light="haunted", glow_px=18, glow=1.0,
+    pool=(-0.95, 0.0, 2.6, "#a8ff90", 1.5), frame_pts=[(-4.2, 0, 0), (1.4, 0, 0), (-0.95, -3.0, 0)],
+    note="lamp ON: a sickly green-white flame; the lantern hangs over -X (the road); glow and pool in colour+alpha")
+# tunnels (v0.4.12): an alpine gorge by day
+reg("tunnel_portal", "tunnels", build_tunnel_portal, 23, h=384, clip_z0=True, extra_meta=portal_meta,
+    note="spans the road (never mirrored); anchor = road centre on the portal's front plane; the opening is "
+         "transparent: the watch draws the tunnel behind it (walls +-8 m, ceiling 7 m)")
+reg("rock_granite", "tunnels", build_rock_granite, 6, h=224, shadow=True)
+reg("waterfall_cliff", "tunnels", build_waterfall_cliff, 9, h=320, yaw=20, clip_z0=True,
+    note="faces the road a little (yaw 20); the pool is at the foot, towards the camera")
+reg("pylon", "tunnels", build_pylon, 1, h=384, shadow=True, yaw=12)
+reg("pine_day", "tunnels", build_pine, 13, h=288, shadow=True,
+    note="the mountain pine (same model and seed) lit by day; the tunnels stage also reuses guardrail (coast)")
 
 
 def apply_yaw(deg):
@@ -2571,7 +3695,8 @@ def apply_yaw(deg):
         return
     a = math.radians(deg)
     bpy.context.view_layer.update()
-    for o in scene_objs():
+    lights = [o for o in bpy.context.scene.objects if o.type == "LIGHT" and o.get("keep")]
+    for o in scene_objs() + lights:
         if o.parent is None:
             o.matrix_world = Matrix.Rotation(a, 4, "Z") @ o.matrix_world
 
@@ -3103,8 +4228,501 @@ def bg_space():
     return render_bg("space", glow=0.6)
 
 
+class MeshBuf:
+    """Many small pieces (cones, polygons) collected into one mesh."""
+
+    def __init__(self):
+        self.V, self.F = [], []
+
+    def cone(self, p0, p1, r0, r1, n=5):
+        p0, p1 = np.asarray(p0, float), np.asarray(p1, float)
+        ax = p1 - p0
+        ax /= np.linalg.norm(ax)
+        u = np.cross(ax, [0.0, 0.0, 1.0] if abs(ax[2]) < 0.9 else [1.0, 0.0, 0.0])
+        u /= np.linalg.norm(u)
+        v = np.cross(ax, u)
+        b = len(self.V)
+        for p, r in ((p0, r0), (p1, r1)):
+            for k in range(n):
+                a = 2 * math.pi * k / n
+                self.V.append(tuple(p + r * (math.cos(a) * u + math.sin(a) * v)))
+        for k in range(n):
+            self.F.append([b + k, b + (k + 1) % n, b + n + (k + 1) % n, b + n + k])
+        if r1 > 1e-6:
+            self.F.append([b + n + k for k in range(n)])
+
+    def poly(self, pts):
+        b = len(self.V)
+        self.V.extend(tuple(map(float, p)) for p in pts)
+        self.F.append(list(range(b, b + len(pts))))
+
+    def build(self, name, mat, smooth=False):
+        return mesh(name, self.V, self.F, mat, smooth=smooth)
+
+
+def fbm_fixed(rng, octaves, base_k=3, gain=0.55):
+    """fbm1 with its phases drawn once: a function of the azimuth that can be
+    evaluated again (to put things on the terrain it made)."""
+    ks, phs, amps = [], [], []
+    amp, k = 1.0, base_k
+    for _ in range(octaves):
+        ks.append(k)
+        phs.append((rng.uniform(0, 2 * math.pi), rng.uniform(0, 2 * math.pi)))
+        amps.append(amp)
+        amp *= gain
+        k = int(k * 2.1) + 1
+    tot = sum(amps)
+
+    def f(TH):
+        TH = np.asarray(TH, float)
+        out = np.zeros_like(TH)
+        for k_, (p1, p2), a in zip(ks, phs, amps):
+            out += a * (0.6 * np.sin(k_ * TH + p1) + 0.4 * np.sin((k_ + 1) * TH + p2))
+        return out / tot
+    return f
+
+
+def ridged_xy(X, Y, rng_, freq, octaves):
+    P = np.stack([X.ravel(), Y.ravel(), np.zeros(X.size)], axis=1)
+    out = np.zeros(X.size)
+    amp, tot, f = 1.0, 0.0, freq
+    for _ in range(octaves):
+        nz = Noise3(rng_, f, octaves=8)
+        out += amp * (1 - np.abs(nz(P) / 1.5)) ** 2
+        tot += amp
+        amp *= 0.5
+        f *= 2.1
+    return (out / tot).reshape(X.shape)
+
+
+def M_moon(c_dark, c_light, strength, scale):
+    mat = bpy.data.materials.new("moon_hw")
+    nt, N, L = _nodes(mat)
+    out = N.new("ShaderNodeOutputMaterial")
+    tc = N.new("ShaderNodeTexCoord")
+    nz = N.new("ShaderNodeTexNoise")
+    nz.inputs["Scale"].default_value = scale
+    nz.inputs["Detail"].default_value = 6
+    nz.inputs["Roughness"].default_value = 0.55
+    L.new(tc.outputs["Object"], nz.inputs[0])
+    ramp = N.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].position = 0.38
+    ramp.color_ramp.elements[0].color = hexcol(c_dark)
+    ramp.color_ramp.elements[1].position = 0.62
+    ramp.color_ramp.elements[1].color = hexcol(c_light)
+    L.new(nz.outputs["Fac"], ramp.inputs[0])
+    em = N.new("ShaderNodeEmission")
+    L.new(ramp.outputs[0], em.inputs[0])
+    em.inputs[1].default_value = strength
+    L.new(em.outputs[0], out.inputs["Surface"])
+    return mat
+
+
+def M_clouds(col, strength, scale, density, band=(0.06, 0.16, 0.45, 0.7), stretch=6.0, seed=0.0):
+    """Thin wisps on a shell around the camera: emission + transparency,
+    stretched flat, only in a band of elevations (sin elev in `band`)."""
+    mat = bpy.data.materials.new("clouds")
+    nt, N, L = _nodes(mat)
+    out = N.new("ShaderNodeOutputMaterial")
+    tc = N.new("ShaderNodeTexCoord")
+    mp = N.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (scale, scale, scale * stretch)
+    mp.inputs["Location"].default_value = (seed, seed * 0.7, 0)
+    L.new(tc.outputs["Object"], mp.inputs[0])
+    nz = N.new("ShaderNodeTexNoise")
+    nz.inputs["Scale"].default_value = 1.0
+    nz.inputs["Detail"].default_value = 7
+    nz.inputs["Roughness"].default_value = 0.6
+    nz.inputs["Distortion"].default_value = 0.6
+    L.new(mp.outputs[0], nz.inputs[0])
+    mr = N.new("ShaderNodeMapRange")
+    mr.inputs[1].default_value = 1 - density
+    mr.inputs[2].default_value = 1.0
+    L.new(nz.outputs["Fac"], mr.inputs[0])
+    pw = N.new("ShaderNodeMath"); pw.operation = "POWER"
+    L.new(mr.outputs[0], pw.inputs[0]); pw.inputs[1].default_value = 1.3
+    nrm = N.new("ShaderNodeVectorMath"); nrm.operation = "NORMALIZE"
+    L.new(tc.outputs["Object"], nrm.inputs[0])
+    sep = N.new("ShaderNodeSeparateXYZ")
+    L.new(nrm.outputs[0], sep.inputs[0])
+    lo = N.new("ShaderNodeMapRange"); lo.interpolation_type = "SMOOTHSTEP"
+    lo.inputs[1].default_value = band[0]; lo.inputs[2].default_value = band[1]
+    L.new(sep.outputs["Z"], lo.inputs[0])
+    hi = N.new("ShaderNodeMapRange"); hi.interpolation_type = "SMOOTHSTEP"
+    hi.inputs[1].default_value = band[2]; hi.inputs[2].default_value = band[3]
+    hi.inputs[3].default_value = 1.0; hi.inputs[4].default_value = 0.0
+    L.new(sep.outputs["Z"], hi.inputs[0])
+    m1 = N.new("ShaderNodeMath"); m1.operation = "MULTIPLY"
+    L.new(lo.outputs[0], m1.inputs[0]); L.new(hi.outputs[0], m1.inputs[1])
+    m2 = N.new("ShaderNodeMath"); m2.operation = "MULTIPLY"
+    L.new(m1.outputs[0], m2.inputs[0]); L.new(pw.outputs[0], m2.inputs[1])
+    em = N.new("ShaderNodeEmission")
+    em.inputs[0].default_value = hexcol(col)
+    em.inputs[1].default_value = strength
+    tr = N.new("ShaderNodeBsdfTransparent")
+    ms = N.new("ShaderNodeMixShader")
+    L.new(m2.outputs[0], ms.inputs[0])
+    L.new(tr.outputs[0], ms.inputs[1])
+    L.new(em.outputs[0], ms.inputs[2])
+    L.new(ms.outputs[0], out.inputs["Surface"])
+    mat.blend_method = "BLEND"
+    return mat
+
+
+BAT = [(0.0, 0.28), (0.1, 0.56), (0.17, 0.3), (0.45, 0.42), (1.0, 0.78), (1.6, 0.95), (2.2, 0.72),
+       (1.92, 0.24), (1.56, 0.42), (1.3, 0.04), (1.05, 0.26), (0.76, -0.1), (0.5, 0.1), (0.2, -0.28), (0.0, -0.5)]
+
+
+def bat_poly(scale, flap=1.0):
+    right = [(x * scale, z * scale * (flap if x > 0.3 else 1.0)) for x, z in BAT]
+    left = [(-x, z) for x, z in right[::-1][1:-1]]
+    return right + left
+
+
+def bg_halloween():
+    """A huge orange moon low in a violet night, a castle on a crag against
+    it, ragged dead forest on dark hills, thin clouds, bats."""
+    moon_az, moon_el, moon_r = 6.0, 18.0, 11.5
+    bg_scene("haunted", world=("#120a2c", "#3a2462", 0.5, "#140c24"))
+    for o in list(bpy.context.scene.objects):
+        if o.type == "LIGHT":
+            bpy.data.objects.remove(o)
+    ma = math.radians(moon_az)
+    add_sun(sun_vec((math.sin(ma), math.cos(ma)), 12), 0.9, (1.0, 0.6, 0.34), angle_deg=6.0)
+    add_sun(sun_vec((-0.6, -1.0), 35), 0.35, (0.55, 0.45, 1.0), angle_deg=10.0)
+    rng = np.random.RandomState(1031)
+    fog = "#3a2460"
+    # the moon, with a halo from the glow pass
+    D = 30000.0
+    sphere("moon", at(moon_az, D, D * math.tan(math.radians(moon_el))), D * math.tan(math.radians(moon_r)),
+           M_moon("#d0561a", "#ffb24a", 1.7, 0.00045), subdiv=5)
+    # hills: a far violet range and dark near hills
+    hill_far = add_fog(M_noise("#2a1c3c", "#3a2a50", scale=0.002, bump=0.3, bump_dist=20, rough=0.9, name="hfar"),
+                       fog, 7000, 0.75)
+    hill_near = add_fog(M_noise("#140c1c", "#22162c", scale=0.004, bump=0.3, bump_dist=10, rough=0.95,
+                                name="hnear"), fog, 5000, 0.55)
+    ff = fbm_fixed(rng, 5, 3)
+
+    def far_h(TH, R):
+        t = np.clip((R - 5500) / 7000, 0, 1)
+        return (1000 + 650 * ff(TH)) * np.sin(t * math.pi) ** 0.6 - 30
+    ring_terrain("far", hill_far, far_h, 5500, 12500, nth=2048, nr=40)
+    fn = fbm_fixed(rng, 6, 4)
+    patch = fbm_fixed(rng, 4, 5)
+    R0n, R1n = 1300.0, 4200.0
+
+    def near_h(TH, R):
+        t = np.clip((R - R0n) / (R1n - R0n), 0, 1)
+        return (270 + 180 * fn(TH)) * np.sin(t * math.pi) ** 0.55 - 12
+    ring_terrain("near", hill_near, near_h, R0n, R1n, nth=2048, nr=48)
+    # the crag and the castle against the moon
+    cag = at(moon_az - 3.2, 3600, 0)
+    rockm = add_fog(M_noise("#1a1222", "#2e2238", scale=0.01, bump=0.5, bump_dist=6, rough=0.9, name="crag"),
+                    fog, 9000, 0.45)
+    ob = stack_rock("crag", rockm, rng, 300.0, 660.0, taper=0.3, nz=48, amp=0.2)
+    ob.location = cag
+    castle = add_fog(M("#150d1e", rough=0.8, spec=0.2, name="castle"), fog, 9000, 0.4)
+    win = M_emit("#ffa040", 6.0, "cwin")
+    cx, cy, _ = cag
+    ztop = 640.0
+    rotc = math.radians(-(moon_az - 3.2))
+    K = 1.7
+
+    def P(dx, dy, z):
+        c, s_ = math.cos(rotc), math.sin(rotc)
+        return (cx + dx * c - dy * s_, cy + dx * s_ + dy * c, z)
+    box("keep", P(0, 0, ztop + 50 * K), (170 * K, 80 * K, 150 * K), castle, rot_z=rotc)
+    for i, (dx, r, h, roof) in enumerate(((-95, 26, 210, 70), (-40, 18, 290, 90), (40, 22, 250, 75),
+                                          (100, 28, 170, 60), (0, 12, 330, 110))):
+        dx, r, h, roof = dx * 2.0, r * K, h * K, roof * K
+        z0 = ztop - 30
+        cyl("tw%d" % i, P(dx, -10, z0), P(dx, -10, z0 + h), r, castle, n=12)
+        cyl("tr%d" % i, P(dx, -10, z0 + h), P(dx, -10, z0 + h + roof), r * 1.25, castle, r1=0.5, n=12)
+        for k in range(8):
+            a = 2 * math.pi * k / 8
+            box("cr%d_%d" % (i, k), P(dx + r * 1.05 * math.cos(a), -10 + r * 1.05 * math.sin(a), z0 + h - 10),
+                (13, 13, 24), castle, rot_z=a)
+        if i in (1, 2, 4):
+            box("w%d" % i, P(dx, -10 - r * 0.95, z0 + h * 0.72), (12, 6, 22), win, rot_z=rotc)
+    # curtain walls with crenellations
+    for dx0, dx1 in ((-190, -80), (80, 200)):
+        box("cw%d" % dx0, P((dx0 + dx1) / 2, -5, ztop + 30), (abs(dx1 - dx0), 22, 150), castle, rot_z=rotc)
+        for k in range(5):
+            box("cc%d_%d" % (dx0, k), P(dx0 + (dx1 - dx0) * (k + 0.5) / 5, -14, ztop + 112), (12, 12, 20), castle,
+                rot_z=rotc)
+    box("win_keep", P(-30, -62, ztop + 120), (13, 6, 20), win, rot_z=rotc)
+    # the dead forest: spiky leafless trees along the near crests, in patches
+    trees = MeshBuf()
+    tree_m = add_fog(M("#0e0814", rough=0.9, name="deadtrees"), fog, 5000, 0.5)
+    n_t = 0
+    for i in range(2600):
+        thd = rng.uniform(-180, 180)
+        th = math.radians(thd)
+        if patch(np.array([th]))[0] < -0.1 and rng.random() < 0.8:
+            continue
+        R = rng.uniform(R0n + 0.35 * (R1n - R0n), R0n + 0.55 * (R1n - R0n))
+        z = float(near_h(np.array([th]), np.array([R]))[0])
+        if z < 20:
+            continue
+        H = rng.uniform(110, 170)
+        base = np.array(at(thd, R, z - 10))
+        lean = rng.normal(0, 0.12, 3)
+        lean[2] = 1.0
+        top = base + lean / np.linalg.norm(lean) * H
+        trees.cone(base, top, H * 0.07, H * 0.01)
+        for k in range(rng.randint(3, 6)):
+            t = rng.uniform(0.35, 0.85)
+            p0 = base + (top - base) * t
+            a = rng.uniform(0, 2 * math.pi)
+            d = np.array([math.cos(a), math.sin(a), rng.uniform(0.6, 1.4)])
+            d /= np.linalg.norm(d)
+            Lb = H * rng.uniform(0.25, 0.42) * (1.1 - t)
+            p1 = p0 + d * Lb
+            trees.cone(p0, p1, H * 0.028, H * 0.005, n=4)
+            d2 = d + rng.normal(0, 0.5, 3)
+            d2[2] = abs(d2[2])
+            trees.cone(p0 + (p1 - p0) * 0.6, p0 + (p1 - p0) * 0.6 + d2 / np.linalg.norm(d2) * Lb * 0.5,
+                       H * 0.01, H * 0.003, n=3)
+        n_t += 1
+        if n_t >= 420:
+            break
+    trees.build("dead_forest", tree_m)
+    print("  dead trees:", n_t)
+    # thin clouds on a shell nearer than the moon
+    bm = bmesh.new()
+    bmesh.ops.create_icosphere(bm, subdivisions=5, radius=15000.0)
+    bmesh.ops.reverse_faces(bm, faces=bm.faces)
+    _obj_from_bm("clouds", bm, M_clouds("#7a64aa", 1.2, 0.00022, 0.5, seed=3.0), True)
+    bm = bmesh.new()
+    bmesh.ops.create_icosphere(bm, subdivisions=5, radius=14000.0)
+    bmesh.ops.reverse_faces(bm, faces=bm.faces)
+    _obj_from_bm("clouds2", bm, M_clouds("#2a1c40", 1.0, 0.0003, 0.45, band=(0.17, 0.22, 0.4, 0.47), seed=7.0), True)
+    # bats: tiny silhouettes, a few across the moon
+    bats = MeshBuf()
+    for (azd, el, dist, sc, flap) in ((1.0, 21.0, 420, 4.4, 1.0), (11.5, 25.5, 460, 3.8, -0.4), (8.0, 13.5, 520, 3.4, 0.6),
+                                      (14.0, 18.0, 380, 3.2, 1.0), (-8.0, 30.0, 400, 4.0, 0.3),
+                                      (-20.0, 22.0, 450, 3.6, 1.0), (25.0, 33.0, 420, 4.0, -0.5),
+                                      (140.0, 24.0, 400, 4.2, 1.0), (150.0, 29.0, 440, 3.6, 0.2),
+                                      (-120.0, 20.0, 420, 3.8, 0.8), (-95.0, 26.0, 480, 3.4, -0.3),
+                                      (70.0, 21.0, 430, 3.8, 1.0)):
+        a = math.radians(azd)
+        ctr = np.array(at(azd, dist * math.cos(math.radians(el)), dist * math.sin(math.radians(el))))
+        right = np.array([math.cos(a), -math.sin(a), 0.0])
+        up = np.array([0, 0, 1.0])
+        tilt = rng.normal(0, 0.25)
+        pts = []
+        for x, z in bat_poly(sc * 1.3, flap):
+            xr, zr = x * math.cos(tilt) - z * math.sin(tilt), x * math.sin(tilt) + z * math.cos(tilt)
+            pts.append(ctr + right * xr + up * zr)
+        bats.poly(pts)
+    bats.build("bats", M("#07030c", rough=1.0, spec=0.0, name="bat"))
+    return render_bg("halloween", glow=1.0)
+
+
+def add_height_snow(mat, z0, z1, col="#f2f6ff", n_lo=0.3, n_hi=0.55):
+    """Snow on the up-facing parts of a material above a height (world Z)."""
+    nt = mat.node_tree
+    N, L = nt.nodes, nt.links
+    b = [n for n in N if n.type == "BSDF_PRINCIPLED"][0]
+    src = b.inputs["Base Color"].links[0].from_socket
+    geo = N.new("ShaderNodeNewGeometry")
+    sp = N.new("ShaderNodeSeparateXYZ")
+    L.new(geo.outputs["Position"], sp.inputs[0])
+    sn = N.new("ShaderNodeSeparateXYZ")
+    L.new(geo.outputs["Normal"], sn.inputs[0])
+    nz = N.new("ShaderNodeTexNoise")
+    nz.inputs["Scale"].default_value = 0.02
+    L.new(geo.outputs["Position"], nz.inputs[0])
+    ad = N.new("ShaderNodeMath"); ad.operation = "MULTIPLY_ADD"
+    L.new(nz.outputs["Fac"], ad.inputs[0]); ad.inputs[1].default_value = (z1 - z0) * 1.5
+    L.new(sp.outputs["Z"], ad.inputs[2])
+    mh = N.new("ShaderNodeMapRange")
+    mh.inputs[1].default_value = z0 + (z1 - z0) * 0.75
+    mh.inputs[2].default_value = z1 + (z1 - z0) * 0.75
+    L.new(ad.outputs[0], mh.inputs[0])
+    mn = N.new("ShaderNodeMapRange")
+    mn.inputs[1].default_value = n_lo
+    mn.inputs[2].default_value = n_hi
+    L.new(sn.outputs["Z"], mn.inputs[0])
+    mu = N.new("ShaderNodeMath"); mu.operation = "MULTIPLY"
+    L.new(mh.outputs[0], mu.inputs[0]); L.new(mn.outputs[0], mu.inputs[1])
+    mx = N.new("ShaderNodeMixRGB")
+    L.new(mu.outputs[0], mx.inputs[0])
+    L.new(src, mx.inputs[1])
+    mx.inputs[2].default_value = hexcol(col)
+    L.new(mx.outputs[0], b.inputs["Base Color"])
+    return mat
+
+
+def M_water_bg(near_col, far_col, y0, y1, sparkle=0.8):
+    mat = bpy.data.materials.new("lake")
+    nt, N, L = _nodes(mat)
+    out = N.new("ShaderNodeOutputMaterial")
+    tc = N.new("ShaderNodeTexCoord")
+    sep = N.new("ShaderNodeSeparateXYZ")
+    L.new(tc.outputs["Object"], sep.inputs[0])
+    mr = N.new("ShaderNodeMapRange")
+    mr.inputs[1].default_value = y0
+    mr.inputs[2].default_value = y1
+    L.new(sep.outputs["Y"], mr.inputs[0])
+    ramp = N.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].color = hexcol(near_col)
+    ramp.color_ramp.elements[1].color = hexcol(far_col)
+    L.new(mr.outputs[0], ramp.inputs[0])
+    mp = N.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (0.02, 0.08, 0.08)
+    L.new(tc.outputs["Object"], mp.inputs[0])
+    nz = N.new("ShaderNodeTexNoise")
+    nz.inputs["Scale"].default_value = 1.0
+    nz.inputs["Detail"].default_value = 3
+    L.new(mp.outputs[0], nz.inputs[0])
+    sr = N.new("ShaderNodeMapRange")
+    sr.inputs[1].default_value = 0.66
+    sr.inputs[2].default_value = 0.74
+    sr.inputs[4].default_value = sparkle
+    L.new(nz.outputs["Fac"], sr.inputs[0])
+    mx = N.new("ShaderNodeMixRGB")
+    L.new(sr.outputs[0], mx.inputs[0])
+    L.new(ramp.outputs[0], mx.inputs[1])
+    mx.inputs[2].default_value = hexcol("#ffffff")
+    em = N.new("ShaderNodeEmission")
+    L.new(mx.outputs[0], em.inputs[0])
+    em.inputs[1].default_value = 1.0
+    L.new(em.outputs[0], out.inputs["Surface"])
+    return mat
+
+
+def bg_tunnels():
+    """An alpine gorge by day: steep rock walls either side, the valley's
+    notches ahead and behind, a concrete arch dam across the gorge ahead
+    with its lake glinting behind the crest, snowy peaks far away, pines."""
+    bg_scene("day", sun_from=(-0.7, -1.0), elev=42)
+    rng = np.random.RandomState(47)
+    fog = "#b8cce0"
+    Yd, Hd = 900.0, 150.0
+    gm = M_noise("#565450", "#aaa69c", scale=0.045, coord_scale=(1, 1, 0.3), bump=1.0, bump_dist=8,
+                 strata=0.12, strata_col="#4c4a46", strata_scale=0.02, snow=1.0, snow_col="#2e5628",
+                 snow_lo=0.46, snow_hi=0.6, rough=0.9, c3="#3c3a38", c3_amt=0.22, c3_scale=0.012, name="gorge")
+    gorge_m = add_fog(add_height_snow(gm, 560.0, 700.0), fog, 4200, 0.8)
+    alps_m = add_fog(M_noise("#566070", "#8a92a2", scale=0.004, bump=0.5, bump_dist=15, snow=1.0,
+                             snow_col="#f4f8ff", snow_lo=0.28, snow_hi=0.42, rough=0.8, name="alps"), fog, 16000, 0.7)
+    nrim = Noise3(rng, 1 / 800.0)
+    npk = Noise3(rng, 1 / 330.0)
+    ngul = Noise3(rng, 1 / 25.0)
+    ngul2 = Noise3(rng, 1 / 9.0)
+    npk2 = Noise3(rng, 1 / 140.0)
+    nrough = Noise3(rng, 1 / 40.0)
+    LAKE_L, LAKE_S = 600.0, 0.22
+
+    def lake_z(Y):
+        return Hd - 3.0 + np.clip(Y - Yd, 0, LAKE_L) * LAKE_S
+
+    def width(Y):
+        w = 230.0 - 90.0 * np.exp(-((Y - Yd) / 240.0) ** 2) + 25.0 * np.sin(Y / 430.0)
+        return w + 0.45 * np.clip(Y - Yd - 900.0, 0, None) + 0.3 * np.clip(-Y - 800.0, 0, None)
+
+    def gorge(TH, R):
+        X, Y = R * np.sin(TH), R * np.cos(TH)
+        P = np.stack([X.ravel(), Y.ravel(), np.zeros(X.size)], axis=1)
+        sh = X.shape
+        # the wall's foot wanders in and out along the gorge: vertical buttresses and gullies
+        rib = 34.0 * ngul(P * [0.3, 1.0, 1.0]).reshape(sh) + 9.0 * ngul2(P * [0.3, 1.0, 1.0]).reshape(sh)
+        dl = np.abs(X) - width(Y) - rib
+        rim = 390.0 + 160.0 * nrim(P).reshape(sh)
+        d = np.maximum(dl, 0)
+        edge = rim / 3.0
+        z = rim * np.clip(d / edge, 0, 1) ** 0.8 + 0.3 * np.maximum(d - edge, 0)
+        # jagged summits behind the rims
+        pk = (1 - np.abs(npk(P).reshape(sh)) / 1.5) ** 4
+        z = z + 420.0 * pk * np.clip((d - edge * 0.7) / 160.0, 0, 1)
+        pk2 = (1 - np.abs(npk2(P).reshape(sh)) / 1.5) ** 3
+        z = z + 160.0 * pk2 * np.clip((d - edge * 0.85) / 60.0, 0, 1)
+        z = z + 10.0 * nrough(P).reshape(sh) * np.clip(d / 30.0, 0, 1)
+        beyond = Hd - 3.0 + LAKE_L * LAKE_S - 6.0 + 0.12 * np.clip(Y - Yd - LAKE_L, 0, None)
+        floor = np.where(Y > Yd, np.minimum(lake_z(Y) - 14.0, beyond), -8.0)
+        return floor + z
+    ring_terrain("gorge", gorge_m, gorge, 100.0, 6500.0, nth=2048, nr=420)
+
+    def alps(TH, R):
+        t = (R - 8000.0) / 12000.0
+        prof = np.clip(np.sin(np.clip(t, 0, 1) * math.pi), 0, 1) ** 0.5
+        k = ridged_xy(R * np.sin(TH), R * np.cos(TH), rng, 1 / 2600.0, 5)
+        k = (k - k.min()) / (k.max() - k.min())
+        # a big snowy massif straight down the valley, behind the dam
+        dth = np.angle(np.exp(1j * (TH - math.radians(4.0))))
+        mass = np.exp(-(dth / math.radians(12.0)) ** 2 - ((R - 12000.0) / 2600.0) ** 2)
+        return (500 + 4200 * k ** 1.5) * prof * (1 - 0.4 * mass) + 5300 * mass * (0.72 + 0.28 * k) - 100
+    ring_terrain("alps", alps_m, alps, 8000.0, 20000.0, nth=2048, nr=100)
+    # the dam: an arch bowed upstream, its face battered, block joints
+    dam_m = add_fog(M_grid("#9c988e", "#d4d0c6", cell=(15.0, 1000.0), frac=(0.94, 1.0), wall2="#c8c4ba",
+                           win_var=0.06, rough_win=0.8, spec_win=0.2, name="dam"), fog, 3800, 0.75)
+    Rc = 330.0
+    xs = np.linspace(-215, 215, 151)
+    zsd = np.linspace(-30, Hd, 36)
+
+    def yarc(x, z):
+        return Yd - Rc + np.sqrt(Rc ** 2 - x ** 2) - 0.16 * (Hd - z)
+    V = [(x, float(yarc(x, z)), z) for z in zsd for x in xs]
+    nxd = len(xs)
+    F = [[j * nxd + i, j * nxd + i + 1, (j + 1) * nxd + i + 1, (j + 1) * nxd + i]
+         for j in range(len(zsd) - 1) for i in range(nxd - 1)]
+    mesh("dam", V, F, dam_m, smooth=True)
+    crest_m = add_fog(M("#e6e2d8", rough=0.7, name="crest"), fog, 3800, 0.75)
+    V, F = [], []
+    for i, x in enumerate(xs):
+        y = float(yarc(x, Hd))
+        V += [(x, y - 2.0, Hd - 3.0), (x, y - 2.0, Hd + 2.5), (x, y + 12, Hd + 2.5)]
+    for i in range(nxd - 1):
+        a, b = 3 * i, 3 * (i + 1)
+        F += [[a, b, b + 1, a + 1], [a + 1, b + 1, b + 2, a + 2]]
+    mesh("crest", V, F, crest_m)
+    # the spillway: white water down the middle of the face
+    fall_m = add_fog(M_noise("#b8d0e0", "#ffffff", scale=0.05, coord_scale=(8, 8, 0.3), rough=0.3,
+                             emit_col="#e8f2ff", emit_str=0.5, bump=0.0, name="spill"), fog, 3800, 0.7)
+    V = [(x, float(yarc(x, z)) - 1.0, z) for z in np.linspace(-30, Hd - 2.5, 20) for x in np.linspace(-24, 24, 9)]
+    F = [[j * 9 + i, j * 9 + i + 1, (j + 1) * 9 + i + 1, (j + 1) * 9 + i] for j in range(19) for i in range(8)]
+    mesh("spill", V, F, fall_m, smooth=True)
+    # the lake behind the crest, tilted a little towards us so its glint shows
+    lake = add_fog(M_water_bg("#2a6c90", "#9cc8e0", Yd, Yd + LAKE_L), fog, 5000, 0.55)
+    V, F = [], []
+    lx = np.linspace(-800, 800, 41)
+    ly = np.linspace(Yd - 80.0, Yd + LAKE_L, 30)
+    for y in ly:
+        for x in lx:
+            V.append((x, y, float(lake_z(np.array(y)))))
+    nl = len(lx)
+    F = [[j * nl + i, j * nl + i + 1, (j + 1) * nl + i + 1, (j + 1) * nl + i] for j in range(len(ly) - 1)
+         for i in range(nl - 1)]
+    mesh("lake", V, F, lake)
+    # pines: at the feet of the walls and along the rims
+    pines = MeshBuf()
+    trunk = MeshBuf()
+    n_p = 0
+    for i in range(1400):
+        side = 1 if rng.random() < 0.5 else -1
+        Y = rng.uniform(-3000, Yd - 60)
+        dl = rng.uniform(-14, 6)
+        X0 = side * float(width(np.array(Y)))
+        P0 = np.array([[X0, Y, 0.0]])
+        rib = 34.0 * ngul(P0 * [0.3, 1.0, 1.0])[0] + 9.0 * ngul2(P0 * [0.3, 1.0, 1.0])[0]
+        X = side * (abs(X0) + rib + dl - 6.0)
+        R = math.hypot(X, Y)
+        if R < 150 or R > 6000:
+            continue
+        TH = math.atan2(X, Y)
+        z = float(gorge(np.array([[TH]]), np.array([[R]]))[0, 0])
+        H = rng.uniform(14, 24)
+        pines.cone((X, Y, z + H * 0.15), (X, Y, z + H), H * 0.21, 0.0, n=6)
+        trunk.cone((X, Y, z - 2), (X, Y, z + H * 0.2), H * 0.04, H * 0.03, n=4)
+        n_p += 1
+    pines.build("pines", add_fog(M_noise("#16301c", "#2a4a28", scale=0.05, rough=0.8, name="pinebg"), fog, 3500, 0.8))
+    trunk.build("trunks", add_fog(M("#3a2a20", rough=0.9), fog, 3500, 0.8))
+    print("  pines:", n_p)
+    return render_bg("tunnels")
+
+
 BACKDROPS = {"city": bg_city, "coast": bg_coast, "desert": bg_desert, "mountain": bg_mountain,
-             "space": bg_space}
+             "space": bg_space, "halloween": bg_halloween, "tunnels": bg_tunnels}
 
 # Colours the watch uses around the sprites (sRGB hex). ground_a/b alternate by
 # road segment; shoulder = the strip just off the tarmac; fog = distance tint;
@@ -3129,6 +4747,15 @@ SKY = {
                   ground_b="#140828", void="#05020e", shoulder="#30e0ff", road_a="#2a2440",
                   road_b="#242038", rumble_a="#ff30d0", rumble_b="#30e0ff", line="#30e0ff",
                   preview_scroll=270, note="the road floats: no ground, the watch draws stars"),
+    "halloween": dict(sky_top="#0c0620", sky_horizon="#4a2a6e", fog="#3a2460", ground_a="#3a3822",
+                      ground_b="#33311d", shoulder="#2c2420", road_a="#2c2a32", road_b="#28262e",
+                      rumble_a="#f07818", rumble_b="#6a2a9a", line="#d8d0b0", lamp_pool="#a8f090",
+                      preview_scroll=351, note="night: the watch draws stars; bg has the moon"),
+    "tunnels": dict(sky_top="#2e70cc", sky_horizon="#c4dcf0", fog="#b8cce0", ground_a="#5a8e3c",
+                    ground_b="#528436", rock="#8a8984", lake="#2e6e8c", shoulder="#8e8c86",
+                    road_a="#68686c", road_b="#626266", rumble_a="#f0f0f0", rumble_b="#d82020",
+                    line="#f2f2f2", tunnel_wall="#bab4a6", tunnel_ceiling="#6c6860", tunnel_lamp="#ffa844",
+                    preview_scroll=328),
 }
 
 # ---------------------------------------------------------------------------

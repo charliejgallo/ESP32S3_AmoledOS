@@ -3,6 +3,44 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.4.12 — 2026-09-22
+
+**Turbo: two new stages**, and ready for more.
+
+- **Hollow Road**, for Halloween, open from the start: a night road through
+  a haunted valley with violet fog, twisted dead trees, glowing pumpkins, a
+  cemetery, scarecrows and a mansion under an orange moon (24.7 fps, like
+  Snow Pass: the headlights are what costs). A **hearse** joins
+  the traffic, and a third of the traffic are **ghosts**: pale, see-through,
+  and the car drives through them.
+- **Tunnel Ridge**, an alpine gorge by day with a reservoir, a dam and four
+  road **tunnels**: a new thing for the renderer (walls, a lamp-lit ceiling,
+  the exit seen through its mouth); it runs at 30 fps on the board. Opens by
+  finishing Snow Pass.
+- Three more stage ideas written up for later in `apps/turbo/STAGE-IDEAS.md`.
+
+Ready for more stages and vehicles:
+
+- Vehicles are loaded per race, only the ones the stage's traffic uses (each
+  stage now has its own mix: no box trucks on the coast, the fast cars in
+  space), instead of all eight for the whole session. Free PSRAM while
+  racing: 1.21 MB in the city (0.84), 1.91 on the coast (1.02), 2.22 in the
+  mountains (1.37); the lowest point since boot 1.12 MB (0.72).
+- Metro Freeway, Costa Azul and Red Canyon are open from the start in the
+  time trial; Snow Pass opens by finishing Red Canyon, Orbit 9 by finishing
+  the tour. How each stage opens, whether it is in the tour and its traffic
+  are data in the stage table.
+- The stage list scrolls; records, unlocks and each car's paint are stored
+  per number (`tb_best<n>`, `tb_pc<car>`: no cap of 16 paints and 8 cars);
+  the paints saved before carry over.
+- Link protocol 2: the records travel as a count and a list, and a watch
+  with another version of Turbo says so in the lobby. **Both watches need
+  this `turbo.so` to race each other.**
+
+Only `turbo.so` and `turbo.pak` changed (the pack grew from 2.9 to 4.0 MB);
+`turbo.so` still needs firmware v0.4.10 or newer. The firmware carries the
+new strings in its built-in catalogue and is otherwise v0.4.11.
+
 ## v0.4.11 — 2026-09-22
 
 **Turbo** gets a fourth frame buffer when PSRAM allows (asked for after the

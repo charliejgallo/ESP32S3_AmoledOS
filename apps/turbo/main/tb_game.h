@@ -20,8 +20,11 @@
 #define TB_TRAFFIC      18
 
 enum { CAR_WEDGE = 0, CAR_MUSCLE, CAR_RALLY, CAR_PICKUP, CAR_N };
+/* the traffic's paints are 0..15, picked at random; the hearse has its own */
+#define TB_PAINT_HEARSE 16
+
 /* traffic models follow the player's in the pack */
-enum { VH_SEDAN = CAR_N, VH_COMPACT, VH_VAN, VH_TRUCK, VH_N };
+enum { VH_SEDAN = CAR_N, VH_COMPACT, VH_VAN, VH_TRUCK, VH_HEARSE, VH_N };
 
 enum { DIFF_EASY = 0, DIFF_NORMAL, DIFF_HARD, DIFF_N };
 
@@ -66,6 +69,7 @@ typedef struct {
     uint8_t paint;              /* index into the traffic paints              */
     uint8_t lane;
     bool    braking;
+    bool    ghost;              /* see-through, and the car drives through it */
 } tb_traffic_t;
 
 typedef struct {

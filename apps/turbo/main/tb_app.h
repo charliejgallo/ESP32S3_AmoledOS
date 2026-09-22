@@ -91,6 +91,7 @@ struct app {
     int         mode;
     int         stage;              /* being raced                           */
     float       tour_time;          /* the tour so far                        */
+    int         tour_i;             /* which of the tour's stages             */
     int         tour_coins;
     bool        result_shown;
     bool        new_record;
@@ -105,6 +106,7 @@ struct app {
     bool        zeroed;
     int         imu_skip;
     bool        autoplay;           /* the bot drives (simulator switch)     */
+    int8_t      dev_go;             /* turbo_dev.txt "go N": that stage first */
 
     /* preferences */
     int32_t     coins;

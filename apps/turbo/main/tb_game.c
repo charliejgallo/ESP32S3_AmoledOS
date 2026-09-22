@@ -83,18 +83,28 @@ static void traffic_spawn(tb_game_t *g, tb_traffic_t *c, float z)
     c->z = z;
     c->lane = (uint8_t)(tb_rand(&g->rng) % (uint32_t)lanes);
     c->x = c->tx = lane_x(lanes, c->lane);
-    uint32_t r = tb_rand(&g->rng) % 100u;
-    /* mostly cars; trucks and vans are slower and in the right lanes */
-    if (r < 30) c->model = VH_SEDAN;
-    else if (r < 55) c->model = VH_COMPACT;
-    else if (r < 72) c->model = VH_VAN;
-    else if (r < 86) c->model = VH_TRUCK;
-    else c->model = (uint8_t)(tb_rand(&g->rng) % CAR_N);
-    float base = c->model == VH_TRUCK ? 22.0f : (c->model == VH_VAN ? 26.0f : 30.0f);
+    /* the stage's own mix of vehicles, by weight */
+    const tb_track_t *t = g->trk;
+    int total = 0;
+    for (int i = 0; i < t->ntraffic_kinds; i++) total += t->traffic_weight[i];
+    c->model = VH_SEDAN;
+    if (total > 0) {
+        int r = (int)(tb_rand(&g->rng) % (uint32_t)total);
+        for (int i = 0; i < t->ntraffic_kinds; i++) {
+            r -= t->traffic_weight[i];
+            if (r < 0) {
+                c->model = t->traffic_model[i];
+                break;
+            }
+        }
+    }
+    float base = c->model == VH_TRUCK ? 22.0f : (c->model == VH_VAN || c->model == VH_HEARSE ? 26.0f : 30.0f);
     if (c->model < CAR_N) base = 40.0f;
     c->v = base + tb_randf(&g->rng) * 10.0f + (g->diff == DIFF_HARD ? 4.0f : 0.0f);
     c->paint = (uint8_t)(tb_rand(&g->rng) % 16u);
+    if (c->model == VH_HEARSE) c->paint = TB_PAINT_HEARSE;
     c->braking = false;
+    c->ghost = t->ghost_pct && (int)(tb_rand(&g->rng) % 100u) < t->ghost_pct;
 }
 
 static void traffic_init(tb_game_t *g)
@@ -216,7 +226,8 @@ static void hit_traffic(tb_game_t *g)
 {
     for (int i = 0; i < g->ntraffic; i++) {
         tb_traffic_t *c = &g->traffic[i];
-        float len = c->model == VH_TRUCK ? 7.5f : 4.5f;
+        if (c->ghost) continue;             /* the car goes through a ghost */
+        float len = c->model == VH_TRUCK ? 7.5f : (c->model == VH_HEARSE ? 5.9f : 4.5f);
         float hw = c->model == VH_TRUCK ? 1.25f : 0.95f;
         float dz = c->z - g->z;                     /* its rear minus ours     */
         if (dz > CAR_LEN || dz < -len) continue;

@@ -75,5 +75,40 @@
   "line": "#30e0ff",
   "preview_scroll": 270,
   "note": "the road floats: no ground, the watch draws stars"
+ },
+ "halloween": {
+  "sky_top": "#0c0620",
+  "sky_horizon": "#4a2a6e",
+  "fog": "#3a2460",
+  "ground_a": "#3a3822",
+  "ground_b": "#33311d",
+  "shoulder": "#2c2420",
+  "road_a": "#2c2a32",
+  "road_b": "#28262e",
+  "rumble_a": "#f07818",
+  "rumble_b": "#6a2a9a",
+  "line": "#d8d0b0",
+  "lamp_pool": "#a8f090",
+  "preview_scroll": 351,
+  "note": "night: the watch draws stars; bg has the moon"
+ },
+ "tunnels": {
+  "sky_top": "#2e70cc",
+  "sky_horizon": "#c4dcf0",
+  "fog": "#b8cce0",
+  "ground_a": "#5a8e3c",
+  "ground_b": "#528436",
+  "rock": "#8a8984",
+  "lake": "#2e6e8c",
+  "shoulder": "#8e8c86",
+  "road_a": "#68686c",
+  "road_b": "#626266",
+  "rumble_a": "#f0f0f0",
+  "rumble_b": "#d82020",
+  "line": "#f2f2f2",
+  "tunnel_wall": "#bab4a6",
+  "tunnel_ceiling": "#6c6860",
+  "tunnel_lamp": "#ffa844",
+  "preview_scroll": 328
  }
 }

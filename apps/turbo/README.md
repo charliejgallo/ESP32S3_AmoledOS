@@ -11,6 +11,7 @@ steer; the pedals are on the screen.
 |---|---|---|
 | <img src="../../docs/img/app-turbo-city.png" width="200"><br>Metro Freeway: towers, lamps, overpasses and three lanes of traffic in any colour. | <img src="../../docs/img/app-turbo-coast.png" width="200"><br>Costa Azul: the sea beside the road, palms, a lighthouse. | <img src="../../docs/img/app-turbo-desert.png" width="200"><br>Red Canyon: long straights, mesas and saguaros; a checkpoint gives time back. |
 | <img src="../../docs/img/app-turbo-night.png" width="200"><br>Snow Pass, at night: two lanes, snow and pines, the headlights light the road ahead. | <img src="../../docs/img/app-turbo-space.png" width="200"><br>Orbit 9, the final stage: a road floating in space, neon edges, rings to drive through. | <img src="../../docs/img/app-turbo-garage.png" width="200"><br>The garage: four cars and twelve paints, bought with the coins from races. |
+| <img src="../../docs/img/app-turbo-halloween.png" width="200"><br>Hollow Road, for Halloween: an orange moon, a haunted valley, and a ghost car to drive through. | <img src="../../docs/img/app-turbo-tunnel.png" width="200"><br>Tunnel Ridge: an alpine gorge, a dam, and four road tunnels lit inside. | |
 
 | Stage | What it plays like |
 | --- | --- |
@@ -19,6 +20,8 @@ steer; the pedals are on the screen.
 | Red Canyon | the desert: long straights over dunes, the fastest stage |
 | Snow Pass | a mountain pass at night on two lanes, hairpins and steep climbs |
 | Orbit 9 | the bonus and the tour's last stage, a rollercoaster through space |
+| Hollow Road | Halloween (v0.4.12): a night road through a haunted valley, violet fog, a cemetery, a pumpkin patch, a mansion on the hill; a hearse in the traffic and a third of the cars are ghosts you drive through |
+| Tunnel Ridge | an alpine gorge by day (v0.4.12), a reservoir and its dam, and four road tunnels |
 
 | Car | |
 | --- | --- |
@@ -43,7 +46,7 @@ steer; the pedals are on the screen.
 | Mode | |
 | --- | --- |
 | Full tour | the five stages in a row, the times added up; finishing it opens Orbit 9 in the time trial |
-| Time trial | any stage open so far, against your record |
+| Time trial | Metro Freeway, Costa Azul, Red Canyon and Hollow Road from the start; Snow Pass opens by finishing Red Canyon, Tunnel Ridge by finishing Snow Pass, Orbit 9 by finishing the tour |
 | Against *the paired watch* | both watches race the same stage at once, each sees the other as a ghost car; the lower time wins |
 
 Races earn coins (more for time left, passes and the harder levels, 200 for a
@@ -91,10 +94,31 @@ The worker runs on **core 0** (`aos_hal_worker_start_on()`, new in v0.4.10):
 LVGL has been pinned to core 1 since v0.4.4, and a worker there at a higher
 priority kept it off the CPU, so render and blit went in series (16 fps).
 
+### Tunnels
+
+A tunnel costs the pseudo-3D renderer almost nothing, because each screen
+pixel inside it can only be one of three things. On a road row of a tunnel
+segment, whatever lies beyond 8 m from the centre is the **wall** instead of
+the ground. A row above the horizon looks up at the **ceiling**, which it
+meets at depth `hc × F / (HOR − y)` (hc: the ceiling over the camera; tunnels
+are flat inside); at that depth the ceiling spans the tunnel's width, and
+beyond it are walls again. The rows of the **exit** show the outside through
+it, walls around it. From outside, the mouth is a sprite (`tunnel_portal`, a
+rock face with a transparent arch) and everything behind it is clipped to
+its opening; from inside, what lies past the exit is clipped to the exit.
+Ceiling lamps are a strip every 12 m of depth. Tunnel Ridge runs at 30 fps
+on the board, as fast as Costa Azul.
+
+### Ghosts
+
+On Hollow Road a third of the traffic are ghosts: the same vehicles through
+a pale, cold colour table, drawn at half opacity, and the collision skips
+them, so the car drives straight through.
+
 ### The cars: one render, any paint
 
-`tools/blender/cars.py` builds the eight vehicles from code (the four the
-player drives and four for the traffic) and renders them the way Golf's
+`tools/blender/cars.py` builds the nine vehicles from code (the four the
+player drives and five for the traffic, the hearse since v0.4.12) and renders them the way Golf's
 golfer is rendered: a **lighting pass** on neutral grey and a **region-id
 pass** (paint A, paint B, glass, chrome, trim, tyres, rims, tail lights...;
 `tools/blender/SPEC.md`). The watch colours each pixel as
@@ -105,7 +129,7 @@ seven yaw frames; everything else from further away in three views.
 
 <p align="center"><img src="../../docs/img/turbo-pipeline.png" width="690" alt="The lighting pass, the region ids and three paints coloured from them"></p>
 
-`tools/blender/props.py` renders the scenery in final colour (36 props, the
+`tools/blender/props.py` renders the scenery in final colour (48 props, the
 checkpoint arches, and a 360° backdrop per stage). `tools/pack_assets.py`
 packs it all into `assets/turbo.pak` (2.9 MB, LZ4), which goes to
 `/sdcard/apps/` next to `turbo.so`. Without it the game still runs, with
@@ -132,6 +156,8 @@ Frames per second over whole races with the bot driving (charlie.local,
 | Red Canyon | 31.5 | 30 ms | |
 | Snow Pass | 24.7 | 39 ms | road 12 (the headlights) |
 | Orbit 9 | 28.9 | 34 ms | |
+| Hollow Road | 24.7 | 39 ms | road 12 (the headlights), props 7 |
+| Tunnel Ridge | 30.0 | 32 ms | road 6, props 6 |
 
 It started at 12 fps. What moved it, in order: the worker off LVGL's core
 (16 → 19); `tb_blend()` inline instead of a call into another file for every
@@ -148,7 +174,9 @@ bands of 64 rows in internal RAM and copied out, which by itself did not
 speed anything up (the CPU is the wall, not the PSRAM) but is what the rest
 is built on.
 
-Memory: internal RAM 46 KB for the band plus the worker's 12 KB stack. The
+Memory: internal RAM 46 KB for the band plus the worker's 12 KB stack.
+Vehicles are loaded per race, only the ones the stage's traffic uses (0.7-1.1 s
+when the stage changes). The
 fourth frame (330 KB of PSRAM) is asked for after the race's first frame,
 once the car is coloured, and only if 600 KB stay free after it; it is given
 back when a stage loads or the menu opens. Measured while racing with four:
@@ -160,9 +188,53 @@ left 371 KB at the worst moment).
 Each race appends a line to `/sdcard/apps/turbo_stats.txt` with its frame
 rate and the milliseconds of every part of the frame (the log's ring turns
 over in a few minutes). `tools/board_race.sh <stage>` runs one on the board
-and prints it; with `/sdcard/apps/turbo_dev.txt` saying `auto unlock` the
-bot drives and every stage is open, `reset` puts the progress back to a fresh
-install. Delete the file afterwards.
+and prints it: it writes `/sdcard/apps/turbo_dev.txt` saying `auto unlock go
+<stage>` (the bot drives, every stage is open, and that stage's time trial
+starts as soon as the app has loaded) and reopens Turbo. The bot's races
+leave coins and records: `tools/board_race.sh clean` puts the progress back
+to a fresh install (`reset`) and deletes the file.
+
+More stage ideas, written up to be built later (autumn farmland, a neon
+city at night, a volcano in the jungle): [STAGE-IDEAS.md](STAGE-IDEAS.md).
+
+## Adding a stage or a vehicle
+
+Both are data plus art; neither needs new firmware.
+
+**A stage** (`tb_track.c`): its sections (length, bend, climb, the ground
+on each side, the decoration set), up to three decoration rules sets, a row
+in `stage_table()` (checkpoint times, how it opens: `UNL_OPEN`,
+`UNL_AFTER` a stage or `UNL_TOUR`; whether it is in the tour; which vehicles
+its traffic uses and how often), its colours in `theme_of()`, its name. New
+props get a `PR_*` value and a name in `tb_art.c`, and their renders from
+`props.py`; the backdrop is `bg_<key>`. The stage list scrolls, the records
+and the unlocks are stored per stage number (`tb_best<n>`, a 32-bit mask),
+and the link sends as many records as there are stages.
+
+**A vehicle** (`cars.py`, `tb_game.h`): a build function in `cars.py`, its
+renders and `pack_assets.py`; a model number (`CAR_*` for one to drive, with
+its stats in `tb_car_spec()`, or `VH_*` for traffic) and its name in
+`tb_art.c`. The paint of each car is its own key (`tb_pc<car>`), and the
+paints are a table in `tb_art.c` (up to 32, a bit mask of owned ones).
+
+**The memory budget.** Only what a race uses is in PSRAM: the stage's props
+and the vehicles its traffic lists (each 120-220 KB with mip levels and
+shadows; the box truck 500 KB), loaded when the stage is, plus the rival's
+car over the link. Measured: the city's props and its six vehicles are
+3.1 MB, and 1.21 MB stays free while racing with four frame buffers. The
+rule for a new stage: **props + its traffic's vehicles up to ~3.7 MB** keep
+the fourth buffer (it needs 600 KB free after it); up to ~4.0 MB it runs with
+three, 2-4 fps slower; past that, props that do not fit are drawn as boxes.
+
+| Stage | props | traffic (models) | free while racing |
+| --- | --- | --- | --- |
+| Metro Freeway | 1.89 MB | 1.24 MB (6) | 1.21 MB |
+| Costa Azul | 1.69 MB | 0.74 MB (5) | 1.91 MB |
+| Red Canyon | 1.13 MB | 1.20 MB (5) | — |
+| Snow Pass | 1.35 MB | 0.79 MB (5) | 2.22 MB |
+| Orbit 9 | 1.39 MB | 0.45 MB (3) | — |
+| Hollow Road | 1.69 MB | 0.66 MB (4) | 2.01 MB |
+| Tunnel Ridge | 2.28 MB | 0.74 MB (5) | 1.34 MB |
 
 ## The test bench
 
@@ -172,6 +244,8 @@ cd apps/turbo/tools && ./build.sh
 /tmp/tbh strip 3 /tmp/s.ppm ../assets/turbo.pak        # 8 frames along Snow Pass
 /tmp/tbh drive 2 0 1                                   # the bot races Red Canyon: time, crashes
 /tmp/tbh bands 4 ../assets/turbo.pak                   # banded render against the whole frame
+/tmp/tbh cars 5 8 1200 /tmp/c.ppm ../assets/turbo.pak  # four of one traffic model up close (8: the hearse)
+/tmp/tbh bench 5 ../assets/turbo.pak                   # Mac time and prop pixels per frame
 python3 ../../../tools/ppm2png.py /tmp/f.ppm
 ```
 
@@ -179,7 +253,7 @@ python3 ../../../tools/ppm2png.py /tmp/f.ppm
 
 | | |
 | --- | --- |
-| `TB_STAGE=0..4` | straight into a time trial of that stage |
+| `TB_STAGE=0..6` | straight into a time trial of that stage (5 Hollow Road, 6 Tunnel Ridge) |
 | `TB_TOUR=1` | straight into the tour |
 | `TB_AUTO=1` | the bot drives |
 | `TB_COINS=n` | coins for the garage |
@@ -190,7 +264,8 @@ The simulator reads `sim/sim_fs/apps/turbo.pak` (copy it there).
 
 ## Preferences
 
-`tb_coins`, `tb_cars` and `tb_paints` (owned, bit masks), `tb_car`, `tb_pnt`
-(paint per car, 4 bits each), `tb_diff`, `tb_sens`, `tb_sfx`, `tb_unl`
-(stages open), `tb_best0..4` and `tb_tour` (tenths of a second), `tb_rb0..4`
-and `tb_rname` (the other watch's records).
+`tb_coins`, `tb_cars` and `tb_paints` (owned, bit masks), `tb_car`,
+`tb_pc<car>` (its paint; before v0.4.12 `tb_pnt` held 4 bits per car, read
+once and carried over), `tb_diff`, `tb_sens`, `tb_sfx`, `tb_unl` (stages
+open, a bit per stage number), `tb_best<stage>` and `tb_tour` (tenths of a
+second), `tb_rb<stage>` and `tb_rname` (the other watch's records).

@@ -36,16 +36,12 @@
 #define KEY_UNL     "tb_unl"
 #define KEY_TOUR    "tb_tour"
 
-static const char *key_best(int i)
+/* one key per stage and per car, numbered: a new stage or car needs no
+ * new key names, and the first five stages keep the keys they had */
+static const char *key_n(char *buf, size_t n, const char *prefix, int i)
 {
-    static const char *const k[STAGE_N] = { "tb_best0", "tb_best1", "tb_best2", "tb_best3", "tb_best4" };
-    return k[i];
-}
-
-static const char *key_rival(int i)
-{
-    static const char *const k[STAGE_N] = { "tb_rb0", "tb_rb1", "tb_rb2", "tb_rb3", "tb_rb4" };
-    return k[i];
+    snprintf(buf, n, "%s%d", prefix, i);
+    return buf;
 }
 
 static bool s_sfx = true;
@@ -74,21 +70,27 @@ static void prefs_load(app_t *a)
     a->own_paints = aos_hal_pref_get_i32(KEY_PAINTS, &v) ? (uint32_t)v | 1u : 1u;
     a->car = aos_hal_pref_get_i32(KEY_CAR, &v) && v >= 0 && v < CAR_N ? v : 0;
     if (!(a->own_cars & (1u << a->car))) a->car = 0;
-    if (aos_hal_pref_get_i32(KEY_PNT, &v)) {
-        for (int c = 0; c < CAR_N; c++) {
-            int p = (int)(((uint32_t)v >> (c * 4)) & 15);
-            a->paint[c] = (uint8_t)(p < tb_paint_n() && (a->own_paints & (1u << p)) ? p : 0);
-        }
+    char k[16];
+    /* the paint of each car: one key per car since v0.4.12 (tb_pc<car>);
+     * before, 4 bits per car in tb_pnt, which capped 16 paints and 8 cars */
+    int32_t old = 0;
+    bool have_old = aos_hal_pref_get_i32(KEY_PNT, &old);
+    for (int c = 0; c < CAR_N; c++) {
+        int p = 0;
+        if (aos_hal_pref_get_i32(key_n(k, sizeof k, "tb_pc", c), &v)) p = v;
+        else if (have_old && c < 8) p = (int)(((uint32_t)old >> (c * 4)) & 15);
+        a->paint[c] = (uint8_t)(p >= 0 && p < tb_paint_n() && (a->own_paints & (1u << p)) ? p : 0);
     }
     a->diff = aos_hal_pref_get_i32(KEY_DIFF, &v) && v >= 0 && v < DIFF_N ? v : DIFF_NORMAL;
     a->sens = aos_hal_pref_get_i32(KEY_SENS, &v) && v >= 0 && v < 3 ? v : 1;
     s_sfx = !(aos_hal_pref_get_i32(KEY_SFX, &v) && v == 0);
     a->sfx = s_sfx;
-    a->unlocked = aos_hal_pref_get_i32(KEY_UNL, &v) ? (uint32_t)v | 1u : 1u;
+    /* the stages open from the start are always open, whatever was saved */
+    a->unlocked = (aos_hal_pref_get_i32(KEY_UNL, &v) ? (uint32_t)v : 0u) | tb_stage_open_mask();
     a->best_tour = aos_hal_pref_get_i32(KEY_TOUR, &v) ? v : 0;
     for (int i = 0; i < STAGE_N; i++) {
-        a->best[i] = aos_hal_pref_get_i32(key_best(i), &v) ? v : 0;
-        a->rival_best[i] = aos_hal_pref_get_i32(key_rival(i), &v) ? v : 0;
+        a->best[i] = aos_hal_pref_get_i32(key_n(k, sizeof k, "tb_best", i), &v) ? v : 0;
+        a->rival_best[i] = aos_hal_pref_get_i32(key_n(k, sizeof k, "tb_rb", i), &v) ? v : 0;
     }
     if (!aos_hal_pref_get_str("tb_rname", a->rival_name, sizeof a->rival_name)) a->rival_name[0] = 0;
 }
@@ -99,17 +101,16 @@ void tba_prefs_save(app_t *a)
     aos_hal_pref_set_i32(KEY_CARS, (int32_t)a->own_cars);
     aos_hal_pref_set_i32(KEY_PAINTS, (int32_t)a->own_paints);
     aos_hal_pref_set_i32(KEY_CAR, a->car);
-    uint32_t p = 0;
-    for (int c = 0; c < CAR_N; c++) p |= (uint32_t)(a->paint[c] & 15) << (c * 4);
-    aos_hal_pref_set_i32(KEY_PNT, (int32_t)p);
+    char k[16];
+    for (int c = 0; c < CAR_N; c++) aos_hal_pref_set_i32(key_n(k, sizeof k, "tb_pc", c), a->paint[c]);
     aos_hal_pref_set_i32(KEY_DIFF, a->diff);
     aos_hal_pref_set_i32(KEY_SENS, a->sens);
     aos_hal_pref_set_i32(KEY_SFX, s_sfx ? 1 : 0);
     aos_hal_pref_set_i32(KEY_UNL, (int32_t)a->unlocked);
     aos_hal_pref_set_i32(KEY_TOUR, a->best_tour);
     for (int i = 0; i < STAGE_N; i++) {
-        aos_hal_pref_set_i32(key_best(i), a->best[i]);
-        aos_hal_pref_set_i32(key_rival(i), a->rival_best[i]);
+        aos_hal_pref_set_i32(key_n(k, sizeof k, "tb_best", i), a->best[i]);
+        aos_hal_pref_set_i32(key_n(k, sizeof k, "tb_rb", i), a->rival_best[i]);
     }
     aos_hal_pref_set_str("tb_rname", a->rival_name);
 }
@@ -148,6 +149,9 @@ static void ensure_stage(app_t *a, int stage)
      * backdrop (490 KB until composited) with it still in memory left
      * 371 KB of PSRAM free at the worst moment */
     tb_render_car_drop(a->ren);
+    /* and the previous race's vehicles: the new stage loads its own after
+     * its props (JOB_STAGE), never both sets at once */
+    tb_art_load_vehicles(0);
     tb_track_free(&a->trk);
     if (!tb_track_build(&a->trk, stage)) {
         aos_hal_log("turbo", "stage %d: out of memory", stage);
@@ -204,15 +208,27 @@ static void run_job(app_t *a, int j)
         char path[96];
         snprintf(path, sizeof path, "%s/turbo.pak", aos_hal_path_apps());
         bool art = tb_art_open(path);
-        if (art) tb_art_load_vehicles();
+        /* no vehicles yet: each race loads the ones its stage uses */
+        if (art) tb_art_load_vehicles(0);
         uint64_t t1 = aos_hal_uptime_ms();
-        aos_hal_log("turbo", "pack %s, vehicles in %u ms", art ? "open" : "MISSING", (unsigned)(uint32_t)(t1 - t0));
+        aos_hal_log("turbo", "pack %s in %u ms", art ? "open" : "MISSING", (unsigned)(uint32_t)(t1 - t0));
         render_scene(a);
         break;
     }
-    case JOB_STAGE:
+    case JOB_STAGE: {
         ensure_stage(a, a->job_stage);
+        if (a->loaded_stage < 0) break;
+        /* the vehicles of this race: the stage's traffic and the rival's car */
+        uint64_t t0 = aos_hal_uptime_ms();
+        uint32_t mask = tb_track_vehicles(&a->trk);
+        if (a->mode == MODE_LINK) mask |= 1u << a->rival_car;
+        tb_art_load_vehicles(mask);
+        uint32_t hi = 0, hp = 0;
+        aos_hal_heap_info(&hi, &hp);
+        aos_hal_log("turbo", "vehicles %03x in %u ms | psram %u", (unsigned)tb_art_vehicles_loaded(),
+                    (unsigned)(uint32_t)(aos_hal_uptime_ms() - t0), (unsigned)hp);
         break;
+    }
     case JOB_SCENE:
         render_scene(a);
         break;
@@ -616,6 +632,14 @@ void tba_set_state(app_t *a, int st)
  * The race
  * -------------------------------------------------------------------------- */
 
+static void tour_begin(app_t *a)
+{
+    a->mode = MODE_TOUR;
+    a->tour_time = 0;
+    a->tour_i = 0;
+    tba_race_start(a, tb_tour_stage(0));
+}
+
 void tba_race_start(app_t *a, int stage)
 {
     /* each race decides again, after its stage and its car are in memory */
@@ -715,8 +739,8 @@ static void result_text(app_t *a)
     if (a->mode == MODE_TOUR) {
         char tt[24];
         fmt_time(tt, sizeof tt, a->tour_time);
-        n += snprintf(body + n, sizeof body - (size_t)n, "%s %d/%d  %s\n", _("Gira"), s + 1, STAGE_N, tt);
-        if (fin && s == STAGE_N - 1) n += snprintf(body + n, sizeof body - (size_t)n, "%s\n", _("¡Gira completa!"));
+        n += snprintf(body + n, sizeof body - (size_t)n, "%s %d/%d  %s\n", _("Gira"), a->tour_i + 1, tb_tour_len(), tt);
+        if (fin && a->tour_i == tb_tour_len() - 1) n += snprintf(body + n, sizeof body - (size_t)n, "%s\n", _("¡Gira completa!"));
     }
     if (a->mode == MODE_LINK) {
         char rt[24];
@@ -767,12 +791,18 @@ static void result_show(app_t *a)
     int32_t ds = (int32_t)(g->elapsed * 10.0f);
     a->new_record = fin && (a->best[s] == 0 || ds < a->best[s]);
     if (a->new_record) a->best[s] = ds;
-    if (fin && s + 1 < STAGE_N - 1) a->unlocked |= 1u << (s + 1);
+    /* finishing a stage opens the ones that wait for it; the tour opens the
+     * ones that wait for the tour (tb_track.c's table says which) */
+    bool tour_done = a->mode == MODE_TOUR && fin && a->tour_i == tb_tour_len() - 1;
+    for (int k = 0; k < STAGE_N; k++) {
+        int after = -1;
+        int rule = tb_stage_unlock(k, &after);
+        if ((rule == UNL_AFTER && fin && after == s) || (rule == UNL_TOUR && tour_done)) a->unlocked |= 1u << k;
+    }
     if (a->mode == MODE_TOUR) {
         a->tour_time += g->elapsed;
-        if (fin && s == STAGE_N - 1) {
+        if (tour_done) {
             a->coins_won += 200;
-            a->unlocked |= 1u << (STAGE_N - 1);
             int32_t tds = (int32_t)(a->tour_time * 10.0f);
             if (a->best_tour == 0 || tds < a->best_tour) a->best_tour = tds;
         }
@@ -780,7 +810,7 @@ static void result_show(app_t *a)
     a->coins += a->coins_won;
     lv_label_set_text(a->res_title, fin ? _("¡LLEGADA!") : _("SIN TIEMPO"));
     result_text(a);
-    bool next = a->mode == MODE_TOUR && fin && s + 1 < STAGE_N;
+    bool next = a->mode == MODE_TOUR && fin && a->tour_i + 1 < tb_tour_len();
     lv_label_set_text(a->res_btn_next_lbl, next ? _("Siguiente") : _("Menú"));
     lv_obj_set_user_data(a->res_btn_next, (void *)(intptr_t)(next ? 1 : 0));
     tba_prefs_save(a);
@@ -917,9 +947,7 @@ static app_t *app_of(lv_event_t *e)
 static void menu_tour_cb(lv_event_t *e)
 {
     app_t *a = app_of(e);
-    a->mode = MODE_TOUR;
-    a->tour_time = 0;
-    tba_race_start(a, STAGE_CITY);
+    tour_begin(a);
 }
 
 static void menu_trial_cb(lv_event_t *e)
@@ -982,13 +1010,25 @@ static void build_menu(app_t *a, lv_obj_t *root)
 
 /* ---- stage select ---- */
 
+/* what opens a locked stage, in words */
+static void lock_hint(char *b, size_t n, int s)
+{
+    int after = -1;
+    int rule = tb_stage_unlock(s, &after);
+    if (rule == UNL_TOUR) snprintf(b, n, "%s", _("Se abre con una gira"));
+    else if (rule == UNL_AFTER && after >= 0) snprintf(b, n, "%s %s", _("Terminá"), tb_stage_name(after));
+    else b[0] = 0;
+}
+
 static void stage_cb(lv_event_t *e)
 {
     app_t *a = app_of(e);
-    int s = (int)(intptr_t)lv_obj_get_user_data(lv_event_get_target(e));
+    int s = (int)(intptr_t)lv_obj_get_user_data(lv_event_get_current_target(e));
     if (!(a->unlocked & (1u << s))) {
+        char h[64];
+        lock_hint(h, sizeof h, s);
         snd(SND_NO);
-        tba_toast(a, s == STAGE_SPACE ? _("Se abre con una gira") : _("Primero el tramo anterior"));
+        tba_toast(a, h);
         return;
     }
     if (a->mode == MODE_LINK) {
@@ -1002,38 +1042,52 @@ static void stage_cb(lv_event_t *e)
 static void select_refresh(app_t *a)
 {
     lv_label_set_text(a->sel_title, a->mode == MODE_LINK ? _("Elegí el tramo") : _("Contrarreloj"));
-    for (int i = 0; i < STAGE_N; i++) {
-        lv_obj_t *b = lv_obj_get_child(a->sel_list, i);
+    for (int row = 0; row < STAGE_N; row++) {
+        int i = tb_stage_order(row);
+        lv_obj_t *b = lv_obj_get_child(a->sel_list, row);
         lv_obj_t *l = lv_obj_get_child(b, 0);
-        char t[24], r[24], txt[96];
+        char t[24], r[24], txt[112];
         bool open = (a->unlocked & (1u << i)) != 0;
-        if (a->best[i]) fmt_time(t, sizeof t, (float)a->best[i] / 10.0f);
-        else snprintf(t, sizeof t, "--:--");
-        int n = snprintf(txt, sizeof txt, "%s%s\n%s %s", open ? "" : LV_SYMBOL_CLOSE " ", tb_stage_name(i), _("récord"), t);
-        if (a->rival_best[i] && a->rival_name[0]) {
-            fmt_time(r, sizeof r, (float)a->rival_best[i] / 10.0f);
-            snprintf(txt + n, sizeof txt - (size_t)n, " · %s %s", a->rival_name, r);
+        if (!open) {
+            char h[64];
+            lock_hint(h, sizeof h, i);
+            snprintf(txt, sizeof txt, LV_SYMBOL_CLOSE " %s\n%s", tb_stage_name(i), h);
+        } else {
+            if (a->best[i]) fmt_time(t, sizeof t, (float)a->best[i] / 10.0f);
+            else snprintf(t, sizeof t, "--:--");
+            int n = snprintf(txt, sizeof txt, "%s\n%s %s", tb_stage_name(i), _("récord"), t);
+            if (a->rival_best[i] && a->rival_name[0]) {
+                fmt_time(r, sizeof r, (float)a->rival_best[i] / 10.0f);
+                snprintf(txt + n, sizeof txt - (size_t)n, " · %s %s", a->rival_name, r);
+            }
         }
         lv_label_set_text(l, txt);
         lv_obj_set_style_border_color(b, lv_color_hex(open ? ACCENT : 0x505560), 0);
+        lv_obj_set_style_text_color(l, lv_color_hex(open ? 0xFFFFFF : 0x9098A8), 0);
     }
 }
 
+/* the stages as a list that scrolls: five fit on the screen, more scroll */
 static void build_select(app_t *a, lv_obj_t *root)
 {
     a->p_select = panel(root, 170);
     a->sel_title = label(a->p_select, "", aos_font_title, 0xFFFFFF, 0, 16, AOS_SCREEN_W);
     a->sel_list = lv_obj_create(a->p_select);
     lv_obj_remove_style_all(a->sel_list);
-    lv_obj_set_size(a->sel_list, AOS_SCREEN_W, 380);
+    lv_obj_set_size(a->sel_list, AOS_SCREEN_W, AOS_SCREEN_H - 60);
     lv_obj_set_pos(a->sel_list, 0, 60);
-    lv_obj_remove_flag(a->sel_list, LV_OBJ_FLAG_SCROLLABLE);
-    for (int i = 0; i < STAGE_N; i++) {
+    lv_obj_add_flag(a->sel_list, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scroll_dir(a->sel_list, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(a->sel_list, LV_SCROLLBAR_MODE_ACTIVE);
+    lv_obj_set_style_pad_bottom(a->sel_list, 12, 0);
+    for (int row = 0; row < STAGE_N; row++) {
         lv_obj_t *l;
-        lv_obj_t *b = button(a->sel_list, "", 24, i * 74, AOS_SCREEN_W - 48, 66, ACCENT, stage_cb, a, &l);
+        lv_obj_t *b = button(a->sel_list, "", 24, row * 74, AOS_SCREEN_W - 48, 66, ACCENT, stage_cb, a, &l);
         lv_obj_set_style_text_font(l, aos_font_body, 0);
         lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_WRAP);
-        lv_obj_set_user_data(b, (void *)(intptr_t)i);
+        lv_obj_set_user_data(b, (void *)(intptr_t)tb_stage_order(row));
+        /* a drag on a row scrolls the list instead of being eaten by it */
+        lv_obj_add_flag(b, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
     }
 }
 
@@ -1247,8 +1301,7 @@ static void again_cb(lv_event_t *e)
         return;
     }
     if (a->mode == MODE_TOUR) {
-        a->tour_time = 0;
-        tba_race_start(a, STAGE_CITY);
+        tour_begin(a);
         return;
     }
     tba_race_start(a, a->stage);
@@ -1258,7 +1311,8 @@ static void next_cb(lv_event_t *e)
 {
     app_t *a = app_of(e);
     if ((intptr_t)lv_obj_get_user_data(a->res_btn_next)) {
-        tba_race_start(a, a->stage + 1);
+        a->tour_i++;
+        tba_race_start(a, tb_tour_stage(a->tour_i));
         return;
     }
     if (a->mode == MODE_LINK) tbl_end(a);
@@ -1388,9 +1442,13 @@ static void boot_tick(app_t *a)
         lv_bar_set_value(a->boot_bar, 100, LV_ANIM_OFF);
         canvas_show(a, 0);
         tba_set_state(a, ST_MENU);
+        if (a->dev_go >= 0 && a->dev_go < STAGE_N) {
+            a->mode = MODE_TRIAL;
+            tba_race_start(a, a->dev_go);
+        }
 #ifdef AOS_SIM_BUILTIN
         /* Development switches (getenv() is NULL on the board):
-         *   TB_STAGE=0..4 straight into a time trial of that stage
+         *   TB_STAGE=0..6 straight into a time trial of that stage
          *   TB_TOUR=1     straight into the tour
          *   TB_AUTO=1     the bot drives
          *   TB_COINS=n    coins for the garage
@@ -1408,16 +1466,14 @@ static void boot_tick(app_t *a)
             /* TB_LINKGO=<stage>: straight into the lobby (with TB_LINK=1
              * and AOS_SIM_LINK_PORT/PARTNER crossed on two simulators) */
             a->mode = MODE_LINK;
-            a->unlocked = 0x1F;
+            a->unlocked = (1u << STAGE_N) - 1;
             a->stage = atoi(e) % STAGE_N;
             tbl_begin(a);
         } else if ((e = getenv("TB_TOUR")) && e[0]) {
-            a->mode = MODE_TOUR;
-            a->tour_time = 0;
-            tba_race_start(a, STAGE_CITY);
+            tour_begin(a);
         } else if ((e = getenv("TB_STAGE")) && e[0]) {
             a->mode = MODE_TRIAL;
-            a->unlocked = 0x1F;
+            a->unlocked = (1u << STAGE_N) - 1;
             tba_race_start(a, atoi(e) % STAGE_N);
         }
 #endif
@@ -1594,7 +1650,9 @@ static void *turbo_create(aos_app_t *self, lv_obj_t *root)
     lv_obj_add_event_cb(root, gesture_cb, LV_EVENT_GESTURE, a);
 
     /* a development switch on the card, for measuring on the board:
-     * apps/turbo_dev.txt with "auto" (the bot drives) and/or "unlock" */
+     * apps/turbo_dev.txt with "auto" (the bot drives), "unlock", "reset",
+     * and "go N" (a time trial of stage N as soon as the app has loaded) */
+    a->dev_go = -1;
     {
         char path[96], buf[64] = "";
         snprintf(path, sizeof path, "%s/turbo_dev.txt", aos_hal_path_apps());
@@ -1604,14 +1662,16 @@ static void *turbo_create(aos_app_t *self, lv_obj_t *root)
             buf[n] = 0;
             fclose(f);
             if (strstr(buf, "auto")) a->autoplay = true;
-            if (strstr(buf, "unlock")) a->unlocked = 0x1F;
+            if (strstr(buf, "unlock")) a->unlocked = (1u << STAGE_N) - 1;
+            const char *go = strstr(buf, "go ");
+            if (go) a->dev_go = (int8_t)atoi(go + 3);
             if (strstr(buf, "reset")) {
                 /* back to a fresh install: what the bot's measuring races left */
                 a->coins = 0;
                 a->own_cars = a->own_paints = 1;
                 a->car = 0;
                 memset(a->paint, 0, sizeof a->paint);
-                a->unlocked = 1;
+                a->unlocked = tb_stage_open_mask();
                 a->best_tour = 0;
                 memset(a->best, 0, sizeof a->best);
                 memset(a->rival_best, 0, sizeof a->rival_best);

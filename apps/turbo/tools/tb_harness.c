@@ -53,7 +53,7 @@ static tb_render_t *setup(tb_track_t *t, int stage, const char *pak)
         exit(1);
     }
     if (pak && tb_art_open(pak)) {
-        tb_art_load_vehicles();
+        tb_art_load_vehicles(0xFFFFFFFFu);
         tb_art_load_near(0);
         tb_art_load_stage(t);
     }
@@ -115,6 +115,26 @@ int main(int argc, char **argv)
                 for (int x = 0; x < SW; x++) out[(size_t)(oy + y) * SW * 4 + ox + x] = fb[(size_t)(y * 2) * TB_W + x * 2];
         }
         write_ppm(argv[3], out, SW * 4, SH * 2, SW * 4);
+        return 0;
+    }
+    if (!strcmp(argv[1], "cars") && argc >= 6) {
+        /* one traffic model up close, to look at a new vehicle:
+         * cars <stage> <model> <z> <out.ppm> [pak]; model VH_* (8 = hearse) */
+        tb_render_t *r = setup(&t, stage, argc > 6 ? argv[6] : NULL);
+        tb_game_start(&g, &t, 0, DIFF_NORMAL, 7);
+        run_to(&g, (float)atof(argv[4]));
+        static const float dz[] = {9, 16, 28, 45}, dx[] = {2.2f, -2.2f, 2.0f, -1.5f};
+        for (int i = 0; i < g.ntraffic; i++) {
+            tb_traffic_t *c = &g.traffic[i];
+            c->z = i < 4 ? g.z + dz[i] : g.z + 900.0f;
+            c->x = c->tx = i < 4 ? dx[i] : 0;
+            c->model = (uint8_t)atoi(argv[3]);
+            c->paint = c->model == VH_HEARSE ? TB_PAINT_HEARSE : (uint8_t)i;
+            c->ghost = i == 3;
+            c->braking = i == 1;
+        }
+        tb_render_world(r, &im, &g, 1.0f / 30.0f);
+        write_ppm(argv[5], fb, TB_W, TB_H, TB_W);
         return 0;
     }
     if (!strcmp(argv[1], "seq") && argc >= 5) {

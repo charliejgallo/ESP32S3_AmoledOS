@@ -31,7 +31,8 @@ typedef struct {
 
 typedef struct {
     uint16_t road[4], gl[4], gr[4], rumble, line, yellow;
-    bool void_l, void_r;
+    uint16_t wall;                  /* a tunnel's wall on this row           */
+    bool void_l, void_r, tunnel;
 } rowpal_t;
 
 /* one sprite of the frame, placed by tb_render_prepare() */
@@ -41,6 +42,8 @@ typedef struct {
     uint8_t type, mirror, opa, kind;    /* kind: the prop, or the vehicle model */
     uint8_t span;
     int16_t clip, ytop, ybot, fk, lut;  /* lut: traffic index, -1 the rival    */
+    int16_t cx0, cx1, cy0;              /* a tunnel's mouth it is seen through */
+    float   z;                          /* its depth                           */
     float   x, y, sc, shsc, ppm;
     const void *m;                      /* tb_mip_t or tb_vmip_t              */
     const tb_mip_t *sh;
@@ -72,6 +75,13 @@ struct tb_render {
     bool      cc_night, cc_valid;
     tb_paint_t cc_paint;
     tb_lut_t  lut_brake;
+    /* the tunnel in view (prepare), as depths and screen rectangles */
+    struct {
+        bool  on, inside, far;          /* far: its exit beyond the view    */
+        float zt0, zt1, hc;             /* entry, exit, ceiling over camera */
+        int   wx0, wx1, wy0, wy1;       /* what is seen through its mouth   */
+        int   ex0, ex1, ey0, ey1;       /* its exit                         */
+    } tun;
     /* the frame being drawn, from tb_render_prepare() */
     float     camz, camx, camy;
     int       base, maxy, nfar, bgo, rival_n;
@@ -151,7 +161,7 @@ void tb_render_stage(tb_render_t *r, const tb_track_t *t)
 {
     r->trk = t;
     r->th = t->theme;
-    r->bg_off = 0;
+    r->bg_off = (float)(t->theme.bg_start % PANO_W);
     memset(r->lut_key, 0xFF, sizeof r->lut_key);
     const tb_theme_t *th = &r->th;
     const tb_sprite_t *bd = tb_art_backdrop();
@@ -235,9 +245,18 @@ static uint16_t fogc(uint32_t c, uint32_t fog, int fk)
     return tb_hex(fk > 0 ? tb_mix(c, fog, fk) : c);
 }
 
-static void make_pal(const tb_render_t *r, rowpal_t *p, const tb_seg_t *s, int fk)
+/* inside a tunnel the lamps light what is near: darker with depth, one
+ * rule for the walls beside the road, the ceiling and the exit's frame */
+static inline int tunnel_dk(float z)
+{
+    int dk = 256 - (int)(z * (800.0f / ((float)TB_DRAW * TB_SEG_LEN)));
+    return dk < 60 ? 60 : (dk > 256 ? 256 : dk);
+}
+
+static void make_pal(const tb_render_t *r, rowpal_t *p, const tb_seg_t *s, int fk, float z)
 {
     const tb_theme_t *th = &r->th;
+    p->tunnel = (s->flags & SF_TUNNEL) != 0;
     int band = (s->flags & SF_DARK) ? 1 : 0;
     static const int dl[4] = { -9, -3, 3, 9 };
     uint32_t rc = th->road[band];
@@ -268,6 +287,20 @@ static void make_pal(const tb_render_t *r, rowpal_t *p, const tb_seg_t *s, int f
     p->rumble = fogc(th->rumble[band], th->neon ? 0x000000 : th->fog, th->neon ? fk / 3 : fk);
     p->line = fogc(th->line, th->fog, th->neon ? fk / 3 : fk);
     p->yellow = fogc(0xF2C230, th->fog, fk);
+    if (p->tunnel) {
+        /* inside: lamp-lit, darker with depth; the ground beside the road
+         * is the walkway, the wall is painted over it past 8 m */
+        int dk = tunnel_dk(z);
+        uint16_t walk = tb_scale(tb_hex(tb_mix(th->tunnel_wall, 0x000000, 90)), dk);
+        for (int i = 0; i < 4; i++) {
+            p->road[i] = tb_scale(tb_hex(tb_mix(th->road[band], 0x201408, 80)), dk - (i - 2) * 6);
+            p->gl[i] = p->gr[i] = walk;
+        }
+        p->rumble = tb_scale(tb_hex(th->tunnel_wall), dk);
+        p->line = tb_scale(tb_hex(th->line), dk);
+        p->wall = tb_scale(tb_hex(th->tunnel_wall), dk);
+        p->void_l = p->void_r = false;
+    }
 }
 
 /* a painted line at lateral position lx (metres) of width lw, inside [xa, xb) */
@@ -538,6 +571,105 @@ static void car_cache(tb_render_t *r, int car)
     tb_art_drop_near();
 }
 
+/* the road's centre (screen x), its px per metre and the floor's row at a
+ * camera depth, from the projected segments */
+static void at_depth(const tb_render_t *r, float z, float *cx, float *k, float *fy)
+{
+    int n = 0;
+    while (n < r->nfar && r->dr[n + 1].vis && r->dr[n + 1].z <= z) n++;
+    const drawn_t *a = &r->dr[n], *b = &r->dr[n + 1];
+    float f = 0;
+    if (n < r->nfar && b->vis && b->z > a->z) f = (z - a->z) / (b->z - a->z);
+    if (f < 0) f = 0;
+    if (f > 1) f = 1;
+    *cx = a->cx + (b->cx - a->cx) * f;
+    *fy = a->sy + (b->sy - a->sy) * f;
+    *k = TB_F / (z > NEAR_Z ? z : NEAR_Z);
+}
+
+static int clampi(float v, int lo, int hi)
+{
+    int i = tb_ifloor(v + 0.5f);
+    return i < lo ? lo : (i > hi ? hi : i);
+}
+
+/* The nearest tunnel that is not behind: where its mouth and its exit fall
+ * on the screen. Tunnels are flat inside (tb_track.c), so the ceiling is
+ * one height over the camera. */
+static void tunnel_prepare(tb_render_t *r, const tb_track_t *t, float camz, float camy)
+{
+    r->tun.on = false;
+    float far = r->dr[r->nfar].z;
+    for (int i = 0; i < t->ntunnels; i++) {
+        float zt0 = (float)t->tunnel_s[i] * TB_SEG_LEN - camz;
+        float zt1 = (float)t->tunnel_e[i] * TB_SEG_LEN - camz;
+        if (zt1 <= NEAR_Z || zt0 >= far) continue;
+        r->tun.on = true;
+        r->tun.zt0 = zt0;
+        r->tun.zt1 = zt1;
+        r->tun.hc = tb_seg(t, t->tunnel_s[i])->y + TB_TUNNEL_H - camy;
+        r->tun.inside = zt0 <= NEAR_Z;
+        float cx, k, fy;
+        if (r->tun.inside) {
+            r->tun.wx0 = 0; r->tun.wx1 = TB_W; r->tun.wy0 = 0; r->tun.wy1 = TB_H;
+        } else {
+            at_depth(r, zt0, &cx, &k, &fy);
+            r->tun.wx0 = clampi(cx - TB_TUNNEL_HW * k, 0, TB_W);
+            r->tun.wx1 = clampi(cx + TB_TUNNEL_HW * k, 0, TB_W);
+            r->tun.wy0 = clampi((float)TB_HOR - r->tun.hc * k, 0, TB_H);
+            r->tun.wy1 = clampi(fy, 0, TB_H);
+        }
+        r->tun.far = zt1 > far;
+        float ze = r->tun.far ? far : zt1;
+        at_depth(r, ze, &cx, &k, &fy);
+        r->tun.ex0 = clampi(cx - TB_TUNNEL_HW * k, 0, TB_W);
+        r->tun.ex1 = clampi(cx + TB_TUNNEL_HW * k, 0, TB_W);
+        r->tun.ey0 = clampi((float)TB_HOR - r->tun.hc * k, 0, TB_H);
+        r->tun.ey1 = clampi(fy, 0, TB_H);
+        return;
+    }
+}
+
+/* The tunnel's ceiling and the walls above the road, over a band: a row
+ * above the exit looks up at the ceiling at depth hc * F / (HOR - y), and
+ * the ceiling spans the road's width there, walls either side; the rows of
+ * the exit show the outside through it and walls around it. */
+static void tunnel_band(tb_render_t *r, tb_img_t *im, int y0, int y1)
+{
+    const tb_theme_t *th = &r->th;
+    int ya = y0 > r->tun.wy0 ? y0 : r->tun.wy0;
+    int yb = y1 < r->tun.ey1 ? y1 : r->tun.ey1;
+    if (yb > r->tun.wy1) yb = r->tun.wy1;
+    int wx0 = r->tun.wx0, wx1 = r->tun.wx1;
+    for (int y = ya; y < yb; y++) {
+        uint16_t *row = im->px + (size_t)y * TB_W;
+        if (y < r->tun.ey0 && y < TB_HOR && r->tun.hc > 0.1f) {
+            float zc = r->tun.hc * TB_F / (float)(TB_HOR - y);
+            float cx, k, fy;
+            at_depth(r, zc, &cx, &k, &fy);
+            int dk = tunnel_dk(zc);
+            uint16_t wall = tb_scale(tb_hex(th->tunnel_wall), dk);
+            uint16_t ceil = tb_scale(tb_hex(th->tunnel_ceiling), dk);
+            int c0 = clampi(cx - TB_TUNNEL_HW * k, wx0, wx1), c1 = clampi(cx + TB_TUNNEL_HW * k, wx0, wx1);
+            fill16(row, wx0, c0, wall);
+            fill16(row, c1, wx1, wall);
+            fill16(row, c0, c1, ceil);
+            /* a lamp every 12 m: a strip down the middle third */
+            float zw = r->camz + zc;
+            if (zw - (float)tb_ifloor(zw * (1.0f / 12.0f)) * 12.0f < 1.4f) {
+                int l0 = clampi(cx - TB_TUNNEL_HW * k * 0.3f, wx0, wx1), l1 = clampi(cx + TB_TUNNEL_HW * k * 0.3f, wx0, wx1);
+                fill16(row, l0, l1, tb_scale(tb_hex(th->tunnel_lamp), dk + 60));
+            }
+        } else if (y >= r->tun.ey0) {
+            int dk = tunnel_dk(r->tun.zt1);
+            uint16_t wall = tb_scale(tb_hex(th->tunnel_wall), dk);
+            fill16(row, wx0, r->tun.ex0 > wx0 ? r->tun.ex0 : wx0, wall);
+            fill16(row, r->tun.ex1 < wx1 ? r->tun.ex1 : wx1, wx1, wall);
+            if (r->tun.far) fill16(row, r->tun.ex0, r->tun.ex1, tb_scale(tb_hex(th->tunnel_ceiling), 60));
+        }
+    }
+}
+
 /* the frame's geometry, once: where every segment lands, which rows each
  * paints, the colours of the cars; the bands then only fill pixels */
 void tb_render_prepare(tb_render_t *r, const tb_game_t *g, float dt)
@@ -619,7 +751,7 @@ void tb_render_prepare(tb_render_t *r, const tb_game_t *g, float dt)
         int ya = ytop < 0 ? 0 : ytop;
         d->ya = (int16_t)ya;
         d->ybot = (int16_t)ybot;
-        make_pal(r, &r->pal[n], s, d->fk);
+        make_pal(r, &r->pal[n], s, d->fk, zm);
         for (int yy = ya; yy < ybot; yy++) r->rowseg[yy] = (int16_t)n;
         maxy = ya;
         if (maxy <= 0) break;
@@ -639,10 +771,18 @@ void tb_render_prepare(tb_render_t *r, const tb_game_t *g, float dt)
         int fk = r->dr[n].fk > 230 ? 230 : r->dr[n].fk;
         if (th->neon) fk /= 2;
         fk &= ~7;
-        uint32_t key = (uint32_t)c->paint | ((uint32_t)fk << 8) | ((uint32_t)c->braking << 17) | ((uint32_t)th->night << 18);
+        uint32_t key = (uint32_t)c->paint | ((uint32_t)fk << 8) | ((uint32_t)c->braking << 17) |
+                       ((uint32_t)th->night << 18) | ((uint32_t)c->ghost << 19);
         if (r->lut_key[i] != key) {
             tb_paint_t pt;
             tb_paint_traffic(c->paint, &pt);
+            if (c->ghost) {
+                /* a ghost: pale and cold all over, drawn see-through */
+                for (int q = 1; q < RG_N; q++) pt.c[q] = 0xB8E6F4;
+                pt.c[RG_GLASS] = 0x5C8898;
+                pt.c[RG_TYRE] = 0x6C8C98;
+                pt.c[RG_TAIL] = 0x9CFFD8;
+            }
             tb_lut_build(&r->car_lut[i], &pt, th->fog, fk, c->braking, th->night);
             r->lut_key[i] = key;
         }
@@ -683,6 +823,7 @@ void tb_render_prepare(tb_render_t *r, const tb_game_t *g, float dt)
             e->kind = pr->kind;
             e->mirror = (pr->flags & PF_MIRROR) != 0;
             e->span = (pr->flags & PF_SPAN) != 0;
+            e->z = d->z;
             if (!m || !m->n) {
                 e->type = DL_STANDIN_PROP;
                 e->sc = d->scale;
@@ -706,6 +847,7 @@ void tb_render_prepare(tb_render_t *r, const tb_game_t *g, float dt)
             }
 #endif
             e->type = DL_PROP;
+            e->z = d->z;
             e->m = m;
             e->sc = sc;
             e->sh = fk < 200 ? tb_art_prop_shadow(pr->kind) : NULL;
@@ -725,10 +867,11 @@ void tb_render_prepare(tb_render_t *r, const tb_game_t *g, float dt)
             dl_t *e = &r->dl[r->ndl++];
             e->x = sx;
             e->y = sy;
+            e->z = c->z - camz;
             e->ppm = sc;
             e->clip = d->clip;
             e->lut = (int16_t)i;
-            e->opa = 255;
+            e->opa = c->ghost ? 120 : 255;
             e->kind = c->model;
             e->ytop = (int16_t)(sy - 4.0f * sc - 2.0f);
             e->ybot = (int16_t)(sy + 1.5f * sc + 4.0f);
@@ -742,6 +885,7 @@ void tb_render_prepare(tb_render_t *r, const tb_game_t *g, float dt)
             dl_t *e = &r->dl[r->ndl++];
             e->x = cx + g->rival_x * sc;
             e->y = sy;
+            e->z = g->rival_z - camz;
             e->ppm = sc;
             e->clip = d->clip;
             e->lut = -1;
@@ -752,6 +896,26 @@ void tb_render_prepare(tb_render_t *r, const tb_game_t *g, float dt)
             e->type = DL_VEH;
         }
     }
+    /* a tunnel in view: its mouth and its exit, and what is seen through them */
+    tunnel_prepare(r, t, camz, camy);
+    for (int k = 0; k < r->ndl; k++) {
+        dl_t *e = &r->dl[k];
+        e->cx0 = 0;
+        e->cx1 = TB_W;
+        e->cy0 = 0;
+        if (!r->tun.on || (e->type == DL_PROP && e->kind == PR_PORTAL)) continue;
+        if (e->z > r->tun.zt1) {
+            /* beyond the exit: only through it (and through the mouth) */
+            e->cx0 = (int16_t)(r->tun.ex0 > r->tun.wx0 ? r->tun.ex0 : r->tun.wx0);
+            e->cx1 = (int16_t)(r->tun.ex1 < r->tun.wx1 ? r->tun.ex1 : r->tun.wx1);
+            e->cy0 = (int16_t)(r->tun.ey0 > r->tun.wy0 ? r->tun.ey0 : r->tun.wy0);
+        } else if (e->z >= r->tun.zt0 - 1.0f) {
+            e->cx0 = (int16_t)r->tun.wx0;
+            e->cx1 = (int16_t)r->tun.wx1;
+            e->cy0 = (int16_t)r->tun.wy0;
+        }
+    }
+
     /* the vehicles' view, sprite and shadow */
     for (int k = 0; k < r->ndl; k++) {
         dl_t *e = &r->dl[k];
@@ -847,7 +1011,14 @@ void tb_render_band(tb_render_t *r, tb_img_t *im, const tb_game_t *g, int y0, in
         uint16_t *row = im->px + (size_t)yy * TB_W;
         if (th->night) road_row_lit(r, row, cx, w, z, r->camz + z, s, &r->pal[n], d->hw, g->x);
         else road_row(r, row, cx, w, z, r->camz + z, s, &r->pal[n], d->hw, 0, TB_W);
+        if (r->pal[n].tunnel) {
+            /* the walls, 8 m either side */
+            float wk = TB_TUNNEL_HW * w / d->hw;
+            fill16(row, 0, tb_ifloor(cx - wk + 0.5f), r->pal[n].wall);
+            fill16(row, tb_ifloor(cx + wk + 0.5f), TB_W, r->pal[n].wall);
+        }
     }
+    if (r->tun.on) tunnel_band(r, im, y0, y1);
 
     uint32_t c2 = tb_cycles();
     r->cyc[TB_PROF_ROAD] += c2 - c1;
@@ -859,9 +1030,16 @@ void tb_render_band(tb_render_t *r, tb_img_t *im, const tb_game_t *g, int y0, in
     if (dbg < 0) dbg = getenv("TB_DBG") ? atoi(getenv("TB_DBG")) : 0;
     if (dbg == 1) return;
 #endif
+    tb_img_t whole = *im;
     for (int k = 0; k < r->ndl; k++) {
         const dl_t *e = &r->dl[k];
         if (e->ytop >= y1 || e->ybot < y0 || e->clip <= y0) continue;
+        /* seen through a tunnel's mouth: clipped to it */
+        *im = whole;
+        if (e->cx0 > im->cx0) im->cx0 = e->cx0;
+        if (e->cx1 < im->cx1) im->cx1 = e->cx1;
+        if (e->cy0 > im->cy0) im->cy0 = e->cy0;
+        if (im->cx0 >= im->cx1 || im->cy0 >= im->cy1) continue;
         switch (e->type) {
         case DL_PROP: {
             uint32_t cp = tb_cycles();
@@ -886,6 +1064,7 @@ void tb_render_band(tb_render_t *r, tb_img_t *im, const tb_game_t *g, int y0, in
         }
         }
     }
+    *im = whole;
 
     uint32_t c3 = tb_cycles();
     r->cyc[TB_PROF_PROPS] += cprops;

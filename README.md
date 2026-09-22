@@ -181,19 +181,23 @@ allocation goes to PSRAM: 11 KB of internal RAM while playing. More in
 #### Turbo, an arcade racer
 
 <p align="center">
-  <img src="docs/img/app-turbo-city.png" width="200" alt="Turbo: the red wedge on a city highway with towers and traffic">
-  <img src="docs/img/app-turbo-night.png" width="200" alt="Turbo: a snowy mountain pass at night, the headlights on the road">
-  <img src="docs/img/app-turbo-space.png" width="200" alt="Turbo: the road floating in space, neon edges and a ringed planet">
+  <img src="docs/img/app-turbo-city.png" width="160" alt="Turbo: the red wedge on a city highway with towers and traffic">
+  <img src="docs/img/app-turbo-night.png" width="160" alt="Turbo: a snowy mountain pass at night, the headlights on the road">
+  <img src="docs/img/app-turbo-halloween.png" width="160" alt="Turbo: Hollow Road at night, an orange moon behind a castle, twisted trees and a ghost car">
+  <img src="docs/img/app-turbo-tunnel.png" width="160" alt="Turbo: Tunnel Ridge, the car about to enter a road tunnel lit inside">
+  <img src="docs/img/app-turbo-space.png" width="160" alt="Turbo: the road floating in space, neon edges and a ringed planet">
 </p>
 
 The second game built from Blender renders, and the first that moves the
 whole screen every frame. The road is drawn by the watch in **pseudo-3D**,
 row by row, with bends, hills and fog; the cars and everything beside the
-road are sprites: eight vehicles modelled from a script and rendered as a
+road are sprites: nine vehicles modelled from a script and rendered as a
 lighting pass plus region ids, so the traffic comes in any colour and the
-garage sells twelve paints from the same pixels, and 36 props and a 360°
-backdrop for each of five stages, from a city highway with overpasses to a
-road floating in space. Tilt the watch to steer, the pedals are on the
+garage sells twelve paints from the same pixels, and 48 props and a 360°
+backdrop for each of seven stages, from a city highway with overpasses to a
+road floating in space. v0.4.12 added two: Hollow Road for Halloween, with a
+hearse and ghost cars you drive through, and Tunnel Ridge, with road
+tunnels. Tilt the watch to steer, the pedals are on the
 screen, and checkpoints refill the clock.
 
 A full frame through LVGL is 95 ms, so the race skips LVGL: a worker on the

@@ -50,6 +50,7 @@ static const char *veh_name(int v)
     case VH_SEDAN: return "sedan";
     case VH_COMPACT: return "compact";
     case VH_VAN: return "van";
+    case VH_HEARSE: return "hearse";
     default: return "truck";
     }
 }
@@ -63,6 +64,8 @@ static const char *prop_name(int k)
         "saguaro", "saguaro_small", "butte", "rock_red", "dead_tree", "diner_sign",
         "pine_snow", "pine", "rock_snow", "snowbank", "cabin", "lamp_night",
         "asteroid_a", "asteroid_b", "crystal", "ring_gate", "satellite", "beacon",
+        "dead_tree_twisted", "pumpkins", "tombstones", "cemetery_fence", "scarecrow", "haunted_house", "gas_lamp",
+        "tunnel_portal", "rock_granite", "waterfall_cliff", "pylon", "pine_day",
     };
     return k >= 0 && k < PR_N ? n[k] : "?";
 }
@@ -74,6 +77,8 @@ static const char *stage_key(int stage)
     case STAGE_COAST: return "coast";
     case STAGE_DESERT: return "desert";
     case STAGE_MOUNTAIN: return "mountain";
+    case STAGE_HALLOWEEN: return "halloween";
+    case STAGE_TUNNELS: return "tunnels";
     default: return "space";
     }
 }
@@ -157,6 +162,14 @@ void tb_paint_traffic(int i, tb_paint_t *out)
         0xB02A20, 0x2A6AB0, 0xE0C040, 0x6A4A32, 0xD0D4D8, 0x3A2A4A, 0x8A9A5A, 0xE87A2A,
     };
     paint_base(out);
+    if (i == TB_PAINT_HEARSE) {
+        /* always black with a dark red pinstripe: in a colour it stops
+         * reading as a hearse; wine curtains behind the rear window */
+        out->c[RG_PAINT_A] = 0x18181C;
+        out->c[RG_PAINT_B] = 0x6A1A1A;
+        out->c[RG_INTERIOR] = 0x6A2434;
+        return;
+    }
     out->c[RG_PAINT_A] = c[i & 15];
     out->c[RG_PAINT_B] = c[(i * 7 + 3) & 15];
     if ((i & 3) == 0) out->c[RG_PAINT_B] = c[i & 15];
@@ -511,17 +524,35 @@ static bool load_vehicle(const char *name, tb_vspr_t *out, float *ppm)
     return true;
 }
 
-bool tb_art_load_vehicles(void)
+static void free_far(int v)
 {
-    if (s_vehicles) return true;
+    for (int k = 0; k < TB_FAR_VIEWS; k++) {
+        vmip_free(&s_far[v][k]);
+        tb_mip_free(&s_far_sh[v][k]);
+    }
+}
+
+/* The vehicles a race needs, as a mask of models (1 << VH_* / CAR_*): the
+ * ones not in it are freed, the missing ones read from the pack. Each is
+ * 120-220 KB with its mip levels and shadows (the truck 500 KB), so loading
+ * all of them for the whole session made every new vehicle a cost for
+ * every stage. The cars' own shadows (small) are read once. */
+bool tb_art_load_vehicles(uint32_t mask)
+{
     char nm[NAME_LEN];
-    int ok = 0;
-    for (int c = 0; c < CAR_N; c++) {
-        snprintf(nm, sizeof nm, "nsh_%s", veh_name(c));
-        load_plane(nm, &s_near_sh[c]);
+    if (!s_vehicles) {
+        for (int c = 0; c < CAR_N; c++) {
+            snprintf(nm, sizeof nm, "nsh_%s", veh_name(c));
+            load_plane(nm, &s_near_sh[c]);
+        }
+        s_vehicles = true;
     }
     static const char views[3] = { 'l', 'c', 'r' };
     for (int v = 0; v < VH_N; v++) {
+        bool want = (mask >> v) & 1u;
+        bool have = s_far[v][1].n != 0;
+        if (!want && have) free_far(v);
+        if (!want || have) continue;
         for (int k = 0; k < TB_FAR_VIEWS; k++) {
             tb_vspr_t sp;
             float ppm = 70.0f;
@@ -529,7 +560,6 @@ bool tb_art_load_vehicles(void)
             if (load_vehicle(nm, &sp, &ppm)) {
                 vmip_build(&s_far[v][k], &sp);
                 s_far[v][k].ppm = ppm;
-                ok++;
             }
             tb_sprite_t sh;
             float sppm = ppm * 0.5f;
@@ -542,8 +572,16 @@ bool tb_art_load_vehicles(void)
             }
         }
     }
-    s_vehicles = ok > 0;
-    return s_vehicles;
+    return true;
+}
+
+uint32_t tb_art_vehicles_loaded(void)
+{
+    uint32_t m = 0;
+    for (int v = 0; v < VH_N; v++) {
+        if (s_far[v][1].n) m |= 1u << v;
+    }
+    return m;
 }
 
 static void free_near(void)
@@ -635,12 +673,7 @@ void tb_art_close(void)
     free_near();
     for (int c = 0; c < CAR_N; c++) free(s_near_sh[c].a);
     memset(s_near_sh, 0, sizeof s_near_sh);
-    for (int v = 0; v < VH_N; v++) {
-        for (int k = 0; k < TB_FAR_VIEWS; k++) {
-            vmip_free(&s_far[v][k]);
-            tb_mip_free(&s_far_sh[v][k]);
-        }
-    }
+    for (int v = 0; v < VH_N; v++) free_far(v);
     s_vehicles = false;
     if (s_fp) fclose(s_fp);
     s_fp = NULL;

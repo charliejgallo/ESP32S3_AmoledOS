@@ -107,6 +107,12 @@
    "width": 2.4,
    "height": 3.3,
    "player": false
+  },
+  "hearse": {
+   "length": 5.928,
+   "width": 1.997,
+   "height": 1.5,
+   "player": false
   }
  },
  "renders": {
@@ -1015,6 +1021,60 @@
     7,
     351,
     314
+   ],
+   "camera_x": -3.5
+  },
+  "far_hearse_c": {
+   "size": [
+    384,
+    184
+   ],
+   "anchor": [
+    160.0,
+    175.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    55,
+    13,
+    264,
+    156
+   ],
+   "camera_x": 0.0
+  },
+  "far_hearse_l": {
+   "size": [
+    384,
+    184
+   ],
+   "anchor": [
+    127.0,
+    175.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    25,
+    13,
+    308,
+    156
+   ],
+   "camera_x": 3.5
+  },
+  "far_hearse_r": {
+   "size": [
+    384,
+    184
+   ],
+   "anchor": [
+    209.0,
+    175.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    27,
+    13,
+    310,
+    156
    ],
    "camera_x": -3.5
   }

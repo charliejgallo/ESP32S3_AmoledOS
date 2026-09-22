@@ -8,7 +8,11 @@
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC optimize("O2")
 #endif
+/* the tables leave out the fields that are zero (a section's flags, a
+ * stage's ghosts): that is on purpose */
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #include "tb_track.h"
+#include "tb_game.h"
 #include "tb_gfx.h"
 
 #include <math.h>
@@ -23,7 +27,10 @@ typedef struct {
     uint8_t  deco;          /* the stage's decoration set                     */
     uint8_t  gl, gr;        /* ground left and right                          */
     uint8_t  lanes;
+    uint8_t  flags;         /* SEC_*                                          */
 } sec_t;
+
+#define SEC_TUNNEL  0x01    /* the whole section is a tunnel: keep it flat     */
 
 /* a decoration rule: every 'every' segments (+ jitter), on a side, at 'off'
  * metres beyond the road's edge (+ up to 'spread'), with a probability */
@@ -41,6 +48,11 @@ typedef struct {
     rule_t r[RULES];
 } deco_t;
 
+/* a model of the traffic and its weight */
+typedef struct {
+    uint8_t model, weight;
+} traffic_t;
+
 typedef struct {
     const sec_t  *sec;
     int           nsec;
@@ -49,6 +61,11 @@ typedef struct {
     int           ncp;          /* checkpoints including the finish           */
     float         start_time;
     float         cp_time;
+    uint8_t       unlock;       /* UNL_*                                      */
+    int8_t        after;        /* UNL_AFTER: finishing this stage opens it   */
+    bool          in_tour;
+    traffic_t     traffic[TB_TRAFFIC_KINDS];     /* weight 0 ends the list   */
+    uint8_t       ghost_pct;    /* see-through traffic (Halloween)            */
 } stage_def_t;
 
 /* --------------------------------------------------------------------------
@@ -214,6 +231,70 @@ static const deco_t SPACE_DECO[] = {
         { PR_ASTEROID_A, 7, 4, 30, 50, 60 } } },
 };
 
+/* v0.4.12: a night road through a haunted valley, two lanes */
+static const sec_t HALLOWEEN_SEC[] = {
+    { 40,   0,   0, 0, G, G, 2 },
+    { 70,   4,   6, 1, G, G, 2 },
+    { 60,  -6,  -4, 0, G, G, 2 },
+    { 80,   0,   8, 2, G, G, 2 },
+    { 60,   7,  -8, 1, G, G, 2 },
+    { 70,  -5,   4, 0, G, G, 2 },
+    { 60,   0,  -6, 2, G, G, 2 },
+    { 70,   6,   6, 1, G, G, 2 },
+    { 60,  -7,  -6, 0, G, G, 2 },
+    { 80,   0,   0, 2, G, G, 2 },
+    { 60,   5,   4, 1, G, G, 2 },
+    { 70,  -4,  -4, 0, G, G, 2 },
+    { 80,   3,   6, 2, G, G, 2 },
+    { 60,   0,   0, 0, G, G, 2 },
+};
+static const deco_t HALLOWEEN_DECO[] = {
+    /* haunted woods */
+    { { { PR_DEAD_TWISTED, 1, 4, 2, 12, 80 }, { PR_GAS_LAMP, 6, 3, 3, 0, 100 },
+        { PR_HAUNTED, 60, 4, 20, 12, 100 }, { PR_PUMPKINS, 3, 4, 1, 3, 70 },
+        { PR_TOMBSTONES, 5, 4, 2, 6, 60 } } },
+    /* the cemetery, on the left */
+    { { { PR_CEM_FENCE, 2, 1, 1, 0, 100 }, { PR_TOMBSTONES, 1, 1, 3, 8, 90 },
+        { PR_GAS_LAMP, 6, 2, 3, 0, 100 }, { PR_DEAD_TWISTED, 2, 4, 4, 10, 70 },
+        { PR_HAUNTED, 80, 2, 22, 10, 100 } } },
+    /* the pumpkin patch */
+    { { { PR_PUMPKINS, 2, 4, 1, 6, 90 }, { PR_SCARECROW, 6, 4, 3, 5, 90 },
+        { PR_DEAD_TWISTED, 3, 4, 5, 12, 70 }, { PR_GAS_LAMP, 6, 3, 3, 0, 100 },
+        { PR_TOMBSTONES, 10, 4, 4, 6, 50 } } },
+};
+
+/* v0.4.12: an alpine gorge by day, with road tunnels (flat inside) */
+static const sec_t TUNNELS_SEC[] = {
+    { 40,   0,   0, 0, G, G, 3 },
+    { 80,   3,   6, 0, G, R, 3 },
+    { 60,   0,   0, 0, R, R, 3, SEC_TUNNEL },
+    { 70,  -5,  -4, 1, R, R, 3 },
+    { 80,   3,   0, 0, R, R, 3, SEC_TUNNEL },
+    { 60,  -3,   6, 2, W, G, 3 },
+    { 90,   0,  -4, 0, W, G, 3 },
+    { 70,   0,   0, 0, R, R, 3, SEC_TUNNEL },
+    { 60,   5,  -6, 1, R, R, 3 },
+    { 80,  -6,   4, 2, W, G, 3 },
+    { 100,  2,   0, 0, R, R, 3, SEC_TUNNEL },
+    { 60,   4,   4, 1, G, R, 3 },
+    { 70,  -4,  -4, 0, G, G, 3 },
+    { 60,   0,   0, 0, G, G, 3 },
+};
+static const deco_t TUNNELS_DECO[] = {
+    /* the valley */
+    { { { PR_PINE_DAY, 3, 4, 4, 16, 75 }, { PR_ROCK_GRANITE, 7, 4, 6, 10, 60 },
+        { PR_PYLON, 30, 2, 20, 10, 100 }, { PR_GUARDRAIL, 2, 1, 1, 0, 100 },
+        { PR_PINE_DAY, 5, 4, 12, 20, 60 } } },
+    /* the gorge */
+    { { { PR_ROCK_GRANITE, 2, 3, 2, 4, 80 }, { PR_WATERFALL, 40, 2, 8, 4, 100 },
+        { PR_PINE_DAY, 5, 4, 8, 10, 60 }, { PR_GUARDRAIL, 2, 1, 1, 0, 100 },
+        { PR_ROCK_GRANITE, 6, 4, 12, 16, 60 } } },
+    /* the lake shore: the reservoir on the left */
+    { { { PR_GUARDRAIL, 2, 1, 1, 0, 100 }, { PR_PINE_DAY, 2, 2, 3, 12, 80 },
+        { PR_PYLON, 25, 2, 25, 10, 100 }, { PR_ROCK_GRANITE, 9, 2, 6, 10, 50 },
+        { PR_WATERFALL, 60, 2, 10, 4, 100 } } },
+};
+
 #undef C
 #undef G
 #undef S
@@ -224,35 +305,104 @@ static const deco_t SPACE_DECO[] = {
 
 #define NELEM(a) ((int)(sizeof(a) / sizeof((a)[0])))
 
+/* The stages, in the order of the stage list. Adding one: its sections and
+ * decoration above, a row here, its colours in theme_of(), its name in
+ * tb_stage_name() and its backdrop's key in tb_art.c. The traffic lists only
+ * the models that stage needs: only they are loaded for a race. */
+static const stage_def_t *stage_table(int *n)
+{
+    static const stage_def_t t[STAGE_N] = {
+        [STAGE_CITY] = { CITY_SEC, NELEM(CITY_SEC), CITY_DECO, NELEM(CITY_DECO), 5, 40, 26,
+                         UNL_OPEN, -1, true,
+                         { { VH_SEDAN, 30 }, { VH_COMPACT, 25 }, { VH_VAN, 18 }, { VH_TRUCK, 15 },
+                           { CAR_WEDGE, 6 }, { CAR_MUSCLE, 6 } } },
+        [STAGE_COAST] = { COAST_SEC, NELEM(COAST_SEC), COAST_DECO, NELEM(COAST_DECO), 5, 40, 26,
+                          UNL_OPEN, -1, true,
+                          { { VH_SEDAN, 30 }, { VH_COMPACT, 30 }, { VH_VAN, 20 },
+                            { CAR_MUSCLE, 10 }, { CAR_WEDGE, 10 } } },
+        [STAGE_DESERT] = { DESERT_SEC, NELEM(DESERT_SEC), DESERT_DECO, NELEM(DESERT_DECO), 5, 42, 28,
+                           UNL_OPEN, -1, true,
+                           { { VH_TRUCK, 25 }, { CAR_PICKUP, 20 }, { VH_SEDAN, 25 }, { VH_VAN, 15 },
+                             { CAR_MUSCLE, 15 } } },
+        [STAGE_MOUNTAIN] = { MOUNTAIN_SEC, NELEM(MOUNTAIN_SEC), MOUNTAIN_DECO, NELEM(MOUNTAIN_DECO), 5, 40, 25,
+                             UNL_AFTER, STAGE_DESERT, true,
+                             { { VH_SEDAN, 30 }, { VH_COMPACT, 25 }, { VH_VAN, 20 }, { CAR_PICKUP, 15 },
+                               { CAR_RALLY, 10 } } },
+        [STAGE_SPACE] = { SPACE_SEC, NELEM(SPACE_SEC), SPACE_DECO, NELEM(SPACE_DECO), 5, 40, 26,
+                          UNL_TOUR, -1, true,
+                          { { CAR_WEDGE, 35 }, { CAR_MUSCLE, 35 }, { CAR_RALLY, 30 } } },
+        /* v0.4.12: open from the start, the season's stage; a third of the
+         * traffic are ghosts the car drives through */
+        [STAGE_HALLOWEEN] = { HALLOWEEN_SEC, NELEM(HALLOWEEN_SEC), HALLOWEEN_DECO, NELEM(HALLOWEEN_DECO), 5, 40, 25,
+                              UNL_OPEN, -1, false,
+                              { { VH_HEARSE, 30 }, { VH_SEDAN, 30 }, { VH_COMPACT, 20 }, { VH_VAN, 20 } }, 35 },
+        [STAGE_TUNNELS] = { TUNNELS_SEC, NELEM(TUNNELS_SEC), TUNNELS_DECO, NELEM(TUNNELS_DECO), 5, 40, 26,
+                            UNL_AFTER, STAGE_MOUNTAIN, false,
+                            { { VH_SEDAN, 30 }, { VH_COMPACT, 25 }, { VH_VAN, 20 }, { CAR_RALLY, 15 },
+                              { CAR_WEDGE, 10 } } },
+    };
+    *n = STAGE_N;
+    return t;
+}
+
 static bool stage_def(int stage, stage_def_t *d)
 {
-    memset(d, 0, sizeof(*d));
-    d->ncp = 5;
-    switch (stage) {
-    case STAGE_CITY:
-        d->sec = CITY_SEC; d->nsec = NELEM(CITY_SEC); d->deco = CITY_DECO; d->ndeco = NELEM(CITY_DECO);
-        d->start_time = 40; d->cp_time = 26;
-        break;
-    case STAGE_COAST:
-        d->sec = COAST_SEC; d->nsec = NELEM(COAST_SEC); d->deco = COAST_DECO; d->ndeco = NELEM(COAST_DECO);
-        d->start_time = 40; d->cp_time = 26;
-        break;
-    case STAGE_DESERT:
-        d->sec = DESERT_SEC; d->nsec = NELEM(DESERT_SEC); d->deco = DESERT_DECO; d->ndeco = NELEM(DESERT_DECO);
-        d->start_time = 42; d->cp_time = 28;
-        break;
-    case STAGE_MOUNTAIN:
-        d->sec = MOUNTAIN_SEC; d->nsec = NELEM(MOUNTAIN_SEC); d->deco = MOUNTAIN_DECO; d->ndeco = NELEM(MOUNTAIN_DECO);
-        d->start_time = 40; d->cp_time = 25;
-        break;
-    case STAGE_SPACE:
-        d->sec = SPACE_SEC; d->nsec = NELEM(SPACE_SEC); d->deco = SPACE_DECO; d->ndeco = NELEM(SPACE_DECO);
-        d->start_time = 40; d->cp_time = 26;
-        break;
-    default:
-        return false;
-    }
+    int n;
+    const stage_def_t *t = stage_table(&n);
+    if (stage < 0 || stage >= n) return false;
+    *d = t[stage];
     return true;
+}
+
+int tb_stage_unlock(int stage, int *after)
+{
+    stage_def_t d;
+    if (!stage_def(stage, &d)) return UNL_OPEN;
+    if (after) *after = d.after;
+    return d.unlock;
+}
+
+uint32_t tb_stage_open_mask(void)
+{
+    uint32_t m = 0;
+    for (int s = 0; s < STAGE_N; s++) {
+        if (tb_stage_unlock(s, NULL) == UNL_OPEN) m |= 1u << s;
+    }
+    return m;
+}
+
+int tb_stage_order(int i)
+{
+    /* the open ones first, then as they open */
+    static const int8_t o[STAGE_N] = { STAGE_CITY, STAGE_COAST, STAGE_DESERT, STAGE_HALLOWEEN,
+                                       STAGE_MOUNTAIN, STAGE_TUNNELS, STAGE_SPACE };
+    return i >= 0 && i < STAGE_N ? o[i] : 0;
+}
+
+int tb_tour_len(void)
+{
+    int n = 0;
+    stage_def_t d;
+    for (int s = 0; s < STAGE_N; s++) {
+        if (stage_def(s, &d) && d.in_tour) n++;
+    }
+    return n;
+}
+
+int tb_tour_stage(int i)
+{
+    stage_def_t d;
+    for (int s = 0; s < STAGE_N; s++) {
+        if (stage_def(s, &d) && d.in_tour && i-- == 0) return s;
+    }
+    return -1;
+}
+
+uint32_t tb_track_vehicles(const tb_track_t *t)
+{
+    uint32_t m = 0;
+    for (int i = 0; i < t->ntraffic_kinds; i++) m |= 1u << t->traffic_model[i];
+    return m;
 }
 
 const char *tb_stage_name(int stage)
@@ -263,6 +413,8 @@ const char *tb_stage_name(int stage)
     case STAGE_DESERT:   return "Red Canyon";
     case STAGE_MOUNTAIN: return "Snow Pass";
     case STAGE_SPACE:    return "Orbit 9";
+    case STAGE_HALLOWEEN: return "Hollow Road";
+    case STAGE_TUNNELS:  return "Tunnel Ridge";
     default:             return "?";
     }
 }
@@ -320,6 +472,28 @@ static void theme_of(int stage, tb_theme_t *th)
         th->stars = true;
         th->fog_start = 20;
         break;
+    case STAGE_HALLOWEEN:
+        th->sky_top = 0x0C0620; th->sky_hor = 0x4A2A6E; th->fog = 0x3A2460;
+        th->ground[GR_GRASS][0] = 0x3A3822; th->ground[GR_GRASS][1] = 0x33311D;
+        th->road[0] = 0x2C2A32; th->road[1] = 0x28262E;
+        th->rumble[0] = 0xF07818; th->rumble[1] = 0x6A2A9A;
+        th->line = 0xD8D0B0;
+        th->night = true;
+        th->stars = true;
+        th->fog_start = 16;
+        th->bg_start = 344;                     /* the moon and the castle ahead */
+        break;
+    case STAGE_TUNNELS:
+        th->sky_top = 0x2E70CC; th->sky_hor = 0xC4DCF0; th->fog = 0xB8CCE0;
+        th->ground[GR_GRASS][0] = 0x5A8E3C; th->ground[GR_GRASS][1] = 0x528436;
+        th->ground[GR_ROCK][0] = 0x8A8984; th->ground[GR_ROCK][1] = 0x82817C;
+        th->ground[GR_SEA][0] = 0x2E6E8C; th->ground[GR_SEA][1] = 0x2C6886;
+        th->road[0] = 0x68686C; th->road[1] = 0x626266;
+        th->rumble[0] = 0xF0F0F0; th->rumble[1] = 0xD82020;
+        th->line = 0xF2F2F2;
+        th->tunnel_wall = 0xBAB4A6; th->tunnel_ceiling = 0x6C6860; th->tunnel_lamp = 0xFFA844;
+        th->bg_start = 328;                     /* the dam ahead */
+        break;
     case STAGE_SPACE:
         th->sky_top = 0x05020E; th->sky_hor = 0x1A0A36; th->fog = 0x1A0A36;
         th->road[0] = 0x2A2440; th->road[1] = 0x242038;
@@ -345,7 +519,11 @@ float tb_prop_halfw(int kind)
     case PR_SNOWBANK: return 0.8f;
     case PR_TREE_ROUND: case PR_PALM: case PR_PALM_TALL: case PR_PINE: case PR_PINE_SNOW: return 0.6f;
     case PR_SAGUARO: case PR_SAGUARO_S: case PR_DEAD_TREE: return 0.5f;
-    case PR_ROCK_RED: case PR_ROCK_SNOW: case PR_CRYSTAL: return 1.2f;
+    case PR_ROCK_RED: case PR_ROCK_SNOW: case PR_CRYSTAL: case PR_ROCK_GRANITE: return 1.2f;
+    case PR_GAS_LAMP: case PR_SCARECROW: return 0.3f;
+    case PR_CEM_FENCE: return 0.3f;
+    case PR_PUMPKINS: case PR_TOMBSTONES: return 0.8f;
+    case PR_DEAD_TWISTED: case PR_PINE_DAY: return 0.6f;
     case PR_BILLBOARD: case PR_DINER: return 0.4f;
     default: return 2.0f;
     }
@@ -357,6 +535,7 @@ static bool is_solid(int kind)
     case PR_OVERPASS: case PR_GANTRY: case PR_CHECKPOINT: case PR_FINISH: case PR_RING_GATE:
     case PR_BUTTE: case PR_TOWER_BRICK: case PR_TOWER_GLASS: case PR_LIGHTHOUSE:
     case PR_ASTEROID_A: case PR_ASTEROID_B: case PR_SATELLITE:
+    case PR_HAUNTED: case PR_PORTAL: case PR_WATERFALL: case PR_PYLON:
         return false;           /* spans, or so far out nobody reaches them */
     default:
         return true;
@@ -390,7 +569,13 @@ bool tb_track_build(tb_track_t *t, int stage)
     memset(t, 0, sizeof(*t));
     if (!stage_def(stage, &d)) return false;
     t->stage = stage;
+    t->ghost_pct = d.ghost_pct;
     theme_of(stage, &t->theme);
+    for (int i = 0; i < TB_TRAFFIC_KINDS && d.traffic[i].weight; i++) {
+        t->traffic_model[i] = d.traffic[i].model;
+        t->traffic_weight[i] = d.traffic[i].weight;
+        t->ntraffic_kinds = i + 1;
+    }
     /* past the finish the road runs on straight, so the view never ends */
     int nreal = 0;
     for (int i = 0; i < d.nsec; i++) nreal += d.sec[i].len;
@@ -423,7 +608,13 @@ bool tb_track_build(tb_track_t *t, int stage)
             g->gl = s->gl;
             g->gr = s->gr;
             g->lanes = s->lanes;
+            if (s->flags & SEC_TUNNEL) g->flags |= SF_TUNNEL;
             if ((k / 3) & 1) g->flags |= SF_DARK;
+        }
+        if ((s->flags & SEC_TUNNEL) && t->ntunnels < TB_TUNNELS) {
+            t->tunnel_s[t->ntunnels] = (int16_t)(k - len);
+            t->tunnel_e[t->ntunnels] = (int16_t)k;
+            t->ntunnels++;
         }
         y += (float)s->hill;
     }
@@ -463,6 +654,12 @@ bool tb_track_build(tb_track_t *t, int stage)
         for (int j = 0; j < s->len; j++, k++) {
             tb_seg_t *g = &t->seg[k];
             float edge = (g->lanes == 2 ? TB_LANE_W : TB_ROAD_HW) + TB_RUMBLE_W;
+            if (g->flags & SF_TUNNEL) {
+                /* inside a tunnel nothing stands beside the road: the portal
+                 * at its mouth, and the watch draws the walls and the ceiling */
+                if (j == 0) add_prop(t, cap, k, PR_PORTAL, 0, PF_SPAN);
+                continue;
+            }
             if (g->flags & SF_START) add_prop(t, cap, k, PR_FINISH, 0, PF_SPAN);
             if (g->flags & SF_CHECKPOINT) add_prop(t, cap, k, PR_CHECKPOINT, 0, PF_SPAN);
             if (g->flags & SF_FINISH) add_prop(t, cap, k, PR_FINISH, 0, PF_SPAN);
