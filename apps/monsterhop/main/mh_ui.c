@@ -670,7 +670,7 @@ static void house_cb(lv_event_t *e)
     case 5: {
         char name[32];
         if (mha_link_available(a, name, sizeof name)) mha_link_begin(a);
-        else aos_ui_toast(_("Aparea otro reloj en Enlace para jugar con un amigo"), 2200);
+        else aos_ui_toast(_("Primero aparea otro reloj en Enlace"), 2200);
         break;
     }
     case 6: mha_set_state(a, ST_SETTINGS); break;
@@ -1260,10 +1260,11 @@ static void build_misc(app_t *a, lv_obj_t *root)
     s_ui.lb_level = label(p, "", aos_font_title, 0xFFE070, 60, 200, AOS_SCREEN_W - 120);
     s_ui.lb_prev = button(p, "<", 10, 190, 48, 48, 0x3A3050, lobby_prev_cb, a, NULL);
     s_ui.lb_next = button(p, ">", AOS_SCREEN_W - 58, 190, 48, 48, 0x3A3050, lobby_next_cb, a, NULL);
-    s_ui.lb_go = button(p, _("¡A correr!"), 64, 280, 240, 52, 0x30C060, lobby_go_cb, a, NULL);
+    /* the rule takes two lines in English and German: the buttons go under it */
     label(p, _("Una llave, un punto. El primero en salir suma dos."), aos_font_small, 0x8A80A0, 20, 250,
           AOS_SCREEN_W - 40);
-    button(p, _("Cancelar"), 84, 350, 200, 48, 0x5A4A7A, lobby_cancel_cb, a, NULL);
+    s_ui.lb_go = button(p, _("¡A correr!"), 64, 298, 240, 50, 0x30C060, lobby_go_cb, a, NULL);
+    button(p, _("Cancelar"), 84, 360, 200, 46, 0x5A4A7A, lobby_cancel_cb, a, NULL);
 }
 
 void mh_ui_boot_text(app_t *a, const char *txt) { (void)a; lv_label_set_text(s_ui.b_lbl, txt); }
