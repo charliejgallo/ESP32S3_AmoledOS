@@ -504,15 +504,20 @@ static bool pref_lookup(const char *key, char *out, size_t out_len)
     return found;
 }
 
+/* Enough lines for every app at once: Monster Hop alone keeps ~60 keys, and
+ * with 64 lines the file was cut short on every save, silently dropping the
+ * other apps' keys (the language among them). */
+#define PREFS_MAX_LINES 512
+
 static bool pref_store(const char *key, const char *value)
 {
-    char lines[64][256];
+    static char lines[PREFS_MAX_LINES][256];
     int count = 0;
     size_t key_len = strlen(key);
 
     FILE *file = fopen(PREFS_FILE, "r");
     if (file) {
-        while (count < 64 && fgets(lines[count], sizeof(lines[count]), file)) {
+        while (count < PREFS_MAX_LINES && fgets(lines[count], sizeof(lines[count]), file)) {
             if (strncmp(lines[count], key, key_len) == 0 && lines[count][key_len] == '=') {
                 continue;   /* we replace it */
             }
