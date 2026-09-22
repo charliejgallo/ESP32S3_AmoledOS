@@ -492,7 +492,13 @@ static void launcher_ensure(void)
         return;
     }
     s_launcher_stale = false;
+    /* Timed and logged: with up to AOS_MAX_APPS entries this is the one piece
+     * of the UI whose cost grows with the card, and the number is how the
+     * limit was chosen (docs/MENU.md). */
+    uint64_t t0 = aos_hal_uptime_ms();
     s_launcher = aos_launcher_create(s_stage, s_style);
+    aos_hal_log("ui", "launcher built: %d apps, style %d, %u ms", s_app_count,
+                (int)s_style, (unsigned)(aos_hal_uptime_ms() - t0));
     lv_obj_add_flag(s_launcher, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_y(s_launcher, AOS_SCREEN_H);
 }

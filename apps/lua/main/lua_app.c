@@ -61,17 +61,18 @@
 #include "esp_heap_caps.h"
 #endif
 
-#define LUA_MAX_SCRIPTS     24
+#define LUA_MAX_SCRIPTS     256
 
 /* How many scripts also become apps of their own in the launcher.
  *
  * Lower than LUA_MAX_SCRIPTS on purpose: the list inside this app can show
  * everything on the card, but every launcher entry takes a slot of the
- * firmware's MAX_DYNAPPS, which the 26 .so files already share. Sixteen plus
- * those 26 plus this app's own entry leaves room under the 48 there are. A
- * script past the sixteenth still runs: it is in the list, it just does not
- * get its own icon. */
-#define LUA_MAX_APPS        16
+ * firmware's MAX_DYNAPPS, which the .so files already share. It was 16 when
+ * that was 48; firmware v0.5.0 has 224, and 192 here leaves room for 32 .so
+ * files next to a card full of scripts. On an older firmware the loader says
+ * which script did not fit. A script past the last still runs: it is in the
+ * list, it just does not get its own icon. */
+#define LUA_MAX_APPS        192
 #define LUA_MAX_SOURCE      (48 * 1024)     /* a script bigger than this is
                                              * not a script, it is a mistake */
 #define LUA_FRAME_MS        20              /* the timer's period; the frame

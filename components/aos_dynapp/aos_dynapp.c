@@ -16,6 +16,7 @@
 #include "aos_hal.h"
 
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "esp_heap_caps.h"
 #include "esp_dlfcn.h"
 #include "private/elf_symbol.h"
@@ -41,8 +42,11 @@ static const char *TAG = "aos_dynapp";
  * It went from 32 to 48 when a module stopped meaning an app: lua.so declares
  * one app per .lua on the card, so 26 .so files can now be forty-something
  * entries. The ceiling has to be above what a card can hold, because the ones
- * that do not fit are whatever readdir happened to return last. */
-#define MAX_DYNAPPS     48
+ * that do not fit are whatever readdir happened to return last.
+ *
+ * Since v0.5.0 it is whatever the launcher leaves after the built-in apps'
+ * reservation: 224 of 256. */
+#define MAX_DYNAPPS     (AOS_MAX_APPS - AOS_BUILTIN_RESERVE)
 
 /* The descriptor's strings point into the .so's rodata, which disappears when
  * it is closed: a copy of our own has to be kept. */
@@ -775,6 +779,9 @@ int aos_dynapp_scan(void)
         return 0;
     }
 
+    /* Timed: every .so is opened here, so this is where a card with many
+     * apps costs boot time (docs/MENU.md measures it). */
+    int64_t t0 = esp_timer_get_time();
     int loaded = 0;
     struct dirent *item;
     while ((item = readdir(dir)) != NULL) {
@@ -786,5 +793,7 @@ int aos_dynapp_scan(void)
         }
     }
     closedir(dir);
+    ESP_LOGI(TAG, "scan: %d modules, %d apps, %u ms", loaded, s_count,
+             (unsigned)((esp_timer_get_time() - t0) / 1000));
     return loaded;
 }

@@ -14,8 +14,12 @@
  * those cases drew, and tools/icon_golden/ keeps their pixels.
  */
 #include "aos_theme.h"
+#include "aos_ui.h"
 #include "aos_icon_ops.h"
 #include "aos_hal.h"
+#ifndef AOS_SIM
+#include "esp_heap_caps.h"
+#endif
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -339,20 +343,41 @@ int aos_icon_ops_check(const uint8_t *ops, size_t len, size_t *bad_at)
 /* --------------------------------------------------------------------------
  * Icons brought by the apps themselves (aos_icon_set_ops)
  *
- * One entry per app id, the blob copied. In PSRAM: 40 entries of ~300 bytes
- * is 12 KB, which is nothing there and would be a tenth of what is left in
- * internal RAM. Only dynamic apps use this today (the built-in ones have
- * their tables in flash), so the size follows MAX_DYNAPPS with some room.
+ * One entry per app id, the blob copied. Only dynamic apps use this today
+ * (the built-in ones have their tables in flash), so it can never need more
+ * than the launcher holds. It was 40 while the loader took 48, the same
+ * drift as every other ceiling here; since v0.5.0 it is AOS_MAX_APPS.
+ *
+ * At that size the blob can no longer sit inside the entry: 256 entries of
+ * 300 bytes, twice (this table and the files'), was 150 KB of PSRAM for the
+ * sixteen icons a full card brings. So an entry is 48 bytes and its buffer
+ * is taken the first time the entry is used, at the full AOS_ICON_OPS_MAX,
+ * and then kept for good. Never freed on purpose: the portal's task reads
+ * aos_icon_ops_for() while the UI task may be rescanning, and a buffer that
+ * stays put can at worst show the old icon, never freed memory.
  * -------------------------------------------------------------------------- */
 
-#define ICON_REG_MAX    40
+#define ICON_REG_MAX    AOS_MAX_APPS
 #define ICON_REG_ID_MAX 40      /* as dynapp_t.id */
 
 typedef struct {
     char     id[ICON_REG_ID_MAX];
     uint16_t len;               /* 0 = free entry; a blob is never shorter than its header */
-    uint8_t  ops[AOS_ICON_OPS_MAX];
+    uint8_t *ops;               /* AOS_ICON_OPS_MAX bytes once taken, PSRAM */
 } icon_reg_t;
+
+/* The entry's buffer, taken on first use. NULL only if PSRAM is gone. */
+static uint8_t *entry_buf(icon_reg_t *e)
+{
+    if (!e->ops) {
+#ifdef AOS_SIM
+        e->ops = malloc(AOS_ICON_OPS_MAX);
+#else
+        e->ops = heap_caps_malloc(AOS_ICON_OPS_MAX, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+#endif
+    }
+    return e->ops;
+}
 
 AOS_BSS_PSRAM static icon_reg_t s_reg[ICON_REG_MAX];
 
@@ -401,6 +426,10 @@ bool aos_icon_set_ops(const aos_app_t *app, const uint8_t *ops, size_t len)
         aos_hal_log("icon", "%s: no room for its icon (%d apps already)", id, ICON_REG_MAX);
         return false;
     }
+    if (!entry_buf(e)) {
+        aos_hal_log("icon", "%s: no memory for its icon", id);
+        return false;
+    }
     snprintf(e->id, sizeof(e->id), "%s", id);
     memcpy(e->ops, ops, len);
     e->len = (uint16_t)len;
@@ -412,7 +441,8 @@ void aos_icon_clear_ops(const char *id)
 {
     icon_reg_t *e = reg_find(id);
     if (e) {
-        memset(e, 0, sizeof(*e));
+        e->len = 0;             /* the buffer stays with the entry */
+        e->id[0] = '\0';
     }
 }
 
@@ -422,11 +452,11 @@ void aos_icon_clear_ops(const char *id)
  * A second table, same shape, filled by aos_icon_scan_files() from
  * <id>.aic files. Separate from the apps' table on purpose: deleting the
  * file has to bring back what the app registered, so the two must not
- * overwrite each other. 48 entries because a file can override any app,
- * built-in ones included (AOS_MAX_APPS). Also PSRAM: 14 KB there.
+ * overwrite each other. A file can override any app, built-in ones
+ * included, so AOS_MAX_APPS entries, with their buffers taken as above.
  * -------------------------------------------------------------------------- */
 
-#define ICON_FILES_MAX  48
+#define ICON_FILES_MAX  AOS_MAX_APPS
 #define ICON_FILE_EXT   ".aic"
 
 AOS_BSS_PSRAM static icon_reg_t s_files[ICON_FILES_MAX];
@@ -446,7 +476,9 @@ static icon_reg_t *files_find(const char *id)
 
 int aos_icon_scan_files(void)
 {
-    memset(s_files, 0, sizeof(s_files));
+    for (int i = 0; i < ICON_FILES_MAX; i++) {
+        s_files[i].len = 0;     /* buffers kept: see entry_buf() */
+    }
 
     const char *dir_path = aos_hal_path_icons();
     DIR *dir = opendir(dir_path);
@@ -496,7 +528,13 @@ int aos_icon_scan_files(void)
             continue;
         }
 
-        icon_reg_t *e = &s_files[loaded++];
+        icon_reg_t *e = &s_files[loaded];
+        if (!entry_buf(e)) {
+            aos_hal_log("icon", "%s: no memory for it", name);
+            refused++;
+            continue;
+        }
+        loaded++;
         memcpy(e->id, name, id_len);
         e->id[id_len] = '\0';
         memcpy(e->ops, buf, got);
