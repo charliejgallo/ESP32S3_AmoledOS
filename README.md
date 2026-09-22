@@ -2,10 +2,10 @@
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
 368x448 AMOLED you can hold in your hand. Seven watchfaces, twenty-one
-built-in apps, thirty-one more loaded from the microSD as shared objects — one
+built-in apps, thirty-two more loaded from the microSD as shared objects — one
 of them a Lua interpreter, so a text file on the card is an app too — a web
 portal, iPhone notifications over BLE, a link between two watches over ESP-NOW
-with seven apps on it, and a desktop simulator that runs the same UI code so
+with eight apps on it, and a desktop simulator that runs the same UI code so
 you can build the whole thing without the board.
 
 <p align="center">
@@ -131,7 +131,7 @@ Twenty-one ship inside the binary. They are the ones the watch cannot be without
 
 ### Loaded from the microSD
 
-Thirty-one more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
+Thirty-two more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
 `.so` files at startup. The same source builds into the simulator, so they are
 designed on a laptop and copied to the card without changing a line — and a new
 one needs no firmware rebuild. That includes its **launcher icon**: an app
@@ -139,6 +139,46 @@ describes it as a few dozen bytes of shapes and hands them over at load, or an
 `.aic` file dropped on the card does; the firmware's own icons are the same
 tables. Until v0.3.7 an icon was a switch case in the firmware, and every new
 app meant a reflash for that alone. See [docs/ICONS.md](docs/ICONS.md).
+
+#### Golf, the first app built from 3D assets
+
+<p align="center">
+  <img src="docs/img/app-golf-swing.png" width="200" alt="Golf: the top of the backswing, with the power bar">
+  <img src="docs/img/app-golf-aim.png" width="200" alt="Golf: aiming on the map of a lake hole">
+  <img src="docs/img/app-golf-coast3d.png" width="200" alt="Golf: the coastal course in 3D, the sea to the horizon">
+</p>
+
+The golfer is a model built and animated in **Blender** from a script, with
+no `.blend` file: a swing, a wait, a cheer, a sulk and a turntable, 750
+renders packed with LZ4 into a 1.1 MB `golf.pak` that sits on the
+card next to the `.so`. Every frame is rendered twice, once for the light on
+neutral grey and once for which region each pixel belongs to (skin, shirt,
+stripes, trousers, check, shoes, hat...), and the watch multiplies the two
+with the palette of what you are wearing. So the shop sells a red striped
+polo, a tartan and a cowboy hat without a single extra render:
+
+<p align="center">
+  <img src="docs/img/golf-pipeline.png" width="690" alt="The lighting pass, the region ids, and three outfits coloured from them on the watch">
+</p>
+
+Around it the watch draws everything itself: a voxel-space 3D view of each
+hole from behind the ball, from the same camera Blender rendered the golfer
+with, so he stands on the ground; and a map from above, drawn from vector
+shapes at any zoom, with hill shading and the ball's line. Three courses of
+eight holes — woods, a windy links by the sea, a park full of water — a
+tournament against three computer golfers, and the other watch over the
+link. The renders run in a worker task and take 0.9 s for the map and
+1.6 s for the 3D view, and the 3D is drawn ahead while you aim. Every
+allocation goes to PSRAM: 11 KB of internal RAM while playing. More in
+[apps/golf/README.md](apps/golf/README.md).
+
+<p align="center">
+  <img src="docs/img/app-golf-green.png" width="200" alt="Golf: a putt with the slope chevrons and the break preview">
+  <img src="docs/img/app-golf-shop.png" width="200" alt="Golf: the shop, the golfer on a turntable">
+  <img src="docs/img/app-golf-card.png" width="200" alt="Golf: a birdie, and the golfer cheers">
+</p>
+
+#### The others
 
 | | | |
 |---|---|---|
@@ -234,7 +274,9 @@ other watch (the `.pix` file, in chunks over the reliable channel, into the
 first empty slot on the other side), and **Radar** shows where the other
 watch is, by signal strength and by FTM time of flight. v0.4.3 adds the
 **Walkie**, push to talk over the fast channel, and with it the streaming
-speaker the HAL lacked (`aos_hal_spk_*`).
+speaker the HAL lacked (`aos_hal_spk_*`). v0.4.8 brings **Neon Snakes**
+in lockstep, and v0.4.9 **Golf**: only the shots travel, each with the
+place the ball stopped, so the two watches can check they agree.
 
 <p align="center">
   <img src="docs/img/photo-walkie.jpg" width="640" alt="The walkie on two watches, one in Spanish and one in English">
@@ -308,7 +350,7 @@ with no WiFi. Everything measured is in [docs/USB.md](docs/USB.md).
 ## Flash it without building
 
 The [latest release](https://github.com/charliejgallo/ESP32S3_AmoledOS/releases/latest)
-carries the firmware and the thirty-one dynamic apps already built, for the
+carries the firmware and the thirty-two dynamic apps already built, for the
 Waveshare ESP32-S3-Touch-AMOLED-1.8.
 
 ```bash
@@ -375,7 +417,7 @@ components/
   aos_dynapp/         .so loader and symbol table
   aos_ble/            NimBLE: ANCS, AMS, pairing
   aos_web/            the web portal, embedded in the binary
-apps/                 31 dynamic apps
+apps/                 32 dynamic apps
 tools/                generators, test benches, board utilities
 ```
 

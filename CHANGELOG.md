@@ -3,6 +3,47 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.4.9 — 2026-09-21
+
+**Golf**, a new dynamic app (`golf.so` + `golf.pak`, `demo.golf`), and the
+first built from **3D assets**.
+
+- The golfer is modelled, animated and rendered in **Blender** from a script
+  (`apps/golf/tools/blender/golfer.py`, no `.blend`): swing, wait, cheer,
+  sulk and a turntable. Each frame is rendered as a lighting pass and a
+  region-id pass, and the watch colours every pixel as `palette[id] * light`,
+  so every item in the shop is the same render. Hats are separate layers.
+  750 renders packed with LZ4 into a 1.1 MB `golf.pak` read from the card.
+- A **voxel-space 3D view** of each hole from behind the ball, from the same
+  camera Blender used, with sky, clouds, hills or the sea, and trees tested
+  against depth; rendered ahead while you aim. A **top-down map** drawn from
+  vector shapes at any zoom, with world-space textures, hill shading and the
+  ball's line.
+- Deterministic ball physics (drag, lift, spin, wind, bounce and roll per
+  surface, trees, lip-outs). Three courses of eight holes: Sierra Verde
+  (woods), Dunas del Faro (links by the sea, 1.6× the wind) and Parque de los
+  Lagos (water on every hole, an island green).
+- Quick game, a tournament against three computer golfers, practice, three
+  difficulties, 2-4 players on one watch, and **the paired watch over the
+  link** (only the shots travel, with where the ball stopped as a check).
+- Coins from rounds and a **shop**: shirts, trousers, six hats, shoes and
+  clubs, tried on a turntable. A small synthesiser on the streaming speaker.
+- Measured on the board: 23 fps in the swing, 29 in the flight, 1.0-1.4 s
+  for a map and 1.8 s for a 3D view in a worker task, 2.3 s to open. 11 KB
+  of internal RAM while playing; everything else in PSRAM.
+
+**Firmware: the `.so` loader dropped the addend of `R_XTENSA_GLOB_DAT`.** A
+global table read from another file as `table + 4` got `table + 0`. Fixed in
+`components/elf_loader/src/arch/esp_elf_xtensa.c`, with a regression test in
+`tools/so_tests/globtest`. The fix also corrects two apps that had the bug
+without recompiling them: **Chatarra** (each sub-boss used the next zone's
+trick, and zone 8 read past the table) and **Lua** (character classes off by
+one, in patterns and `tonumber` with a base).
+
+Also: `tools/install_apps.sh` uploads `apps/*/assets/*.pak`; the embedded
+language pack has Golf's strings in English and German. `golf.so` loads on
+v0.4.3 or newer.
+
 ## v0.4.8 — 2026-09-21
 
 **Neon Snakes**, a new dynamic app (`neon.so`, `demo.neon`): neon snakes eat

@@ -1,0 +1,211 @@
+{
+ "note": "Rendered by tools/blender/golfer.py. colour = palette[id] * shade; shade RGB is lit neutral grey (0.8 albedo), sRGB; shade_ref is the value of a sunlit surface facing the light at ~45 degrees.",
+ "shade_ref": 200,
+ "ids": {
+  "0": "empty",
+  "1": "skin",
+  "2": "hair",
+  "3": "shirt A",
+  "4": "shirt B",
+  "5": "trousers A",
+  "6": "trousers B",
+  "7": "shoes A",
+  "8": "shoes B",
+  "9": "belt",
+  "10": "glove",
+  "11": "club head / buckle",
+  "12": "shaft",
+  "13": "grip",
+  "14": "hat A",
+  "15": "hat B"
+ },
+ "hats": {
+  "0": "baseball cap",
+  "1": "visor",
+  "2": "bucket hat",
+  "3": "beanie with pompom",
+  "4": "flat cap",
+  "5": "cowboy hat"
+ },
+ "camera_swing": {
+  "position": [
+   -0.16,
+   -4.8,
+   2.82
+  ],
+  "rotation_deg": [
+   79,
+   0,
+   0
+  ],
+  "fov_v_deg": 50,
+  "size": [
+   368,
+   448
+  ]
+ },
+ "sequences": {
+  "swing": {
+   "frames": 24,
+   "size": [
+    368,
+    448
+   ],
+   "impact_frame": 14,
+   "top_frame": 10,
+   "ball_px": [
+    198.7,
+    391.7
+   ],
+   "club_head_px": [
+    [
+     201.9,
+     394.9
+    ],
+    [
+     198.5,
+     406.8
+    ],
+    [
+     191.4,
+     421.6
+    ],
+    [
+     180.4,
+     416.7
+    ],
+    [
+     152.3,
+     381.8
+    ],
+    [
+     86.2,
+     292.1
+    ],
+    [
+     56.8,
+     220.2
+    ],
+    [
+     54.3,
+     189.1
+    ],
+    [
+     69.7,
+     174.3
+    ],
+    [
+     119.7,
+     195.4
+    ],
+    [
+     147.5,
+     240.1
+    ],
+    [
+     80.6,
+     225.8
+    ],
+    [
+     57.2,
+     219.7
+    ],
+    [
+     140.6,
+     349.5
+    ],
+    [
+     201.6,
+     393.6
+    ],
+    [
+     186.6,
+     337.3
+    ],
+    [
+     164.2,
+     246.5
+    ],
+    [
+     101.2,
+     192.2
+    ],
+    [
+     52.0,
+     186.4
+    ],
+    [
+     129.8,
+     238.9
+    ],
+    [
+     179.6,
+     295.8
+    ],
+    [
+     177.3,
+     296.7
+    ],
+    [
+     177.7,
+     296.4
+    ],
+    [
+     178.4,
+     295.9
+    ]
+   ]
+  },
+  "idle": {
+   "frames": 4,
+   "size": [
+    368,
+    448
+   ],
+   "loop": [
+    0,
+    1,
+    2,
+    3,
+    2,
+    1
+   ]
+  },
+  "cheer": {
+   "frames": 8,
+   "size": [
+    368,
+    448
+   ]
+  },
+  "sad": {
+   "frames": 6,
+   "size": [
+    368,
+    448
+   ]
+  },
+  "turn": {
+   "frames": 8,
+   "size": [
+    184,
+    280
+   ],
+   "feet_baseline_y": 263.8,
+   "feet_centre_px": [
+    92.0,
+    263.8
+   ],
+   "yaw_deg": [
+    -90,
+    -45,
+    0,
+    45,
+    90,
+    135,
+    180,
+    225
+   ]
+  }
+ }
+}

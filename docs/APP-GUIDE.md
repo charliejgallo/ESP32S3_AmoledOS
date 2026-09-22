@@ -416,6 +416,40 @@ Measured on the board with Clima, for scale:
 The rule that falls out: **on the Mac everything in LVGL looks free**.
 Multiply by twenty or thirty before deciding that something fits.
 
+### 6.7 Pre-rendered 3D art (Golf)
+
+Golf (`apps/golf/`, v0.4.9) is the first app built from 3D assets: the golfer
+is modelled, animated and rendered in Blender on the computer, and the watch
+only colours and places him. The recipe, for the next game that wants a
+character like that:
+
+- **The model is a script, not a `.blend`.** `apps/golf/tools/blender/golfer.py`
+  builds, animates and renders headless (`Blender -b -P golfer.py`; written
+  for Blender 3.3.1, and `bpy` changes between versions). `SPEC.md` beside it
+  fixes the ids, the camera and the sequences.
+- **Two passes per frame instead of a colour image**: the light on neutral
+  grey, and which region each pixel belongs to (16 ids). On the watch a pixel
+  is `palette[id] * light / 196`, so every outfit in the shop is the same
+  render. Parts that change shape (hats) are separate layers rendered with the
+  body as a holdout; the shadow is a third pass at half resolution.
+- **The render camera is the game's camera.** Same position, pitch and field
+  of view in Blender and in `gf_view3d.c`, or the character floats above the
+  ground the watch draws. Decide it before modelling.
+- **One pack on the card** (`tools/pack_assets.py`: 750 PNGs, 419 entries,
+  LZ4, 1.1 MB) next to the `.so`. `tools/install_apps.sh` uploads
+  `apps/*/assets/*.pak`. Keep the file open and read entries when needed
+  instead of loading it into RAM.
+- **Colour in the worker** when the outfit changes, with a 4x4 ordered dither
+  to RGB565 (without it the light's gradient bands), and free sequences that
+  are not on screen.
+
+Measured on the board: the swing, a ~200x300 px character changing every
+frame, runs at 23 fps; the ball flying over the map at 29; the waiting pose is
+drawn at 150 ms a frame on purpose. The area pushed to the panel is what
+costs, so a big animated character either animates at fewer frames or
+changes less of itself. The whole app uses 11 KB of internal RAM while
+playing and 6.2 MB of PSRAM. Details in `apps/golf/README.md`.
+
 ## 7. The icon
 
 It travels with the app, as a few dozen bytes of shapes handed over from
@@ -937,6 +971,51 @@ only newlib's POSIX parser: rules are written out (`"CET-1CEST,M3.5.0,M10.5.0/3"
 not IANA names (`aos_app_worldclock.c`).
 
 ### The platform
+
+**Global data shared between files came out shifted before v0.4.9.** The
+firmware's `.so` loader dropped the addend of `R_XTENSA_GLOB_DAT`. When a file
+reads a field of a global table defined in another file, the compiler may put
+`table + 4` in the GOT entry, and the loader wrote `table + 0`: every field
+read its neighbour. It depended on how the offset was folded, so it showed in
+one build and not in the next (Golf's club table gave carries of 24,848 yards
+on the board and was right in the simulator). Fixed in v0.4.9
+(`components/elf_loader/src/arch/esp_elf_xtensa.c`, regression test in
+`tools/so_tests/globtest`); the fix also corrects Chatarra and the Lua
+interpreter, which had the bug without anyone noticing. If your app must run
+on older firmware, keep tables `static` and reach them through a function in
+their own file; `readelf -r your.so | grep GLOB_DAT` then lists only firmware
+symbols such as the fonts.
+
+**`floorf`, `ceilf`, `expf`, `sqrtf` and division are calls, not
+instructions,** on the S3 (measured: 100,000 float divisions 26 ms, `sqrtf`
+34 ms, multiply-adds 4 ms). In a loop over pixels replace them: a
+two-instruction floor (`(int)x - (x < (int)x)`), tables, reciprocals computed
+once, bit replication instead of `* 255 / 31`.
+
+**The `.so` is compiled with `-Os` whatever the app's CMake says**:
+`elf_loader.cmake` builds the objects with its own flags and per-file
+`COMPILE_OPTIONS` do not reach them. For a hot file use
+`#pragma GCC optimize("O2")` (guarded with `!defined(__clang__)` for the
+simulator).
+
+**A worker that renders for seconds must really sleep.** The task watchdog
+watches the idle task of both cores, and the worker runs above it on the
+second one. `aos_hal_worker_sleep(2)` at a 100 Hz tick is `vTaskDelay(0)`,
+which yields to nobody below the worker; sleep at least 10 ms (one tick)
+every few tens of milliseconds of work.
+
+**Requests to a worker must add up, not replace each other.** If the app
+keeps the parameters of the next job in one place, a second request made
+before the worker picked up the first overwrites it. In Golf the menu's
+recolouring followed at once by the hole card's cheer coloured the cheer with
+no palette: a black golfer. OR the masks together and let the job take all
+that is pending.
+
+**`malloc` below 1 KB returns internal RAM** (`SPIRAM_MALLOC_ALWAYSINTERNAL`
+is 1024). A large game making hundreds of small allocations eats the internal
+heap without noticing; ask for PSRAM explicitly with
+`heap_caps_malloc(n, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)` (Golf's
+`gf_malloc()`: internal use went from 38 KB to 11 KB).
 
 **No memory isolation.** The ESP32-S3 has no per-process protection: write
 out of bounds and the whole firmware goes down. An app is closer to a kernel

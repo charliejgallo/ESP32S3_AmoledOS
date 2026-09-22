@@ -28,6 +28,8 @@ for d in $ROOT/apps/*(/); do
     (( ${#WANT[@]} )) && [[ ${WANT[(Ie)$name]} -eq 0 ]] && continue
     so=($d/build/*.so(.N))
     (( ${#so[@]} )) && files+=($so[1])
+    # an app's own data pack (golf's art): it goes next to the .so
+    for pak in $d/assets/*.pak(.N); do files+=($pak); done
 done
 (( ${#files[@]} )) || { echo "no .so found - run ./tools/build_apps.sh first"; exit 1; }
 

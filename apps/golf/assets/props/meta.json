@@ -1,0 +1,179 @@
+{
+  "_about": {
+    "side": "orthographic, camera pitched down 11 deg looking +y, sun from behind-left of the camera (elev 50 deg); side_base_px = trunk base (ground contact) pixel, x right / y down, pixel-centre convention: pixel (i,j) spans [i,i+1)",
+    "top": "orthographic straight down, image up = north (+y), sun from north-west (elev 50 deg); top_trunk_px = trunk centre pixel",
+    "topshadow": "L 0..255 = shadow strength on the ground; may be larger than 96x96 (extends right/down only), same origin and px/m as the top view",
+    "alpha": "straight (unassociated) alpha; transparent pixels carry the nearest edge colour",
+    "units": "metres; px_per_m lets the engine scale by the real size"
+  },
+  "tree_oak": {
+    "height_m": 12.53,
+    "canopy_diameter_m": 13.63,
+    "side_size": [
+      138,
+      128
+    ],
+    "side_files": [
+      "tree_oak_side.png"
+    ],
+    "side_px_per_m": 9.9649,
+    "side_base_px": [
+      68.42,
+      125.79
+    ],
+    "top_size": [
+      96,
+      96
+    ],
+    "top_px_per_m": 6.1412,
+    "top_trunk_px": [
+      47.64,
+      46.4
+    ],
+    "topshadow_size": [
+      124,
+      123
+    ],
+    "topshadow_origin": "same top-left pixel and scale as the top view"
+  },
+  "tree_pine": {
+    "height_m": 14.15,
+    "canopy_diameter_m": 7.42,
+    "side_size": [
+      70,
+      128
+    ],
+    "side_files": [
+      "tree_pine_side.png"
+    ],
+    "side_px_per_m": 9.0094,
+    "side_base_px": [
+      34.14,
+      126.16
+    ],
+    "top_size": [
+      96,
+      96
+    ],
+    "top_px_per_m": 14.0307,
+    "top_trunk_px": [
+      48.46,
+      50.02
+    ],
+    "topshadow_size": [
+      171,
+      174
+    ],
+    "topshadow_origin": "same top-left pixel and scale as the top view"
+  },
+  "tree_poplar": {
+    "height_m": 16.01,
+    "canopy_diameter_m": 4.41,
+    "side_size": [
+      38,
+      128
+    ],
+    "side_files": [
+      "tree_poplar_side.png"
+    ],
+    "side_px_per_m": 7.9711,
+    "side_base_px": [
+      19.09,
+      126.33
+    ],
+    "top_size": [
+      96,
+      96
+    ],
+    "top_px_per_m": 18.9923,
+    "top_trunk_px": [
+      48.22,
+      48.7
+    ],
+    "topshadow_size": [
+      235,
+      235
+    ],
+    "topshadow_origin": "same top-left pixel and scale as the top view"
+  },
+  "tree_palm": {
+    "height_m": 10.38,
+    "canopy_diameter_m": 8.33,
+    "side_size": [
+      104,
+      128
+    ],
+    "side_files": [
+      "tree_palm_side.png"
+    ],
+    "side_px_per_m": 12.0363,
+    "side_base_px": [
+      41.25,
+      126.11
+    ],
+    "top_size": [
+      96,
+      96
+    ],
+    "top_px_per_m": 10.5008,
+    "top_trunk_px": [
+      38.62,
+      51.06
+    ],
+    "topshadow_size": [
+      143,
+      137
+    ],
+    "topshadow_origin": "same top-left pixel and scale as the top view"
+  },
+  "bush": {
+    "height_m": 1.28,
+    "canopy_diameter_m": 1.83,
+    "side_size": [
+      66,
+      48
+    ],
+    "side_files": [
+      "bush_side.png"
+    ],
+    "side_px_per_m": 34.9336,
+    "side_base_px": [
+      32.79,
+      44.92
+    ],
+    "top_size": [
+      96,
+      96
+    ],
+    "top_px_per_m": 43.3952,
+    "top_trunk_px": [
+      47.74,
+      47.56
+    ],
+    "topshadow_size": [
+      106,
+      106
+    ],
+    "topshadow_origin": "same top-left pixel and scale as the top view"
+  },
+  "flag": {
+    "side_size": [
+      22,
+      64
+    ],
+    "side_files": [
+      "flag_side_0.png",
+      "flag_side_1.png",
+      "flag_side_2.png",
+      "flag_side_3.png"
+    ],
+    "side_px_per_m": 26.6397,
+    "side_base_px": [
+      3.0,
+      62.85
+    ],
+    "height_m": 2.36,
+    "frames": 4,
+    "note": "base = bottom of the pin (hole centre); wind towards +x (screen right)"
+  }
+}
