@@ -441,6 +441,7 @@ const char *aos_hal_path_music(void)  { return "sim_fs/music";  }
 const char *aos_hal_path_data(void)   { return "sim_fs/data";   }
 const char *aos_hal_path_lang(void)   { return "sim_fs/lang";   }
 const char *aos_hal_path_icons(void)  { return "sim_fs/icons";  }
+const char *aos_hal_path_menu(void)   { return "sim_fs/menu.txt"; }
 const char *aos_hal_path_recordings(void) { return "sim_fs/recordings"; }
 const char *aos_hal_path_scans(void)  { return "sim_fs/redes";  }
 const char *aos_hal_path_sd_root(void) { return "sim_fs"; }

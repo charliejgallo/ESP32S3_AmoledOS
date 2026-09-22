@@ -22,6 +22,7 @@
 #include "private/elf_symbol.h"
 
 #include <dirent.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -325,14 +326,94 @@ void __wrap_esp_elf_free(void *ptr)
 }
 
 
-static uintptr_t resolver(const char *name)
+/* --------------------------------------------------------------------------
+ * Symbol lookup
+ *
+ * Every undefined symbol of a .so is looked up here while it loads, at boot
+ * for every module and again each time an app opens. The table has ~2,800
+ * entries and was walked with strcmp from the top: a libc symbol like memcpy
+ * -which is not in it- cost the whole walk before the loader's own table
+ * even got asked. So the first scan sorts an index of pointers into it (in
+ * PSRAM, ~11 KB) and the lookup is a binary search, a dozen comparisons.
+ * Among duplicate names the first in the table still wins, as before.
+ * -------------------------------------------------------------------------- */
+
+static const struct esp_elfsym **s_sym_index;
+static int      s_sym_count;
+static int64_t  s_resolve_us;
+static uint32_t s_resolve_calls;
+
+static int sym_cmp(const void *a, const void *b)
 {
-    for (const struct esp_elfsym *sym = aos_symbol_table; sym->name; sym++) {
-        if (strcmp(sym->name, name) == 0) {
-            return (uintptr_t)sym->sym;
+    const struct esp_elfsym *x = *(const struct esp_elfsym *const *)a;
+    const struct esp_elfsym *y = *(const struct esp_elfsym *const *)b;
+    int c = strcmp(x->name, y->name);
+    if (c) {
+        return c;
+    }
+    return (x < y) ? -1 : (x > y);      /* the table's order among equals */
+}
+
+static void sym_index_build(void)
+{
+    if (s_sym_index) {
+        return;
+    }
+    int n = 0;
+    while (aos_symbol_table[n].name) {
+        n++;
+    }
+    s_sym_index = heap_caps_malloc(sizeof(*s_sym_index) * (size_t)n,
+                                   MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!s_sym_index) {
+        return;                         /* the linear walk still works */
+    }
+    for (int i = 0; i < n; i++) {
+        s_sym_index[i] = &aos_symbol_table[i];
+    }
+    qsort(s_sym_index, (size_t)n, sizeof(*s_sym_index), sym_cmp);
+    s_sym_count = n;
+}
+
+static uintptr_t lookup_own(const char *name)
+{
+    if (!s_sym_index) {
+        for (const struct esp_elfsym *sym = aos_symbol_table; sym->name; sym++) {
+            if (strcmp(sym->name, name) == 0) {
+                return (uintptr_t)sym->sym;
+            }
+        }
+        return 0;
+    }
+    int lo = 0, hi = s_sym_count - 1;
+    while (lo <= hi) {
+        int mid = (lo + hi) / 2;
+        int c = strcmp(s_sym_index[mid]->name, name);
+        if (c == 0) {
+            while (mid > 0 && strcmp(s_sym_index[mid - 1]->name, name) == 0) {
+                mid--;
+            }
+            return (uintptr_t)s_sym_index[mid]->sym;
+        }
+        if (c < 0) {
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;
         }
     }
-    return elf_find_sym_default(name);
+    return 0;
+}
+
+static uintptr_t resolver(const char *name)
+{
+    int64_t t = esp_timer_get_time();
+    uintptr_t addr = lookup_own(name);
+    if (!addr) {
+        addr = elf_find_sym_default(name);
+    }
+    s_resolve_us += esp_timer_get_time() - t;
+    s_resolve_calls++;
+    return addr;
 }
 
 static dynapp_t *find_by_id(const char *id)
@@ -595,20 +676,39 @@ static void dyn_tick(aos_app_t *self, void *inst)
 
 /* -------------------------------------------------------------------------- */
 
-static bool register_stub(const char *filename)
+/* Where a scan's time goes, logged at its end (docs/MENU.md). */
+static struct {
+    int64_t open_us;        /* dlopen + the probe's init() */
+    int64_t lock_us;        /* waiting for the UI's lock */
+    int64_t reg_us;         /* aos_ui_register_app itself */
+} s_scan_cost;
+
+/* Registers apps of one module, from index 'from' to the end, or only the
+ * first when first_only. Returns how many were registered and, in *total,
+ * how many the module declares.
+ *
+ * The UI's lock is taken once per batch and not once per app: at boot the
+ * UI task is drawing, and every separate lock is a wait for its frame to
+ * end. A module with many apps (lua.so) paid that wait once per script. */
+#define REGISTER_BATCH  16
+
+static int register_apps(const char *filename, bool first_only, uint32_t *total)
 {
+    *total = 0;
     if (s_count >= MAX_DYNAPPS) {
         ESP_LOGE(TAG, "%s does not fit: the limit is %d dynamic apps and there are "
                       "already %d. Raise MAX_DYNAPPS or take a .so off the card",
                  filename, MAX_DYNAPPS, s_count);
-        return false;
+        return 0;
     }
 
+    int64_t t = esp_timer_get_time();
     void *handle = NULL;
     aos_app_t probe;
     if (!module_open(filename, 0, &handle, &probe)) {
-        return false;
+        return 0;
     }
+    s_scan_cost.open_us += esp_timer_get_time() - t;
 
     /* How many apps this module brings. Only lua.so answers; for everything
      * else the symbol is absent and the answer is one. The module stays open
@@ -617,13 +717,19 @@ static bool register_stub(const char *filename)
     uint32_t (*count_fn)(void) = dlsym(handle, "aos_app_count");
     bool (*init_at_fn)(aos_app_t *app, uint32_t index) =
         dlsym(handle, "aos_app_init_at");
-    uint32_t total = (count_fn && init_at_fn) ? count_fn() : 1;
-    if (total < 1) {
-        total = 1;
+    uint32_t n = (count_fn && init_at_fn) ? count_fn() : 1;
+    if (n < 1) {
+        n = 1;
     }
+    *total = n;
 
+    uint32_t from = first_only ? 0 : 1;
+    uint32_t to   = first_only ? 1 : n;
     int registered = 0;
-    for (uint32_t i = 0; i < total; i++) {
+    bool locked = false;
+    int in_batch = 0;
+
+    for (uint32_t i = from; i < to; i++) {
         if (s_count >= MAX_DYNAPPS) {
             ESP_LOGE(TAG, "%s app %u does not fit: the limit is %d",
                      filename, (unsigned)i, MAX_DYNAPPS);
@@ -662,10 +768,21 @@ static bool register_stub(const char *filename)
         slot->in_use = true;
         s_count++;
 
+        if (!locked) {
+            t = esp_timer_get_time();
+            locked = aos_hal_lock(1000);
+            s_scan_cost.lock_us += esp_timer_get_time() - t;
+        }
         bool ok = false;
-        if (aos_hal_lock(1000)) {
+        if (locked) {
+            t = esp_timer_get_time();
             ok = aos_ui_register_app(&stub);
-            aos_hal_unlock();
+            s_scan_cost.reg_us += esp_timer_get_time() - t;
+            if (++in_batch >= REGISTER_BATCH) {
+                aos_hal_unlock();       /* let a frame through */
+                locked = false;
+                in_batch = 0;
+            }
         }
         if (!ok) {
             /* aos_ui_register_app says why in its own log line; this one
@@ -677,18 +794,37 @@ static bool register_stub(const char *filename)
             continue;
         }
         registered++;
-        ESP_LOGI(TAG, "registered %s[%u] -> %s (%s)",
+        ESP_LOGD(TAG, "registered %s[%u] -> %s (%s)",
                  filename, (unsigned)i, slot->id, slot->name);
+    }
+    if (locked) {
+        aos_hal_unlock();
+    }
+    if (registered) {
+        ESP_LOGI(TAG, "registered %s: %d app%s%s", filename, registered,
+                 registered == 1 ? "" : "s", first_only && n > 1 ? " (more later)" : "");
     }
 
     /* descriptors read, the code goes away: it comes back in when it is opened */
     dlclose(handle);
-    return registered > 0;
+    return registered;
 }
 
 bool aos_dynapp_load(const char *filename)
 {
-    return filename ? register_stub(filename) : false;
+    if (!filename) {
+        return false;
+    }
+    /* One module arriving after boot: all of its apps, in the same two steps
+     * as the scan. */
+    uint32_t total = 0;
+    if (register_apps(filename, true, &total) == 0) {
+        return false;
+    }
+    if (total > 1) {
+        register_apps(filename, false, &total);
+    }
+    return true;
 }
 
 bool aos_dynapp_unload(const char *app_id)
@@ -767,6 +903,10 @@ int aos_dynapp_scan(void)
     ESP_LOGI(TAG, "apps' code runs from PSRAM: no internal reservation");
 #endif
 
+    int64_t ti = esp_timer_get_time();
+    sym_index_build();
+    ESP_LOGI(TAG, "symbol index: %d entries, %u ms", s_sym_count,
+             (unsigned)((esp_timer_get_time() - ti) / 1000));
     elf_set_symbol_resolver(resolver);
 
     ESP_LOGI(TAG, "executable memory: %u B free, largest block %u B",
@@ -779,21 +919,59 @@ int aos_dynapp_scan(void)
         return 0;
     }
 
-    /* Timed: every .so is opened here, so this is where a card with many
-     * apps costs boot time (docs/MENU.md measures it). */
+    /* The loader logs every symbol of every module at INFO: hundreds of lines
+     * per .so, which is what made the 16 KB log ring forget the boot before
+     * anyone could read it. Its warnings and errors still come through. */
+    static const char *const LOUD[] = { "ELF", "DLMOD", "DLFCN", "elf_arch",
+                                        "ELF_SYMBOL", "elf_s3mmu" };
+    for (size_t i = 0; i < sizeof(LOUD) / sizeof(LOUD[0]); i++) {
+        esp_log_level_set(LOUD[i], ESP_LOG_WARN);
+    }
+
+    /* Two passes. The first registers ONE app of every module; the second
+     * the rest of the modules that declare several (lua.so, one app per
+     * script). Before, readdir's order decided: with 200 scripts on the card
+     * lua.so came before turbo.so, took the slots, and turbo and monsterhop
+     * were the ones left out. A card full of scripts must never push a real
+     * app out of the launcher. Timed, since every .so is opened here and this
+     * is where a card with many apps costs boot time (docs/MENU.md). */
+    memset(&s_scan_cost, 0, sizeof(s_scan_cost));
+    s_resolve_us = 0;
+    s_resolve_calls = 0;
     int64_t t0 = esp_timer_get_time();
+    enum { DEFERRED_MAX = 8 };
+    char deferred[DEFERRED_MAX][64];
+    int n_deferred = 0;
+
     int loaded = 0;
     struct dirent *item;
     while ((item = readdir(dir)) != NULL) {
         if (item->d_name[0] == '.' || !ends_with_so(item->d_name)) {
             continue;
         }
-        if (register_stub(item->d_name)) {
+        uint32_t total = 0;
+        if (register_apps(item->d_name, true, &total) > 0) {
             loaded++;
+            if (total > 1 && n_deferred < DEFERRED_MAX) {
+                snprintf(deferred[n_deferred++], sizeof(deferred[0]), "%s", item->d_name);
+            }
         }
     }
     closedir(dir);
-    ESP_LOGI(TAG, "scan: %d modules, %d apps, %u ms", loaded, s_count,
-             (unsigned)((esp_timer_get_time() - t0) / 1000));
+    int64_t t1 = esp_timer_get_time();
+
+    for (int i = 0; i < n_deferred; i++) {
+        uint32_t total = 0;
+        register_apps(deferred[i], false, &total);
+    }
+    int64_t t2 = esp_timer_get_time();
+
+    ESP_LOGI(TAG, "scan: %d modules, %d apps, %u ms (modules %u ms, extra apps %u ms; "
+                  "open %u, of it symbols %u for %u lookups; lock wait %u, register %u)",
+             loaded, s_count, (unsigned)((t2 - t0) / 1000),
+             (unsigned)((t1 - t0) / 1000), (unsigned)((t2 - t1) / 1000),
+             (unsigned)(s_scan_cost.open_us / 1000), (unsigned)(s_resolve_us / 1000),
+             (unsigned)s_resolve_calls, (unsigned)(s_scan_cost.lock_us / 1000),
+             (unsigned)(s_scan_cost.reg_us / 1000));
     return loaded;
 }

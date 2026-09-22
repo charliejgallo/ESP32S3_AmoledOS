@@ -9,6 +9,11 @@ extern "C" {
 #endif
 
 lv_obj_t *aos_launcher_create(lv_obj_t *parent, aos_launcher_style_t style);
+
+/* Closes the open folder, if there is one, and forgets it. Returns whether
+ * there was one: "back" in the launcher closes the folder before the
+ * launcher. */
+bool      aos_launcher_close_folder(bool animate);
 lv_obj_t *aos_watchface_create(lv_obj_t *parent);
 void      aos_watchface_refresh(void);
 

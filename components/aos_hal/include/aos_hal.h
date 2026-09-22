@@ -369,6 +369,11 @@ const char *aos_hal_path_lang(void);
  * one the app brought, or the firmware's own. */
 const char *aos_hal_path_icons(void);
 
+/* The launcher's order and folders, menu.txt (docs/MENU.md). On the card when
+ * there is one, SPIFFS otherwise: it goes with the apps it arranges. A full
+ * path to a file, not a directory. */
+const char *aos_hal_path_menu(void);
+
 bool aos_hal_sd_present(void);
 bool aos_hal_sd_usage(uint64_t *total_bytes, uint64_t *free_bytes);
 

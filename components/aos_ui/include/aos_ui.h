@@ -96,6 +96,10 @@ void aos_ui_request_language(const char *code);
  * LVGL objects). See docs/ICONS.md. */
 void aos_ui_request_icons(void);
 
+/* menu.txt was written (docs/MENU.md): read it again and rebuild the launcher
+ * on the next tick. Any task. */
+void aos_ui_request_menu(void);
+
 /* The rest of what the web portal asks for, deferred for the same reason: the
  * server runs in its own task and none of this may touch LVGL from there.
  * Each one is a note that aos_ui_tick() reads and applies with the lock held.

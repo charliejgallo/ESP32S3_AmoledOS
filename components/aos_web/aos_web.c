@@ -6,6 +6,7 @@
 #include "aos_i18n.h"   /* AOS_LANG_CODE_MAX */
 #include "aos_ui.h"     /* aos_ui_request_language and the rest of the notes */
 #include "aos_icon_ops.h" /* /api/icons: where each icon comes from, and its blob */
+#include "aos_menu.h"     /* /api/menu: the launcher's order and folders */
 #include "aos_watchface.h"
 #include "aos_log.h"
 #include "aos_apps.h"   /* aos_alarm_get / set */
@@ -2728,6 +2729,101 @@ static esp_err_t icons_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+/* GET /api/menu: menu.txt as it is, text/plain; an empty body when there is
+ * none (the launcher then shows every app in its usual order). The page puts
+ * that together with /api/apps and /api/icons. X-Menu-Path says where it
+ * lives, card or SPIFFS. */
+static esp_err_t menu_get_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/plain; charset=utf-8");
+    httpd_resp_set_hdr(req, "X-Menu-Path", aos_hal_path_menu());
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    FILE *f = fopen(aos_hal_path_menu(), "rb");
+    if (!f) {
+        return httpd_resp_send(req, "", 0);
+    }
+    char buf[512];
+    size_t n;
+    while ((n = fread(buf, 1, sizeof(buf), f)) > 0) {
+        if (httpd_resp_send_chunk(req, buf, (ssize_t)n) != ESP_OK) {
+            fclose(f);
+            return ESP_FAIL;
+        }
+    }
+    fclose(f);
+    return httpd_resp_send_chunk(req, NULL, 0);
+}
+
+/* POST /api/menu: the whole new menu.txt as the body. Checked with the same
+ * parser the launcher uses BEFORE anything is written, then written to a
+ * temporary file and renamed over the old one, so the launcher can never
+ * read half a menu. An empty body deletes the file: back to the usual order.
+ * The launcher is rebuilt on the UI's next tick. */
+static esp_err_t menu_post_handler(httpd_req_t *req)
+{
+    const char *path = aos_hal_path_menu();
+    httpd_resp_set_type(req, "application/json");
+
+    if (req->content_len <= 0) {
+        remove(path);
+        aos_ui_request_menu();
+        return httpd_resp_sendstr(req, "{\"ok\":true,\"borrado\":true}");
+    }
+    if (req->content_len > AOS_MENU_FILE_MAX) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "menu demasiado grande");
+        return ESP_FAIL;
+    }
+
+    /* Over 1 KB: PSRAM. Read whole, since it has to be validated before a
+     * byte of it reaches the card. */
+    char *body = malloc((size_t)req->content_len);
+    if (!body) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "sin memoria");
+        return ESP_FAIL;
+    }
+    int got = 0;
+    while (got < req->content_len) {
+        int r = httpd_req_recv(req, body + got, (size_t)(req->content_len - got));
+        if (r == HTTPD_SOCK_ERR_TIMEOUT) {
+            continue;
+        }
+        if (r <= 0) {
+            free(body);
+            return ESP_FAIL;
+        }
+        got += r;
+    }
+
+    char err[64];
+    if (!aos_menu_validate(body, (size_t)got, err, sizeof(err))) {
+        free(body);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, err);
+        return ESP_FAIL;
+    }
+
+    char tmp[96];
+    snprintf(tmp, sizeof(tmp), "%s.new", path);
+    FILE *f = fopen(tmp, "wb");
+    bool ok = f && fwrite(body, 1, (size_t)got, f) == (size_t)got;
+    if (f) {
+        ok = (fclose(f) == 0) && ok;
+    }
+    free(body);
+    /* FAT's rename does not replace: the old file goes first. */
+    if (ok) {
+        remove(path);
+        ok = rename(tmp, path) == 0;
+    }
+    if (!ok) {
+        remove(tmp);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "no se pudo escribir");
+        return ESP_FAIL;
+    }
+    ESP_LOGI(TAG, "menu saved: %s (%d bytes)", path, got);
+    aos_ui_request_menu();
+    return httpd_resp_sendstr(req, "{\"ok\":true}");
+}
+
 static esp_err_t iconos_page_handler(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "text/html; charset=utf-8");
@@ -2882,6 +2978,8 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/lua",         .method = HTTP_GET,  .handler = lua_page_handler },
         { .uri = "/iconos",      .method = HTTP_GET,  .handler = iconos_page_handler },
         { .uri = "/api/icons",   .method = HTTP_GET,  .handler = icons_handler },
+        { .uri = "/api/menu",    .method = HTTP_GET,  .handler = menu_get_handler },
+        { .uri = "/api/menu",    .method = HTTP_POST, .handler = menu_post_handler },
         { .uri = "/cotiz",       .method = HTTP_GET,  .handler = cotiz_page_handler },
         { .uri = "/api/cotiz",   .method = HTTP_GET,  .handler = cotiz_get_handler },
         { .uri = "/api/cotiz",   .method = HTTP_POST, .handler = cotiz_set_handler },

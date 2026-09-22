@@ -965,6 +965,11 @@ const char *aos_hal_path_icons(void)
     return s_sd_mounted ? BSP_SD_MOUNT_POINT "/icons" : BSP_SPIFFS_MOUNT_POINT "/icons";
 }
 
+const char *aos_hal_path_menu(void)
+{
+    return s_sd_mounted ? BSP_SD_MOUNT_POINT "/menu.txt" : BSP_SPIFFS_MOUNT_POINT "/menu.txt";
+}
+
 /* Network surveys DO go to the card and not to SPIFFS: they are files that
  * grow, that pile up and that you want to be able to take away with you. */
 const char *aos_hal_path_scans(void)
