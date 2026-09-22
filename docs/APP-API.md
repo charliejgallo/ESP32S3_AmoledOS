@@ -188,6 +188,14 @@ flags in the app's own memory, one writer each; and `stop()` is called from
 turn. [VIDEO.md](VIDEO.md) has the ring of frames the Video app builds on it
 and the numbers that made it necessary.
 
+Since v0.4.10 `aos_hal_worker_start_on(name, fn, arg, stack, core, prio)`
+starts it on a chosen core (and priority, 1..10; `-1` keeps the defaults).
+LVGL has been pinned to core 1 since v0.4.4, so a worker there at priority 5
+keeps LVGL's task off the CPU while it works: an app that renders in the
+worker and pushes the frames from an LVGL timer gets the two in series.
+Turbo runs its worker on core 0 and went from 16 to 19 fps on that alone.
+Same rules: no LVGL, no SPI.
+
 ## Flags
 
 | Flag | Effect |

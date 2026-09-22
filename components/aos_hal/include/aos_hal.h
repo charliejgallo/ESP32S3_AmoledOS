@@ -1202,6 +1202,20 @@ typedef void (*aos_worker_fn_t)(void *arg);
 bool aos_hal_worker_start(const char *name, aos_worker_fn_t fn, void *arg,
                           uint32_t stack_bytes);
 
+/* The same, on a chosen core and priority (v0.4.10). core -1 and prio -1
+ * keep the defaults above (core 1, priority 5).
+ *
+ * Why: since v0.4.4 LVGL is pinned to core 1 too (HANDOFF-SPI-WIFI-NUCLEOS).
+ * A worker there at priority 5 keeps LVGL's task off the CPU while it works,
+ * so an app that renders in the worker and pushes the frame from an LVGL
+ * timer gets the two in series. Turbo measured it: 40 ms of render and a
+ * 16.5 ms blit made a frame every 62 ms (16 fps). On core 0, beside WiFi and
+ * BT, which are idle most of the time, the render overlaps the blit.
+ * The worker must still not touch LVGL nor the SPI: that is what keeps it
+ * clear of esp-idf#18527. */
+bool aos_hal_worker_start_on(const char *name, aos_worker_fn_t fn, void *arg,
+                             uint32_t stack_bytes, int core, int prio);
+
 /* Asks the function to return and waits for it. Safe to call with no worker. */
 void aos_hal_worker_stop(void);
 

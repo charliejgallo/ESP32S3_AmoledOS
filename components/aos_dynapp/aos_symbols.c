@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 120 funciones de libc/libm agregadas a mano.
- * Total: 2765 simbolos.
+ * Total: 2767 simbolos.
  */
 
 #include <stddef.h>
@@ -200,6 +200,7 @@ extern int aos_hal_link_unpair;
 extern int aos_hal_link_unpark;
 extern int aos_hal_lock;
 extern int aos_hal_log;
+extern int aos_hal_lvgl_core;
 extern int aos_hal_mdns_add_netif;
 extern int aos_hal_mdns_remove_netif;
 extern int aos_hal_media_command;
@@ -355,6 +356,7 @@ extern int aos_hal_worker_running;
 extern int aos_hal_worker_should_stop;
 extern int aos_hal_worker_sleep;
 extern int aos_hal_worker_start;
+extern int aos_hal_worker_start_on;
 extern int aos_hal_worker_stop;
 extern int aos_hand_create;
 extern int aos_hand_set_angle;
@@ -2968,6 +2970,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_link_unpark),
     ESP_ELFSYM_EXPORT(aos_hal_lock),
     ESP_ELFSYM_EXPORT(aos_hal_log),
+    ESP_ELFSYM_EXPORT(aos_hal_lvgl_core),
     ESP_ELFSYM_EXPORT(aos_hal_mdns_add_netif),
     ESP_ELFSYM_EXPORT(aos_hal_mdns_remove_netif),
     ESP_ELFSYM_EXPORT(aos_hal_media_command),
@@ -3123,6 +3126,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_worker_should_stop),
     ESP_ELFSYM_EXPORT(aos_hal_worker_sleep),
     ESP_ELFSYM_EXPORT(aos_hal_worker_start),
+    ESP_ELFSYM_EXPORT(aos_hal_worker_start_on),
     ESP_ELFSYM_EXPORT(aos_hal_worker_stop),
     ESP_ELFSYM_EXPORT(aos_hand_create),
     ESP_ELFSYM_EXPORT(aos_hand_set_angle),

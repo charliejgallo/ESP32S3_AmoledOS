@@ -2144,6 +2144,14 @@ bool aos_hal_worker_start(const char *name, aos_worker_fn_t fn, void *arg,
     return true;
 }
 
+bool aos_hal_worker_start_on(const char *name, aos_worker_fn_t fn, void *arg,
+                             uint32_t stack_bytes, int core, int prio)
+{
+    (void)core;
+    (void)prio;
+    return aos_hal_worker_start(name, fn, arg, stack_bytes);
+}
+
 void aos_hal_worker_stop(void)
 {
     if (!s_worker_alive) {

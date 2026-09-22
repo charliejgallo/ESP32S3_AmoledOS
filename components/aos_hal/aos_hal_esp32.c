@@ -4540,6 +4540,19 @@ static void worker_task(void *arg)
 bool aos_hal_worker_start(const char *name, aos_worker_fn_t fn, void *arg,
                           uint32_t stack_bytes)
 {
+    return aos_hal_worker_start_on(name, fn, arg, stack_bytes, -1, -1);
+}
+
+bool aos_hal_worker_start_on(const char *name, aos_worker_fn_t fn, void *arg,
+                             uint32_t stack_bytes, int core, int prio)
+{
+    if (core < 0 || core > 1) {
+        core = AOS_WORKER_CORE;
+    }
+    if (prio < 1 || prio > 10) {
+        /* above 10 it would sit over the audio and the radio's own tasks */
+        prio = AOS_WORKER_PRIO;
+    }
     if (!fn || s_worker_task) {
         ESP_LOGW(TAG, "worker: %s", fn ? "one is already running" : "no function");
         return false;
@@ -4552,15 +4565,14 @@ bool aos_hal_worker_start(const char *name, aos_worker_fn_t fn, void *arg,
     s_worker_fn   = fn;
     s_worker_arg  = arg;
     if (xTaskCreatePinnedToCore(worker_task, name ? name : "aos_worker", stack_bytes,
-                                NULL, AOS_WORKER_PRIO, &s_worker_task,
-                                AOS_WORKER_CORE) != pdPASS) {
+                                NULL, (UBaseType_t)prio, &s_worker_task,
+                                core) != pdPASS) {
         s_worker_task = NULL;
         ESP_LOGE(TAG, "worker: no memory for a %lu B stack", (unsigned long)stack_bytes);
         return false;
     }
     ESP_LOGI(TAG, "worker %s started: %lu B stack, core %d, prio %d",
-             name ? name : "aos_worker", (unsigned long)stack_bytes,
-             AOS_WORKER_CORE, AOS_WORKER_PRIO);
+             name ? name : "aos_worker", (unsigned long)stack_bytes, core, prio);
     return true;
 }
 
