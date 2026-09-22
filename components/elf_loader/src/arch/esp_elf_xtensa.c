@@ -98,10 +98,18 @@ int esp_elf_arch_relocate(esp_elf_t *elf, const elf32_rela_t *rela,
         break;
     case R_XTENSA_GLOB_DAT:
     case R_XTENSA_JMP_SLOT:
+        /* AmoledOS 2026-09-21: the addend was dropped here. GCC folds an
+         * offset into the GOT entry when it can -"gf_clubs + 4" for the
+         * field at offset 4 of a global table, "table + 24" for the end of a
+         * loop over it- and the entry came out pointing at the table's start:
+         * every field read its neighbour, and only in the builds where the
+         * compiler chose to fold (Golf's club table: carries of 24,848
+         * yards). apps/globtest reproduces it. The addend goes BEFORE the
+         * remap: it is an offset in the symbol's own address space. */
 #ifdef CONFIG_ELF_LOADER_CACHE_OFFSET
-        *where = elf_remap_text(elf, addr);
+        *where = elf_remap_text(elf, addr + rela->addend);
 #else
-        *where = addr;
+        *where = addr + rela->addend;
 #endif
         break;
     default:
