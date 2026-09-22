@@ -34,6 +34,7 @@
       { url: "/ajustes",  t: "nav_ajustes"  },
       { url: "/alarmas",  t: "nav_alarmas"  },
       { url: "/pantalla", t: "nav_pantalla" },
+      { url: "/menu",     t: "nav_menu"     },
       { url: "/archivos", t: "nav_archivos" },
       { url: "/registro", t: "nav_registro" },
       { url: "/usb",      t: "nav_usb"      }
@@ -59,7 +60,7 @@
      archivo: son los mismos textos en todas. */
   var NAV = {
     es: { grp_reloj: "Reloj", grp_red: "Red", grp_apps: "Apps",
-          nav_inicio: "Inicio", nav_ajustes: "Ajustes", nav_alarmas: "Alarmas", nav_pantalla: "Pantalla",
+          nav_inicio: "Inicio", nav_ajustes: "Ajustes", nav_alarmas: "Alarmas", nav_pantalla: "Pantalla", nav_menu: "Menú",
           nav_archivos: "Archivos", nav_registro: "Registro", nav_usb: "USB",
           nav_wifi: "Conectar", nav_ap: "Punto de acceso", nav_red: "Escaneos",
           nav_clima: "Clima", nav_cotiz: "Cotizaciones",
@@ -68,7 +69,7 @@
           viv_ram: "RAM", viv_activa: "pantalla activa", viv_aod: "atenuada",
           viv_off: "pantalla apagada", viv_ap: "modo AP", viv_prueba: "a prueba" },
     en: { grp_reloj: "Watch", grp_red: "Network", grp_apps: "Apps",
-          nav_inicio: "Home", nav_ajustes: "Settings", nav_alarmas: "Alarms", nav_pantalla: "Screen",
+          nav_inicio: "Home", nav_ajustes: "Settings", nav_alarmas: "Alarms", nav_pantalla: "Screen", nav_menu: "Menu",
           nav_archivos: "Files", nav_registro: "Log", nav_usb: "USB",
           nav_wifi: "Connect", nav_ap: "Access point", nav_red: "Scans",
           nav_clima: "Weather", nav_cotiz: "Exchange rates",
@@ -77,7 +78,7 @@
           viv_ram: "RAM", viv_activa: "screen on", viv_aod: "dimmed",
           viv_off: "screen off", viv_ap: "AP mode", viv_prueba: "on trial" },
     de: { grp_reloj: "Uhr", grp_red: "Netz", grp_apps: "Apps",
-          nav_inicio: "Start", nav_ajustes: "Einstellungen", nav_alarmas: "Wecker", nav_pantalla: "Bildschirm",
+          nav_inicio: "Start", nav_ajustes: "Einstellungen", nav_alarmas: "Wecker", nav_pantalla: "Bildschirm", nav_menu: "Menü",
           nav_archivos: "Dateien", nav_registro: "Protokoll", nav_usb: "USB",
           nav_wifi: "Verbinden", nav_ap: "Zugangspunkt", nav_red: "Scans",
           nav_clima: "Wetter", nav_cotiz: "Wechselkurse",

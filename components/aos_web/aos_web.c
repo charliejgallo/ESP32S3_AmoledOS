@@ -63,6 +63,12 @@ extern const uint8_t ap_html_end[]       asm("_binary_ap_html_end");
 extern const uint8_t aos_css_start[]     asm("_binary_aos_css_start");
 extern const uint8_t aos_css_end[]       asm("_binary_aos_css_end");
 extern const uint8_t aos_js_start[]      asm("_binary_aos_js_start");
+extern const uint8_t menu_html_start[]   asm("_binary_menu_html_start");
+extern const uint8_t menu_html_end[]     asm("_binary_menu_html_end");
+extern const uint8_t aic_js_start[]      asm("_binary_aic_js_start");
+extern const uint8_t aic_js_end[]        asm("_binary_aic_js_end");
+extern const uint8_t glifos_js_start[]   asm("_binary_glifos_js_start");
+extern const uint8_t glifos_js_end[]     asm("_binary_glifos_js_end");
 extern const uint8_t aos_js_end[]        asm("_binary_aos_js_end");
 extern const uint8_t inicio_html_start[]   asm("_binary_inicio_html_start");
 extern const uint8_t inicio_html_end[]     asm("_binary_inicio_html_end");
@@ -1053,6 +1059,25 @@ static esp_err_t js_handler(httpd_req_t *req)
 {
     return estatico(req, "application/javascript; charset=utf-8",
                     aos_js_start, aos_js_end);
+}
+
+/* /aic.js: the AIC interpreter both /iconos and /menu draw app icons with.
+ * /glifos.js: the folder glyph catalogue, generated with the firmware's font
+ * by tools/gen_folder_glyphs.py. Both cached like aos.js. */
+static esp_err_t aic_js_handler(httpd_req_t *req)
+{
+    return estatico(req, "application/javascript; charset=utf-8", aic_js_start, aic_js_end);
+}
+
+static esp_err_t glifos_js_handler(httpd_req_t *req)
+{
+    return estatico(req, "application/javascript; charset=utf-8", glifos_js_start, glifos_js_end);
+}
+
+static esp_err_t menu_page_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    return httpd_resp_send(req, (const char *)menu_html_start, menu_html_end - menu_html_start - 1);
 }
 
 static esp_err_t usb_page_handler(httpd_req_t *req)
@@ -2966,6 +2991,9 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/ap/estado", .method = HTTP_POST, .handler = ap_estado_handler },
         { .uri = "/aos.css",     .method = HTTP_GET,  .handler = css_handler },
         { .uri = "/aos.js",      .method = HTTP_GET,  .handler = js_handler },
+        { .uri = "/aic.js",      .method = HTTP_GET,  .handler = aic_js_handler },
+        { .uri = "/glifos.js",   .method = HTTP_GET,  .handler = glifos_js_handler },
+        { .uri = "/menu",        .method = HTTP_GET,  .handler = menu_page_handler },
         { .uri = "/red",         .method = HTTP_GET,  .handler = red_page_handler },
         { .uri = "/api/lang",    .method = HTTP_GET,  .handler = lang_get_handler },
         { .uri = "/api/lang",    .method = HTTP_POST, .handler = lang_set_handler },

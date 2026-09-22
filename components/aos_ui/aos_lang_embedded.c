@@ -24,6 +24,7 @@ static const char blob_en__sistema_lang[] =
     "%u pasos    %d%%\t%u steps    %d%%\n"
     "Anillos\tRings\n"
     "Español\tSpanish\n"
+    "app\tapp\n"
     "y %u mas\tand %u more\n"
     "Rechazar\tDecline\n"
     "Aceptar\tAccept\n"
@@ -2286,6 +2287,7 @@ static const char blob_de__sistema_lang[] =
     "%u pasos    %d%%\t%u Schritte    %d%%\n"
     "Anillos\tRinge\n"
     "Español\tSpanisch\n"
+    "app\tApp\n"
     "y %u mas\tund %u weitere\n"
     "Rechazar\tAblehnen\n"
     "Aceptar\tAnnehmen\n"
@@ -4538,7 +4540,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 522, 33, files_en, 34 },
-    { "de", "Deutsch", 522, 33, files_de, 34 },
+    { "en", "English", 523, 33, files_en, 34 },
+    { "de", "Deutsch", 523, 33, files_de, 34 },
 };
 const int aos_lang_pack_count = 2;
