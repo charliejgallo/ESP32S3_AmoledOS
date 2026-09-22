@@ -1,0 +1,973 @@
+{
+ "_about": {
+  "camera": "pinhole at (0,0,2) looking +Y, no pitch; the prop's base-centre at (0,40,0); ppm = pixels per metre at the base plane Y=40 (focal_px = 40*ppm)",
+  "anchor": "pixel (x right, y down, pixel-centre convention) of the base-centre ground point",
+  "side": "modelled for the RIGHT side of the road (road towards -X); mirror for the left",
+  "shadow": "L 0..255 = how much the prop darkens the ground; same focal, own size, shadow_anchor = the same ground point in the shadow image",
+  "alpha": "straight alpha; transparent pixels carry the nearest edge colour",
+  "backdrops": "bg_<stage>.png 1024x160, 360 deg equirectangular, horizon = bottom row, square angular pixels (2.844 px/deg), column 512 looks along +Y, +X at 768"
+ },
+ "props": {
+  "checkpoint": {
+   "stage": "common",
+   "file": "checkpoint.png",
+   "size": [
+    486,
+    256
+   ],
+   "ppm": 29.8436,
+   "anchor": [
+    243.0,
+    252.75
+   ],
+   "width_m": 15.8,
+   "height_m": 8.4,
+   "depth_m": 1.8,
+   "light": "day",
+   "shadow_file": "checkpoint_shadow.png",
+   "shadow_size": [
+    512,
+    14
+   ],
+   "shadow_anchor": [
+    221.74,
+    9.26
+   ],
+   "render_s": 17.3
+  },
+  "finish": {
+   "stage": "common",
+   "file": "finish.png",
+   "size": [
+    486,
+    256
+   ],
+   "ppm": 29.8436,
+   "anchor": [
+    243.0,
+    252.75
+   ],
+   "width_m": 15.8,
+   "height_m": 8.4,
+   "depth_m": 1.8,
+   "light": "day",
+   "shadow_file": "finish_shadow.png",
+   "shadow_size": [
+    512,
+    14
+   ],
+   "shadow_anchor": [
+    221.74,
+    9.26
+   ],
+   "render_s": 13.5
+  },
+  "cone": {
+   "stage": "common",
+   "file": "cone.png",
+   "size": [
+    38,
+    64
+   ],
+   "ppm": 80.0149,
+   "anchor": [
+    19.0,
+    61.24
+   ],
+   "width_m": 0.42,
+   "height_m": 0.74,
+   "depth_m": 0.42,
+   "light": "day",
+   "shadow_file": "cone_shadow.png",
+   "shadow_size": [
+    54,
+    10
+   ],
+   "shadow_anchor": [
+    20.51,
+    5.32
+   ],
+   "render_s": 1.6
+  },
+  "sign_curve_l": {
+   "stage": "common",
+   "file": "sign_curve_l.png",
+   "size": [
+    98,
+    128
+   ],
+   "ppm": 55.403,
+   "anchor": [
+    49.0,
+    126.11
+   ],
+   "width_m": 1.68,
+   "height_m": 2.24,
+   "depth_m": 0.17,
+   "light": "day",
+   "shadow_file": "sign_curve_l_shadow.png",
+   "shadow_size": [
+    142,
+    10
+   ],
+   "shadow_anchor": [
+    33.38,
+    6.58
+   ],
+   "render_s": 3.1
+  },
+  "barrier": {
+   "stage": "common",
+   "file": "barrier.png",
+   "size": [
+    116,
+    64
+   ],
+   "ppm": 67.849,
+   "anchor": [
+    57.13,
+    58.63
+   ],
+   "width_m": 1.62,
+   "height_m": 0.81,
+   "depth_m": 1.97,
+   "light": "day",
+   "yaw_deg": 35,
+   "note": "runs along the road (Y), rendered yawed 35 deg to show its road side",
+   "shadow_file": "barrier_shadow.png",
+   "shadow_size": [
+    132,
+    14
+   ],
+   "shadow_anchor": [
+    57.88,
+    7.35
+   ],
+   "render_s": 3.2
+  },
+  "overpass": {
+   "stage": "city",
+   "file": "overpass.png",
+   "size": [
+    512,
+    138
+   ],
+   "ppm": 14.4837,
+   "anchor": [
+    256.0,
+    135.72
+   ],
+   "width_m": 35.6,
+   "height_m": 9.2,
+   "depth_m": 12.4,
+   "light": "day",
+   "note": "anchor = road centre under the front (camera-side) face; deck 12 m deep, underside 6 m",
+   "shadow_file": "overpass_shadow.png",
+   "shadow_size": [
+    512,
+    16
+   ],
+   "shadow_anchor": [
+    242.04,
+    12.3
+   ],
+   "render_s": 17.5
+  },
+  "lamp": {
+   "stage": "city",
+   "file": "lamp.png",
+   "size": [
+    108,
+    256
+   ],
+   "ppm": 20.6036,
+   "anchor": [
+    99.37,
+    253.72
+   ],
+   "width_m": 5.01,
+   "height_m": 12.21,
+   "depth_m": 0.74,
+   "light": "day",
+   "note": "arm reaches -X (towards the road)",
+   "shadow_file": "lamp_shadow.png",
+   "shadow_size": [
+    116,
+    12
+   ],
+   "shadow_anchor": [
+    9.84,
+    8.65
+   ],
+   "render_s": 2.3
+  },
+  "tower_brick": {
+   "stage": "city",
+   "file": "tower_brick.png",
+   "size": [
+    166,
+    384
+   ],
+   "ppm": 7.3115,
+   "anchor": [
+    76.59,
+    377.13
+   ],
+   "width_m": 21.75,
+   "height_m": 45.2,
+   "depth_m": 20.78,
+   "light": "day",
+   "yaw_deg": 25,
+   "render_s": 12.1
+  },
+  "tower_glass": {
+   "stage": "city",
+   "file": "tower_glass.png",
+   "size": [
+    116,
+    384
+   ],
+   "ppm": 4.4308,
+   "anchor": [
+    50.18,
+    378.18
+   ],
+   "width_m": 24.35,
+   "height_m": 84.45,
+   "depth_m": 24.35,
+   "light": "day",
+   "yaw_deg": 20,
+   "render_s": 14.0
+  },
+  "tree_round": {
+   "stage": "city",
+   "file": "tree_round.png",
+   "size": [
+    188,
+    192
+   ],
+   "ppm": 21.5614,
+   "anchor": [
+    92.0,
+    189.32
+   ],
+   "width_m": 8.4,
+   "height_m": 8.76,
+   "depth_m": 8.37,
+   "light": "day",
+   "shadow_file": "tree_round_shadow.png",
+   "shadow_size": [
+    180,
+    16
+   ],
+   "shadow_anchor": [
+    34.56,
+    10.24
+   ],
+   "render_s": 28.3
+  },
+  "billboard": {
+   "stage": "city",
+   "file": "billboard.png",
+   "size": [
+    158,
+    160
+   ],
+   "ppm": 15.1255,
+   "anchor": [
+    81.07,
+    157.3
+   ],
+   "width_m": 10.01,
+   "height_m": 9.9,
+   "depth_m": 4.91,
+   "light": "day",
+   "yaw_deg": 20,
+   "shadow_file": "billboard_shadow.png",
+   "shadow_size": [
+    182,
+    12
+   ],
+   "shadow_anchor": [
+    51.26,
+    7.89
+   ],
+   "render_s": 6.9
+  },
+  "sign_gantry": {
+   "stage": "city",
+   "file": "sign_gantry.png",
+   "size": [
+    446,
+    192
+   ],
+   "ppm": 22.2636,
+   "anchor": [
+    223.0,
+    189.55
+   ],
+   "width_m": 19.6,
+   "height_m": 8.4,
+   "depth_m": 1.6,
+   "light": "day",
+   "note": "spans the road, anchor = road centre",
+   "shadow_file": "sign_gantry_shadow.png",
+   "shadow_size": [
+    502,
+    12
+   ],
+   "shadow_anchor": [
+    223.78,
+    8.24
+   ],
+   "render_s": 15.6
+  },
+  "palm": {
+   "stage": "coast",
+   "file": "palm.png",
+   "size": [
+    216,
+    256
+   ],
+   "ppm": 25.8955,
+   "anchor": [
+    141.76,
+    253.31
+   ],
+   "width_m": 8.33,
+   "height_m": 9.54,
+   "depth_m": 7.45,
+   "light": "day",
+   "note": "leans towards -X (the road)",
+   "shadow_file": "palm_shadow.png",
+   "shadow_size": [
+    216,
+    16
+   ],
+   "shadow_anchor": [
+    79.94,
+    11.25
+   ],
+   "render_s": 10.5
+  },
+  "palm_tall": {
+   "stage": "coast",
+   "file": "palm_tall.png",
+   "size": [
+    190,
+    384
+   ],
+   "ppm": 25.4395,
+   "anchor": [
+    157.02,
+    381.41
+   ],
+   "width_m": 7.37,
+   "height_m": 15.0,
+   "depth_m": 7.41,
+   "light": "day",
+   "note": "leans towards -X (the road)",
+   "shadow_file": "palm_tall_shadow.png",
+   "shadow_size": [
+    186,
+    18
+   ],
+   "shadow_anchor": [
+    27.83,
+    13.78
+   ],
+   "render_s": 10.4
+  },
+  "rock_cliff": {
+   "stage": "coast",
+   "file": "rock_cliff.png",
+   "size": [
+    332,
+    256
+   ],
+   "ppm": 14.2707,
+   "anchor": [
+    176.29,
+    244.74
+   ],
+   "width_m": 21.27,
+   "height_m": 15.62,
+   "depth_m": 14.23,
+   "light": "day",
+   "render_s": 16.9
+  },
+  "lighthouse": {
+   "stage": "coast",
+   "file": "lighthouse.png",
+   "size": [
+    172,
+    320
+   ],
+   "ppm": 14.9057,
+   "anchor": [
+    85.63,
+    311.9
+   ],
+   "width_m": 11.31,
+   "height_m": 20.77,
+   "depth_m": 8.78,
+   "light": "day",
+   "render_s": 6.1
+  },
+  "beach_hut": {
+   "stage": "coast",
+   "file": "beach_hut.png",
+   "size": [
+    122,
+    128
+   ],
+   "ppm": 25.8865,
+   "anchor": [
+    57.52,
+    121.91
+   ],
+   "width_m": 4.51,
+   "height_m": 4.54,
+   "depth_m": 5.0,
+   "light": "day",
+   "yaw_deg": 25,
+   "shadow_file": "beach_hut_shadow.png",
+   "shadow_size": [
+    150,
+    16
+   ],
+   "shadow_anchor": [
+    48.27,
+    8.2
+   ],
+   "render_s": 4.2
+  },
+  "guardrail": {
+   "stage": "coast",
+   "file": "guardrail.png",
+   "size": [
+    186,
+    66
+   ],
+   "ppm": 70.006,
+   "anchor": [
+    85.66,
+    57.19
+   ],
+   "width_m": 2.57,
+   "height_m": 0.72,
+   "depth_m": 3.46,
+   "light": "day",
+   "yaw_deg": 35,
+   "note": "runs along the road (Y), rendered yawed 35 deg to show its road side",
+   "shadow_file": "guardrail_shadow.png",
+   "shadow_size": [
+    202,
+    20
+   ],
+   "shadow_anchor": [
+    76.69,
+    10.62
+   ],
+   "render_s": 3.7
+  },
+  "saguaro": {
+   "stage": "desert",
+   "file": "saguaro.png",
+   "size": [
+    116,
+    224
+   ],
+   "ppm": 31.9504,
+   "anchor": [
+    59.64,
+    221.2
+   ],
+   "width_m": 3.49,
+   "height_m": 6.86,
+   "depth_m": 0.97,
+   "light": "day",
+   "shadow_file": "saguaro_shadow.png",
+   "shadow_size": [
+    150,
+    14
+   ],
+   "shadow_anchor": [
+    19.16,
+    9.28
+   ],
+   "render_s": 3.8
+  },
+  "saguaro_small": {
+   "stage": "desert",
+   "file": "saguaro_small.png",
+   "size": [
+    54,
+    130
+   ],
+   "ppm": 35.1242,
+   "anchor": [
+    13.15,
+    126.44
+   ],
+   "width_m": 1.4,
+   "height_m": 3.52,
+   "depth_m": 0.6,
+   "light": "day",
+   "shadow_file": "saguaro_small_shadow.png",
+   "shadow_size": [
+    96,
+    10
+   ],
+   "shadow_anchor": [
+    14.05,
+    6.33
+   ],
+   "render_s": 1.4
+  },
+  "butte": {
+   "stage": "desert",
+   "file": "butte.png",
+   "size": [
+    512,
+    122
+   ],
+   "ppm": 2.0637,
+   "anchor": [
+    256.0,
+    114.12
+   ],
+   "width_m": 160.0,
+   "height_m": 60.2,
+   "depth_m": 76.0,
+   "light": "day",
+   "note": "seen far: place it hundreds of metres away",
+   "render_s": 5.0
+  },
+  "rock_red": {
+   "stage": "desert",
+   "file": "rock_red.png",
+   "size": [
+    150,
+    96
+   ],
+   "ppm": 24.1763,
+   "anchor": [
+    67.78,
+    80.62
+   ],
+   "width_m": 5.82,
+   "height_m": 3.23,
+   "depth_m": 4.35,
+   "light": "day",
+   "shadow_file": "rock_red_shadow.png",
+   "shadow_size": [
+    160,
+    14
+   ],
+   "shadow_anchor": [
+    69.72,
+    6.9
+   ],
+   "render_s": 3.3
+  },
+  "dead_tree": {
+   "stage": "desert",
+   "file": "dead_tree.png",
+   "size": [
+    112,
+    192
+   ],
+   "ppm": 34.5561,
+   "anchor": [
+    45.43,
+    188.28
+   ],
+   "width_m": 3.17,
+   "height_m": 5.54,
+   "depth_m": 3.49,
+   "light": "day",
+   "shadow_file": "dead_tree_shadow.png",
+   "shadow_size": [
+    168,
+    16
+   ],
+   "shadow_anchor": [
+    20.1,
+    11.26
+   ],
+   "render_s": 2.3
+  },
+  "diner_sign": {
+   "stage": "desert",
+   "file": "diner_sign.png",
+   "size": [
+    138,
+    256
+   ],
+   "ppm": 17.8161,
+   "anchor": [
+    77.92,
+    254.02
+   ],
+   "width_m": 7.4,
+   "height_m": 14.1,
+   "depth_m": 0.96,
+   "light": "day",
+   "note": "arrow points -X (the road)",
+   "shadow_file": "diner_sign_shadow.png",
+   "shadow_size": [
+    150,
+    12
+   ],
+   "shadow_anchor": [
+    8.19,
+    8.75
+   ],
+   "render_s": 3.9
+  },
+  "pine_snow": {
+   "stage": "mountain",
+   "file": "pine_snow.png",
+   "size": [
+    150,
+    256
+   ],
+   "ppm": 21.6298,
+   "anchor": [
+    73.74,
+    242.41
+   ],
+   "width_m": 6.73,
+   "height_m": 11.12,
+   "depth_m": 6.95,
+   "light": "night",
+   "shadow_file": "pine_snow_shadow.png",
+   "shadow_size": [
+    196,
+    16
+   ],
+   "shadow_anchor": [
+    67.04,
+    9.41
+   ],
+   "render_s": 12.8
+  },
+  "pine": {
+   "stage": "mountain",
+   "file": "pine.png",
+   "size": [
+    134,
+    288
+   ],
+   "ppm": 22.1728,
+   "anchor": [
+    63.36,
+    282.39
+   ],
+   "width_m": 5.73,
+   "height_m": 12.64,
+   "depth_m": 6.07,
+   "light": "night",
+   "shadow_file": "pine_shadow.png",
+   "shadow_size": [
+    208,
+    18
+   ],
+   "shadow_anchor": [
+    58.64,
+    11.18
+   ],
+   "render_s": 10.5
+  },
+  "rock_snow": {
+   "stage": "mountain",
+   "file": "rock_snow.png",
+   "size": [
+    284,
+    128
+   ],
+   "ppm": 31.561,
+   "anchor": [
+    110.25,
+    106.87
+   ],
+   "width_m": 8.63,
+   "height_m": 3.33,
+   "depth_m": 6.23,
+   "light": "night",
+   "shadow_file": "rock_snow_shadow.png",
+   "shadow_size": [
+    290,
+    18
+   ],
+   "shadow_anchor": [
+    114.72,
+    8.56
+   ],
+   "render_s": 5.8
+  },
+  "snowbank": {
+   "stage": "mountain",
+   "file": "snowbank.png",
+   "size": [
+    98,
+    64
+   ],
+   "ppm": 29.7199,
+   "anchor": [
+    53.46,
+    55.41
+   ],
+   "width_m": 3.16,
+   "height_m": 1.8,
+   "depth_m": 4.36,
+   "light": "night",
+   "yaw_deg": 35,
+   "note": "runs along the road (Y), rendered yawed 35 deg",
+   "render_s": 1.2
+  },
+  "cabin": {
+   "stage": "mountain",
+   "file": "cabin.png",
+   "size": [
+    306,
+    192
+   ],
+   "ppm": 24.8269,
+   "anchor": [
+    142.42,
+    166.76
+   ],
+   "width_m": 11.01,
+   "height_m": 6.2,
+   "depth_m": 10.19,
+   "light": "night",
+   "yaw_deg": 30,
+   "note": "windows lit warm",
+   "render_s": 8.5
+  },
+  "lamp_night": {
+   "stage": "mountain",
+   "file": "lamp_night.png",
+   "size": [
+    240,
+    256
+   ],
+   "ppm": 16.636,
+   "anchor": [
+    182.38,
+    227.25
+   ],
+   "width_m": 5.01,
+   "height_m": 12.21,
+   "depth_m": 0.74,
+   "light": "night",
+   "note": "lamp ON: head glow and the warm light pool on the ground are in the colour+alpha",
+   "render_s": 1.2
+  },
+  "asteroid_a": {
+   "stage": "space",
+   "file": "asteroid_a.png",
+   "size": [
+    194,
+    192
+   ],
+   "ppm": 22.2141,
+   "anchor": [
+    128.13,
+    191.75
+   ],
+   "width_m": 8.73,
+   "height_m": 8.44,
+   "depth_m": 8.27,
+   "light": "space",
+   "note": "rests on its lowest point at the anchor; raise it to make it float",
+   "render_s": 6.1
+  },
+  "asteroid_b": {
+   "stage": "space",
+   "file": "asteroid_b.png",
+   "size": [
+    152,
+    128
+   ],
+   "ppm": 11.9479,
+   "anchor": [
+    75.79,
+    109.74
+   ],
+   "width_m": 9.32,
+   "height_m": 7.42,
+   "depth_m": 4.57,
+   "light": "space",
+   "render_s": 1.7
+  },
+  "crystal": {
+   "stage": "space",
+   "file": "crystal.png",
+   "size": [
+    220,
+    288
+   ],
+   "ppm": 19.0956,
+   "anchor": [
+    112.98,
+    258.59
+   ],
+   "width_m": 8.76,
+   "height_m": 12.29,
+   "depth_m": 6.57,
+   "light": "space",
+   "render_s": 4.7
+  },
+  "ring_gate": {
+   "stage": "space",
+   "file": "ring_gate.png",
+   "size": [
+    338,
+    288
+   ],
+   "ppm": 16.8283,
+   "anchor": [
+    169.0,
+    263.53
+   ],
+   "width_m": 17.2,
+   "height_m": 14.2,
+   "depth_m": 1.67,
+   "light": "space",
+   "note": "the road passes through it; anchor = road centre; the part below the road is cut off",
+   "render_s": 2.7
+  },
+  "satellite": {
+   "stage": "space",
+   "file": "satellite.png",
+   "size": [
+    298,
+    128
+   ],
+   "ppm": 18.3414,
+   "anchor": [
+    139.9,
+    113.64
+   ],
+   "width_m": 14.59,
+   "height_m": 5.4,
+   "depth_m": 5.4,
+   "light": "space",
+   "yaw_deg": -20,
+   "note": "floats; its lowest point is at the anchor",
+   "render_s": 3.1
+  },
+  "beacon": {
+   "stage": "space",
+   "file": "beacon.png",
+   "size": [
+    76,
+    162
+   ],
+   "ppm": 15.8836,
+   "anchor": [
+    38.0,
+    136.19
+   ],
+   "width_m": 1.73,
+   "height_m": 7.0,
+   "depth_m": 2.0,
+   "light": "space",
+   "render_s": 0.8
+  },
+  "beacon_off": {
+   "stage": "space",
+   "file": "beacon_off.png",
+   "size": [
+    76,
+    162
+   ],
+   "ppm": 15.8836,
+   "anchor": [
+    38.0,
+    136.19
+   ],
+   "width_m": 1.73,
+   "height_m": 7.0,
+   "depth_m": 2.0,
+   "light": "space",
+   "note": "second frame of the pulsing beacon (light dim); same size and anchor as beacon",
+   "render_s": 0.8
+  }
+ },
+ "backdrops": {
+  "city": {
+   "file": "bg_city.png",
+   "size": [
+    1024,
+    160
+   ],
+   "lat_deg": [
+    0.0,
+    56.25
+   ],
+   "px_per_deg": 2.8444,
+   "centre_column_looks": "+Y",
+   "render_s": 3.3
+  },
+  "coast": {
+   "file": "bg_coast.png",
+   "size": [
+    1024,
+    160
+   ],
+   "lat_deg": [
+    0.0,
+    56.25
+   ],
+   "px_per_deg": 2.8444,
+   "centre_column_looks": "+Y",
+   "render_s": 2.3
+  },
+  "desert": {
+   "file": "bg_desert.png",
+   "size": [
+    1024,
+    160
+   ],
+   "lat_deg": [
+    0.0,
+    56.25
+   ],
+   "px_per_deg": 2.8444,
+   "centre_column_looks": "+Y",
+   "render_s": 3.7
+  },
+  "mountain": {
+   "file": "bg_mountain.png",
+   "size": [
+    1024,
+    160
+   ],
+   "lat_deg": [
+    0.0,
+    56.25
+   ],
+   "px_per_deg": 2.8444,
+   "centre_column_looks": "+Y",
+   "render_s": 8.3
+  },
+  "space": {
+   "file": "bg_space.png",
+   "size": [
+    1024,
+    160
+   ],
+   "lat_deg": [
+    0.0,
+    56.25
+   ],
+   "px_per_deg": 2.8444,
+   "centre_column_looks": "+Y",
+   "render_s": 10.0
+  }
+ }
+}

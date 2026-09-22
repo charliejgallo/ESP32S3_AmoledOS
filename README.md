@@ -2,10 +2,10 @@
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
 368x448 AMOLED you can hold in your hand. Seven watchfaces, twenty-one
-built-in apps, thirty-two more loaded from the microSD as shared objects — one
+built-in apps, thirty-three more loaded from the microSD as shared objects — one
 of them a Lua interpreter, so a text file on the card is an app too — a web
 portal, iPhone notifications over BLE, a link between two watches over ESP-NOW
-with eight apps on it, and a desktop simulator that runs the same UI code so
+with nine apps on it, and a desktop simulator that runs the same UI code so
 you can build the whole thing without the board.
 
 <p align="center">
@@ -131,7 +131,7 @@ Twenty-one ship inside the binary. They are the ones the watch cannot be without
 
 ### Loaded from the microSD
 
-Thirty-two more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
+Thirty-three more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
 `.so` files at startup. The same source builds into the simulator, so they are
 designed on a laptop and copied to the card without changing a line — and a new
 one needs no firmware rebuild. That includes its **launcher icon**: an app
@@ -176,6 +176,35 @@ allocation goes to PSRAM: 11 KB of internal RAM while playing. More in
   <img src="docs/img/app-golf-green.png" width="200" alt="Golf: a putt with the slope chevrons and the break preview">
   <img src="docs/img/app-golf-shop.png" width="200" alt="Golf: the shop, the golfer on a turntable">
   <img src="docs/img/app-golf-card.png" width="200" alt="Golf: a birdie, and the golfer cheers">
+</p>
+
+#### Turbo, an arcade racer
+
+<p align="center">
+  <img src="docs/img/app-turbo-city.png" width="200" alt="Turbo: the red wedge on a city highway with towers and traffic">
+  <img src="docs/img/app-turbo-night.png" width="200" alt="Turbo: a snowy mountain pass at night, the headlights on the road">
+  <img src="docs/img/app-turbo-space.png" width="200" alt="Turbo: the road floating in space, neon edges and a ringed planet">
+</p>
+
+The second game built from Blender renders, and the first that moves the
+whole screen every frame. The road is drawn by the watch in **pseudo-3D**,
+row by row, with bends, hills and fog; the cars and everything beside the
+road are sprites: eight vehicles modelled from a script and rendered as a
+lighting pass plus region ids, so the traffic comes in any colour and the
+garage sells twelve paints from the same pixels, and 36 props and a 360°
+backdrop for each of five stages, from a city highway with overpasses to a
+road floating in space. Tilt the watch to steer, the pedals are on the
+screen, and checkpoints refill the clock.
+
+A full frame through LVGL is 95 ms, so the race skips LVGL: a worker on the
+other core renders into PSRAM buffers, in bands of internal RAM, and an LVGL
+timer pushes each frame straight to the panel. 24 to 27 fps on the board,
+measured over whole races; the story of how it got there from 12 is in
+[apps/turbo/README.md](apps/turbo/README.md). Two paired watches race the
+same stage at once, each seeing the other as a ghost.
+
+<p align="center">
+  <img src="docs/img/turbo-pipeline.png" width="690" alt="The lighting pass, the region ids, and three paints coloured from them on the watch">
 </p>
 
 #### The others
@@ -275,8 +304,11 @@ first empty slot on the other side), and **Radar** shows where the other
 watch is, by signal strength and by FTM time of flight. v0.4.3 adds the
 **Walkie**, push to talk over the fast channel, and with it the streaming
 speaker the HAL lacked (`aos_hal_spk_*`). v0.4.8 brings **Neon Snakes**
-in lockstep, and v0.4.9 **Golf**: only the shots travel, each with the
-place the ball stopped, so the two watches can check they agree.
+in lockstep, v0.4.9 **Golf**: only the shots travel, each with the
+place the ball stopped, so the two watches can check they agree, and
+v0.4.10 **Turbo**: both watches race the same stage at once and see each
+other as a ghost car; when both have built the stage they start together,
+34 ms apart on two boards.
 
 <p align="center">
   <img src="docs/img/photo-walkie.jpg" width="640" alt="The walkie on two watches, one in Spanish and one in English">
@@ -417,7 +449,7 @@ components/
   aos_dynapp/         .so loader and symbol table
   aos_ble/            NimBLE: ANCS, AMS, pairing
   aos_web/            the web portal, embedded in the binary
-apps/                 32 dynamic apps
+apps/                 33 dynamic apps
 tools/                generators, test benches, board utilities
 ```
 

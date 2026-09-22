@@ -450,6 +450,40 @@ costs, so a big animated character either animates at fewer frames or
 changes less of itself. The whole app uses 11 KB of internal RAM while
 playing and 6.2 MB of PSRAM. Details in `apps/golf/README.md`.
 
+### 6.8 The whole screen every frame (Turbo)
+
+Turbo (`apps/turbo/`, v0.4.10) changes every pixel every frame: a
+pseudo-3D road with Blender sprites on it. What that took, for the next game
+of that kind:
+
+- **Skip LVGL for the frame.** A full-screen canvas through LVGL is ~95 ms;
+  `aos_hal_display_blit()` pushes the same 330 KB in 16.5 ms. Render in the
+  worker into PSRAM buffers (three: one on the panel, one ready, one being
+  drawn) and push the newest from an LVGL timer. Anything on top (the clock,
+  the pedals, banners) is drawn into the frame; render its words from `_()`
+  into masks once, in `create()`, and bake them into sprites.
+- **Put the worker on core 0** with `aos_hal_worker_start_on()`. LVGL is
+  pinned to core 1, and a worker there at a higher priority runs the render
+  and the blit in series.
+- **The CPU is the wall, not the PSRAM.** Drawing in bands of 64 rows of
+  internal RAM and copying each out once did not change the frame time by
+  itself. What did was doing less per pixel and per frame: blending inline
+  (a call into another file for every pixel was most of the sprites' time),
+  a draw list built once per frame with each sprite's rows (so a band only
+  looks at what touches it), the text formatted once, the player's car
+  coloured once per paint with the opaque middle of each row copied with
+  `memcpy`, colour tables cached per fog step, and at night the lit part of
+  a row painted from brighter palettes instead of every pixel scaled after
+  painting it.
+- **Measure per part in CPU cycles.** There is no microsecond clock for apps
+  and a part of a band lasts under a millisecond: `rsr ccount` (inline asm)
+  counts cycles at 240 per microsecond. Turbo sums them per part over a
+  race and writes one line per race to a file on the card: the log's ring
+  turns over in minutes.
+
+Measured: 24 to 27 fps over whole races on five stages (it started at 12).
+The breakdown and the order of the fixes are in `apps/turbo/README.md`.
+
 ## 7. The icon
 
 It travels with the app, as a few dozen bytes of shapes handed over from
@@ -985,6 +1019,29 @@ interpreter, which had the bug without anyone noticing. If your app must run
 on older firmware, keep tables `static` and reach them through a function in
 their own file; `readelf -r your.so | grep GLOB_DAT` then lists only firmware
 symbols such as the fonts.
+
+**LVGL 9.5 draws nothing from an `LV_COLOR_FORMAT_RGB565_SWAPPED` canvas**
+(measured in the simulator: black, where plain RGB565 showed). A frame kept in
+the panel's byte order for `aos_hal_display_blit()` cannot be the canvas's
+buffer too: give the canvas its own buffer and swap the bytes into it when a
+panel opens over the frame.
+
+**A worker renders in series with the blit on core 1** (since v0.4.4, when
+LVGL was pinned there): `aos_hal_worker_start()` puts the worker on core 1 at
+priority 5, above LVGL's 4, and LVGL does not get the CPU to push a frame
+until the worker sleeps. Use `aos_hal_worker_start_on(..., 0, 5)` (v0.4.10).
+
+**Some patterns become library calls the firmware does not export**, and the
+`.so` then does not load: a 32-bit byte swap written as shifts and masks
+becomes `__bswapsi2`; any `double` arithmetic (`(double)frames * 1000.0 / ms`
+for a log line) needs `__muldf3`, `__divdf3`, `__floatunsidf`. Swap byte by
+byte, and keep numbers in integer tenths. `build_apps.sh` lists what is
+missing.
+
+**`-Werror=format-truncation` is on in the board's build and not in the
+simulator's**: a `snprintf` of an `int` into a buffer the compiler thinks is
+too small builds on the Mac and fails in `build_apps.sh`. Size the buffers for
+the worst case.
 
 **`floorf`, `ceilf`, `expf`, `sqrtf` and division are calls, not
 instructions,** on the S3 (measured: 100,000 float divisions 26 ms, `sqrtf`

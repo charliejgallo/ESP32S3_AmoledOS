@@ -3,6 +3,41 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.4.10 — 2026-09-22
+
+**Turbo**, a new dynamic app (`turbo.so` + `turbo.pak`, `demo.turbo`): an
+arcade racer drawn in pseudo-3D with cars and scenery rendered in Blender.
+
+- Five stages with checkpoints that refill the clock: Metro Freeway (a city
+  highway with overpasses), Costa Azul (the sea beside the road), Red Canyon
+  (desert straights), Snow Pass (a mountain pass at night, with headlights)
+  and Orbit 9 (a road floating in space, the tour's final stage).
+- Eight vehicles modelled from a script (`apps/turbo/tools/blender/cars.py`):
+  four to drive (a wedge, a fastback, a rally hatch and a pickup, each with
+  its own speed, acceleration, grip and toughness) and four for the traffic.
+  Rendered as a lighting pass plus region ids and coloured on the watch
+  through a table, so the traffic comes in any colour and the garage sells
+  twelve paints from the same pixels. 36 props and a 360° backdrop per stage
+  (`props.py`). All of it in a 2.9 MB `turbo.pak` read from the card.
+- Steering by tilting the watch (centred during the countdown, three
+  sensitivities), pedals on the screen, three difficulties, a tour of the
+  five stages and a time trial with records; coins and a garage.
+- **The paired watch over the link**: both race the same stage at once and
+  see each other as a ghost; they start together when both have the stage
+  built (34 ms apart on two boards), and the lower time wins. Records travel
+  too.
+- The frame skips LVGL: a worker renders into PSRAM buffers, in bands of
+  internal RAM, and an LVGL timer pushes each one to the panel. Measured on
+  the board over whole races: 24.9, 26.0, 26.6, 24.0 and 25.3 fps. An engine,
+  tyres, gravel and wind on the streaming speaker.
+
+**Firmware: `aos_hal_worker_start_on(name, fn, arg, stack, core, prio)`.**
+The app's worker on a chosen core. LVGL has been pinned to core 1 since
+v0.4.4, and the worker on core 1 at a higher priority kept it off the CPU:
+an app that renders in the worker and pushes frames from an LVGL timer got
+the two in series. `aos_hal_worker_start()` is unchanged. `turbo.so` needs
+this firmware.
+
 ## v0.4.9 — 2026-09-21
 
 **Golf**, a new dynamic app (`golf.so` + `golf.pak`, `demo.golf`), and the

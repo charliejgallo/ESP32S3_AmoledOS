@@ -532,6 +532,7 @@ static const char blob_en__sistema_lang[] =
     "Simon\tSimon\n"
     "Topos\tWhack-a-Mole\n"
     "Truco\tTruco\n"
+    "Turbo\tTurbo\n"
     "Video\tVideo\n"
     "Walkie\tWalkie\n"
     ;
@@ -1947,6 +1948,74 @@ static const char blob_en_demo_topos_lang[] =
     "Otra vez\tAgain\n"
     ;
 
+static const char blob_en_demo_turbo_lang[] =
+    "Esperando a\tWaiting for\n"
+    "El tramo lo elige el reloj anfitrión.\tThe host watch picks the stage.\n"
+    "El enlace no arrancó\tThe link did not start\n"
+    "%s salió de la carrera\t%s left the race\n"
+    "Sin señal de %s\tNo signal from %s\n"
+    "TIEMPO\tTIME\n"
+    "km/h\tkm/h\n"
+    "PUNTO DE CONTROL\tCHECKPOINT\n"
+    "¡TIEMPO EXTRA!\tEXTENDED TIME!\n"
+    "¡YA!\tGO!\n"
+    "¡LLEGADA!\tFINISH!\n"
+    "SIN TIEMPO\tTIME UP\n"
+    "¡APURATE!\tHURRY UP!\n"
+    "Cargando\tLoading\n"
+    "Tiempo\tTime\n"
+    "Recorrido\tCovered\n"
+    "Récord\tRecord\n"
+    "  ¡nuevo!\t  new!\n"
+    "Punta\tTop\n"
+    "choques\tcrashes\n"
+    "Gira\tTour\n"
+    "¡Gira completa!\tTour complete!\n"
+    "todavía corre...\tstill racing...\n"
+    "¡Ganaste!\tYou win!\n"
+    "Ganó el otro reloj\tThe other watch won\n"
+    "monedas\tcoins\n"
+    "Siguiente\tNext\n"
+    "Menú\tMenu\n"
+    "Contra\tAgainst\n"
+    "carreras contra el reloj\traces against the clock\n"
+    "Gira completa\tFull tour\n"
+    "Contrarreloj\tTime trial\n"
+    "Garage\tGarage\n"
+    "Ajustes\tSettings\n"
+    "Se abre con una gira\tOpens with a tour\n"
+    "Primero el tramo anterior\tFinish the one before\n"
+    "Elegí el tramo\tPick the stage\n"
+    "récord\trecord\n"
+    "Comprar\tBuy\n"
+    "Tu auto\tYour car\n"
+    "Elegir\tChoose\n"
+    "No alcanzan las monedas\tNot enough coins\n"
+    "Velocidad\tSpeed\n"
+    "Aceleración\tAcceleration\n"
+    "Agarre\tGrip\n"
+    "Todo terreno\tOff-road\n"
+    "Dificultad\tDifficulty\n"
+    "Fácil\tEasy\n"
+    "Normal\tNormal\n"
+    "Difícil\tHard\n"
+    "Volante (inclinar el reloj)\tSteering (tilt the watch)\n"
+    "Suave\tGentle\n"
+    "Medio\tMedium\n"
+    "Rápido\tQuick\n"
+    "Sonido\tSound\n"
+    "El volante se centra solo en la cuenta regresiva: sostené el reloj como vas a manejar.\tSteering centres itself during the countdown: hold the watch the way you will drive.\n"
+    "Otra vez\tAgain\n"
+    "Pausa\tPause\n"
+    "Seguir\tResume\n"
+    "Reiniciar\tRestart\n"
+    "Salir al menú\tBack to menu\n"
+    "Contra el otro reloj\tAgainst the other watch\n"
+    "Cancelar\tCancel\n"
+    "Cargando...\tLoading...\n"
+    "No hay memoria para el tramo\tNot enough memory for the stage\n"
+    ;
+
 static const aos_lang_file_t files_en[] = {
     { "_sistema.lang", blob_en__sistema_lang },
     { "aos.clima.lang", blob_en_aos_clima_lang },
@@ -1980,6 +2049,7 @@ static const aos_lang_file_t files_en[] = {
     { "demo.hello.lang", blob_en_demo_hello_lang },
     { "demo.neon.lang", blob_en_demo_neon_lang },
     { "demo.topos.lang", blob_en_demo_topos_lang },
+    { "demo.turbo.lang", blob_en_demo_turbo_lang },
 };
 
 static const char blob_de__sistema_lang[] =
@@ -2501,6 +2571,7 @@ static const char blob_de__sistema_lang[] =
     "Simon\tSimon\n"
     "Topos\tMaulwürfe\n"
     "Truco\tTruco\n"
+    "Turbo\tTurbo\n"
     "Video\tVideo\n"
     "Walkie\tWalkie\n"
     ;
@@ -3916,6 +3987,74 @@ static const char blob_de_demo_topos_lang[] =
     "Otra vez\tNochmal\n"
     ;
 
+static const char blob_de_demo_turbo_lang[] =
+    "Esperando a\tWarte auf\n"
+    "El tramo lo elige el reloj anfitrión.\tDie Strecke wählt die Gastgeber-Uhr.\n"
+    "El enlace no arrancó\tDie Verbindung startete nicht\n"
+    "%s salió de la carrera\t%s hat das Rennen verlassen\n"
+    "Sin señal de %s\tKein Signal von %s\n"
+    "TIEMPO\tZEIT\n"
+    "km/h\tkm/h\n"
+    "PUNTO DE CONTROL\tCHECKPOINT\n"
+    "¡TIEMPO EXTRA!\tEXTRAZEIT!\n"
+    "¡YA!\tLOS!\n"
+    "¡LLEGADA!\tZIEL!\n"
+    "SIN TIEMPO\tZEIT UM\n"
+    "¡APURATE!\tBEEIL DICH!\n"
+    "Cargando\tLade\n"
+    "Tiempo\tZeit\n"
+    "Recorrido\tStrecke\n"
+    "Récord\tRekord\n"
+    "  ¡nuevo!\t  neu!\n"
+    "Punta\tSpitze\n"
+    "choques\tUnfälle\n"
+    "Gira\tTour\n"
+    "¡Gira completa!\tTour geschafft!\n"
+    "todavía corre...\tfährt noch...\n"
+    "¡Ganaste!\tGewonnen!\n"
+    "Ganó el otro reloj\tDie andere Uhr hat gewonnen\n"
+    "monedas\tMünzen\n"
+    "Siguiente\tWeiter\n"
+    "Menú\tMenü\n"
+    "Contra\tGegen\n"
+    "carreras contra el reloj\tRennen gegen die Uhr\n"
+    "Gira completa\tGanze Tour\n"
+    "Contrarreloj\tZeitfahren\n"
+    "Garage\tGarage\n"
+    "Ajustes\tOptionen\n"
+    "Se abre con una gira\tÖffnet nach einer Tour\n"
+    "Primero el tramo anterior\tErst die vorige Strecke\n"
+    "Elegí el tramo\tStrecke wählen\n"
+    "récord\tRekord\n"
+    "Comprar\tKaufen\n"
+    "Tu auto\tDein Auto\n"
+    "Elegir\tWählen\n"
+    "No alcanzan las monedas\tNicht genug Münzen\n"
+    "Velocidad\tTempo\n"
+    "Aceleración\tBeschleunigung\n"
+    "Agarre\tGrip\n"
+    "Todo terreno\tGelände\n"
+    "Dificultad\tSchwierigkeit\n"
+    "Fácil\tLeicht\n"
+    "Normal\tNormal\n"
+    "Difícil\tSchwer\n"
+    "Volante (inclinar el reloj)\tLenken (Uhr neigen)\n"
+    "Suave\tSanft\n"
+    "Medio\tMittel\n"
+    "Rápido\tSchnell\n"
+    "Sonido\tTon\n"
+    "El volante se centra solo en la cuenta regresiva: sostené el reloj como vas a manejar.\tDie Lenkung zentriert sich im Countdown: halte die Uhr so, wie du fahren wirst.\n"
+    "Otra vez\tNochmal\n"
+    "Pausa\tPause\n"
+    "Seguir\tWeiter\n"
+    "Reiniciar\tNeustart\n"
+    "Salir al menú\tZum Menü\n"
+    "Contra el otro reloj\tGegen die andere Uhr\n"
+    "Cancelar\tAbbrechen\n"
+    "Cargando...\tLade...\n"
+    "No hay memoria para el tramo\tKein Speicher für die Strecke\n"
+    ;
+
 static const aos_lang_file_t files_de[] = {
     { "_sistema.lang", blob_de__sistema_lang },
     { "aos.clima.lang", blob_de_aos_clima_lang },
@@ -3949,10 +4088,11 @@ static const aos_lang_file_t files_de[] = {
     { "demo.hello.lang", blob_de_demo_hello_lang },
     { "demo.neon.lang", blob_de_demo_neon_lang },
     { "demo.topos.lang", blob_de_demo_topos_lang },
+    { "demo.turbo.lang", blob_de_demo_turbo_lang },
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 520, 31, files_en, 32 },
-    { "de", "Deutsch", 520, 31, files_de, 32 },
+    { "en", "English", 521, 32, files_en, 33 },
+    { "de", "Deutsch", 521, 32, files_de, 33 },
 };
 const int aos_lang_pack_count = 2;

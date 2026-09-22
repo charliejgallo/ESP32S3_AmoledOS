@@ -1,0 +1,1022 @@
+{
+ "note": "Rendered by tools/blender/cars.py. colour = palette[id] * shade / shade_ref; shade RGB is lit neutral grey (0.8 albedo), sRGB, Standard view transform; id png = id * 16; shadow = how much the road is darkened (0..255).",
+ "shade_ref": 196,
+ "ids": {
+  "1": "paintA",
+  "2": "paintB",
+  "3": "glass",
+  "4": "chrome",
+  "5": "black",
+  "6": "tyre",
+  "7": "rim",
+  "8": "tail",
+  "9": "head",
+  "10": "plate",
+  "11": "interior",
+  "12": "under",
+  "13": "amber",
+  "14": "extra"
+ },
+ "near_camera": {
+  "position": [
+   0,
+   0,
+   2.0
+  ],
+  "f_px": 300.0,
+  "pp": [
+   184.0,
+   150.0
+  ],
+  "size": [
+   368,
+   448
+  ],
+  "rear_y": 3.2,
+  "yaw_deg": [
+   -24,
+   -16,
+   -8,
+   0,
+   8,
+   16,
+   24
+  ]
+ },
+ "far_camera": {
+  "z": 2.0,
+  "f_px": 1200.0,
+  "rear_y": 12.0,
+  "x": {
+   "l": 3.5,
+   "c": 0.0,
+   "r": -3.5
+  },
+  "ppm": 100.0
+ },
+ "sun": {
+  "elevation_deg": 55.0,
+  "azimuth_deg": 225.0,
+  "energy": 1.3
+ },
+ "vehicles": {
+  "wedge": {
+   "length": 4.55,
+   "width": 2.138,
+   "height": 1.128,
+   "player": true
+  },
+  "muscle": {
+   "length": 4.785,
+   "width": 2.028,
+   "height": 1.296,
+   "player": true
+  },
+  "rally": {
+   "length": 4.01,
+   "width": 1.928,
+   "height": 1.56,
+   "player": true
+  },
+  "pickup": {
+   "length": 4.795,
+   "width": 2.068,
+   "height": 1.824,
+   "player": true
+  },
+  "sedan": {
+   "length": 4.73,
+   "width": 1.743,
+   "height": 1.412,
+   "player": false
+  },
+  "compact": {
+   "length": 3.84,
+   "width": 1.597,
+   "height": 1.395,
+   "player": false
+  },
+  "van": {
+   "length": 4.84,
+   "width": 1.788,
+   "height": 1.95,
+   "player": false
+  },
+  "truck": {
+   "length": 7.56,
+   "width": 2.4,
+   "height": 3.3,
+   "player": false
+  }
+ },
+ "renders": {
+  "near_wedge_y3": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 0,
+   "bbox": [
+    102,
+    196,
+    266,
+    322
+   ]
+  },
+  "near_wedge_y0": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": -24,
+   "bbox": [
+    113,
+    195,
+    315,
+    325
+   ]
+  },
+  "near_wedge_y1": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": -16,
+   "bbox": [
+    118,
+    195,
+    302,
+    326
+   ]
+  },
+  "near_wedge_y2": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": -8,
+   "bbox": [
+    116,
+    196,
+    283,
+    325
+   ]
+  },
+  "near_wedge_y4": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 8,
+   "bbox": [
+    84,
+    196,
+    251,
+    325
+   ]
+  },
+  "near_wedge_y5": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 16,
+   "bbox": [
+    65,
+    195,
+    249,
+    327
+   ]
+  },
+  "near_wedge_y6": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 24,
+   "bbox": [
+    52,
+    195,
+    254,
+    325
+   ]
+  },
+  "far_wedge_l": {
+   "size": [
+    352,
+    152
+   ],
+   "anchor": [
+    121.0,
+    144.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    40,
+    16,
+    280,
+    129
+   ],
+   "camera_x": 3.5
+  },
+  "far_wedge_c": {
+   "size": [
+    352,
+    152
+   ],
+   "anchor": [
+    152.0,
+    144.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    50,
+    16,
+    253,
+    129
+   ],
+   "camera_x": 0.0
+  },
+  "far_wedge_r": {
+   "size": [
+    352,
+    152
+   ],
+   "anchor": [
+    192.0,
+    144.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    32,
+    16,
+    273,
+    129
+   ],
+   "camera_x": -3.5
+  },
+  "near_muscle_y0": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": -24,
+   "bbox": [
+    113,
+    185,
+    321,
+    317
+   ]
+  },
+  "near_muscle_y1": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": -16,
+   "bbox": [
+    121,
+    185,
+    306,
+    319
+   ]
+  },
+  "near_muscle_y2": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": -8,
+   "bbox": [
+    121,
+    185,
+    285,
+    319
+   ]
+  },
+  "near_muscle_y3": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 0,
+   "bbox": [
+    104,
+    185,
+    263,
+    316
+   ]
+  },
+  "near_muscle_y4": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 8,
+   "bbox": [
+    82,
+    185,
+    246,
+    319
+   ]
+  },
+  "near_muscle_y5": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 16,
+   "bbox": [
+    61,
+    185,
+    246,
+    319
+   ]
+  },
+  "near_muscle_y6": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 24,
+   "bbox": [
+    46,
+    185,
+    254,
+    317
+   ]
+  },
+  "far_muscle_l": {
+   "size": [
+    352,
+    168
+   ],
+   "anchor": [
+    116.0,
+    159.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    35,
+    15,
+    277,
+    145
+   ],
+   "camera_x": 3.5
+  },
+  "far_muscle_c": {
+   "size": [
+    352,
+    168
+   ],
+   "anchor": [
+    148.0,
+    159.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    51,
+    16,
+    244,
+    145
+   ],
+   "camera_x": 0.0
+  },
+  "far_muscle_r": {
+   "size": [
+    352,
+    168
+   ],
+   "anchor": [
+    192.0,
+    159.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    30,
+    16,
+    272,
+    145
+   ],
+   "camera_x": -3.5
+  },
+  "near_rally_y0": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": -24,
+   "bbox": [
+    113,
+    181,
+    306,
+    327
+   ]
+  },
+  "near_rally_y1": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": -16,
+   "bbox": [
+    120,
+    182,
+    295,
+    325
+   ]
+  },
+  "near_rally_y2": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": -8,
+   "bbox": [
+    120,
+    182,
+    280,
+    322
+   ]
+  },
+  "near_rally_y3": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 0,
+   "bbox": [
+    101,
+    182,
+    265,
+    320
+   ]
+  },
+  "near_rally_y4": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 8,
+   "bbox": [
+    87,
+    182,
+    247,
+    322
+   ]
+  },
+  "near_rally_y5": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 16,
+   "bbox": [
+    72,
+    182,
+    247,
+    325
+   ]
+  },
+  "near_rally_y6": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 24,
+   "bbox": [
+    61,
+    181,
+    254,
+    327
+   ]
+  },
+  "far_rally_l": {
+   "size": [
+    344,
+    184
+   ],
+   "anchor": [
+    109.0,
+    176.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    24,
+    17,
+    259,
+    166
+   ],
+   "camera_x": 3.5
+  },
+  "far_rally_c": {
+   "size": [
+    344,
+    184
+   ],
+   "anchor": [
+    139.0,
+    176.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    44,
+    17,
+    233,
+    166
+   ],
+   "camera_x": 0.0
+  },
+  "far_rally_r": {
+   "size": [
+    344,
+    184
+   ],
+   "anchor": [
+    180.0,
+    176.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    29,
+    17,
+    264,
+    166
+   ],
+   "camera_x": -3.5
+  },
+  "near_pickup_y0": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": -24,
+   "bbox": [
+    111,
+    159,
+    319,
+    303
+   ]
+  },
+  "near_pickup_y1": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": -16,
+   "bbox": [
+    122,
+    159,
+    305,
+    300
+   ]
+  },
+  "near_pickup_y2": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": -8,
+   "bbox": [
+    121,
+    159,
+    285,
+    297
+   ]
+  },
+  "near_pickup_y3": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 0,
+   "bbox": [
+    104,
+    159,
+    263,
+    296
+   ]
+  },
+  "near_pickup_y4": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 8,
+   "bbox": [
+    82,
+    159,
+    247,
+    298
+   ]
+  },
+  "near_pickup_y5": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 16,
+   "bbox": [
+    62,
+    159,
+    245,
+    301
+   ]
+  },
+  "near_pickup_y6": {
+   "size": [
+    368,
+    448
+   ],
+   "anchor": [
+    184.0,
+    337.5
+   ],
+   "yaw_deg": 24,
+   "bbox": [
+    48,
+    159,
+    256,
+    303
+   ]
+  },
+  "far_pickup_l": {
+   "size": [
+    368,
+    200
+   ],
+   "anchor": [
+    114.0,
+    194.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    32,
+    8,
+    278,
+    178
+   ],
+   "camera_x": 3.5
+  },
+  "far_pickup_c": {
+   "size": [
+    368,
+    200
+   ],
+   "anchor": [
+    146.0,
+    194.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    48,
+    8,
+    243,
+    178
+   ],
+   "camera_x": 0.0
+  },
+  "far_pickup_r": {
+   "size": [
+    368,
+    200
+   ],
+   "anchor": [
+    193.0,
+    194.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    28,
+    8,
+    274,
+    178
+   ],
+   "camera_x": -3.5
+  },
+  "far_sedan_l": {
+   "size": [
+    352,
+    176
+   ],
+   "anchor": [
+    114.0,
+    167.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    28,
+    14,
+    272,
+    151
+   ],
+   "camera_x": 3.5
+  },
+  "far_sedan_c": {
+   "size": [
+    352,
+    176
+   ],
+   "anchor": [
+    146.0,
+    167.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    60,
+    15,
+    231,
+    151
+   ],
+   "camera_x": 0.0
+  },
+  "far_sedan_r": {
+   "size": [
+    352,
+    176
+   ],
+   "anchor": [
+    190.0,
+    167.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    32,
+    14,
+    275,
+    150
+   ],
+   "camera_x": -3.5
+  },
+  "far_compact_l": {
+   "size": [
+    328,
+    168
+   ],
+   "anchor": [
+    104.0,
+    161.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    25,
+    12,
+    247,
+    151
+   ],
+   "camera_x": 3.5
+  },
+  "far_compact_c": {
+   "size": [
+    328,
+    168
+   ],
+   "anchor": [
+    134.0,
+    161.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    52,
+    12,
+    215,
+    151
+   ],
+   "camera_x": 0.0
+  },
+  "far_compact_r": {
+   "size": [
+    328,
+    168
+   ],
+   "anchor": [
+    174.0,
+    161.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    30,
+    12,
+    252,
+    150
+   ],
+   "camera_x": -3.5
+  },
+  "far_van_l": {
+   "size": [
+    376,
+    216
+   ],
+   "anchor": [
+    116.0,
+    206.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    27,
+    9,
+    278,
+    191
+   ],
+   "camera_x": 3.5
+  },
+  "far_van_c": {
+   "size": [
+    376,
+    216
+   ],
+   "anchor": [
+    147.0,
+    206.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    58,
+    9,
+    235,
+    191
+   ],
+   "camera_x": 0.0
+  },
+  "far_van_r": {
+   "size": [
+    376,
+    216
+   ],
+   "anchor": [
+    195.0,
+    206.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    32,
+    9,
+    283,
+    191
+   ],
+   "camera_x": -3.5
+  },
+  "far_truck_l": {
+   "size": [
+    464,
+    344
+   ],
+   "anchor": [
+    138.0,
+    337.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    17,
+    7,
+    347,
+    314
+   ],
+   "camera_x": 3.5
+  },
+  "far_truck_c": {
+   "size": [
+    464,
+    344
+   ],
+   "anchor": [
+    168.0,
+    337.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    45,
+    7,
+    290,
+    314
+   ],
+   "camera_x": 0.0
+  },
+  "far_truck_r": {
+   "size": [
+    464,
+    344
+   ],
+   "anchor": [
+    231.0,
+    337.0
+   ],
+   "ppm": 100.0,
+   "bbox": [
+    21,
+    7,
+    351,
+    314
+   ],
+   "camera_x": -3.5
+  }
+ }
+}
