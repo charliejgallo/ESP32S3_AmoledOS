@@ -236,6 +236,14 @@ shop, a sticker album with one sticker hidden per level, trophies. 25 fps on
 the board. Two paired watches race for the same keys. More in
 [apps/monsterhop/README.md](apps/monsterhop/README.md).
 
+<p align="center">
+  <img src="docs/img/photo-monsterhop-race.jpg" width="330" alt="Two watches in a Monster Hop race on Main Street, the same cars in the same places on both">
+  <img src="docs/img/photo-monsterhop-house.jpg" width="330" alt="Tommy's house on two watches, one in English and one in Spanish">
+</p>
+<p align="center"><em>A key race on two boards: the same cars in the same
+places, each watch with its own camera. And Tommy's house on both, one in
+English, the other in Spanish.</em></p>
+
 #### The others
 
 | | | |

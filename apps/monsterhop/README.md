@@ -62,9 +62,9 @@ The first spot on the map, below Zombie Town:
 
 ## Two watches: the key race
 
-| | |
-|---|---|
-| <img src="../../docs/img/app-monsterhop-race.png" width="200"><br>A race: the other player's Tommy is the pale ghost ahead; its keys light up blue in the row at the top. | |
+| | | |
+|---|---|---|
+| <img src="../../docs/img/photo-monsterhop-race.jpg" width="200"><br>On two boards: a race on Main Street, the same cars in the same places on both, each watch with its own camera. | <img src="../../docs/img/photo-monsterhop-title.jpg" width="200"><br>One watch in English, the other in Spanish. | <img src="../../docs/img/app-monsterhop-race.png" width="200"><br>In the simulator: the other player's Tommy is the pale ghost ahead; its keys light up blue in the row at the top. |
 
 With a partner paired in Enlace, the house offers **Play with a friend**. The
 host (the lower MAC) picks a level open on both watches, and both play it
@@ -75,6 +75,12 @@ no ties. A key both took goes to whoever took it first by the level's clock,
 with the host winning a tie. Both watches apply that rule to the same two
 times, so they agree without a referee. Lives never run out in a race, and
 the level's clock ends it.
+
+Tested on the two boards: the lobby with each watch in its own language,
+both starting together, the guest's clock within 0-48 ms of the host's, and
+the host carrying on alone when the guest leaves. A key both grabbed and the
+end with points were tested on the bench (`mhh racetest`), not yet on the
+boards.
 
 The lanes, the traps and the platforms are functions of the level's clock
 alone, so they match on both watches without talking. The host's clock is
