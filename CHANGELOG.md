@@ -3,6 +3,20 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.5.4 — 2026-09-23
+
+More memory for apps.
+
+- **The watchface steps aside for apps.** It stayed alive, hidden, under
+  every app; the analogue face alone kept a 185 KB canvas for its dial. Now
+  it is taken down once an app has slid in and built again when you go back
+  home (the launcher and the control centre still just cover it). With the
+  analogue face that is 185 KB more free PSRAM for any app (measured on the
+  board by switching faces); on the watch that had it, Monster Hop now plays
+  with its fourth frame buffer.
+- **Monster Hop** gives its fourth frame buffer back on the menus: 330 KB
+  that the map and the album can use.
+
 ## v0.5.3 — 2026-09-23
 
 Monster Hop's menus, fixed.

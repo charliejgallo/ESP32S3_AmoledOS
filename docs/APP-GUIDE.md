@@ -206,6 +206,14 @@ nothing in the simulator). Not for anything an ISR or DMA touches, and not
 for what is walked every frame: PSRAM goes through the cache. Dynamic apps
 do not need it: their `.bss` goes to PSRAM with their `.text`.
 
+**What the system holds while your app runs** (v0.5.4, measured with the
+app closed): the watchface is torn down once your app has slid in and built
+again on the way home, so its buffers are yours (the analogue face alone was
+185 KB); Bluetooth costs 29 KB of PSRAM when it is on. Two watches with the
+same firmware can still differ by ~100 KB (folders, how many apps are
+registered, notifications), so a feature that switches on above some free
+memory (a fourth frame buffer) should measure, not assume.
+
 ## 6. Drawing, and what it costs
 
 The screen is 368x448, the renderer is software, and a full-screen redraw is
