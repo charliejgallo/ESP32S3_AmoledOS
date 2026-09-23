@@ -157,6 +157,7 @@ LVGL's TJPGD, 8.5 KB of internal RAM while open. Numbers in VIDEO.md.
 | internet | `aos_hal_http_get()` and friends (section 9) |
 | files | `aos_hal_path_photos()`, `_music()`, `_recordings()`, `_data()` |
 | system | `aos_hal_uptime_ms()`, `aos_hal_heap_info()`, `aos_hal_log()` |
+| statistics | `aos_hal_sys_stats()` (temperatures, memory, load per core), `aos_hal_minute_history()` (last hour), `aos_hal_batt_history()` (last 24 h) - since v0.5.1, sampled by the HAL on its own |
 | USB | `aos_hal_usb_mode/mode_set/busy/keys_ready()`, `aos_hal_usb_key("volup")`, `_type()`, `_mouse/click()`, `_gamepad()`, `_midi_note/cc/bend()` - see [HANDOFF-USB.md](HANDOFF-USB.md) section 4 |
 | the other watch | `aos_hal_link_start/stop/offer/partner/neighbours()`, `aos_hal_link_send_partner/recv()` (fast), `aos_hal_link_send_reliable/recv_reliable/reliable_lost/reliable_reset()` - section 16 and [LINK.md](LINK.md) |
 | streaming speaker | `aos_hal_spk_open/write/queued/is_open/close()`: PCM in, sound out, for audio that is not a file |
