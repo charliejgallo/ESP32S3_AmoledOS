@@ -1608,7 +1608,9 @@ static const int scantokey[128] =
 
 static void SaveDefaultCollection(default_collection_t *collection)
 {
-#if ORIGCODE
+/* AmoledOS: on (doomgeneric had it off), so the volumes, the screen size
+ * and the sensitivity (the stick's turn speed) survive */
+#if 1
     default_t *defaults;
     int i, v;
     FILE *f;
@@ -1626,6 +1628,14 @@ static void SaveDefaultCollection(default_collection_t *collection)
         // Ignore unbound variables
 
         if (!defaults[i].bound)
+        {
+            continue;
+        }
+
+        /* AmoledOS: not the keys. They go out as keyboard scan codes, and
+         * doomgeneric's own (KEY_FIRE is 0xa3) have none: read back they
+         * would come in as 0 and FIRE would stop firing. The pad owns them. */
+        if (defaults[i].type == DEFAULT_KEY)
         {
             continue;
         }
@@ -1770,7 +1780,8 @@ static void SetVariable(default_t *def, char *value)
 
 static void LoadDefaultCollection(default_collection_t *collection)
 {
-#if ORIGCODE
+/* AmoledOS: on, reading a line at a time (no fscanf in the firmware) */
+#if 1
     FILE *f;
     default_t *def;
     char defname[80];
@@ -1787,9 +1798,21 @@ static void LoadDefaultCollection(default_collection_t *collection)
         return;
     }
 
-    while (!feof(f))
+    for (;;)
     {
-        if (fscanf(f, "%79s %99[^\n]\n", defname, strparm) != 2)
+        char line[200];
+        int n = 0, c;
+
+        while ((c = fgetc(f)) != EOF && c != '\n')
+        {
+            if (n < (int) sizeof(line) - 1)
+                line[n++] = (char) c;
+        }
+        line[n] = '\0';
+        if (c == EOF && n == 0)
+            break;
+
+        if (sscanf(line, "%79s %99[^\n]", defname, strparm) != 2)
         {
             // This line doesn't match
 
@@ -1800,7 +1823,7 @@ static void LoadDefaultCollection(default_collection_t *collection)
 
         def = SearchCollection(collection, defname);
 
-        if (def == NULL || !def->bound)
+        if (def == NULL || !def->bound || def->type == DEFAULT_KEY)
         {
             // Unknown variable?  Unbound variables are also treated
             // as unknown.

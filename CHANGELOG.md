@@ -17,7 +17,11 @@ Newest first. Versions are git tags; what is above the latest tag is on
   or yes/no on a question.
 - **Leaving gives everything back**: `exit()`, `I_Error` and the app's stop
   all `longjmp` to the worker, which frees every block and file the engine
-  had. Sound effects mixed to the speaker; no music yet.
+  had.
+- **Sound effects and the OPL2 music**: Chocolate Doom 2.2.1's OPL player on
+  DOSBox's DBOPL, generated from the effects mixer on the sample clock, 3-7 %
+  of core 0 with E1M1 still at 35 fps. The options are saved in
+  `default.cfg` (doomgeneric had the config switched off).
 - **No firmware change**: all of its symbols are already in the table, so it
   runs on v0.4.10 and later. Bring your own WAD to `<card>/doom/`; the
   shareware `DOOM1.WAD` is what it was tested with. GPL v2, like the engine.

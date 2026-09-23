@@ -184,7 +184,10 @@ char *M_TempFile(char *s)
     tempdir = "/tmp";
 #endif
 
-    return M_StringJoin(tempdir, DIR_SEPARATOR_S, s, NULL);
+    /* AmoledOS: there is no /tmp on the watch; the OPL player writes each
+     * song there as MIDI and reads it back */
+    (void)tempdir;
+    return M_StringJoin(dg_data_dir(), s, NULL);
 }
 
 boolean M_StrToInt(const char *str, int *result)

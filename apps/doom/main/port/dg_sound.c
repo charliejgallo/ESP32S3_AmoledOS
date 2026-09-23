@@ -15,8 +15,8 @@
  * sound while a channel still points into it. Shareware Doom's effects are
  * about 300 KB, and they go when the zone goes.
  *
- * Music is a stub for now: MUS -> OPL synthesis is the expensive part and
- * has to be measured against the frame rate first.
+ * The music is mixed into the same buffer by port/dg_opl.c: Chocolate
+ * Doom's OPL player on DOSBox's OPL2 emulator, driven by this sample count.
  */
 #pragma GCC optimize("O2")
 
@@ -48,6 +48,27 @@ typedef struct {
 } chan_t;
 
 static chan_t   s_ch[CHANNELS];
+
+/* What the mixer costs, in CPU cycles of core 0 (the S3's cycle counter;
+ * nothing finer than a millisecond is lent to the apps). */
+static volatile uint32_t s_cyc_music, s_cyc_total;
+
+static inline uint32_t cycles(void)
+{
+#if defined(__XTENSA__)
+    uint32_t c;
+    __asm__ volatile("rsr.ccount %0" : "=a"(c));
+    return c;
+#else
+    return 0;
+#endif
+}
+
+void dp_audio_cycles(uint32_t *music, uint32_t *total)
+{
+    *music = s_cyc_music;
+    *total = s_cyc_total;
+}
 static bool     s_enabled;      /* the app opened the speaker */
 static bool     s_on;           /* the module is initialised */
 static bool     s_prefix;
@@ -130,6 +151,7 @@ static boolean snd_playing(int channel)
 static void snd_update(void)
 {
     if (!s_on) return;
+    uint32_t t0 = cycles();
     int queued = aos_hal_spk_queued();
     int need = AHEAD - queued;
     if (need <= 0) return;
@@ -154,13 +176,42 @@ static void snd_update(void)
             }
             c->pos = pos;
         }
+        uint32_t m0 = cycles();
+        dg_opl_mix(acc, n);             /* the music, on the same clock */
+        s_cyc_music += cycles() - m0;
         for (int i = 0; i < n; i++) {
             int32_t v = acc[i] * 2;
-            buf[i] = (int16_t)(v > 32767 ? 32767 : v < -32768 ? -32768 : v);
+            /* a soft knee over 3/4 of full scale: music and a shotgun
+             * together bend instead of clipping flat */
+            int32_t a = v < 0 ? -v : v;
+            if (a > 24576) {
+                a = 24576 + (a - 24576) / 4;
+                if (a > 32767) a = 32767;
+                v = v < 0 ? -a : a;
+            }
+            buf[i] = (int16_t)v;
         }
+#ifdef AOS_SIM
+        /* DOOM_WAV=<file>: the mix as raw 16 kHz mono, to measure it on the
+         * Mac without listening (level, clipping, the music's tempo) */
+        {
+            static FILE *dump;
+            static bool tried;
+            if (!tried) {
+                tried = true;
+                const char *path = getenv("DOOM_WAV");
+                if (path) dump = fopen(path, "wb");
+            }
+            if (dump) {
+                fwrite(buf, 2, (size_t)n, dump);
+                fflush(dump);
+            }
+        }
+#endif
         aos_hal_spk_write(buf, n);
         need -= n;
     }
+    s_cyc_total += cycles() - t0;
 }
 
 static void snd_cache(sfxinfo_t *sounds, int num)
@@ -186,25 +237,6 @@ sound_module_t DG_sound_module = {
     snd_stop,
     snd_playing,
     snd_cache,
-};
-
-/* ---- music: nothing yet ---- */
-
-static boolean mus_init(void) { return false; }
-static void mus_shutdown(void) {}
-static void mus_volume(int v) { (void)v; }
-static void mus_pause(void) {}
-static void mus_resume(void) {}
-static void *mus_register(void *data, int len) { (void)data; (void)len; return NULL; }
-static void mus_unregister(void *h) { (void)h; }
-static void mus_play(void *h, boolean loop) { (void)h; (void)loop; }
-static void mus_stop(void) {}
-static boolean mus_playing(void) { return false; }
-
-music_module_t DG_music_module = {
-    NULL, 0,
-    mus_init, mus_shutdown, mus_volume, mus_pause, mus_resume,
-    mus_register, mus_unregister, mus_play, mus_stop, mus_playing, NULL,
 };
 
 /* i_sound.c binds these to the config file; they belonged to the SDL module */

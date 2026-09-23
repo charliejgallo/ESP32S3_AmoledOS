@@ -34,6 +34,8 @@ void doomgeneric_Tick(void);
 void M_SaveDefaults(void);
 extern unsigned int main_loop_started;      /* boolean, an unsigned int */
 
+void dg_fatal(const char *msg) __attribute__((noreturn));
+
 /* Measured on the board with /api/mem: 3.9 KB at the title and in the
  * demos. Four times that, for the deeper corners (saves, the finale). */
 #define WORKER_STACK    (16 * 1024)
@@ -319,6 +321,12 @@ int dg_putchar(int c)
     return c;
 }
 
+int dg_fgetc(FILE *f)
+{
+    unsigned char c;
+    return fread(&c, 1, 1, f) == 1 ? c : EOF;
+}
+
 int dg_fflush(FILE *f)
 {
     if (f == stdout || f == stderr) return 0;
@@ -375,6 +383,20 @@ unsigned int __bswapsi2(unsigned int x)
     b[3] = (unsigned char)(x >> 24);
     return ((unsigned int)b[0] << 24) | ((unsigned int)b[1] << 16) |
            ((unsigned int)b[2] << 8) | (unsigned int)b[3];
+}
+#endif
+
+#ifndef AOS_SIM
+/* midifile.c and dbopl.c assert. newlib's __assert_func is not in the
+ * firmware's table, and a failed assert there would restart the watch:
+ * here it is an I_Error, which shows on the screen and returns to it. */
+void __assert_func(const char *file, int line, const char *func, const char *expr)
+{
+    char msg[160];
+    const char *base = strrchr(file, '/');
+    snprintf(msg, sizeof msg, "assert %s (%s:%d %s)", expr, base ? base + 1 : file, line,
+             func ? func : "");
+    dg_fatal(msg);
 }
 #endif
 

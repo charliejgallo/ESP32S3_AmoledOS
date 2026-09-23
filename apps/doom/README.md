@@ -2,7 +2,7 @@
 
 Yes, it runs Doom. Chocolate Doom, through
 [doomgeneric](https://github.com/ozkl/doomgeneric), as an ordinary app from the
-card: a 408 KB `.so` that the firmware loads like any other, with no line of
+card: a 428 KB `.so` that the firmware loads like any other, with no line of
 the firmware changed for it. E1M1 runs at **35 fps on the board** (measured
 from the start of the level), which is Doom's own tic rate and so its
 ceiling; with the cap lifted the renderer did 43-61 fps in the attract demos.
@@ -49,7 +49,10 @@ The config (`default.cfg`) and the saves (`saves/`) land in the same folder.
   while playing; if the game ever stopped answering, holding the side button
   for five seconds with no finger on the glass leaves.
 
-Sound effects play through the speaker. There is no music yet.
+Sound effects and **the music** play through the speaker: Doom's own OPL2
+soundtrack, synthesised on the watch. Doom's Sound menu sets both volumes,
+and the options (volumes, screen size, mouse sensitivity, which is the
+stick's turn speed) are kept in `default.cfg` between games.
 
 ## How it is put together
 
@@ -60,7 +63,8 @@ main/port/           the platform layer doomgeneric asks for
     dg_system.c      the engine's life: worker, exit(), memory, files, stdout
     dg_video.c       I_VideoBuffer -> RGB565 in three frame slots
     dg_input.c       the pad as keys, the stick as a mouse
-    dg_sound.c       the effects mixer
+    dg_sound.c       the mixer: effects, plus the music on the same clock
+    dg_opl.c         opl.h on DOSBox's OPL2 emulator, without threads
     dg_compat.h      what the engine sees instead of the C library
 main/doomgeneric/    the engine, vendored (see below)
 ```
@@ -95,6 +99,23 @@ of internal RAM; its measured peak is 3.9 KB.
 tic makes an analogue stick with no change to the game. In the menus and on
 the screens between levels the stick becomes the arrow keys, with auto-repeat.
 
+**The music is the Sound Blaster's.** Doom's music is MUS, which DMX played
+on the OPL2 FM chip with the instrument patches in the WAD's `GENMIDI` lump.
+Chocolate Doom 2.2.1's player does the same (`i_oplmusic.c`, MUS converted
+to MIDI and stepped through by timed callbacks) on DOSBox's DBOPL emulator,
+both GPL v2 and vendored here. Their SDL driver ran the chip in SDL's audio
+thread; `port/dg_opl.c` implements the same `opl.h` with no threads at all:
+the mixer asks for as many samples as it is about to queue, and the chip is
+generated up to each callback's time, which then runs. The song's clock is
+the sample count, so the tempo holds whatever the frame rate does. The Nuked
+OPL3 that replaced DBOPL in Chocolate 2.3 is more exact and heavier (it
+emulates the chip at its own 49716 Hz and resamples; not measured here);
+DBOPL generates at 16 kHz directly, skips silent channels and costs **3-7 % of core 0**, measured with the cycle counter while E1M1 stays
+at 35 fps. A one-pole high-pass takes off the DC DBOPL's output carries, and
+the music is mixed at four times the emulator's level: at 1:1, E1M1 measured
+470 RMS against the pistol's 20000 peaks. A soft knee above three quarters
+of full scale keeps a shotgun over the music from clipping flat.
+
 **One frame per tic.** `TryRunTics` returns to redraw after a tic's worth of
 waiting even when no tic ran, and drawing the same state again is a whole core
 for nothing: 46 frames a second for 35 tics. The loop now draws only when
@@ -105,20 +126,28 @@ for nothing: 46 frames a second for 35 tics. The loop now draws only when
 `main/doomgeneric/` is doomgeneric at
 `dcb7a8dbc7a16ce3dda29382ac9aae9d77d21284`, only the files the watch uses
 (the SDL, X11, Allegro and Windows back ends and the original `i_video.c` are
-left out). Every change is marked `AmoledOS:` in the source:
+left out), plus the music from Chocolate Doom 2.2.1 (tag
+`chocolate-doom-2.2.1`): `i_oplmusic.c`, `midifile.c/.h`, `dbopl.c/.h`,
+`opl.h` and `opl_queue.c/.h`. Every change is marked `AmoledOS:` in the
+source:
 
 | File | Change |
 | --- | --- |
 | `doomtype.h` | includes `port/dg_compat.h` |
 | `doomfeatures.h`, `i_sound.c` | sound on, through `port/dg_sound.c`, no SDL_mixer |
 | `i_system.c` | the zone from `dg_zone_alloc()`; `I_Quit` and `I_Error` leave through the port |
-| `m_config.c` | config and saves in `<card>/doom/`, the saves folder without a dot |
+| `m_config.c` | config and saves in `<card>/doom/`, the saves folder without a dot; saving and loading the config back on (off in doomgeneric), a line at a time, without the keys |
 | `m_controls.c` | always run; `[` and `]` bound to previous/next weapon |
 | `m_menu.c` | a name for an empty save slot; `dg_menu_state()` for the pad |
 | `d_main.c` | no ENDOOM; draw only when a tic ran |
 | `doomgeneric.c` | no 1 MB RGBA screen |
 | `i_input.c` | the stick, once per tic |
 | `v_video.c` | a float compare instead of a double one |
+| `m_misc.c` | `M_TempFile` on the card: there is no `/tmp` |
+| `i_oplmusic.c` | the module under the name `i_sound.c` looks for; Chocolate 2.2's `opl_driver_ver_t` |
+| `dbopl.c` | tables and rate set-up in `float` (bit-exact against the `double` original on a test note) |
+| `midifile.c` | its own big-endian swaps instead of SDL's |
+| `opl_queue.c` | the engine's malloc; tempo changes in 32 bits |
 
 The simulator builds the engine and the port as a library of their own
 (`sim/CMakeLists.txt`), without our warnings, and the app on top. In the
@@ -141,13 +170,33 @@ per simulator run; on the board every open is a fresh `dlopen`.
   two the engine needed from outside: that `__bswapsi2` and a `double`
   compare in `v_video.c`. Everything else is in the firmware's table, so the
   app works on any firmware from v0.4.10 (the worker on a chosen core).
+- **`OPL_Delay` would hang forever.** Chocolate's version sets a callback and
+  waits on a condition variable for the audio thread to fire it; with the
+  chip generated from the game's own task nobody ever would. The only caller
+  is the chip detection, which a software chip skips.
+- **The music brought four more symbols** the firmware does not lend:
+  `__assert_func` (now an `I_Error`, which shows and returns to the watch
+  instead of restarting it), `fgetc` (through `dg_compat.h`), and float to
+  64-bit conversions in the callback queue's tempo change (done in 32 bits:
+  a pending callback is seconds away at most).
+- **The config kept nothing.** doomgeneric ships `M_SaveDefaults` and its
+  loader switched off. Switched on as they were, the keys would break: they
+  are written as keyboard scan codes and doomgeneric's own have none
+  (`KEY_FIRE` is `0xa3`), so they would read back as 0. The keys are left
+  out; the pad owns them anyway.
+- **A DC blocker that stuck.** `y * 1019 >> 10` rounds negatives down, and
+  any output a couple of hundred below zero was a fixed point: silence came
+  out as a constant -260. `/ 1024` truncates towards zero and it decays.
+  Found in the simulator with `DOOM_WAV=<file>`, which dumps the mix as raw
+  16 kHz mono so it can be measured without listening.
 - **The screenshot does not see the game.** The portal's capture and the
   simulator's shot read LVGL's pixels, and the picture goes to the panel past
   LVGL. The images above are from the simulator, which draws through a canvas.
 
 ## Licence
 
-Doom's source code, and so this app, is under the **GNU GPL v2**
-(`main/doomgeneric/LICENSE`); the rest of AmoledOS is MIT. The WAD files are
+Doom's source code, Chocolate Doom's music player and DOSBox's DBOPL, and so
+this app, are under the **GNU GPL v2** (`main/doomgeneric/LICENSE`); the
+rest of AmoledOS is MIT. The WAD files are
 not part of it: the shareware one is freely distributable, the commercial
 ones are not.

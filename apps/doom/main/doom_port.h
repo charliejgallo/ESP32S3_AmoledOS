@@ -59,7 +59,8 @@ const char *dp_error(void);
 const uint16_t *dp_frame_take(void);
 void        dp_frame_blitted(void);     /* after the blit of what take() gave */
 uint32_t    dp_frames(void);        /* frames finished since start */
-const char *dp_where(void);         /* "level E1M1", "title +menu"... for the log */
+const char *dp_where(void);
+void        dp_audio_cycles(uint32_t *music, uint32_t *total);  /* running sums */         /* "level E1M1", "title +menu"... for the log */
 
 /* Input, from LVGL's task. */
 void        dp_button(int btn, bool down);

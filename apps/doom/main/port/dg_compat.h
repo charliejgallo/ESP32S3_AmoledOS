@@ -49,6 +49,7 @@ int   dg_vfprintf(FILE *f, const char *fmt, va_list ap);
 int   dg_puts(const char *s);
 int   dg_putchar(int c);
 int   dg_fflush(FILE *f);
+int   dg_fgetc(FILE *f);
 
 int   dg_strncasecmp(const char *a, const char *b, size_t n);
 int   dg_strcasecmp(const char *a, const char *b);
@@ -79,6 +80,8 @@ double dg_atof(const char *s);
 #undef  putchar
 #define putchar     dg_putchar
 #define fflush      dg_fflush
+#undef  fgetc
+#define fgetc       dg_fgetc
 
 /* Not in the firmware's table, or macros over newlib internals that are not
  * either: cheaper to carry our own than to reflash every watch. */

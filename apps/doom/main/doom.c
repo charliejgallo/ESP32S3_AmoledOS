@@ -84,6 +84,7 @@ typedef struct {
 
     uint32_t    hw_press_ms;
     uint32_t    fps_ms, fps_frames, fps_blits, blits;
+    uint32_t    cyc_music, cyc_total;
 } app_t;
 
 #ifdef AOS_SIM
@@ -337,12 +338,22 @@ static void frame(lv_timer_t *t)
         uint32_t fr = dp_frames() - a->fps_frames, bl = a->blits - a->fps_blits;
         uint32_t fi = 0, fp = 0;
         aos_hal_heap_info(&fi, &fp);
-        aos_hal_log("doom", "%s: %u.%u fps rendered, %u.%u shown | internal %u B, psram %u B",
+        /* the mixer's share of core 0: cycles over 240 MHz */
+        uint32_t cm, ct;
+        dp_audio_cycles(&cm, &ct);
+        uint32_t dt = now - a->fps_ms;
+        unsigned pm = (unsigned)((uint64_t)(cm - a->cyc_music) * 1000 / 240000 / dt);
+        unsigned pt = (unsigned)((uint64_t)(ct - a->cyc_total) * 1000 / 240000 / dt);
+        a->cyc_music = cm;
+        a->cyc_total = ct;
+        aos_hal_log("doom", "%s: %u.%u fps rendered, %u.%u shown | audio %u.%u%% of core 0 "
+                    "(music %u.%u%%) | internal %u B, psram %u B",
                     dp_where(),
                     (unsigned)(fr * 10000 / (now - a->fps_ms) / 10),
                     (unsigned)(fr * 10000 / (now - a->fps_ms) % 10),
                     (unsigned)(bl * 10000 / (now - a->fps_ms) / 10),
                     (unsigned)(bl * 10000 / (now - a->fps_ms) % 10),
+                    pt / 10, pt % 10, pm / 10, pm % 10,
                     (unsigned)fi, (unsigned)fp);
         a->fps_ms = now;
         a->fps_frames = dp_frames();

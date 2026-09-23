@@ -324,7 +324,7 @@ in the pack, so a new one needs no code. 25-26 fps on the board. More in
   <img src="docs/img/app-doom-map.png" width="200" alt="The automap of E1M1">
 </p>
 
-Can it run Doom? It can: Chocolate Doom through doomgeneric, as a 408 KB
+Can it run Doom? It can: Chocolate Doom through doomgeneric, as a 428 KB
 `.so` from the card, with no line of the firmware changed for it. E1M1 runs at
 35 fps on the board, Doom's own tic rate. The engine runs on the second core
 and hands its frames over in three slots; LVGL's task pushes the newest
@@ -332,8 +332,9 @@ straight to the panel, and draws a pad below it: an analogue stick (a mouse to
 Doom), FIRE, USE, the menu, the map and the next weapon, with the side button
 firing while the thumb walks. `exit()` is a `longjmp` back to the worker, so
 quitting from Doom's menu returns to the watch and gives every byte back.
-Bring your own WAD: the shareware `DOOM1.WAD` goes in the card's `doom/`
-folder. Sound effects, no music yet. The engine is GPL v2. More in
+Sound effects and the OPL2 music, synthesised on the watch for 3-7 % of a
+core. Bring your own WAD: the shareware `DOOM1.WAD` goes in the card's
+`doom/` folder. The engine is GPL v2. More in
 [apps/doom/README.md](apps/doom/README.md).
 
 #### The others
