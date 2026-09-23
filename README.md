@@ -465,11 +465,13 @@ unzip lua-scripts.zip -d /Volumes/<sd>/lua/
 > no language, no watchface and no app data. That is what you want on a fresh
 > board. To update a watch already in use, take
 > `amoledos-firmware-files.zip` instead — the same build as four separate files
-> that leave NVS alone.
+> that leave NVS alone. Or, since v0.5.0, download a backup from the portal's
+> `/ajustes` page first and restore it after: every setting, every app's
+> data and the menu's folders come back.
 
 The apps are loaded once at startup, so restart the board after copying them.
-Then set the wifi up from the watch: Settings → the network screen raises an
-access point and shows a QR code.
+Then set the wifi up from the watch: Settings → Wi-Fi → Set up network raises
+an access point and shows a QR code.
 
 **After that first install the cable is optional.** The firmware updates over
 WiFi — `./tools/install_fw.sh <board-ip>`, or drop the `.bin` on the portal's

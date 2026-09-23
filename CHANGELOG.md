@@ -3,7 +3,9 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.5.0 — 2026-09-23
+
+The launcher in your order and a new Settings.
 
 **Folders and order.** The launcher shows the apps in the order the user
 chose, with folders, arranged from the portal's new `/menu` page.
