@@ -197,8 +197,8 @@ exists, which is why they are cheaper than they look.
 
 ### Control centre on the watchface
 
-Swipe down on the watchface for Settings' six quick tiles and the
-brightness, without opening Settings. The tiles are already a component in
+**Done in v0.5.1.** Swipe down on the watchface for Settings' six quick
+tiles and the brightness, without opening Settings. The tiles are already a component in
 `aos_app_settings.c` (`tile_new`, `tile_cb`, `tiles_paint`); what is missing
 is the gesture on the face (today a swipe down there does nothing) and a
 panel that slides over it like the notification overlay does. Done when the

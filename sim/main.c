@@ -16,6 +16,7 @@ void aos_hal_sim_link_tick(void);   /* hal_sim.c: the UDP link */
 #include "aos_watchface.h"
 #include "aos_theme.h"
 #include "aos_icon_ops.h"
+#include "aos_control.h"
 #include <sys/stat.h>
 
 #include <stdio.h>
@@ -1366,6 +1367,8 @@ int main(void)
         } else if (strcmp(view, "honeycomb") == 0) {
             aos_ui_launcher_set_style(AOS_LAUNCHER_HONEYCOMB);
             aos_ui_show_launcher();
+        } else if (strcmp(view, "control") == 0) {
+            aos_control_open();             /* the control centre, v0.5.1 */
         } else if (strcmp(view, "icontest") == 0) {
             icontest_build();
         } else {

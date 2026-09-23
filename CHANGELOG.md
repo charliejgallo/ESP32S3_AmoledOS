@@ -3,6 +3,19 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+**Control centre.** A swipe down on the watchface pulls down a panel with
+the date, the watch's and the phone's battery, Settings' six quick tiles,
+the brightness and the volume, the phone's music with previous, play/pause
+and next while something is playing, and a row into Settings. A swipe up,
+the button or the screen dimming puts it away; a swipe right does not, so
+dragging the brightness never closes it. Built in 47-59 ms on the board.
+
+- The tiles and the pill slider moved out of Settings into one shared
+  piece (`aos_quick`), so Settings and the control centre are the same code.
+- Eight more Material Design glyphs in Settings' icon font.
+
 ## v0.5.0 — 2026-09-23
 
 The launcher in your order and a new Settings.

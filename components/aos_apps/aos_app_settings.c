@@ -22,6 +22,7 @@
 #include "aos_wifi_qr.h"
 #include "aos_pair_ui.h"
 #include "aos_settings_glyphs.h"
+#include "aos_quick.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -73,7 +74,7 @@ typedef struct {
     lv_obj_t *main;             /* the first page                              */
     lv_obj_t *sub;              /* the open category's page, or NULL           */
     int       sub_kind;
-    lv_obj_t *tile[6];
+    lv_obj_t *tiles;            /* the six quick tiles (aos_quick.h)            */
     lv_obj_t *value[13];        /* the right-hand text of each category row    */
     lv_obj_t *lang_check[AOS_LANG_MAX];
     lv_obj_t *style_card[3];
@@ -159,19 +160,9 @@ static void sync_cb(lv_event_t *event)
                                          : _("Sin conexion"), 1600);
 }
 
-static void set_wifi(bool on)
-{
-    /* Switching it off gives back ~60 KB of executable memory, which is where
-     * the code of dynamic apps comes from. The two largest do not fit with the
-     * radio up, so this switch is also an app switch. */
-    aos_hal_net_enable(on);
-    aos_ui_toast(on ? _("Wifi encendida")
-                    : _("Wifi apagada, memoria liberada"), 1600);
-}
-
 static void wifi_toggle_cb(lv_event_t *event)
 {
-    set_wifi(lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED));
+    aos_quick_set_wifi(lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED));
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1146,17 +1137,14 @@ static void bt_pair_cb(lv_event_t *event)
     bt_box_refresh(NULL);
 }
 
+/* The pairing screen goes with Bluetooth: switched off, there is nothing
+ * left for it to wait for. */
 static void set_bt(bool on)
 {
-    aos_hal_bt_enable(on);
+    aos_quick_set_bt(on);
     if (!on) {
         bt_box_close();
     }
-    /* The same warning as WiFi, and for the same reason: the BLE stack takes
-     * ~30 KB of executable memory, which is where the code of dynamic apps
-     * comes from (measured in docs/HANDOFF-BLE-ANCS.md, section 2.4). */
-    aos_ui_toast(on ? _("Bluetooth encendido")
-                    : _("Bluetooth apagado, memoria liberada"), 1600);
 }
 
 static void bt_toggle_cb(lv_event_t *event)
@@ -1172,20 +1160,9 @@ static void bt_forget_cb(lv_event_t *event)
     aos_ui_toast(_("Telefono olvidado"), 1600);
 }
 
-/* "Do not disturb" is the notifications switch the other way round: with
- * alerts off a notification is still kept in the list, it only does not
- * light the screen or sound, and a call gets through with "calls always"
- * (aos_notif.c, politica()). That is what do-not-disturb means. */
-static void set_dnd(bool dnd)
-{
-    aos_hal_notif_enable(!dnd);
-    aos_ui_toast(dnd ? _("No molestar: el telefono sigue conectado")
-                     : _("Notificaciones encendidas"), 1800);
-}
-
 static void dnd_cb(lv_event_t *event)
 {
-    set_dnd(lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED));
+    aos_quick_set_dnd(lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED));
 }
 
 static void notif_sound_cb(lv_event_t *event)
@@ -1328,7 +1305,6 @@ typedef enum {
     SUB_COUNT
 } sub_t;
 
-enum { TILE_WIFI, TILE_BT, TILE_LIGHT, TILE_AOD, TILE_SAVE, TILE_DND, TILE_COUNT };
 
 static void open_sub(int kind, bool animate);
 static void close_sub(bool animate);
@@ -1559,45 +1535,6 @@ static lv_obj_t *radio_row(lv_obj_t *c, const char *text, bool chosen,
     return tick;
 }
 
-/* The pill slider: an icon on the left, the value on the right, no knob.
- * The value label is kept current by the slider itself. */
-static void pill_value_cb(lv_event_t *event)
-{
-    lv_obj_t *sl = lv_event_get_target(event);
-    lv_obj_t *val = (lv_obj_t *)lv_event_get_user_data(event);
-    lv_label_set_text_fmt(val, "%d %%", (int)lv_slider_get_value(sl));
-}
-
-static lv_obj_t *pill_slider(lv_obj_t *parent, const char *g, int value,
-                             int min, int max, lv_event_cb_t cb)
-{
-    lv_obj_t *sl = lv_slider_create(parent);
-    lv_obj_set_size(sl, CONTENT_W, 48);
-    lv_slider_set_range(sl, min, max);
-    lv_slider_set_value(sl, value, LV_ANIM_OFF);
-    lv_obj_set_style_radius(sl, 24, LV_PART_MAIN);
-    lv_obj_set_style_radius(sl, 24, LV_PART_INDICATOR);
-    lv_obj_set_style_bg_color(sl, AOS_C_CARD, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(sl, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(sl, lv_color_hex(0x48484A), LV_PART_INDICATOR);
-    lv_obj_set_style_bg_opa(sl, LV_OPA_TRANSP, LV_PART_KNOB);
-    lv_obj_set_style_pad_all(sl, 0, LV_PART_KNOB);
-    lv_obj_set_style_pad_all(sl, 0, LV_PART_MAIN);
-    lv_obj_set_ext_click_area(sl, 6);
-
-    lv_obj_t *ic = glyph(sl, g, AOS_C_TEXT);
-    lv_obj_align(ic, LV_ALIGN_LEFT_MID, 16, 0);
-    lv_obj_t *val = aos_label(sl, "", aos_font_small, AOS_C_TEXT);
-    lv_obj_align(val, LV_ALIGN_RIGHT_MID, -18, 0);
-    lv_label_set_text_fmt(val, "%d %%", value);
-    aos_make_decorative(ic);
-    aos_make_decorative(val);
-
-    lv_obj_add_event_cb(sl, pill_value_cb, LV_EVENT_VALUE_CHANGED, val);
-    lv_obj_add_event_cb(sl, cb, LV_EVENT_VALUE_CHANGED, NULL);
-    return sl;
-}
-
 /* A segmented control. The callback gets the chosen index; it is kept in the
  * container's user data so the one click handler serves every control. */
 typedef void (*seg_cb_t)(int index);
@@ -1709,100 +1646,6 @@ static void portal_qr(lv_obj_t *parent, const char *path, const char *what)
     lv_obj_t *u = aos_label(col, shown, aos_font_small, AOS_C_ACCENT);
     lv_obj_set_width(u, lv_pct(100));
     lv_label_set_long_mode(u, LV_LABEL_LONG_MODE_WRAP);
-}
-
-/* --------------------------------------------------------------------------
- * The first page: the quick tiles
- * -------------------------------------------------------------------------- */
-
-static bool tile_on(int kind)
-{
-    switch (kind) {
-    case TILE_WIFI: return aos_hal_net_enabled();
-    case TILE_BT:   return aos_hal_bt_enabled();
-    case TILE_AOD:  return aos_hal_aod_enabled();
-    case TILE_SAVE: return aos_hal_power_saving_enabled();
-    case TILE_DND:  return !aos_hal_notif_enabled();
-    default:        return false;           /* the flashlight opens an app */
-    }
-}
-
-static lv_color_t tile_color(int kind)
-{
-    switch (kind) {
-    case TILE_SAVE: return AOS_C_GREEN;
-    case TILE_DND:  return lv_color_hex(0x5E5CE6);
-    case TILE_AOD:  return AOS_C_PURPLE;
-    default:        return AOS_C_ACCENT;
-    }
-}
-
-static void tiles_paint(void)
-{
-    for (int k = 0; k < TILE_COUNT; k++) {
-        lv_obj_t *t = s_set.tile[k];
-        if (!t) {
-            continue;
-        }
-        bool on = tile_on(k);
-        lv_color_t bg = on ? tile_color(k) : AOS_C_CARD;
-        if (!lv_color_eq(lv_obj_get_style_bg_color(t, 0), bg)) {
-            lv_obj_set_style_bg_color(t, bg, 0);
-        }
-        lv_obj_t *ic = lv_obj_get_child(t, 0);
-        lv_color_t fg = k == TILE_LIGHT ? AOS_C_YELLOW : on ? AOS_C_TEXT : AOS_C_DIM;
-        lv_obj_set_style_text_color(ic, fg, 0);
-        lv_obj_set_style_text_color(lv_obj_get_child(t, 1), on ? AOS_C_TEXT : AOS_C_DIM, 0);
-    }
-}
-
-static void tile_cb(lv_event_t *event)
-{
-    int kind = (int)(intptr_t)lv_event_get_user_data(event);
-    bool on = tile_on(kind);
-    switch (kind) {
-    case TILE_WIFI:  set_wifi(!on); break;
-    case TILE_BT:    set_bt(!on);   break;
-    case TILE_LIGHT:
-        /* Deferred: opening another app from here would destroy Settings
-         * inside its own callback. */
-        aos_ui_request_open("aos.flashlight");
-        return;
-    case TILE_AOD:
-        aos_hal_aod_enable(!on);
-        aos_ui_toast(!on ? _("Siempre encendido") : _("La pantalla se apaga"), 1400);
-        break;
-    case TILE_SAVE:
-        aos_hal_power_saving_enable(!on);
-        aos_ui_toast(!on ? _("Ahorro de energia") : _("Ahorro apagado"), 1400);
-        break;
-    case TILE_DND:   set_dnd(!on);  break;
-    }
-    tiles_paint();
-}
-
-static void tile_new(lv_obj_t *parent, int kind, const char *g, const char *text)
-{
-    lv_obj_t *t = lv_obj_create(parent);
-    lv_obj_remove_style_all(t);
-    lv_obj_set_size(t, (CONTENT_W - 20) / 3, 84);
-    lv_obj_set_style_radius(t, 20, 0);
-    lv_obj_set_style_bg_opa(t, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_opa(t, LV_OPA_70, LV_STATE_PRESSED);
-    lv_obj_set_style_pad_ver(t, 8, 0);
-    lv_obj_set_flex_flow(t, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(t, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
-                          LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(t, 4, 0);
-    glyph(t, g, AOS_C_DIM);
-    lv_obj_t *l = aos_label(t, text, aos_font_small, AOS_C_DIM);
-    lv_obj_set_width(l, (CONTENT_W - 20) / 3 - 8);
-    lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_WRAP);
-    lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
-    aos_make_decorative(t);
-    lv_obj_add_flag(t, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(t, tile_cb, LV_EVENT_CLICKED, (void *)(intptr_t)kind);
-    s_set.tile[kind] = t;
 }
 
 /* --------------------------------------------------------------------------
@@ -1929,23 +1772,9 @@ static void build_main(lv_obj_t *root)
     lv_obj_t *title = aos_label(p, _("Ajustes"), aos_font_title, AOS_C_TEXT);
     lv_obj_set_width(title, CONTENT_W - 8);
 
-    lv_obj_t *tiles = lv_obj_create(p);
-    lv_obj_remove_style_all(tiles);
-    lv_obj_set_size(tiles, CONTENT_W, LV_SIZE_CONTENT);
-    lv_obj_set_flex_flow(tiles, LV_FLEX_FLOW_ROW_WRAP);
-    lv_obj_set_style_pad_row(tiles, 10, 0);
-    lv_obj_set_style_pad_column(tiles, 10, 0);
-    lv_obj_remove_flag(tiles, LV_OBJ_FLAG_SCROLLABLE);
-    tile_new(tiles, TILE_WIFI,  AOS_SG_WIFI,                 _("Wifi"));
-    tile_new(tiles, TILE_BT,    AOS_SG_BLUETOOTH,            _("Bluetooth"));
-    tile_new(tiles, TILE_LIGHT, AOS_SG_FLASHLIGHT,           _("Linterna"));
-    tile_new(tiles, TILE_AOD,   AOS_SG_WATCH_VARIANT,        _("Siempre encendido"));
-    tile_new(tiles, TILE_SAVE,  AOS_SG_LEAF,                 _("Ahorro"));
-    tile_new(tiles, TILE_DND,   AOS_SG_MOON_WANING_CRESCENT, _("No molestar"));
-    tiles_paint();
+    s_set.tiles = aos_quick_tiles_create(p, CONTENT_W, 84);
 
-    pill_slider(p, AOS_SG_WHITE_BALANCE_SUNNY, aos_hal_brightness_get(), 5, 100,
-                brightness_value_cb);
+    aos_quick_slider(p, AOS_SG_WHITE_BALANCE_SUNNY, aos_hal_brightness_get(), 5, 100, CONTENT_W, 48, brightness_value_cb);
 
     static const struct {
         int kind;
@@ -2090,8 +1919,7 @@ static void aod_seg_cb(int i)
 
 static void build_display(lv_obj_t *p)
 {
-    pill_slider(p, AOS_SG_WHITE_BALANCE_SUNNY, aos_hal_brightness_get(), 5, 100,
-                brightness_value_cb);
+    aos_quick_slider(p, AOS_SG_WHITE_BALANCE_SUNNY, aos_hal_brightness_get(), 5, 100, CONTENT_W, 48, brightness_value_cb);
 
     lv_obj_t *c = card(p);
     lv_obj_t *face_val = NULL;
@@ -2105,8 +1933,7 @@ static void build_display(lv_obj_t *p)
                 aos_hal_raise_wake_enabled(), raise_wake_cb);
 
     caption(p, _("BRILLO ATENUADA"));
-    pill_slider(p, AOS_SG_BRIGHTNESS_6, aos_hal_aod_brightness_get(), 1, 40,
-                aod_brightness_cb);
+    aos_quick_slider(p, AOS_SG_BRIGHTNESS_6, aos_hal_aod_brightness_get(), 1, 40, CONTENT_W, 48, aod_brightness_cb);
 
     uint32_t act_s, aod_s;
     aos_hal_screen_timeouts_get(&act_s, &aod_s);
@@ -2139,7 +1966,7 @@ static void raise_wake_cb(lv_event_t *event)
 
 static void build_sound(lv_obj_t *p)
 {
-    pill_slider(p, AOS_SG_VOLUME_HIGH, aos_hal_volume_get(), 5, 100, volume_cb);
+    aos_quick_slider(p, AOS_SG_VOLUME_HIGH, aos_hal_volume_get(), 5, 100, CONTENT_W, 48, volume_cb);
     lv_obj_t *c = card(p);
     switch_row2(c, _("Sonido de los avisos"), NULL, aos_hal_notif_sound(), notif_sound_cb);
 }
@@ -2636,7 +2463,7 @@ static void close_sub(bool animate)
         lv_obj_remove_flag(s_set.main, LV_OBJ_FLAG_HIDDEN);
     }
     values_refresh();
-    tiles_paint();
+    aos_quick_tiles_paint(s_set.tiles);
     if (animate) {
         lv_anim_delete(p, anim_x_cb);
         slide(p, lv_obj_get_x(p), AOS_SCREEN_W, sub_gone_cb);
@@ -2653,7 +2480,7 @@ static void refresh(lv_timer_t *timer)
 {
     (void)timer;
     usb_refresh();
-    tiles_paint();
+    aos_quick_tiles_paint(s_set.tiles);
     values_refresh();
 
     if (s_set.time_label) {
@@ -2836,7 +2663,7 @@ static void refresh(lv_timer_t *timer)
 static void *create(aos_app_t *self, lv_obj_t *root)
 {
     (void)self;
-    memset(s_set.tile, 0, sizeof(s_set.tile));
+    s_set.tiles = NULL;
     memset(s_set.value, 0, sizeof(s_set.value));
     forget_sub_pointers();
     s_set.sub = NULL;
@@ -2957,7 +2784,7 @@ static void destroy(aos_app_t *self, void *inst)
     }
     /* The objects go with the app's root; only the pointers stay behind. */
     forget_sub_pointers();
-    memset(s_set.tile, 0, sizeof(s_set.tile));
+    s_set.tiles = NULL;
     memset(s_set.value, 0, sizeof(s_set.value));
     s_set.main = NULL;
     s_set.sub  = NULL;

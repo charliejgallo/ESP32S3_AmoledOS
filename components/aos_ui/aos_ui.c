@@ -20,6 +20,7 @@
 #include "aos_hal.h"
 #include "aos_internal.h"
 #include "aos_menu.h"
+#include "aos_control.h"
 #include "aos_watchface.h"
 #include "aos_i18n.h"
 #include "aos_notif_ui.h"
@@ -432,9 +433,21 @@ static void watchface_show(void)
 static void watchface_hide_if_covered(lv_anim_t *anim)
 {
     (void)anim;
-    if (s_watchface && (s_current || s_launcher_visible)) {
+    if (s_watchface && (s_current || s_launcher_visible || aos_control_visible())) {
         lv_obj_add_flag(s_watchface, LV_OBJ_FLAG_HIDDEN);
     }
+}
+
+/* For the control centre (aos_control.c), which covers the face from
+ * lv_layer_top and is not one of the states above. */
+void aos_ui_face_hide_if_covered(void)
+{
+    watchface_hide_if_covered(NULL);
+}
+
+void aos_ui_face_show(void)
+{
+    watchface_show();
 }
 
 /* --------------------------------------------------------------------------
@@ -524,6 +537,7 @@ static void launcher_hidden_cb(lv_anim_t *anim)
 
 void aos_ui_show_launcher(void)
 {
+    aos_control_close(false);
     launcher_ensure();
     if (s_launcher_visible) {
         return;
@@ -564,6 +578,9 @@ bool aos_ui_open(const char *id)
     if (s_current == app) {
         return true;
     }
+    /* From the control centre's own tiles (the flashlight, Settings): the app
+     * takes the screen, the panel just goes. */
+    aos_control_close(false);
 
     /* the app that was in front goes to the background or dies */
     if (s_current) {
@@ -690,6 +707,10 @@ void aos_ui_back(void)
         aos_watchface_close_picker();
         return;
     }
+    if (aos_control_visible()) {
+        aos_control_close(true);
+        return;
+    }
     if (s_current) {
         if (s_current->back && s_current->back(s_current, s_current->inst)) {
             return;     /* the app handled it internally */
@@ -708,6 +729,7 @@ void aos_ui_back(void)
 
 void aos_ui_home(void)
 {
+    aos_control_close(false);
     if (s_current) {
         close_current(true);
     }
@@ -1158,6 +1180,15 @@ static void handle_gesture(lv_dir_t dir)
         return;
     }
 
+    /* The control centre goes back up the way it came, and only that way: a
+     * swipe right would also be a fast drag of its brightness slider. */
+    if (aos_control_visible()) {
+        if (dir == LV_DIR_TOP) {
+            aos_control_close(true);
+        }
+        return;
+    }
+
     switch (dir) {
     case LV_DIR_RIGHT:
         if (s_current && (s_current->desc.flags & AOS_APP_FLAG_NO_SWIPE)) {
@@ -1175,6 +1206,10 @@ static void handle_gesture(lv_dir_t dir)
     case LV_DIR_BOTTOM:
         if (!s_current && s_launcher_visible) {
             aos_ui_back();
+        } else if (!s_current && !aos_watchface_picker_visible()) {
+            /* On the watchface: the control centre. From the dimmed face too:
+             * the touch that carried the swipe has already woken it. */
+            aos_control_open();
         }
         break;
 
@@ -1623,7 +1658,7 @@ void aos_ui_tick(void)
      * corrects itself: with something covering it and no animation in flight,
      * there is no reason for it to still be visible. Asking about the
      * animations is what avoids cutting a transition short. */
-    if (s_watchface && (s_current || s_launcher_visible) &&
+    if (s_watchface && (s_current || s_launcher_visible || aos_control_visible()) &&
         !lv_obj_has_flag(s_watchface, LV_OBJ_FLAG_HIDDEN) &&
         lv_anim_count_running() == 0) {
         lv_obj_add_flag(s_watchface, LV_OBJ_FLAG_HIDDEN);
@@ -1656,6 +1691,8 @@ void aos_ui_tick(void)
         default: break;
         }
     }
+
+    aos_control_tick();
 
     if (s_picker_requested) {
         s_picker_requested = false;
