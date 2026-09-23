@@ -31,6 +31,23 @@ chose, with folders, arranged from the portal's new `/menu` page.
   flooded by the loader.
 - The grid and the honeycomb open at the first row instead of the middle.
 
+**Settings, redesigned.** One page nine screens long became a short first
+page and a page per category.
+
+- **Quick tiles**: Wi-Fi, Bluetooth, Flashlight (opens the app), Always on,
+  Saver and **Do not disturb**, plus the brightness as a pill slider, then
+  twelve categories in three groups, each with its current value.
+- **Display** gets the **screen timeouts**, until now fixed: dims after
+  15 s to 2 min, and once dimmed turns off after 1, 5 or 10 minutes, or
+  never. Also in the portal's `/ajustes`.
+- **Do not disturb** is the notifications switch named for what it does:
+  notifications stay in the list without lighting the screen or sounding,
+  and calls get through with "Calls always".
+- USB and Language are lists with a tick; the menu styles are cards with a
+  sketch; Power explains each switch; About shows the name, the card's
+  usage, a QR to the portal, and restarts on a long press; diagnostics have
+  a page of their own. Icons from Material Design Icons.
+
 ## v0.4.13 — 2026-09-22
 
 **Monster Hop**, a hop-by-hop action game in sixteen levels, with its art

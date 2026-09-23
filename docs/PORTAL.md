@@ -10,7 +10,7 @@ shared script, and `aos_web.c` with the handlers.
 | URL | What it is |
 |---|---|
 | `/` | **Home.** Battery, network, memory and system cards fed by `/api/status`; wake / screen off / sync time / restart; the firmware (OTA) upload. |
-| `/ajustes` | **Settings.** The watch's name first (what answers as `<name>.local`, shown next to the logo and in the tab so two watches on one network are told apart; lowercase letters, digits and hyphens), then the same controls as the watch's Settings app: brightness, watchface, launcher style, always-on and its brightness, volume, the four power switches, time zone, set the time, language, wifi / Bluetooth, notifications. Each control applies on release. |
+| `/ajustes` | **Settings.** The watch's name first (what answers as `<name>.local`, shown next to the logo and in the tab so two watches on one network are told apart; lowercase letters, digits and hyphens), then the same controls as the watch's Settings app: brightness, watchface, launcher style, always-on and its brightness, volume, the four power switches, time zone, set the time, language, wifi / Bluetooth, notifications. The two screen timeouts (dims after, turns off after) and "do not disturb" match the watch's Settings > Display and Notifications. Each control applies on release. |
 | `/alarmas` | **Alarms.** The six slots of the Alarms app: time, on/off, the days of the week (with weekdays / weekend / every day shortcuts), delete, add. A change is stored in NVS and the alarm service reloads on its next tick, redrawing the app if it is open. |
 | `/pantalla` | **Screen.** A live capture of the panel, with the controls to drive it from the browser: wake, off, back, watchface, menu, a toast, and a button per app to open it. For testing without the watch on the wrist. |
 | `/archivos` | **Files.** The card by folder (apps, photos, music, videos, recordings): upload by drag, download, delete, listen, and a preview for photos. Shows the free space. A fifth tab, **Card**, is an explorer of the whole card: any folder, breadcrumbs, new folder, delete an empty one. |
@@ -36,7 +36,9 @@ Form-encoded bodies for POST, JSON back. Everything the pages use:
 ```
 GET  /api/status                 the whole state; the strip polls it every 15 s
 GET  /api/ajustes                the settings, with the list of watchfaces
-POST /api/ajustes                any subset: nombre brillo volumen aod aod_brillo esfera
+POST /api/ajustes                any subset: nombre brillo volumen aod aod_brillo
+                                 pant_activa aod_dura (screen timeouts, seconds; 0 =
+                                 automatic / never) esfera
                                  menu ahorro cuidar panel_slp chip_slp tz wifi bt
                                  notif notif_sonido llamadas
 POST /api/accion                 que=despertar|apagar|volver|inicio|menu|beep|
