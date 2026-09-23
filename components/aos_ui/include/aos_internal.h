@@ -22,6 +22,13 @@ void      aos_ui_face_show(void);
 lv_obj_t *aos_watchface_create(lv_obj_t *parent);
 void      aos_watchface_refresh(void);
 
+/* The face under an app is torn down and built again when the app goes: its
+ * objects and buffers (the analogue face's dial is a 185 KB canvas) are
+ * PSRAM the app can use. Selecting, refreshing or dimming while suspended is
+ * safe: the face is mounted again when it is needed. */
+void      aos_watchface_suspend(void);
+void      aos_watchface_resume(void);
+
 #ifdef __cplusplus
 }
 #endif

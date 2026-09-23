@@ -29,6 +29,7 @@ static lv_obj_t *s_picker_name;
 static lv_obj_t *s_picker_dots;
 static int       s_preview;        /* face being looked at in the picker */
 static bool      s_aod;
+static bool      s_suspended;      /* torn down under an app, s_active kept */
 
 /* -------------------------------------------------------------------------- */
 
@@ -73,16 +74,15 @@ static void mount(int index)
         return;
     }
 
-    if (s_active >= 0) {
+    if (s_active >= 0 && s_face_root) {
         if (s_faces[s_active].destroy) {
             s_faces[s_active].destroy(s_ctx);
         }
-        if (s_face_root) {
-            lv_obj_delete(s_face_root);
-        }
+        lv_obj_delete(s_face_root);
         s_face_root = NULL;
         s_ctx = NULL;
     }
+    s_suspended = false;
 
     s_face_root = lv_obj_create(s_host);
     lv_obj_remove_style_all(s_face_root);
@@ -111,11 +111,38 @@ static void mount(int index)
     }
 }
 
+void aos_watchface_suspend(void)
+{
+    if (s_suspended || s_active < 0 || !s_face_root || aos_watchface_picker_visible()) {
+        return;
+    }
+    if (s_faces[s_active].destroy) {
+        s_faces[s_active].destroy(s_ctx);
+    }
+    lv_obj_delete(s_face_root);
+    s_face_root = NULL;
+    s_ctx = NULL;
+    s_suspended = true;
+}
+
+void aos_watchface_resume(void)
+{
+    if (s_suspended) {
+        mount(s_active);
+    }
+}
+
 bool aos_watchface_select(const char *id)
 {
     int index = index_of(id);
     if (index < 0 || index == s_active) {
         return index >= 0;
+    }
+    if (s_suspended) {
+        /* chosen from an app (Settings): it is built when the app goes */
+        s_active = index;
+        aos_hal_pref_set_str("face", s_faces[index].id);
+        return true;
     }
     mount(index);
     aos_hal_pref_set_str("face", s_faces[index].id);
@@ -255,6 +282,9 @@ void aos_watchface_set_aod(bool aod)
         return;
     }
     s_aod = aod;
+    if (aod) {
+        aos_watchface_resume();     /* dimmed, the face is what is shown */
+    }
 
     if (aod) {
         aos_watchface_close_picker();
@@ -310,7 +340,7 @@ lv_obj_t *aos_watchface_create(lv_obj_t *parent)
 
 void aos_watchface_refresh(void)
 {
-    if (s_active < 0 || !s_faces[s_active].refresh) {
+    if (s_active < 0 || s_suspended || !s_faces[s_active].refresh) {
         return;
     }
     struct tm now;

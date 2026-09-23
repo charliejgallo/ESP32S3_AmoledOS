@@ -423,6 +423,7 @@ aos_app_t *aos_ui_app_find(const char *id)
 
 static void watchface_show(void)
 {
+    aos_watchface_resume();
     if (s_watchface) {
         lv_obj_remove_flag(s_watchface, LV_OBJ_FLAG_HIDDEN);
     }
@@ -435,6 +436,11 @@ static void watchface_hide_if_covered(lv_anim_t *anim)
     (void)anim;
     if (s_watchface && (s_current || s_launcher_visible || aos_control_visible())) {
         lv_obj_add_flag(s_watchface, LV_OBJ_FLAG_HIDDEN);
+        /* under an app it goes altogether (the launcher and the control
+         * centre come and go too quickly to pay for building it again) */
+        if (s_current) {
+            aos_watchface_suspend();
+        }
     }
 }
 
@@ -1661,7 +1667,7 @@ void aos_ui_tick(void)
     if (s_watchface && (s_current || s_launcher_visible || aos_control_visible()) &&
         !lv_obj_has_flag(s_watchface, LV_OBJ_FLAG_HIDDEN) &&
         lv_anim_count_running() == 0) {
-        lv_obj_add_flag(s_watchface, LV_OBJ_FLAG_HIDDEN);
+        watchface_hide_if_covered(NULL);
     }
 
     /* Gesture reported by the touch controller (the v2 board detects them
