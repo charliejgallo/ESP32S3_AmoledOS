@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 120 funciones de libc/libm agregadas a mano.
- * Total: 2767 simbolos.
+ * Total: 2791 simbolos.
  */
 
 #include <stddef.h>
@@ -104,6 +104,11 @@ extern int aos_face_flip_get;
 extern int aos_face_minimal_get;
 extern int aos_face_nixie_get;
 extern int aos_face_rings_get;
+extern int aos_folder_font;
+extern int aos_folder_glyph_codepoint;
+extern int aos_folder_glyph_count;
+extern int aos_folder_glyphs;
+extern int aos_folder_icon_create;
 extern int aos_font_body;
 extern int aos_font_huge;
 extern int aos_font_small;
@@ -247,6 +252,9 @@ extern int aos_hal_notif_categories;
 extern int aos_hal_notif_categories_set;
 extern int aos_hal_notif_clear;
 extern int aos_hal_notif_count;
+extern int aos_hal_notif_dnd_active;
+extern int aos_hal_notif_dnd_schedule_get;
+extern int aos_hal_notif_dnd_schedule_set;
 extern int aos_hal_notif_enable;
 extern int aos_hal_notif_enabled;
 extern int aos_hal_notif_pop;
@@ -269,6 +277,7 @@ extern int aos_hal_path_apps;
 extern int aos_hal_path_data;
 extern int aos_hal_path_icons;
 extern int aos_hal_path_lang;
+extern int aos_hal_path_menu;
 extern int aos_hal_path_music;
 extern int aos_hal_path_photos;
 extern int aos_hal_path_recordings;
@@ -293,11 +302,14 @@ extern int aos_hal_power_info;
 extern int aos_hal_power_saving_enable;
 extern int aos_hal_power_saving_enabled;
 extern int aos_hal_pref_erase;
+extern int aos_hal_pref_foreach;
 extern int aos_hal_pref_get_i32;
 extern int aos_hal_pref_get_str;
 extern int aos_hal_pref_set_i32;
 extern int aos_hal_pref_set_str;
 extern int aos_hal_probe_devices;
+extern int aos_hal_raise_wake_enable;
+extern int aos_hal_raise_wake_enabled;
 extern int aos_hal_reboot;
 extern int aos_hal_rec_pause;
 extern int aos_hal_rec_peaks;
@@ -310,6 +322,8 @@ extern int aos_hal_rtc_alarm_set;
 extern int aos_hal_scan_start;
 extern int aos_hal_scan_status;
 extern int aos_hal_scan_stop;
+extern int aos_hal_screen_timeouts_get;
+extern int aos_hal_screen_timeouts_set;
 extern int aos_hal_sd_mark_mounted;
 extern int aos_hal_sd_present;
 extern int aos_hal_sd_reclaim;
@@ -384,6 +398,7 @@ extern int aos_label_boxed;
 extern int aos_label_scaled;
 extern int aos_lang_pack_count;
 extern int aos_lang_packs;
+extern int aos_launcher_close_folder;
 extern int aos_launcher_create;
 extern int aos_link_bump_hint;
 extern int aos_link_lock;
@@ -399,6 +414,13 @@ extern int aos_link_unlock;
 extern int aos_lvmem_get_psram;
 extern int aos_lvmem_set_psram;
 extern int aos_make_decorative;
+extern int aos_menu_folder;
+extern int aos_menu_folder_apps;
+extern int aos_menu_folder_count;
+extern int aos_menu_folder_find;
+extern int aos_menu_load;
+extern int aos_menu_root;
+extern int aos_menu_validate;
 extern int aos_month_name;
 extern int aos_montserrat_14;
 extern int aos_montserrat_16;
@@ -421,6 +443,7 @@ extern int aos_pair_ui_suppress;
 extern int aos_pair_ui_tick;
 extern int aos_pair_ui_visible;
 extern int aos_rtc_start;
+extern int aos_settings_font;
 extern int aos_step_detect_feed;
 extern int aos_step_detect_init;
 extern int aos_steps_tick;
@@ -447,6 +470,7 @@ extern int aos_ui_register_app;
 extern int aos_ui_request_icons;
 extern int aos_ui_request_language;
 extern int aos_ui_request_launcher_style;
+extern int aos_ui_request_menu;
 extern int aos_ui_request_nav;
 extern int aos_ui_request_open;
 extern int aos_ui_request_snapshot;
@@ -2874,6 +2898,11 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_face_minimal_get),
     ESP_ELFSYM_EXPORT(aos_face_nixie_get),
     ESP_ELFSYM_EXPORT(aos_face_rings_get),
+    ESP_ELFSYM_EXPORT(aos_folder_font),
+    ESP_ELFSYM_EXPORT(aos_folder_glyph_codepoint),
+    ESP_ELFSYM_EXPORT(aos_folder_glyph_count),
+    ESP_ELFSYM_EXPORT(aos_folder_glyphs),
+    ESP_ELFSYM_EXPORT(aos_folder_icon_create),
     ESP_ELFSYM_EXPORT(aos_font_body),
     ESP_ELFSYM_EXPORT(aos_font_huge),
     ESP_ELFSYM_EXPORT(aos_font_small),
@@ -3017,6 +3046,9 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_notif_categories_set),
     ESP_ELFSYM_EXPORT(aos_hal_notif_clear),
     ESP_ELFSYM_EXPORT(aos_hal_notif_count),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_dnd_active),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_dnd_schedule_get),
+    ESP_ELFSYM_EXPORT(aos_hal_notif_dnd_schedule_set),
     ESP_ELFSYM_EXPORT(aos_hal_notif_enable),
     ESP_ELFSYM_EXPORT(aos_hal_notif_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_notif_pop),
@@ -3039,6 +3071,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_path_data),
     ESP_ELFSYM_EXPORT(aos_hal_path_icons),
     ESP_ELFSYM_EXPORT(aos_hal_path_lang),
+    ESP_ELFSYM_EXPORT(aos_hal_path_menu),
     ESP_ELFSYM_EXPORT(aos_hal_path_music),
     ESP_ELFSYM_EXPORT(aos_hal_path_photos),
     ESP_ELFSYM_EXPORT(aos_hal_path_recordings),
@@ -3063,11 +3096,14 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_power_saving_enable),
     ESP_ELFSYM_EXPORT(aos_hal_power_saving_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_pref_erase),
+    ESP_ELFSYM_EXPORT(aos_hal_pref_foreach),
     ESP_ELFSYM_EXPORT(aos_hal_pref_get_i32),
     ESP_ELFSYM_EXPORT(aos_hal_pref_get_str),
     ESP_ELFSYM_EXPORT(aos_hal_pref_set_i32),
     ESP_ELFSYM_EXPORT(aos_hal_pref_set_str),
     ESP_ELFSYM_EXPORT(aos_hal_probe_devices),
+    ESP_ELFSYM_EXPORT(aos_hal_raise_wake_enable),
+    ESP_ELFSYM_EXPORT(aos_hal_raise_wake_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_reboot),
     ESP_ELFSYM_EXPORT(aos_hal_rec_pause),
     ESP_ELFSYM_EXPORT(aos_hal_rec_peaks),
@@ -3080,6 +3116,8 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_scan_start),
     ESP_ELFSYM_EXPORT(aos_hal_scan_status),
     ESP_ELFSYM_EXPORT(aos_hal_scan_stop),
+    ESP_ELFSYM_EXPORT(aos_hal_screen_timeouts_get),
+    ESP_ELFSYM_EXPORT(aos_hal_screen_timeouts_set),
     ESP_ELFSYM_EXPORT(aos_hal_sd_mark_mounted),
     ESP_ELFSYM_EXPORT(aos_hal_sd_present),
     ESP_ELFSYM_EXPORT(aos_hal_sd_reclaim),
@@ -3154,6 +3192,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_label_scaled),
     ESP_ELFSYM_EXPORT(aos_lang_pack_count),
     ESP_ELFSYM_EXPORT(aos_lang_packs),
+    ESP_ELFSYM_EXPORT(aos_launcher_close_folder),
     ESP_ELFSYM_EXPORT(aos_launcher_create),
     ESP_ELFSYM_EXPORT(aos_link_bump_hint),
     ESP_ELFSYM_EXPORT(aos_link_lock),
@@ -3169,6 +3208,13 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_lvmem_get_psram),
     ESP_ELFSYM_EXPORT(aos_lvmem_set_psram),
     ESP_ELFSYM_EXPORT(aos_make_decorative),
+    ESP_ELFSYM_EXPORT(aos_menu_folder),
+    ESP_ELFSYM_EXPORT(aos_menu_folder_apps),
+    ESP_ELFSYM_EXPORT(aos_menu_folder_count),
+    ESP_ELFSYM_EXPORT(aos_menu_folder_find),
+    ESP_ELFSYM_EXPORT(aos_menu_load),
+    ESP_ELFSYM_EXPORT(aos_menu_root),
+    ESP_ELFSYM_EXPORT(aos_menu_validate),
     ESP_ELFSYM_EXPORT(aos_month_name),
     ESP_ELFSYM_EXPORT(aos_montserrat_14),
     ESP_ELFSYM_EXPORT(aos_montserrat_16),
@@ -3191,6 +3237,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_pair_ui_tick),
     ESP_ELFSYM_EXPORT(aos_pair_ui_visible),
     ESP_ELFSYM_EXPORT(aos_rtc_start),
+    ESP_ELFSYM_EXPORT(aos_settings_font),
     ESP_ELFSYM_EXPORT(aos_step_detect_feed),
     ESP_ELFSYM_EXPORT(aos_step_detect_init),
     ESP_ELFSYM_EXPORT(aos_steps_tick),
@@ -3217,6 +3264,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_ui_request_icons),
     ESP_ELFSYM_EXPORT(aos_ui_request_language),
     ESP_ELFSYM_EXPORT(aos_ui_request_launcher_style),
+    ESP_ELFSYM_EXPORT(aos_ui_request_menu),
     ESP_ELFSYM_EXPORT(aos_ui_request_nav),
     ESP_ELFSYM_EXPORT(aos_ui_request_open),
     ESP_ELFSYM_EXPORT(aos_ui_request_snapshot),
