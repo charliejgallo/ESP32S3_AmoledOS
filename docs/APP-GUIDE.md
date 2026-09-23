@@ -583,6 +583,45 @@ recipes of Golf and Turbo:
   corrects its clock**: when both eased towards the other, they chased each
   other's old times and both ran fast.
 
+### 6.11 A puzzle whose worlds are data (Mila)
+
+Mila (`apps/mila/`, v0.5.5) is a Sokoban on Monster Hop's engine. What it
+adds:
+
+- **One rules file for the watch and the Mac.** `main/ml_rules.c` is plain C
+  with no platform in it: the game steps with it, and `tools/solve.c` (a
+  breadth-first search over single steps, with canonical states and a corner
+  deadlock cut) solves every level with it. A level the solver calls
+  solvable behaves the same in the game, and its shortest solution is the
+  par. The solver also replays its solution and counts how often each
+  mechanic is used, which is how the generator (`tools/gen.py`) throws away
+  levels where the world's mechanic is decoration.
+- **The worlds are data.** The pack carries a text table of worlds (names in
+  three languages, kit, map panel, stars needed, gift, the level list) and
+  the levels as text; the watch parses both with the same code the solver
+  uses. Progress is kept by world id, never by position, and nothing counts
+  worlds or levels in the code: a new world with the existing mechanics is
+  data and art.
+- **A camera for a puzzle.** Straight up the grid (72×54 px per cell): a
+  swipe means what it looks like. The overview is painted once per level by
+  box-filtering the same sprites to fit the screen (a painter, no depth
+  needed at that size), and the zoom onto the player samples that picture
+  bilinearly until the real frame fades in.
+- **Shadows once, the darkest.** Two wall shadows overlapping on the floor
+  darkened it twice and drew a saw-tooth along every wall. The cache now
+  keeps the darkest value per pixel in a block's shadow buffer and darkens
+  only pixels on the floor plane (by depth), so a prop never shadows itself.
+- **A guest drawn with the host's body.** Two cats in the casita would be two
+  copies of 2.5 MB of frames. The visitor loads only her hat and collar
+  layers and borrows the host's body frames, which are the same cat.
+- **A visit is simulated on each watch.** Only the guest's outfit travels (in
+  the HELLO); each watch walks her in and plays with her by itself. A weak
+  signal can end the visit, never make her jerk.
+- **A loader that waits for the first frame.** The LVGL panel stays up until
+  the worker has a frame of the new scene; that frame is then copied to the
+  canvas under the panel before hiding it, so there is no black gap between
+  the loader and the scene (on the board frames go to the panel past LVGL).
+
 ## 7. The icon
 
 It travels with the app, as a few dozen bytes of shapes handed over from
@@ -966,6 +1005,16 @@ down). With it you also own the exit - the calendar keeps right-swipe as
 "leave", executed **deferred** from its tick, because `aos_ui_back()` destroys
 the app.
 
+**Not everything in libc is in the symbol table.** `mila.so` failed
+`build_apps.sh` for `lroundf` and `strncat`: the firmware exports only what
+some app asked for. Use what is there (a round-to-nearest of your own,
+`snprintf`) instead of growing the table for one call.
+
+**The board's compiler treats `-Wformat-truncation` as an error**; the
+simulator's does not. A `snprintf("%s_sh", name)` into a buffer smaller than
+the worst case of `name` builds in the simulator and fails for the board:
+bound it (`%.40s`) or size the buffer.
+
 ### Events and life cycle
 
 **A callback registered with `LV_EVENT_ALL` runs with your context already
@@ -1109,6 +1158,12 @@ to a buffer of your own (`setenv` may move the pointer), set the city's zone,
 `tzset()` re-parses the DST rule. There is no zone database on the board,
 only newlib's POSIX parser: rules are written out (`"CET-1CEST,M3.5.0,M10.5.0/3"`),
 not IANA names (`aos_app_worldclock.c`).
+
+**Read the clock after draining the queue.** A link tick that took `now` at
+its start, then handled the frames that had arrived (which set `last_seen =
+uptime`), then checked `now - last_seen > 6000` found `last_seen` later than
+`now`: the unsigned difference wrapped round to four billion and the visit
+"timed out" the moment a frame arrived. Take `now` again after receiving.
 
 ### The platform
 

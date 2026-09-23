@@ -1,0 +1,434 @@
+{
+ "_projection": {
+  "depth_empty": 255,
+  "depth_unit_m": 0.03125,
+  "floor_m": 0.5039526306789697,
+  "floor_px": 24,
+  "px_per_m": 72.0,
+  "px_x": [
+   72,
+   0
+  ],
+  "px_y": [
+   0,
+   -54
+  ],
+  "view_dir": [
+   -0.0,
+   0.6614378094673157,
+   -0.75
+  ]
+ },
+ "kitchen_floor_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 41,
+  "ay": 30,
+  "files": {
+   "img": "kitchen_floor_v0.png",
+   "z": "kitchen_floor_v0_z.png"
+  },
+  "h": 66,
+  "kind": "tile",
+  "w": 82
+ },
+ "kitchen_floor_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 41,
+  "ay": 30,
+  "files": {
+   "img": "kitchen_floor_v1.png",
+   "z": "kitchen_floor_v1_z.png"
+  },
+  "h": 66,
+  "kind": "tile",
+  "w": 82
+ },
+ "kitchen_floor_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 41,
+  "ay": 30,
+  "files": {
+   "img": "kitchen_floor_v2.png",
+   "z": "kitchen_floor_v2_z.png"
+  },
+  "h": 66,
+  "kind": "tile",
+  "w": 82
+ },
+ "kitchen_floor_v3": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 41,
+  "ay": 30,
+  "files": {
+   "img": "kitchen_floor_v3.png",
+   "z": "kitchen_floor_v3_z.png"
+  },
+  "h": 66,
+  "kind": "tile",
+  "w": 82
+ },
+ "kitchen_obj_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 27,
+  "ay": 41,
+  "color": [
+   0.86,
+   0.16,
+   0.18
+  ],
+  "files": {
+   "img": "kitchen_obj_v0.png",
+   "z": "kitchen_obj_v0_z.png"
+  },
+  "h": 61,
+  "kind": "obj",
+  "w": 54
+ },
+ "kitchen_obj_v0_sh": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 27,
+  "ay": 41,
+  "files": {
+   "sh": "kitchen_obj_v0_sh_sh.png"
+  },
+  "h": 61,
+  "kind": "shadow",
+  "of": "kitchen_obj_v0",
+  "shadow_z": 0.0,
+  "w": 71
+ },
+ "kitchen_obj_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 27,
+  "ay": 41,
+  "color": [
+   0.18,
+   0.42,
+   0.88
+  ],
+  "files": {
+   "img": "kitchen_obj_v1.png",
+   "z": "kitchen_obj_v1_z.png"
+  },
+  "h": 61,
+  "kind": "obj",
+  "w": 54
+ },
+ "kitchen_obj_v1_sh": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 27,
+  "ay": 41,
+  "files": {
+   "sh": "kitchen_obj_v1_sh_sh.png"
+  },
+  "h": 61,
+  "kind": "shadow",
+  "of": "kitchen_obj_v1",
+  "shadow_z": 0.0,
+  "w": 71
+ },
+ "kitchen_obj_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 27,
+  "ay": 41,
+  "color": [
+   0.98,
+   0.74,
+   0.12
+  ],
+  "files": {
+   "img": "kitchen_obj_v2.png",
+   "z": "kitchen_obj_v2_z.png"
+  },
+  "h": 61,
+  "kind": "obj",
+  "w": 54
+ },
+ "kitchen_obj_v2_sh": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 27,
+  "ay": 41,
+  "files": {
+   "sh": "kitchen_obj_v2_sh_sh.png"
+  },
+  "h": 61,
+  "kind": "shadow",
+  "of": "kitchen_obj_v2",
+  "shadow_z": 0.0,
+  "w": 71
+ },
+ "kitchen_obj_v3": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 27,
+  "ay": 41,
+  "color": [
+   0.62,
+   0.4,
+   0.88
+  ],
+  "files": {
+   "img": "kitchen_obj_v3.png",
+   "z": "kitchen_obj_v3_z.png"
+  },
+  "h": 61,
+  "kind": "obj",
+  "w": 54
+ },
+ "kitchen_obj_v3_sh": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 27,
+  "ay": 41,
+  "files": {
+   "sh": "kitchen_obj_v3_sh_sh.png"
+  },
+  "h": 61,
+  "kind": "shadow",
+  "of": "kitchen_obj_v3",
+  "shadow_z": 0.0,
+  "w": 71
+ },
+ "kitchen_prop2_counter": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 38,
+  "ay": 59,
+  "files": {
+   "img": "kitchen_prop2_counter.png",
+   "sh": "kitchen_prop2_counter_sh.png",
+   "z": "kitchen_prop2_counter_z.png"
+  },
+  "footprint": [
+   2,
+   1
+  ],
+  "h": 83,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 170
+ },
+ "kitchen_prop_bin": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 35,
+  "ay": 44,
+  "files": {
+   "img": "kitchen_prop_bin.png",
+   "sh": "kitchen_prop_bin_sh.png",
+   "z": "kitchen_prop_bin_z.png"
+  },
+  "h": 69,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 87
+ },
+ "kitchen_prop_cabinet": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 36,
+  "ay": 52,
+  "files": {
+   "img": "kitchen_prop_cabinet.png",
+   "sh": "kitchen_prop_cabinet_sh.png",
+   "z": "kitchen_prop_cabinet_z.png"
+  },
+  "h": 76,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 93
+ },
+ "kitchen_prop_fridge": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 34,
+  "ay": 64,
+  "files": {
+   "img": "kitchen_prop_fridge.png",
+   "sh": "kitchen_prop_fridge_sh.png",
+   "z": "kitchen_prop_fridge_z.png"
+  },
+  "h": 88,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 101
+ },
+ "kitchen_prop_stool": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 35,
+  "ay": 39,
+  "files": {
+   "img": "kitchen_prop_stool.png",
+   "sh": "kitchen_prop_stool_sh.png",
+   "z": "kitchen_prop_stool_z.png"
+  },
+  "h": 66,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 74
+ },
+ "kitchen_prop_stove": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 35,
+  "ay": 61,
+  "files": {
+   "img": "kitchen_prop_stove.png",
+   "sh": "kitchen_prop_stove_sh.png",
+   "z": "kitchen_prop_stove_z.png"
+  },
+  "h": 85,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 100
+ },
+ "kitchen_target": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 36,
+  "ay": 28,
+  "files": {
+   "img": "kitchen_target.png",
+   "z": "kitchen_target_z.png"
+  },
+  "h": 55,
+  "kind": "tile",
+  "w": 72
+ },
+ "kitchen_wall_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 40,
+  "ay": 55,
+  "files": {
+   "img": "kitchen_wall_v0.png",
+   "sh": "kitchen_wall_v0_sh.png",
+   "z": "kitchen_wall_v0_z.png"
+  },
+  "h": 86,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 101
+ },
+ "kitchen_wall_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 40,
+  "ay": 55,
+  "files": {
+   "img": "kitchen_wall_v1.png",
+   "sh": "kitchen_wall_v1_sh.png",
+   "z": "kitchen_wall_v1_z.png"
+  },
+  "h": 86,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 101
+ },
+ "kitchen_wet_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 41,
+  "ay": 30,
+  "files": {
+   "img": "kitchen_wet_v0.png",
+   "z": "kitchen_wet_v0_z.png"
+  },
+  "h": 66,
+  "kind": "tile",
+  "w": 82
+ },
+ "kitchen_wet_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 41,
+  "ay": 30,
+  "files": {
+   "img": "kitchen_wet_v1.png",
+   "z": "kitchen_wet_v1_z.png"
+  },
+  "h": 66,
+  "kind": "tile",
+  "w": 82
+ }
+}

@@ -285,6 +285,37 @@ the board. Two paired watches race for the same keys. More in
 places, each watch with its own camera. And Tommy's house on both, one in
 English, the other in Spanish.</em></p>
 
+#### Mila, a Sokoban with a black kitten
+
+<p align="center">
+  <img src="docs/img/app-mila-casita.png" width="160" alt="Mila at home in her casita, in a party hat and a scarf, with her bed, a scratching post, a fish bowl and a cardboard box">
+  <img src="docs/img/app-mila-overview.png" width="160" alt="The whole kitchen level before starting: cookie tins, fish placemats and puddles on mint tiles, with its par">
+  <img src="docs/img/app-mila-play.png" width="160" alt="Mila in the garden next to flower pots, a soil circle and a white gate">
+  <img src="docs/img/app-mila-map.png" width="160" alt="The world map: the kitchen with its level stones and stars, Mila standing on the current one">
+  <img src="docs/img/app-mila-shop.png" width="160" alt="The shop on a light background: Mila turning, in a pink bow, with eight colours to pick">
+</p>
+
+The fourth game from Blender renders, and the first puzzle. Mila, a small
+black kitten with amber eyes, pushes things back to their place around the
+house: yarn balls into baskets, cookie tins onto placemats (on a wet floor
+they slide on), flower pots past gates that open while a plate holds
+something, cardboard boxes through an attic where only she fits through the
+cat flaps, and crates across the rooftops at night, into holes they fill,
+with balls that roll until they hit something. Forty levels, each solved by
+a solver that runs the game's own rules, which also gives its par. A level
+opens on the whole room, then the camera flies down onto Mila and follows
+her; a finger held on her shows the whole room again. Her casita is the hub:
+she wanders, sleeps, grooms and plays with the toys you buy, chases the
+mouse you drag, and leaves a small present once a day. The worlds are data
+in the pack, so a new one needs no code. 25-26 fps on the board. More in
+[apps/mila/README.md](apps/mila/README.md).
+
+<p align="center">
+  <img src="docs/img/app-mila-visit.png" width="200" alt="A visit: the friend's Mila, in her own outfit, playing with Mila on the rug">
+  <img src="docs/img/app-mila-peek.png" width="200" alt="The whole rooftop level while a finger holds Mila, with the holes and the crates where they are now">
+  <img src="docs/img/app-mila-loader.png" width="200" alt="The loading screen: the Mila logo, a gold-to-pink bar and a tip">
+</p>
+
 #### The others
 
 | | | |
@@ -389,6 +420,9 @@ other as a ghost car; when both have built the stage they start together,
 34 ms apart on two boards. v0.4.13 **Monster Hop** races for keys: both
 play the same level with the same clock, the keys, levers, crates and chests
 are shared, and a key both grabbed goes to whoever grabbed it first.
+v0.5.5 **Mila** does two things: a visit, where the friend's Mila comes in
+through the casita's door in her own outfit and plays with yours, and a
+race on a level open on both, with the other's progress on a pill.
 
 <p align="center">
   <img src="docs/img/photo-walkie.jpg" width="640" alt="The walkie on two watches, one in Spanish and one in English">

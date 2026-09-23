@@ -1,0 +1,465 @@
+{
+ "_projection": {
+  "depth_empty": 255,
+  "depth_unit_m": 0.03125,
+  "floor_m": 0.5039526306789697,
+  "floor_px": 24,
+  "px_per_m": 72.0,
+  "px_x": [
+   72,
+   0
+  ],
+  "px_y": [
+   0,
+   -54
+  ],
+  "view_dir": [
+   -0.0,
+   0.6614378094673157,
+   -0.75
+  ]
+ },
+ "map_attic": {
+  "anchor": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "ax": 184,
+  "ay": 368,
+  "entry": [
+   184,
+   400
+  ],
+  "exit": [
+   184,
+   0
+  ],
+  "files": {
+   "img": "map_attic.png"
+  },
+  "h": 400,
+  "kind": "map",
+  "nodes": [
+   [
+    275,
+    322
+   ],
+   [
+    171,
+    295
+   ],
+   [
+    80,
+    281
+   ],
+   [
+    126,
+    222
+   ],
+   [
+    229,
+    212
+   ],
+   [
+    288,
+    154
+   ],
+   [
+    190,
+    125
+   ],
+   [
+    100,
+    91
+   ]
+  ],
+  "opaque": true,
+  "w": 368,
+  "world": "attic",
+  "zoom": 0.45
+ },
+ "map_garden": {
+  "anchor": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "ax": 184,
+  "ay": 368,
+  "entry": [
+   184,
+   400
+  ],
+  "exit": [
+   184,
+   0
+  ],
+  "files": {
+   "img": "map_garden.png"
+  },
+  "h": 400,
+  "kind": "map",
+  "nodes": [
+   [
+    93,
+    322
+   ],
+   [
+    197,
+    295
+   ],
+   [
+    288,
+    281
+   ],
+   [
+    242,
+    222
+   ],
+   [
+    139,
+    212
+   ],
+   [
+    80,
+    154
+   ],
+   [
+    178,
+    125
+   ],
+   [
+    268,
+    91
+   ]
+  ],
+  "opaque": true,
+  "w": 368,
+  "world": "garden",
+  "zoom": 0.45
+ },
+ "map_home": {
+  "anchor": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "ax": 184,
+  "ay": 306,
+  "door": [
+   74,
+   166
+  ],
+  "entry": null,
+  "exit": [
+   184,
+   0
+  ],
+  "files": {
+   "img": "map_home.png"
+  },
+  "h": 320,
+  "house": [
+   32,
+   47,
+   168,
+   182
+  ],
+  "kind": "map",
+  "nodes": [],
+  "opaque": true,
+  "w": 368,
+  "world": "home",
+  "zoom": 0.45
+ },
+ "map_kitchen": {
+  "anchor": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "ax": 184,
+  "ay": 368,
+  "entry": [
+   184,
+   400
+  ],
+  "exit": [
+   184,
+   0
+  ],
+  "files": {
+   "img": "map_kitchen.png"
+  },
+  "h": 400,
+  "kind": "map",
+  "nodes": [
+   [
+    246,
+    324
+   ],
+   [
+    126,
+    302
+   ],
+   [
+    74,
+    249
+   ],
+   [
+    161,
+    220
+   ],
+   [
+    271,
+    203
+   ],
+   [
+    262,
+    142
+   ],
+   [
+    155,
+    127
+   ],
+   [
+    90,
+    93
+   ]
+  ],
+  "opaque": true,
+  "w": 368,
+  "world": "kitchen",
+  "zoom": 0.45
+ },
+ "map_living": {
+  "anchor": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "ax": 184,
+  "ay": 368,
+  "entry": [
+   184,
+   400
+  ],
+  "exit": [
+   184,
+   0
+  ],
+  "files": {
+   "img": "map_living.png"
+  },
+  "h": 400,
+  "kind": "map",
+  "nodes": [
+   [
+    122,
+    324
+   ],
+   [
+    242,
+    302
+   ],
+   [
+    294,
+    249
+   ],
+   [
+    207,
+    220
+   ],
+   [
+    97,
+    203
+   ],
+   [
+    106,
+    142
+   ],
+   [
+    213,
+    127
+   ],
+   [
+    278,
+    93
+   ]
+  ],
+  "opaque": true,
+  "w": 368,
+  "world": "living",
+  "zoom": 0.45
+ },
+ "map_mila": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 31,
+  "ay": 39,
+  "files": {
+   "img": "map_mila.png"
+  },
+  "h": 60,
+  "kind": "map_marker",
+  "stands_on": "map_stone",
+  "w": 62,
+  "zoom": 0.9
+ },
+ "map_roofs": {
+  "anchor": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "ax": 184,
+  "ay": 408,
+  "entry": [
+   184,
+   440
+  ],
+  "exit": [
+   184,
+   0
+  ],
+  "files": {
+   "img": "map_roofs.png"
+  },
+  "h": 440,
+  "kind": "map",
+  "nodes": [
+   [
+    106,
+    369
+   ],
+   [
+    223,
+    355
+   ],
+   [
+    294,
+    306
+   ],
+   [
+    213,
+    267
+   ],
+   [
+    93,
+    248
+   ],
+   [
+    132,
+    189
+   ],
+   [
+    242,
+    175
+   ],
+   [
+    288,
+    126
+   ]
+  ],
+  "opaque": true,
+  "w": 368,
+  "world": "roofs",
+  "zoom": 0.45
+ },
+ "map_soon": {
+  "anchor": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "ax": 184,
+  "ay": 292,
+  "entry": [
+   184,
+   320
+  ],
+  "exit": null,
+  "files": {
+   "img": "map_soon.png"
+  },
+  "h": 320,
+  "kind": "map",
+  "nodes": [],
+  "opaque": true,
+  "w": 368,
+  "world": "soon",
+  "zoom": 0.45
+ },
+ "map_stone": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 35,
+  "ay": 27,
+  "files": {
+   "img": "map_stone.png"
+  },
+  "h": 54,
+  "kind": "map_stone",
+  "top_px": 4,
+  "w": 70,
+  "zoom": 0.45
+ },
+ "map_stone_done": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 35,
+  "ay": 27,
+  "files": {
+   "img": "map_stone_done.png"
+  },
+  "h": 54,
+  "kind": "map_stone",
+  "top_px": 4,
+  "w": 70,
+  "zoom": 0.45
+ },
+ "map_stone_locked": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 35,
+  "ay": 27,
+  "files": {
+   "img": "map_stone_locked.png"
+  },
+  "h": 54,
+  "kind": "map_stone",
+  "top_px": 4,
+  "w": 70,
+  "zoom": 0.45
+ },
+ "map_stone_ring": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 37,
+  "ay": 31,
+  "draw": "over the current stone, under map_mila",
+  "files": {
+   "img": "map_stone_ring.png"
+  },
+  "h": 61,
+  "kind": "map_ring",
+  "w": 74,
+  "zoom": 0.45
+ }
+}

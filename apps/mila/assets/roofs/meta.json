@@ -1,0 +1,1028 @@
+{
+ "_projection": {
+  "depth_empty": 255,
+  "depth_unit_m": 0.03125,
+  "floor_m": 0.5039526306789697,
+  "floor_px": 24,
+  "px_per_m": 72.0,
+  "px_x": [
+   72,
+   0
+  ],
+  "px_y": [
+   0,
+   -54
+  ],
+  "view_dir": [
+   -0.0,
+   0.6614378094673157,
+   -0.75
+  ]
+ },
+ "roofs_ball_roll_v0_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_roll_v0_00.png",
+   "z": "roofs_ball_roll_v0_00_z.png"
+  },
+  "frame": 0,
+  "frames": 8,
+  "h": 43,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_roll_v0_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_roll_v0_01.png",
+   "z": "roofs_ball_roll_v0_01_z.png"
+  },
+  "frame": 1,
+  "frames": 8,
+  "h": 43,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_roll_v0_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_roll_v0_02.png",
+   "z": "roofs_ball_roll_v0_02_z.png"
+  },
+  "frame": 2,
+  "frames": 8,
+  "h": 43,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_roll_v0_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_roll_v0_03.png",
+   "z": "roofs_ball_roll_v0_03_z.png"
+  },
+  "frame": 3,
+  "frames": 8,
+  "h": 43,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_roll_v0_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 21,
+  "ay": 34,
+  "files": {
+   "img": "roofs_ball_roll_v0_04.png",
+   "z": "roofs_ball_roll_v0_04_z.png"
+  },
+  "frame": 4,
+  "frames": 8,
+  "h": 44,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_roll_v0_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_roll_v0_05.png",
+   "z": "roofs_ball_roll_v0_05_z.png"
+  },
+  "frame": 5,
+  "frames": 8,
+  "h": 43,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_roll_v0_06": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_roll_v0_06.png",
+   "z": "roofs_ball_roll_v0_06_z.png"
+  },
+  "frame": 6,
+  "frames": 8,
+  "h": 43,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_roll_v0_07": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 22,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_roll_v0_07.png",
+   "z": "roofs_ball_roll_v0_07_z.png"
+  },
+  "frame": 7,
+  "frames": 8,
+  "h": 43,
+  "kind": "obj",
+  "w": 44
+ },
+ "roofs_ball_roll_v1_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_roll_v1_00.png",
+   "z": "roofs_ball_roll_v1_00_z.png"
+  },
+  "frame": 0,
+  "frames": 8,
+  "h": 43,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_roll_v1_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_roll_v1_01.png",
+   "z": "roofs_ball_roll_v1_01_z.png"
+  },
+  "frame": 1,
+  "frames": 8,
+  "h": 43,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_roll_v1_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_roll_v1_02.png",
+   "z": "roofs_ball_roll_v1_02_z.png"
+  },
+  "frame": 2,
+  "frames": 8,
+  "h": 43,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_roll_v1_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_roll_v1_03.png",
+   "z": "roofs_ball_roll_v1_03_z.png"
+  },
+  "frame": 3,
+  "frames": 8,
+  "h": 43,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_roll_v1_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 21,
+  "ay": 34,
+  "files": {
+   "img": "roofs_ball_roll_v1_04.png",
+   "z": "roofs_ball_roll_v1_04_z.png"
+  },
+  "frame": 4,
+  "frames": 8,
+  "h": 44,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_roll_v1_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_roll_v1_05.png",
+   "z": "roofs_ball_roll_v1_05_z.png"
+  },
+  "frame": 5,
+  "frames": 8,
+  "h": 43,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_roll_v1_06": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_roll_v1_06.png",
+   "z": "roofs_ball_roll_v1_06_z.png"
+  },
+  "frame": 6,
+  "frames": 8,
+  "h": 43,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_roll_v1_07": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "roll",
+  "ax": 22,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_roll_v1_07.png",
+   "z": "roofs_ball_roll_v1_07_z.png"
+  },
+  "frame": 7,
+  "frames": 8,
+  "h": 43,
+  "kind": "obj",
+  "w": 44
+ },
+ "roofs_ball_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_v0.png",
+   "z": "roofs_ball_v0_z.png"
+  },
+  "h": 43,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_v0_sh": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "sh": "roofs_ball_v0_sh_sh.png"
+  },
+  "h": 46,
+  "kind": "shadow",
+  "shadow_z": 0.0,
+  "w": 56
+ },
+ "roofs_ball_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "img": "roofs_ball_v1.png",
+   "z": "roofs_ball_v1_z.png"
+  },
+  "h": 43,
+  "kind": "obj",
+  "w": 42
+ },
+ "roofs_ball_v1_sh": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 21,
+  "ay": 33,
+  "files": {
+   "sh": "roofs_ball_v1_sh_sh.png"
+  },
+  "h": 46,
+  "kind": "shadow",
+  "shadow_z": 0.0,
+  "w": 56
+ },
+ "roofs_flap_h_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "flap",
+  "ax": 19,
+  "ay": 54,
+  "files": {
+   "img": "roofs_flap_h_00.png",
+   "sh": "roofs_flap_h_00_sh.png",
+   "z": "roofs_flap_h_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 84,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 59
+ },
+ "roofs_flap_h_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "flap",
+  "ax": 19,
+  "ay": 54,
+  "files": {
+   "img": "roofs_flap_h_01.png",
+   "sh": "roofs_flap_h_01_sh.png",
+   "z": "roofs_flap_h_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 84,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 59
+ },
+ "roofs_flap_h_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "flap",
+  "ax": 19,
+  "ay": 54,
+  "files": {
+   "img": "roofs_flap_h_02.png",
+   "sh": "roofs_flap_h_02_sh.png",
+   "z": "roofs_flap_h_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 84,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 59
+ },
+ "roofs_flap_h_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "flap",
+  "ax": 19,
+  "ay": 54,
+  "files": {
+   "img": "roofs_flap_h_03.png",
+   "sh": "roofs_flap_h_03_sh.png",
+   "z": "roofs_flap_h_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 84,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 59
+ },
+ "roofs_flap_v_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "flap",
+  "ax": 39,
+  "ay": 39,
+  "files": {
+   "img": "roofs_flap_v_00.png",
+   "sh": "roofs_flap_v_00_sh.png",
+   "z": "roofs_flap_v_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 53,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 99
+ },
+ "roofs_flap_v_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "flap",
+  "ax": 39,
+  "ay": 39,
+  "files": {
+   "img": "roofs_flap_v_01.png",
+   "sh": "roofs_flap_v_01_sh.png",
+   "z": "roofs_flap_v_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 53,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 99
+ },
+ "roofs_flap_v_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "flap",
+  "ax": 39,
+  "ay": 39,
+  "files": {
+   "img": "roofs_flap_v_02.png",
+   "sh": "roofs_flap_v_02_sh.png",
+   "z": "roofs_flap_v_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 53,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 99
+ },
+ "roofs_flap_v_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "flap",
+  "ax": 39,
+  "ay": 39,
+  "files": {
+   "img": "roofs_flap_v_03.png",
+   "sh": "roofs_flap_v_03_sh.png",
+   "z": "roofs_flap_v_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 53,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 99
+ },
+ "roofs_floor_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 41,
+  "ay": 32,
+  "files": {
+   "img": "roofs_floor_v0.png",
+   "z": "roofs_floor_v0_z.png"
+  },
+  "h": 67,
+  "kind": "tile",
+  "w": 82
+ },
+ "roofs_floor_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 41,
+  "ay": 32,
+  "files": {
+   "img": "roofs_floor_v1.png",
+   "z": "roofs_floor_v1_z.png"
+  },
+  "h": 67,
+  "kind": "tile",
+  "w": 82
+ },
+ "roofs_floor_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 41,
+  "ay": 32,
+  "files": {
+   "img": "roofs_floor_v2.png",
+   "z": "roofs_floor_v2_z.png"
+  },
+  "h": 67,
+  "kind": "tile",
+  "w": 82
+ },
+ "roofs_floor_v3": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 41,
+  "ay": 32,
+  "files": {
+   "img": "roofs_floor_v3.png",
+   "z": "roofs_floor_v3_z.png"
+  },
+  "h": 67,
+  "kind": "tile",
+  "w": 82
+ },
+ "roofs_hole": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 31,
+  "files": {
+   "img": "roofs_hole.png",
+   "z": "roofs_hole_z.png"
+  },
+  "h": 64,
+  "kind": "tile",
+  "w": 78
+ },
+ "roofs_hole_crate_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 31,
+  "files": {
+   "img": "roofs_hole_crate_v0.png",
+   "z": "roofs_hole_crate_v0_z.png"
+  },
+  "h": 64,
+  "kind": "tile",
+  "w": 78
+ },
+ "roofs_hole_crate_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 31,
+  "files": {
+   "img": "roofs_hole_crate_v1.png",
+   "z": "roofs_hole_crate_v1_z.png"
+  },
+  "h": 64,
+  "kind": "tile",
+  "w": 78
+ },
+ "roofs_hole_crate_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 31,
+  "files": {
+   "img": "roofs_hole_crate_v2.png",
+   "z": "roofs_hole_crate_v2_z.png"
+  },
+  "h": 64,
+  "kind": "tile",
+  "w": 78
+ },
+ "roofs_hole_crate_v3": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 31,
+  "files": {
+   "img": "roofs_hole_crate_v3.png",
+   "z": "roofs_hole_crate_v3_z.png"
+  },
+  "h": 64,
+  "kind": "tile",
+  "w": 78
+ },
+ "roofs_obj_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 29,
+  "ay": 49,
+  "files": {
+   "img": "roofs_obj_v0.png",
+   "z": "roofs_obj_v0_z.png"
+  },
+  "h": 72,
+  "kind": "obj",
+  "w": 58
+ },
+ "roofs_obj_v0_sh": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 29,
+  "ay": 49,
+  "files": {
+   "sh": "roofs_obj_v0_sh_sh.png"
+  },
+  "h": 72,
+  "kind": "shadow",
+  "shadow_z": 0.0,
+  "w": 81
+ },
+ "roofs_obj_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 29,
+  "ay": 49,
+  "files": {
+   "img": "roofs_obj_v1.png",
+   "z": "roofs_obj_v1_z.png"
+  },
+  "h": 72,
+  "kind": "obj",
+  "w": 58
+ },
+ "roofs_obj_v1_sh": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 29,
+  "ay": 49,
+  "files": {
+   "sh": "roofs_obj_v1_sh_sh.png"
+  },
+  "h": 72,
+  "kind": "shadow",
+  "shadow_z": 0.0,
+  "w": 81
+ },
+ "roofs_obj_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 29,
+  "ay": 49,
+  "files": {
+   "img": "roofs_obj_v2.png",
+   "z": "roofs_obj_v2_z.png"
+  },
+  "h": 72,
+  "kind": "obj",
+  "w": 58
+ },
+ "roofs_obj_v2_sh": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 29,
+  "ay": 49,
+  "files": {
+   "sh": "roofs_obj_v2_sh_sh.png"
+  },
+  "h": 72,
+  "kind": "shadow",
+  "shadow_z": 0.0,
+  "w": 81
+ },
+ "roofs_obj_v3": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 29,
+  "ay": 49,
+  "files": {
+   "img": "roofs_obj_v3.png",
+   "z": "roofs_obj_v3_z.png"
+  },
+  "h": 72,
+  "kind": "obj",
+  "w": 58
+ },
+ "roofs_obj_v3_sh": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 29,
+  "ay": 49,
+  "files": {
+   "sh": "roofs_obj_v3_sh_sh.png"
+  },
+  "h": 72,
+  "kind": "shadow",
+  "shadow_z": 0.0,
+  "w": 81
+ },
+ "roofs_prop2_chimney": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 38,
+  "ay": 58,
+  "files": {
+   "img": "roofs_prop2_chimney.png",
+   "sh": "roofs_prop2_chimney_sh.png",
+   "z": "roofs_prop2_chimney_z.png"
+  },
+  "footprint": [
+   2,
+   1
+  ],
+  "h": 80,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 178
+ },
+ "roofs_prop_antenna": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 34,
+  "ay": 51,
+  "files": {
+   "img": "roofs_prop_antenna.png",
+   "sh": "roofs_prop_antenna_sh.png",
+   "z": "roofs_prop_antenna_z.png"
+  },
+  "h": 77,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 91
+ },
+ "roofs_prop_dish": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 33,
+  "ay": 57,
+  "files": {
+   "img": "roofs_prop_dish.png",
+   "sh": "roofs_prop_dish_sh.png",
+   "z": "roofs_prop_dish_z.png"
+  },
+  "h": 81,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 89
+ },
+ "roofs_prop_dovecote": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 36,
+  "ay": 69,
+  "files": {
+   "img": "roofs_prop_dovecote.png",
+   "sh": "roofs_prop_dovecote_sh.png",
+   "z": "roofs_prop_dovecote_z.png"
+  },
+  "h": 95,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 91
+ },
+ "roofs_prop_skylight": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 75,
+  "ay": 83,
+  "files": {
+   "gl": "roofs_prop_skylight_gl.png",
+   "img": "roofs_prop_skylight.png",
+   "sh": "roofs_prop_skylight_sh.png",
+   "z": "roofs_prop_skylight_z.png"
+  },
+  "h": 150,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 163
+ },
+ "roofs_prop_tank": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 34,
+  "ay": 60,
+  "files": {
+   "img": "roofs_prop_tank.png",
+   "sh": "roofs_prop_tank_sh.png",
+   "z": "roofs_prop_tank_z.png"
+  },
+  "h": 85,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 96
+ },
+ "roofs_target": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 81,
+  "ay": 72,
+  "files": {
+   "gl": "roofs_target_gl.png",
+   "img": "roofs_target.png",
+   "z": "roofs_target_z.png"
+  },
+  "h": 147,
+  "kind": "tile",
+  "w": 162
+ },
+ "roofs_wall_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 54,
+  "files": {
+   "img": "roofs_wall_v0.png",
+   "sh": "roofs_wall_v0_sh.png",
+   "z": "roofs_wall_v0_z.png"
+  },
+  "h": 84,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 99
+ },
+ "roofs_wall_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 54,
+  "files": {
+   "img": "roofs_wall_v1.png",
+   "sh": "roofs_wall_v1_sh.png",
+   "z": "roofs_wall_v1_z.png"
+  },
+  "h": 86,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 99
+ },
+ "roofs_wet_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 41,
+  "ay": 32,
+  "files": {
+   "img": "roofs_wet_v0.png",
+   "z": "roofs_wet_v0_z.png"
+  },
+  "h": 67,
+  "kind": "tile",
+  "w": 82
+ },
+ "roofs_wet_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 41,
+  "ay": 32,
+  "files": {
+   "img": "roofs_wet_v1.png",
+   "z": "roofs_wet_v1_z.png"
+  },
+  "h": 67,
+  "kind": "tile",
+  "w": 82
+ }
+}
