@@ -104,6 +104,27 @@ browser, and the log tailed over wifi. Two of its pages are editors rather than
 forms: `/pixel` for the drawings and `/lua` for the scripts, both writing the
 same files the apps read. See [docs/PORTAL.md](docs/PORTAL.md).
 
+**The menu, in your order.** The portal's `/menu` page arranges the launcher:
+drag the apps into the order you want and into folders, and give each folder a
+name and an icon. Folders are hexagons with a gradient and a glyph, so they
+never look like an app, and they open in the launcher's own style. There is
+room for 256 apps, and the launcher shows its first screen in under 200 ms
+even then. See [docs/MENU.md](docs/MENU.md).
+
+**Settings, one page per category.** The first page is six quick tiles
+(Wi-Fi, Bluetooth, flashlight, always-on, power saver, do not disturb), the
+brightness, and the categories with their current value; each category opens
+as a page of its own. The screen timeouts are settings now, and the menu and
+About pages carry a QR to the portal.
+
+| Display | Menu | Power |
+|---|---|---|
+| <img src="docs/img/settings-display.png" width="220"> | <img src="docs/img/settings-menu.png" width="220"> | <img src="docs/img/settings-power.png" width="220"> |
+
+| Menu with folders | A folder | The honeycomb |
+|---|---|---|
+| <img src="docs/img/menu-list.png" width="220"> | <img src="docs/img/menu-folder.png" width="220"> | <img src="docs/img/menu-honeycomb.png" width="220"> |
+
 | Notification | Setup AP |
 |---|---|
 | <img src="docs/img/notification.png" width="220"> | <img src="docs/img/setup-ap.png" width="220"> |
@@ -126,7 +147,7 @@ Twenty-one ship inside the binary. They are the ones the watch cannot be without
 | <img src="docs/img/int-calendar.png" width="200"><br>**Calendario** — the month, drawn with the week starting on Monday. | <img src="docs/img/int-notifs.png" width="200"><br>**Notificaciones** — the iPhone's, over ANCS: history, per-category filter and actions. | <img src="docs/img/int-btremote.png" width="200"><br>**Control BT** — the phone's music over AMS: title, artist, album and transport. |
 | <img src="docs/img/int-music.png" width="200"><br>**Música** — plays WAV from the card through the ES8311 codec. | <img src="docs/img/int-photos.png" width="200"><br>**Fotos** — JPEG, PNG and BMP from the card, decoded and scaled to the screen. | <img src="docs/img/int-flashlight.png" width="200"><br>**Linterna** — the panel at full white, which on an AMOLED is the only way to make light. |
 | <img src="docs/img/int-level.png" width="200"><br>**Nivel** — a spirit level off the accelerometer, with the bubble and the angle in degrees. | <img src="docs/img/int-calc.png" width="200"><br>**Calculadora** — four operations, sized for a thumb rather than for density. | <img src="docs/img/int-convert.png" width="200"><br>**Conversor** — units across several families, with the keypad shared with the calculator. |
-| <img src="docs/img/int-battery.png" width="200"><br>**Batería** — what the AXP2101 reports: charge, voltage and whether it is charging. | <img src="docs/img/app-life.png" width="200"><br>**Vida** — Conway's Game of Life and Langton's ant on a 92x92 grid. | <img src="docs/img/settings-en.png" width="200"><br>**Ajustes** — brightness, always-on, language, wifi, bluetooth, watchface and the touch calibration. |
+| <img src="docs/img/int-battery.png" width="200"><br>**Batería** — what the AXP2101 reports: charge, voltage and whether it is charging. | <img src="docs/img/app-life.png" width="200"><br>**Vida** — Conway's Game of Life and Langton's ant on a 92x92 grid. | <img src="docs/img/settings-en.png" width="200"><br>**Ajustes** — six quick tiles and the brightness up top, then a page per category: display and its timeouts, sound, notifications and do-not-disturb, menu style, time, language, power, touch, about. |
 | <img src="docs/img/usb-pcremote-keys.png" width="200"><br>**Control PC** — the watch as a keyboard with media keys, a mouse, a gamepad and a MIDI port for the computer on the USB cable, one screen per role. | <img src="docs/img/usb-pato-list.png" width="200"><br>**Pato goma** — runs keyboard-and-mouse scripts on the computer, DuckyScript-style, picked and confirmed on the watch and edited from the portal's `/pato` page. | <img src="docs/img/int-link.png" width="200"><br>**Enlace** — the other watches around, and the one this is paired with. Pairing is bumping the two watches together. See [Two watches](#two-watches). |
 
 ### Loaded from the microSD
@@ -515,6 +536,7 @@ and UDP in the simulator.
 | [LINK.md](docs/LINK.md) | two watches over ESP-NOW: the plan in phases, the design, what every phase measured, and the five apps on it |
 | [I18N.md](docs/I18N.md) | how translation works and why the key is the Spanish string |
 | [LUA.md](docs/LUA.md) | scripts on the watch: what a script is, everything it can reach, the rules the app enforces and why, and what a frame actually costs |
+| [MENU.md](docs/MENU.md) | the launcher's order and folders: `menu.txt`, the hexagon icons, the `/menu` page, and what 256 apps cost the board |
 | [ICONS.md](docs/ICONS.md) | icons as data: the AIC format, how a `.so` or a file on the card brings one, how the 36 hand-drawn ones became tables, and what it saved |
 | [POWER.md](docs/POWER.md) | the AXP2101, the rails, light sleep, and the measurements behind each switch |
 | [PORTAL.md](docs/PORTAL.md) | the web portal: pages, API, what it costs the board, and the dev server |

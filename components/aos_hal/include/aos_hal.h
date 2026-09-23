@@ -202,6 +202,21 @@ bool aos_hal_aod_enabled(void);
 void aos_hal_aod_brightness_set(int percent);
 int  aos_hal_aod_brightness_get(void);
 
+/* How long the screen waits, in seconds. Preferences, set from Settings and
+ * the portal.
+ *
+ * active: from the last touch to leaving ACTIVE (dimmed with always-on, off
+ *   without). 0 = the default it always had: 60 s with always-on, 30 without.
+ * aod: from dimming to switching off. 0 = never; always-on still gives way
+ *   under 15 % battery. Default 300. */
+void     aos_hal_screen_timeouts_set(uint32_t active_s, uint32_t aod_s);
+void     aos_hal_screen_timeouts_get(uint32_t *active_s, uint32_t *aod_s);
+
+/* Raising the wrist lights the screen (the IMU's gesture). A preference, on
+ * by default; off, only a touch or the button wake it. */
+void     aos_hal_raise_wake_enable(bool on);
+bool     aos_hal_raise_wake_enabled(void);
+
 void aos_hal_display_on(bool on);           /* shortcut: ACTIVE / OFF */
 bool aos_hal_display_is_on(void);
 
@@ -369,6 +384,11 @@ const char *aos_hal_path_lang(void);
  * one the app brought, or the firmware's own. */
 const char *aos_hal_path_icons(void);
 
+/* The launcher's order and folders, menu.txt (docs/MENU.md). On the card when
+ * there is one, SPIFFS otherwise: it goes with the apps it arranges. A full
+ * path to a file, not a directory. */
+const char *aos_hal_path_menu(void);
+
 bool aos_hal_sd_present(void);
 bool aos_hal_sd_usage(uint64_t *total_bytes, uint64_t *free_bytes);
 
@@ -381,6 +401,12 @@ bool aos_hal_pref_set_i32(const char *key, int32_t value);
 bool aos_hal_pref_get_str(const char *key, char *out, size_t out_len);
 bool aos_hal_pref_set_str(const char *key, const char *value);
 bool aos_hal_pref_erase(const char *key);
+
+/* Every stored preference, in no particular order, for the portal's backup.
+ * is_str says which of v and s holds the value. Returns how many. */
+typedef void (*aos_hal_pref_visit_t)(const char *key, bool is_str, int32_t v,
+                                     const char *s, void *ctx);
+int  aos_hal_pref_foreach(aos_hal_pref_visit_t visit, void *ctx);
 
 /* -------------------------------------------------------------------------- */
 /* Audio (ES8311 + speaker + microphone)                                       */
@@ -780,6 +806,13 @@ void     aos_hal_notif_sound_set(bool on);
 bool     aos_hal_notif_sound(void);
 void     aos_hal_notif_calls_always_set(bool on);
 bool     aos_hal_notif_calls_always(void);
+/* Do not disturb on a schedule, on top of the switch (aos_hal_notif_enable
+ * false is do not disturb by hand). Minutes after midnight; the window may
+ * cross midnight. Default 23:00 to 07:00, off. */
+void     aos_hal_notif_dnd_schedule_set(bool on, int from_min, int to_min);
+void     aos_hal_notif_dnd_schedule_get(bool *on, int *from_min, int *to_min);
+/* Right now: by hand, or inside the scheduled hours. */
+bool     aos_hal_notif_dnd_active(void);
 void     aos_hal_notif_categories_set(uint32_t mask);
 uint32_t aos_hal_notif_categories(void);
 

@@ -1186,9 +1186,11 @@ with no apparent relation to the drawing.
 **Every table cap in this system discards in silence** - it did, and now most
 of them log. `MAX_DYNAPPS` sat at 16 with 17 `.so` files on the card and the
 seventeenth just did not appear in the launcher, after building, uploading
-and flashing correctly. It is 32 now on the board and in the simulator, and
-both shout when full. If your app does not show up, that log line is the
-first thing to look for.
+and flashing correctly. Since v0.5.0 the ceilings are tied to one another -
+256 in the launcher, 224 of them for the card, 256 in the simulator - and
+they all shout when full. If your app does not show up, that log line is the
+first thing to look for. Where it shows up is the user's business: `menu.txt`
+places it, and an app it does not name goes at the end (docs/MENU.md).
 
 **An app that registers fine and goes black when opened is the loader, not
 your app.** Exact symptom: boot registers it with the right id and name, no

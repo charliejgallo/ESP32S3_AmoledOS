@@ -81,8 +81,13 @@ static void dim_veil_update(void)
 /* Ceiling of apps/ apps the simulator preloads. It was at 12 with 14 apps in
  * the tree: the ones left over were discarded SILENTLY and the new app simply
  * did not appear ("no such app X"), with no error at all. Same problem
- * AOS_MAX_APPS and AOS_MAX_WATCHFACES have in the firmware. */
-#define MAX_SIM_APPS    32
+ * AOS_MAX_APPS and AOS_MAX_WATCHFACES have in the firmware.
+ *
+ * And it happened again at 32: 34 apps in the tree by v0.4.13, two of them
+ * gone from the simulator with a warning nobody was reading. Now it follows
+ * the firmware's ceiling, since a registration here is at most one app of
+ * the launcher. */
+#define MAX_SIM_APPS    AOS_MAX_APPS
 
 /* One entry per registration, not per app: a module that brings several -only
  * the Lua one today- registers once and says how many when it is asked, which

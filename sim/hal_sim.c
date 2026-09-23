@@ -391,20 +391,64 @@ void aos_hal_activity(void)
 }
 
 /* Same timing policy as the board; called by the simulator's loop. */
+static uint32_t s_active_s = 0, s_aod_s = 300;
+static bool s_raise_wake = true;
+
+void aos_hal_raise_wake_enable(bool on)
+{
+    s_raise_wake = on;
+    aos_hal_pref_set_i32("raise_wake", on ? 1 : 0);
+}
+
+bool aos_hal_raise_wake_enabled(void)
+{
+    static bool loaded;
+    if (!loaded) {
+        int32_t v;
+        loaded = true;
+        if (aos_hal_pref_get_i32("raise_wake", &v)) s_raise_wake = (v != 0);
+    }
+    return s_raise_wake;
+}
+
+void aos_hal_screen_timeouts_set(uint32_t active_s, uint32_t aod_s)
+{
+    s_active_s = active_s;
+    s_aod_s = aod_s;
+    aos_hal_pref_set_i32("scr_on_s", (int32_t)active_s);
+    aos_hal_pref_set_i32("aod_off_s", (int32_t)aod_s);
+}
+
+void aos_hal_screen_timeouts_get(uint32_t *active_s, uint32_t *aod_s)
+{
+    static bool loaded;
+    if (!loaded) {
+        int32_t v;
+        loaded = true;
+        if (aos_hal_pref_get_i32("scr_on_s", &v) && v >= 0) s_active_s = (uint32_t)v;
+        if (aos_hal_pref_get_i32("aod_off_s", &v) && v >= 0) s_aod_s = (uint32_t)v;
+    }
+    if (active_s) *active_s = s_active_s;
+    if (aod_s)    *aod_s = s_aod_s;
+}
+
 void aos_hal_sim_idle_tick(void)
 {
     uint64_t idle = aos_hal_uptime_ms() - s_last_activity_ms;
+    uint32_t act_s, aod_s;
+    aos_hal_screen_timeouts_get(&act_s, &aod_s);
+    /* 15 s with always-on is the simulator's own default, shorter than the
+     * board's 60 so the dimmed face shows up while you look at it. */
+    uint64_t active = act_s ? (uint64_t)act_s * 1000 : (s_aod_enabled ? 15000 : 30000);
 
     switch (s_display_state) {
     case AOS_DISPLAY_ACTIVE:
-        if (s_aod_enabled && idle > 15000) {
-            aos_hal_display_set_state(AOS_DISPLAY_AOD);
-        } else if (!s_aod_enabled && idle > 30000) {
-            aos_hal_display_set_state(AOS_DISPLAY_OFF);
+        if (idle > active) {
+            aos_hal_display_set_state(s_aod_enabled ? AOS_DISPLAY_AOD : AOS_DISPLAY_OFF);
         }
         break;
     case AOS_DISPLAY_AOD:
-        if (idle > 300000) {
+        if (aod_s && idle > active + (uint64_t)aod_s * 1000) {
             aos_hal_display_set_state(AOS_DISPLAY_OFF);
         }
         break;
@@ -441,6 +485,7 @@ const char *aos_hal_path_music(void)  { return "sim_fs/music";  }
 const char *aos_hal_path_data(void)   { return "sim_fs/data";   }
 const char *aos_hal_path_lang(void)   { return "sim_fs/lang";   }
 const char *aos_hal_path_icons(void)  { return "sim_fs/icons";  }
+const char *aos_hal_path_menu(void)   { return "sim_fs/menu.txt"; }
 const char *aos_hal_path_recordings(void) { return "sim_fs/recordings"; }
 const char *aos_hal_path_scans(void)  { return "sim_fs/redes";  }
 const char *aos_hal_path_sd_root(void) { return "sim_fs"; }
@@ -538,6 +583,33 @@ static bool pref_store(const char *key, const char *value)
     }
     fclose(file);
     return true;
+}
+
+/* The simulator's file keeps no types: a value that reads whole as a number
+ * is an i32, anything else a string. */
+int aos_hal_pref_foreach(aos_hal_pref_visit_t visit, void *ctx)
+{
+    FILE *file = fopen(PREFS_FILE, "r");
+    if (!file) {
+        return 0;
+    }
+    char line[256];
+    int n = 0;
+    while (fgets(line, sizeof(line), file)) {
+        line[strcspn(line, "\r\n")] = '\0';
+        char *eq = strchr(line, '=');
+        if (!eq || eq == line) {
+            continue;
+        }
+        *eq = '\0';
+        char *end = NULL;
+        long v = strtol(eq + 1, &end, 10);
+        bool is_num = eq[1] && end && *end == '\0';
+        visit(line, !is_num, (int32_t)v, eq + 1, ctx);
+        n++;
+    }
+    fclose(file);
+    return n;
 }
 
 bool aos_hal_pref_get_i32(const char *key, int32_t *out)

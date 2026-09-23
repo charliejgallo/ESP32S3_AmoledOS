@@ -1,4 +1,18 @@
-/* AmoledOS - Settings: brightness, volume, menu style, network and system. */
+/*
+ * AmoledOS - Settings.
+ *
+ * A short first page -six quick tiles, the brightness, and the categories
+ * with their current value- and one page per category, built when it opens.
+ * It used to be a single page nine screens long with every control of every
+ * category on it: to change the language you scrolled past brightness,
+ * power, the network and the rest. The category pages slide in like the
+ * launcher's folders, and back closes them before it closes the app.
+ *
+ * The second screens that already existed (the access point's password and
+ * QR, Bluetooth pairing, the notification categories, setting the clock by
+ * hand, the touch calibration and raw view) are unchanged: they hang off
+ * lv_layer_top over whichever page opened them.
+ */
 #include "aos_apps.h"
 #include "aos_theme.h"
 #include "aos_hal.h"
@@ -7,11 +21,13 @@
 #include "aos_i18n.h"
 #include "aos_wifi_qr.h"
 #include "aos_pair_ui.h"
+#include "aos_settings_glyphs.h"
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #ifdef AOS_SIM
-#include <stdlib.h>          /* getenv, only for the audit hook */
+#include <stdlib.h>          /* getenv and atoi, only for the audit hooks */
 #endif
 #ifndef AOS_SIM
 #include "esp_heap_caps.h"
@@ -30,7 +46,7 @@ typedef struct {
     lv_obj_t *ap_box_modo;
     char      ap_box_qr_texto[128];  /* the last thing encoded in the QR       */
     lv_obj_t *usb_label;        /* what the USB port is right now              */
-    lv_obj_t *usb_dd;           /* its mode                                    */
+    lv_obj_t *usb_check[4];     /* its mode, as four rows with a tick          */
     lv_obj_t *bt_label;         /* state of the link                           */
     lv_obj_t *bt_forget;        /* forget button, only if something is paired  */
     lv_obj_t *bt_box;           /* second screen: pairing                      */
@@ -51,6 +67,22 @@ typedef struct {
     uint32_t  raw_n;
     lv_obj_t *r_day, *r_mon, *r_year, *r_hour, *r_min;
     lv_timer_t *timer;
+
+    /* The pages (see the second half of this file) */
+    lv_obj_t *root;
+    lv_obj_t *main;             /* the first page                              */
+    lv_obj_t *sub;              /* the open category's page, or NULL           */
+    int       sub_kind;
+    lv_obj_t *tile[6];
+    lv_obj_t *value[13];        /* the right-hand text of each category row    */
+    lv_obj_t *lang_check[AOS_LANG_MAX];
+    lv_obj_t *style_card[3];
+    lv_obj_t *time_label, *date_label;
+    lv_obj_t *batt_label;
+    lv_obj_t *dnd_from_val, *dnd_to_val;   /* Notifications: the schedule */
+    lv_obj_t *dnd_box;                     /* second screen: picking a time */
+    lv_obj_t *r_dh, *r_dm;
+    int       dnd_which;                   /* 0 from, 1 to */
 } settings_t;
 
 static settings_t s_set;
@@ -127,17 +159,19 @@ static void sync_cb(lv_event_t *event)
                                          : _("Sin conexion"), 1600);
 }
 
-static void wifi_toggle_cb(lv_event_t *event)
+static void set_wifi(bool on)
 {
-    lv_obj_t *sw = lv_event_get_target(event);
-    bool on = lv_obj_has_state(sw, LV_STATE_CHECKED);
-
     /* Switching it off gives back ~60 KB of executable memory, which is where
      * the code of dynamic apps comes from. The two largest do not fit with the
      * radio up, so this switch is also an app switch. */
     aos_hal_net_enable(on);
     aos_ui_toast(on ? _("Wifi encendida")
                     : _("Wifi apagada, memoria liberada"), 1600);
+}
+
+static void wifi_toggle_cb(lv_event_t *event)
+{
+    set_wifi(lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED));
 }
 
 /* -------------------------------------------------------------------------- */
@@ -838,10 +872,15 @@ static void raw_cb(lv_event_t *event)
     lv_obj_align(btn, LV_ALIGN_CENTER, 0, 50);
 }
 
+/* Held, not tapped: a restart is one brush of a finger away from the bottom
+ * of a scrolling page. A tap says how. */
 static void reboot_cb(lv_event_t *event)
 {
-    (void)event;
-    aos_hal_reboot();
+    if (lv_event_get_code(event) == LV_EVENT_LONG_PRESSED) {
+        aos_hal_reboot();
+    } else {
+        aos_ui_toast(_("Mantene apretado para reiniciar"), 1600);
+    }
 }
 
 /* Languages found on the card. Surveyed when Settings opens and kept, because
@@ -851,8 +890,8 @@ static int        s_lang_count;
 
 static void lang_cb(lv_event_t *event)
 {
-    uint32_t sel = lv_dropdown_get_selected(lv_event_get_target(event));
-    if ((int)sel >= s_lang_count) {
+    int sel = (int)(intptr_t)lv_event_get_user_data(event);
+    if (sel >= s_lang_count) {
         return;
     }
     if (strcmp(s_langs[sel].code, aos_i18n_current()) == 0) {
@@ -867,17 +906,32 @@ static void lang_cb(lv_event_t *event)
 /* USB (docs/USB.md)                                                           */
 /* -------------------------------------------------------------------------- */
 
-/* The dropdown's order IS aos_hal_usb_mode_t's order. */
+static void usb_checks(int mode)
+{
+    for (int i = 0; i < 4; i++) {
+        if (s_set.usb_check[i]) {
+            if (i == mode) {
+                lv_obj_remove_flag(s_set.usb_check[i], LV_OBJ_FLAG_HIDDEN);
+            } else {
+                lv_obj_add_flag(s_set.usb_check[i], LV_OBJ_FLAG_HIDDEN);
+            }
+        }
+    }
+}
+
+/* The rows' order IS aos_hal_usb_mode_t's order: the row's index rides in the
+ * event's user data. */
 static void usb_mode_cb(lv_event_t *event)
 {
-    uint32_t sel = lv_dropdown_get_selected(lv_event_get_target(event));
+    int sel = (int)(intptr_t)lv_event_get_user_data(event);
     if ((aos_hal_usb_mode_t)sel == aos_hal_usb_mode()) {
         return;
     }
     if (!aos_hal_usb_mode_set((aos_hal_usb_mode_t)sel)) {
         aos_ui_toast(_("El USB esta cambiando de modo"), 1400);
-        lv_dropdown_set_selected(s_set.usb_dd, (uint32_t)aos_hal_usb_mode());
+        sel = (int)aos_hal_usb_mode();
     }
+    usb_checks(sel);
 }
 
 static void usb_refresh(void)
@@ -907,10 +961,7 @@ static void usb_refresh(void)
             txt = _("consola y grabacion del firmware");
             break;
         }
-        if (!aos_hal_usb_busy() &&
-            lv_dropdown_get_selected(s_set.usb_dd) != (uint32_t)aos_hal_usb_mode()) {
-            lv_dropdown_set_selected(s_set.usb_dd, (uint32_t)aos_hal_usb_mode());
-        }
+        usb_checks((int)aos_hal_usb_mode());
     }
     lv_label_set_text(s_set.usb_label, txt);
 }
@@ -1095,9 +1146,8 @@ static void bt_pair_cb(lv_event_t *event)
     bt_box_refresh(NULL);
 }
 
-static void bt_toggle_cb(lv_event_t *event)
+static void set_bt(bool on)
 {
-    bool on = lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED);
     aos_hal_bt_enable(on);
     if (!on) {
         bt_box_close();
@@ -1109,6 +1159,11 @@ static void bt_toggle_cb(lv_event_t *event)
                     : _("Bluetooth apagado, memoria liberada"), 1600);
 }
 
+static void bt_toggle_cb(lv_event_t *event)
+{
+    set_bt(lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED));
+}
+
 static void bt_forget_cb(lv_event_t *event)
 {
     (void)event;
@@ -1117,12 +1172,20 @@ static void bt_forget_cb(lv_event_t *event)
     aos_ui_toast(_("Telefono olvidado"), 1600);
 }
 
-static void notif_cb(lv_event_t *event)
+/* "Do not disturb" is the notifications switch the other way round: with
+ * alerts off a notification is still kept in the list, it only does not
+ * light the screen or sound, and a call gets through with "calls always"
+ * (aos_notif.c, politica()). That is what do-not-disturb means. */
+static void set_dnd(bool dnd)
 {
-    bool on = lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED);
-    aos_hal_notif_enable(on);
-    aos_ui_toast(on ? _("Notificaciones encendidas")
-                    : _("No molestar: el telefono sigue conectado"), 1800);
+    aos_hal_notif_enable(!dnd);
+    aos_ui_toast(dnd ? _("No molestar: el telefono sigue conectado")
+                     : _("Notificaciones encendidas"), 1800);
+}
+
+static void dnd_cb(lv_event_t *event)
+{
+    set_dnd(lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED));
 }
 
 static void notif_sound_cb(lv_event_t *event)
@@ -1246,60 +1309,1412 @@ static void cat_cb(lv_event_t *event)
     aos_button(box, _("Listo"), AOS_C_CARD2, cat_box_close_cb, NULL);
 }
 
-static lv_obj_t *section(lv_obj_t *parent, const char *title)
+/* ==========================================================================
+ * The pages
+ * ========================================================================== */
+
+#define PAD_SIDE    18
+#define CONTENT_W   (AOS_SCREEN_W - 2 * PAD_SIDE)
+#define ROW_H       58
+#define SUB_ANIM_MS 220
+
+/* The categories, in the order of the first page. Their index is also the
+ * index of s_set.value[]. */
+typedef enum {
+    SUB_WIFI, SUB_BT, SUB_USB,
+    SUB_DISPLAY, SUB_SOUND, SUB_NOTIF, SUB_MENU, SUB_TIME, SUB_LANG,
+    SUB_ENERGY, SUB_TOUCH, SUB_ABOUT,
+    SUB_DIAG,                   /* reached from About, not from the first page */
+    SUB_COUNT
+} sub_t;
+
+enum { TILE_WIFI, TILE_BT, TILE_LIGHT, TILE_AOD, TILE_SAVE, TILE_DND, TILE_COUNT };
+
+static void open_sub(int kind, bool animate);
+static void close_sub(bool animate);
+static void refresh(lv_timer_t *timer);
+static void raise_wake_cb(lv_event_t *event);
+static void dnd_values(void);
+static void dnd_sched_cb(lv_event_t *event);
+static void dnd_time_cb(lv_event_t *event);
+
+static const char *sub_title(int kind)
 {
-    lv_obj_t *label = aos_label(parent, title, aos_font_small, AOS_C_DIM);
-    lv_obj_set_style_pad_top(label, 10, 0);
-    return label;
+    switch (kind) {
+    case SUB_WIFI:    return _("Wifi");
+    case SUB_BT:      return _("Bluetooth");
+    case SUB_USB:     return _("USB");
+    case SUB_DISPLAY: return _("Pantalla");
+    case SUB_SOUND:   return _("Sonido");
+    case SUB_NOTIF:   return _("Notificaciones");
+    case SUB_MENU:    return _("Menu");
+    case SUB_TIME:    return _("Hora");
+    case SUB_LANG:    return _("Idioma");
+    case SUB_ENERGY:  return _("Energia");
+    case SUB_TOUCH:   return _("Tactil");
+    case SUB_ABOUT:   return _("Acerca del reloj");
+    case SUB_DIAG:    return _("Diagnostico");
+    default:          return "";
+    }
 }
 
-static lv_obj_t *slider(lv_obj_t *parent, int value, lv_event_cb_t cb)
+/* --------------------------------------------------------------------------
+ * Building blocks
+ * -------------------------------------------------------------------------- */
+
+/* A page: full size, black, scrolling down, content centred in a column. */
+static lv_obj_t *column(lv_obj_t *parent)
 {
-    lv_obj_t *obj = lv_slider_create(parent);
-    lv_obj_set_width(obj, AOS_SCREEN_W - 90);
-    lv_obj_set_height(obj, 16);
-    lv_slider_set_range(obj, 5, 100);
-    lv_slider_set_value(obj, value, LV_ANIM_OFF);
-    lv_obj_set_style_bg_color(obj, AOS_C_CARD2, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(obj, AOS_C_ACCENT, LV_PART_INDICATOR);
-    lv_obj_set_style_bg_color(obj, AOS_C_TEXT, LV_PART_KNOB);
-    lv_obj_add_event_cb(obj, cb, LV_EVENT_VALUE_CHANGED, NULL);
-    return obj;
+    lv_obj_t *p = lv_obj_create(parent);
+    lv_obj_remove_style_all(p);
+    lv_obj_set_size(p, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_bg_color(p, AOS_C_BG, 0);
+    lv_obj_set_style_bg_opa(p, LV_OPA_COVER, 0);
+    lv_obj_set_style_text_color(p, AOS_C_TEXT, 0);
+    lv_obj_set_flex_flow(p, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(p, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_hor(p, PAD_SIDE, 0);
+    lv_obj_set_style_pad_top(p, 4, 0);
+    lv_obj_set_style_pad_bottom(p, 44, 0);
+    lv_obj_set_style_pad_row(p, 10, 0);
+    lv_obj_set_scroll_dir(p, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(p, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_add_flag(p, LV_OBJ_FLAG_SCROLL_MOMENTUM);
+    return p;
 }
+
+static lv_obj_t *glyph(lv_obj_t *parent, const char *g, lv_color_t color)
+{
+    lv_obj_t *l = lv_label_create(parent);
+    lv_label_set_text(l, g);
+    lv_obj_set_style_text_font(l, &aos_settings_font, 0);
+    lv_obj_set_style_text_color(l, color, 0);
+    return l;
+}
+
+/* A small grey caption over a card, left-aligned with the card's text. */
+static lv_obj_t *caption(lv_obj_t *parent, const char *text)
+{
+    lv_obj_t *l = aos_label(parent, text, aos_font_small, AOS_C_DIM);
+    lv_obj_set_width(l, CONTENT_W - 12);
+    lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_WRAP);
+    lv_obj_set_style_pad_top(l, 6, 0);
+    return l;
+}
+
+/* Grey explanatory text under a card. */
+static lv_obj_t *note(lv_obj_t *parent, const char *text)
+{
+    lv_obj_t *l = aos_label(parent, text, aos_font_small, AOS_C_DIM);
+    lv_obj_set_width(l, CONTENT_W - 12);
+    lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_WRAP);
+    return l;
+}
+
+/* A rounded card that stacks rows. No clip_corner: the rows are transparent,
+ * so there is nothing to clip, and clipping would cost a layer. */
+static lv_obj_t *card(lv_obj_t *parent)
+{
+    lv_obj_t *c = lv_obj_create(parent);
+    lv_obj_remove_style_all(c);
+    lv_obj_set_width(c, CONTENT_W);
+    lv_obj_set_height(c, LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_color(c, AOS_C_CARD, 0);
+    lv_obj_set_style_bg_opa(c, LV_OPA_COVER, 0);
+    lv_obj_set_style_radius(c, 18, 0);
+    lv_obj_set_flex_flow(c, LV_FLEX_FLOW_COLUMN);
+    lv_obj_remove_flag(c, LV_OBJ_FLAG_SCROLLABLE);
+    return c;
+}
+
+/* One row of a card: a hairline above every row but the first. */
+static lv_obj_t *row_base(lv_obj_t *c)
+{
+    lv_obj_t *r = lv_obj_create(c);
+    lv_obj_remove_style_all(r);
+    lv_obj_set_width(r, lv_pct(100));
+    lv_obj_set_height(r, LV_SIZE_CONTENT);
+    lv_obj_set_style_min_height(r, ROW_H, 0);
+    lv_obj_set_style_pad_hor(r, 14, 0);
+    lv_obj_set_style_pad_ver(r, 8, 0);
+    lv_obj_set_style_pad_column(r, 10, 0);
+    lv_obj_set_flex_flow(r, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(r, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_remove_flag(r, LV_OBJ_FLAG_SCROLLABLE);
+    if (lv_obj_get_child_count(c) > 1) {
+        lv_obj_set_style_border_side(r, LV_BORDER_SIDE_TOP, 0);
+        lv_obj_set_style_border_width(r, 1, 0);
+        lv_obj_set_style_border_color(r, AOS_C_CARD2, 0);
+    }
+    return r;
+}
+
+static void make_touchable(lv_obj_t *row, lv_event_cb_t cb, void *user_data,
+                           lv_event_code_t code)
+{
+    aos_make_decorative(row);
+    lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_bg_color(row, AOS_C_CARD2, LV_STATE_PRESSED);
+    lv_obj_set_style_bg_opa(row, LV_OPA_COVER, LV_STATE_PRESSED);
+    lv_obj_add_event_cb(row, cb, code, user_data);
+}
+
+/* A category row: coloured dot with the icon, the name, the current value,
+ * a chevron. */
+static lv_obj_t *nav_row(lv_obj_t *c, const char *g, lv_color_t color,
+                         const char *text, lv_obj_t **value_out,
+                         lv_event_cb_t cb, void *user_data)
+{
+    lv_obj_t *r = row_base(c);
+    if (g) {
+        lv_obj_t *dot = lv_obj_create(r);
+        lv_obj_remove_style_all(dot);
+        lv_obj_set_size(dot, 36, 36);
+        lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_color(dot, color, 0);
+        lv_obj_set_style_bg_opa(dot, LV_OPA_COVER, 0);
+        lv_obj_center(glyph(dot, g, AOS_C_TEXT));
+    }
+    lv_obj_t *name = aos_label(r, text, aos_font_body, AOS_C_TEXT);
+    lv_label_set_long_mode(name, LV_LABEL_LONG_MODE_DOTS);
+    lv_obj_set_flex_grow(name, 1);
+
+    lv_obj_t *val = aos_label(r, "", aos_font_small, AOS_C_DIM);
+    lv_label_set_long_mode(val, LV_LABEL_LONG_MODE_DOTS);
+    /* The name wins: a long value ("searching for the phone") is what gets
+     * the dots, never "Bluetooth". */
+    lv_obj_set_style_max_width(val, 112, 0);
+    if (value_out) {
+        *value_out = val;
+    }
+    glyph(r, AOS_SG_CHEVRON_RIGHT, lv_color_hex(0x636366));
+    make_touchable(r, cb, user_data, LV_EVENT_CLICKED);
+    return r;
+}
+
+/* A tap anywhere on a switch row flips the switch: the switch alone is a
+ * small target on a watch. */
+static void switch_row_click_cb(lv_event_t *event)
+{
+    lv_obj_t *sw = (lv_obj_t *)lv_event_get_user_data(event);
+    if (lv_obj_has_state(sw, LV_STATE_CHECKED)) {
+        lv_obj_remove_state(sw, LV_STATE_CHECKED);
+    } else {
+        lv_obj_add_state(sw, LV_STATE_CHECKED);
+    }
+    lv_obj_send_event(sw, LV_EVENT_VALUE_CHANGED, NULL);
+}
+
+/* A switch row, with an optional line of explanation under the name. */
+static lv_obj_t *switch_row2(lv_obj_t *c, const char *text, const char *desc,
+                             bool on, lv_event_cb_t cb)
+{
+    lv_obj_t *r = row_base(c);
+    lv_obj_t *col = lv_obj_create(r);
+    lv_obj_remove_style_all(col);
+    lv_obj_set_height(col, LV_SIZE_CONTENT);
+    lv_obj_set_flex_grow(col, 1);
+    lv_obj_set_flex_flow(col, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(col, 2, 0);
+    lv_obj_remove_flag(col, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_t *name = aos_label(col, text, aos_font_body, AOS_C_TEXT);
+    lv_obj_set_width(name, lv_pct(100));
+    lv_label_set_long_mode(name, LV_LABEL_LONG_MODE_WRAP);
+    if (desc) {
+        lv_obj_t *d = aos_label(col, desc, aos_font_small, AOS_C_DIM);
+        lv_obj_set_width(d, lv_pct(100));
+        lv_label_set_long_mode(d, LV_LABEL_LONG_MODE_WRAP);
+    }
+
+    lv_obj_t *sw = lv_switch_create(r);
+    lv_obj_set_size(sw, 52, 30);
+    lv_obj_set_style_bg_color(sw, AOS_C_GREEN, LV_PART_INDICATOR | LV_STATE_CHECKED);
+    if (on) {
+        lv_obj_add_state(sw, LV_STATE_CHECKED);
+    }
+    lv_obj_add_event_cb(sw, cb, LV_EVENT_VALUE_CHANGED, NULL);
+
+    aos_make_decorative(col);
+    lv_obj_add_event_cb(r, switch_row_click_cb, LV_EVENT_CLICKED, sw);
+    return sw;
+}
+
+/* A choice among several, as rows with a tick on the chosen one. Returns the
+ * tick, hidden unless chosen. */
+static lv_obj_t *radio_row(lv_obj_t *c, const char *text, bool chosen,
+                           lv_event_cb_t cb, int index)
+{
+    lv_obj_t *r = row_base(c);
+    lv_obj_t *name = aos_label(r, text, aos_font_body, AOS_C_TEXT);
+    lv_label_set_long_mode(name, LV_LABEL_LONG_MODE_DOTS);
+    lv_obj_set_flex_grow(name, 1);
+    lv_obj_t *tick = aos_label(r, LV_SYMBOL_OK, aos_font_body, AOS_C_ACCENT);
+    if (!chosen) {
+        lv_obj_add_flag(tick, LV_OBJ_FLAG_HIDDEN);
+    }
+    make_touchable(r, cb, (void *)(intptr_t)index, LV_EVENT_CLICKED);
+    return tick;
+}
+
+/* The pill slider: an icon on the left, the value on the right, no knob.
+ * The value label is kept current by the slider itself. */
+static void pill_value_cb(lv_event_t *event)
+{
+    lv_obj_t *sl = lv_event_get_target(event);
+    lv_obj_t *val = (lv_obj_t *)lv_event_get_user_data(event);
+    lv_label_set_text_fmt(val, "%d %%", (int)lv_slider_get_value(sl));
+}
+
+static lv_obj_t *pill_slider(lv_obj_t *parent, const char *g, int value,
+                             int min, int max, lv_event_cb_t cb)
+{
+    lv_obj_t *sl = lv_slider_create(parent);
+    lv_obj_set_size(sl, CONTENT_W, 48);
+    lv_slider_set_range(sl, min, max);
+    lv_slider_set_value(sl, value, LV_ANIM_OFF);
+    lv_obj_set_style_radius(sl, 24, LV_PART_MAIN);
+    lv_obj_set_style_radius(sl, 24, LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(sl, AOS_C_CARD, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(sl, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(sl, lv_color_hex(0x48484A), LV_PART_INDICATOR);
+    lv_obj_set_style_bg_opa(sl, LV_OPA_TRANSP, LV_PART_KNOB);
+    lv_obj_set_style_pad_all(sl, 0, LV_PART_KNOB);
+    lv_obj_set_style_pad_all(sl, 0, LV_PART_MAIN);
+    lv_obj_set_ext_click_area(sl, 6);
+
+    lv_obj_t *ic = glyph(sl, g, AOS_C_TEXT);
+    lv_obj_align(ic, LV_ALIGN_LEFT_MID, 16, 0);
+    lv_obj_t *val = aos_label(sl, "", aos_font_small, AOS_C_TEXT);
+    lv_obj_align(val, LV_ALIGN_RIGHT_MID, -18, 0);
+    lv_label_set_text_fmt(val, "%d %%", value);
+    aos_make_decorative(ic);
+    aos_make_decorative(val);
+
+    lv_obj_add_event_cb(sl, pill_value_cb, LV_EVENT_VALUE_CHANGED, val);
+    lv_obj_add_event_cb(sl, cb, LV_EVENT_VALUE_CHANGED, NULL);
+    return sl;
+}
+
+/* A segmented control. The callback gets the chosen index; it is kept in the
+ * container's user data so the one click handler serves every control. */
+typedef void (*seg_cb_t)(int index);
+
+static void seg_paint(lv_obj_t *cont, int sel)
+{
+    uint32_t n = lv_obj_get_child_count(cont);
+    for (uint32_t i = 0; i < n; i++) {
+        lv_obj_t *b = lv_obj_get_child(cont, i);
+        lv_obj_set_style_bg_opa(b, (int)i == sel ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
+        lv_obj_set_style_text_color(b, (int)i == sel ? AOS_C_TEXT : AOS_C_DIM, 0);
+    }
+}
+
+static void seg_click_cb(lv_event_t *event)
+{
+    lv_obj_t *b = lv_event_get_current_target(event);
+    lv_obj_t *cont = lv_obj_get_parent(b);
+    int idx = (int)(intptr_t)lv_event_get_user_data(event);
+    seg_paint(cont, idx);
+    seg_cb_t cb = (seg_cb_t)lv_obj_get_user_data(cont);
+    if (cb) {
+        cb(idx);
+    }
+}
+
+static lv_obj_t *segmented(lv_obj_t *parent, const char *const *labels, int n,
+                           int sel, seg_cb_t cb)
+{
+    lv_obj_t *cont = lv_obj_create(parent);
+    lv_obj_remove_style_all(cont);
+    lv_obj_set_size(cont, CONTENT_W, 46);
+    lv_obj_set_style_bg_color(cont, AOS_C_CARD, 0);
+    lv_obj_set_style_bg_opa(cont, LV_OPA_COVER, 0);
+    lv_obj_set_style_radius(cont, 14, 0);
+    lv_obj_set_style_pad_all(cont, 3, 0);
+    lv_obj_set_style_pad_column(cont, 3, 0);
+    lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_ROW);
+    lv_obj_remove_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_user_data(cont, (void *)cb);
+    for (int i = 0; i < n; i++) {
+        lv_obj_t *b = lv_obj_create(cont);
+        lv_obj_remove_style_all(b);
+        lv_obj_set_height(b, lv_pct(100));
+        lv_obj_set_flex_grow(b, 1);
+        lv_obj_set_style_radius(b, 11, 0);
+        lv_obj_set_style_bg_color(b, lv_color_hex(0x3A3A3C), 0);
+        lv_obj_t *l = aos_label(b, labels[i], aos_font_small, AOS_C_DIM);
+        lv_obj_center(l);
+        /* aos_label pins a colour; the label must inherit the one
+         * seg_paint() sets on the segment instead. */
+        lv_obj_remove_local_style_prop(l, LV_STYLE_TEXT_COLOR, 0);
+        aos_make_decorative(b);
+        lv_obj_add_flag(b, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(b, seg_click_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
+    }
+    seg_paint(cont, sel);
+    return cont;
+}
+
+/* A QR to one of the portal's pages, with the address beside it. Only with
+ * an address to give: on the home network, or the setup access point. */
+static void portal_qr(lv_obj_t *parent, const char *path, const char *what)
+{
+    const char *ip = NULL;
+    if (aos_hal_net_state() == AOS_NET_CONNECTED) {
+        ip = aos_hal_net_ip();
+    } else if (aos_hal_net_ap_active()) {
+        ip = aos_hal_net_ap_ip();
+    }
+    lv_obj_t *c = card(parent);
+    lv_obj_set_flex_flow(c, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(c, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_all(c, 14, 0);
+    lv_obj_set_style_pad_column(c, 14, 0);
+
+    if (!ip) {
+        lv_obj_t *l = aos_label(c, _("Conecta el wifi para usar el portal"),
+                                aos_font_small, AOS_C_DIM);
+        lv_obj_set_flex_grow(l, 1);
+        lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_WRAP);
+        return;
+    }
+    char url[64];
+    snprintf(url, sizeof(url), "http://%s%s", ip, path);
+
+    /* Black on white with a white margin: see the AP screen for why. The IP
+     * and not <name>.local: not every phone resolves mDNS. */
+    lv_obj_t *qr = lv_qrcode_create(c);
+    lv_qrcode_set_size(qr, 92);
+    lv_qrcode_set_dark_color(qr, lv_color_black());
+    lv_qrcode_set_light_color(qr, lv_color_white());
+    lv_obj_set_style_border_color(qr, lv_color_white(), 0);
+    lv_obj_set_style_border_width(qr, 5, 0);
+    lv_qrcode_update(qr, url, strlen(url));
+
+    lv_obj_t *col = lv_obj_create(c);
+    lv_obj_remove_style_all(col);
+    lv_obj_set_height(col, LV_SIZE_CONTENT);
+    lv_obj_set_flex_grow(col, 1);
+    lv_obj_set_flex_flow(col, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(col, 4, 0);
+    lv_obj_t *t = aos_label(col, what, aos_font_small, AOS_C_TEXT);
+    lv_obj_set_width(t, lv_pct(100));
+    lv_label_set_long_mode(t, LV_LABEL_LONG_MODE_WRAP);
+    char shown[64];
+    snprintf(shown, sizeof(shown), "%s.local%s", aos_hal_device_name(), path);
+    lv_obj_t *u = aos_label(col, shown, aos_font_small, AOS_C_ACCENT);
+    lv_obj_set_width(u, lv_pct(100));
+    lv_label_set_long_mode(u, LV_LABEL_LONG_MODE_WRAP);
+}
+
+/* --------------------------------------------------------------------------
+ * The first page: the quick tiles
+ * -------------------------------------------------------------------------- */
+
+static bool tile_on(int kind)
+{
+    switch (kind) {
+    case TILE_WIFI: return aos_hal_net_enabled();
+    case TILE_BT:   return aos_hal_bt_enabled();
+    case TILE_AOD:  return aos_hal_aod_enabled();
+    case TILE_SAVE: return aos_hal_power_saving_enabled();
+    case TILE_DND:  return !aos_hal_notif_enabled();
+    default:        return false;           /* the flashlight opens an app */
+    }
+}
+
+static lv_color_t tile_color(int kind)
+{
+    switch (kind) {
+    case TILE_SAVE: return AOS_C_GREEN;
+    case TILE_DND:  return lv_color_hex(0x5E5CE6);
+    case TILE_AOD:  return AOS_C_PURPLE;
+    default:        return AOS_C_ACCENT;
+    }
+}
+
+static void tiles_paint(void)
+{
+    for (int k = 0; k < TILE_COUNT; k++) {
+        lv_obj_t *t = s_set.tile[k];
+        if (!t) {
+            continue;
+        }
+        bool on = tile_on(k);
+        lv_color_t bg = on ? tile_color(k) : AOS_C_CARD;
+        if (!lv_color_eq(lv_obj_get_style_bg_color(t, 0), bg)) {
+            lv_obj_set_style_bg_color(t, bg, 0);
+        }
+        lv_obj_t *ic = lv_obj_get_child(t, 0);
+        lv_color_t fg = k == TILE_LIGHT ? AOS_C_YELLOW : on ? AOS_C_TEXT : AOS_C_DIM;
+        lv_obj_set_style_text_color(ic, fg, 0);
+        lv_obj_set_style_text_color(lv_obj_get_child(t, 1), on ? AOS_C_TEXT : AOS_C_DIM, 0);
+    }
+}
+
+static void tile_cb(lv_event_t *event)
+{
+    int kind = (int)(intptr_t)lv_event_get_user_data(event);
+    bool on = tile_on(kind);
+    switch (kind) {
+    case TILE_WIFI:  set_wifi(!on); break;
+    case TILE_BT:    set_bt(!on);   break;
+    case TILE_LIGHT:
+        /* Deferred: opening another app from here would destroy Settings
+         * inside its own callback. */
+        aos_ui_request_open("aos.flashlight");
+        return;
+    case TILE_AOD:
+        aos_hal_aod_enable(!on);
+        aos_ui_toast(!on ? _("Siempre encendido") : _("La pantalla se apaga"), 1400);
+        break;
+    case TILE_SAVE:
+        aos_hal_power_saving_enable(!on);
+        aos_ui_toast(!on ? _("Ahorro de energia") : _("Ahorro apagado"), 1400);
+        break;
+    case TILE_DND:   set_dnd(!on);  break;
+    }
+    tiles_paint();
+}
+
+static void tile_new(lv_obj_t *parent, int kind, const char *g, const char *text)
+{
+    lv_obj_t *t = lv_obj_create(parent);
+    lv_obj_remove_style_all(t);
+    lv_obj_set_size(t, (CONTENT_W - 20) / 3, 84);
+    lv_obj_set_style_radius(t, 20, 0);
+    lv_obj_set_style_bg_opa(t, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_opa(t, LV_OPA_70, LV_STATE_PRESSED);
+    lv_obj_set_style_pad_ver(t, 8, 0);
+    lv_obj_set_flex_flow(t, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(t, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(t, 4, 0);
+    glyph(t, g, AOS_C_DIM);
+    lv_obj_t *l = aos_label(t, text, aos_font_small, AOS_C_DIM);
+    lv_obj_set_width(l, (CONTENT_W - 20) / 3 - 8);
+    lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_WRAP);
+    lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
+    aos_make_decorative(t);
+    lv_obj_add_flag(t, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(t, tile_cb, LV_EVENT_CLICKED, (void *)(intptr_t)kind);
+    s_set.tile[kind] = t;
+}
+
+/* --------------------------------------------------------------------------
+ * The first page: each category's current value
+ * -------------------------------------------------------------------------- */
+
+static const char *style_name(aos_launcher_style_t st)
+{
+    return st == AOS_LAUNCHER_GRID ? _("Grilla")
+         : st == AOS_LAUNCHER_HONEYCOMB ? _("Panal") : _("Lista");
+}
+
+static const char *usb_name(int mode)
+{
+    switch (mode) {
+    case AOS_HAL_USB_KEYS: return _("Teclado y red");
+    case AOS_HAL_USB_DISK: return _("Disco (la tarjeta)");
+    case AOS_HAL_USB_HOST: return _("Host (un pendrive)");
+    default:               return _("Consola");
+    }
+}
+
+static const char *face_name(void)
+{
+    const char *id = aos_watchface_current();
+    for (int i = 0; id && i < aos_watchface_count(); i++) {
+        const aos_watchface_t *f = aos_watchface_at(i);
+        if (f && f->id && strcmp(f->id, id) == 0) {
+            return _(f->name);
+        }
+    }
+    return "";
+}
+
+static void set_value(int kind, const char *text)
+{
+    lv_obj_t *v = s_set.value[kind];
+    /* lv_label_set_text redraws even with the same text, and this runs every
+     * two seconds for twelve rows. */
+    if (v && strcmp(lv_label_get_text(v), text) != 0) {
+        lv_label_set_text(v, text);
+    }
+}
+
+static void values_refresh(void)
+{
+    if (!s_set.main) {
+        return;
+    }
+    char buf[48];
+
+    switch (aos_hal_net_state()) {
+    case AOS_NET_CONNECTED:  set_value(SUB_WIFI, aos_hal_net_ssid()); break;
+    case AOS_NET_CONNECTING: set_value(SUB_WIFI, _("conectando...")); break;
+    default:
+        set_value(SUB_WIFI, !aos_hal_net_enabled() ? _("apagada")
+                          : aos_hal_net_has_credentials() ? _("sin conexion")
+                                                          : _("sin red"));
+        break;
+    }
+
+    switch (aos_hal_bt_state()) {
+    case AOS_BT_CONNECTED:   set_value(SUB_BT, aos_hal_bt_peer()); break;
+    case AOS_BT_ADVERTISING: set_value(SUB_BT, aos_hal_bt_bonded() ? _("buscando")
+                                                                   : _("sin telefono")); break;
+    case AOS_BT_PAIRING:     set_value(SUB_BT, _("emparejando")); break;
+    default:                 set_value(SUB_BT, _("apagado")); break;
+    }
+
+    set_value(SUB_USB, usb_name((int)aos_hal_usb_mode()));
+    set_value(SUB_DISPLAY, face_name());
+    snprintf(buf, sizeof(buf), "%d %%", aos_hal_volume_get());
+    set_value(SUB_SOUND, buf);
+    {
+        bool prog;
+        aos_hal_notif_dnd_schedule_get(&prog, NULL, NULL);
+        set_value(SUB_NOTIF, aos_hal_notif_dnd_active() ? _("No molestar")
+                           : prog ? _("programado") : _("activas"));
+    }
+    set_value(SUB_MENU, style_name(aos_ui_launcher_get_style()));
+
+    struct tm now;
+    aos_hal_time_now(&now);
+    snprintf(buf, sizeof(buf), "%02d:%02d", now.tm_hour, now.tm_min);
+    set_value(SUB_TIME, buf);
+
+    for (int i = 0; i < s_lang_count; i++) {
+        if (strcmp(s_langs[i].code, aos_i18n_current()) == 0) {
+            set_value(SUB_LANG, s_langs[i].name);
+        }
+    }
+
+    aos_battery_t b;
+    if (aos_hal_battery_read(&b) && b.percent >= 0) {
+        snprintf(buf, sizeof(buf), "%d %%", b.percent);
+        set_value(SUB_ENERGY, buf);
+    }
+
+    /* "0.5.0-3-g1234abc-dirty" says too much for a row: up to the first dash. */
+    snprintf(buf, sizeof(buf), "%s", aos_hal_firmware_version());
+    char *dash = strchr(buf + 1, '-');
+    if (dash) {
+        *dash = '\0';
+    }
+    set_value(SUB_ABOUT, buf);
+}
+
+static void open_sub_cb(lv_event_t *event)
+{
+    aos_hal_activity();
+    open_sub((int)(intptr_t)lv_event_get_user_data(event), true);
+}
+
+static void brightness_value_cb(lv_event_t *event)
+{
+    brightness_cb(event);
+}
+
+static void build_main(lv_obj_t *root)
+{
+    lv_obj_t *p = column(root);
+    s_set.main = p;
+
+    lv_obj_t *title = aos_label(p, _("Ajustes"), aos_font_title, AOS_C_TEXT);
+    lv_obj_set_width(title, CONTENT_W - 8);
+
+    lv_obj_t *tiles = lv_obj_create(p);
+    lv_obj_remove_style_all(tiles);
+    lv_obj_set_size(tiles, CONTENT_W, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(tiles, LV_FLEX_FLOW_ROW_WRAP);
+    lv_obj_set_style_pad_row(tiles, 10, 0);
+    lv_obj_set_style_pad_column(tiles, 10, 0);
+    lv_obj_remove_flag(tiles, LV_OBJ_FLAG_SCROLLABLE);
+    tile_new(tiles, TILE_WIFI,  AOS_SG_WIFI,                 _("Wifi"));
+    tile_new(tiles, TILE_BT,    AOS_SG_BLUETOOTH,            _("Bluetooth"));
+    tile_new(tiles, TILE_LIGHT, AOS_SG_FLASHLIGHT,           _("Linterna"));
+    tile_new(tiles, TILE_AOD,   AOS_SG_WATCH_VARIANT,        _("Siempre encendido"));
+    tile_new(tiles, TILE_SAVE,  AOS_SG_LEAF,                 _("Ahorro"));
+    tile_new(tiles, TILE_DND,   AOS_SG_MOON_WANING_CRESCENT, _("No molestar"));
+    tiles_paint();
+
+    pill_slider(p, AOS_SG_WHITE_BALANCE_SUNNY, aos_hal_brightness_get(), 5, 100,
+                brightness_value_cb);
+
+    static const struct {
+        int kind;
+        const char *g;
+        uint32_t color;
+    } ROWS[] = {
+        { SUB_WIFI,    AOS_SG_WIFI,                  0x0A84FF },
+        { SUB_BT,      AOS_SG_BLUETOOTH,             0x0A84FF },
+        { SUB_USB,     AOS_SG_USB,                   0x636366 },
+        { SUB_DISPLAY, AOS_SG_BRIGHTNESS_6,          0x0A84FF },
+        { SUB_SOUND,   AOS_SG_VOLUME_HIGH,           0xFF375F },
+        { SUB_NOTIF,   AOS_SG_BELL_OUTLINE,          0xFF453A },
+        { SUB_MENU,    AOS_SG_VIEW_GRID_OUTLINE,     0xBF5AF2 },
+        { SUB_TIME,    AOS_SG_CLOCK_OUTLINE,         0xFF9F0A },
+        { SUB_LANG,    AOS_SG_TRANSLATE,             0x5E5CE6 },
+        { SUB_ENERGY,  AOS_SG_BATTERY_HEART_VARIANT, 0x30D158 },
+        { SUB_TOUCH,   AOS_SG_GESTURE_TAP,           0x40C8E0 },
+        { SUB_ABOUT,   AOS_SG_INFORMATION_OUTLINE,   0x636366 },
+    };
+    lv_obj_t *c = NULL;
+    for (size_t i = 0; i < sizeof(ROWS) / sizeof(ROWS[0]); i++) {
+        int k = ROWS[i].kind;
+        if (k == SUB_WIFI || k == SUB_DISPLAY || k == SUB_ENERGY) {
+            caption(p, k == SUB_WIFI ? _("CONEXIONES")
+                     : k == SUB_DISPLAY ? _("RELOJ") : _("SISTEMA"));
+            c = card(p);
+        }
+        nav_row(c, ROWS[i].g, lv_color_hex(ROWS[i].color), sub_title(k),
+                &s_set.value[k], open_sub_cb, (void *)(intptr_t)k);
+    }
+    values_refresh();
+}
+
+/* --------------------------------------------------------------------------
+ * The category pages
+ * -------------------------------------------------------------------------- */
+
+static void back_cb(lv_event_t *event)
+{
+    (void)event;
+    aos_hal_activity();
+    close_sub(true);
+}
+
+static void build_wifi(lv_obj_t *p)
+{
+    lv_obj_t *c = card(p);
+    switch_row2(c, _("Wifi encendida"), NULL, aos_hal_net_enabled(), wifi_toggle_cb);
+
+    s_set.net_label = aos_label(p, "", aos_font_small, AOS_C_TEXT);
+    lv_obj_set_width(s_set.net_label, CONTENT_W);
+    lv_label_set_long_mode(s_set.net_label, LV_LABEL_LONG_MODE_WRAP);
+    lv_obj_set_style_text_align(s_set.net_label, LV_TEXT_ALIGN_CENTER, 0);
+
+    aos_button(p, _("Configurar red"), AOS_C_ACCENT, ap_cb, NULL);
+
+    /* A touchable card with the AP's name, visible only with the network up.
+     * It is the door to the second screen: that is where the password and the
+     * QR are. The chevron is what says it can be touched; without it, nobody
+     * tries. */
+    s_set.ap_row = lv_obj_create(p);
+    lv_obj_remove_style_all(s_set.ap_row);
+    lv_obj_set_size(s_set.ap_row, CONTENT_W, 62);
+    lv_obj_set_style_bg_color(s_set.ap_row, AOS_C_CARD, 0);
+    lv_obj_set_style_bg_opa(s_set.ap_row, LV_OPA_COVER, 0);
+    lv_obj_set_style_radius(s_set.ap_row, 18, 0);
+    lv_obj_set_style_pad_hor(s_set.ap_row, 14, 0);
+    lv_obj_remove_flag(s_set.ap_row, LV_OBJ_FLAG_SCROLLABLE);
+    s_set.ap_row_ssid = aos_label(s_set.ap_row, aos_hal_net_ap_ssid(),
+                                  aos_font_small, AOS_C_TEXT);
+    lv_obj_align(s_set.ap_row_ssid, LV_ALIGN_LEFT_MID, 0, -10);
+    lv_obj_t *hint = aos_label(s_set.ap_row, _("ver clave y QR"), aos_font_small, AOS_C_DIM);
+    lv_obj_align(hint, LV_ALIGN_LEFT_MID, 0, 12);
+    lv_obj_align(glyph(s_set.ap_row, AOS_SG_CHEVRON_RIGHT, AOS_C_DIM), LV_ALIGN_RIGHT_MID, 0, 0);
+    /* In LVGL 9 every lv_obj is born clickable: without this the labels eat
+     * the touch meant for the card. */
+    aos_make_decorative(s_set.ap_row);
+    lv_obj_add_flag(s_set.ap_row, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(s_set.ap_row, ap_box_open, LV_EVENT_CLICKED, NULL);
+
+    /* What to do once connected; the name and the password are on the card's
+     * second screen, not in plain sight here. */
+    char ap_buf[160];
+    snprintf(ap_buf, sizeof(ap_buf), _("Ya conectado, abri\nhttp://%s/wifi"),
+             aos_hal_net_ap_ip());
+    s_set.ap_label = aos_label(p, ap_buf, aos_font_small, AOS_C_DIM);
+    lv_obj_set_style_text_align(s_set.ap_label, LV_TEXT_ALIGN_CENTER, 0);
+    if (!aos_hal_net_ap_active()) {
+        lv_obj_add_flag(s_set.ap_label, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(s_set.ap_row, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    if (aos_hal_net_has_credentials()) {
+        aos_button(p, _("Olvidar red"), AOS_C_CARD2, forget_cb, NULL);
+    }
+}
+
+static void build_bt(lv_obj_t *p)
+{
+    lv_obj_t *c = card(p);
+    switch_row2(c, _("Bluetooth"), NULL, aos_hal_bt_enabled(), bt_toggle_cb);
+
+    s_set.bt_label = aos_label(p, "", aos_font_small, AOS_C_TEXT);
+    lv_obj_set_width(s_set.bt_label, CONTENT_W);
+    lv_label_set_long_mode(s_set.bt_label, LV_LABEL_LONG_MODE_WRAP);
+    lv_obj_set_style_text_align(s_set.bt_label, LV_TEXT_ALIGN_CENTER, 0);
+
+    aos_button(p, _("Emparejar telefono"), AOS_C_ACCENT, bt_pair_cb, NULL);
+    s_set.bt_forget = aos_button(p, _("Olvidar telefono"), AOS_C_CARD2, bt_forget_cb, NULL);
+}
+
+static void build_usb(lv_obj_t *p)
+{
+    caption(p, _("QUE ES EL PUERTO USB"));
+    lv_obj_t *c = card(p);
+    int mode = (int)aos_hal_usb_mode();
+    for (int i = 0; i < 4; i++) {
+        s_set.usb_check[i] = radio_row(c, usb_name(i), i == mode, usb_mode_cb, i);
+    }
+    s_set.usb_label = note(p, "");
+    lv_obj_set_style_text_align(s_set.usb_label, LV_TEXT_ALIGN_CENTER, 0);
+    usb_refresh();
+}
+
+/* Display: the two timeouts */
+static const uint32_t ACTIVE_S[] = { 15, 30, 60, 120 };
+static const uint32_t AOD_S[]    = { 60, 300, 600, 0 };
+
+static void active_seg_cb(int i)
+{
+    uint32_t a, d;
+    aos_hal_screen_timeouts_get(&a, &d);
+    aos_hal_screen_timeouts_set(ACTIVE_S[i], d);
+}
+
+static void aod_seg_cb(int i)
+{
+    uint32_t a, d;
+    aos_hal_screen_timeouts_get(&a, &d);
+    aos_hal_screen_timeouts_set(a, AOD_S[i]);
+}
+
+static void build_display(lv_obj_t *p)
+{
+    pill_slider(p, AOS_SG_WHITE_BALANCE_SUNNY, aos_hal_brightness_get(), 5, 100,
+                brightness_value_cb);
+
+    lv_obj_t *c = card(p);
+    lv_obj_t *face_val = NULL;
+    nav_row(c, NULL, AOS_C_CARD, _("Esfera"), &face_val, face_cb, NULL);
+    lv_label_set_text(face_val, face_name());
+    switch_row2(c, _("Siempre encendido"),
+                _("la hora sigue a la vista, tenue, con la pantalla atenuada"),
+                aos_hal_aod_enabled(), aod_cb);
+    switch_row2(c, _("Levantar la muñeca"),
+                _("girar la muñeca hacia vos enciende la pantalla"),
+                aos_hal_raise_wake_enabled(), raise_wake_cb);
+
+    caption(p, _("BRILLO ATENUADA"));
+    pill_slider(p, AOS_SG_BRIGHTNESS_6, aos_hal_aod_brightness_get(), 1, 40,
+                aod_brightness_cb);
+
+    uint32_t act_s, aod_s;
+    aos_hal_screen_timeouts_get(&act_s, &aod_s);
+    if (act_s == 0) {
+        act_s = aos_hal_aod_enabled() ? 60 : 30;    /* what "never chose" means */
+    }
+    int ai = 2, di = 1;
+    for (int i = 0; i < 4; i++) {
+        if (ACTIVE_S[i] == act_s) ai = i;
+        if (AOD_S[i] == aod_s) di = i;
+    }
+    static const char *act_lbl[4];
+    act_lbl[0] = "15 s"; act_lbl[1] = "30 s"; act_lbl[2] = "1 min"; act_lbl[3] = "2 min";
+    static const char *aod_lbl[4];
+    aod_lbl[0] = "1 min"; aod_lbl[1] = "5 min"; aod_lbl[2] = "10 min";
+    aod_lbl[3] = _("nunca");
+
+    caption(p, _("SE ATENUA DESPUES DE"));
+    segmented(p, act_lbl, 4, ai, active_seg_cb);
+    caption(p, _("ATENUADA, SE APAGA DESPUES DE"));
+    segmented(p, aod_lbl, 4, di, aod_seg_cb);
+    note(p, _("Sin \"Siempre encendido\" la pantalla se apaga en vez de atenuarse. "
+              "Con la bateria por debajo del 15 % se apaga igual."));
+}
+
+static void raise_wake_cb(lv_event_t *event)
+{
+    aos_hal_raise_wake_enable(lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED));
+}
+
+static void build_sound(lv_obj_t *p)
+{
+    pill_slider(p, AOS_SG_VOLUME_HIGH, aos_hal_volume_get(), 5, 100, volume_cb);
+    lv_obj_t *c = card(p);
+    switch_row2(c, _("Sonido de los avisos"), NULL, aos_hal_notif_sound(), notif_sound_cb);
+}
+
+static void build_notif(lv_obj_t *p)
+{
+    lv_obj_t *c = card(p);
+    switch_row2(c, _("No molestar"),
+                _("los avisos quedan en la lista, pero no encienden la pantalla ni suenan"),
+                !aos_hal_notif_enabled(), dnd_cb);
+    switch_row2(c, _("Llamadas siempre"),
+                _("una llamada entra aunque este No molestar"),
+                aos_hal_notif_calls_always(), notif_calls_cb);
+    caption(p, _("NO MOLESTAR PROGRAMADO"));
+    bool on;
+    int from, to;
+    aos_hal_notif_dnd_schedule_get(&on, &from, &to);
+    lv_obj_t *c3 = card(p);
+    switch_row2(c3, _("Todos los días"), NULL, on, dnd_sched_cb);
+    nav_row(c3, NULL, AOS_C_CARD, _("Desde"), &s_set.dnd_from_val, dnd_time_cb, (void *)0);
+    nav_row(c3, NULL, AOS_C_CARD, _("Hasta"), &s_set.dnd_to_val, dnd_time_cb, (void *)1);
+    dnd_values();
+
+    lv_obj_t *c2 = card(p);
+    nav_row(c2, NULL, AOS_C_CARD, _("Categorias"), NULL, cat_cb, NULL);
+}
+
+/* --------------------------------------------------------------------------
+ * Do not disturb on a schedule: the two times, and a second screen with two
+ * rollers to pick one (quarter hours: a minute-by-minute roller of sixty is
+ * a lot of scrolling for a bedtime).
+ * -------------------------------------------------------------------------- */
+
+static void dnd_values(void)
+{
+    bool on;
+    int from, to;
+    aos_hal_notif_dnd_schedule_get(&on, &from, &to);
+    char buf[16];
+    if (s_set.dnd_from_val) {
+        snprintf(buf, sizeof(buf), "%02d:%02d", from / 60, from % 60);
+        lv_label_set_text(s_set.dnd_from_val, buf);
+    }
+    if (s_set.dnd_to_val) {
+        snprintf(buf, sizeof(buf), "%02d:%02d", to / 60, to % 60);
+        lv_label_set_text(s_set.dnd_to_val, buf);
+    }
+}
+
+static void dnd_sched_cb(lv_event_t *event)
+{
+    bool on = lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED);
+    bool was;
+    int from, to;
+    aos_hal_notif_dnd_schedule_get(&was, &from, &to);
+    aos_hal_notif_dnd_schedule_set(on, from, to);
+}
+
+static void dnd_box_close(void)
+{
+    if (s_set.dnd_box) {
+        lv_obj_delete_async(s_set.dnd_box);     /* its own buttons close it */
+        s_set.dnd_box = NULL;
+    }
+}
+
+static void dnd_box_cancel_cb(lv_event_t *event)
+{
+    (void)event;
+    dnd_box_close();
+}
+
+static void dnd_box_save_cb(lv_event_t *event)
+{
+    (void)event;
+    int m = (int)lv_roller_get_selected(s_set.r_dh) * 60 +
+            (int)lv_roller_get_selected(s_set.r_dm) * 15;
+    bool on;
+    int from, to;
+    aos_hal_notif_dnd_schedule_get(&on, &from, &to);
+    if (s_set.dnd_which == 0) {
+        from = m;
+    } else {
+        to = m;
+    }
+    aos_hal_notif_dnd_schedule_set(on, from, to);
+    dnd_values();
+    dnd_box_close();
+}
+
+static void dnd_time_cb(lv_event_t *event)
+{
+    if (s_set.dnd_box) {
+        return;
+    }
+    s_set.dnd_which = (int)(intptr_t)lv_event_get_user_data(event);
+    bool on;
+    int from, to;
+    aos_hal_notif_dnd_schedule_get(&on, &from, &to);
+    int cur = s_set.dnd_which == 0 ? from : to;
+
+    static char horas[24 * 3 + 1];
+    char *w = horas;
+    for (int i = 0; i < 24; i++) w += sprintf(w, i ? "\n%02d" : "%02d", i);
+
+    lv_obj_t *box = lv_obj_create(lv_layer_top());
+    s_set.dnd_box = box;
+    lv_obj_set_size(box, AOS_SCREEN_W, AOS_SCREEN_H);
+    lv_obj_set_style_bg_color(box, AOS_C_BG, 0);
+    lv_obj_set_style_bg_opa(box, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(box, 0, 0);
+    lv_obj_set_flex_flow(box, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(box, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(box, 14, 0);
+
+    aos_label(box, s_set.dnd_which == 0 ? _("No molestar desde") : _("No molestar hasta"),
+              aos_font_body, AOS_C_TEXT);
+    lv_obj_t *fila = lv_obj_create(box);
+    lv_obj_remove_style_all(fila);
+    lv_obj_set_size(fila, AOS_SCREEN_W - 30, 110);
+    lv_obj_set_flex_flow(fila, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(fila, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(fila, 10, 0);
+    s_set.r_dh = roller(fila, horas, (uint16_t)(cur / 60), 88);
+    s_set.r_dm = roller(fila, "00\n15\n30\n45", (uint16_t)((cur % 60) / 15), 88);
+
+    lv_obj_t *fila_b = lv_obj_create(box);
+    lv_obj_remove_style_all(fila_b);
+    lv_obj_set_size(fila_b, AOS_SCREEN_W - 30, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(fila_b, LV_FLEX_FLOW_ROW_WRAP);
+    lv_obj_set_flex_align(fila_b, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(fila_b, 12, 0);
+    lv_obj_set_style_pad_row(fila_b, 8, 0);
+    aos_button(fila_b, _("Cancelar"), AOS_C_CARD2, dnd_box_cancel_cb, NULL);
+    aos_button(fila_b, _("Guardar"),  AOS_C_GREEN, dnd_box_save_cb,   NULL);
+}
+
+/* Menu: the three styles as cards with a sketch of each. */
+static void style_paint(void)
+{
+    aos_launcher_style_t cur = aos_ui_launcher_get_style();
+    for (int i = 0; i < 3; i++) {
+        if (s_set.style_card[i]) {
+            lv_obj_set_style_border_color(s_set.style_card[i],
+                                          i == (int)cur ? AOS_C_ACCENT : AOS_C_CARD, 0);
+        }
+    }
+}
+
+static void style_pick_cb(lv_event_t *event)
+{
+    aos_ui_launcher_set_style((aos_launcher_style_t)(intptr_t)lv_event_get_user_data(event));
+    style_paint();
+    set_value(SUB_MENU, style_name(aos_ui_launcher_get_style()));
+}
+
+static lv_obj_t *dot(lv_obj_t *parent, int32_t d, uint32_t color)
+{
+    lv_obj_t *o = lv_obj_create(parent);
+    lv_obj_remove_style_all(o);
+    lv_obj_set_size(o, d, d);
+    lv_obj_set_style_radius(o, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(o, lv_color_hex(color), 0);
+    lv_obj_set_style_bg_opa(o, LV_OPA_COVER, 0);
+    return o;
+}
+
+static void build_menu(lv_obj_t *p)
+{
+    caption(p, _("ESTILO"));
+    lv_obj_t *row = lv_obj_create(p);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_size(row, CONTENT_W, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_style_pad_column(row, 10, 0);
+    lv_obj_remove_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+
+    static const aos_launcher_style_t ORDER[3] = {
+        AOS_LAUNCHER_LIST, AOS_LAUNCHER_GRID, AOS_LAUNCHER_HONEYCOMB
+    };
+    const int32_t w = (CONTENT_W - 20) / 3;
+    for (int i = 0; i < 3; i++) {
+        lv_obj_t *cd = lv_obj_create(row);
+        lv_obj_remove_style_all(cd);
+        lv_obj_set_size(cd, w, 128);
+        lv_obj_set_style_radius(cd, 18, 0);
+        lv_obj_set_style_bg_color(cd, AOS_C_CARD, 0);
+        lv_obj_set_style_bg_opa(cd, LV_OPA_COVER, 0);
+        lv_obj_set_style_border_width(cd, 2, 0);
+        lv_obj_remove_flag(cd, LV_OBJ_FLAG_SCROLLABLE);
+
+        /* the sketch: a few dots placed like that style places icons */
+        lv_obj_t *sk = lv_obj_create(cd);
+        lv_obj_remove_style_all(sk);
+        lv_obj_set_size(sk, 64, 64);
+        lv_obj_align(sk, LV_ALIGN_TOP_MID, 0, 14);
+        if (ORDER[i] == AOS_LAUNCHER_LIST) {
+            for (int j = 0; j < 3; j++) {
+                lv_obj_set_pos(dot(sk, 14, 0x0A84FF), 4, 4 + j * 22);
+                lv_obj_t *bar = lv_obj_create(sk);
+                lv_obj_remove_style_all(bar);
+                lv_obj_set_size(bar, 34, 6);
+                lv_obj_set_pos(bar, 24, 8 + j * 22);
+                lv_obj_set_style_radius(bar, 3, 0);
+                lv_obj_set_style_bg_color(bar, lv_color_hex(0x636366), 0);
+                lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, 0);
+            }
+        } else if (ORDER[i] == AOS_LAUNCHER_GRID) {
+            for (int j = 0; j < 9; j++) {
+                lv_obj_set_pos(dot(sk, 16, 0x30D158), 2 + (j % 3) * 22, 2 + (j / 3) * 22);
+            }
+        } else {
+            /* three, two in the gaps, three: the honeycomb's offset rows */
+            static const uint8_t HX[8] = { 2, 24, 46, 13, 35, 2, 24, 46 };
+            static const uint8_t HY[8] = { 2, 2, 2, 22, 22, 42, 42, 42 };
+            for (int j = 0; j < 8; j++) {
+                lv_obj_set_pos(dot(sk, 16, 0xFF9F0A), HX[j], HY[j]);
+            }
+        }
+        lv_obj_t *l = aos_label(cd, style_name(ORDER[i]), aos_font_small, AOS_C_TEXT);
+        lv_obj_align(l, LV_ALIGN_BOTTOM_MID, 0, -10);
+
+        aos_make_decorative(cd);
+        lv_obj_add_flag(cd, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(cd, style_pick_cb, LV_EVENT_CLICKED, (void *)(intptr_t)ORDER[i]);
+        s_set.style_card[ORDER[i]] = cd;
+    }
+    style_paint();
+
+    caption(p, _("ORDEN Y CARPETAS"));
+    portal_qr(p, "/menu", _("Se arman desde el portal: escanea el QR con el telefono"));
+}
+
+static void build_time(lv_obj_t *p)
+{
+    s_set.time_label = aos_label(p, "", aos_font_huge, AOS_C_TEXT);
+    s_set.date_label = aos_label(p, "", aos_font_small, AOS_C_DIM);
+    lv_obj_t *c = card(p);
+    nav_row(c, NULL, AOS_C_CARD, _("Sincronizar ahora"), NULL, sync_cb, NULL);
+    nav_row(c, NULL, AOS_C_CARD, _("Ajustar a mano"), NULL, clock_cb, NULL);
+    note(p, aos_hal_time_is_valid()
+                ? _("La hora llega sola por wifi y por el telefono.")
+                : _("La hora todavia no se ajusto: conecta el wifi o el telefono, o ajustala a mano."));
+}
+
+static void build_lang(lv_obj_t *p)
+{
+    lv_obj_t *c = card(p);
+    int sel = 0;
+    for (int i = 0; i < s_lang_count; i++) {
+        bool cur = strcmp(s_langs[i].code, aos_i18n_current()) == 0;
+        if (cur) {
+            sel = i;
+        }
+        s_set.lang_check[i] = radio_row(c, s_langs[i].name, cur, lang_cb, i);
+    }
+    /* With no card -or with no /lang on it- the only option is the source
+     * code's Spanish. Saying so is more useful than a one-row list with no
+     * explanation. */
+    if (s_lang_count <= 1) {
+        note(p, _("sin packs en la tarjeta"));
+        return;
+    }
+    /* Where the current language came from. It matters: a pack on the card
+     * beats the one shipped in the firmware, and finding that out by looking
+     * at the screen is far quicker than deducing it when a translation you
+     * swear you fixed keeps showing up wrong. */
+    char base[64], cov[96];
+    snprintf(base, sizeof(base), _("%d cadenas, %d apps cubiertas"),
+             aos_i18n_count(), s_langs[sel].apps);
+    snprintf(cov, sizeof(cov), "%s\n%s", base,
+             s_langs[sel].origin == AOS_LANG_EMBEDDED ? C_("origen del idioma", "firmware")
+                                                      : C_("origen del idioma", "tarjeta"));
+    lv_obj_t *l = note(p, aos_i18n_count() ? cov : _("espanol del codigo fuente"));
+    lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
+}
+
+static void build_energy(lv_obj_t *p)
+{
+    lv_obj_t *c = card(p);
+    switch_row2(c, _("Ahorro de energia"),
+                _("CPU a 80 MHz y wifi dormida con la pantalla apagada. Se prende sola bajo el 20 %"),
+                aos_hal_power_saving_enabled(), power_saving_cb);
+    switch_row2(c, _("Cuidar la bateria"),
+                _("carga hasta 4,1 V y a media corriente: rinde menos por carga y dura mas anos"),
+                aos_hal_battery_care_enabled(), battery_care_cb);
+    switch_row2(c, _("Apagar el panel a fondo"),
+                _("la pantalla en reposo profundo al apagarse; despierta en una decima"),
+                aos_hal_panel_sleep_enabled(), panel_sleep_cb);
+    switch_row2(c, _("Dormir el chip"),
+                _("con la pantalla apagada el procesador duerme entre avisos"),
+                aos_hal_light_sleep_enabled(), light_sleep_cb);
+
+    caption(p, _("BATERIA"));
+    lv_obj_t *c2 = card(p);
+    lv_obj_set_style_pad_all(c2, 14, 0);
+    s_set.batt_label = aos_label(c2, "", aos_font_small, AOS_C_TEXT);
+    lv_obj_set_width(s_set.batt_label, lv_pct(100));
+    lv_label_set_long_mode(s_set.batt_label, LV_LABEL_LONG_MODE_WRAP);
+}
+
+static void build_touch(lv_obj_t *p)
+{
+    lv_obj_t *c = card(p);
+    nav_row(c, NULL, AOS_C_CARD, _("Calibrar"), NULL, cal_cb, NULL);
+    nav_row(c, NULL, AOS_C_CARD, _("Ver crudo"), NULL, raw_cb, NULL);
+    note(p, _("Calibrar pide tocar cinco cruces. \"Ver crudo\" muestra lo que lee el "
+              "chip tactil, sin correccion."));
+}
+
+static void build_about(lv_obj_t *p)
+{
+    lv_obj_t *c = card(p);
+    lv_obj_set_style_pad_all(c, 14, 0);
+    lv_obj_set_style_pad_row(c, 2, 0);
+    lv_obj_set_flex_align(c, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    aos_label(c, aos_hal_device_name(), aos_font_title, AOS_C_TEXT);
+    char buf[96];
+    snprintf(buf, sizeof(buf), "AmoledOS %s", aos_hal_firmware_version());
+    aos_label(c, buf, aos_font_small, AOS_C_DIM);
+    aos_label(c, aos_hal_board_name(), aos_font_small, AOS_C_DIM);
+
+    uint64_t total = 0, libre = 0;
+    if (aos_hal_sd_usage(&total, &libre) && total) {
+        lv_obj_t *c2 = card(p);
+        lv_obj_set_style_pad_all(c2, 14, 0);
+        lv_obj_set_style_pad_row(c2, 6, 0);
+        aos_label(c2, _("Tarjeta"), aos_font_small, AOS_C_TEXT);
+        lv_obj_t *bar = lv_bar_create(c2);
+        lv_obj_set_size(bar, lv_pct(100), 8);
+        lv_bar_set_range(bar, 0, 1000);
+        lv_bar_set_value(bar, (int32_t)((total - libre) * 1000 / total), LV_ANIM_OFF);
+        lv_obj_set_style_bg_color(bar, lv_color_hex(0x3A3A3C), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(bar, AOS_C_ACCENT, LV_PART_INDICATOR);
+        snprintf(buf, sizeof(buf), _("%.1f de %.1f GB  ·  %d apps"),
+                 (double)(total - libre) / 1e9, (double)total / 1e9, aos_ui_app_count());
+        aos_label(c2, buf, aos_font_small, AOS_C_DIM);
+    }
+
+    lv_obj_t *c3 = card(p);
+    nav_row(c3, AOS_SG_CHART_BOX_OUTLINE, lv_color_hex(0x636366), _("Diagnostico"),
+            NULL, open_sub_cb, (void *)(intptr_t)SUB_DIAG);
+
+    caption(p, _("PORTAL"));
+    portal_qr(p, "/", _("Todo esto y mas, desde el navegador"));
+
+    lv_obj_t *btn = aos_button(p, _("Mantene para reiniciar"), lv_color_hex(0x3A1D1B), NULL, NULL);
+    lv_obj_set_style_text_color(btn, AOS_C_RED, 0);
+    lv_obj_add_event_cb(btn, reboot_cb, LV_EVENT_SHORT_CLICKED, NULL);
+    lv_obj_add_event_cb(btn, reboot_cb, LV_EVENT_LONG_PRESSED, NULL);
+}
+
+static void build_diag(lv_obj_t *p)
+{
+    /* Live memory. The 'executable' one is what matters for dynamic apps:
+     * their code comes out of it. The largest contiguous block is shown as
+     * well, because running out of total and running out of a hole are two
+     * different problems and are fixed differently. */
+    lv_obj_t *c = card(p);
+    lv_obj_set_style_pad_all(c, 14, 0);
+    s_set.mem_label = aos_label(c, "", aos_font_small, AOS_C_TEXT);
+    lv_obj_set_width(s_set.mem_label, lv_pct(100));
+    lv_label_set_long_mode(s_set.mem_label, LV_LABEL_LONG_MODE_WRAP);
+
+    char buf[96];
+    snprintf(buf, sizeof(buf), _("encendido hace %u min  ·  arranque: %s"),
+             (unsigned)(aos_hal_uptime_ms() / 60000), aos_hal_boot_reason());
+    note(p, buf);
+}
+
+/* --------------------------------------------------------------------------
+ * Opening and closing a category page
+ * -------------------------------------------------------------------------- */
+
+/* What refresh() writes into and a category page owns: forgotten when the
+ * page goes, or the timer would write into freed objects. */
+static void forget_sub_pointers(void)
+{
+    s_set.net_label = s_set.ap_row = s_set.ap_row_ssid = s_set.ap_label = NULL;
+    s_set.usb_label = s_set.bt_label = s_set.bt_forget = s_set.mem_label = NULL;
+    s_set.time_label = s_set.date_label = s_set.batt_label = NULL;
+    s_set.dnd_from_val = s_set.dnd_to_val = NULL;
+    memset(s_set.usb_check, 0, sizeof(s_set.usb_check));
+    memset(s_set.lang_check, 0, sizeof(s_set.lang_check));
+    memset(s_set.style_card, 0, sizeof(s_set.style_card));
+}
+
+static void anim_x_cb(void *obj, int32_t v)
+{
+    lv_obj_set_x((lv_obj_t *)obj, v);
+}
+
+static void sub_shown_cb(lv_anim_t *a)
+{
+    (void)a;
+    if (s_set.sub && s_set.main) {
+        lv_obj_add_flag(s_set.main, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+static void sub_gone_cb(lv_anim_t *a)
+{
+    lv_obj_delete((lv_obj_t *)a->var);
+}
+
+static void slide(lv_obj_t *obj, int32_t from, int32_t to, lv_anim_completed_cb_t done)
+{
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, obj);
+    lv_anim_set_values(&a, from, to);
+    lv_anim_set_duration(&a, SUB_ANIM_MS);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+    lv_anim_set_exec_cb(&a, anim_x_cb);
+    lv_anim_set_completed_cb(&a, done);
+    lv_anim_start(&a);
+}
+
+static void open_sub(int kind, bool animate)
+{
+    if (s_set.sub) {
+        forget_sub_pointers();
+        lv_obj_delete_async(s_set.sub);     /* maybe inside its own callback */
+        s_set.sub = NULL;
+    }
+    lv_obj_t *p = column(s_set.root);
+    s_set.sub = p;
+    s_set.sub_kind = kind;
+
+    /* The header: the chevron and the name, which also close the page. */
+    lv_obj_t *hdr = lv_obj_create(p);
+    lv_obj_remove_style_all(hdr);
+    lv_obj_set_size(hdr, CONTENT_W, 44);
+    lv_obj_set_flex_flow(hdr, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(hdr, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(hdr, 6, 0);
+    glyph(hdr, AOS_SG_CHEVRON_LEFT, AOS_C_ACCENT);
+    lv_obj_t *t = aos_label(hdr, sub_title(kind), aos_font_title, AOS_C_TEXT);
+    lv_label_set_long_mode(t, LV_LABEL_LONG_MODE_DOTS);
+    lv_obj_set_flex_grow(t, 1);
+    aos_make_decorative(hdr);
+    lv_obj_add_flag(hdr, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(hdr, back_cb, LV_EVENT_CLICKED, NULL);
+
+    uint64_t t0 = aos_hal_uptime_ms();
+    switch (kind) {
+    case SUB_WIFI:    build_wifi(p);    break;
+    case SUB_BT:      build_bt(p);      break;
+    case SUB_USB:     build_usb(p);     break;
+    case SUB_DISPLAY: build_display(p); break;
+    case SUB_SOUND:   build_sound(p);   break;
+    case SUB_NOTIF:   build_notif(p);   break;
+    case SUB_MENU:    build_menu(p);    break;
+    case SUB_TIME:    build_time(p);    break;
+    case SUB_LANG:    build_lang(p);    break;
+    case SUB_ENERGY:  build_energy(p);  break;
+    case SUB_TOUCH:   build_touch(p);   break;
+    case SUB_ABOUT:   build_about(p);   break;
+    case SUB_DIAG:    build_diag(p);    break;
+    default: break;
+    }
+    aos_hal_log("settings", "page %d built in %u ms", kind,
+                (unsigned)(aos_hal_uptime_ms() - t0));
+    refresh(NULL);
+
+    if (animate) {
+        slide(p, AOS_SCREEN_W, 0, sub_shown_cb);
+    } else if (s_set.main) {
+        lv_obj_add_flag(s_set.main, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+static void close_sub(bool animate)
+{
+    if (!s_set.sub) {
+        return;
+    }
+    lv_obj_t *p = s_set.sub;
+    int kind = s_set.sub_kind;
+    s_set.sub = NULL;
+    forget_sub_pointers();
+
+    /* Diagnostics is a page of About: back returns there, not to the top. */
+    if (kind == SUB_DIAG) {
+        lv_obj_delete_async(p);
+        open_sub(SUB_ABOUT, false);
+        return;
+    }
+    if (s_set.main) {
+        lv_obj_remove_flag(s_set.main, LV_OBJ_FLAG_HIDDEN);
+    }
+    values_refresh();
+    tiles_paint();
+    if (animate) {
+        lv_anim_delete(p, anim_x_cb);
+        slide(p, lv_obj_get_x(p), AOS_SCREEN_W, sub_gone_cb);
+    } else {
+        lv_obj_delete_async(p);
+    }
+}
+
+/* --------------------------------------------------------------------------
+ * The two-second refresh
+ * -------------------------------------------------------------------------- */
 
 static void refresh(lv_timer_t *timer)
 {
     (void)timer;
     usb_refresh();
-    if (!s_set.net_label) {
-        return;
+    tiles_paint();
+    values_refresh();
+
+    if (s_set.time_label) {
+        struct tm now;
+        aos_hal_time_now(&now);
+        lv_label_set_text_fmt(s_set.time_label, "%02d:%02d", now.tm_hour, now.tm_min);
+        char d[32];
+        strftime(d, sizeof(d), "%d/%m/%Y", &now);
+        lv_label_set_text(s_set.date_label, d);
     }
-    char buf[96];
-    switch (aos_hal_net_state()) {
-    case AOS_NET_CONNECTED:
-        snprintf(buf, sizeof(buf), LV_SYMBOL_WIFI "  %s  (%d dBm)\n%s  ·  %s.local",
-                 aos_hal_net_ssid(), aos_hal_net_rssi(), aos_hal_net_ip(),
-                 aos_hal_device_name());
-        break;
-    case AOS_NET_CONNECTING:
-        /* The icon goes as an argument and not glued to the literal. Glued,
-         * the string aos_tr() sees at run time starts with the glyph's bytes,
-         * but gen_lang.py -which reads the source- only sees the text: the
-         * catalogue key would never match, and silently so. */
-        snprintf(buf, sizeof(buf), LV_SYMBOL_WIFI "  %s", _("conectando..."));
-        break;
-    case AOS_NET_FAILED:
-        snprintf(buf, sizeof(buf), LV_SYMBOL_WARNING "  %s", _("fallo la conexion"));
-        break;
-    default: {
-        bool tiene = aos_hal_net_has_credentials();
-        snprintf(buf, sizeof(buf), "%s  %s",
-                 tiene ? LV_SYMBOL_CLOSE : LV_SYMBOL_WARNING,
-                 tiene ? _("wifi apagado") : _("sin red configurada"));
-        break;
+
+    if (s_set.batt_label) {
+        aos_battery_t b;
+        aos_power_info_t pi;
+        char txt[200] = "";
+        if (aos_hal_battery_read(&b) && b.percent >= 0) {
+            bool info = aos_hal_power_info(&pi);
+            int n = snprintf(txt, sizeof(txt), "%d %%  ·  %.2f V%s", b.percent,
+                             (double)b.voltage, b.charging ? _("  ·  cargando") : "");
+            if (info) {
+                n += snprintf(txt + n, sizeof(txt) - (size_t)n, _("\n%u ciclos de carga"),
+                              (unsigned)pi.charge_cycles);
+                if (!b.usb_present && pi.hours_left == pi.hours_left) {   /* not NAN */
+                    snprintf(txt + n, sizeof(txt) - (size_t)n, _("\nquedan unas %.0f h"),
+                             (double)pi.hours_left);
+                }
+            }
+        } else {
+            snprintf(txt, sizeof(txt), "%s", _("sin datos de la bateria"));
+        }
+        lv_label_set_text(s_set.batt_label, txt);
     }
+
+    if (s_set.net_label) {
+        char buf[96];
+        switch (aos_hal_net_state()) {
+        case AOS_NET_CONNECTED:
+            snprintf(buf, sizeof(buf), LV_SYMBOL_WIFI "  %s  (%d dBm)\n%s  ·  %s.local",
+                     aos_hal_net_ssid(), aos_hal_net_rssi(), aos_hal_net_ip(),
+                     aos_hal_device_name());
+            break;
+        case AOS_NET_CONNECTING:
+            /* The icon goes as an argument and not glued to the literal. Glued,
+             * the string aos_tr() sees at run time starts with the glyph's
+             * bytes, but gen_lang.py -which reads the source- only sees the
+             * text: the catalogue key would never match, and silently so. */
+            snprintf(buf, sizeof(buf), LV_SYMBOL_WIFI "  %s", _("conectando..."));
+            break;
+        case AOS_NET_FAILED:
+            snprintf(buf, sizeof(buf), LV_SYMBOL_WARNING "  %s", _("fallo la conexion"));
+            break;
+        default: {
+            bool tiene = aos_hal_net_has_credentials();
+            snprintf(buf, sizeof(buf), "%s  %s",
+                     tiene ? LV_SYMBOL_CLOSE : LV_SYMBOL_WARNING,
+                     tiene ? _("wifi apagado") : _("sin red configurada"));
+            break;
+        }
+        }
+        lv_label_set_text(s_set.net_label, buf);
     }
-    lv_label_set_text(s_set.net_label, buf);
 
     if (s_set.mem_label) {
 #ifndef AOS_SIM
@@ -1312,10 +2727,6 @@ static void refresh(lv_timer_t *timer)
 
         char mem[200];
         if (aos_dynapp_code_in_psram()) {
-            /* Since the RAM audit the apps' code runs from PSRAM through the
-             * MMU, so there is no reservation whose room could run out. What
-             * is still worth a line is how many .so are loaded: the ones in
-             * the background keep theirs open until a restart. */
             snprintf(mem, sizeof(mem),
                      _("apps cargadas: %d (código en PSRAM)\n"
                        "ejecutable %u K  (mayor %u K, %u huecos)\n"
@@ -1425,271 +2836,33 @@ static void refresh(lv_timer_t *timer)
 static void *create(aos_app_t *self, lv_obj_t *root)
 {
     (void)self;
-    lv_obj_t *page = aos_page(root);
-    lv_obj_add_flag(page, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_scroll_dir(page, LV_DIR_VER);
-    lv_obj_set_scrollbar_mode(page, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_set_flex_flow(page, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(page, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
-                          LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(page, 12, 0);
-    lv_obj_set_style_pad_ver(page, 20, 0);
+    memset(s_set.tile, 0, sizeof(s_set.tile));
+    memset(s_set.value, 0, sizeof(s_set.value));
+    forget_sub_pointers();
+    s_set.sub = NULL;
+    s_set.root = root;
 
-    section(page, _("BRILLO"));
-    slider(page, aos_hal_brightness_get(), brightness_cb);
-
-    section(page, _("VOLUMEN"));
-    slider(page, aos_hal_volume_get(), volume_cb);
-
-    section(page, _("PANTALLA"));
-    aos_button(page, _("Cambiar esfera"), AOS_C_CARD2, face_cb, NULL);
-
-    lv_obj_t *aod_row = lv_obj_create(page);
-    lv_obj_remove_style_all(aod_row);
-    lv_obj_set_size(aod_row, AOS_SCREEN_W - 90, 40);
-    lv_obj_remove_flag(aod_row, LV_OBJ_FLAG_SCROLLABLE);
-
-    lv_obj_t *aod_label = aos_label(aod_row, _("Siempre encendido"),
-                                    aos_font_small, AOS_C_TEXT);
-    lv_obj_align(aod_label, LV_ALIGN_LEFT_MID, 0, 0);
-
-    lv_obj_t *aod_sw = lv_switch_create(aod_row);
-    lv_obj_set_size(aod_sw, 56, 30);
-    lv_obj_align(aod_sw, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_obj_set_style_bg_color(aod_sw, AOS_C_GREEN, LV_PART_INDICATOR | LV_STATE_CHECKED);
-    if (aos_hal_aod_enabled()) {
-        lv_obj_add_state(aod_sw, LV_STATE_CHECKED);
-    }
-    lv_obj_add_event_cb(aod_sw, aod_cb, LV_EVENT_VALUE_CHANGED, NULL);
-
-    lv_obj_t *aod_slider = slider(page, aos_hal_aod_brightness_get(), aod_brightness_cb);
-    lv_slider_set_range(aod_slider, 1, 40);
-    lv_slider_set_value(aod_slider, aos_hal_aod_brightness_get(), LV_ANIM_OFF);
-
-    section(page, _("ENERGIA"));
-    switch_row(page, _("Ahorro de energia"), aos_hal_power_saving_enabled(), power_saving_cb);
-    switch_row(page, _("Cuidar la bateria"), aos_hal_battery_care_enabled(), battery_care_cb);
-    switch_row(page, _("Dormir el panel apagado"), aos_hal_panel_sleep_enabled(), panel_sleep_cb);
-    switch_row(page, _("Dormir el chip apagado"), aos_hal_light_sleep_enabled(), light_sleep_cb);
-
-    section(page, _("IDIOMA"));
+    /* Surveyed once: the first page shows the current language's name and
+     * the Language page lists them. */
     s_lang_count = aos_i18n_scan(s_langs, AOS_LANG_MAX);
 
-    lv_obj_t *lang_dd = lv_dropdown_create(page);
-    lv_obj_set_width(lang_dd, AOS_SCREEN_W - 90);
-    lv_obj_set_style_text_font(lang_dd, aos_font_small, 0);
-    lv_obj_set_style_bg_color(lang_dd, AOS_C_CARD2, 0);
-    lv_obj_set_style_border_width(lang_dd, 0, 0);
-
-    char opts[AOS_LANG_MAX * (AOS_LANG_NAME_MAX + 2)];
-    opts[0] = '\0';
-    int sel = 0;
-    for (int i = 0; i < s_lang_count; i++) {
-        if (i) {
-            strncat(opts, "\n", sizeof(opts) - strlen(opts) - 1);
-        }
-        strncat(opts, s_langs[i].name, sizeof(opts) - strlen(opts) - 1);
-        if (strcmp(s_langs[i].code, aos_i18n_current()) == 0) {
-            sel = i;
-        }
-    }
-    lv_dropdown_set_options(lang_dd, opts);
-    lv_dropdown_set_selected(lang_dd, (uint32_t)sel);
-    lv_obj_add_event_cb(lang_dd, lang_cb, LV_EVENT_VALUE_CHANGED, NULL);
-
-    /* With no card -or with no /lang on it- the only option is the source
-     * code's Spanish. Saying so is more useful than a one-item dropdown with
-     * no explanation. */
-    if (s_lang_count <= 1) {
-        aos_label(page, _("sin packs en la tarjeta"), aos_font_small, AOS_C_DIM);
-    } else {
-        /* Where the current language came from. It matters: a pack on the card
-         * beats the one shipped in the firmware, and finding that out by
-         * looking at the screen is far quicker than deducing it when a
-         * translation you swear you fixed keeps showing up wrong. */
-        char cov[96];
-        char base[64];
-        snprintf(base, sizeof(base), _("%d cadenas, %d apps cubiertas"),
-                 aos_i18n_count(), s_langs[sel].apps);
-        /* A separate line and not " - firmware" glued on the end: on a single
-         * line the text runs past 368 px with the pseudolocalisation pack,
-         * which is exactly what that pack exists for. */
-        snprintf(cov, sizeof(cov), "%s\n%s", base,
-                 s_langs[sel].origin == AOS_LANG_EMBEDDED
-                     ? C_("origen del idioma", "firmware")
-                     : C_("origen del idioma", "tarjeta"));
-        /* Explicit centring: the label has TWO lines since the origin dropped
-         * onto its own line, and without this the second one is stuck to the
-         * left while the whole rest of the screen centres. It is the same
-         * thing net_label does a few sections below, for the same reason. */
-        lv_obj_t *cov_lbl = aos_label(page,
-                                      aos_i18n_count() ? cov
-                                                       : _("espanol del codigo fuente"),
-                                      aos_font_small, AOS_C_DIM);
-        lv_obj_set_style_text_align(cov_lbl, LV_TEXT_ALIGN_CENTER, 0);
-    }
-
-    section(page, _("MENU"));
-    lv_obj_t *row = lv_obj_create(page);
-    lv_obj_remove_style_all(row);
-    lv_obj_set_size(row, AOS_SCREEN_W - 60, 56);
-    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
-                          LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(row, 10, 0);
-    aos_button(row, _("Lista"),  AOS_C_CARD2, style_cb, (void *)AOS_LAUNCHER_LIST);
-    aos_button(row, _("Grilla"), AOS_C_CARD2, style_cb, (void *)AOS_LAUNCHER_GRID);
-    aos_button(row, _("Panal"),  AOS_C_CARD2, style_cb, (void *)AOS_LAUNCHER_HONEYCOMB);
-
-    section(page, _("RED"));
-
-    lv_obj_t *wifi_row = lv_obj_create(page);
-    lv_obj_remove_style_all(wifi_row);
-    lv_obj_set_size(wifi_row, AOS_SCREEN_W - 70, 44);
-    lv_obj_set_flex_flow(wifi_row, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(wifi_row, LV_FLEX_ALIGN_SPACE_BETWEEN,
-                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    aos_label(wifi_row, _("Wifi encendida"), aos_font_body, AOS_C_TEXT);
-    lv_obj_t *wifi_sw = lv_switch_create(wifi_row);
-    lv_obj_set_size(wifi_sw, 56, 30);
-    lv_obj_set_style_bg_color(wifi_sw, AOS_C_GREEN,
-                              LV_PART_INDICATOR | LV_STATE_CHECKED);
-    if (aos_hal_net_enabled()) {
-        lv_obj_add_state(wifi_sw, LV_STATE_CHECKED);
-    }
-    lv_obj_add_event_cb(wifi_sw, wifi_toggle_cb, LV_EVENT_VALUE_CHANGED, NULL);
-
-    s_set.net_label = aos_label(page, "", aos_font_small, AOS_C_TEXT);
-    lv_obj_set_style_text_align(s_set.net_label, LV_TEXT_ALIGN_CENTER, 0);
-
-    aos_button(page, _("Configurar red"), AOS_C_ACCENT, ap_cb, NULL);
-
-    /* A touchable card with the AP's name, visible only with the network up.
-     * It is the door to the second screen: that is where the password and the
-     * QR are. The chevron is what says it can be touched; without it, nobody
-     * tries. */
-    s_set.ap_row = lv_obj_create(page);
-    lv_obj_remove_style_all(s_set.ap_row);
-    lv_obj_set_size(s_set.ap_row, AOS_SCREEN_W - 70, 62);
-    lv_obj_set_style_bg_color(s_set.ap_row, AOS_C_CARD, 0);
-    lv_obj_set_style_bg_opa(s_set.ap_row, LV_OPA_COVER, 0);
-    lv_obj_set_style_radius(s_set.ap_row, 14, 0);
-    lv_obj_set_style_pad_hor(s_set.ap_row, 14, 0);
-    lv_obj_remove_flag(s_set.ap_row, LV_OBJ_FLAG_SCROLLABLE);
-
-    s_set.ap_row_ssid = aos_label(s_set.ap_row, aos_hal_net_ap_ssid(),
-                                  aos_font_small, AOS_C_TEXT);
-    lv_obj_align(s_set.ap_row_ssid, LV_ALIGN_LEFT_MID, 0, -10);
-    lv_obj_t *ap_row_hint = aos_label(s_set.ap_row, _("ver clave y QR"),
-                                      aos_font_small, AOS_C_DIM);
-    lv_obj_align(ap_row_hint, LV_ALIGN_LEFT_MID, 0, 12);
-    lv_obj_t *ap_row_chev = aos_label(s_set.ap_row, LV_SYMBOL_RIGHT,
-                                      aos_font_small, AOS_C_DIM);
-    lv_obj_align(ap_row_chev, LV_ALIGN_RIGHT_MID, 0, 0);
-
-    /* In LVGL 9 every lv_obj is born clickable: without this the three labels
-     * eat the touch meant for the card and touching the name -which is exactly
-     * what you do- opens nothing. */
-    aos_make_decorative(s_set.ap_row);
-    lv_obj_add_flag(s_set.ap_row, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(s_set.ap_row, ap_box_open, LV_EVENT_CLICKED, NULL);
-
-    /* What to do once connected. The name and the password no longer go here:
-     * the card above says them, and it also has the QR. Repeating them filled
-     * four lines and left the password in plain sight of anybody walking past
-     * while you go through the settings. */
-    char ap_buf[160];
-    snprintf(ap_buf, sizeof(ap_buf),
-             _("Ya conectado, abri\nhttp://%s/wifi"), aos_hal_net_ap_ip());
-    s_set.ap_label = aos_label(page, ap_buf, aos_font_small, AOS_C_DIM);
-    lv_obj_set_style_text_align(s_set.ap_label, LV_TEXT_ALIGN_CENTER, 0);
-    if (!aos_hal_net_ap_active()) {
-        lv_obj_add_flag(s_set.ap_label, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(s_set.ap_row, LV_OBJ_FLAG_HIDDEN);
-    }
-
-    if (aos_hal_net_has_credentials()) {
-        aos_button(page, _("Olvidar red"), AOS_C_CARD2, forget_cb, NULL);
-    }
-
-    section(page, _("USB"));
-
-    s_set.usb_dd = lv_dropdown_create(page);
-    lv_obj_set_width(s_set.usb_dd, AOS_SCREEN_W - 90);
-    lv_obj_set_style_text_font(s_set.usb_dd, aos_font_small, 0);
-    lv_obj_set_style_bg_color(s_set.usb_dd, AOS_C_CARD2, 0);
-    lv_obj_set_style_border_width(s_set.usb_dd, 0, 0);
-    {
-        /* Four lines in the order of aos_hal_usb_mode_t. */
-        char opts[200];
-        /* Short, because the dropdown is 278 px wide and the English of the
-         * long forms was cut ("Keyboard and network for the co..."). */
-        snprintf(opts, sizeof(opts), "%s\n%s\n%s\n%s",
-                 _("Consola"), _("Teclado y red"), _("Disco (la tarjeta)"), _("Host (un pendrive)"));
-        lv_dropdown_set_options(s_set.usb_dd, opts);
-    }
-    lv_dropdown_set_selected(s_set.usb_dd, (uint32_t)aos_hal_usb_mode());
-    lv_obj_add_event_cb(s_set.usb_dd, usb_mode_cb, LV_EVENT_VALUE_CHANGED, NULL);
-
-    s_set.usb_label = aos_label(page, "", aos_font_small, AOS_C_DIM);
-    lv_obj_set_width(s_set.usb_label, AOS_SCREEN_W - 50);
-    lv_label_set_long_mode(s_set.usb_label, LV_LABEL_LONG_MODE_WRAP);
-    lv_obj_set_style_text_align(s_set.usb_label, LV_TEXT_ALIGN_CENTER, 0);
-    usb_refresh();
-
-    section(page, _("BLUETOOTH"));
-
-    switch_row(page, _("Bluetooth"), aos_hal_bt_enabled(), bt_toggle_cb);
-
-    s_set.bt_label = aos_label(page, "", aos_font_small, AOS_C_TEXT);
-    lv_obj_set_width(s_set.bt_label, AOS_SCREEN_W - 50);
-    lv_label_set_long_mode(s_set.bt_label, LV_LABEL_LONG_MODE_WRAP);
-    lv_obj_set_style_text_align(s_set.bt_label, LV_TEXT_ALIGN_CENTER, 0);
-
-    aos_button(page, _("Emparejar telefono"), AOS_C_ACCENT, bt_pair_cb, NULL);
-
-    s_set.bt_forget = aos_button(page, _("Olvidar telefono"), AOS_C_CARD2,
-                                 bt_forget_cb, NULL);
-
-    section(page, _("NOTIFICACIONES"));
-
-    switch_row(page, _("Notificaciones"), aos_hal_notif_enabled(), notif_cb);
-    switch_row(page, _("Sonido"), aos_hal_notif_sound(), notif_sound_cb);
-    switch_row(page, _("Llamadas siempre"), aos_hal_notif_calls_always(),
-               notif_calls_cb);
-
-    aos_button(page, _("Categorias"), AOS_C_CARD2, cat_cb, NULL);
-
-    section(page, _("HORA"));
-    aos_button(page, _("Ajustar a mano"), AOS_C_CARD2, clock_cb, NULL);
-    aos_button(page, _("Sincronizar hora"), AOS_C_ACCENT, sync_cb, NULL);
-
-    section(page, _("TACTIL"));
-    aos_button(page, _("Calibrar"), AOS_C_CARD2, cal_cb, NULL);
-    aos_button(page, _("Ver crudo"), AOS_C_CARD2, raw_cb, NULL);
-
-    section(page, _("SISTEMA"));
-    char buf[96];
-    snprintf(buf, sizeof(buf), "AmoledOS %s\n%s",
-             aos_hal_firmware_version(), aos_hal_board_name());
-    lv_obj_t *about = aos_label(page, buf, aos_font_small, AOS_C_DIM);
-    lv_obj_set_style_text_align(about, LV_TEXT_ALIGN_CENTER, 0);
-
-    /* Live memory. The 'executable' one is what matters for dynamic apps:
-     * their code comes out of it. The largest contiguous block is shown as
-     * well, because running out of total and running out of a hole are two
-     * different problems and are fixed differently. */
-    s_set.mem_label = aos_label(page, "", aos_font_small, AOS_C_DIM);
-    lv_obj_set_style_text_align(s_set.mem_label, LV_TEXT_ALIGN_CENTER, 0);
-    /* Fixed width and line wrapping: these are several lines of diagnostics
-     * and in Spanish they already graze the edge. Without this the label grows
-     * with the text and runs off the screen on both sides at once. */
-    lv_obj_set_width(s_set.mem_label, AOS_SCREEN_W - 40);
-    lv_label_set_long_mode(s_set.mem_label, LV_LABEL_LONG_MODE_WRAP);
-    aos_button(page, _("Reiniciar"), AOS_C_RED, reboot_cb, NULL);
+    uint64_t t0 = aos_hal_uptime_ms();
+    build_main(root);
+    aos_hal_log("settings", "first page built in %u ms",
+                (unsigned)(aos_hal_uptime_ms() - t0));
 
     s_set.timer = lv_timer_create(refresh, 2000, NULL);
     refresh(NULL);
+
+#ifdef AOS_SIM
+    /* AOS_SIM_SUB=<n> opens that category page straight away (sub_t order:
+     * 0 wifi ... 11 about, 12 diagnostics), for tools/audit_layout.sh and for
+     * screenshots. */
+    const char *sim_sub = getenv("AOS_SIM_SUB");
+    if (sim_sub && *sim_sub) {
+        open_sub(atoi(sim_sub), false);
+    }
+#endif
 
 #ifdef AOS_SIM
     /* AOS_SIM_AP=2 opens the AP screen straight away. It is the only way for
@@ -1754,6 +2927,14 @@ static bool back(aos_app_t *self, void *inst)
         cat_box_close();
         return true;
     }
+    if (s_set.dnd_box) {
+        dnd_box_close();
+        return true;
+    }
+    if (s_set.sub) {
+        close_sub(true);
+        return true;
+    }
     return false;
 }
 
@@ -1770,15 +2951,17 @@ static void destroy(aos_app_t *self, void *inst)
     ap_box_close();
     bt_box_close();
     cat_box_close();
-    s_set.bt_label    = NULL;
-    s_set.bt_forget   = NULL;
-    s_set.usb_label   = NULL;
-    s_set.usb_dd      = NULL;
-    s_set.net_label   = NULL;
-    s_set.ap_label    = NULL;
-    s_set.ap_row      = NULL;
-    s_set.ap_row_ssid = NULL;
-    s_set.mem_label   = NULL;
+    if (s_set.dnd_box) {
+        lv_obj_delete(s_set.dnd_box);
+        s_set.dnd_box = NULL;
+    }
+    /* The objects go with the app's root; only the pointers stay behind. */
+    forget_sub_pointers();
+    memset(s_set.tile, 0, sizeof(s_set.tile));
+    memset(s_set.value, 0, sizeof(s_set.value));
+    s_set.main = NULL;
+    s_set.sub  = NULL;
+    s_set.root = NULL;
 }
 
 void aos_app_settings_get(aos_app_t *app)

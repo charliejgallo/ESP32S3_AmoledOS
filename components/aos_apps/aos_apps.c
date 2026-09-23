@@ -28,6 +28,12 @@ void aos_apps_register_builtin(void)
         aos_app_settings_get,
     };
 
+    /* The loader's ceiling is what is left of AOS_MAX_APPS after this
+     * reservation: a built-in app past it would silently take a card app's
+     * slot. */
+    _Static_assert(sizeof(getters) / sizeof(getters[0]) <= AOS_BUILTIN_RESERVE,
+                   "more built-in apps than AOS_BUILTIN_RESERVE");
+
     for (unsigned i = 0; i < sizeof(getters) / sizeof(getters[0]); i++) {
         aos_app_t app;
         getters[i](&app);

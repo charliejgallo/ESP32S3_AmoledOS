@@ -22,8 +22,17 @@ extern "C" {
  * aos_ui_register_app now SAYS SO when it fills up.
  *
  * The table is in PSRAM (aos_ui.c), so a slot is about 100 bytes of the
- * plentiful kind. */
-#define AOS_MAX_APPS    80
+ * plentiful kind.
+ *
+ * 80 -> 256 in v0.5.0, when folders made a long menu something you can keep
+ * in order. The rule above is now written down instead of remembered:
+ * AOS_BUILTIN_RESERVE slots are kept for the apps compiled into the firmware
+ * (aos_apps.c checks it at build time) and the loader gets the rest, so the
+ * two ceilings cannot drift apart again. What 256 costs is not these tables
+ * but opening every .so at boot and building the launcher; both are
+ * measured in docs/MENU.md. */
+#define AOS_MAX_APPS        256
+#define AOS_BUILTIN_RESERVE 32
 
 /* Starts the runtime on LVGL's active screen. Registers the built-in apps and
  * shows the watchface. Call with the LVGL lock held. */
@@ -86,6 +95,10 @@ void aos_ui_request_language(const char *code);
  * and rebuild the launcher, on the next tick (the HTTP task must not touch
  * LVGL objects). See docs/ICONS.md. */
 void aos_ui_request_icons(void);
+
+/* menu.txt was written (docs/MENU.md): read it again and rebuild the launcher
+ * on the next tick. Any task. */
+void aos_ui_request_menu(void);
 
 /* The rest of what the web portal asks for, deferred for the same reason: the
  * server runs in its own task and none of this may touch LVGL from there.

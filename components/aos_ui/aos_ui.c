@@ -19,6 +19,7 @@
 #include "aos_icon_ops.h"
 #include "aos_hal.h"
 #include "aos_internal.h"
+#include "aos_menu.h"
 #include "aos_watchface.h"
 #include "aos_i18n.h"
 #include "aos_notif_ui.h"
@@ -492,7 +493,13 @@ static void launcher_ensure(void)
         return;
     }
     s_launcher_stale = false;
+    /* Timed and logged: with up to AOS_MAX_APPS entries this is the one piece
+     * of the UI whose cost grows with the card, and the number is how the
+     * limit was chosen (docs/MENU.md). */
+    uint64_t t0 = aos_hal_uptime_ms();
     s_launcher = aos_launcher_create(s_stage, s_style);
+    aos_hal_log("ui", "launcher built: %d apps, style %d, %u ms", s_app_count,
+                (int)s_style, (unsigned)(aos_hal_uptime_ms() - t0));
     lv_obj_add_flag(s_launcher, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_y(s_launcher, AOS_SCREEN_H);
 }
@@ -502,6 +509,11 @@ static void launcher_hidden_cb(lv_anim_t *anim)
     (void)anim;
     if (!s_launcher_visible && s_launcher) {
         lv_obj_add_flag(s_launcher, LV_OBJ_FLAG_HIDDEN);
+        /* Gone to the clock and not to an app: the next time the menu opens
+         * it starts at the top, not inside the folder it was left in. */
+        if (!s_current) {
+            aos_launcher_close_folder(false);
+        }
         if (s_launcher_stale) {
             lv_obj_delete(s_launcher);
             s_launcher = NULL;
@@ -686,6 +698,9 @@ void aos_ui_back(void)
         return;
     }
     if (s_launcher_visible) {
+        if (aos_launcher_close_folder(true)) {
+            return;         /* back out of the folder first */
+        }
         launcher_hide();
         aos_ui_statusbar_set_visible(false);
     }
@@ -697,6 +712,11 @@ void aos_ui_home(void)
         close_current(true);
     }
     launcher_hide();
+    /* launcher_hide() does nothing when an app was covering the launcher, and
+     * then launcher_hidden_cb() never runs: the folder is forgotten here. */
+    if (!s_launcher_visible) {
+        aos_launcher_close_folder(false);
+    }
     aos_ui_statusbar_set_visible(false);
 }
 
@@ -721,6 +741,29 @@ void aos_ui_request_open(const char *id)
 }
 
 static volatile bool s_icons_requested;
+static volatile bool s_menu_requested;
+
+void aos_ui_request_menu(void)
+{
+    s_menu_requested = true;
+}
+
+/* menu.txt changed: read it again and rebuild the launcher, the same way the
+ * icons do. A folder the new file no longer has closes by itself, since the
+ * rebuild only reopens folders it can find. */
+static void apply_menu(void)
+{
+    aos_menu_load();
+    bool was_visible = s_launcher_visible;
+    if (s_launcher) {
+        lv_obj_delete(s_launcher);
+        s_launcher = NULL;
+        s_launcher_visible = false;
+    }
+    if (was_visible) {
+        aos_ui_show_launcher();
+    }
+}
 
 void aos_ui_request_icons(void)
 {
@@ -806,6 +849,11 @@ static void portal_requests_tick(void)
     if (s_icons_requested) {
         s_icons_requested = false;
         apply_icons();
+    }
+
+    if (s_menu_requested) {
+        s_menu_requested = false;
+        apply_menu();
     }
 
     if (s_toast_requested[0]) {
@@ -1678,6 +1726,7 @@ void aos_ui_init(void)
     aos_theme_init();
     aos_i18n_init();
     aos_icon_scan_files();      /* <id>.aic files on the card, docs/ICONS.md */
+    aos_menu_load();            /* order and folders, docs/MENU.md */
 
     lv_obj_t *screen = lv_screen_active();
     lv_obj_remove_flag(screen, LV_OBJ_FLAG_SCROLLABLE);

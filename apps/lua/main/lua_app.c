@@ -61,17 +61,18 @@
 #include "esp_heap_caps.h"
 #endif
 
-#define LUA_MAX_SCRIPTS     24
+#define LUA_MAX_SCRIPTS     256
 
 /* How many scripts also become apps of their own in the launcher.
  *
  * Lower than LUA_MAX_SCRIPTS on purpose: the list inside this app can show
  * everything on the card, but every launcher entry takes a slot of the
- * firmware's MAX_DYNAPPS, which the 26 .so files already share. Sixteen plus
- * those 26 plus this app's own entry leaves room under the 48 there are. A
- * script past the sixteenth still runs: it is in the list, it just does not
- * get its own icon. */
-#define LUA_MAX_APPS        16
+ * firmware's MAX_DYNAPPS, which the .so files already share. It was 16 when
+ * that was 48; firmware v0.5.0 has 224, and 192 here leaves room for 32 .so
+ * files next to a card full of scripts. On an older firmware the loader says
+ * which script did not fit. A script past the last still runs: it is in the
+ * list, it just does not get its own icon. */
+#define LUA_MAX_APPS        192
 #define LUA_MAX_SOURCE      (48 * 1024)     /* a script bigger than this is
                                              * not a script, it is a mistake */
 #define LUA_FRAME_MS        20              /* the timer's period; the frame
@@ -972,6 +973,16 @@ static bool lua_back(aos_app_t *self, void *inst)
 static char s_apps_names[LUA_MAX_APPS][48];
 static int  s_apps_count;
 
+/* Which scripts have an icon file next to them, seen in the same readdir.
+ * Measured on the board: with 200 scripts in the folder, every fopen walks
+ * the FAT directory and costs ~25 ms, and asking for an .aic that is not
+ * there cost as much as reading the script. Past AIC_SEEN_MAX the set is
+ * not trusted and app_icon() goes back to asking the card. */
+#define AIC_SEEN_MAX 64
+static char s_aic_names[AIC_SEEN_MAX][48];
+static int  s_aic_count;
+static bool s_aic_overflow;
+
 static int by_name(const void *a, const void *b)
 {
     return strcmp((const char *)a, (const char *)b);
@@ -990,10 +1001,24 @@ static void app_scan(void)
     if (!d) {
         return;
     }
+    s_aic_count = 0;
+    s_aic_overflow = false;
     struct dirent *e;
-    while ((e = readdir(d)) != NULL && s_apps_count < LUA_MAX_APPS) {
+    while ((e = readdir(d)) != NULL) {
         const char *dot = strrchr(e->d_name, '.');
-        if (!dot || strcasecmp(dot, ".lua") != 0 || e->d_name[0] == '.') {
+        if (dot && strcasecmp(dot, ".aic") == 0) {
+            size_t base = (size_t)(dot - e->d_name);
+            if (s_aic_count < AIC_SEEN_MAX && base < sizeof(s_aic_names[0])) {
+                memcpy(s_aic_names[s_aic_count], e->d_name, base);
+                s_aic_names[s_aic_count][base] = '\0';
+                s_aic_count++;
+            } else {
+                s_aic_overflow = true;
+            }
+            continue;
+        }
+        if (!dot || strcasecmp(dot, ".lua") != 0 || e->d_name[0] == '.' ||
+            s_apps_count >= LUA_MAX_APPS) {
             continue;
         }
         /* Short enough that "lua." plus the name still fits in the loader's
@@ -1084,10 +1109,25 @@ static uint32_t app_hue(const char *name, bool second)
 /* An .aic beside the script gives it an icon, with no firmware and no
  * reflashing (docs/ICONS.md). /sdcard/icons/<id>.aic still works too and wins,
  * because that is the firmware's own override. */
+static bool aic_listed(const char *file)
+{
+    if (s_aic_overflow) {
+        return true;                    /* unknown: ask the card */
+    }
+    const char *dot = strrchr(file, '.');
+    size_t base = dot ? (size_t)(dot - file) : strlen(file);
+    for (int i = 0; i < s_aic_count; i++) {
+        if (strlen(s_aic_names[i]) == base && strncmp(s_aic_names[i], file, base) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static void app_icon(aos_app_t *app, const char *file)
 {
     const char *sd = aos_hal_path_sd_root();
-    if (!sd) {
+    if (!sd || !aic_listed(file)) {
         return;
     }
     char path[176];

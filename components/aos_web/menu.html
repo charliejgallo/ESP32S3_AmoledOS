@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Menú</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  .wrap.ancha { max-width: 1060px; }
+  .barra { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 4px 0 14px; }
+  .barra button { padding: 8px 13px; border-radius: 10px; font-size: 14px;
+                  background: var(--card2); color: var(--text); }
+  .barra button.primario { background: var(--accent); color: #fff; }
+  .barra button.primario:disabled { opacity: .45; }
+  .barra .estado { color: var(--dim); font-size: 13px; margin-left: auto; }
+  .barra .estado.sucio { color: var(--amber); }
+
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 18px; align-items: start; }
+  @media (max-width: 860px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+
+  .lista { position: relative; }
+  .item { display: flex; align-items: center; gap: 10px; background: var(--card);
+          border-radius: 12px; padding: 7px 8px; margin-bottom: 6px; min-height: 56px;
+          border: 1px solid transparent; }
+  .item.dentro { margin-left: 30px; }
+  .item.sel { border-color: var(--accent); }
+  .item.falta { opacity: .5; }
+  .item.arrastrando { opacity: .35; }
+  .item.destino { border-color: var(--green); background: rgba(48,209,88,.10); }
+  .asa { touch-action: none; cursor: grab; color: var(--dim); padding: 8px 4px; font-size: 18px;
+         line-height: 1; user-select: none; -webkit-user-select: none; }
+  .item canvas, .item svg.ico { width: 40px; height: 40px; flex: none; }
+  .item .nombre { flex: 1; min-width: 0; }
+  .item .nombre b { display: block; font-weight: 500; font-size: 14.5px; white-space: nowrap;
+                    overflow: hidden; text-overflow: ellipsis; }
+  .item .nombre small { display: block; color: var(--dim); font-size: 11.5px; white-space: nowrap;
+                        overflow: hidden; text-overflow: ellipsis; font-family: ui-monospace, Menlo, monospace; }
+  .item .abrir { font-size: 15px; }
+  .item .mini { background: var(--card2); color: var(--text); border-radius: 8px; padding: 5px 8px;
+                font-size: 13px; min-width: 30px; }
+  .item .mini:disabled { opacity: .3; }
+  .item select { background: var(--card2); color: var(--text); border: 0; border-radius: 8px;
+                 padding: 5px 6px; font-size: 12.5px; max-width: 130px; }
+  .item .quitar { color: var(--red); }
+  @media (max-width: 520px) { .item select { max-width: 92px; } .item.dentro { margin-left: 16px; } }
+  .item.oculta { opacity: .6; }
+  .asa.quieta { width: 18px; cursor: default; }
+  .sep { color: var(--dim); font-size: 12px; font-weight: 600; letter-spacing: .05em;
+         text-transform: uppercase; margin: 18px 4px 8px; }
+  .guia { position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px;
+           background: var(--green); pointer-events: none; display: none; }
+
+  .editor { position: sticky; top: 12px; background: var(--card); border-radius: 16px; padding: 14px; }
+  .editor h3 { margin: 0 0 10px; font-size: 15px; font-weight: 600; }
+  .editor .vacio { color: var(--dim); font-size: 13.5px; }
+  .reloj { background: #000; border-radius: 26px; padding: 14px 14px 12px; color: #fff; margin-bottom: 12px; }
+  .reloj .fl { display: flex; align-items: center; gap: 12px; }
+  .reloj .fl b { font-size: 17px; font-weight: 500; display: block; }
+  .reloj .fl small { color: #8e8e93; font-size: 12px; }
+  .reloj .tamanos { display: flex; align-items: flex-end; gap: 10px; margin-top: 12px; }
+  .reloj .cap { color: #8e8e93; font-size: 11px; margin: 0 0 6px; }
+  .campo { margin: 10px 0; }
+  .campo > label { display: block; color: var(--dim); font-size: 12px; margin-bottom: 5px; }
+  .campo input[type=text], .campo input[type=search] { width: 100%; padding: 8px 10px; border-radius: 9px;
+            border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 14.5px; }
+  .colores { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .colores input[type=color] { width: 44px; height: 32px; border: 0; padding: 0; background: none; }
+  .pal { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line); padding: 0; }
+  .seg { display: flex; gap: 4px; flex-wrap: wrap; }
+  .seg button { background: var(--card2); color: var(--text); padding: 6px 11px; border-radius: 9px; font-size: 13px; }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .glifos { max-height: 300px; overflow: auto; padding-right: 4px; }
+  .glifos h4 { margin: 8px 0 5px; font-size: 11.5px; color: var(--dim); font-weight: 600;
+               text-transform: uppercase; letter-spacing: .04em; }
+  .glifos .g { display: flex; flex-wrap: wrap; gap: 5px; }
+  .glifos button { width: 38px; height: 38px; padding: 6px; border-radius: 9px; background: var(--card2);
+                   border: 2px solid transparent; }
+  .glifos button.on { border-color: var(--accent); }
+  .glifos svg { width: 100%; height: 100%; fill: var(--text); display: block; }
+  .borrar { background: #3a2626; color: var(--red); padding: 7px 12px; border-radius: 9px; font-size: 13px; margin-top: 8px; }
+  .nota { color: var(--dim); font-size: 13px; margin-top: 16px; line-height: 1.5; }
+  .nota code { color: var(--text); font-family: ui-monospace, Menlo, monospace; }
+  #medir { position: absolute; width: 0; height: 0; overflow: hidden; }
+</style>
+</head>
+<body>
+<div class="wrap ancha">
+  <div class="top"><h1 data-t="titulo">Menú</h1></div>
+  <p class="sub" data-t="bajada">El orden del lanzador del reloj y sus carpetas. Arrastrá desde
+     ⋮⋮ para mover, soltá sobre una carpeta para meter una app adentro, y tocá una carpeta para
+     cambiarle el nombre y el icono. Nada cambia en el reloj hasta que guardás.</p>
+
+  <nav class="paginas"></nav>
+
+  <div class="barra">
+    <button id="nueva" data-t="btn_nueva">Nueva carpeta</button>
+    <button id="guardar" class="primario" data-t="btn_guardar" disabled>Guardar</button>
+    <button id="descartar" data-t="btn_descartar">Descartar cambios</button>
+    <button id="restablecer" data-t="btn_restablecer">Orden original</button>
+    <span class="estado" id="estado"></span>
+  </div>
+
+  <div class="cols">
+    <div class="lista" id="lista"><div class="guia" id="guia"></div></div>
+    <div class="editor" id="editor"></div>
+  </div>
+
+  <p class="nota" data-t-html="nota_como">Las apps que el menú todavía no nombra quedan al final, en
+     su orden de siempre: ahí aparece una app recién instalada. Una app que figura pero ya no está
+     instalada se ve apagada y conserva su lugar, por si vuelve. <b>Ocultar</b>, en "Mover a",
+     la saca del menú sin desinstalarla.</p>
+  <p class="nota" data-t-html="nota_archivo">Todo se guarda en un archivo de texto,
+     <code>menu.txt</code>, en la raíz de la tarjeta. <b>Orden original</b> lo borra.</p>
+</div>
+<svg id="medir" aria-hidden="true"><path id="medir-p"></path></svg>
+
+<script src="/aos.js"></script>
+<script src="/aic.js"></script>
+<script src="/glifos.js"></script>
+<script>
+"use strict";
+const $ = aos.$;
+
+const TR = {
+  en: {
+    titulo: "Menu",
+    bajada: "The watch launcher's order and its folders. Drag from ⋮⋮ to move, drop on a folder to " +
+            "put an app inside, and tap a folder to change its name and icon. Nothing changes on the " +
+            "watch until you save.",
+    btn_nueva: "New folder", btn_guardar: "Save", btn_descartar: "Discard changes",
+    btn_restablecer: "Original order",
+    nota_como: "Apps the menu does not name yet go at the end, in their usual order: that is where a " +
+               "newly installed app shows up. An app that is listed but no longer installed is dimmed " +
+               "and keeps its place, in case it comes back. <b>Hide</b>, under \"Move to\", takes it off the " +
+               "menu without uninstalling it.",
+    nota_archivo: "It is all kept in a text file, <code>menu.txt</code>, at the root of the card. " +
+                  "<b>Original order</b> deletes it.",
+    sin_cambios: "No changes", con_cambios: "Unsaved changes", guardado: "Saved: the watch is rebuilding its menu",
+    restablecido: "Back to the original order", err_placa: "No answer from the watch",
+    conf_restablecer: "Delete the menu and go back to the original order? Folders are lost.",
+    conf_borrar: "Delete this folder? Its apps go back to the main menu.",
+    conf_salir: "There are unsaved changes.",
+    principal: "Main menu", mover_a: "Move to", ocultar: "Hide", ocultas: "Hidden",
+    mostrar_en: "Show in", no_instalada: "not installed", carpeta: "Folder",
+    apps_1: "app", apps_n: "apps", editar: "Edit", quitar: "Remove from the menu",
+    ed_vacio: "Tap a folder to edit its name and icon.", ed_titulo: "Folder",
+    ed_nombre: "Name", ed_colores: "Colours", ed_relleno: "Fill", ed_glifo: "Glyph",
+    ed_color_glifo: "Glyph colour", ed_buscar: "Search", f_s: "Solid", f_v: "Vertical",
+    f_d: "Diagonal", f_r: "Radial", g_w: "White", g_b: "Black", borrar: "Delete folder",
+    cap_lista: "List · 66 px", cap_otros: "Honeycomb · 74 px and grid · 82 px",
+    nueva_nombre: "Folder",
+    g_general: "General", g_juegos: "Games", g_media: "Media", g_herram: "Tools", g_tiempo: "Time",
+    g_salud: "Health", g_red: "Network", g_casa: "Home", g_varios: "Misc"
+  },
+  de: {
+    titulo: "Menü",
+    bajada: "Reihenfolge und Ordner des Launchers der Uhr. Ziehe an ⋮⋮ zum Verschieben, lass eine App " +
+            "auf einem Ordner los, um sie hineinzulegen, und tippe auf einen Ordner, um Name und Icon zu " +
+            "ändern. Auf der Uhr ändert sich nichts, bis du speicherst.",
+    btn_nueva: "Neuer Ordner", btn_guardar: "Speichern", btn_descartar: "Änderungen verwerfen",
+    btn_restablecer: "Ursprüngliche Reihenfolge",
+    nota_como: "Apps, die das Menü noch nicht nennt, stehen am Ende in ihrer üblichen Reihenfolge: dort " +
+               "erscheint eine neu installierte App. Eine aufgeführte, aber nicht mehr installierte App " +
+               "wird abgeblendet und behält ihren Platz, falls sie zurückkommt. <b>Ausblenden</b> unter " +
+               "\"Verschieben nach\" nimmt sie aus dem Menü, ohne sie zu deinstallieren.",
+    nota_archivo: "Alles steht in einer Textdatei, <code>menu.txt</code>, im Stammverzeichnis der Karte. " +
+                  "<b>Ursprüngliche Reihenfolge</b> löscht sie.",
+    sin_cambios: "Keine Änderungen", con_cambios: "Ungespeicherte Änderungen",
+    guardado: "Gespeichert: die Uhr baut ihr Menü neu auf", restablecido: "Zurück zur ursprünglichen Reihenfolge",
+    err_placa: "Keine Antwort von der Uhr",
+    conf_restablecer: "Menü löschen und zur ursprünglichen Reihenfolge zurück? Die Ordner gehen verloren.",
+    conf_borrar: "Diesen Ordner löschen? Seine Apps kommen ins Hauptmenü zurück.",
+    conf_salir: "Es gibt ungespeicherte Änderungen.",
+    principal: "Hauptmenü", mover_a: "Verschieben nach", ocultar: "Ausblenden", ocultas: "Ausgeblendet",
+    mostrar_en: "Zeigen in", no_instalada: "nicht installiert", carpeta: "Ordner",
+    apps_1: "App", apps_n: "Apps", editar: "Bearbeiten", quitar: "Aus dem Menü entfernen",
+    ed_vacio: "Tippe auf einen Ordner, um Name und Icon zu bearbeiten.", ed_titulo: "Ordner",
+    ed_nombre: "Name", ed_colores: "Farben", ed_relleno: "Füllung", ed_glifo: "Symbol",
+    ed_color_glifo: "Symbolfarbe", ed_buscar: "Suchen", f_s: "Einfarbig", f_v: "Vertikal",
+    f_d: "Diagonal", f_r: "Radial", g_w: "Weiß", g_b: "Schwarz", borrar: "Ordner löschen",
+    cap_lista: "Liste · 66 px", cap_otros: "Wabe · 74 px und Raster · 82 px",
+    nueva_nombre: "Ordner",
+    g_general: "Allgemein", g_juegos: "Spiele", g_media: "Medien", g_herram: "Werkzeuge", g_tiempo: "Zeit",
+    g_salud: "Gesundheit", g_red: "Netz", g_casa: "Zuhause", g_varios: "Sonstiges"
+  }
+};
+const ES = {
+  sin_cambios: "Sin cambios", con_cambios: "Cambios sin guardar",
+  guardado: "Guardado: el reloj está rearmando el menú", restablecido: "Vuelve el orden original",
+  err_placa: "El reloj no contesta",
+  conf_restablecer: "¿Borrar el menú y volver al orden original? Las carpetas se pierden.",
+  conf_borrar: "¿Borrar esta carpeta? Sus apps vuelven al menú principal.",
+  conf_salir: "Hay cambios sin guardar.",
+  principal: "Menú principal", mover_a: "Mover a", ocultar: "Ocultar", ocultas: "Ocultas",
+  mostrar_en: "Mostrar en", no_instalada: "no instalada", carpeta: "Carpeta",
+  apps_1: "app", apps_n: "apps", editar: "Editar", quitar: "Quitar del menú",
+  ed_vacio: "Tocá una carpeta para editar su nombre y su icono.", ed_titulo: "Carpeta",
+  ed_nombre: "Nombre", ed_colores: "Colores", ed_relleno: "Relleno", ed_glifo: "Glifo",
+  ed_color_glifo: "Color del glifo", ed_buscar: "Buscar", f_s: "Sólido", f_v: "Vertical",
+  f_d: "Diagonal", f_r: "Radial", g_w: "Blanco", g_b: "Negro", borrar: "Borrar carpeta",
+  cap_lista: "Lista · 66 px", cap_otros: "Panal · 74 px y cuadrícula · 82 px",
+  nueva_nombre: "Carpeta",
+  g_general: "General", g_juegos: "Juegos", g_media: "Multimedia", g_herram: "Herramientas",
+  g_tiempo: "Tiempo", g_salud: "Salud", g_red: "Red", g_casa: "Casa", g_varios: "Varios"
+};
+function t(k) { const v = aos.t(k); return v === k && ES[k] !== undefined ? ES[k] : v; }
+
+/* Las paletas rapidas de la maqueta, y los limites del firmware (aos_menu.h). */
+const PALETAS = [["7B2FF7","F107A3"],["0A84FF","003C8A"],["30D158","0B6E2E"],["FF9F0A","FF375F"],
+                 ["64D2FF","5E5CE6"],["FFD60A","FF9F0A"],["3A3A3C","1C1C1E"],["FF453A","8A0F0A"]];
+const NOMBRE_MAX = 39;          /* bytes UTF-8: AOS_MENU_NAME_MAX menos el terminador */
+const GLIFOS = window.AOS_GLIFOS || [];
+const GLIFO = Object.fromEntries(GLIFOS.map(g => [g.n, g]));
+
+/* ------------------------------------------------------------------------
+ * El modelo: el nivel de arriba del lanzador, con las carpetas adentro.
+ *   { t: "app", id }
+ *   { t: "folder", id, name, a, b, fill, glyph, dark, apps: [id...] }
+ * ---------------------------------------------------------------------- */
+let modelo = [], guardado = "", instaladas = new Map(), iconos = new Map();
+let ocultas = [];       /* ids con una linea "hide": instaladas, fuera del menu */
+let abiertas = new Set(), seleccion = null;
+
+/* La misma gramatica que parse() en components/aos_ui/aos_menu.c. */
+function leerMenu(texto) {
+  const raiz = [];
+  let carpeta = null;
+  ocultas = [];
+  for (const cruda of texto.split("\n")) {
+    const linea = cruda.replace(/\r$/, "").trim();
+    if (!linea || linea[0] === "#") continue;
+    const p = linea.split(/[ \t]+/);
+    if (p[0] === "app" && p[1]) {
+      (carpeta ? carpeta.apps : raiz).push(carpeta ? p[1] : { t: "app", id: p[1] });
+    } else if (p[0] === "folder" && p.length >= 8) {
+      const nombre = linea.replace(/^(\S+[ \t]+){7}/, "");
+      carpeta = { t: "folder", id: p[1], a: p[2].toUpperCase(), b: p[3].toUpperCase(), fill: p[4],
+                  glyph: p[5], dark: p[6] === "b", name: nombre, apps: [] };
+      raiz.push(carpeta);
+    } else if (p[0] === "end") {
+      carpeta = null;
+    } else if (p[0] === "hide" && p[1] && !ocultas.includes(p[1])) {
+      ocultas.push(p[1]);
+    }
+  }
+  /* "hide" gana sobre cualquier otra linea de la misma app, como en el reloj */
+  const oc = new Set(ocultas);
+  for (let i = raiz.length - 1; i >= 0; i--) {
+    const e = raiz[i];
+    if (e.t === "app" && oc.has(e.id)) raiz.splice(i, 1);
+    else if (e.t === "folder") e.apps = e.apps.filter(id => !oc.has(id));
+  }
+  return raiz;
+}
+
+function escribirMenu() {
+  const out = ["# AmoledOS - orden del menu, escrito por /menu"];
+  for (const e of modelo) {
+    if (e.t === "app") { out.push("app " + e.id); continue; }
+    out.push(["folder", e.id, e.a, e.b, e.fill, e.glyph, e.dark ? "b" : "w", e.name].join(" "));
+    for (const id of e.apps) out.push("  app " + id);
+    out.push("end");
+  }
+  for (const id of ocultas) out.push("hide " + id);
+  return out.join("\n") + "\n";
+}
+
+/* Lo que el menu no nombra va al final, en el orden del reloj, igual que en
+   aos_menu_root(): asi la pagina muestra lo que el reloj muestra. */
+function completar(raiz) {
+  const puestas = new Set(ocultas);
+  for (const e of raiz) {
+    if (e.t === "app") puestas.add(e.id);
+    else e.apps.forEach(id => puestas.add(id));
+  }
+  for (const id of instaladas.keys()) if (!puestas.has(id)) raiz.push({ t: "app", id: id });
+  return raiz;
+}
+
+function sucio() { return escribirMenu() !== guardado; }
+
+/* ------------------------------------------------------------------------
+ * El icono de una carpeta, con las mismas cuentas que aos_folder_icon.c:
+ * hexagono punta arriba con esquinas de radio 0,24 R, la punta redondeada
+ * tocando el borde, y el degradado con las mismas coordenadas.
+ * ---------------------------------------------------------------------- */
+const tinta = {};
+function cajaGlifo(nombre) {
+  if (tinta[nombre]) return tinta[nombre];
+  const g = GLIFO[nombre] || GLIFOS[0];
+  const p = $("medir-p");
+  p.setAttribute("d", g.d);
+  const b = p.getBBox();
+  return (tinta[nombre] = { x: b.x, y: b.y, w: b.width, h: b.height, d: g.d });
+}
+
+let svgId = 0;
+function hexSVG(f, S) {
+  const half = S / 2, r0 = half - 0.5, rc = 0.24 * r0;
+  const inr = (r0 + 0.1547 * rc) * 0.866025404, R = inr / 0.866025404;
+  const v = [];
+  for (let k = 0; k < 6; k++) {
+    const ang = (-90 + 60 * k) * Math.PI / 180;
+    v.push([half + R * Math.cos(ang), half + R * Math.sin(ang)]);
+  }
+  const d = rc / Math.tan(Math.PI / 3);        /* del vertice al punto de tangencia */
+  let path = "";
+  for (let i = 0; i < 6; i++) {
+    const p = v[i], a = v[(i + 5) % 6], c = v[(i + 1) % 6];
+    const la = Math.hypot(a[0] - p[0], a[1] - p[1]), lc = Math.hypot(c[0] - p[0], c[1] - p[1]);
+    const t1 = [p[0] + (a[0] - p[0]) * d / la, p[1] + (a[1] - p[1]) * d / la];
+    const t2 = [p[0] + (c[0] - p[0]) * d / lc, p[1] + (c[1] - p[1]) * d / lc];
+    path += (i ? "L" : "M") + t1[0].toFixed(2) + "," + t1[1].toFixed(2) +
+            "A" + rc.toFixed(2) + "," + rc.toFixed(2) + " 0 0 1 " + t2[0].toFixed(2) + "," + t2[1].toFixed(2);
+  }
+  path += "Z";
+
+  const id = "hg" + (svgId++);
+  let def = "", fill = "#" + f.a;
+  const st = '<stop offset="0" stop-color="#' + f.a + '"/><stop offset="1" stop-color="#' + f.b + '"/>';
+  if (f.fill === "v") def = '<linearGradient id="' + id + '" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="' + S + '">' + st + "</linearGradient>";
+  if (f.fill === "d") def = '<linearGradient id="' + id + '" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="' + S + '" y2="' + S + '">' + st + "</linearGradient>";
+  if (f.fill === "r") def = '<radialGradient id="' + id + '" gradientUnits="userSpaceOnUse" cx="' + (0.4 * S) + '" cy="' + (0.35 * S) + '" r="' + (0.7 * S) + '">' + st + "</radialGradient>";
+  if (def) fill = "url(#" + id + ")";
+
+  /* el glifo: su em es la mitad del alto, centrado por su tinta */
+  const g = cajaGlifo(f.glyph), k = S * 0.5 / 24;
+  const tx = half - (g.x + g.w / 2) * k, ty = half - (g.y + g.h / 2) * k;
+  return '<svg class="ico" width="' + S + '" height="' + S + '" viewBox="0 0 ' + S + " " + S + '"><defs>' + def +
+         '</defs><path d="' + path + '" fill="' + fill + '"/><path d="' + g.d + '" fill="' + (f.dark ? "#000" : "#fff") +
+         '" transform="translate(' + tx.toFixed(2) + "," + ty.toFixed(2) + ") scale(" + k.toFixed(4) + ')"/></svg>';
+}
+
+/* ------------------------------------------------------------------------
+ * La lista
+ * ---------------------------------------------------------------------- */
+/* /api/icons trae el nombre ya traducido al idioma del reloj; /api/apps, el
+   del codigo fuente. Se muestra el que el reloj muestra. */
+function nombreApp(id) {
+  const i = iconos.get(id), a = instaladas.get(id);
+  return i && i.nombre ? i.nombre : a ? a.nombre : id;
+}
+function contar(n) { return n + " " + t(n === 1 ? "apps_1" : "apps_n"); }
+function esc(s) { return aos.esc(s); }
+
+/* Donde esta un elemento: el arreglo que lo tiene y su posicion. */
+function ubicar(clave) {
+  for (let i = 0; i < modelo.length; i++) {
+    const e = modelo[i];
+    if (clave === (e.t === "app" ? "a:" : "f:") + e.id) return { arr: modelo, i: i, carpeta: null };
+    if (e.t === "folder") {
+      const j = e.apps.findIndex(id => clave === "a:" + id);
+      if (j >= 0) return { arr: e.apps, i: j, carpeta: e };
+    }
+  }
+  const o = ocultas.findIndex(id => clave === "a:" + id);
+  if (o >= 0) return { arr: ocultas, i: o, carpeta: null, oculta: true };
+  return null;
+}
+
+function opcionesMover(actual, oculta) {
+  let h = '<option value="">' + esc(t(oculta ? "mostrar_en" : "mover_a")) + "…</option>";
+  if (actual || oculta) h += '<option value="*">' + esc(t("principal")) + "</option>";
+  for (const e of modelo) if (e.t === "folder" && e !== actual) h += '<option value="' + esc(e.id) + '">' + esc(e.name) + "</option>";
+  if (!oculta) h += '<option value="-">' + esc(t("ocultar")) + "</option>";
+  return h;
+}
+
+function filaApp(id, carpeta, i, total, oculta) {
+  const a = instaladas.get(id), ic = iconos.get(id);
+  const falta = !a;
+  const div = document.createElement("div");
+  div.className = "item" + (carpeta ? " dentro" : "") + (falta ? " falta" : "") + (oculta ? " oculta" : "");
+  div.dataset.k = "a:" + id;
+  div.innerHTML = (oculta ? '<span class="asa quieta" aria-hidden="true"></span>'
+                          : '<span class="asa" aria-hidden="true">⋮⋮</span>') +
+    (falta ? '<svg class="ico" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="none" stroke="#8e8e93" stroke-dasharray="3 4" stroke-width="2"/></svg>'
+           : "<canvas></canvas>") +
+    '<div class="nombre"><b>' + esc(nombreApp(id)) + "</b><small>" + esc(id) +
+    (falta ? " · " + esc(t("no_instalada")) : "") + "</small></div>" +
+    (oculta ? "" :
+    '<button class="mini arriba" aria-label="↑"' + (i === 0 ? " disabled" : "") + ">↑</button>" +
+    '<button class="mini abajo" aria-label="↓"' + (i === total - 1 ? " disabled" : "") + ">↓</button>") +
+    (falta ? '<button class="mini quitar" title="' + esc(t("quitar")) + '">×</button>'
+           : '<select class="mover">' + opcionesMover(carpeta, oculta) + "</select>");
+  if (!falta) dibujarIcono(div.querySelector("canvas"), id, ic);
+  return div;
+}
+
+function filaCarpeta(f, i, total) {
+  const div = document.createElement("div");
+  div.className = "item carpeta" + (seleccion === f.id ? " sel" : "");
+  div.dataset.k = "f:" + f.id;
+  const abierta = abiertas.has(f.id);
+  div.innerHTML = '<span class="asa" aria-hidden="true">⋮⋮</span>' + hexSVG(f, 40) +
+    '<div class="nombre"><b>' + esc(f.name) + "</b><small>" + esc(contar(f.apps.filter(id => instaladas.has(id)).length)) + "</small></div>" +
+    '<button class="mini arriba" aria-label="↑"' + (i === 0 ? " disabled" : "") + ">↑</button>" +
+    '<button class="mini abajo" aria-label="↓"' + (i === total - 1 ? " disabled" : "") + ">↓</button>" +
+    '<button class="mini abrir" aria-expanded="' + abierta + '">' + (abierta ? "▼" : "▶") + "</button>";
+  return div;
+}
+
+function pintar() {
+  const lista = $("lista"), guia = $("guia");
+  lista.innerHTML = "";
+  lista.appendChild(guia);
+  modelo.forEach((e, i) => {
+    if (e.t === "app") { lista.appendChild(filaApp(e.id, null, i, modelo.length)); return; }
+    lista.appendChild(filaCarpeta(e, i, modelo.length));
+    if (abiertas.has(e.id)) e.apps.forEach((id, j) => lista.appendChild(filaApp(id, e, j, e.apps.length)));
+  });
+  /* Las ocultas, al final y aparte: siguen instaladas, el reloj no las
+     muestra, y "Mostrar en" las devuelve. */
+  if (ocultas.length) {
+    const sep = document.createElement("div");
+    sep.className = "sep";
+    sep.textContent = t("ocultas") + " · " + ocultas.length;
+    lista.appendChild(sep);
+    ocultas.forEach((id, j) => lista.appendChild(filaApp(id, null, j, ocultas.length, true)));
+  }
+  pintarEditor();
+  estado();
+}
+
+function estado() {
+  const s = sucio();
+  $("guardar").disabled = !s;
+  $("estado").textContent = t(s ? "con_cambios" : "sin_cambios");
+  $("estado").classList.toggle("sucio", s);
+}
+
+/* Los iconos de las apps salen del reloj, de a uno y una sola vez. */
+const blobs = new Map();
+let cola = Promise.resolve();
+/* Un icono sin bytes es un glifo de la fuente del reloj, que el navegador
+   no tiene: /iconos lo marca con un anillo punteado, que es lo honesto alli.
+   Aca lo que importa es reconocer la app de un vistazo, y la inicial sobre
+   su propio degradado lo logra. */
+function inicial(canvas, app, nombre) {
+  const S = 40, dpr = window.devicePixelRatio || 1;
+  canvas.width = S * dpr; canvas.height = S * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  const g = ctx.createLinearGradient(0, 0, 0, S);
+  g.addColorStop(0, "#" + app.color_a); g.addColorStop(1, "#" + (app.color_b || app.color_a));
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(S / 2, S / 2, S / 2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = "600 17px system-ui, sans-serif";
+  ctx.fillText((nombre || "?").trim().charAt(0).toUpperCase(), S / 2, S / 2 + 1);
+}
+
+function dibujarIcono(canvas, id, ic) {
+  const app = ic || { color_a: "2C2C2E", color_b: "1C1C1E" };
+  if (!ic || !ic.bytes) { inicial(canvas, app, nombreApp(id)); return; }
+  if (blobs.has(id)) {
+    if (blobs.get(id)) AIC.render(canvas, app, blobs.get(id), 40); else inicial(canvas, app, nombreApp(id));
+    return;
+  }
+  inicial(canvas, app, nombreApp(id));      /* mientras llega el blob */
+  cola = cola.then(async () => {
+    if (!blobs.has(id)) {
+      try {
+        const r = await fetch("/api/icons?id=" + encodeURIComponent(id));
+        blobs.set(id, r.ok ? new Uint8Array(await r.arrayBuffer()) : null);
+      } catch (e) { blobs.set(id, null); }
+    }
+    const vivo = document.querySelector('.item[data-k="a:' + CSS.escape(id) + '"] canvas');
+    if (vivo && blobs.get(id)) AIC.render(vivo, app, blobs.get(id), 40);
+  });
+}
+
+/* ------------------------------------------------------------------------
+ * Mover: los botones, el desplegable y el arrastre terminan todos aca.
+ * ---------------------------------------------------------------------- */
+function sacar(clave) {
+  const u = ubicar(clave);
+  if (!u) return null;
+  return u.arr.splice(u.i, 1)[0];
+}
+
+/* dest: { k: clave de la fila destino, modo: "antes" | "despues" | "adentro" } */
+function mover(clave, dest) {
+  if (clave === dest.k) return;
+  const esCarpeta = clave.startsWith("f:");
+  let objetivo = ubicar(dest.k);
+  if (!objetivo) return;
+  /* una carpeta no entra en otra: se ubica junto a la carpeta destino */
+  if (esCarpeta && objetivo.carpeta) {
+    dest = { k: "f:" + objetivo.carpeta.id, modo: dest.modo === "antes" ? "antes" : "despues" };
+    if (dest.k === clave) return;
+  }
+  const destEsCarpeta = dest.k.startsWith("f:");
+  if (esCarpeta && dest.modo === "adentro") dest.modo = "despues";
+  const cosa = sacar(clave);
+  if (!cosa) return;
+  const valor = esCarpeta ? cosa : (typeof cosa === "string" ? cosa : cosa.id);
+  objetivo = ubicar(dest.k);
+
+  if (!esCarpeta && destEsCarpeta && (dest.modo === "adentro" ||
+      (dest.modo === "despues" && abiertas.has(objetivo.arr[objetivo.i].id)))) {
+    const f = objetivo.arr[objetivo.i];
+    if (dest.modo === "adentro") f.apps.push(valor); else f.apps.unshift(valor);
+    return;
+  }
+  const i = objetivo.i + (dest.modo === "antes" ? 0 : 1);
+  if (objetivo.carpeta && !esCarpeta) objetivo.arr.splice(i, 0, valor);
+  else objetivo.arr.splice(i, 0, esCarpeta ? cosa : { t: "app", id: valor });
+}
+
+function paso(clave, delta) {
+  const u = ubicar(clave);
+  const j = u.i + delta;
+  if (j < 0 || j >= u.arr.length) return;
+  [u.arr[u.i], u.arr[j]] = [u.arr[j], u.arr[u.i]];
+  pintar();
+}
+
+$("lista").addEventListener("click", ev => {
+  const fila = ev.target.closest(".item");
+  if (!fila) return;
+  const k = fila.dataset.k;
+  if (ev.target.closest(".arriba")) return paso(k, -1);
+  if (ev.target.closest(".abajo")) return paso(k, 1);
+  if (ev.target.closest(".quitar")) { sacar(k); return pintar(); }
+  if (ev.target.closest(".abrir")) {
+    const id = k.slice(2);
+    abiertas.has(id) ? abiertas.delete(id) : abiertas.add(id);
+    return pintar();
+  }
+  if (ev.target.closest("select, .asa")) return;
+  if (k.startsWith("f:")) {
+    seleccion = k.slice(2);
+    pintar();
+    if (window.innerWidth <= 860) $("editor").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+});
+
+$("lista").addEventListener("change", ev => {
+  const sel = ev.target.closest("select.mover");
+  if (!sel || !sel.value) return;
+  const k = sel.closest(".item").dataset.k, id = k.slice(2);
+  sacar(k);
+  if (sel.value === "-") ocultas.push(id);
+  else if (sel.value === "*") modelo.push({ t: "app", id: id });
+  else { const f = modelo.find(e => e.t === "folder" && e.id === sel.value); f.apps.push(id); abiertas.add(f.id); }
+  pintar();
+});
+
+/* El arrastre, con eventos de puntero: anda igual con el dedo y con el mouse.
+   La marca verde dice donde cae; sobre el centro de una carpeta, la carpeta
+   entera se pinta y la app entra. */
+let arrastre = null;
+$("lista").addEventListener("pointerdown", ev => {
+  const asa = ev.target.closest(".asa");
+  if (!asa) return;
+  ev.preventDefault();
+  const fila = asa.closest(".item");
+  asa.setPointerCapture(ev.pointerId);
+  arrastre = { k: fila.dataset.k, fila: fila, dest: null };
+  fila.classList.add("arrastrando");
+});
+
+function destinoEn(x, y) {
+  const el = document.elementFromPoint(x, y);
+  const fila = el && el.closest(".item");
+  if (!fila || fila === arrastre.fila || fila.classList.contains("oculta")) return null;
+  const r = fila.getBoundingClientRect(), rel = (y - r.top) / r.height;
+  if (fila.classList.contains("carpeta") && !arrastre.k.startsWith("f:") && rel > 0.28 && rel < 0.72)
+    return { k: fila.dataset.k, modo: "adentro", fila: fila };
+  return { k: fila.dataset.k, modo: rel < 0.5 ? "antes" : "despues", fila: fila };
+}
+
+$("lista").addEventListener("pointermove", ev => {
+  if (!arrastre) return;
+  const d = destinoEn(ev.clientX, ev.clientY);
+  document.querySelectorAll(".item.destino").forEach(f => f.classList.remove("destino"));
+  const guia = $("guia");
+  arrastre.dest = d;
+  if (!d) { guia.style.display = "none"; }
+  else if (d.modo === "adentro") { guia.style.display = "none"; d.fila.classList.add("destino"); }
+  else {
+    const lr = $("lista").getBoundingClientRect(), r = d.fila.getBoundingClientRect();
+    guia.style.display = "block";
+    guia.style.left = (r.left - lr.left) + "px";
+    guia.style.top = ((d.modo === "antes" ? r.top - 4 : r.bottom + 1) - lr.top) + "px";
+  }
+  /* cerca del borde de la ventana, la pagina se corre sola */
+  if (ev.clientY < 60) window.scrollBy(0, -12);
+  else if (ev.clientY > window.innerHeight - 60) window.scrollBy(0, 12);
+});
+
+function soltar() {
+  if (!arrastre) return;
+  const a = arrastre;
+  arrastre = null;
+  $("guia").style.display = "none";
+  a.fila.classList.remove("arrastrando");
+  if (a.dest) {
+    mover(a.k, a.dest);
+    if (a.dest.modo === "adentro") abiertas.add(a.dest.k.slice(2));
+  }
+  pintar();
+}
+/* El final del arrastre se escucha en la ventana y tambien cuando se pierde
+   la captura: con el dedo, algunos navegadores entregan el pointerup fuera
+   de la lista o directamente no lo entregan y solo sueltan la captura. Si
+   llegan dos, el segundo no encuentra arrastre y no hace nada. */
+window.addEventListener("pointerup", soltar);
+window.addEventListener("pointercancel", soltar);
+$("lista").addEventListener("lostpointercapture", soltar);
+
+/* ------------------------------------------------------------------------
+ * El editor de la carpeta elegida
+ * ---------------------------------------------------------------------- */
+function carpetaSel() { return modelo.find(e => e.t === "folder" && e.id === seleccion) || null; }
+
+function recortarBytes(s, max) {
+  const enc = new TextEncoder();
+  s = s.replace(/[\r\n\t]/g, " ");
+  while (enc.encode(s).length > max) s = s.slice(0, -1);
+  return s;
+}
+
+function pintarEditor() {
+  const ed = $("editor"), f = carpetaSel();
+  if (!f) { ed.innerHTML = '<h3>' + esc(t("ed_titulo")) + '</h3><p class="vacio">' + esc(t("ed_vacio")) + "</p>"; return; }
+  const n = f.apps.filter(id => instaladas.has(id)).length;
+  ed.innerHTML =
+    '<div class="reloj"><p class="cap">' + esc(t("cap_lista")) + '</p><div class="fl">' + hexSVG(f, 66) +
+    '<div><b id="ed-nombre-prev">' + esc(f.name) + "</b><small>" + esc(contar(n)) + "</small></div></div>" +
+    '<p class="cap" style="margin-top:12px">' + esc(t("cap_otros")) + '</p><div class="tamanos">' + hexSVG(f, 74) +
+    '<svg width="74" height="74" viewBox="0 0 74 74"><circle cx="37" cy="37" r="37" fill="#30D158"/>' +
+    '<path d="M22 40l10 9 20-22" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"/></svg>' +
+    hexSVG(f, 82) + "</div></div>" +
+    '<div class="campo"><label>' + esc(t("ed_nombre")) + '</label><input type="text" id="ed-nombre" value="' + esc(f.name) + '"></div>' +
+    '<div class="campo"><label>' + esc(t("ed_colores")) + '</label><div class="colores">' +
+    '<input type="color" id="ed-a" value="#' + f.a + '"><input type="color" id="ed-b" value="#' + f.b + '">' +
+    PALETAS.map((p, i) => '<button class="pal" data-p="' + i + '" style="background:linear-gradient(180deg,#' + p[0] + ",#" + p[1] + ')" aria-label="' + p[0] + '"></button>').join("") +
+    "</div></div>" +
+    '<div class="campo"><label>' + esc(t("ed_relleno")) + '</label><div class="seg" id="ed-fill">' +
+    ["s", "v", "d", "r"].map(x => '<button data-v="' + x + '"' + (f.fill === x ? ' class="on"' : "") + ">" + esc(t("f_" + x)) + "</button>").join("") + "</div></div>" +
+    '<div class="campo"><label>' + esc(t("ed_color_glifo")) + '</label><div class="seg" id="ed-gc">' +
+    '<button data-v="w"' + (!f.dark ? ' class="on"' : "") + ">" + esc(t("g_w")) + "</button>" +
+    '<button data-v="b"' + (f.dark ? ' class="on"' : "") + ">" + esc(t("g_b")) + "</button></div></div>" +
+    '<div class="campo"><label>' + esc(t("ed_glifo")) + '</label><input type="search" id="ed-buscar" placeholder="' + esc(t("ed_buscar")) + '">' +
+    '<div class="glifos" id="ed-glifos"></div></div>' +
+    '<button class="borrar" id="ed-borrar">' + esc(t("borrar")) + "</button>";
+  pintarGlifos(f, "");
+
+  $("ed-nombre").oninput = ev => {
+    const limpio = recortarBytes(ev.target.value, NOMBRE_MAX);
+    if (limpio !== ev.target.value) ev.target.value = limpio;
+    f.name = limpio.trim() || t("nueva_nombre");
+    $("ed-nombre-prev").textContent = f.name;
+    const fila = document.querySelector('.item[data-k="f:' + CSS.escape(f.id) + '"] .nombre b');
+    if (fila) fila.textContent = f.name;
+    estado();
+  };
+  const refrescar = () => { const y = window.scrollY; pintar(); window.scrollTo(0, y); };
+  $("ed-a").oninput = ev => { f.a = ev.target.value.slice(1).toUpperCase(); refrescar(); };
+  $("ed-b").oninput = ev => { f.b = ev.target.value.slice(1).toUpperCase(); refrescar(); };
+  ed.querySelectorAll(".pal").forEach(b => b.onclick = () => { [f.a, f.b] = PALETAS[+b.dataset.p]; refrescar(); });
+  $("ed-fill").onclick = ev => { const b = ev.target.closest("button"); if (b) { f.fill = b.dataset.v; refrescar(); } };
+  $("ed-gc").onclick = ev => { const b = ev.target.closest("button"); if (b) { f.dark = b.dataset.v === "b"; refrescar(); } };
+  $("ed-buscar").oninput = ev => pintarGlifos(f, ev.target.value.trim().toLowerCase());
+  $("ed-borrar").onclick = () => {
+    if (!confirm(t("conf_borrar"))) return;
+    const i = modelo.indexOf(f);
+    modelo.splice(i, 1, ...f.apps.map(id => ({ t: "app", id: id })));
+    seleccion = null;
+    pintar();
+  };
+}
+
+function pintarGlifos(f, filtro) {
+  const cont = $("ed-glifos");
+  let h = "", grupo = null;
+  for (const g of GLIFOS) {
+    if (filtro && !g.n.includes(filtro)) continue;
+    if (g.g !== grupo) { if (grupo !== null) h += "</div>"; grupo = g.g; h += "<h4>" + esc(t(g.g)) + '</h4><div class="g">'; }
+    h += '<button data-n="' + g.n + '" title="' + g.n + '"' + (f.glyph === g.n ? ' class="on"' : "") +
+         '><svg viewBox="0 0 24 24"><path d="' + g.d + '"/></svg></button>';
+  }
+  if (grupo !== null) h += "</div>";
+  cont.innerHTML = h;
+  cont.onclick = ev => {
+    const b = ev.target.closest("button");
+    if (!b) return;
+    f.glyph = b.dataset.n;
+    const y = window.scrollY, sc = cont.scrollTop, filtroAhora = $("ed-buscar").value;
+    pintar();
+    $("ed-buscar").value = filtroAhora;
+    pintarGlifos(f, filtroAhora.trim().toLowerCase());
+    $("ed-glifos").scrollTop = sc;
+    window.scrollTo(0, y);
+  };
+}
+
+/* ------------------------------------------------------------------------
+ * Con el reloj
+ * ---------------------------------------------------------------------- */
+async function cargar() {
+  try {
+    const [rm, ra, ri] = await Promise.all([fetch("/api/menu"), fetch("/api/apps"), fetch("/api/icons")]);
+    const texto = await rm.text(), apps = await ra.json(), ico = await ri.json();
+    instaladas = new Map((apps.apps || []).map(a => [a.id, a]));
+    iconos = new Map((ico.apps || []).map(a => [a.id, a]));
+    /* Lo que el reloj muestra hoy es el archivo mas las apps que no nombra,
+       al final: eso es "lo guardado", y no hay cambios hasta tocar algo. */
+    modelo = completar(leerMenu(texto));
+    guardado = escribirMenu();
+  } catch (e) {
+    aos.brindis(t("err_placa"));
+  }
+  /* /menu#f2 abre el editor de esa carpeta: para enlazarla, y para las
+     capturas de la documentacion. */
+  const pedida = decodeURIComponent(location.hash.slice(1));
+  if (pedida && modelo.some(e => e.t === "folder" && e.id === pedida)) { seleccion = pedida; abiertas.add(pedida); }
+  if (seleccion && !carpetaSel()) seleccion = null;
+  pintar();
+}
+
+async function guardar() {
+  try {
+    const r = await fetch("/api/menu", { method: "POST", body: escribirMenu() });
+    if (!r.ok) throw new Error(await r.text());
+    guardado = escribirMenu();
+    aos.brindis(t("guardado"));
+    estado();
+  } catch (e) {
+    aos.brindis(t("err_placa") + (e.message ? " · " + e.message : ""));
+  }
+}
+
+function nuevoId() {
+  let n = 1;
+  while (modelo.some(e => e.t === "folder" && e.id === "f" + n)) n++;
+  return "f" + n;
+}
+
+$("nueva").onclick = () => {
+  const id = nuevoId();
+  const p = PALETAS[(modelo.filter(e => e.t === "folder").length) % PALETAS.length];
+  modelo.unshift({ t: "folder", id: id, name: t("nueva_nombre") + " " + id.slice(1), a: p[0], b: p[1],
+                   fill: "v", glyph: "folder", dark: false, apps: [] });
+  seleccion = id;
+  pintar();
+  if (window.innerWidth <= 860) $("editor").scrollIntoView({ behavior: "smooth", block: "start" });
+};
+$("guardar").onclick = guardar;
+$("descartar").onclick = () => { seleccion = null; cargar(); };
+$("restablecer").onclick = async () => {
+  if (!confirm(t("conf_restablecer"))) return;
+  try {
+    const r = await fetch("/api/menu", { method: "POST", body: "" });
+    if (!r.ok) throw new Error(r.status);
+    aos.brindis(t("restablecido"));
+    seleccion = null;
+    abiertas.clear();
+    cargar();
+  } catch (e) { aos.brindis(t("err_placa")); }
+};
+window.addEventListener("beforeunload", ev => { if (sucio()) { ev.preventDefault(); ev.returnValue = t("conf_salir"); } });
+
+aos.init(TR).then(cargar);
+</script>
+</body>
+</html>

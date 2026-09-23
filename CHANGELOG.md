@@ -3,6 +3,63 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+**Folders and order.** The launcher shows the apps in the order the user
+chose, with folders, arranged from the portal's new `/menu` page.
+
+- **Folders** are hexagons, pointy side up, so they are never mistaken for an
+  app's circle: two colours, solid, vertical, diagonal or radial fill, and a
+  white or black glyph from a catalogue of 66 Material Design Icons. The icon
+  is computed per pixel once and then only copied. A folder opens as a second
+  page in the launcher's own style; back closes it, and an app opened from a
+  folder returns to it.
+- **`/menu`** arranges the top level and the folders by dragging (finger or
+  mouse), arrows or "move to", and edits a folder's name and icon with a
+  preview drawn with the watch's own numbers. Everything lives in one text
+  file, `menu.txt`, on the card; apps it does not name go at the end, and
+  apps it names but are not installed keep their place.
+- **Room for 256 apps**, with every ceiling tied to the others (the
+  simulator was already two apps short). Internal RAM unchanged.
+- **The launcher builds a few cells at a time**: 245 apps built at once made
+  the watchdog restart the watch; now the first screen is up in 179 ms and
+  the rest arrives in the background.
+- **Boot is faster**: the loader's symbol lookup is a binary search instead of
+  a walk of 2,767 names, which took the card scan from 16.1 s to 5.3 s with
+  245 apps, and every app opens faster for the same reason. Lua scripts can
+  no longer take the place of a real app, and the boot log is no longer
+  flooded by the loader.
+- The grid and the honeycomb open at the first row instead of the middle.
+
+**Settings, redesigned.** One page nine screens long became a short first
+page and a page per category.
+
+- **Quick tiles**: Wi-Fi, Bluetooth, Flashlight (opens the app), Always on,
+  Saver and **Do not disturb**, plus the brightness as a pill slider, then
+  twelve categories in three groups, each with its current value.
+- **Display** gets the **screen timeouts**, until now fixed: dims after
+  15 s to 2 min, and once dimmed turns off after 1, 5 or 10 minutes, or
+  never. Also in the portal's `/ajustes`.
+- **Do not disturb** is the notifications switch named for what it does:
+  notifications stay in the list without lighting the screen or sounding,
+  and calls get through with "Calls always".
+- USB and Language are lists with a tick; the menu styles are cards with a
+  sketch; Power explains each switch; About shows the name, the card's
+  usage, a QR to the portal, and restarts on a long press; diagnostics have
+  a page of their own. Icons from Material Design Icons.
+- **Scheduled do not disturb**: every day between two times (23:00 to
+  07:00 by default), on top of the switch; also in the portal.
+- **Raise to wake** can be switched off, in Display and in the portal. It
+  was always on: in bed or at a desk it lit the screen for nothing.
+- **Hidden apps**: "Hide" in `/menu` takes an app off the launcher without
+  uninstalling it (a `hide <id>` line in `menu.txt`); "Show in" brings it
+  back.
+- **Backup and restore** in the portal's `/ajustes`: every preference of the
+  watch and its apps, and the menu with its folders, in one file; the Wi-Fi
+  password only if asked for. Restoring leaves alone what belongs to each
+  watch: touch calibration, battery history, steps, the paired watch, and
+  the name unless asked.
+
 ## v0.4.13 — 2026-09-22
 
 **Monster Hop**, a hop-by-hop action game in sixteen levels, with its art

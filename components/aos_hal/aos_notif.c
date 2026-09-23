@@ -63,6 +63,9 @@ static bool     s_enabled     = true;
 static bool     s_sound       = true;
 static bool     s_calls       = true;
 static uint32_t s_categories  = CAT_ALL;
+static bool     s_dnd_sched   = false;
+static int      s_dnd_from    = 23 * 60;    /* minutes after midnight */
+static int      s_dnd_to      = 7 * 60;
 
 static void cargar(void)
 {
@@ -76,6 +79,49 @@ static void cargar(void)
     if (aos_hal_pref_get_i32("nt_snd",   &v)) s_sound      = (v != 0);
     if (aos_hal_pref_get_i32("nt_calls", &v)) s_calls      = (v != 0);
     if (aos_hal_pref_get_i32("nt_cat",   &v)) s_categories = (uint32_t)v & CAT_ALL;
+    if (aos_hal_pref_get_i32("dnd_prog", &v)) s_dnd_sched  = (v != 0);
+    if (aos_hal_pref_get_i32("dnd_from", &v) && v >= 0 && v < 24 * 60) s_dnd_from = (int)v;
+    if (aos_hal_pref_get_i32("dnd_to",   &v) && v >= 0 && v < 24 * 60) s_dnd_to   = (int)v;
+}
+
+void aos_hal_notif_dnd_schedule_set(bool on, int from_min, int to_min)
+{
+    cargar();
+    s_dnd_sched = on;
+    if (from_min >= 0 && from_min < 24 * 60) s_dnd_from = from_min;
+    if (to_min   >= 0 && to_min   < 24 * 60) s_dnd_to   = to_min;
+    aos_hal_pref_set_i32("dnd_prog", on ? 1 : 0);
+    aos_hal_pref_set_i32("dnd_from", s_dnd_from);
+    aos_hal_pref_set_i32("dnd_to",   s_dnd_to);
+}
+
+void aos_hal_notif_dnd_schedule_get(bool *on, int *from_min, int *to_min)
+{
+    cargar();
+    if (on)       *on = s_dnd_sched;
+    if (from_min) *from_min = s_dnd_from;
+    if (to_min)   *to_min = s_dnd_to;
+}
+
+/* Inside the scheduled window right now. The window may cross midnight
+ * (23:00 to 07:00, the usual case), and with the clock never set there is no
+ * "now" to be inside of. */
+static bool dnd_scheduled_now(void)
+{
+    if (!s_dnd_sched || s_dnd_from == s_dnd_to || !aos_hal_time_is_valid()) {
+        return false;
+    }
+    struct tm now;
+    aos_hal_time_now(&now);
+    int m = now.tm_hour * 60 + now.tm_min;
+    return s_dnd_from < s_dnd_to ? (m >= s_dnd_from && m < s_dnd_to)
+                                 : (m >= s_dnd_from || m < s_dnd_to);
+}
+
+bool aos_hal_notif_dnd_active(void)
+{
+    cargar();
+    return !s_enabled || dnd_scheduled_now();
 }
 
 void aos_hal_notif_enable(bool on)
@@ -175,7 +221,8 @@ static bool es_llamada(aos_notif_category_t c)
  *      this, plugging the watch in is thirty screens in a row: iOS dumps
  *      everything pending with EventFlagPreExisting on connecting;
  *   4. "do not disturb" switches the alert off but keeps the history, which is
- *      precisely what distinguishes it from switching bluetooth off;
+ *      precisely what distinguishes it from switching bluetooth off. It is on
+ *      when the switch says so or inside its scheduled hours;
  *   5. the silence the phone sends is always honoured. On the other side
  *      somebody has already decided.
  */
@@ -195,7 +242,7 @@ static bool politica(aos_notif_t *n)
         return true;
     }
 
-    n->alert = prioritaria || s_enabled;                /* 1, 4 */
+    n->alert = prioritaria || !aos_hal_notif_dnd_active();   /* 1, 4 */
     n->sound = n->alert && (prioritaria || (s_sound && !n->silent));  /* 5 */
 
     /* 6. Grouping: same app, same title and same category, within the minute.
