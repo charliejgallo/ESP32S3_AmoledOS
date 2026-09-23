@@ -3,6 +3,57 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.5.5 — 2026-09-23
+
+**Mila**, a Sokoban with a black kitten, with its art rendered in Blender.
+
+- **Forty levels in five worlds**, each world with its own thing to push and
+  its own mechanic: yarn balls into baskets in the living room; cookie tins
+  onto placemats in the kitchen, where a wet floor lets them slide on; flower
+  pots in the garden, past gates that open while a plate holds something;
+  cardboard boxes in the attic, where only Mila fits through the cat flaps;
+  crates on the rooftops at night, into holes they fill, and balls that roll
+  until they hit something.
+- **Every level is solved by the game's own rules.** The rules are one C file
+  (`main/ml_rules.c`) shared by the watch and a solver on the Mac
+  (`tools/solve.c`); the solver's shortest solution is the level's **par**:
+  three stars at par, two within a quarter more, one for solving it. The
+  levels came from a generator that builds rooms, places the world's pieces
+  and keeps the candidates the solver scores best and that really use the
+  mechanic (`tools/gen.py`); the garden's first level is by hand.
+- **The camera**: a level opens on the whole room and its goal, a tap flies
+  down onto Mila and from then on it follows her. A finger held on her shows
+  the whole room again, with the things where they are now. Swipe to step
+  (hold to keep walking), tap a cell and she walks there without pushing,
+  undo as far back as you like (also BOOT), restart.
+- **The casita** is the hub: Mila wanders, sits, grooms, sleeps in her bed,
+  eats, and uses the toys you buy (a scratching post, a tunnel, a box, a fish
+  bowl, a window hammock, catnip...); tap her and she meows, purrs or rolls
+  over, drag the mouse or the feather and she chases it. A small present by
+  her bed once a day. No bars, nothing to keep up.
+- **The shop**: eight hats, six things for her neck (collars with a bell or a
+  fish tag, scarves that show from the front, a bow tie, pearls) and ten toys.
+  Hats and scarves come in eight colours, free once bought; finishing a world
+  gives one of them.
+- **The worlds are data.** The pack carries the worlds table (names in three
+  languages, kit, map panel, stars needed, mechanics, the gift) and the levels
+  as text; progress is saved by world id, the map is a strip of panels that
+  chain at their centres, and the link names a level by world id. A new world
+  that uses the existing mechanics is a table entry, a level file, a kit and a
+  map panel, with no code.
+- **Two watches**: a **visit** (the friend's Mila comes in through the door in
+  her own outfit and plays with yours) and a **race** on a level open on both,
+  the other's progress on a pill; the first to solve it wins. Both watches
+  compare their packs before playing.
+- A colourful loading screen with a bar measured in bytes read, and a tip.
+- The engine is Monster Hop's, with a straight camera (72 x 54 px per cell)
+  so a swipe means what it looks like. On the board: 26 fps in the living
+  room, 25 on the busiest rooftop, a level loads in 2 s.
+- The art is 6.6 MB in `mila.pak` (one part), next to `mila.so` in `/apps`.
+  `mila.so` needs firmware **v0.4.10** or later.
+
+The firmware changed only in its catalogues (Mila in English and German).
+
 ## v0.5.4 — 2026-09-23
 
 More memory for apps.
