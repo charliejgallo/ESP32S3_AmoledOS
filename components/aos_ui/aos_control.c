@@ -36,7 +36,7 @@ static struct {
     lv_obj_t *date, *batt, *phone;
     lv_obj_t *tiles;
     lv_obj_t *music;                /* the player row, hidden with no music */
-    lv_obj_t *title, *artist, *play;
+    lv_obj_t *player, *play;
     uint32_t  last_refresh;
     bool      closing;
 } s_cc;
@@ -113,8 +113,11 @@ static void refresh(void)
                (mi.playing || (mi.has_metadata && mi.title[0]));
     if (s_cc.music) {
         if (hay) {
-            set_text(s_cc.title, mi.has_metadata && mi.title[0] ? mi.title : _("Musica del telefono"));
-            set_text(s_cc.artist, mi.has_metadata ? mi.artist : "");
+            /* Which app is playing, not the track: a title and an artist do
+             * not fit beside three buttons, and cut short they said less
+             * than "Spotify" does. The track is in the Music app. */
+            const char *who = aos_hal_media_player();
+            set_text(s_cc.player, who && who[0] ? who : _("Música"));
             set_text(s_cc.play, mi.playing ? AOS_SG_PAUSE : AOS_SG_PLAY);
             lv_obj_remove_flag(s_cc.music, LV_OBJ_FLAG_HIDDEN);
         } else {
@@ -288,21 +291,21 @@ void aos_control_open(void)
                                      CONTENT_W, 42, volume_cb);
     lv_obj_add_event_cb(vol, volume_released_cb, LV_EVENT_RELEASED, NULL);
 
-    /* The player: previous, the track, play/pause, next. */
-    s_cc.music = card(p, 54);
+    /* The player: previous, which app is playing, play/pause, next. One
+     * line, as tall as the Settings row. */
+    s_cc.music = card(p, 46);
     media_button(s_cc.music, AOS_SG_SKIP_PREVIOUS, AOS_MEDIA_PREV);
-    lv_obj_t *col = lv_obj_create(s_cc.music);
-    lv_obj_remove_style_all(col);
-    lv_obj_set_height(col, LV_SIZE_CONTENT);
-    lv_obj_set_flex_grow(col, 1);
-    lv_obj_set_flex_flow(col, LV_FLEX_FLOW_COLUMN);
-    s_cc.title = aos_label(col, "", aos_font_small, AOS_C_TEXT);
-    lv_obj_set_width(s_cc.title, lv_pct(100));
-    lv_label_set_long_mode(s_cc.title, LV_LABEL_LONG_MODE_DOTS);
-    s_cc.artist = aos_label(col, "", aos_font_small, AOS_C_DIM);
-    lv_obj_set_width(s_cc.artist, lv_pct(100));
-    lv_label_set_long_mode(s_cc.artist, LV_LABEL_LONG_MODE_DOTS);
-    aos_make_decorative(col);
+    lv_obj_t *mid = row(s_cc.music, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_flex_grow(mid, 1);
+    lv_obj_set_style_pad_column(mid, 6, 0);
+    glyph(mid, AOS_SG_MUSIC_NOTE, AOS_C_PINK);
+    s_cc.player = aos_label(mid, "", aos_font_body, AOS_C_TEXT);
+    lv_obj_set_flex_grow(s_cc.player, 1);
+    /* Height of one line: with the height free, DOTS wraps instead of
+     * cutting, which is how the track's name ran out of the row. */
+    lv_obj_set_height(s_cc.player, lv_font_get_line_height(aos_font_body));
+    lv_label_set_long_mode(s_cc.player, LV_LABEL_LONG_MODE_DOTS);
+    aos_make_decorative(mid);
     s_cc.play = media_button(s_cc.music, AOS_SG_PLAY, AOS_MEDIA_PLAY_PAUSE);
     media_button(s_cc.music, AOS_SG_SKIP_NEXT, AOS_MEDIA_NEXT);
     lv_obj_add_flag(s_cc.music, LV_OBJ_FLAG_HIDDEN);
