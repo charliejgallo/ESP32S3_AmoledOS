@@ -93,6 +93,10 @@ for lang in $LANGS; do
             AOS_SIM_VIEW="aos.settings" $BIN 2>/dev/null) \
             | grep "^AUDIT" >> $OUT || true
     done
+    # The control centre (v0.5.1): a swipe down on the face, which
+    # AOS_SIM_VIEW=control opens directly.
+    (cd $SIM && AOS_SIM_AUDIT="$lang/control" AOS_SIM_VIEW="control" $BIN 2>/dev/null) \
+        | grep "^AUDIT" >> $OUT || true
     # The watchface picker only exists after a long press on the watch, so
     # AOS_SIM_VIEW cannot reach it and for a long time nobody audited it. That
     # is where the buttons below the touch limit lived -see

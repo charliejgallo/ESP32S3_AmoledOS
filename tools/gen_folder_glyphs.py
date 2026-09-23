@@ -80,7 +80,10 @@ SETTINGS = ["wifi", "bluetooth", "flashlight", "watch-variant", "leaf",
             "bell-outline", "view-grid-outline", "clock-outline", "translate",
             "battery-heart-variant", "gesture-tap", "information-outline",
             "chart-box-outline", "white-balance-sunny", "chevron-right",
-            "chevron-left", "restart"]
+            "chevron-left", "restart",
+            # the control centre (aos_control.c), v0.5.1
+            "cellphone", "lightning-bolt", "skip-previous", "play", "pause",
+            "skip-next", "cog", "music-note"]
 
 FILES = {
     "mdi.ttf":   "https://cdn.jsdelivr.net/npm/@mdi/font@%s/fonts/materialdesignicons-webfont.ttf",

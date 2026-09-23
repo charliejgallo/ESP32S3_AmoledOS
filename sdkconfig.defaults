@@ -322,6 +322,9 @@ CONFIG_BT_CTRL_MAIN_XTAL_PU_DURING_LIGHT_SLEEP=y
 # CONFIG_HEAP_TRACE_HASH_MAP_SIZE=2048
 # CONFIG_HEAP_TRACE_HASH_MAP_IN_EXT_RAM=y
 CONFIG_FREERTOS_USE_TRACE_FACILITY=y
+# CPU load per core in Settings > About > Diagnostics (v0.5.1): the idle
+# tasks' run-time counters, on esp_timer. Measured cost: see CHANGELOG.
+CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
 
 # --- stacks that ran out of margin in the audit (measured peaks, 2026-09-12) --
 # main boots with 7,948 of 8,704 used; sys_evt 2,232 of 2,816; the NimBLE host

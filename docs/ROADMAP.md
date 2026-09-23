@@ -197,13 +197,21 @@ exists, which is why they are cheaper than they look.
 
 ### Control centre on the watchface
 
-Swipe down on the watchface for Settings' six quick tiles and the
-brightness, without opening Settings. The tiles are already a component in
+**Done in v0.5.1.** Swipe down on the watchface for Settings' six quick
+tiles and the brightness, without opening Settings. The tiles are already a component in
 `aos_app_settings.c` (`tile_new`, `tile_cb`, `tiles_paint`); what is missing
 is the gesture on the face (today a swipe down there does nothing) and a
 panel that slides over it like the notification overlay does. Done when the
 six tiles and the slider work from the face and the face underneath is not
 redrawn while the panel is up.
+
+### Battery and Diagnostics in Settings
+
+**Done in v0.5.1.** The Battery app folded into Settings, which gained bars
+and graphs: the charge and the last 24 hours on the Battery page, memory,
+the load per core and three temperatures with the last hour on Diagnostics.
+Next steps that would build on it: the same numbers on the portal's home
+page, and a battery complication for the faces from `aos_hal_batt_history()`.
 
 ### Reordering on the watch
 

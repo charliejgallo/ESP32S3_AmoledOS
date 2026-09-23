@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 120 funciones de libc/libm agregadas a mano.
- * Total: 2791 simbolos.
+ * Total: 2806 simbolos.
  */
 
 #include <stddef.h>
@@ -51,7 +51,6 @@ extern int aos_app_pato_get;
 extern int aos_app_pcremote_get;
 extern int aos_app_photos_get;
 extern int aos_app_pomodoro_get;
-extern int aos_app_power_get;
 extern int aos_app_remote_get;
 extern int aos_app_settings_get;
 extern int aos_app_stopwatch_get;
@@ -96,6 +95,10 @@ extern int aos_board_rtc_set;
 extern int aos_board_variant;
 extern int aos_board_variant_name;
 extern int aos_button;
+extern int aos_control_close;
+extern int aos_control_open;
+extern int aos_control_tick;
+extern int aos_control_visible;
 extern int aos_day_name;
 extern int aos_face_analog_get;
 extern int aos_face_binary_get;
@@ -120,6 +123,7 @@ extern int aos_hal_aod_enable;
 extern int aos_hal_aod_enabled;
 extern int aos_hal_audio_is_playing;
 extern int aos_hal_audio_stop;
+extern int aos_hal_batt_history;
 extern int aos_hal_battery_care_enable;
 extern int aos_hal_battery_care_enabled;
 extern int aos_hal_battery_read;
@@ -223,6 +227,7 @@ extern int aos_hal_mic_level;
 extern int aos_hal_mic_open;
 extern int aos_hal_mic_read;
 extern int aos_hal_mic_status;
+extern int aos_hal_minute_history;
 extern int aos_hal_net_ap_active;
 extern int aos_hal_net_ap_default_ssid;
 extern int aos_hal_net_ap_ip;
@@ -342,6 +347,7 @@ extern int aos_hal_spk_write;
 extern int aos_hal_steps_get;
 extern int aos_hal_steps_reset_today;
 extern int aos_hal_steps_set_goal;
+extern int aos_hal_sys_stats;
 extern int aos_hal_time_is_valid;
 extern int aos_hal_time_now;
 extern int aos_hal_time_set;
@@ -442,8 +448,15 @@ extern int aos_pair_ui_cancel;
 extern int aos_pair_ui_suppress;
 extern int aos_pair_ui_tick;
 extern int aos_pair_ui_visible;
+extern int aos_quick_set_bt;
+extern int aos_quick_set_dnd;
+extern int aos_quick_set_wifi;
+extern int aos_quick_slider;
+extern int aos_quick_tiles_create;
+extern int aos_quick_tiles_paint;
 extern int aos_rtc_start;
 extern int aos_settings_font;
+extern int aos_stats_tick;
 extern int aos_step_detect_feed;
 extern int aos_step_detect_init;
 extern int aos_steps_tick;
@@ -459,6 +472,8 @@ extern int aos_ui_back;
 extern int aos_ui_block_gestures;
 extern int aos_ui_button;
 extern int aos_ui_current_app;
+extern int aos_ui_face_hide_if_covered;
+extern int aos_ui_face_show;
 extern int aos_ui_home;
 extern int aos_ui_init;
 extern int aos_ui_inject_drag;
@@ -2845,7 +2860,6 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_app_pcremote_get),
     ESP_ELFSYM_EXPORT(aos_app_photos_get),
     ESP_ELFSYM_EXPORT(aos_app_pomodoro_get),
-    ESP_ELFSYM_EXPORT(aos_app_power_get),
     ESP_ELFSYM_EXPORT(aos_app_remote_get),
     ESP_ELFSYM_EXPORT(aos_app_settings_get),
     ESP_ELFSYM_EXPORT(aos_app_stopwatch_get),
@@ -2890,6 +2904,10 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_board_variant),
     ESP_ELFSYM_EXPORT(aos_board_variant_name),
     ESP_ELFSYM_EXPORT(aos_button),
+    ESP_ELFSYM_EXPORT(aos_control_close),
+    ESP_ELFSYM_EXPORT(aos_control_open),
+    ESP_ELFSYM_EXPORT(aos_control_tick),
+    ESP_ELFSYM_EXPORT(aos_control_visible),
     ESP_ELFSYM_EXPORT(aos_day_name),
     ESP_ELFSYM_EXPORT(aos_face_analog_get),
     ESP_ELFSYM_EXPORT(aos_face_binary_get),
@@ -2914,6 +2932,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_aod_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_audio_is_playing),
     ESP_ELFSYM_EXPORT(aos_hal_audio_stop),
+    ESP_ELFSYM_EXPORT(aos_hal_batt_history),
     ESP_ELFSYM_EXPORT(aos_hal_battery_care_enable),
     ESP_ELFSYM_EXPORT(aos_hal_battery_care_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_battery_read),
@@ -3017,6 +3036,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_mic_open),
     ESP_ELFSYM_EXPORT(aos_hal_mic_read),
     ESP_ELFSYM_EXPORT(aos_hal_mic_status),
+    ESP_ELFSYM_EXPORT(aos_hal_minute_history),
     ESP_ELFSYM_EXPORT(aos_hal_net_ap_active),
     ESP_ELFSYM_EXPORT(aos_hal_net_ap_default_ssid),
     ESP_ELFSYM_EXPORT(aos_hal_net_ap_ip),
@@ -3136,6 +3156,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_steps_get),
     ESP_ELFSYM_EXPORT(aos_hal_steps_reset_today),
     ESP_ELFSYM_EXPORT(aos_hal_steps_set_goal),
+    ESP_ELFSYM_EXPORT(aos_hal_sys_stats),
     ESP_ELFSYM_EXPORT(aos_hal_time_is_valid),
     ESP_ELFSYM_EXPORT(aos_hal_time_now),
     ESP_ELFSYM_EXPORT(aos_hal_time_set),
@@ -3236,8 +3257,15 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_pair_ui_suppress),
     ESP_ELFSYM_EXPORT(aos_pair_ui_tick),
     ESP_ELFSYM_EXPORT(aos_pair_ui_visible),
+    ESP_ELFSYM_EXPORT(aos_quick_set_bt),
+    ESP_ELFSYM_EXPORT(aos_quick_set_dnd),
+    ESP_ELFSYM_EXPORT(aos_quick_set_wifi),
+    ESP_ELFSYM_EXPORT(aos_quick_slider),
+    ESP_ELFSYM_EXPORT(aos_quick_tiles_create),
+    ESP_ELFSYM_EXPORT(aos_quick_tiles_paint),
     ESP_ELFSYM_EXPORT(aos_rtc_start),
     ESP_ELFSYM_EXPORT(aos_settings_font),
+    ESP_ELFSYM_EXPORT(aos_stats_tick),
     ESP_ELFSYM_EXPORT(aos_step_detect_feed),
     ESP_ELFSYM_EXPORT(aos_step_detect_init),
     ESP_ELFSYM_EXPORT(aos_steps_tick),
@@ -3253,6 +3281,8 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_ui_block_gestures),
     ESP_ELFSYM_EXPORT(aos_ui_button),
     ESP_ELFSYM_EXPORT(aos_ui_current_app),
+    ESP_ELFSYM_EXPORT(aos_ui_face_hide_if_covered),
+    ESP_ELFSYM_EXPORT(aos_ui_face_show),
     ESP_ELFSYM_EXPORT(aos_ui_home),
     ESP_ELFSYM_EXPORT(aos_ui_init),
     ESP_ELFSYM_EXPORT(aos_ui_inject_drag),

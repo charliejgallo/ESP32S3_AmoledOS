@@ -22,7 +22,9 @@
 #include "aos_wifi_qr.h"
 #include "aos_pair_ui.h"
 #include "aos_settings_glyphs.h"
+#include "aos_quick.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -33,6 +35,24 @@
 #include "esp_heap_caps.h"
 #include "aos_dynapp.h"
 #endif
+
+/* What the Battery and Diagnostics pages refresh. Kept apart so closing
+ * either page forgets all of it with one memset. */
+typedef struct {
+    lv_obj_t *pct, *bar, *state, *left;            /* Battery: the top card     */
+    lv_obj_t *batt_chart, *batt_empty;
+    lv_chart_series_t *dis, *chg;
+    lv_obj_t *volt, *drain, *charger, *cycles, *lifetime;
+    lv_obj_t *mem_val[3], *mem_bar[3], *apps;      /* Diagnostics              */
+    lv_obj_t *mhz, *cpu_val[2], *cpu_bar[2];
+    lv_obj_t *cpu_chart, *cpu_empty;
+    lv_chart_series_t *cpu_ser[2];
+    lv_obj_t *temp_val[3];
+    lv_obj_t *temp_chart, *temp_empty;
+    lv_chart_series_t *temp_ser[3];
+    lv_obj_t *uptime;
+    uint32_t  charts_at_min;                       /* the minute they were drawn */
+} stats_ui_t;
 
 typedef struct {
     lv_obj_t *net_label;
@@ -55,7 +75,6 @@ typedef struct {
     lv_obj_t *bt_box_si, *bt_box_no;
     lv_timer_t *bt_box_timer;
     lv_obj_t *cat_box;          /* second screen: filter by category           */
-    lv_obj_t *mem_label;
     lv_obj_t *clock_box;        /* date and time setting screen                */
     lv_obj_t *cal_box;          /* touch calibration screen                    */
     int       cal_paso;
@@ -73,12 +92,12 @@ typedef struct {
     lv_obj_t *main;             /* the first page                              */
     lv_obj_t *sub;              /* the open category's page, or NULL           */
     int       sub_kind;
-    lv_obj_t *tile[6];
+    lv_obj_t *tiles;            /* the six quick tiles (aos_quick.h)            */
     lv_obj_t *value[13];        /* the right-hand text of each category row    */
     lv_obj_t *lang_check[AOS_LANG_MAX];
     lv_obj_t *style_card[3];
     lv_obj_t *time_label, *date_label;
-    lv_obj_t *batt_label;
+    stats_ui_t st;              /* Battery and Diagnostics                     */
     lv_obj_t *dnd_from_val, *dnd_to_val;   /* Notifications: the schedule */
     lv_obj_t *dnd_box;                     /* second screen: picking a time */
     lv_obj_t *r_dh, *r_dm;
@@ -159,19 +178,9 @@ static void sync_cb(lv_event_t *event)
                                          : _("Sin conexion"), 1600);
 }
 
-static void set_wifi(bool on)
-{
-    /* Switching it off gives back ~60 KB of executable memory, which is where
-     * the code of dynamic apps comes from. The two largest do not fit with the
-     * radio up, so this switch is also an app switch. */
-    aos_hal_net_enable(on);
-    aos_ui_toast(on ? _("Wifi encendida")
-                    : _("Wifi apagada, memoria liberada"), 1600);
-}
-
 static void wifi_toggle_cb(lv_event_t *event)
 {
-    set_wifi(lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED));
+    aos_quick_set_wifi(lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED));
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1146,17 +1155,14 @@ static void bt_pair_cb(lv_event_t *event)
     bt_box_refresh(NULL);
 }
 
+/* The pairing screen goes with Bluetooth: switched off, there is nothing
+ * left for it to wait for. */
 static void set_bt(bool on)
 {
-    aos_hal_bt_enable(on);
+    aos_quick_set_bt(on);
     if (!on) {
         bt_box_close();
     }
-    /* The same warning as WiFi, and for the same reason: the BLE stack takes
-     * ~30 KB of executable memory, which is where the code of dynamic apps
-     * comes from (measured in docs/HANDOFF-BLE-ANCS.md, section 2.4). */
-    aos_ui_toast(on ? _("Bluetooth encendido")
-                    : _("Bluetooth apagado, memoria liberada"), 1600);
 }
 
 static void bt_toggle_cb(lv_event_t *event)
@@ -1172,20 +1178,9 @@ static void bt_forget_cb(lv_event_t *event)
     aos_ui_toast(_("Telefono olvidado"), 1600);
 }
 
-/* "Do not disturb" is the notifications switch the other way round: with
- * alerts off a notification is still kept in the list, it only does not
- * light the screen or sound, and a call gets through with "calls always"
- * (aos_notif.c, politica()). That is what do-not-disturb means. */
-static void set_dnd(bool dnd)
-{
-    aos_hal_notif_enable(!dnd);
-    aos_ui_toast(dnd ? _("No molestar: el telefono sigue conectado")
-                     : _("Notificaciones encendidas"), 1800);
-}
-
 static void dnd_cb(lv_event_t *event)
 {
-    set_dnd(lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED));
+    aos_quick_set_dnd(lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED));
 }
 
 static void notif_sound_cb(lv_event_t *event)
@@ -1328,7 +1323,6 @@ typedef enum {
     SUB_COUNT
 } sub_t;
 
-enum { TILE_WIFI, TILE_BT, TILE_LIGHT, TILE_AOD, TILE_SAVE, TILE_DND, TILE_COUNT };
 
 static void open_sub(int kind, bool animate);
 static void close_sub(bool animate);
@@ -1350,10 +1344,10 @@ static const char *sub_title(int kind)
     case SUB_MENU:    return _("Menu");
     case SUB_TIME:    return _("Hora");
     case SUB_LANG:    return _("Idioma");
-    case SUB_ENERGY:  return _("Energia");
+    case SUB_ENERGY:  return _("Batería");
     case SUB_TOUCH:   return _("Tactil");
     case SUB_ABOUT:   return _("Acerca del reloj");
-    case SUB_DIAG:    return _("Diagnostico");
+    case SUB_DIAG:    return _("Diagnóstico");
     default:          return "";
     }
 }
@@ -1559,45 +1553,6 @@ static lv_obj_t *radio_row(lv_obj_t *c, const char *text, bool chosen,
     return tick;
 }
 
-/* The pill slider: an icon on the left, the value on the right, no knob.
- * The value label is kept current by the slider itself. */
-static void pill_value_cb(lv_event_t *event)
-{
-    lv_obj_t *sl = lv_event_get_target(event);
-    lv_obj_t *val = (lv_obj_t *)lv_event_get_user_data(event);
-    lv_label_set_text_fmt(val, "%d %%", (int)lv_slider_get_value(sl));
-}
-
-static lv_obj_t *pill_slider(lv_obj_t *parent, const char *g, int value,
-                             int min, int max, lv_event_cb_t cb)
-{
-    lv_obj_t *sl = lv_slider_create(parent);
-    lv_obj_set_size(sl, CONTENT_W, 48);
-    lv_slider_set_range(sl, min, max);
-    lv_slider_set_value(sl, value, LV_ANIM_OFF);
-    lv_obj_set_style_radius(sl, 24, LV_PART_MAIN);
-    lv_obj_set_style_radius(sl, 24, LV_PART_INDICATOR);
-    lv_obj_set_style_bg_color(sl, AOS_C_CARD, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(sl, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(sl, lv_color_hex(0x48484A), LV_PART_INDICATOR);
-    lv_obj_set_style_bg_opa(sl, LV_OPA_TRANSP, LV_PART_KNOB);
-    lv_obj_set_style_pad_all(sl, 0, LV_PART_KNOB);
-    lv_obj_set_style_pad_all(sl, 0, LV_PART_MAIN);
-    lv_obj_set_ext_click_area(sl, 6);
-
-    lv_obj_t *ic = glyph(sl, g, AOS_C_TEXT);
-    lv_obj_align(ic, LV_ALIGN_LEFT_MID, 16, 0);
-    lv_obj_t *val = aos_label(sl, "", aos_font_small, AOS_C_TEXT);
-    lv_obj_align(val, LV_ALIGN_RIGHT_MID, -18, 0);
-    lv_label_set_text_fmt(val, "%d %%", value);
-    aos_make_decorative(ic);
-    aos_make_decorative(val);
-
-    lv_obj_add_event_cb(sl, pill_value_cb, LV_EVENT_VALUE_CHANGED, val);
-    lv_obj_add_event_cb(sl, cb, LV_EVENT_VALUE_CHANGED, NULL);
-    return sl;
-}
-
 /* A segmented control. The callback gets the chosen index; it is kept in the
  * container's user data so the one click handler serves every control. */
 typedef void (*seg_cb_t)(int index);
@@ -1712,100 +1667,6 @@ static void portal_qr(lv_obj_t *parent, const char *path, const char *what)
 }
 
 /* --------------------------------------------------------------------------
- * The first page: the quick tiles
- * -------------------------------------------------------------------------- */
-
-static bool tile_on(int kind)
-{
-    switch (kind) {
-    case TILE_WIFI: return aos_hal_net_enabled();
-    case TILE_BT:   return aos_hal_bt_enabled();
-    case TILE_AOD:  return aos_hal_aod_enabled();
-    case TILE_SAVE: return aos_hal_power_saving_enabled();
-    case TILE_DND:  return !aos_hal_notif_enabled();
-    default:        return false;           /* the flashlight opens an app */
-    }
-}
-
-static lv_color_t tile_color(int kind)
-{
-    switch (kind) {
-    case TILE_SAVE: return AOS_C_GREEN;
-    case TILE_DND:  return lv_color_hex(0x5E5CE6);
-    case TILE_AOD:  return AOS_C_PURPLE;
-    default:        return AOS_C_ACCENT;
-    }
-}
-
-static void tiles_paint(void)
-{
-    for (int k = 0; k < TILE_COUNT; k++) {
-        lv_obj_t *t = s_set.tile[k];
-        if (!t) {
-            continue;
-        }
-        bool on = tile_on(k);
-        lv_color_t bg = on ? tile_color(k) : AOS_C_CARD;
-        if (!lv_color_eq(lv_obj_get_style_bg_color(t, 0), bg)) {
-            lv_obj_set_style_bg_color(t, bg, 0);
-        }
-        lv_obj_t *ic = lv_obj_get_child(t, 0);
-        lv_color_t fg = k == TILE_LIGHT ? AOS_C_YELLOW : on ? AOS_C_TEXT : AOS_C_DIM;
-        lv_obj_set_style_text_color(ic, fg, 0);
-        lv_obj_set_style_text_color(lv_obj_get_child(t, 1), on ? AOS_C_TEXT : AOS_C_DIM, 0);
-    }
-}
-
-static void tile_cb(lv_event_t *event)
-{
-    int kind = (int)(intptr_t)lv_event_get_user_data(event);
-    bool on = tile_on(kind);
-    switch (kind) {
-    case TILE_WIFI:  set_wifi(!on); break;
-    case TILE_BT:    set_bt(!on);   break;
-    case TILE_LIGHT:
-        /* Deferred: opening another app from here would destroy Settings
-         * inside its own callback. */
-        aos_ui_request_open("aos.flashlight");
-        return;
-    case TILE_AOD:
-        aos_hal_aod_enable(!on);
-        aos_ui_toast(!on ? _("Siempre encendido") : _("La pantalla se apaga"), 1400);
-        break;
-    case TILE_SAVE:
-        aos_hal_power_saving_enable(!on);
-        aos_ui_toast(!on ? _("Ahorro de energia") : _("Ahorro apagado"), 1400);
-        break;
-    case TILE_DND:   set_dnd(!on);  break;
-    }
-    tiles_paint();
-}
-
-static void tile_new(lv_obj_t *parent, int kind, const char *g, const char *text)
-{
-    lv_obj_t *t = lv_obj_create(parent);
-    lv_obj_remove_style_all(t);
-    lv_obj_set_size(t, (CONTENT_W - 20) / 3, 84);
-    lv_obj_set_style_radius(t, 20, 0);
-    lv_obj_set_style_bg_opa(t, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_opa(t, LV_OPA_70, LV_STATE_PRESSED);
-    lv_obj_set_style_pad_ver(t, 8, 0);
-    lv_obj_set_flex_flow(t, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(t, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
-                          LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(t, 4, 0);
-    glyph(t, g, AOS_C_DIM);
-    lv_obj_t *l = aos_label(t, text, aos_font_small, AOS_C_DIM);
-    lv_obj_set_width(l, (CONTENT_W - 20) / 3 - 8);
-    lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_WRAP);
-    lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
-    aos_make_decorative(t);
-    lv_obj_add_flag(t, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(t, tile_cb, LV_EVENT_CLICKED, (void *)(intptr_t)kind);
-    s_set.tile[kind] = t;
-}
-
-/* --------------------------------------------------------------------------
  * The first page: each category's current value
  * -------------------------------------------------------------------------- */
 
@@ -1846,6 +1707,8 @@ static void set_value(int kind, const char *text)
         lv_label_set_text(v, text);
     }
 }
+
+static void duration(char *out, size_t len, uint32_t seconds);
 
 static void values_refresh(void)
 {
@@ -1895,9 +1758,19 @@ static void values_refresh(void)
         }
     }
 
+    /* The charge and, on battery, how long it has left: "66 % · 1h 35m". */
     aos_battery_t b;
+    aos_power_info_t pi;
     if (aos_hal_battery_read(&b) && b.percent >= 0) {
-        snprintf(buf, sizeof(buf), "%d %%", b.percent);
+        char left[16];
+        if (b.charging) {
+            snprintf(buf, sizeof(buf), "%d %%  " LV_SYMBOL_CHARGE, b.percent);
+        } else if (!b.usb_present && aos_hal_power_info(&pi) && !isnan(pi.hours_left)) {
+            duration(left, sizeof(left), (uint32_t)(pi.hours_left * 3600.0f));
+            snprintf(buf, sizeof(buf), "%d %%  ·  %s", b.percent, left);
+        } else {
+            snprintf(buf, sizeof(buf), "%d %%", b.percent);
+        }
         set_value(SUB_ENERGY, buf);
     }
 
@@ -1929,23 +1802,9 @@ static void build_main(lv_obj_t *root)
     lv_obj_t *title = aos_label(p, _("Ajustes"), aos_font_title, AOS_C_TEXT);
     lv_obj_set_width(title, CONTENT_W - 8);
 
-    lv_obj_t *tiles = lv_obj_create(p);
-    lv_obj_remove_style_all(tiles);
-    lv_obj_set_size(tiles, CONTENT_W, LV_SIZE_CONTENT);
-    lv_obj_set_flex_flow(tiles, LV_FLEX_FLOW_ROW_WRAP);
-    lv_obj_set_style_pad_row(tiles, 10, 0);
-    lv_obj_set_style_pad_column(tiles, 10, 0);
-    lv_obj_remove_flag(tiles, LV_OBJ_FLAG_SCROLLABLE);
-    tile_new(tiles, TILE_WIFI,  AOS_SG_WIFI,                 _("Wifi"));
-    tile_new(tiles, TILE_BT,    AOS_SG_BLUETOOTH,            _("Bluetooth"));
-    tile_new(tiles, TILE_LIGHT, AOS_SG_FLASHLIGHT,           _("Linterna"));
-    tile_new(tiles, TILE_AOD,   AOS_SG_WATCH_VARIANT,        _("Siempre encendido"));
-    tile_new(tiles, TILE_SAVE,  AOS_SG_LEAF,                 _("Ahorro"));
-    tile_new(tiles, TILE_DND,   AOS_SG_MOON_WANING_CRESCENT, _("No molestar"));
-    tiles_paint();
+    s_set.tiles = aos_quick_tiles_create(p, CONTENT_W, 84);
 
-    pill_slider(p, AOS_SG_WHITE_BALANCE_SUNNY, aos_hal_brightness_get(), 5, 100,
-                brightness_value_cb);
+    aos_quick_slider(p, AOS_SG_WHITE_BALANCE_SUNNY, aos_hal_brightness_get(), 5, 100, CONTENT_W, 48, brightness_value_cb);
 
     static const struct {
         int kind;
@@ -2090,8 +1949,7 @@ static void aod_seg_cb(int i)
 
 static void build_display(lv_obj_t *p)
 {
-    pill_slider(p, AOS_SG_WHITE_BALANCE_SUNNY, aos_hal_brightness_get(), 5, 100,
-                brightness_value_cb);
+    aos_quick_slider(p, AOS_SG_WHITE_BALANCE_SUNNY, aos_hal_brightness_get(), 5, 100, CONTENT_W, 48, brightness_value_cb);
 
     lv_obj_t *c = card(p);
     lv_obj_t *face_val = NULL;
@@ -2105,8 +1963,7 @@ static void build_display(lv_obj_t *p)
                 aos_hal_raise_wake_enabled(), raise_wake_cb);
 
     caption(p, _("BRILLO ATENUADA"));
-    pill_slider(p, AOS_SG_BRIGHTNESS_6, aos_hal_aod_brightness_get(), 1, 40,
-                aod_brightness_cb);
+    aos_quick_slider(p, AOS_SG_BRIGHTNESS_6, aos_hal_aod_brightness_get(), 1, 40, CONTENT_W, 48, aod_brightness_cb);
 
     uint32_t act_s, aod_s;
     aos_hal_screen_timeouts_get(&act_s, &aod_s);
@@ -2139,7 +1996,7 @@ static void raise_wake_cb(lv_event_t *event)
 
 static void build_sound(lv_obj_t *p)
 {
-    pill_slider(p, AOS_SG_VOLUME_HIGH, aos_hal_volume_get(), 5, 100, volume_cb);
+    aos_quick_slider(p, AOS_SG_VOLUME_HIGH, aos_hal_volume_get(), 5, 100, CONTENT_W, 48, volume_cb);
     lv_obj_t *c = card(p);
     switch_row2(c, _("Sonido de los avisos"), NULL, aos_hal_notif_sound(), notif_sound_cb);
 }
@@ -2420,28 +2277,342 @@ static void build_lang(lv_obj_t *p)
     lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
 }
 
+/* --------------------------------------------------------------------------
+ * Battery and Diagnostics (v0.5.1)
+ *
+ * Battery used to be an app of its own, with an arc and a block of text.
+ * Now it is this page: the charge up top, the last 24 hours as a graph, the
+ * details, and the switches that stretch it. Diagnostics gained bars and
+ * graphs for memory, the two cores and the three thermometers. The numbers
+ * come from the HAL (aos_stats.c), which samples on its own: nothing here
+ * measures anything, so an open page costs only its drawing.
+ * -------------------------------------------------------------------------- */
+
+/* "3h 20m" or "45m" */
+static void duration(char *out, size_t len, uint32_t seconds)
+{
+    uint32_t minutes = seconds / 60;
+    if (minutes >= 60) {
+        snprintf(out, len, "%uh %02um", (unsigned)(minutes / 60), (unsigned)(minutes % 60));
+    } else {
+        snprintf(out, len, "%um", (unsigned)minutes);
+    }
+}
+
+static const char *charge_state_text(aos_charge_state_t state)
+{
+    switch (state) {
+    case AOS_CHG_TRICKLE:   return _("goteo");
+    case AOS_CHG_PRECHARGE: return _("precarga");
+    case AOS_CHG_CC:        return _("corriente constante");
+    case AOS_CHG_CV:        return _("tensión constante");
+    case AOS_CHG_DONE:      return _("carga completa");
+    default:                return _("en espera");
+    }
+}
+
+static lv_color_t batt_color(int pct, bool charging)
+{
+    return charging ? AOS_C_GREEN : pct <= 15 ? AOS_C_RED : AOS_C_TEAL;
+}
+
+static lv_obj_t *bar_new(lv_obj_t *parent, int32_t h, lv_color_t color)
+{
+    lv_obj_t *bar = lv_bar_create(parent);
+    lv_obj_set_size(bar, lv_pct(100), h);
+    lv_bar_set_range(bar, 0, 1000);
+    lv_obj_set_style_radius(bar, h / 2, LV_PART_MAIN);
+    lv_obj_set_style_radius(bar, h / 2, LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(bar, lv_color_hex(0x3A3A3C), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(bar, color, LV_PART_INDICATOR);
+    aos_make_decorative(bar);
+    return bar;
+}
+
+/* Only when it changed: setting a value invalidates the bar even if equal. */
+static void bar_to(lv_obj_t *bar, uint64_t part, uint64_t whole)
+{
+    int32_t v = whole ? (int32_t)(part * 1000 / whole) : 0;
+    if (lv_bar_get_value(bar) != v) {
+        lv_bar_set_value(bar, v, LV_ANIM_OFF);
+    }
+}
+
+static void text_to(lv_obj_t *l, const char *text)
+{
+    if (strcmp(lv_label_get_text(l), text) != 0) {
+        lv_label_set_text(l, text);
+    }
+}
+
+/* A card padded for its own layout rather than for rows. */
+static lv_obj_t *padded_card(lv_obj_t *parent, int32_t gap)
+{
+    lv_obj_t *c = card(parent);
+    lv_obj_set_style_pad_all(c, 14, 0);
+    lv_obj_set_style_pad_row(c, gap, 0);
+    return c;
+}
+
+/* Name on the left, value on the right, in one line; returns the value. */
+static lv_obj_t *pair(lv_obj_t *parent, const char *name, lv_color_t name_color)
+{
+    lv_obj_t *r = lv_obj_create(parent);
+    lv_obj_remove_style_all(r);
+    lv_obj_set_size(r, lv_pct(100), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(r, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(r, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(r, 8, 0);
+    lv_obj_remove_flag(r, LV_OBJ_FLAG_SCROLLABLE);
+    /* One line: the name gets the dots when a translation runs long. */
+    lv_obj_t *n = aos_label(r, name, aos_font_small, name_color);
+    lv_label_set_long_mode(n, LV_LABEL_LONG_MODE_DOTS);
+    lv_obj_set_height(n, lv_font_get_line_height(aos_font_small));
+    lv_obj_set_flex_grow(n, 1);
+    lv_obj_t *v = aos_label(r, "", aos_font_small, AOS_C_TEXT);
+    aos_make_decorative(r);
+    return v;
+}
+
+/* A bare line chart: no points, no border, faint horizontal guides. */
+static lv_obj_t *chart_new(lv_obj_t *parent, int32_t h, uint32_t points)
+{
+    lv_obj_t *ch = lv_chart_create(parent);
+    lv_obj_set_size(ch, lv_pct(100), h);
+    lv_chart_set_type(ch, LV_CHART_TYPE_LINE);
+    lv_chart_set_point_count(ch, points);
+    lv_chart_set_div_line_count(ch, 3, 0);
+    lv_obj_set_style_bg_opa(ch, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(ch, 0, 0);
+    lv_obj_set_style_pad_all(ch, 0, 0);
+    lv_obj_set_style_line_color(ch, AOS_C_CARD2, LV_PART_MAIN);
+    lv_obj_set_style_line_width(ch, 1, LV_PART_MAIN);
+    lv_obj_set_style_line_width(ch, 2, LV_PART_ITEMS);
+    lv_obj_set_style_width(ch, 0, LV_PART_INDICATOR);
+    lv_obj_set_style_height(ch, 0, LV_PART_INDICATOR);
+    aos_make_decorative(ch);
+    return ch;
+}
+
+/* The time axis under a chart: oldest, middle, now. */
+static void chart_axis(lv_obj_t *parent, const char *a, const char *b, const char *c)
+{
+    lv_obj_t *r = lv_obj_create(parent);
+    lv_obj_remove_style_all(r);
+    lv_obj_set_size(r, lv_pct(100), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(r, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(r, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_remove_flag(r, LV_OBJ_FLAG_SCROLLABLE);
+    aos_label(r, a, aos_font_small, lv_color_hex(0x636366));
+    aos_label(r, b, aos_font_small, lv_color_hex(0x636366));
+    aos_label(r, c, aos_font_small, lv_color_hex(0x636366));
+    aos_make_decorative(r);
+}
+
+/* Said over an empty chart: a line needs two points, and a history that
+ * has just started has fewer. On the card's colour, so the guides do not
+ * run through the text. */
+static lv_obj_t *chart_hint(lv_obj_t *chart, const char *text)
+{
+    lv_obj_t *l = aos_label(chart, text, aos_font_small, AOS_C_DIM);
+    lv_obj_set_width(l, lv_pct(90));
+    lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_WRAP);
+    lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_bg_color(l, AOS_C_CARD, 0);
+    lv_obj_set_style_bg_opa(l, LV_OPA_COVER, 0);
+    lv_obj_set_style_pad_ver(l, 4, 0);
+    lv_obj_center(l);
+    return l;
+}
+
+static void hint_show(lv_obj_t *hint, bool show)
+{
+    if (show) {
+        lv_obj_remove_flag(hint, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(hint, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+/* ---- Battery ------------------------------------------------------------ */
+
+/* 288 five-minute samples drawn as 144: one per two pixels is all the
+ * width there is, and half the segments is half the drawing on a scroll. */
+#define BATT_POINTS (AOS_BATT_HIST_LEN / 2)
+
+static void batt_chart_fill(void)
+{
+    stats_ui_t *st = &s_set.st;
+    static uint8_t pct[AOS_BATT_HIST_LEN], flags[AOS_BATT_HIST_LEN];
+    int n = aos_hal_batt_history(pct, flags, AOS_BATT_HIST_LEN);
+    int prev_kind = -1;      /* 0 discharging, 1 charging */
+    int valid = 0;
+    for (int i = 0; i < BATT_POINTS; i++) {
+        int a = 2 * i, b = 2 * i + 1;
+        int v = -1, chg = 0;
+        if (b < n && pct[b] != AOS_BATT_HIST_NONE) {
+            v = pct[b];
+            chg = flags[b] & AOS_BATT_HIST_CHARGING;
+        } else if (a < n && pct[a] != AOS_BATT_HIST_NONE) {
+            v = pct[a];
+            chg = flags[a] & AOS_BATT_HIST_CHARGING;
+        }
+        int32_t none = LV_CHART_POINT_NONE;
+        lv_chart_set_series_value_by_id(st->batt_chart, st->dis, i, v >= 0 && !chg ? v : none);
+        lv_chart_set_series_value_by_id(st->batt_chart, st->chg, i, v >= 0 && chg ? v : none);
+        /* Where it switches, the new colour starts from the old one's last
+         * point, so the line does not break at the plug. */
+        int kind = v < 0 ? -1 : chg ? 1 : 0;
+        valid += kind >= 0;
+        if (i > 0 && kind >= 0 && prev_kind >= 0 && kind != prev_kind) {
+            lv_chart_series_t *s = kind ? st->chg : st->dis;
+            lv_chart_set_series_value_by_id(st->batt_chart, s, i - 1,
+                lv_chart_get_series_y_array(st->batt_chart, kind ? st->dis : st->chg)[i - 1]);
+        }
+        prev_kind = kind;
+    }
+    hint_show(st->batt_empty, valid < 2);
+    lv_chart_refresh(st->batt_chart);
+}
+
+static void energy_refresh(void)
+{
+    stats_ui_t *st = &s_set.st;
+    if (!st->pct) {
+        return;
+    }
+    aos_battery_t b;
+    aos_power_info_t pi;
+    bool have_b = aos_hal_battery_read(&b) && b.percent >= 0;
+    bool have_pi = aos_hal_power_info(&pi);
+    char buf[96], t[24];
+
+    if (!have_b) {
+        text_to(st->pct, "--");
+        text_to(st->state, _("sin datos de la batería"));
+        return;
+    }
+    snprintf(buf, sizeof(buf), "%d %%", b.percent);
+    text_to(st->pct, buf);
+    bar_to(st->bar, (uint64_t)b.percent, 100);
+    lv_color_t col = batt_color(b.percent, b.charging);
+    if (!lv_color_eq(lv_obj_get_style_bg_color(st->bar, LV_PART_INDICATOR), col)) {
+        lv_obj_set_style_bg_color(st->bar, col, LV_PART_INDICATOR);
+    }
+
+    /* The icons go as arguments: glued to a literal, the catalogue key would
+     * carry their bytes and never match. */
+    if (b.charging) {
+        snprintf(buf, sizeof(buf), LV_SYMBOL_CHARGE " %s", have_pi ? charge_state_text(pi.charge_state)
+                                                             : _("cargando"));
+    } else if (b.usb_present) {
+        snprintf(buf, sizeof(buf), LV_SYMBOL_USB " %s", have_pi ? charge_state_text(pi.charge_state)
+                                                          : _("conectado"));
+    } else if (have_pi && pi.on_battery_s > 0) {
+        duration(t, sizeof(t), pi.on_battery_s);
+        snprintf(buf, sizeof(buf), _("a batería hace %s"), t);
+    } else {
+        snprintf(buf, sizeof(buf), "%s", _("a batería"));
+    }
+    text_to(st->state, buf);
+
+    if (b.charging) {
+        text_to(st->left, _("cargando"));
+    } else if (b.usb_present) {
+        text_to(st->left, _("conectado"));
+    } else if (have_pi && !isnan(pi.hours_left)) {
+        duration(t, sizeof(t), (uint32_t)(pi.hours_left * 3600.0f));
+        snprintf(buf, sizeof(buf), _("quedan ~%s"), t);
+        text_to(st->left, buf);
+    } else {
+        text_to(st->left, _("midiendo..."));
+    }
+
+    snprintf(buf, sizeof(buf), "%.2f V", (double)b.voltage);
+    text_to(st->volt, buf);
+    if (have_pi) {
+        if (isnan(pi.drain_pct_per_hour)) {
+            snprintf(buf, sizeof(buf), "%s", _("midiendo..."));
+        } else {
+            snprintf(buf, sizeof(buf), _("%.1f %%/h"), (double)pi.drain_pct_per_hour);
+        }
+        text_to(st->drain, buf);
+        snprintf(buf, sizeof(buf), "%d mA  ·  %.2f V", pi.charge_ma,
+                 (double)pi.charge_target_mv / 1000.0);
+        text_to(st->charger, buf);
+        snprintf(buf, sizeof(buf), "%u", (unsigned)pi.charge_cycles);
+        text_to(st->cycles, buf);
+        duration(t, sizeof(t), pi.battery_minutes_total * 60);
+        text_to(st->lifetime, t);
+    }
+}
+
 static void build_energy(lv_obj_t *p)
 {
-    lv_obj_t *c = card(p);
-    switch_row2(c, _("Ahorro de energia"),
+    stats_ui_t *st = &s_set.st;
+
+    /* The charge: the number, where it is going, and a bar in its colour. */
+    lv_obj_t *c = padded_card(p, 10);
+    lv_obj_t *top = lv_obj_create(c);
+    lv_obj_remove_style_all(top);
+    lv_obj_set_size(top, lv_pct(100), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(top, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(top, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(top, 14, 0);
+    lv_obj_remove_flag(top, LV_OBJ_FLAG_SCROLLABLE);
+    st->pct = aos_label(top, "", aos_font_huge, AOS_C_TEXT);
+    lv_obj_t *col = lv_obj_create(top);
+    lv_obj_remove_style_all(col);
+    lv_obj_set_height(col, LV_SIZE_CONTENT);
+    lv_obj_set_flex_grow(col, 1);
+    lv_obj_set_flex_flow(col, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(col, 2, 0);
+    st->state = aos_label(col, "", aos_font_small, AOS_C_DIM);
+    lv_obj_set_width(st->state, lv_pct(100));
+    lv_label_set_long_mode(st->state, LV_LABEL_LONG_MODE_WRAP);
+    st->left = aos_label(col, "", aos_font_body, AOS_C_TEXT);
+    lv_obj_set_width(st->left, lv_pct(100));
+    lv_label_set_long_mode(st->left, LV_LABEL_LONG_MODE_DOTS);
+    aos_make_decorative(top);
+    st->bar = bar_new(c, 10, AOS_C_TEAL);
+
+    /* The last day, discharging in the bar's teal and charging in green. */
+    caption(p, _("ÚLTIMAS 24 H"));
+    lv_obj_t *g = padded_card(p, 6);
+    st->batt_chart = chart_new(g, 96, BATT_POINTS);
+    lv_chart_set_axis_range(st->batt_chart, LV_CHART_AXIS_PRIMARY_Y, 0, 100);
+    st->dis = lv_chart_add_series(st->batt_chart, AOS_C_TEAL, LV_CHART_AXIS_PRIMARY_Y);
+    st->chg = lv_chart_add_series(st->batt_chart, AOS_C_GREEN, LV_CHART_AXIS_PRIMARY_Y);
+    st->batt_empty = chart_hint(st->batt_chart, _("una muestra cada 5 minutos: se va llenando"));
+    chart_axis(g, _("-24 h"), _("-12 h"), _("ahora"));
+    batt_chart_fill();
+
+    lv_obj_t *d = padded_card(p, 8);
+    st->volt     = pair(d, _("Tensión"), AOS_C_DIM);
+    st->drain    = pair(d, _("Consumo"), AOS_C_DIM);
+    st->charger  = pair(d, _("Cargador"), AOS_C_DIM);
+    st->cycles   = pair(d, _("Ciclos"), AOS_C_DIM);
+    st->lifetime = pair(d, _("Uso a batería"), AOS_C_DIM);
+
+    caption(p, _("AHORRO"));
+    lv_obj_t *c2 = card(p);
+    switch_row2(c2, _("Ahorro de energia"),
                 _("CPU a 80 MHz y wifi dormida con la pantalla apagada. Se prende sola bajo el 20 %"),
                 aos_hal_power_saving_enabled(), power_saving_cb);
-    switch_row2(c, _("Cuidar la bateria"),
+    switch_row2(c2, _("Cuidar la bateria"),
                 _("carga hasta 4,1 V y a media corriente: rinde menos por carga y dura mas anos"),
                 aos_hal_battery_care_enabled(), battery_care_cb);
-    switch_row2(c, _("Apagar el panel a fondo"),
+    switch_row2(c2, _("Apagar el panel a fondo"),
                 _("la pantalla en reposo profundo al apagarse; despierta en una decima"),
                 aos_hal_panel_sleep_enabled(), panel_sleep_cb);
-    switch_row2(c, _("Dormir el chip"),
+    switch_row2(c2, _("Dormir el chip"),
                 _("con la pantalla apagada el procesador duerme entre avisos"),
                 aos_hal_light_sleep_enabled(), light_sleep_cb);
 
-    caption(p, _("BATERIA"));
-    lv_obj_t *c2 = card(p);
-    lv_obj_set_style_pad_all(c2, 14, 0);
-    s_set.batt_label = aos_label(c2, "", aos_font_small, AOS_C_TEXT);
-    lv_obj_set_width(s_set.batt_label, lv_pct(100));
-    lv_label_set_long_mode(s_set.batt_label, LV_LABEL_LONG_MODE_WRAP);
+    st->charts_at_min = (uint32_t)(aos_hal_uptime_ms() / 60000);
+    energy_refresh();
 }
 
 static void build_touch(lv_obj_t *p)
@@ -2483,7 +2654,7 @@ static void build_about(lv_obj_t *p)
     }
 
     lv_obj_t *c3 = card(p);
-    nav_row(c3, AOS_SG_CHART_BOX_OUTLINE, lv_color_hex(0x636366), _("Diagnostico"),
+    nav_row(c3, AOS_SG_CHART_BOX_OUTLINE, lv_color_hex(0x636366), _("Diagnóstico"),
             NULL, open_sub_cb, (void *)(intptr_t)SUB_DIAG);
 
     caption(p, _("PORTAL"));
@@ -2495,22 +2666,215 @@ static void build_about(lv_obj_t *p)
     lv_obj_add_event_cb(btn, reboot_cb, LV_EVENT_LONG_PRESSED, NULL);
 }
 
+/* ---- Diagnostics -------------------------------------------------------- */
+
+static const uint32_t TEMP_COLOR[3] = { 0xFF9F0A, 0xFFD60A, 0x40C8E0 };
+static const uint32_t CPU_COLOR[2]  = { 0x0A84FF, 0xBF5AF2 };
+
+/* "7.2 M" or "147 K" */
+static void kb_text(char *out, size_t len, uint32_t bytes)
+{
+    if (bytes >= 1024 * 1024) {
+        snprintf(out, len, "%.1f M", (double)bytes / (1024.0 * 1024.0));
+    } else {
+        snprintf(out, len, "%u K", (unsigned)(bytes / 1024));
+    }
+}
+
+/* Fills a chart from the HAL's minute ring. With 'autoscale' the Y range
+ * follows the data, with two degrees of margin, so a tenth of a degree is
+ * visible; without it, it stays where it was set. */
+static int minute_series(lv_obj_t *ch, lv_chart_series_t *ser, aos_hist_t which,
+                         int32_t *lo, int32_t *hi)
+{
+    int16_t v[AOS_MIN_HIST_LEN];
+    int n = aos_hal_minute_history(which, v, AOS_MIN_HIST_LEN);
+    int valid = 0;
+    for (int i = 0; i < n; i++) {
+        if (v[i] == AOS_HIST_NONE) {
+            lv_chart_set_series_value_by_id(ch, ser, i, LV_CHART_POINT_NONE);
+            continue;
+        }
+        lv_chart_set_series_value_by_id(ch, ser, i, v[i]);
+        valid++;
+        if (lo && v[i] < *lo) *lo = v[i];
+        if (hi && v[i] > *hi) *hi = v[i];
+    }
+    return valid;
+}
+
+static void diag_charts_fill(void)
+{
+    stats_ui_t *st = &s_set.st;
+    int32_t lo = INT32_MAX, hi = INT32_MIN;
+    int valid = 0;
+    for (int k = 0; k < 3; k++) {
+        int v = minute_series(st->temp_chart, st->temp_ser[k],
+                              (aos_hist_t)(AOS_HIST_CHIP_T + k), &lo, &hi);
+        valid = v > valid ? v : valid;
+    }
+    hint_show(st->temp_empty, valid < 2);
+    if (lo > hi) {
+        lo = 200; hi = 500;
+    }
+    lv_chart_set_axis_range(st->temp_chart, LV_CHART_AXIS_PRIMARY_Y,
+                            lo / 10 * 10 - 20, (hi + 9) / 10 * 10 + 20);
+    lv_chart_refresh(st->temp_chart);
+    valid = 0;
+    for (int k = 0; k < 2; k++) {
+        int v = minute_series(st->cpu_chart, st->cpu_ser[k],
+                              (aos_hist_t)(AOS_HIST_CPU0 + k), NULL, NULL);
+        valid = v > valid ? v : valid;
+    }
+    hint_show(st->cpu_empty, valid < 2);
+    lv_chart_refresh(st->cpu_chart);
+}
+
+static void diag_refresh(void)
+{
+    stats_ui_t *st = &s_set.st;
+    if (!st->mhz) {
+        return;
+    }
+    aos_sys_stats_t s;
+    char buf[96], a[16];
+    if (!aos_hal_sys_stats(&s)) {
+        return;
+    }
+
+    /* "147 K libres" on the line, the total is what the bar is out of. */
+    const uint32_t fr[3] = { s.int_free, s.psram_free, s.exec_free };
+    const uint32_t to[3] = { s.int_total, s.psram_total, s.exec_total };
+    for (int k = 0; k < 3; k++) {
+        kb_text(a, sizeof(a), fr[k]);
+        snprintf(buf, sizeof(buf), _("%s libres"), a);
+        text_to(st->mem_val[k], buf);
+        bar_to(st->mem_bar[k], to[k] - fr[k], to[k]);
+    }
+
+    /* The largest hole next to the total: running out of memory and running
+     * out of a hole big enough are different problems. */
+    char apps[64];
+#ifndef AOS_SIM
+    if (aos_dynapp_code_in_psram()) {
+        snprintf(apps, sizeof(apps), _("%d apps cargadas, con el código en PSRAM"),
+                 aos_dynapp_loaded_list(NULL, 0));
+    } else {
+        uint32_t p_libre = 0, p_mayor = 0;
+        int      p_usados = 0;
+        aos_dynapp_pool_info(&p_libre, &p_mayor, &p_usados);
+        snprintf(apps, sizeof(apps), _("reserva apps: %u K libres (mayor %u K, %d en uso)"),
+                 (unsigned)(p_libre / 1024), (unsigned)(p_mayor / 1024), p_usados);
+    }
+#else
+    snprintf(apps, sizeof(apps), _("%d apps cargadas, con el código en PSRAM"), 0);
+#endif
+    kb_text(a, sizeof(a), s.exec_largest);
+    char note_txt[128];
+    snprintf(note_txt, sizeof(note_txt), _("bloque mayor para código: %s\n%s"), a, apps);
+    text_to(st->apps, note_txt);
+
+    aos_power_info_t pi;
+    if (aos_hal_power_info(&pi)) {
+        snprintf(buf, sizeof(buf), "%d MHz%s%s", pi.cpu_mhz,
+                 pi.power_saving_active ? "  ·  " : "",
+                 pi.power_saving_active ? _("ahorro") : "");
+        text_to(st->mhz, buf);
+    }
+    for (int k = 0; k < 2; k++) {
+        if (s.cpu_load[k] >= 0) {
+            snprintf(buf, sizeof(buf), "%d %%", s.cpu_load[k]);
+            text_to(st->cpu_val[k], buf);
+            bar_to(st->cpu_bar[k], (uint64_t)s.cpu_load[k], 100);
+        }
+    }
+
+    const float temps[3] = { s.chip_c, s.pmu_c, s.board_c };
+    for (int k = 0; k < 3; k++) {
+        if (isnan(temps[k])) {
+            snprintf(buf, sizeof(buf), "--");
+        } else {
+            snprintf(buf, sizeof(buf), "%.1f °C", (double)temps[k]);
+        }
+        text_to(st->temp_val[k], buf);
+    }
+
+    duration(buf, sizeof(buf), (uint32_t)(aos_hal_uptime_ms() / 1000));
+    text_to(st->uptime, buf);
+}
+
 static void build_diag(lv_obj_t *p)
 {
-    /* Live memory. The 'executable' one is what matters for dynamic apps:
-     * their code comes out of it. The largest contiguous block is shown as
-     * well, because running out of total and running out of a hole are two
-     * different problems and are fixed differently. */
-    lv_obj_t *c = card(p);
-    lv_obj_set_style_pad_all(c, 14, 0);
-    s_set.mem_label = aos_label(c, "", aos_font_small, AOS_C_TEXT);
-    lv_obj_set_width(s_set.mem_label, lv_pct(100));
-    lv_label_set_long_mode(s_set.mem_label, LV_LABEL_LONG_MODE_WRAP);
+    stats_ui_t *st = &s_set.st;
 
-    char buf[96];
-    snprintf(buf, sizeof(buf), _("encendido hace %u min  ·  arranque: %s"),
-             (unsigned)(aos_hal_uptime_ms() / 60000), aos_hal_boot_reason());
-    note(p, buf);
+    caption(p, _("MEMORIA"));
+    lv_obj_t *c = padded_card(p, 6);
+    static const char *const MEM_NAME[3] = {
+        N_("Interna"), N_("PSRAM"), N_("Código de apps"),
+    };
+    static const uint32_t MEM_COLOR[3] = { 0x0A84FF, 0x30D158, 0xFF9F0A };
+    for (int k = 0; k < 3; k++) {
+        if (k) {
+            lv_obj_t *gap = lv_obj_create(c);
+            lv_obj_remove_style_all(gap);
+            lv_obj_set_size(gap, 1, 4);
+        }
+        st->mem_val[k] = pair(c, _(MEM_NAME[k]), AOS_C_TEXT);
+        lv_obj_set_style_text_color(st->mem_val[k], AOS_C_DIM, 0);
+        st->mem_bar[k] = bar_new(c, 8, lv_color_hex(MEM_COLOR[k]));
+    }
+    st->apps = note(p, "");
+
+    caption(p, _("PROCESADOR"));
+    lv_obj_t *c2 = padded_card(p, 6);
+    st->mhz = pair(c2, _("Frecuencia"), AOS_C_TEXT);
+    for (int k = 0; k < 2; k++) {
+        char name[24];
+        snprintf(name, sizeof(name), _("Núcleo %d"), k);
+        st->cpu_val[k] = pair(c2, name, lv_color_hex(CPU_COLOR[k]));
+        st->cpu_bar[k] = bar_new(c2, 8, lv_color_hex(CPU_COLOR[k]));
+    }
+    st->cpu_chart = chart_new(c2, 60, AOS_MIN_HIST_LEN);
+    lv_obj_set_style_margin_top(st->cpu_chart, 6, 0);
+    lv_chart_set_axis_range(st->cpu_chart, LV_CHART_AXIS_PRIMARY_Y, 0, 100);
+    for (int k = 0; k < 2; k++) {
+        st->cpu_ser[k] = lv_chart_add_series(st->cpu_chart, lv_color_hex(CPU_COLOR[k]),
+                                             LV_CHART_AXIS_PRIMARY_Y);
+    }
+    st->cpu_empty = chart_hint(st->cpu_chart, _("una muestra por minuto: se va llenando"));
+    chart_axis(c2, _("-60 min"), _("-30 min"), _("ahora"));
+
+    caption(p, _("TEMPERATURAS"));
+    lv_obj_t *c3 = padded_card(p, 6);
+    static const char *const TEMP_NAME[3] = { N_("Procesador"), N_("PMU"), N_("Placa") };
+    for (int k = 0; k < 3; k++) {
+        st->temp_val[k] = pair(c3, _(TEMP_NAME[k]), lv_color_hex(TEMP_COLOR[k]));
+    }
+    st->temp_chart = chart_new(c3, 90, AOS_MIN_HIST_LEN);
+    lv_obj_set_style_margin_top(st->temp_chart, 6, 0);
+    for (int k = 0; k < 3; k++) {
+        st->temp_ser[k] = lv_chart_add_series(st->temp_chart, lv_color_hex(TEMP_COLOR[k]),
+                                              LV_CHART_AXIS_PRIMARY_Y);
+    }
+    st->temp_empty = chart_hint(st->temp_chart, _("una muestra por minuto: se va llenando"));
+    chart_axis(c3, _("-60 min"), _("-30 min"), _("ahora"));
+    diag_charts_fill();
+
+    caption(p, _("SISTEMA"));
+    lv_obj_t *c4 = padded_card(p, 8);
+    st->uptime = pair(c4, _("Encendido hace"), AOS_C_DIM);
+    lv_label_set_text(pair(c4, _("Arranque"), AOS_C_DIM), aos_hal_boot_reason());
+    aos_power_info_t pi;
+    if (aos_hal_power_info(&pi)) {
+        lv_obj_t *v;
+        v = pair(c4, _("PMU encendido por"), AOS_C_DIM);
+        lv_label_set_text(v, pi.power_on_reason ? pi.power_on_reason : "--");
+        v = pair(c4, _("Último apagado"), AOS_C_DIM);
+        lv_label_set_text(v, pi.power_off_reason ? pi.power_off_reason : "--");
+    }
+
+    st->charts_at_min = (uint32_t)(aos_hal_uptime_ms() / 60000);
+    diag_refresh();
 }
 
 /* --------------------------------------------------------------------------
@@ -2522,8 +2886,9 @@ static void build_diag(lv_obj_t *p)
 static void forget_sub_pointers(void)
 {
     s_set.net_label = s_set.ap_row = s_set.ap_row_ssid = s_set.ap_label = NULL;
-    s_set.usb_label = s_set.bt_label = s_set.bt_forget = s_set.mem_label = NULL;
-    s_set.time_label = s_set.date_label = s_set.batt_label = NULL;
+    s_set.usb_label = s_set.bt_label = s_set.bt_forget = NULL;
+    s_set.time_label = s_set.date_label = NULL;
+    memset(&s_set.st, 0, sizeof(s_set.st));
     s_set.dnd_from_val = s_set.dnd_to_val = NULL;
     memset(s_set.usb_check, 0, sizeof(s_set.usb_check));
     memset(s_set.lang_check, 0, sizeof(s_set.lang_check));
@@ -2636,7 +3001,7 @@ static void close_sub(bool animate)
         lv_obj_remove_flag(s_set.main, LV_OBJ_FLAG_HIDDEN);
     }
     values_refresh();
-    tiles_paint();
+    aos_quick_tiles_paint(s_set.tiles);
     if (animate) {
         lv_anim_delete(p, anim_x_cb);
         slide(p, lv_obj_get_x(p), AOS_SCREEN_W, sub_gone_cb);
@@ -2653,7 +3018,7 @@ static void refresh(lv_timer_t *timer)
 {
     (void)timer;
     usb_refresh();
-    tiles_paint();
+    aos_quick_tiles_paint(s_set.tiles);
     values_refresh();
 
     if (s_set.time_label) {
@@ -2665,26 +3030,18 @@ static void refresh(lv_timer_t *timer)
         lv_label_set_text(s_set.date_label, d);
     }
 
-    if (s_set.batt_label) {
-        aos_battery_t b;
-        aos_power_info_t pi;
-        char txt[200] = "";
-        if (aos_hal_battery_read(&b) && b.percent >= 0) {
-            bool info = aos_hal_power_info(&pi);
-            int n = snprintf(txt, sizeof(txt), "%d %%  ·  %.2f V%s", b.percent,
-                             (double)b.voltage, b.charging ? _("  ·  cargando") : "");
-            if (info) {
-                n += snprintf(txt + n, sizeof(txt) - (size_t)n, _("\n%u ciclos de carga"),
-                              (unsigned)pi.charge_cycles);
-                if (!b.usb_present && pi.hours_left == pi.hours_left) {   /* not NAN */
-                    snprintf(txt + n, sizeof(txt) - (size_t)n, _("\nquedan unas %.0f h"),
-                             (double)pi.hours_left);
-                }
-            }
-        } else {
-            snprintf(txt, sizeof(txt), "%s", _("sin datos de la bateria"));
+    energy_refresh();
+    diag_refresh();
+    /* The graphs move once a minute: redrawn then, not every two seconds. */
+    uint32_t minute = (uint32_t)(aos_hal_uptime_ms() / 60000);
+    if (minute != s_set.st.charts_at_min) {
+        s_set.st.charts_at_min = minute;
+        if (s_set.st.batt_chart) {
+            batt_chart_fill();
         }
-        lv_label_set_text(s_set.batt_label, txt);
+        if (s_set.st.temp_chart) {
+            diag_charts_fill();
+        }
     }
 
     if (s_set.net_label) {
@@ -2714,48 +3071,6 @@ static void refresh(lv_timer_t *timer)
         }
         }
         lv_label_set_text(s_set.net_label, buf);
-    }
-
-    if (s_set.mem_label) {
-#ifndef AOS_SIM
-        /* 'huecos' is the number of separate free blocks. With a high total
-         * and a small largest, that number says how scattered the memory has
-         * become: it is the difference between "there is none" and "there is,
-         * but in pieces". */
-        multi_heap_info_t ej;
-        heap_caps_get_info(&ej, MALLOC_CAP_EXEC);
-
-        char mem[200];
-        if (aos_dynapp_code_in_psram()) {
-            snprintf(mem, sizeof(mem),
-                     _("apps cargadas: %d (código en PSRAM)\n"
-                       "ejecutable %u K  (mayor %u K, %u huecos)\n"
-                       "interna %u K   psram %u K"),
-                     aos_dynapp_loaded_list(NULL, 0),
-                     (unsigned)(ej.total_free_bytes / 1024),
-                     (unsigned)(ej.largest_free_block / 1024),
-                     (unsigned)ej.free_blocks,
-                     (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024),
-                     (unsigned)(heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024));
-        } else {
-            uint32_t p_libre = 0, p_mayor = 0;
-            int      p_usados = 0;
-            aos_dynapp_pool_info(&p_libre, &p_mayor, &p_usados);
-            snprintf(mem, sizeof(mem),
-                     _("reserva apps: %u K libres (mayor %u K, %d en uso)\n"
-                       "ejecutable %u K  (mayor %u K, %u huecos)\n"
-                       "interna %u K   psram %u K"),
-                     (unsigned)(p_libre / 1024), (unsigned)(p_mayor / 1024), p_usados,
-                     (unsigned)(ej.total_free_bytes / 1024),
-                     (unsigned)(ej.largest_free_block / 1024),
-                     (unsigned)ej.free_blocks,
-                     (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024),
-                     (unsigned)(heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024));
-        }
-        lv_label_set_text(s_set.mem_label, mem);
-#else
-        lv_label_set_text(s_set.mem_label, _("memoria: no disponible en el simulador"));
-#endif
     }
 
     if (aos_hal_net_ap_active()) {
@@ -2836,7 +3151,7 @@ static void refresh(lv_timer_t *timer)
 static void *create(aos_app_t *self, lv_obj_t *root)
 {
     (void)self;
-    memset(s_set.tile, 0, sizeof(s_set.tile));
+    s_set.tiles = NULL;
     memset(s_set.value, 0, sizeof(s_set.value));
     forget_sub_pointers();
     s_set.sub = NULL;
@@ -2861,6 +3176,12 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     const char *sim_sub = getenv("AOS_SIM_SUB");
     if (sim_sub && *sim_sub) {
         open_sub(atoi(sim_sub), false);
+        /* AOS_SIM_SCROLL=<px> scrolls it, for screenshots of a long page. */
+        const char *sim_scroll = getenv("AOS_SIM_SCROLL");
+        if (sim_scroll && s_set.sub) {
+            lv_obj_update_layout(s_set.sub);
+            lv_obj_scroll_to_y(s_set.sub, atoi(sim_scroll), LV_ANIM_OFF);
+        }
     }
 #endif
 
@@ -2957,7 +3278,7 @@ static void destroy(aos_app_t *self, void *inst)
     }
     /* The objects go with the app's root; only the pointers stay behind. */
     forget_sub_pointers();
-    memset(s_set.tile, 0, sizeof(s_set.tile));
+    s_set.tiles = NULL;
     memset(s_set.value, 0, sizeof(s_set.value));
     s_set.main = NULL;
     s_set.sub  = NULL;

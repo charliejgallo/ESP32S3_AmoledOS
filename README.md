@@ -74,10 +74,11 @@ of running the cell down to the PMU's 2.6 V cut, and the power key works: a
 click is the screen switch. With the screen off the CPU drops to 80 MHz, WiFi
 goes to its deepest modem sleep and, on battery, the chip light-sleeps between
 wake-ups — 58 % of the time, measured. Seven of the PMU's regulators feed
-nothing on this board and are off. The Battery app shows the charger's stage,
-the board temperature from the thermistor next to the PMU, drain in %/h with
-hours left, time on battery, charge cycles and why the PMU last powered off;
-`/api/status` serves the same to a home-automation poller. The whole
+nothing on this board and are off. Settings' Battery page shows the charge,
+the charger's stage, the last 24 hours as a graph (kept on the card, so a
+restart does not wipe it), drain in %/h with hours left, time on battery and
+charge cycles; Diagnostics adds the board and PMU temperatures and why the PMU
+last powered off. `/api/status` serves the same to a home-automation poller. The whole
 investigation, what the datasheet and the schematic say and what the board
 said back, is in [docs/POWER.md](docs/POWER.md).
 
@@ -117,9 +118,28 @@ brightness, and the categories with their current value; each category opens
 as a page of its own. The screen timeouts are settings now, and the menu and
 About pages carry a QR to the portal.
 
-| Display | Menu | Power |
-|---|---|---|
-| <img src="docs/img/settings-display.png" width="220"> | <img src="docs/img/settings-menu.png" width="220"> | <img src="docs/img/settings-power.png" width="220"> |
+**Control centre.** A swipe down on the watchface pulls down the six quick
+tiles, the brightness and the volume, the phone's music while something plays,
+and a way into Settings; a swipe up puts it away. It opens in under 60 ms.
+
+<img src="docs/img/control-centre.png" width="220">
+
+**Battery and Diagnostics, in Settings.** The Battery app is gone: its
+figures live in Settings' Battery page, with the charge as a bar and the last
+24 hours as a graph, discharging in teal and charging in green, one sample
+every five minutes kept on the card. Diagnostics has bars for internal RAM,
+PSRAM and the memory apps' code runs from, the load of each core, and the
+chip's, the PMU's and the board's temperatures, with the last hour of both as
+graphs. The HAL samples once a second on its own; measuring the per-core load
+cost nothing measurable (a JPEG decode benchmark stayed at 111 ms).
+
+| Battery | Diagnostics |
+|---|---|
+| <img src="docs/img/settings-battery.png" width="220"> | <img src="docs/img/settings-diagnostics.png" width="220"> |
+
+| Display | Menu |
+|---|---|
+| <img src="docs/img/settings-display.png" width="220"> | <img src="docs/img/settings-menu.png" width="220"> |
 
 | Menu with folders | A folder | The honeycomb |
 |---|---|---|
@@ -147,7 +167,7 @@ Twenty-one ship inside the binary. They are the ones the watch cannot be without
 | <img src="docs/img/int-calendar.png" width="200"><br>**Calendario** — the month, drawn with the week starting on Monday. | <img src="docs/img/int-notifs.png" width="200"><br>**Notificaciones** — the iPhone's, over ANCS: history, per-category filter and actions. | <img src="docs/img/int-btremote.png" width="200"><br>**Control BT** — the phone's music over AMS: title, artist, album and transport. |
 | <img src="docs/img/int-music.png" width="200"><br>**Música** — plays WAV from the card through the ES8311 codec. | <img src="docs/img/int-photos.png" width="200"><br>**Fotos** — JPEG, PNG and BMP from the card, decoded and scaled to the screen. | <img src="docs/img/int-flashlight.png" width="200"><br>**Linterna** — the panel at full white, which on an AMOLED is the only way to make light. |
 | <img src="docs/img/int-level.png" width="200"><br>**Nivel** — a spirit level off the accelerometer, with the bubble and the angle in degrees. | <img src="docs/img/int-calc.png" width="200"><br>**Calculadora** — four operations, sized for a thumb rather than for density. | <img src="docs/img/int-convert.png" width="200"><br>**Conversor** — units across several families, with the keypad shared with the calculator. |
-| <img src="docs/img/int-battery.png" width="200"><br>**Batería** — what the AXP2101 reports: charge, voltage and whether it is charging. | <img src="docs/img/app-life.png" width="200"><br>**Vida** — Conway's Game of Life and Langton's ant on a 92x92 grid. | <img src="docs/img/settings-en.png" width="200"><br>**Ajustes** — six quick tiles and the brightness up top, then a page per category: display and its timeouts, sound, notifications and do-not-disturb, menu style, time, language, power, touch, about. |
+| <img src="docs/img/settings-diagnostics.png" width="200"><br>**Diagnóstico** — memory, the load of each core and three temperatures, with graphs; a page of Settings, next to Battery, which used to be an app of its own. | <img src="docs/img/app-life.png" width="200"><br>**Vida** — Conway's Game of Life and Langton's ant on a 92x92 grid. | <img src="docs/img/settings-en.png" width="200"><br>**Ajustes** — six quick tiles and the brightness up top, then a page per category: display and its timeouts, sound, notifications and do-not-disturb, menu style, time, language, battery, touch, about. |
 | <img src="docs/img/usb-pcremote-keys.png" width="200"><br>**Control PC** — the watch as a keyboard with media keys, a mouse, a gamepad and a MIDI port for the computer on the USB cable, one screen per role. | <img src="docs/img/usb-pato-list.png" width="200"><br>**Pato goma** — runs keyboard-and-mouse scripts on the computer, DuckyScript-style, picked and confirmed on the watch and edited from the portal's `/pato` page. | <img src="docs/img/int-link.png" width="200"><br>**Enlace** — the other watches around, and the one this is paired with. Pairing is bumping the two watches together. See [Two watches](#two-watches). |
 
 ### Loaded from the microSD

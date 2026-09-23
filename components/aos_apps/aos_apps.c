@@ -23,7 +23,6 @@ void aos_apps_register_builtin(void)
         aos_app_calc_get,
         aos_app_convert_get,
         aos_app_life_get,
-        aos_app_power_get,
         aos_app_notifs_get,
         aos_app_settings_get,
     };
