@@ -14,7 +14,7 @@
 #include "aos_lang_embedded.h"
 
 static const char blob_en__sistema_lang[] =
-    "Musica del telefono\tPhone's music\n"
+    "Música\tMusic\n"
     "Ajustes\tSettings\n"
     "Analogica\tAnalog\n"
     "Binaria\tBinary\n"
@@ -2348,7 +2348,7 @@ static const aos_lang_file_t files_en[] = {
 };
 
 static const char blob_de__sistema_lang[] =
-    "Musica del telefono\tMusik vom Telefon\n"
+    "Música\tMusik\n"
     "Ajustes\tEinstellungen\n"
     "Analogica\tAnalog\n"
     "Binaria\tBinär\n"

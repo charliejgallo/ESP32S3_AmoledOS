@@ -3,6 +3,13 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+- **Control centre**: the music row shows which app is playing ("Spotify",
+  "Music") on one line instead of the track and artist, which did not fit
+  beside three buttons: the label wrapped and ran out of the row. The row is
+  now as tall as the Settings one.
+
 ## v0.5.1 — 2026-09-23
 
 A control centre on the watchface, and Battery and Diagnostics in Settings.
