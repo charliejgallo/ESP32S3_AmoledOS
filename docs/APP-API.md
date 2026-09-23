@@ -90,10 +90,14 @@ Two things to get right, and the second one bit:
 `apps/lua/main/lua_app.c` is the only user today: one app per `.lua` file on
 the card.
 
-There is a ceiling, and it is shared: `AOS_MAX_APPS` slots in the launcher for
-the built-in apps and the dynamic ones together, and `MAX_DYNAPPS` for the
-dynamic ones. A module that declares many apps can reach them, and both say so
-in the log when they do — which they did not, the first time this happened.
+There is a ceiling, and it is shared: `AOS_MAX_APPS` (256) slots in the
+launcher for the built-in apps and the dynamic ones together, of which
+`AOS_BUILTIN_RESERVE` (32) are kept for the built-in ones, and `MAX_DYNAPPS`
+(the other 224) for the dynamic ones. A module that declares many apps can
+reach them, and both say so in the log when they do — which they did not, the
+first time this happened. The boot scan registers one app of every module
+before the extra apps of multi-app modules, so a card full of Lua scripts
+never pushes a `.so` out. See [MENU.md](MENU.md#256-apps).
 
 ## The icon
 

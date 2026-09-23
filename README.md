@@ -104,6 +104,17 @@ browser, and the log tailed over wifi. Two of its pages are editors rather than
 forms: `/pixel` for the drawings and `/lua` for the scripts, both writing the
 same files the apps read. See [docs/PORTAL.md](docs/PORTAL.md).
 
+**The menu, in your order.** The portal's `/menu` page arranges the launcher:
+drag the apps into the order you want and into folders, and give each folder a
+name and an icon. Folders are hexagons with a gradient and a glyph, so they
+never look like an app, and they open in the launcher's own style. There is
+room for 256 apps, and the launcher shows its first screen in under 200 ms
+even then. See [docs/MENU.md](docs/MENU.md).
+
+| Menu with folders | A folder | The honeycomb |
+|---|---|---|
+| <img src="docs/img/menu-list.png" width="220"> | <img src="docs/img/menu-folder.png" width="220"> | <img src="docs/img/menu-honeycomb.png" width="220"> |
+
 | Notification | Setup AP |
 |---|---|
 | <img src="docs/img/notification.png" width="220"> | <img src="docs/img/setup-ap.png" width="220"> |
@@ -515,6 +526,7 @@ and UDP in the simulator.
 | [LINK.md](docs/LINK.md) | two watches over ESP-NOW: the plan in phases, the design, what every phase measured, and the five apps on it |
 | [I18N.md](docs/I18N.md) | how translation works and why the key is the Spanish string |
 | [LUA.md](docs/LUA.md) | scripts on the watch: what a script is, everything it can reach, the rules the app enforces and why, and what a frame actually costs |
+| [MENU.md](docs/MENU.md) | the launcher's order and folders: `menu.txt`, the hexagon icons, the `/menu` page, and what 256 apps cost the board |
 | [ICONS.md](docs/ICONS.md) | icons as data: the AIC format, how a `.so` or a file on the card brings one, how the 36 hand-drawn ones became tables, and what it saved |
 | [POWER.md](docs/POWER.md) | the AXP2101, the rails, light sleep, and the measurements behind each switch |
 | [PORTAL.md](docs/PORTAL.md) | the web portal: pages, API, what it costs the board, and the dev server |

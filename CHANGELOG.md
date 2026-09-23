@@ -3,6 +3,34 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+**Folders and order.** The launcher shows the apps in the order the user
+chose, with folders, arranged from the portal's new `/menu` page.
+
+- **Folders** are hexagons, pointy side up, so they are never mistaken for an
+  app's circle: two colours, solid, vertical, diagonal or radial fill, and a
+  white or black glyph from a catalogue of 66 Material Design Icons. The icon
+  is computed per pixel once and then only copied. A folder opens as a second
+  page in the launcher's own style; back closes it, and an app opened from a
+  folder returns to it.
+- **`/menu`** arranges the top level and the folders by dragging (finger or
+  mouse), arrows or "move to", and edits a folder's name and icon with a
+  preview drawn with the watch's own numbers. Everything lives in one text
+  file, `menu.txt`, on the card; apps it does not name go at the end, and
+  apps it names but are not installed keep their place.
+- **Room for 256 apps**, with every ceiling tied to the others (the
+  simulator was already two apps short). Internal RAM unchanged.
+- **The launcher builds a few cells at a time**: 245 apps built at once made
+  the watchdog restart the watch; now the first screen is up in 179 ms and
+  the rest arrives in the background.
+- **Boot is faster**: the loader's symbol lookup is a binary search instead of
+  a walk of 2,767 names, which took the card scan from 16.1 s to 5.3 s with
+  245 apps, and every app opens faster for the same reason. Lua scripts can
+  no longer take the place of a real app, and the boot log is no longer
+  flooded by the loader.
+- The grid and the honeycomb open at the first row instead of the middle.
+
 ## v0.4.13 — 2026-09-22
 
 **Monster Hop**, a hop-by-hop action game in sixteen levels, with its art

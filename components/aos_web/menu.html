@@ -676,6 +676,10 @@ async function cargar() {
   } catch (e) {
     aos.brindis(t("err_placa"));
   }
+  /* /menu#f2 abre el editor de esa carpeta: para enlazarla, y para las
+     capturas de la documentacion. */
+  const pedida = decodeURIComponent(location.hash.slice(1));
+  if (pedida && modelo.some(e => e.t === "folder" && e.id === pedida)) { seleccion = pedida; abiertas.add(pedida); }
   if (seleccion && !carpetaSel()) seleccion = null;
   pintar();
 }

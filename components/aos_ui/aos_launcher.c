@@ -388,8 +388,11 @@ static void setup_honeycomb(lv_obj_t *cont, page_t *pg)
     pg->hx0 = (AOS_SCREEN_W - block_w) / 2 + (HONEY_STEP_X - ICON_HONEY) / 2
               - (rows > 1 ? HONEY_STEP_X / 4 : 0);
     pg->hy0 = (AOS_SCREEN_H - block_h) / 2;
-    if (pg->hy0 < 44) {
-        pg->hy0 = 44;                       /* the first row under the status bar */
+    /* Not right under the status bar: the radial effect dims what is far
+     * from the centre, and at y=44 the first row -the user's first choice-
+     * came out half faded. At 80 it is within a few percent of full. */
+    if (pg->hy0 < 80) {
+        pg->hy0 = 80;
     }
 
     if (pg->folder >= 0) {
