@@ -2455,6 +2455,12 @@ static esp_err_t ajustes_get_handler(httpd_req_t *req)
              aos_hal_notif_calls_always() ? 1 : 0, aos_hal_device_name());
     httpd_resp_sendstr_chunk(req, item);
 
+    uint32_t act_s, aod_s;
+    aos_hal_screen_timeouts_get(&act_s, &aod_s);
+    snprintf(item, sizeof(item), "\"pant_activa\":%u,\"aod_dura\":%u,",
+             (unsigned)act_s, (unsigned)aod_s);
+    httpd_resp_sendstr_chunk(req, item);
+
     const char *actual = aos_watchface_current();
     snprintf(item, sizeof(item), "\"esfera\":\"%s\",\"esferas\":[", actual ? actual : "");
     httpd_resp_sendstr_chunk(req, item);
@@ -2509,6 +2515,25 @@ static esp_err_t ajustes_post_handler(httpd_req_t *req)
     if (httpd_query_key_value(body, "aod_brillo", v, sizeof(v)) == ESP_OK) {
         aos_hal_aod_brightness_set(atoi(v));
         aplicados++;
+    }
+    {
+        /* The two screen timeouts, in seconds (aos_hal_screen_timeouts_set):
+         * either may come alone. */
+        uint32_t act_s, aod_s;
+        aos_hal_screen_timeouts_get(&act_s, &aod_s);
+        bool cambia = false;
+        if (httpd_query_key_value(body, "pant_activa", v, sizeof(v)) == ESP_OK) {
+            act_s = (uint32_t)atoi(v);
+            cambia = true;
+        }
+        if (httpd_query_key_value(body, "aod_dura", v, sizeof(v)) == ESP_OK) {
+            aod_s = (uint32_t)atoi(v);
+            cambia = true;
+        }
+        if (cambia) {
+            aos_hal_screen_timeouts_set(act_s, aod_s);
+            aplicados++;
+        }
     }
     if (httpd_query_key_value(body, "ahorro", v, sizeof(v)) == ESP_OK) {
         aos_hal_power_saving_enable(atoi(v) != 0);

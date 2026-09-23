@@ -63,6 +63,22 @@
     </div>
     <input type="range" id="aod_brillo" min="1" max="40" step="1">
   </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="pant_activa">Se atenúa después de</b>
+      <span data-t="pant_activa_pie">Sin tocarla. Sin "Siempre encendido", se apaga.</span></div>
+    <select id="pant_activa">
+      <option value="0" data-t="auto">Automático</option>
+      <option value="15">15 s</option><option value="30">30 s</option>
+      <option value="60">1 min</option><option value="120">2 min</option>
+    </select>
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="aod_dura">Atenuada, se apaga después de</b></div>
+    <select id="aod_dura">
+      <option value="60">1 min</option><option value="300">5 min</option>
+      <option value="600">10 min</option><option value="0" data-t="nunca">Nunca</option>
+    </select>
+  </div>
 
   <h2 data-t="h_sonido">Sonido</h2>
   <div class="ajuste columna">
@@ -141,8 +157,9 @@
 
   <h2 data-t="h_notif">Notificaciones</h2>
   <div class="ajuste">
-    <div class="texto"><b data-t="notif">Notificaciones</b></div>
-    <label class="interruptor"><input type="checkbox" id="notif"><i></i></label>
+    <div class="texto"><b data-t="dnd">No molestar</b>
+      <span data-t="dnd_pie">Los avisos quedan en la lista, pero no encienden la pantalla ni suenan.</span></div>
+    <label class="interruptor"><input type="checkbox" id="dnd"><i></i></label>
   </div>
   <div class="ajuste">
     <div class="texto"><b data-t="notif_sonido">Sonido</b></div>
@@ -188,6 +205,9 @@ const TR = {
     wifi_pie: "Turning it off cuts this very page. It is turned back on from the watch.",
     bt_pie: "For the iPhone's notifications and music. Pairing is done from the watch.",
     h_notif: "Notifications", notif: "Notifications", notif_sonido: "Sound",
+    dnd: "Do not disturb", dnd_pie: "Notifications stay in the list but don't light the screen or sound.",
+    pant_activa: "Dims after", pant_activa_pie: "Untouched. Without \"Always on\", it turns off.",
+    aod_dura: "Dimmed, turns off after", auto: "Automatic", nunca: "Never",
     llamadas: "Calls always", llamadas_pie: "Even when everything else is silenced.",
     tz_otra: "Other (POSIX)...", guardado: "saved", fallo: "failed: ",
     confirmar_wifi: "Turn the wifi off? This page will stop responding.",
@@ -221,6 +241,9 @@ const TR = {
     wifi_pie: "Ausschalten trennt genau diese Seite. Wieder einschalten geht von der Uhr aus.",
     bt_pie: "Fuer Benachrichtigungen und Musik des iPhones. Gekoppelt wird von der Uhr aus.",
     h_notif: "Benachrichtigungen", notif: "Benachrichtigungen", notif_sonido: "Ton",
+    dnd: "Nicht stören", dnd_pie: "Mitteilungen bleiben in der Liste, wecken aber weder Bildschirm noch Ton.",
+    pant_activa: "Dimmt nach", pant_activa_pie: "Unberührt. Ohne \"Immer an\" geht er aus.",
+    aod_dura: "Gedimmt, aus nach", auto: "Automatisch", nunca: "Nie",
     llamadas: "Anrufe immer", llamadas_pie: "Auch wenn alles andere stumm ist.",
     tz_otra: "Andere (POSIX)...", guardado: "gespeichert", fallo: "fehlgeschlagen: ",
     confirmar_wifi: "WLAN ausschalten? Diese Seite antwortet dann nicht mehr.",
@@ -283,9 +306,15 @@ function pintar(s) {
   pintarDeslizador("brillo", s.brillo);
   pintarDeslizador("aod_brillo", s.aod_brillo);
   pintarDeslizador("volumen", s.volumen);
-  for (const k of ["aod", "ahorro", "cuidar", "panel_slp", "chip_slp", "wifi", "bt", "notif", "notif_sonido", "llamadas"]) {
+  for (const k of ["aod", "ahorro", "cuidar", "panel_slp", "chip_slp", "wifi", "bt", "notif_sonido", "llamadas"]) {
     $(k).checked = !!s[k];
   }
+  /* "No molestar" es el interruptor de notificaciones al reves, como en el
+     reloj (aos_app_settings.c). */
+  $("dnd").checked = !s.notif;
+  $("pant_activa").value = String(s.pant_activa || 0);
+  if ($("pant_activa").value === "") $("pant_activa").value = "0";
+  $("aod_dura").value = String(s.aod_dura === undefined ? 300 : s.aod_dura);
   $("fila-aod-brillo").style.opacity = s.aod ? 1 : .5;
 
   const sel = $("esfera");
@@ -360,7 +389,10 @@ for (const id of ["aod_brillo", "volumen"]) {
   $(id).onchange = e => guardar({ [id]: e.target.value });
 }
 
-for (const k of ["aod", "ahorro", "cuidar", "panel_slp", "chip_slp", "bt", "notif", "notif_sonido", "llamadas"]) {
+$("dnd").onchange = e => guardar({ notif: e.target.checked ? 0 : 1 });
+$("pant_activa").onchange = e => guardar({ pant_activa: e.target.value });
+$("aod_dura").onchange = e => guardar({ aod_dura: e.target.value });
+for (const k of ["aod", "ahorro", "cuidar", "panel_slp", "chip_slp", "bt", "notif_sonido", "llamadas"]) {
   $(k).onchange = e => {
     if (k === "aod") $("fila-aod-brillo").style.opacity = e.target.checked ? 1 : .5;
     guardar({ [k]: e.target.checked ? 1 : 0 });

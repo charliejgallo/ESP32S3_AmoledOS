@@ -193,6 +193,8 @@ static int64_t       s_last_activity_us;
 static aos_display_state_t s_display_state = AOS_DISPLAY_ACTIVE;
 static bool          s_aod_enabled = true;
 static int           s_aod_brightness = 10;
+static uint32_t      s_active_s = 0;        /* 0 = AOD_TIMEOUT_MS / OFF_NO_AOD_MS */
+static uint32_t      s_aod_s    = OFF_TIMEOUT_MS / 1000;   /* 0 = never          */
 static void        (*s_display_cb)(aos_display_state_t state);
 static char          s_board_name[48] = "desconocida";
 
@@ -497,6 +499,22 @@ void aos_hal_aod_brightness_set(int percent)
     if (s_display_state == AOS_DISPLAY_AOD) {
         panel_brightness(s_aod_brightness);
     }
+}
+
+void aos_hal_screen_timeouts_set(uint32_t active_s, uint32_t aod_s)
+{
+    if (active_s > 3600) active_s = 3600;
+    if (aod_s > 24 * 3600) aod_s = 24 * 3600;
+    s_active_s = active_s;
+    s_aod_s = aod_s;
+    aos_hal_pref_set_i32("scr_on_s", (int32_t)active_s);
+    aos_hal_pref_set_i32("aod_off_s", (int32_t)aod_s);
+}
+
+void aos_hal_screen_timeouts_get(uint32_t *active_s, uint32_t *aod_s)
+{
+    if (active_s) *active_s = s_active_s;
+    if (aod_s)    *aod_s = s_aod_s;
 }
 
 int aos_hal_aod_brightness_get(void)
@@ -3708,17 +3726,20 @@ static void housekeeping_task(void *arg)
             }
         }
 
+        /* The user's timeouts (Settings > Display), or the old constants
+         * while they never chose. */
+        int64_t active_ms = s_active_s ? (int64_t)s_active_s * 1000
+                                       : (aod_ok ? AOD_TIMEOUT_MS : OFF_NO_AOD_MS);
         switch (s_display_state) {
         case AOS_DISPLAY_ACTIVE:
-            if (aod_ok && idle_ms > AOD_TIMEOUT_MS) {
-                aos_hal_display_set_state(AOS_DISPLAY_AOD);
-            } else if (!aod_ok && idle_ms > OFF_NO_AOD_MS) {
-                aos_hal_display_set_state(AOS_DISPLAY_OFF);
+            if (idle_ms > active_ms) {
+                aos_hal_display_set_state(aod_ok ? AOS_DISPLAY_AOD : AOS_DISPLAY_OFF);
             }
             break;
 
         case AOS_DISPLAY_AOD:
-            if (!aod_ok || idle_ms > OFF_TIMEOUT_MS) {
+            /* aod_s counts from the dimming, which happened at active_ms. */
+            if (!aod_ok || (s_aod_s && idle_ms > active_ms + (int64_t)s_aod_s * 1000)) {
                 aos_hal_display_set_state(AOS_DISPLAY_OFF);
             }
             break;
@@ -4379,6 +4400,12 @@ bool aos_hal_init(void)
     }
     if (aos_hal_pref_get_i32("aod_bright", &saved)) {
         s_aod_brightness = (int)saved;
+    }
+    if (aos_hal_pref_get_i32("scr_on_s", &saved) && saved >= 0) {
+        s_active_s = (uint32_t)saved;
+    }
+    if (aos_hal_pref_get_i32("aod_off_s", &saved) && saved >= 0) {
+        s_aod_s = (uint32_t)saved;
     }
 
 

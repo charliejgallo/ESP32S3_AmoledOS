@@ -391,20 +391,46 @@ void aos_hal_activity(void)
 }
 
 /* Same timing policy as the board; called by the simulator's loop. */
+static uint32_t s_active_s = 0, s_aod_s = 300;
+
+void aos_hal_screen_timeouts_set(uint32_t active_s, uint32_t aod_s)
+{
+    s_active_s = active_s;
+    s_aod_s = aod_s;
+    aos_hal_pref_set_i32("scr_on_s", (int32_t)active_s);
+    aos_hal_pref_set_i32("aod_off_s", (int32_t)aod_s);
+}
+
+void aos_hal_screen_timeouts_get(uint32_t *active_s, uint32_t *aod_s)
+{
+    static bool loaded;
+    if (!loaded) {
+        int32_t v;
+        loaded = true;
+        if (aos_hal_pref_get_i32("scr_on_s", &v) && v >= 0) s_active_s = (uint32_t)v;
+        if (aos_hal_pref_get_i32("aod_off_s", &v) && v >= 0) s_aod_s = (uint32_t)v;
+    }
+    if (active_s) *active_s = s_active_s;
+    if (aod_s)    *aod_s = s_aod_s;
+}
+
 void aos_hal_sim_idle_tick(void)
 {
     uint64_t idle = aos_hal_uptime_ms() - s_last_activity_ms;
+    uint32_t act_s, aod_s;
+    aos_hal_screen_timeouts_get(&act_s, &aod_s);
+    /* 15 s with always-on is the simulator's own default, shorter than the
+     * board's 60 so the dimmed face shows up while you look at it. */
+    uint64_t active = act_s ? (uint64_t)act_s * 1000 : (s_aod_enabled ? 15000 : 30000);
 
     switch (s_display_state) {
     case AOS_DISPLAY_ACTIVE:
-        if (s_aod_enabled && idle > 15000) {
-            aos_hal_display_set_state(AOS_DISPLAY_AOD);
-        } else if (!s_aod_enabled && idle > 30000) {
-            aos_hal_display_set_state(AOS_DISPLAY_OFF);
+        if (idle > active) {
+            aos_hal_display_set_state(s_aod_enabled ? AOS_DISPLAY_AOD : AOS_DISPLAY_OFF);
         }
         break;
     case AOS_DISPLAY_AOD:
-        if (idle > 300000) {
+        if (aod_s && idle > active + (uint64_t)aod_s * 1000) {
             aos_hal_display_set_state(AOS_DISPLAY_OFF);
         }
         break;

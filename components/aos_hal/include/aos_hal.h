@@ -202,6 +202,16 @@ bool aos_hal_aod_enabled(void);
 void aos_hal_aod_brightness_set(int percent);
 int  aos_hal_aod_brightness_get(void);
 
+/* How long the screen waits, in seconds. Preferences, set from Settings and
+ * the portal.
+ *
+ * active: from the last touch to leaving ACTIVE (dimmed with always-on, off
+ *   without). 0 = the default it always had: 60 s with always-on, 30 without.
+ * aod: from dimming to switching off. 0 = never; always-on still gives way
+ *   under 15 % battery. Default 300. */
+void     aos_hal_screen_timeouts_set(uint32_t active_s, uint32_t aod_s);
+void     aos_hal_screen_timeouts_get(uint32_t *active_s, uint32_t *aod_s);
+
 void aos_hal_display_on(bool on);           /* shortcut: ACTIVE / OFF */
 bool aos_hal_display_is_on(void);
 
