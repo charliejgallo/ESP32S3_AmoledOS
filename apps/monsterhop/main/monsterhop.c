@@ -283,6 +283,17 @@ static void spare_frame(app_t *a)
     aos_hal_log("mhop", "playing with %d frame buffers | psram %u B free", a->nfb, (unsigned)hp);
 }
 
+/* the 4th frame is only for playing: on the menus it is 330 KB the map and
+ * the album's pictures want (it came back with the next level anyway) */
+static void spare_free(app_t *a)
+{
+    if (!a->fb[3] || a->playing || a->frozen) return;
+    if (a->shown == 3) a->shown = -1;
+    a->nfb = 3;                     /* first: the worker loops up to nfb */
+    free(a->fb[3]);
+    a->fb[3] = NULL;
+}
+
 /* the fly-over at a level's start: the camera visits each key, then Tommy */
 static void intro_camera(app_t *a, float dt)
 {
@@ -607,6 +618,7 @@ void mha_set_state(app_t *a, int st)
         break;
     default:
         a->playing = a->frozen = false;
+        if (st == ST_MAP || st == ST_MENU || st == ST_HOUSE || st == ST_LOBBY) spare_free(a);
         break;
     }
     mh_ui_show(a, st);
