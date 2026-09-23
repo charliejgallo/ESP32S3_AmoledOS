@@ -3,6 +3,25 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+**Doom**, from the card: Chocolate Doom through doomgeneric, as an app.
+
+- **35 fps in E1M1 on the board**, Doom's own tic rate; the engine renders
+  on core 0 in the app's worker, and LVGL's task blits the newest of three
+  frame slots (368x230, scaled from 320x200) straight to the panel.
+- **A pad below the picture**: a floating analogue stick, fed to Doom as a
+  mouse, plus FIRE, USE, MENU, MAP and next weapon; the side button fires
+  while held, so walking and shooting go together with one finger on the
+  glass. In the menus the stick is the arrows and FIRE/USE are Enter/back,
+  or yes/no on a question.
+- **Leaving gives everything back**: `exit()`, `I_Error` and the app's stop
+  all `longjmp` to the worker, which frees every block and file the engine
+  had. Sound effects mixed to the speaker; no music yet.
+- **No firmware change**: all of its symbols are already in the table, so it
+  runs on v0.4.10 and later. Bring your own WAD to `<card>/doom/`; the
+  shareware `DOOM1.WAD` is what it was tested with. GPL v2, like the engine.
+
 ## v0.5.5 — 2026-09-23
 
 **Mila**, a Sokoban with a black kitten, with its art rendered in Blender.
