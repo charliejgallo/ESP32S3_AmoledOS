@@ -212,6 +212,11 @@ int  aos_hal_aod_brightness_get(void);
 void     aos_hal_screen_timeouts_set(uint32_t active_s, uint32_t aod_s);
 void     aos_hal_screen_timeouts_get(uint32_t *active_s, uint32_t *aod_s);
 
+/* Raising the wrist lights the screen (the IMU's gesture). A preference, on
+ * by default; off, only a touch or the button wake it. */
+void     aos_hal_raise_wake_enable(bool on);
+bool     aos_hal_raise_wake_enabled(void);
+
 void aos_hal_display_on(bool on);           /* shortcut: ACTIVE / OFF */
 bool aos_hal_display_is_on(void);
 
@@ -396,6 +401,12 @@ bool aos_hal_pref_set_i32(const char *key, int32_t value);
 bool aos_hal_pref_get_str(const char *key, char *out, size_t out_len);
 bool aos_hal_pref_set_str(const char *key, const char *value);
 bool aos_hal_pref_erase(const char *key);
+
+/* Every stored preference, in no particular order, for the portal's backup.
+ * is_str says which of v and s holds the value. Returns how many. */
+typedef void (*aos_hal_pref_visit_t)(const char *key, bool is_str, int32_t v,
+                                     const char *s, void *ctx);
+int  aos_hal_pref_foreach(aos_hal_pref_visit_t visit, void *ctx);
 
 /* -------------------------------------------------------------------------- */
 /* Audio (ES8311 + speaker + microphone)                                       */
@@ -795,6 +806,13 @@ void     aos_hal_notif_sound_set(bool on);
 bool     aos_hal_notif_sound(void);
 void     aos_hal_notif_calls_always_set(bool on);
 bool     aos_hal_notif_calls_always(void);
+/* Do not disturb on a schedule, on top of the switch (aos_hal_notif_enable
+ * false is do not disturb by hand). Minutes after midnight; the window may
+ * cross midnight. Default 23:00 to 07:00, off. */
+void     aos_hal_notif_dnd_schedule_set(bool on, int from_min, int to_min);
+void     aos_hal_notif_dnd_schedule_get(bool *on, int *from_min, int *to_min);
+/* Right now: by hand, or inside the scheduled hours. */
+bool     aos_hal_notif_dnd_active(void);
 void     aos_hal_notif_categories_set(uint32_t mask);
 uint32_t aos_hal_notif_categories(void);
 

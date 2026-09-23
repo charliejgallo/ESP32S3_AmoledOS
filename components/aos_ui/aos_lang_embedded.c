@@ -402,8 +402,9 @@ static const char blob_en__sistema_lang[] =
     "buscando\tsearching\n"
     "sin telefono\tno phone\n"
     "emparejando\tpairing\n"
-    "activas\ton\n"
     "No molestar\tDo not disturb\n"
+    "programado\tscheduled\n"
+    "activas\ton\n"
     "Ajustes\tSettings\n"
     "Linterna\tFlashlight\n"
     "Ahorro\tSaver\n"
@@ -418,6 +419,8 @@ static const char blob_en__sistema_lang[] =
     "QUE ES EL PUERTO USB\tWHAT THE USB PORT IS\n"
     "Esfera\tWatch face\n"
     "la hora sigue a la vista, tenue, con la pantalla atenuada\tthe time stays in view, faint, while the screen is dimmed\n"
+    "Levantar la muñeca\tRaise to wake\n"
+    "girar la muñeca hacia vos enciende la pantalla\tturning your wrist towards you lights the screen\n"
     "BRILLO ATENUADA\tDIMMED BRIGHTNESS\n"
     "nunca\tnever\n"
     "SE ATENUA DESPUES DE\tDIMS AFTER\n"
@@ -427,7 +430,13 @@ static const char blob_en__sistema_lang[] =
     "los avisos quedan en la lista, pero no encienden la pantalla ni suenan\tnotifications stay in the list but don't light the screen or sound\n"
     "Llamadas siempre\tCalls always\n"
     "una llamada entra aunque este No molestar\ta call gets through even with Do not disturb\n"
+    "NO MOLESTAR PROGRAMADO\tSCHEDULED DO NOT DISTURB\n"
+    "Todos los días\tEvery day\n"
+    "Desde\tFrom\n"
+    "Hasta\tUntil\n"
     "Categorias\tCategories\n"
+    "No molestar desde\tDo not disturb from\n"
+    "No molestar hasta\tDo not disturb until\n"
     "ESTILO\tSTYLE\n"
     "ORDEN Y CARPETAS\tORDER AND FOLDERS\n"
     "Se arman desde el portal: escanea el QR con el telefono\tArranged from the portal: scan the QR with your phone\n"
@@ -2706,8 +2715,9 @@ static const char blob_de__sistema_lang[] =
     "buscando\tsucht\n"
     "sin telefono\tkein Telefon\n"
     "emparejando\tkoppelt\n"
-    "activas\tan\n"
     "No molestar\tNicht stören\n"
+    "programado\tgeplant\n"
+    "activas\tan\n"
     "Ajustes\tEinstellungen\n"
     "Linterna\tLampe\n"
     "Ahorro\tSparen\n"
@@ -2722,6 +2732,8 @@ static const char blob_de__sistema_lang[] =
     "QUE ES EL PUERTO USB\tWAS DER USB-ANSCHLUSS IST\n"
     "Esfera\tZifferblatt\n"
     "la hora sigue a la vista, tenue, con la pantalla atenuada\tdie Uhrzeit bleibt schwach sichtbar, wenn der Bildschirm gedimmt ist\n"
+    "Levantar la muñeca\tHandgelenk heben\n"
+    "girar la muñeca hacia vos enciende la pantalla\tdas Handgelenk zu dir drehen schaltet den Bildschirm ein\n"
     "BRILLO ATENUADA\tHELLIGKEIT GEDIMMT\n"
     "nunca\tnie\n"
     "SE ATENUA DESPUES DE\tDIMMT NACH\n"
@@ -2731,7 +2743,13 @@ static const char blob_de__sistema_lang[] =
     "los avisos quedan en la lista, pero no encienden la pantalla ni suenan\tMitteilungen bleiben in der Liste, wecken aber weder Bildschirm noch Ton\n"
     "Llamadas siempre\tAnrufe immer\n"
     "una llamada entra aunque este No molestar\tein Anruf kommt auch bei Nicht stören durch\n"
+    "NO MOLESTAR PROGRAMADO\tNICHT STÖREN NACH ZEITPLAN\n"
+    "Todos los días\tJeden Tag\n"
+    "Desde\tVon\n"
+    "Hasta\tBis\n"
     "Categorias\tKategorien\n"
+    "No molestar desde\tNicht stören ab\n"
+    "No molestar hasta\tNicht stören bis\n"
     "ESTILO\tSTIL\n"
     "ORDEN Y CARPETAS\tREIHENFOLGE UND ORDNER\n"
     "Se arman desde el portal: escanea el QR con el telefono\tWerden im Portal eingerichtet: QR mit dem Telefon scannen\n"
@@ -4622,7 +4640,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 564, 33, files_en, 34 },
-    { "de", "Deutsch", 564, 33, files_de, 34 },
+    { "en", "English", 573, 33, files_en, 34 },
+    { "de", "Deutsch", 573, 33, files_de, 34 },
 };
 const int aos_lang_pack_count = 2;

@@ -80,6 +80,12 @@
     </select>
   </div>
 
+  <div class="ajuste">
+    <div class="texto"><b data-t="levantar">Levantar la muñeca</b>
+      <span data-t="levantar_pie">Girar la muñeca hacia vos enciende la pantalla.</span></div>
+    <label class="interruptor"><input type="checkbox" id="levantar"><i></i></label>
+  </div>
+
   <h2 data-t="h_sonido">Sonido</h2>
   <div class="ajuste columna">
     <div class="cabeza">
@@ -170,6 +176,33 @@
       <span data-t="llamadas_pie">Aunque el resto esté silenciado.</span></div>
     <label class="interruptor"><input type="checkbox" id="llamadas"><i></i></label>
   </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="dnd_prog">No molestar programado</b>
+      <span data-t="dnd_prog_pie">Todos los días, entre estas dos horas.</span></div>
+    <label class="interruptor"><input type="checkbox" id="dnd_prog"><i></i></label>
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="dnd_horas">Desde / hasta</b>
+      <span id="dnd-ahora"></span></div>
+    <div><input type="time" id="dnd_desde" step="900"> <input type="time" id="dnd_hasta" step="900"></div>
+  </div>
+
+  <h2 data-t="h_respaldo">Respaldo</h2>
+  <div class="ajuste">
+    <div class="texto"><b data-t="bajar_resp">Descargar un respaldo</b>
+      <span data-t="bajar_resp_pie">Todos los ajustes del reloj y de las apps, y el menú con sus carpetas, en un archivo.</span>
+      <label style="display:block;margin-top:6px"><input type="checkbox" id="resp-wifi">
+        <span data-t="resp_wifi">Incluir la red wifi y su clave</span></label></div>
+    <button id="bajar-resp" data-t="btn_bajar">Descargar</button>
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="subir_resp">Restaurar un respaldo</b>
+      <span data-t="subir_resp_pie">La calibración del táctil, la batería, los pasos y el reloj emparejado son de cada reloj y no se tocan.</span>
+      <label style="display:block;margin-top:6px"><input type="checkbox" id="resp-nombre" checked>
+        <span data-t="resp_nombre">Mantener el nombre de este reloj</span></label></div>
+    <button id="subir-resp" data-t="btn_subir">Elegir archivo</button>
+    <input type="file" id="archivo-resp" accept=".json,application/json" hidden>
+  </div>
 
   <div class="aviso" id="aviso" hidden></div>
 </div>
@@ -211,6 +244,17 @@ const TR = {
     llamadas: "Calls always", llamadas_pie: "Even when everything else is silenced.",
     tz_otra: "Other (POSIX)...", guardado: "saved", fallo: "failed: ",
     confirmar_wifi: "Turn the wifi off? This page will stop responding.",
+    levantar: "Raise to wake", levantar_pie: "Turning your wrist towards you lights the screen.",
+    dnd_prog: "Scheduled do not disturb", dnd_prog_pie: "Every day, between these two times.",
+    dnd_horas: "From / to", dnd_activo: "active now",
+    h_respaldo: "Backup", bajar_resp: "Download a backup",
+    bajar_resp_pie: "Every setting of the watch and its apps, and the menu with its folders, in one file.",
+    resp_wifi: "Include the Wi-Fi network and its password", btn_bajar: "Download",
+    subir_resp: "Restore a backup",
+    subir_resp_pie: "Touch calibration, battery, steps and the paired watch belong to each watch and are left alone.",
+    resp_nombre: "Keep this watch's name", btn_subir: "Choose file",
+    resp_mal: "That is not an AmoledOS backup",
+    resp_ok: "Restored: %n settings. Restart the watch now so they all apply?",
     hora_puesta: "time set", sincronizando: "asking the time server...",
     sin_conexion: "no connection to the watch"
   },
@@ -247,6 +291,17 @@ const TR = {
     llamadas: "Anrufe immer", llamadas_pie: "Auch wenn alles andere stumm ist.",
     tz_otra: "Andere (POSIX)...", guardado: "gespeichert", fallo: "fehlgeschlagen: ",
     confirmar_wifi: "WLAN ausschalten? Diese Seite antwortet dann nicht mehr.",
+    levantar: "Handgelenk heben", levantar_pie: "Das Handgelenk zu dir drehen schaltet den Bildschirm ein.",
+    dnd_prog: "Nicht stören nach Zeitplan", dnd_prog_pie: "Jeden Tag zwischen diesen zwei Uhrzeiten.",
+    dnd_horas: "Von / bis", dnd_activo: "gerade aktiv",
+    h_respaldo: "Sicherung", bajar_resp: "Sicherung herunterladen",
+    bajar_resp_pie: "Alle Einstellungen der Uhr und ihrer Apps und das Menü mit seinen Ordnern in einer Datei.",
+    resp_wifi: "WLAN und sein Passwort einschließen", btn_bajar: "Herunterladen",
+    subir_resp: "Sicherung wiederherstellen",
+    subir_resp_pie: "Touch-Kalibrierung, Akku, Schritte und die gekoppelte Uhr gehören zu jeder Uhr und bleiben unberührt.",
+    resp_nombre: "Den Namen dieser Uhr behalten", btn_subir: "Datei wählen",
+    resp_mal: "Das ist keine AmoledOS-Sicherung",
+    resp_ok: "Wiederhergestellt: %n Einstellungen. Uhr jetzt neu starten, damit alle gelten?",
     hora_puesta: "Zeit gestellt", sincronizando: "frage den Zeitserver...",
     sin_conexion: "keine Verbindung zur Uhr"
   }
@@ -255,6 +310,9 @@ const ES = {
   nombre_malo: "nombre inválido: minúsculas, números y guiones nada más",
   tz_otra: "Otra (POSIX)...", guardado: "guardado", fallo: "falló: ",
   confirmar_wifi: "¿Apagar la wifi? Esta página va a dejar de responder.",
+  dnd_activo: "activo ahora",
+  resp_mal: "Eso no es un respaldo de AmoledOS",
+  resp_ok: "Restaurado: %n ajustes. ¿Reiniciar el reloj ahora para que se apliquen todos?",
   hora_puesta: "hora puesta", sincronizando: "pidiendo la hora por internet...",
   sin_conexion: "sin conexión con el reloj"
 };
@@ -315,6 +373,12 @@ function pintar(s) {
   $("pant_activa").value = String(s.pant_activa || 0);
   if ($("pant_activa").value === "") $("pant_activa").value = "0";
   $("aod_dura").value = String(s.aod_dura === undefined ? 300 : s.aod_dura);
+  $("levantar").checked = s.levantar !== 0;
+  $("dnd_prog").checked = !!s.dnd_prog;
+  const hhmm = m => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+  $("dnd_desde").value = hhmm(s.dnd_desde || 0);
+  $("dnd_hasta").value = hhmm(s.dnd_hasta || 0);
+  $("dnd-ahora").textContent = s.dnd_ahora ? t("dnd_activo") : "";
   $("fila-aod-brillo").style.opacity = s.aod ? 1 : .5;
 
   const sel = $("esfera");
@@ -390,6 +454,59 @@ for (const id of ["aod_brillo", "volumen"]) {
 }
 
 $("dnd").onchange = e => guardar({ notif: e.target.checked ? 0 : 1 });
+$("levantar").onchange = e => guardar({ levantar: e.target.checked ? 1 : 0 });
+$("dnd_prog").onchange = e => guardar({ dnd_prog: e.target.checked ? 1 : 0 });
+const minutos = v => { const [h, m] = v.split(":").map(Number); return h * 60 + m; };
+$("dnd_desde").onchange = e => { if (e.target.value) guardar({ dnd_desde: minutos(e.target.value) }); };
+$("dnd_hasta").onchange = e => { if (e.target.value) guardar({ dnd_hasta: minutos(e.target.value) }); };
+
+/* El respaldo: las preferencias del reloj (/api/respaldo) y el menu
+   (/api/menu) en un solo archivo, que arma el navegador. Restaurar hace el
+   camino inverso: las preferencias vuelven como lineas simples, para que el
+   firmware no tenga que leer JSON, y el menu por su propia API. */
+$("bajar-resp").onclick = async () => {
+  try {
+    const r = await fetch("/api/respaldo" + ($("resp-wifi").checked ? "?wifi=1" : ""));
+    const d = await r.json();
+    d.menu = await (await fetch("/api/menu")).text();
+    d.fecha = new Date().toISOString();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 1)], { type: "application/json" }));
+    a.download = (d.nombre || "amoledos") + "-respaldo-" + d.fecha.slice(0, 10) + ".json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  } catch (e) { aos.brindis(t("fallo") + e.message); }
+};
+$("subir-resp").onclick = () => $("archivo-resp").click();
+$("archivo-resp").onchange = async e => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  let d;
+  try { d = JSON.parse(await f.text()); } catch (err) { d = null; }
+  if (!d || d.respaldo !== 1 || !Array.isArray(d.prefs)) { aos.brindis(t("resp_mal")); return; }
+  const lineas = [];
+  for (const p of d.prefs) {
+    if (!p || typeof p.k !== "string" || /[\t\n]/.test(p.k)) continue;
+    if (p.k === "dev_name" && $("resp-nombre").checked) continue;
+    if (typeof p.s === "string") lineas.push("s\t" + p.k + "\t" + p.s.replace(/[\t\n]/g, " "));
+    else if (typeof p.i === "number") lineas.push("i\t" + p.k + "\t" + Math.trunc(p.i));
+  }
+  try {
+    const r = await fetch("/api/respaldo", { method: "POST", body: lineas.join("\n") + "\n" });
+    if (!r.ok) throw new Error(await r.text());
+    const res = await r.json();
+    if (typeof d.menu === "string") {
+      const rm = await fetch("/api/menu", { method: "POST", body: d.menu });
+      if (!rm.ok) throw new Error(await rm.text());
+    }
+    if (confirm(t("resp_ok").replace("%n", res.aplicados))) {
+      await fetch("/api/ota/restart", { method: "POST" });
+    } else {
+      cargar();
+    }
+  } catch (err) { aos.brindis(t("fallo") + err.message); }
+};
 $("pant_activa").onchange = e => guardar({ pant_activa: e.target.value });
 $("aod_dura").onchange = e => guardar({ aod_dura: e.target.value });
 for (const k of ["aod", "ahorro", "cuidar", "panel_slp", "chip_slp", "bt", "notif_sonido", "llamadas"]) {

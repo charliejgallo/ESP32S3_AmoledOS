@@ -47,6 +47,18 @@ page and a page per category.
   sketch; Power explains each switch; About shows the name, the card's
   usage, a QR to the portal, and restarts on a long press; diagnostics have
   a page of their own. Icons from Material Design Icons.
+- **Scheduled do not disturb**: every day between two times (23:00 to
+  07:00 by default), on top of the switch; also in the portal.
+- **Raise to wake** can be switched off, in Display and in the portal. It
+  was always on: in bed or at a desk it lit the screen for nothing.
+- **Hidden apps**: "Hide" in `/menu` takes an app off the launcher without
+  uninstalling it (a `hide <id>` line in `menu.txt`); "Show in" brings it
+  back.
+- **Backup and restore** in the portal's `/ajustes`: every preference of the
+  watch and its apps, and the menu with its folders, in one file; the Wi-Fi
+  password only if asked for. Restoring leaves alone what belongs to each
+  watch: touch calibration, battery history, steps, the paired watch, and
+  the name unless asked.
 
 ## v0.4.13 — 2026-09-22
 

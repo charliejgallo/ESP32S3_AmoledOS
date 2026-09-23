@@ -2457,8 +2457,13 @@ static esp_err_t ajustes_get_handler(httpd_req_t *req)
 
     uint32_t act_s, aod_s;
     aos_hal_screen_timeouts_get(&act_s, &aod_s);
-    snprintf(item, sizeof(item), "\"pant_activa\":%u,\"aod_dura\":%u,",
-             (unsigned)act_s, (unsigned)aod_s);
+    bool dnd_on;
+    int dnd_from, dnd_to;
+    aos_hal_notif_dnd_schedule_get(&dnd_on, &dnd_from, &dnd_to);
+    snprintf(item, sizeof(item), "\"pant_activa\":%u,\"aod_dura\":%u,\"levantar\":%d,"
+             "\"dnd_prog\":%d,\"dnd_desde\":%d,\"dnd_hasta\":%d,\"dnd_ahora\":%d,",
+             (unsigned)act_s, (unsigned)aod_s, aos_hal_raise_wake_enabled() ? 1 : 0,
+             dnd_on ? 1 : 0, dnd_from, dnd_to, aos_hal_notif_dnd_active() ? 1 : 0);
     httpd_resp_sendstr_chunk(req, item);
 
     const char *actual = aos_watchface_current();
@@ -2532,6 +2537,34 @@ static esp_err_t ajustes_post_handler(httpd_req_t *req)
         }
         if (cambia) {
             aos_hal_screen_timeouts_set(act_s, aod_s);
+            aplicados++;
+        }
+    }
+    if (httpd_query_key_value(body, "levantar", v, sizeof(v)) == ESP_OK) {
+        aos_hal_raise_wake_enable(atoi(v) != 0);
+        aplicados++;
+    }
+    {
+        /* Do not disturb's schedule: on/off and the two times, in minutes
+         * after midnight; any of the three may come alone. */
+        bool on;
+        int from, to;
+        aos_hal_notif_dnd_schedule_get(&on, &from, &to);
+        bool cambia = false;
+        if (httpd_query_key_value(body, "dnd_prog", v, sizeof(v)) == ESP_OK) {
+            on = atoi(v) != 0;
+            cambia = true;
+        }
+        if (httpd_query_key_value(body, "dnd_desde", v, sizeof(v)) == ESP_OK) {
+            from = atoi(v);
+            cambia = true;
+        }
+        if (httpd_query_key_value(body, "dnd_hasta", v, sizeof(v)) == ESP_OK) {
+            to = atoi(v);
+            cambia = true;
+        }
+        if (cambia) {
+            aos_hal_notif_dnd_schedule_set(on, from, to);
             aplicados++;
         }
     }
@@ -2874,6 +2907,140 @@ static esp_err_t menu_post_handler(httpd_req_t *req)
     return httpd_resp_sendstr(req, "{\"ok\":true}");
 }
 
+/* --------------------------------------------------------------------------
+ * Backup and restore of the preferences
+ *
+ * GET /api/respaldo[?wifi=1] hands out every preference as JSON, for the file
+ * the portal saves; the WiFi credentials only when asked for. POST
+ * /api/respaldo takes them back as plain lines, "i<TAB>key<TAB>value" or
+ * "s<TAB>key<TAB>value": the page reads the JSON and sends that, so the
+ * firmware never needs a JSON parser. menu.txt travels in the same file and
+ * goes back through /api/menu. Most preferences are read at boot, so the page
+ * offers the restart afterwards.
+ * -------------------------------------------------------------------------- */
+
+/* Preferences that belong to THIS watch and must not arrive from another:
+ * the touch calibration of its own panel, its battery's history, its step
+ * count, the watch it is paired with over ESP-NOW. */
+static bool pref_de_este_reloj(const char *key)
+{
+    static const char *const PROPIAS[] = {
+        "cal_ax", "cal_ay", "cal_bx", "cal_by", "chg_cyc", "bat_min",
+        "st_today", "st_day", "lk_peer", "lk_lmk", "lk_pname", "bt_bond",
+        "time_ok", "pomo_day", "pomo_done",
+    };
+    for (size_t i = 0; i < sizeof(PROPIAS) / sizeof(PROPIAS[0]); i++) {
+        if (strcmp(key, PROPIAS[i]) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+typedef struct {
+    httpd_req_t *req;
+    bool wifi;
+    int  n;
+} respaldo_ctx_t;
+
+static void respaldo_visit(const char *key, bool is_str, int32_t v, const char *s, void *ctx)
+{
+    respaldo_ctx_t *c = (respaldo_ctx_t *)ctx;
+    if (!c->wifi && strncmp(key, "wifi_", 5) == 0 && strcmp(key, "wifi_on") != 0) {
+        return;
+    }
+    char item[640];
+    char k[40];
+    json_escape(k, sizeof(k), key);
+    if (is_str) {
+        char val[512];
+        json_escape(val, sizeof(val), s);
+        snprintf(item, sizeof(item), "%s{\"k\":\"%s\",\"s\":\"%s\"}", c->n ? "," : "", k, val);
+    } else {
+        snprintf(item, sizeof(item), "%s{\"k\":\"%s\",\"i\":%ld}", c->n ? "," : "", k, (long)v);
+    }
+    httpd_resp_sendstr_chunk(c->req, item);
+    c->n++;
+}
+
+static esp_err_t respaldo_get_handler(httpd_req_t *req)
+{
+    char query[32] = "", v[4] = "";
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) == ESP_OK) {
+        httpd_query_key_value(query, "wifi", v, sizeof(v));
+    }
+    char nombre[48], disp[96], item[200];
+    json_escape(nombre, sizeof(nombre), aos_hal_device_name());
+    snprintf(disp, sizeof(disp), "attachment; filename=\"%s-respaldo.json\"",
+             aos_hal_device_name());
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Content-Disposition", disp);
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    snprintf(item, sizeof(item), "{\"respaldo\":1,\"version\":\"%s\",\"nombre\":\"%s\",\"prefs\":[",
+             aos_hal_firmware_version(), nombre);
+    httpd_resp_sendstr_chunk(req, item);
+    respaldo_ctx_t ctx = { .req = req, .wifi = v[0] == '1', .n = 0 };
+    aos_hal_pref_foreach(respaldo_visit, &ctx);
+    httpd_resp_sendstr_chunk(req, "]}");
+    return httpd_resp_sendstr_chunk(req, NULL);
+}
+
+static esp_err_t respaldo_post_handler(httpd_req_t *req)
+{
+    if (req->content_len <= 0 || req->content_len > 32 * 1024) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "respaldo vacio o demasiado grande");
+        return ESP_FAIL;
+    }
+    char *body = malloc((size_t)req->content_len + 1);     /* PSRAM: over 1 KB */
+    if (!body) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "sin memoria");
+        return ESP_FAIL;
+    }
+    int got = 0;
+    while (got < req->content_len) {
+        int r = httpd_req_recv(req, body + got, (size_t)(req->content_len - got));
+        if (r == HTTPD_SOCK_ERR_TIMEOUT) {
+            continue;
+        }
+        if (r <= 0) {
+            free(body);
+            return ESP_FAIL;
+        }
+        got += r;
+    }
+    body[got] = '\0';
+
+    int aplicados = 0, omitidos = 0;
+    char *save = NULL;
+    for (char *line = strtok_r(body, "\n", &save); line; line = strtok_r(NULL, "\n", &save)) {
+        char *t1 = strchr(line, '\t');
+        char *t2 = t1 ? strchr(t1 + 1, '\t') : NULL;
+        if (!t1 || !t2 || t1 - line != 1) {
+            omitidos++;
+            continue;
+        }
+        *t1 = '\0';
+        *t2 = '\0';
+        const char *key = t1 + 1, *val = t2 + 1;
+        size_t kl = strlen(key);
+        if (kl == 0 || kl > 15 || pref_de_este_reloj(key)) {     /* 15: NVS's key limit */
+            omitidos++;
+            continue;
+        }
+        bool ok = line[0] == 'i' ? aos_hal_pref_set_i32(key, (int32_t)strtol(val, NULL, 10))
+                : line[0] == 's' ? aos_hal_pref_set_str(key, val) : false;
+        ok ? aplicados++ : omitidos++;
+    }
+    free(body);
+    ESP_LOGI(TAG, "backup restored: %d preferences, %d skipped", aplicados, omitidos);
+
+    char json[80];
+    snprintf(json, sizeof(json), "{\"ok\":true,\"aplicados\":%d,\"omitidos\":%d}",
+             aplicados, omitidos);
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_sendstr(req, json);
+}
+
 static esp_err_t iconos_page_handler(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "text/html; charset=utf-8");
@@ -3033,6 +3200,8 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/icons",   .method = HTTP_GET,  .handler = icons_handler },
         { .uri = "/api/menu",    .method = HTTP_GET,  .handler = menu_get_handler },
         { .uri = "/api/menu",    .method = HTTP_POST, .handler = menu_post_handler },
+        { .uri = "/api/respaldo", .method = HTTP_GET,  .handler = respaldo_get_handler },
+        { .uri = "/api/respaldo", .method = HTTP_POST, .handler = respaldo_post_handler },
         { .uri = "/cotiz",       .method = HTTP_GET,  .handler = cotiz_page_handler },
         { .uri = "/api/cotiz",   .method = HTTP_GET,  .handler = cotiz_get_handler },
         { .uri = "/api/cotiz",   .method = HTTP_POST, .handler = cotiz_set_handler },

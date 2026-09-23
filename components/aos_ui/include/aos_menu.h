@@ -25,6 +25,12 @@
  *
  * One level of folders, and an app in one place: a second line for the same
  * id is ignored.
+ *
+ *     hide demo.hello
+ *
+ * keeps an installed app out of the launcher altogether, wherever else the
+ * file names it. It is still installed: the portal opens it, and deleting
+ * the line brings it back.
  */
 #pragma once
 

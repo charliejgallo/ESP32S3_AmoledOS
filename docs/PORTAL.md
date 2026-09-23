@@ -38,7 +38,9 @@ GET  /api/status                 the whole state; the strip polls it every 15 s
 GET  /api/ajustes                the settings, with the list of watchfaces
 POST /api/ajustes                any subset: nombre brillo volumen aod aod_brillo
                                  pant_activa aod_dura (screen timeouts, seconds; 0 =
-                                 automatic / never) esfera
+                                 automatic / never) levantar (raise to wake) dnd_prog
+                                 dnd_desde dnd_hasta (do not disturb's schedule, minutes
+                                 after midnight) esfera
                                  menu ahorro cuidar panel_slp chip_slp tz wifi bt
                                  notif notif_sonido llamadas
 POST /api/accion                 que=despertar|apagar|volver|inicio|menu|beep|
@@ -48,6 +50,12 @@ GET  /api/icons[?id=X]           every app with where its icon comes from (archi
                                  firmware|glifo), bytes and gradient; with id, the AIC blob
                                  that is drawn for that app (docs/ICONS.md)
 GET  /api/menu                   menu.txt as text/plain, empty when there is none
+GET  /api/respaldo[?wifi=1]      every preference as JSON ({"k","i"|"s"}); the WiFi
+                                 credentials only with wifi=1. The page adds menu.txt
+                                 and saves one file
+POST /api/respaldo               lines "i|s<TAB>key<TAB>value"; skips what belongs to
+                                 each watch (touch calibration, battery, steps, the
+                                 paired watch). Restart to apply
 POST /api/menu                   the whole new menu.txt as the body (validated with the
                                  launcher's parser; 400 says which line), empty = delete it
                                  (docs/MENU.md)

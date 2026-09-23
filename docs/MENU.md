@@ -57,6 +57,10 @@ app aos.music
 | glyph colour | `w` white, `b` black |
 | name | the rest of the line, as written |
 
+`hide <id>` keeps an installed app out of the launcher, wherever else the
+file names it; the page writes these lines at the end, from "Hide" in the
+"Move to" menu, and lists the hidden apps apart with "Show in".
+
 The rules, which `aos_menu.c` applies and the page repeats:
 
 - **What the file does not mention still shows**, at the end of the top level

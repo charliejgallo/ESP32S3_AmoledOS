@@ -43,6 +43,10 @@
                  padding: 5px 6px; font-size: 12.5px; max-width: 130px; }
   .item .quitar { color: var(--red); }
   @media (max-width: 520px) { .item select { max-width: 92px; } .item.dentro { margin-left: 16px; } }
+  .item.oculta { opacity: .6; }
+  .asa.quieta { width: 18px; cursor: default; }
+  .sep { color: var(--dim); font-size: 12px; font-weight: 600; letter-spacing: .05em;
+         text-transform: uppercase; margin: 18px 4px 8px; }
   .guia { position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px;
            background: var(--green); pointer-events: none; display: none; }
 
@@ -103,7 +107,8 @@
 
   <p class="nota" data-t-html="nota_como">Las apps que el menú todavía no nombra quedan al final, en
      su orden de siempre: ahí aparece una app recién instalada. Una app que figura pero ya no está
-     instalada se ve apagada y conserva su lugar, por si vuelve.</p>
+     instalada se ve apagada y conserva su lugar, por si vuelve. <b>Ocultar</b>, en "Mover a",
+     la saca del menú sin desinstalarla.</p>
   <p class="nota" data-t-html="nota_archivo">Todo se guarda en un archivo de texto,
      <code>menu.txt</code>, en la raíz de la tarjeta. <b>Orden original</b> lo borra.</p>
 </div>
@@ -126,7 +131,8 @@ const TR = {
     btn_restablecer: "Original order",
     nota_como: "Apps the menu does not name yet go at the end, in their usual order: that is where a " +
                "newly installed app shows up. An app that is listed but no longer installed is dimmed " +
-               "and keeps its place, in case it comes back.",
+               "and keeps its place, in case it comes back. <b>Hide</b>, under \"Move to\", takes it off the " +
+               "menu without uninstalling it.",
     nota_archivo: "It is all kept in a text file, <code>menu.txt</code>, at the root of the card. " +
                   "<b>Original order</b> deletes it.",
     sin_cambios: "No changes", con_cambios: "Unsaved changes", guardado: "Saved: the watch is rebuilding its menu",
@@ -134,7 +140,8 @@ const TR = {
     conf_restablecer: "Delete the menu and go back to the original order? Folders are lost.",
     conf_borrar: "Delete this folder? Its apps go back to the main menu.",
     conf_salir: "There are unsaved changes.",
-    principal: "Main menu", mover_a: "Move to", no_instalada: "not installed", carpeta: "Folder",
+    principal: "Main menu", mover_a: "Move to", ocultar: "Hide", ocultas: "Hidden",
+    mostrar_en: "Show in", no_instalada: "not installed", carpeta: "Folder",
     apps_1: "app", apps_n: "apps", editar: "Edit", quitar: "Remove from the menu",
     ed_vacio: "Tap a folder to edit its name and icon.", ed_titulo: "Folder",
     ed_nombre: "Name", ed_colores: "Colours", ed_relleno: "Fill", ed_glifo: "Glyph",
@@ -154,7 +161,8 @@ const TR = {
     btn_restablecer: "Ursprüngliche Reihenfolge",
     nota_como: "Apps, die das Menü noch nicht nennt, stehen am Ende in ihrer üblichen Reihenfolge: dort " +
                "erscheint eine neu installierte App. Eine aufgeführte, aber nicht mehr installierte App " +
-               "wird abgeblendet und behält ihren Platz, falls sie zurückkommt.",
+               "wird abgeblendet und behält ihren Platz, falls sie zurückkommt. <b>Ausblenden</b> unter " +
+               "\"Verschieben nach\" nimmt sie aus dem Menü, ohne sie zu deinstallieren.",
     nota_archivo: "Alles steht in einer Textdatei, <code>menu.txt</code>, im Stammverzeichnis der Karte. " +
                   "<b>Ursprüngliche Reihenfolge</b> löscht sie.",
     sin_cambios: "Keine Änderungen", con_cambios: "Ungespeicherte Änderungen",
@@ -163,7 +171,8 @@ const TR = {
     conf_restablecer: "Menü löschen und zur ursprünglichen Reihenfolge zurück? Die Ordner gehen verloren.",
     conf_borrar: "Diesen Ordner löschen? Seine Apps kommen ins Hauptmenü zurück.",
     conf_salir: "Es gibt ungespeicherte Änderungen.",
-    principal: "Hauptmenü", mover_a: "Verschieben nach", no_instalada: "nicht installiert", carpeta: "Ordner",
+    principal: "Hauptmenü", mover_a: "Verschieben nach", ocultar: "Ausblenden", ocultas: "Ausgeblendet",
+    mostrar_en: "Zeigen in", no_instalada: "nicht installiert", carpeta: "Ordner",
     apps_1: "App", apps_n: "Apps", editar: "Bearbeiten", quitar: "Aus dem Menü entfernen",
     ed_vacio: "Tippe auf einen Ordner, um Name und Icon zu bearbeiten.", ed_titulo: "Ordner",
     ed_nombre: "Name", ed_colores: "Farben", ed_relleno: "Füllung", ed_glifo: "Symbol",
@@ -182,7 +191,8 @@ const ES = {
   conf_restablecer: "¿Borrar el menú y volver al orden original? Las carpetas se pierden.",
   conf_borrar: "¿Borrar esta carpeta? Sus apps vuelven al menú principal.",
   conf_salir: "Hay cambios sin guardar.",
-  principal: "Menú principal", mover_a: "Mover a", no_instalada: "no instalada", carpeta: "Carpeta",
+  principal: "Menú principal", mover_a: "Mover a", ocultar: "Ocultar", ocultas: "Ocultas",
+  mostrar_en: "Mostrar en", no_instalada: "no instalada", carpeta: "Carpeta",
   apps_1: "app", apps_n: "apps", editar: "Editar", quitar: "Quitar del menú",
   ed_vacio: "Tocá una carpeta para editar su nombre y su icono.", ed_titulo: "Carpeta",
   ed_nombre: "Nombre", ed_colores: "Colores", ed_relleno: "Relleno", ed_glifo: "Glifo",
@@ -208,12 +218,14 @@ const GLIFO = Object.fromEntries(GLIFOS.map(g => [g.n, g]));
  *   { t: "folder", id, name, a, b, fill, glyph, dark, apps: [id...] }
  * ---------------------------------------------------------------------- */
 let modelo = [], guardado = "", instaladas = new Map(), iconos = new Map();
+let ocultas = [];       /* ids con una linea "hide": instaladas, fuera del menu */
 let abiertas = new Set(), seleccion = null;
 
 /* La misma gramatica que parse() en components/aos_ui/aos_menu.c. */
 function leerMenu(texto) {
   const raiz = [];
   let carpeta = null;
+  ocultas = [];
   for (const cruda of texto.split("\n")) {
     const linea = cruda.replace(/\r$/, "").trim();
     if (!linea || linea[0] === "#") continue;
@@ -227,7 +239,16 @@ function leerMenu(texto) {
       raiz.push(carpeta);
     } else if (p[0] === "end") {
       carpeta = null;
+    } else if (p[0] === "hide" && p[1] && !ocultas.includes(p[1])) {
+      ocultas.push(p[1]);
     }
+  }
+  /* "hide" gana sobre cualquier otra linea de la misma app, como en el reloj */
+  const oc = new Set(ocultas);
+  for (let i = raiz.length - 1; i >= 0; i--) {
+    const e = raiz[i];
+    if (e.t === "app" && oc.has(e.id)) raiz.splice(i, 1);
+    else if (e.t === "folder") e.apps = e.apps.filter(id => !oc.has(id));
   }
   return raiz;
 }
@@ -240,13 +261,14 @@ function escribirMenu() {
     for (const id of e.apps) out.push("  app " + id);
     out.push("end");
   }
+  for (const id of ocultas) out.push("hide " + id);
   return out.join("\n") + "\n";
 }
 
 /* Lo que el menu no nombra va al final, en el orden del reloj, igual que en
    aos_menu_root(): asi la pagina muestra lo que el reloj muestra. */
 function completar(raiz) {
-  const puestas = new Set();
+  const puestas = new Set(ocultas);
   for (const e of raiz) {
     if (e.t === "app") puestas.add(e.id);
     else e.apps.forEach(id => puestas.add(id));
@@ -331,31 +353,36 @@ function ubicar(clave) {
       if (j >= 0) return { arr: e.apps, i: j, carpeta: e };
     }
   }
+  const o = ocultas.findIndex(id => clave === "a:" + id);
+  if (o >= 0) return { arr: ocultas, i: o, carpeta: null, oculta: true };
   return null;
 }
 
-function opcionesMover(actual) {
-  let h = '<option value="">' + esc(t("mover_a")) + "…</option>";
-  if (actual) h += '<option value="*">' + esc(t("principal")) + "</option>";
+function opcionesMover(actual, oculta) {
+  let h = '<option value="">' + esc(t(oculta ? "mostrar_en" : "mover_a")) + "…</option>";
+  if (actual || oculta) h += '<option value="*">' + esc(t("principal")) + "</option>";
   for (const e of modelo) if (e.t === "folder" && e !== actual) h += '<option value="' + esc(e.id) + '">' + esc(e.name) + "</option>";
+  if (!oculta) h += '<option value="-">' + esc(t("ocultar")) + "</option>";
   return h;
 }
 
-function filaApp(id, carpeta, i, total) {
+function filaApp(id, carpeta, i, total, oculta) {
   const a = instaladas.get(id), ic = iconos.get(id);
   const falta = !a;
   const div = document.createElement("div");
-  div.className = "item" + (carpeta ? " dentro" : "") + (falta ? " falta" : "");
+  div.className = "item" + (carpeta ? " dentro" : "") + (falta ? " falta" : "") + (oculta ? " oculta" : "");
   div.dataset.k = "a:" + id;
-  div.innerHTML = '<span class="asa" aria-hidden="true">⋮⋮</span>' +
+  div.innerHTML = (oculta ? '<span class="asa quieta" aria-hidden="true"></span>'
+                          : '<span class="asa" aria-hidden="true">⋮⋮</span>') +
     (falta ? '<svg class="ico" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="none" stroke="#8e8e93" stroke-dasharray="3 4" stroke-width="2"/></svg>'
            : "<canvas></canvas>") +
     '<div class="nombre"><b>' + esc(nombreApp(id)) + "</b><small>" + esc(id) +
     (falta ? " · " + esc(t("no_instalada")) : "") + "</small></div>" +
+    (oculta ? "" :
     '<button class="mini arriba" aria-label="↑"' + (i === 0 ? " disabled" : "") + ">↑</button>" +
-    '<button class="mini abajo" aria-label="↓"' + (i === total - 1 ? " disabled" : "") + ">↓</button>" +
+    '<button class="mini abajo" aria-label="↓"' + (i === total - 1 ? " disabled" : "") + ">↓</button>") +
     (falta ? '<button class="mini quitar" title="' + esc(t("quitar")) + '">×</button>'
-           : '<select class="mover">' + opcionesMover(carpeta) + "</select>");
+           : '<select class="mover">' + opcionesMover(carpeta, oculta) + "</select>");
   if (!falta) dibujarIcono(div.querySelector("canvas"), id, ic);
   return div;
 }
@@ -382,6 +409,15 @@ function pintar() {
     lista.appendChild(filaCarpeta(e, i, modelo.length));
     if (abiertas.has(e.id)) e.apps.forEach((id, j) => lista.appendChild(filaApp(id, e, j, e.apps.length)));
   });
+  /* Las ocultas, al final y aparte: siguen instaladas, el reloj no las
+     muestra, y "Mostrar en" las devuelve. */
+  if (ocultas.length) {
+    const sep = document.createElement("div");
+    sep.className = "sep";
+    sep.textContent = t("ocultas") + " · " + ocultas.length;
+    lista.appendChild(sep);
+    ocultas.forEach((id, j) => lista.appendChild(filaApp(id, null, j, ocultas.length, true)));
+  }
   pintarEditor();
   estado();
 }
@@ -505,7 +541,8 @@ $("lista").addEventListener("change", ev => {
   if (!sel || !sel.value) return;
   const k = sel.closest(".item").dataset.k, id = k.slice(2);
   sacar(k);
-  if (sel.value === "*") modelo.push({ t: "app", id: id });
+  if (sel.value === "-") ocultas.push(id);
+  else if (sel.value === "*") modelo.push({ t: "app", id: id });
   else { const f = modelo.find(e => e.t === "folder" && e.id === sel.value); f.apps.push(id); abiertas.add(f.id); }
   pintar();
 });
@@ -527,7 +564,7 @@ $("lista").addEventListener("pointerdown", ev => {
 function destinoEn(x, y) {
   const el = document.elementFromPoint(x, y);
   const fila = el && el.closest(".item");
-  if (!fila || fila === arrastre.fila) return null;
+  if (!fila || fila === arrastre.fila || fila.classList.contains("oculta")) return null;
   const r = fila.getBoundingClientRect(), rel = (y - r.top) / r.height;
   if (fila.classList.contains("carpeta") && !arrastre.k.startsWith("f:") && rel > 0.28 && rel < 0.72)
     return { k: fila.dataset.k, modo: "adentro", fila: fila };

@@ -79,6 +79,10 @@ typedef struct {
     lv_obj_t *style_card[3];
     lv_obj_t *time_label, *date_label;
     lv_obj_t *batt_label;
+    lv_obj_t *dnd_from_val, *dnd_to_val;   /* Notifications: the schedule */
+    lv_obj_t *dnd_box;                     /* second screen: picking a time */
+    lv_obj_t *r_dh, *r_dm;
+    int       dnd_which;                   /* 0 from, 1 to */
 } settings_t;
 
 static settings_t s_set;
@@ -1329,6 +1333,10 @@ enum { TILE_WIFI, TILE_BT, TILE_LIGHT, TILE_AOD, TILE_SAVE, TILE_DND, TILE_COUNT
 static void open_sub(int kind, bool animate);
 static void close_sub(bool animate);
 static void refresh(lv_timer_t *timer);
+static void raise_wake_cb(lv_event_t *event);
+static void dnd_values(void);
+static void dnd_sched_cb(lv_event_t *event);
+static void dnd_time_cb(lv_event_t *event);
 
 static const char *sub_title(int kind)
 {
@@ -1868,7 +1876,12 @@ static void values_refresh(void)
     set_value(SUB_DISPLAY, face_name());
     snprintf(buf, sizeof(buf), "%d %%", aos_hal_volume_get());
     set_value(SUB_SOUND, buf);
-    set_value(SUB_NOTIF, aos_hal_notif_enabled() ? _("activas") : _("No molestar"));
+    {
+        bool prog;
+        aos_hal_notif_dnd_schedule_get(&prog, NULL, NULL);
+        set_value(SUB_NOTIF, aos_hal_notif_dnd_active() ? _("No molestar")
+                           : prog ? _("programado") : _("activas"));
+    }
     set_value(SUB_MENU, style_name(aos_ui_launcher_get_style()));
 
     struct tm now;
@@ -2087,6 +2100,9 @@ static void build_display(lv_obj_t *p)
     switch_row2(c, _("Siempre encendido"),
                 _("la hora sigue a la vista, tenue, con la pantalla atenuada"),
                 aos_hal_aod_enabled(), aod_cb);
+    switch_row2(c, _("Levantar la muñeca"),
+                _("girar la muñeca hacia vos enciende la pantalla"),
+                aos_hal_raise_wake_enabled(), raise_wake_cb);
 
     caption(p, _("BRILLO ATENUADA"));
     pill_slider(p, AOS_SG_BRIGHTNESS_6, aos_hal_aod_brightness_get(), 1, 40,
@@ -2116,6 +2132,11 @@ static void build_display(lv_obj_t *p)
               "Con la bateria por debajo del 15 % se apaga igual."));
 }
 
+static void raise_wake_cb(lv_event_t *event)
+{
+    aos_hal_raise_wake_enable(lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED));
+}
+
 static void build_sound(lv_obj_t *p)
 {
     pill_slider(p, AOS_SG_VOLUME_HIGH, aos_hal_volume_get(), 5, 100, volume_cb);
@@ -2132,8 +2153,131 @@ static void build_notif(lv_obj_t *p)
     switch_row2(c, _("Llamadas siempre"),
                 _("una llamada entra aunque este No molestar"),
                 aos_hal_notif_calls_always(), notif_calls_cb);
+    caption(p, _("NO MOLESTAR PROGRAMADO"));
+    bool on;
+    int from, to;
+    aos_hal_notif_dnd_schedule_get(&on, &from, &to);
+    lv_obj_t *c3 = card(p);
+    switch_row2(c3, _("Todos los días"), NULL, on, dnd_sched_cb);
+    nav_row(c3, NULL, AOS_C_CARD, _("Desde"), &s_set.dnd_from_val, dnd_time_cb, (void *)0);
+    nav_row(c3, NULL, AOS_C_CARD, _("Hasta"), &s_set.dnd_to_val, dnd_time_cb, (void *)1);
+    dnd_values();
+
     lv_obj_t *c2 = card(p);
     nav_row(c2, NULL, AOS_C_CARD, _("Categorias"), NULL, cat_cb, NULL);
+}
+
+/* --------------------------------------------------------------------------
+ * Do not disturb on a schedule: the two times, and a second screen with two
+ * rollers to pick one (quarter hours: a minute-by-minute roller of sixty is
+ * a lot of scrolling for a bedtime).
+ * -------------------------------------------------------------------------- */
+
+static void dnd_values(void)
+{
+    bool on;
+    int from, to;
+    aos_hal_notif_dnd_schedule_get(&on, &from, &to);
+    char buf[16];
+    if (s_set.dnd_from_val) {
+        snprintf(buf, sizeof(buf), "%02d:%02d", from / 60, from % 60);
+        lv_label_set_text(s_set.dnd_from_val, buf);
+    }
+    if (s_set.dnd_to_val) {
+        snprintf(buf, sizeof(buf), "%02d:%02d", to / 60, to % 60);
+        lv_label_set_text(s_set.dnd_to_val, buf);
+    }
+}
+
+static void dnd_sched_cb(lv_event_t *event)
+{
+    bool on = lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED);
+    bool was;
+    int from, to;
+    aos_hal_notif_dnd_schedule_get(&was, &from, &to);
+    aos_hal_notif_dnd_schedule_set(on, from, to);
+}
+
+static void dnd_box_close(void)
+{
+    if (s_set.dnd_box) {
+        lv_obj_delete_async(s_set.dnd_box);     /* its own buttons close it */
+        s_set.dnd_box = NULL;
+    }
+}
+
+static void dnd_box_cancel_cb(lv_event_t *event)
+{
+    (void)event;
+    dnd_box_close();
+}
+
+static void dnd_box_save_cb(lv_event_t *event)
+{
+    (void)event;
+    int m = (int)lv_roller_get_selected(s_set.r_dh) * 60 +
+            (int)lv_roller_get_selected(s_set.r_dm) * 15;
+    bool on;
+    int from, to;
+    aos_hal_notif_dnd_schedule_get(&on, &from, &to);
+    if (s_set.dnd_which == 0) {
+        from = m;
+    } else {
+        to = m;
+    }
+    aos_hal_notif_dnd_schedule_set(on, from, to);
+    dnd_values();
+    dnd_box_close();
+}
+
+static void dnd_time_cb(lv_event_t *event)
+{
+    if (s_set.dnd_box) {
+        return;
+    }
+    s_set.dnd_which = (int)(intptr_t)lv_event_get_user_data(event);
+    bool on;
+    int from, to;
+    aos_hal_notif_dnd_schedule_get(&on, &from, &to);
+    int cur = s_set.dnd_which == 0 ? from : to;
+
+    static char horas[24 * 3 + 1];
+    char *w = horas;
+    for (int i = 0; i < 24; i++) w += sprintf(w, i ? "\n%02d" : "%02d", i);
+
+    lv_obj_t *box = lv_obj_create(lv_layer_top());
+    s_set.dnd_box = box;
+    lv_obj_set_size(box, AOS_SCREEN_W, AOS_SCREEN_H);
+    lv_obj_set_style_bg_color(box, AOS_C_BG, 0);
+    lv_obj_set_style_bg_opa(box, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(box, 0, 0);
+    lv_obj_set_flex_flow(box, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(box, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(box, 14, 0);
+
+    aos_label(box, s_set.dnd_which == 0 ? _("No molestar desde") : _("No molestar hasta"),
+              aos_font_body, AOS_C_TEXT);
+    lv_obj_t *fila = lv_obj_create(box);
+    lv_obj_remove_style_all(fila);
+    lv_obj_set_size(fila, AOS_SCREEN_W - 30, 110);
+    lv_obj_set_flex_flow(fila, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(fila, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(fila, 10, 0);
+    s_set.r_dh = roller(fila, horas, (uint16_t)(cur / 60), 88);
+    s_set.r_dm = roller(fila, "00\n15\n30\n45", (uint16_t)((cur % 60) / 15), 88);
+
+    lv_obj_t *fila_b = lv_obj_create(box);
+    lv_obj_remove_style_all(fila_b);
+    lv_obj_set_size(fila_b, AOS_SCREEN_W - 30, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(fila_b, LV_FLEX_FLOW_ROW_WRAP);
+    lv_obj_set_flex_align(fila_b, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(fila_b, 12, 0);
+    lv_obj_set_style_pad_row(fila_b, 8, 0);
+    aos_button(fila_b, _("Cancelar"), AOS_C_CARD2, dnd_box_cancel_cb, NULL);
+    aos_button(fila_b, _("Guardar"),  AOS_C_GREEN, dnd_box_save_cb,   NULL);
 }
 
 /* Menu: the three styles as cards with a sketch of each. */
@@ -2380,6 +2524,7 @@ static void forget_sub_pointers(void)
     s_set.net_label = s_set.ap_row = s_set.ap_row_ssid = s_set.ap_label = NULL;
     s_set.usb_label = s_set.bt_label = s_set.bt_forget = s_set.mem_label = NULL;
     s_set.time_label = s_set.date_label = s_set.batt_label = NULL;
+    s_set.dnd_from_val = s_set.dnd_to_val = NULL;
     memset(s_set.usb_check, 0, sizeof(s_set.usb_check));
     memset(s_set.lang_check, 0, sizeof(s_set.lang_check));
     memset(s_set.style_card, 0, sizeof(s_set.style_card));
@@ -2782,6 +2927,10 @@ static bool back(aos_app_t *self, void *inst)
         cat_box_close();
         return true;
     }
+    if (s_set.dnd_box) {
+        dnd_box_close();
+        return true;
+    }
     if (s_set.sub) {
         close_sub(true);
         return true;
@@ -2802,6 +2951,10 @@ static void destroy(aos_app_t *self, void *inst)
     ap_box_close();
     bt_box_close();
     cat_box_close();
+    if (s_set.dnd_box) {
+        lv_obj_delete(s_set.dnd_box);
+        s_set.dnd_box = NULL;
+    }
     /* The objects go with the app's root; only the pointers stay behind. */
     forget_sub_pointers();
     memset(s_set.tile, 0, sizeof(s_set.tile));

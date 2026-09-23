@@ -195,6 +195,7 @@ static bool          s_aod_enabled = true;
 static int           s_aod_brightness = 10;
 static uint32_t      s_active_s = 0;        /* 0 = AOD_TIMEOUT_MS / OFF_NO_AOD_MS */
 static uint32_t      s_aod_s    = OFF_TIMEOUT_MS / 1000;   /* 0 = never          */
+static bool          s_raise_wake = true;
 static void        (*s_display_cb)(aos_display_state_t state);
 static char          s_board_name[48] = "desconocida";
 
@@ -319,6 +320,41 @@ bool aos_hal_pref_set_str(const char *key, const char *value)
     bool ok = nvs_set_str(handle, key, value) == ESP_OK && nvs_commit(handle) == ESP_OK;
     nvs_close(handle);
     return ok;
+}
+
+int aos_hal_pref_foreach(aos_hal_pref_visit_t visit, void *ctx)
+{
+    nvs_handle_t handle;
+    if (nvs_open(NVS_NAMESPACE, NVS_READONLY, &handle) != ESP_OK) {
+        return 0;
+    }
+    int n = 0;
+    nvs_iterator_t it = NULL;
+    esp_err_t err = nvs_entry_find(NVS_DEFAULT_PART_NAME, NVS_NAMESPACE, NVS_TYPE_ANY, &it);
+    while (err == ESP_OK) {
+        nvs_entry_info_t info;
+        nvs_entry_info(it, &info);
+        /* The preferences are only ever i32 or strings (aos_hal_pref_*);
+         * anything else in the namespace is not ours to hand out. */
+        if (info.type == NVS_TYPE_I32) {
+            int32_t v;
+            if (nvs_get_i32(handle, info.key, &v) == ESP_OK) {
+                visit(info.key, false, v, NULL, ctx);
+                n++;
+            }
+        } else if (info.type == NVS_TYPE_STR) {
+            char s[256];
+            size_t len = sizeof(s);
+            if (nvs_get_str(handle, info.key, s, &len) == ESP_OK) {
+                visit(info.key, true, 0, s, ctx);
+                n++;
+            }
+        }
+        err = nvs_entry_next(&it);
+    }
+    nvs_release_iterator(it);
+    nvs_close(handle);
+    return n;
 }
 
 bool aos_hal_pref_erase(const char *key)
@@ -515,6 +551,17 @@ void aos_hal_screen_timeouts_get(uint32_t *active_s, uint32_t *aod_s)
 {
     if (active_s) *active_s = s_active_s;
     if (aod_s)    *aod_s = s_aod_s;
+}
+
+void aos_hal_raise_wake_enable(bool on)
+{
+    s_raise_wake = on;
+    aos_hal_pref_set_i32("raise_wake", on ? 1 : 0);
+}
+
+bool aos_hal_raise_wake_enabled(void)
+{
+    return s_raise_wake;
 }
 
 int aos_hal_aod_brightness_get(void)
@@ -3709,7 +3756,7 @@ static void housekeeping_task(void *arg)
 
         int64_t idle_ms = (esp_timer_get_time() - s_last_activity_us) / 1000;
 
-        if (aos_board_imu_wrist_raised()) {
+        if (s_raise_wake && aos_board_imu_wrist_raised()) {
             aos_hal_activity();
             vTaskDelay(pdMS_TO_TICKS(40));
             continue;
@@ -4406,6 +4453,9 @@ bool aos_hal_init(void)
     }
     if (aos_hal_pref_get_i32("aod_off_s", &saved) && saved >= 0) {
         s_aod_s = (uint32_t)saved;
+    }
+    if (aos_hal_pref_get_i32("raise_wake", &saved)) {
+        s_raise_wake = (saved != 0);
     }
 
 

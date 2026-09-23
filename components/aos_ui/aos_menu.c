@@ -27,6 +27,7 @@ typedef struct {
     int8_t folder;                  /* app inside this folder, or -1 at the top.
                                      * For a folder line, which folder it is */
     bool   is_folder;
+    bool   hidden;                  /* a "hide" line: installed, not shown */
 } entry_t;
 
 AOS_BSS_PSRAM static entry_t           s_entries[MENU_ENTRIES_MAX];
@@ -141,6 +142,27 @@ static bool parse(const char *text, size_t len, bool fill, char *err, size_t err
                 snprintf(e->id, sizeof(e->id), "%s", id);
                 e->folder = (int8_t)open_folder;
                 e->is_folder = false;
+                e->hidden = false;
+            }
+            entries++;
+
+        } else if (strcmp(kw, "hide") == 0) {
+            char *id = next_token(&cur);
+            if (!id) {
+                return fail(err, err_len, line_no, "hide without an id");
+            }
+            if (strlen(id) >= MENU_ID_MAX) {
+                return fail(err, err_len, line_no, "app id too long");
+            }
+            if (entries >= MENU_ENTRIES_MAX) {
+                return fail(err, err_len, line_no, "too many lines");
+            }
+            if (fill) {
+                entry_t *e = &s_entries[entries];
+                snprintf(e->id, sizeof(e->id), "%s", id);
+                e->folder = -1;
+                e->is_folder = false;
+                e->hidden = true;
             }
             entries++;
 
@@ -203,6 +225,7 @@ static bool parse(const char *text, size_t len, bool fill, char *err, size_t err
                 e->id[0] = '\0';
                 e->folder = (int8_t)folders;
                 e->is_folder = true;
+                e->hidden = false;
             }
             open_folder = folders++;
             entries++;
@@ -214,7 +237,7 @@ static bool parse(const char *text, size_t len, bool fill, char *err, size_t err
             open_folder = -1;
 
         } else {
-            return fail(err, err_len, line_no, "unknown line (app, folder, end)");
+            return fail(err, err_len, line_no, "unknown line (app, folder, end, hide)");
         }
     }
 
@@ -290,14 +313,32 @@ static int app_index(const char *id)
     return -1;
 }
 
+/* A "hide" line wins over every other line for the same app, wherever it
+ * is in the file: the app counts as placed and shows nowhere. */
+static void mark_hidden(bool *placed)
+{
+    for (int i = 0; i < s_entry_count; i++) {
+        if (s_entries[i].hidden) {
+            int idx = app_index(s_entries[i].id);
+            if (idx >= 0) {
+                placed[idx] = true;
+            }
+        }
+    }
+}
+
 int aos_menu_root(aos_menu_item_t *out, int max)
 {
     /* Which registry slots the file already placed, inside a folder or not. */
     bool placed[AOS_MAX_APPS] = { false };
     int count = 0;
+    mark_hidden(placed);
 
     for (int i = 0; i < s_entry_count; i++) {
         const entry_t *e = &s_entries[i];
+        if (e->hidden) {
+            continue;
+        }
         if (e->is_folder) {
             if (count < max) {
                 out[count].app = NULL;
@@ -335,9 +376,10 @@ int aos_menu_folder_apps(int folder, const aos_app_t **out, int max)
      * file names twice shows only where the top level expects it. */
     bool placed[AOS_MAX_APPS] = { false };
     int count = 0;
+    mark_hidden(placed);
     for (int i = 0; i < s_entry_count; i++) {
         const entry_t *e = &s_entries[i];
-        if (e->is_folder) {
+        if (e->is_folder || e->hidden) {
             continue;
         }
         int idx = app_index(e->id);

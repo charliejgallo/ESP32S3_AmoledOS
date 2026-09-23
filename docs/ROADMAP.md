@@ -188,3 +188,57 @@ the first one is written.
 - **A2DP, AVRCP, HFP**: Bluetooth Classic, which the ESP32-S3 does not have.
 - **Location or health data**: neither phone exposes them over GATT; it
   would take a phone app for its own sake.
+
+## After v0.5.0: the launcher and Settings
+
+**Ideas, not scheduled.** Raised on 2026-09-22 while v0.5.0 (folders, the
+new Settings) was being tested. Each builds on something that already
+exists, which is why they are cheaper than they look.
+
+### Control centre on the watchface
+
+Swipe down on the watchface for Settings' six quick tiles and the
+brightness, without opening Settings. The tiles are already a component in
+`aos_app_settings.c` (`tile_new`, `tile_cb`, `tiles_paint`); what is missing
+is the gesture on the face (today a swipe down there does nothing) and a
+panel that slides over it like the notification overlay does. Done when the
+six tiles and the slider work from the face and the face underneath is not
+redrawn while the panel is up.
+
+### Reordering on the watch
+
+Long-press an icon to enter an edit mode, drag it to a new place, drop it on
+another app to make a folder, on a folder to put it inside. It writes the
+same `menu.txt` the portal writes (`aos_menu.h`), so the two never disagree.
+The hard part is the drag across a scrolling honeycomb and across pages
+built a few cells at a time (docs/MENU.md); the grid is the place to start.
+
+### Complications on the watchfaces
+
+Small readouts inside a face (steps, battery, next alarm, weather, the
+phone's battery) that the user chooses per face, the way watchOS does. The
+data exists (`aos_hal_steps_*`, `aos_hal_battery_read`, the alarm service,
+the weather app's cache); the faces would need slots, and Settings > Display
+a page to fill them.
+
+### Installing apps from a catalogue in the portal
+
+A page that lists the apps of the latest GitHub release with their icon and
+size, and installs one with a button: the watch downloads the `.so` (and its
+`.pak` parts, and its language packs) straight to the card. Today that is
+unzipping `apps.zip` by hand and uploading through Files. `aos_http.c`
+already does HTTPS; the release assets would need a small index file.
+
+### Updating the firmware from GitHub
+
+About this watch says "v0.5.1 is out" and installs it: the same OTA path as
+the portal's upload, fed from the release's `amoledos.bin` instead of a file
+chosen by hand, and on trial for 30 s like every OTA. It needs the same
+release index as the catalogue above.
+
+### Recent apps
+
+The last three or four apps opened, first in the launcher or as an automatic
+folder, so the apps used every day stay at hand without arranging anything.
+A small ring in the preferences, and one more kind of cell for
+`aos_menu_root()`.
