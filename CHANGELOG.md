@@ -3,6 +3,18 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.5.3 — 2026-09-23
+
+Monster Hop's menus, fixed.
+
+- **Monster Hop**: after playing a level, the world map and the title came
+  back blank (and Tommy's marker was gone). Going back to the menus freed
+  the level's world but kept its monsters and objects, about 2 MB, so the
+  map (1 MB, and as much again to unpack it) had no room to load. They are
+  freed now, and the next level loads them again. On the board the menus
+  have 3.0 MB free after a level, as when the game opens. Only
+  `monsterhop.so` changed.
+
 ## v0.5.2 — 2026-09-23
 
 The control centre's music row, fixed.
