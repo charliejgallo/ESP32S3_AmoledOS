@@ -289,6 +289,51 @@ typedef struct {
 
 bool aos_hal_power_info(aos_power_info_t *out);
 
+/* --------------------------------------------------------------------------
+ * System statistics and their history (aos_stats.c, v0.5.1)
+ *
+ * For Settings' Battery and Diagnostics pages. The HAL samples on its own,
+ * from the housekeeping task: the live values every second, a minute
+ * history for the last hour, and the battery every five minutes for the
+ * last 24 h, kept on the card so a restart does not wipe the graph.
+ * -------------------------------------------------------------------------- */
+
+typedef struct {
+    float    chip_c;            /* the ESP32-S3's own sensor; NAN unknown   */
+    float    pmu_c;             /* the AXP2101's die                        */
+    float    board_c;           /* the NTC on the board, by the PMU         */
+    uint32_t int_free, int_total, int_largest;    /* internal RAM, bytes    */
+    uint32_t psram_free, psram_total;
+    uint32_t exec_free, exec_total, exec_largest;  /* where apps' code goes  */
+    int      cpu_load[2];       /* percent per core over the last second, -1 unknown */
+} aos_sys_stats_t;
+
+bool aos_hal_sys_stats(aos_sys_stats_t *out);
+
+#define AOS_BATT_HIST_LEN   288         /* 24 h, one sample every 5 minutes */
+#define AOS_BATT_HIST_NONE  0xFF        /* no sample for that slot          */
+#define AOS_BATT_HIST_CHARGING 0x01     /* flags: was charging              */
+
+/* Oldest first, AOS_BATT_HIST_LEN slots ending now. Returns how many. */
+int  aos_hal_batt_history(uint8_t *pct, uint8_t *flags, int max);
+
+typedef enum {
+    AOS_HIST_CHIP_T = 0,        /* tenths of a degree C */
+    AOS_HIST_PMU_T,
+    AOS_HIST_BOARD_T,
+    AOS_HIST_INT_FREE_KB,
+    AOS_HIST_PSRAM_FREE_KB,
+    AOS_HIST_CPU0,              /* percent, averaged over the minute */
+    AOS_HIST_CPU1,
+    AOS_HIST_COUNT
+} aos_hist_t;
+
+#define AOS_MIN_HIST_LEN    60          /* one hour, one sample a minute */
+#define AOS_HIST_NONE       INT16_MIN
+
+/* Oldest first, AOS_MIN_HIST_LEN slots ending now. Returns how many. */
+int  aos_hal_minute_history(aos_hist_t which, int16_t *out, int max);
+
 /* What the PMU reports as it happens. Runs outside the LVGL task: a listener
  * that touches the UI takes aos_hal_lock() first. 'percent' is the battery at
  * the time of the event. */

@@ -2462,3 +2462,57 @@ bool aos_hal_ftm_responder(bool on) { (void)on; return false; }
 bool aos_hal_ftm_responder_info(uint8_t mac[6], uint8_t *channel) { (void)mac; (void)channel; return false; }
 bool aos_hal_ftm_measure(const uint8_t mac[6], uint8_t channel, uint8_t frames) { (void)mac; (void)channel; (void)frames; return false; }
 bool aos_hal_ftm_result(aos_ftm_result_t *out) { if (out) memset(out, 0, sizeof *out); return false; }
+
+/* --------------------------------------------------------------------------
+ * System statistics (aos_stats.c on the board): made-up but plausible, so
+ * Settings' Battery and Diagnostics pages can be designed here.
+ * -------------------------------------------------------------------------- */
+
+bool aos_hal_sys_stats(aos_sys_stats_t *out)
+{
+    if (!out) return false;
+    uint64_t t = aos_hal_uptime_ms();
+    out->chip_c  = 41.5f + (float)(t % 7000) / 7000.0f;
+    out->pmu_c   = 31.0f;
+    out->board_c = 27.2f;
+    out->int_total = 330 * 1024;  out->int_free = 147 * 1024;  out->int_largest = 92 * 1024;
+    out->psram_total = 8 * 1024 * 1024;  out->psram_free = 7420 * 1024;
+    out->exec_free = 104 * 1024;  out->exec_total = 168 * 1024;  out->exec_largest = 92 * 1024;
+    out->cpu_load[0] = 8 + (int)(t / 1000 % 5);
+    out->cpu_load[1] = 30 + (int)(t / 700 % 12);
+    return true;
+}
+
+int aos_hal_batt_history(uint8_t *pct, uint8_t *flags, int max)
+{
+    int n = max < AOS_BATT_HIST_LEN ? max : AOS_BATT_HIST_LEN;
+    for (int i = 0; i < n; i++) {
+        /* discharge for 10 h, charge for 2, discharge again; a gap in the middle */
+        int p, chg = 0;
+        if (i < 120)       p = 95 - i / 3;
+        else if (i < 144)  { p = 55 + (i - 120) * 2; chg = 1; }
+        else               p = 100 - (i - 144) / 4;
+        if (i >= 60 && i < 66) p = AOS_BATT_HIST_NONE;
+        if (pct)   pct[i] = (uint8_t)p;
+        if (flags) flags[i] = chg ? AOS_BATT_HIST_CHARGING : 0;
+    }
+    return n;
+}
+
+int aos_hal_minute_history(aos_hist_t which, int16_t *out, int max)
+{
+    int n = max < AOS_MIN_HIST_LEN ? max : AOS_MIN_HIST_LEN;
+    for (int i = 0; i < n; i++) {
+        switch (which) {
+        case AOS_HIST_CHIP_T:  out[i] = (int16_t)(395 + i / 3 + (i % 7)); break;
+        case AOS_HIST_PMU_T:   out[i] = (int16_t)(300 + i / 6); break;
+        case AOS_HIST_BOARD_T: out[i] = (int16_t)(268 + i / 12); break;
+        case AOS_HIST_INT_FREE_KB:   out[i] = (int16_t)(150 - (i % 9)); break;
+        case AOS_HIST_PSRAM_FREE_KB: out[i] = 7420; break;
+        case AOS_HIST_CPU0: out[i] = (int16_t)(6 + i % 8); break;
+        case AOS_HIST_CPU1: out[i] = (int16_t)(25 + (i * 7) % 30); break;
+        default: out[i] = AOS_HIST_NONE; break;
+        }
+    }
+    return n;
+}

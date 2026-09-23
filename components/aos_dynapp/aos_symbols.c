@@ -51,7 +51,6 @@ extern int aos_app_pato_get;
 extern int aos_app_pcremote_get;
 extern int aos_app_photos_get;
 extern int aos_app_pomodoro_get;
-extern int aos_app_power_get;
 extern int aos_app_remote_get;
 extern int aos_app_settings_get;
 extern int aos_app_stopwatch_get;
@@ -2845,7 +2844,6 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_app_pcremote_get),
     ESP_ELFSYM_EXPORT(aos_app_photos_get),
     ESP_ELFSYM_EXPORT(aos_app_pomodoro_get),
-    ESP_ELFSYM_EXPORT(aos_app_power_get),
     ESP_ELFSYM_EXPORT(aos_app_remote_get),
     ESP_ELFSYM_EXPORT(aos_app_settings_get),
     ESP_ELFSYM_EXPORT(aos_app_stopwatch_get),

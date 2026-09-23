@@ -91,8 +91,9 @@
  * keeps 1 KB of headroom over what was measured. Shrinking a stack is a better
  * deal than sending it to PSRAM: it frees internal RAM and pays no cache. */
 /* 4 K, not 3: measured at a 2,384 B peak with 688 B to spare (RAM audit,
- * 2026-09-12). */
-#define HK_STACK            4096
+ * 2026-09-12). 5 K since v0.5.1: aos_stats_tick() writes the battery history
+ * to the card from here, and a FAT write goes deep. */
+#define HK_STACK            5120
 
 
 /* --------------------------------------------------------------------------
@@ -3717,6 +3718,8 @@ static void power_watch(void)
 /* --------------------------------------------------------------------------
  * Background task: IMU, screen auto-dimming and wake on wrist raise.
  * -------------------------------------------------------------------------- */
+void aos_stats_tick(void);      /* aos_stats.c */
+
 static void housekeeping_task(void *arg)
 {
     (void)arg;
@@ -3735,6 +3738,7 @@ static void housekeeping_task(void *arg)
             pmu_irq_service();
         }
         pm_policy_apply();
+        aos_stats_tick();           /* Settings' graphs: aos_stats.c */
 
         /* How much stack each of our tasks has to spare, in bytes (in ESP-IDF
          * the high water mark comes in bytes, not words). Useful for deciding

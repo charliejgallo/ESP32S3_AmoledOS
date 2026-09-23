@@ -16,6 +16,27 @@ dragging the brightness never closes it. Built in 47-59 ms on the board.
   piece (`aos_quick`), so Settings and the control centre are the same code.
 - Eight more Material Design glyphs in Settings' icon font.
 
+**Battery and Diagnostics, in Settings.** The Battery app is removed and its
+figures moved into Settings, which gained bars and graphs.
+
+- **Battery** (was "Power"): the charge as a big number and a coloured bar,
+  the charger's stage or the time on battery, the time left, the last 24 hours
+  as a graph (discharging teal, charging green, gaps where the watch was off),
+  voltage, drain, charger, cycles and time on battery, then the four switches.
+  The first page's row says "66 % · 1h 35m".
+- **Diagnostics**: bars for internal RAM, PSRAM and apps' code memory, the
+  frequency and a bar per core, the chip's, PMU's and board's temperatures,
+  the last hour of load and temperature as graphs, and the uptime, boot reason
+  and the PMU's last power-on and power-off reasons.
+- New HAL API (`aos_hal_sys_stats`, `aos_hal_batt_history`,
+  `aos_hal_minute_history`, in `aos_stats.c`): sampled once a second from the
+  housekeeping task. The per-core load comes from FreeRTOS run-time stats,
+  now enabled; a JPEG decode benchmark measured 111.1-111.6 ms with them and
+  111.2-111.7 ms without. The ESP32-S3's own temperature sensor is read too.
+- The battery history is `data/battery24.bin` on the card (600 bytes),
+  written every half hour and on a clean restart.
+- The housekeeping task's stack went from 4 to 5 KB (peak use 2.3 KB).
+
 ## v0.5.0 — 2026-09-23
 
 The launcher in your order and a new Settings.

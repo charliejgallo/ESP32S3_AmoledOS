@@ -448,7 +448,8 @@ repeatable the point is; then the other firmware.
 | 5     | the published firmware, via `install_fw.sh` from the main checkout | the before figure |
 
 The recorder needs WiFi on the watch, so night 4 is the firmware's own
-`drain_pct_h` and `battery_minutes` read from the Battery app in the morning,
+`drain_pct_h` and `battery_minutes` read from the Battery app (a page of
+Settings since v0.5.1) in the morning,
 not the CSV.
 
 ## 8. Register cheat-sheet (the ones the firmware touches)
