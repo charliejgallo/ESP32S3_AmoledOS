@@ -3,7 +3,9 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.5.1 — 2026-09-23
+
+A control centre on the watchface, and Battery and Diagnostics in Settings.
 
 **Control centre.** A swipe down on the watchface pulls down a panel with
 the date, the watch's and the phone's battery, Settings' six quick tiles,

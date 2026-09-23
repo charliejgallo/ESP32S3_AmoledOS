@@ -1,7 +1,7 @@
 # AmoledOS
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
-368x448 AMOLED you can hold in your hand. Seven watchfaces, twenty-one
+368x448 AMOLED you can hold in your hand. Seven watchfaces, twenty
 built-in apps, thirty-four more loaded from the microSD as shared objects — one
 of them a Lua interpreter, so a text file on the card is an app too — a web
 portal, iPhone notifications over BLE, a link between two watches over ESP-NOW
@@ -527,7 +527,7 @@ components/
   aos_hal/            the single contract with the platform
   aos_board/          AXP2101, PCF85063A, QMI8658
   aos_ui/             launcher, watchfaces, navigation, theme, i18n
-  aos_apps/           the 21 built-in apps
+  aos_apps/           the 20 built-in apps
   aos_dynapp/         .so loader and symbol table
   aos_ble/            NimBLE: ANCS, AMS, pairing
   aos_web/            the web portal, embedded in the binary
