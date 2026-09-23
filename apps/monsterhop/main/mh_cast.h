@@ -69,6 +69,9 @@ bool mh_cast_hero(mh_cast_t *c, const mh_wear_t *w);
 /* the monsters and objects a level uses (frees the others) */
 bool mh_cast_level(mh_cast_t *c, const mh_level_t *lv);
 void mh_cast_free(mh_cast_t *c);
+/* the level's monsters and objects go (Tommy stays): back to the menus,
+ * whose pictures need that PSRAM; the next level loads them again */
+void mh_cast_level_free(mh_cast_t *c);
 
 /* names in the pack (functions, not extern tables: see the GLOB_DAT trap) */
 const char *mh_cap_name(int i);

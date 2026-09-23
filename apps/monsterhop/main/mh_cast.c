@@ -204,6 +204,19 @@ bool mh_cast_level(mh_cast_t *c, const mh_level_t *lv)
     return true;
 }
 
+void mh_cast_level_free(mh_cast_t *c)
+{
+    for (int k = 0; k < MON_N; k++) rig_free(&c->mon[k]);
+    rig_free(&c->bat);
+    rig_free(&c->scarab);
+    for (int i = 0; i < OB_N; i++) {
+        mh_anim_free(&c->ob[i]);
+        mh_anim_free(&c->ob_sh[i]);
+        mh_anim_free(&c->ob_gl[i]);
+    }
+    c->zone = -1;
+}
+
 void mh_cast_free(mh_cast_t *c)
 {
     rig_free(&c->body);

@@ -228,9 +228,16 @@ static void run_job(app_t *a, int j)
                     (unsigned)(uint32_t)(aos_hal_uptime_ms() - t0), (unsigned)(mh_art_bytes() / 1024), (unsigned)hp);
         break;
     case JOB_MENU_BACK:
-        /* the level goes, the map comes back */
+        /* the level goes, its monsters and objects too (2 MB: without that
+         * the map's 1 MB found no room and the menus came back blank), and
+         * the menus' pictures come back */
         level_free(a);
+        mh_cast_level_free(&a->cast);
         mh_ui_job(a, UJ_MENU);
+        aos_hal_heap_info(&hi, &hp);
+        aos_hal_log("mhop", "menus back in %u ms, map %s, art %u KB | psram %u",
+                    (unsigned)(uint32_t)(aos_hal_uptime_ms() - t0), a->ui_map.buf ? "ok" : "MISSING",
+                    (unsigned)(mh_art_bytes() / 1024), (unsigned)hp);
         a->job_ok = true;
         break;
     case JOB_OUTFIT:

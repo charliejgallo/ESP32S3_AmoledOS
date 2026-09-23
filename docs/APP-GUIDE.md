@@ -550,6 +550,11 @@ recipes of Golf and Turbo:
   in a level from 308 KB to 888 KB. The same exit must
   run from every way out of a level: the pause's "back to the map" skipped
   it and left the level loaded.
+- **And free the level before the menus.** The other way round too: going
+  back to the menus let go of the level's world but kept its monsters and
+  objects (2 MB), and the map's 1 MB found no room, so the menus came back
+  blank after the first level. The simulator never showed it; it has
+  memory to spare. Log whether each big picture loaded.
 - **More than 8 MB of art goes in parts.** The portal takes 8 MB per upload;
   the packer writes the pack in 7 MB parts (`x.pak`, `x.pak.1`...) and the
   reader treats them as one file, with one `read_at(offset)`.
