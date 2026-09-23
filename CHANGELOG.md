@@ -3,7 +3,9 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.5.2 — 2026-09-23
+
+The control centre's music row, fixed.
 
 - **Control centre**: the music row shows which app is playing ("Spotify",
   "Music") on one line instead of the track and artist, which did not fit

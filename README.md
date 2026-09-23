@@ -119,7 +119,7 @@ as a page of its own. The screen timeouts are settings now, and the menu and
 About pages carry a QR to the portal.
 
 **Control centre.** A swipe down on the watchface pulls down the six quick
-tiles, the brightness and the volume, the phone's music while something plays,
+tiles, the brightness and the volume, the phone's player while something plays,
 and a way into Settings; a swipe up puts it away. It opens in under 60 ms.
 
 <img src="docs/img/control-centre.png" width="220">

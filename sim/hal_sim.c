@@ -908,7 +908,7 @@ const char *aos_hal_media_peer(void)
 
 const char *aos_hal_media_player(void)
 {
-    return aos_hal_media_link() == AOS_MEDIA_CONNECTED ? "Musica" : "";
+    return aos_hal_media_link() == AOS_MEDIA_CONNECTED ? "Music" : "";
 }
 
 bool aos_hal_media_info(aos_media_info_t *out)
