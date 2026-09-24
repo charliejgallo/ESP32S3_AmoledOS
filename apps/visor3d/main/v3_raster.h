@@ -16,9 +16,11 @@ typedef struct {
 
 enum { V3_SOLID = 0, V3_WIRE, V3_MODES };
 
-/* Per-mesh scratch: the transformed vertices. */
+/* Per-mesh scratch: the transformed vertices, x y z side by side - one
+ * PSRAM cache line per corner instead of three (measured: most of a frame
+ * was the triangle loop waiting on memory). */
 typedef struct {
-    float *sx, *sy, *sz;
+    float *xyz;
     int    nv;
 } v3_scratch_t;
 

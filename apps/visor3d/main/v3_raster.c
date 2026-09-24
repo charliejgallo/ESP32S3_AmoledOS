@@ -46,11 +46,9 @@ static inline uint16_t be565(uint32_t r, uint32_t g, uint32_t b)
 
 bool v3_scratch_alloc(v3_scratch_t *s, int nv)
 {
-    s->sx = malloc((size_t)nv * sizeof(float));
-    s->sy = malloc((size_t)nv * sizeof(float));
-    s->sz = malloc((size_t)nv * sizeof(float));
+    s->xyz = malloc((size_t)nv * 3 * sizeof(float));
     s->nv = nv;
-    if (!s->sx || !s->sy || !s->sz) {
+    if (!s->xyz) {
         v3_scratch_free(s);
         return false;
     }
@@ -59,9 +57,7 @@ bool v3_scratch_alloc(v3_scratch_t *s, int nv)
 
 void v3_scratch_free(v3_scratch_t *s)
 {
-    free(s->sx);
-    free(s->sy);
-    free(s->sz);
+    free(s->xyz);
     memset(s, 0, sizeof *s);
 }
 
@@ -177,9 +173,10 @@ int v3_render(const v3_mesh_t *m, const v3_view_t *view, v3_scratch_t *s,
         float z2 = sp * v[1] + cp * z1;
         float d = CAM_D - z2;               /* distance from the camera */
         float k = f / d;
-        s->sx[i] = cx + x1 * k;
-        s->sy[i] = cy - y2 * k;
-        s->sz[i] = (d - (CAM_D - 1.0f)) * (65535.0f / 2.0f);
+        float *o = &s->xyz[i * 3];
+        o[0] = cx + x1 * k;
+        o[1] = cy - y2 * k;
+        o[2] = (d - (CAM_D - 1.0f)) * (65535.0f / 2.0f);
     }
 
     uint32_t c2 = cycles();
@@ -188,8 +185,9 @@ int v3_render(const v3_mesh_t *m, const v3_view_t *view, v3_scratch_t *s,
     bool cull = m->closed && view->mode == V3_SOLID;
     for (int t = 0; t < m->nt; t++) {
         uint32_t a = m->idx[t * 3], b = m->idx[t * 3 + 1], d = m->idx[t * 3 + 2];
-        float ax = s->sx[a], ay = s->sy[a], bx = s->sx[b], by = s->sy[b];
-        float dx = s->sx[d], dy = s->sy[d];
+        const float *pa = &s->xyz[a * 3], *pb = &s->xyz[b * 3], *pd = &s->xyz[d * 3];
+        float ax = pa[0], ay = pa[1], bx = pb[0], by = pb[1];
+        float dx = pd[0], dy = pd[1];
         /* off screen entirely: skip */
         float minx = ax < bx ? ax : bx, maxx = ax > bx ? ax : bx;
         if (dx < minx) minx = dx;
@@ -228,7 +226,7 @@ int v3_render(const v3_mesh_t *m, const v3_view_t *view, v3_scratch_t *s,
             line(fb, w, h, (int)bx, (int)by, (int)dx, (int)dy, c);
             line(fb, w, h, (int)dx, (int)dy, (int)ax, (int)ay, c);
         } else {
-            fill_tri(fb, zb, w, h, ax, ay, s->sz[a], bx, by, s->sz[b], dx, dy, s->sz[d], c);
+            fill_tri(fb, zb, w, h, ax, ay, pa[2], bx, by, pb[2], dx, dy, pd[2], c);
         }
         drawn++;
     }
