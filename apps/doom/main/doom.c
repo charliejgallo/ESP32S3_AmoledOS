@@ -95,6 +95,7 @@ typedef struct {
     int         fown[2];
     bool        hw_fire;            /* the side button, held */
     bool        btn_on[DP_BTN_N];   /* what Doom was last told */
+    uint32_t    btn_ms[DP_BTN_N];   /* when it went down */
 
     uint32_t    hw_press_ms;
     uint32_t    fps_ms, fps_frames, fps_blits, blits;
@@ -283,6 +284,16 @@ static void touch_cb(lv_event_t *e)
  * finger (or, for FIRE, the side button) holds it.
  * -------------------------------------------------------------------------- */
 
+/* Below the strip, the right of the pad is FIRE and the middle is USE by
+ * COLUMN, not only inside the drawn circles. With the stick pushed out the
+ * two thumbs end up on the ↗↙ diagonal, where the chip can hand the second
+ * finger the first one's height (docs/GESTURES.md): a tap on FIRE then
+ * arrives lower than the button, and used to fire nothing. Its column is
+ * what the chip still gets right. */
+#define USE_COL_X       (STICK_ZONE_W + 10)
+#define FIRE_COL_X      (BOXES[DP_BTN_FIRE].x - 4)
+#define MIN_PRESS_MS    70          /* two of Doom's tics: a quick tap is seen */
+
 static int claim(app_t *a, int x, int y, int other_owner)
 {
     int b = hit_button(x, y);
@@ -291,6 +302,12 @@ static int claim(app_t *a, int x, int y, int other_owner)
     }
     if (b >= 0) {
         return b;
+    }
+    if (y >= STICK_TOP - 6 && x >= FIRE_COL_X) {
+        return DP_BTN_FIRE;
+    }
+    if (y >= STICK_TOP - 6 && x >= USE_COL_X && other_owner == OWN_STICK) {
+        return DP_BTN_USE;
     }
     if (x < STICK_ZONE_W + 10 && y >= STICK_TOP - 6 && other_owner != OWN_STICK) {
         /* the base comes to the thumb, kept whole inside the pad */
@@ -320,9 +337,14 @@ static void pad_apply(app_t *a)
     if (a->hw_fire) {
         want[DP_BTN_FIRE] = true;
     }
+    uint32_t now = (uint32_t)aos_hal_uptime_ms();
     for (int b = 0; b < DP_BTN_N; b++) {
+        if (!want[b] && a->btn_on[b] && now - a->btn_ms[b] < MIN_PRESS_MS) {
+            want[b] = true;         /* held a moment longer; pad_poll comes back in 8 ms */
+        }
         if (want[b] != a->btn_on[b]) {
             a->btn_on[b] = want[b];
+            if (want[b]) a->btn_ms[b] = now;
             dp_button(b, want[b]);
             pad_lit(a, b, want[b]);
         }
