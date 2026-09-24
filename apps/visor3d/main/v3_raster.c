@@ -197,8 +197,12 @@ int v3_render(const v3_mesh_t *m, const v3_view_t *view, v3_scratch_t *s,
         if (dy < miny) miny = dy;
         if (dy > maxy) maxy = dy;
         if (maxy < 0 || miny >= h) continue;
-        /* a solid's back faces: clockwise on screen (y grows down) */
-        if (cull && (bx - ax) * (dy - ay) - (by - ay) * (dx - ax) <= 0) continue;
+        /* A solid's back faces. Wound outwards (counter-clockwise seen from
+         * outside, y up), a front face turns CLOCKWISE on a screen whose y
+         * grows down - a negative cross product. The first version skipped
+         * those and drew the solids from the inside, which a round model
+         * hides and a cube does not. */
+        if (cull && (bx - ax) * (dy - ay) - (by - ay) * (dx - ax) >= 0) continue;
 
         /* the face normal, rotated like the vertices */
         const float *nn = &m->fn[t * 3];

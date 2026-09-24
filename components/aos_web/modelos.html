@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Visor 3D</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  .lista { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+  .fila { background: var(--card); border-radius: 12px; padding: 10px 14px;
+          display: flex; align-items: center; gap: 12px; }
+  .fila b { font-weight: 500; flex: 1; font-family: ui-monospace, Menlo, monospace; word-break: break-all; }
+  .fila span { color: var(--dim); font-size: 13px; }
+  .fila button { padding: 7px 11px; font-size: 13px; border-radius: 9px; background: #3a2626; color: var(--red); }
+  .vacio { color: var(--dim); font-size: 14px; }
+
+  .agregar { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; margin-top: 8px; }
+  .panel { flex: 1 1 300px; min-width: 260px; background: var(--card); border-radius: 14px; padding: 14px 16px; }
+  .panel label { display: block; font-size: 13px; color: var(--dim); margin: 12px 0 6px; }
+  .panel input[type=file] { width: 100%; }
+  .panel input[type=range] { width: 100%; }
+  .panel output { color: var(--text); font-variant-numeric: tabular-nums; }
+  .panel .datos { font-size: 13.5px; color: var(--dim); margin-top: 12px; line-height: 1.6; white-space: pre-line; }
+  .panel .datos.mal { color: var(--red); }
+  .acciones { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .vista { flex: 0 1 320px; }
+  .vista canvas { width: 100%; max-width: 320px; aspect-ratio: 1; display: block; border-radius: 14px;
+                  background: #0b0d14; touch-action: none; cursor: grab; }
+  .vista p { color: var(--dim); font-size: 12.5px; margin: 6px 0 0; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top"><h1 data-t="titulo">Visor 3D</h1></div>
+  <p class="sub" data-t="bajada">Modelos para la app Visor 3D. Un STL se puede subir tal cual: el
+     reloj lo reduce solo. OBJ y GLB se convierten acá, en el navegador, con sus colores, y se
+     guardan en el reloj ya reducidos.</p>
+
+  <nav class="paginas"></nav>
+
+  <h2 data-t="h_reloj">En el reloj</h2>
+  <div class="lista" id="lista"></div>
+  <p class="vacio" id="vacio" data-t="sin_modelos" hidden>Todavía no hay modelos en el reloj.</p>
+
+  <h2 data-t="h_agregar">Agregar un modelo</h2>
+  <div class="agregar">
+    <div class="panel">
+      <label data-t="l_archivo">STL, OBJ (con su .mtl, si tiene) o GLB</label>
+      <input type="file" id="archivo" multiple accept=".stl,.obj,.mtl,.glb">
+      <label><span data-t="l_tope">Triángulos como máximo</span>: <output id="tope-v">12000</output></label>
+      <input type="range" id="tope" min="2000" max="24000" step="1000" value="12000">
+      <label data-t="l_color">Color, si el archivo no trae</label>
+      <input type="color" id="color" value="#a8b8d0">
+      <div class="datos" id="datos"></div>
+      <div class="acciones">
+        <button id="subir" disabled data-t="btn_subir">Convertir y guardar en el reloj</button>
+        <button class="sec" id="crudo" disabled hidden data-t="btn_crudo">Subir el STL tal cual</button>
+      </div>
+    </div>
+    <div class="vista">
+      <canvas id="previa" width="320" height="320"></canvas>
+      <p data-t="l_previa">Vista previa: arrastrá para girar. Es lo que va a ir al reloj.</p>
+    </div>
+  </div>
+
+  <p class="pie" data-t="pie">Los modelos viven en /3d de la tarjeta. Menos triángulos es más
+     fluido en el reloj: unos 12 000 se giran a unos 20-30 cuadros por segundo. De los GLB se toma
+     el color base de cada material; las texturas no.</p>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+/* El firmware no sabe nada de 3D: guarda los bytes con /api/upload?dir=3d. Todo el trabajo -leer
+   STL, OBJ y GLB, soldar, reducir y escribir el .m3d- se hace aca, con la misma idea que usa el
+   reloj con un STL grande (agrupar vertices en una grilla sobre la caja del modelo), para que lo
+   que se ve en la vista previa sea lo que va a dibujar el reloj.
+
+   M3D1: "M3D1", nv, nt, flags (uint32 LE); nv*3 float32; nt*3 uint32; si flags&1, nt uint16 RGB565.
+   Y hacia arriba, como glTF. */
+const DIR = "3d";
+const $ = aos.$;
+
+const TR = {
+  en: {
+    titulo: "3D viewer",
+    bajada: "Models for the 3D Viewer app. An STL can go up as it is: the watch reduces it by itself. " +
+            "OBJ and GLB are converted here, in the browser, with their colours, and saved to the watch " +
+            "already reduced.",
+    h_reloj: "On the watch", sin_modelos: "No models on the watch yet.",
+    h_agregar: "Add a model", l_archivo: "STL, OBJ (with its .mtl, if it has one) or GLB",
+    l_tope: "Triangles at most", l_color: "Colour, if the file has none",
+    btn_subir: "Convert and save to the watch", btn_crudo: "Upload the STL as it is",
+    l_previa: "Preview: drag to turn it. It is what will go to the watch.",
+    pie: "The models live in /3d on the card. Fewer triangles is smoother on the watch: some 12 000 " +
+         "turn at about 20-30 frames a second. From a GLB each material's base colour is taken; " +
+         "textures are not.",
+    borrar: "Delete", conf_borrar: "Delete this model from the watch?", leyendo: "Reading...",
+    reduciendo: "Reducing...", subiendo: "Saving to the watch...", listo: "Saved: ",
+    err_placa: "No answer from the watch", err_formato: "Could not read it: ",
+    datos: "{n} triangles in the file → {m} after reducing, {v} vertices{c}",
+    con_color: ", with colours", sin_nada: "No triangles in it", draco: "compressed GLB (Draco) is not supported"
+  },
+  de: {
+    titulo: "3D-Viewer",
+    bajada: "Modelle für die App 3D-Viewer. Eine STL kann so hochgeladen werden: die Uhr reduziert sie " +
+            "selbst. OBJ und GLB werden hier im Browser mit ihren Farben umgewandelt und schon reduziert " +
+            "auf der Uhr gespeichert.",
+    h_reloj: "Auf der Uhr", sin_modelos: "Noch keine Modelle auf der Uhr.",
+    h_agregar: "Modell hinzufügen", l_archivo: "STL, OBJ (mit .mtl, falls vorhanden) oder GLB",
+    l_tope: "Höchstens Dreiecke", l_color: "Farbe, falls die Datei keine hat",
+    btn_subir: "Umwandeln und auf der Uhr speichern", btn_crudo: "STL unverändert hochladen",
+    l_previa: "Vorschau: ziehen zum Drehen. So kommt es auf die Uhr.",
+    pie: "Die Modelle liegen in /3d auf der Karte. Weniger Dreiecke laufen flüssiger: etwa 12 000 " +
+         "drehen sich mit rund 20-30 Bildern pro Sekunde. Aus einer GLB wird die Grundfarbe jedes " +
+         "Materials übernommen, Texturen nicht.",
+    borrar: "Löschen", conf_borrar: "Dieses Modell von der Uhr löschen?", leyendo: "Lese...",
+    reduciendo: "Reduziere...", subiendo: "Speichere auf der Uhr...", listo: "Gespeichert: ",
+    err_placa: "Keine Antwort von der Uhr", err_formato: "Nicht lesbar: ",
+    datos: "{n} Dreiecke in der Datei → {m} nach dem Reduzieren, {v} Punkte{c}",
+    con_color: ", mit Farben", sin_nada: "Keine Dreiecke darin", draco: "komprimiertes GLB (Draco) wird nicht unterstützt"
+  }
+};
+const ES = {
+  borrar: "Borrar", conf_borrar: "¿Borrar este modelo del reloj?", leyendo: "Leyendo...",
+  reduciendo: "Reduciendo...", subiendo: "Guardando en el reloj...", listo: "Guardado: ",
+  err_placa: "El reloj no contesta", err_formato: "No se pudo leer: ",
+  datos: "{n} triángulos en el archivo → {m} después de reducir, {v} vértices{c}",
+  con_color: ", con colores", sin_nada: "No tiene triángulos", draco: "GLB comprimido (Draco) no está soportado"
+};
+function t(k) { const v = aos.t(k); return v === k && ES[k] ? ES[k] : v; }
+
+/* ------------------------------------------------------------ la lista -- */
+
+async function cargarLista() {
+  const cont = $("lista");
+  cont.innerHTML = "";
+  let arch = [];
+  try {
+    const r = await fetch("/api/list?dir=" + DIR + "&_=" + Date.now());
+    const j = await r.json();
+    arch = (j.files || []).filter(f => /\.(stl|m3d)$/i.test(f.name));
+  } catch (e) { arch = []; }
+  $("vacio").hidden = arch.length > 0;
+  for (const f of arch) {
+    const fila = document.createElement("div");
+    fila.className = "fila";
+    const kb = f.size >= 1048576 ? (f.size / 1048576).toFixed(1) + " MB" : Math.round(f.size / 1024) + " KB";
+    fila.innerHTML = "<b></b><span></span><button></button>";
+    fila.querySelector("b").textContent = f.name;
+    fila.querySelector("span").textContent = kb;
+    const b = fila.querySelector("button");
+    b.textContent = t("borrar");
+    b.onclick = async () => {
+      if (!confirm(t("conf_borrar"))) return;
+      await fetch("/api/delete?dir=" + DIR + "&name=" + encodeURIComponent(f.name), { method: "POST" });
+      cargarLista();
+    };
+    cont.appendChild(fila);
+  }
+}
+
+/* ---------------------------------------------------------- los lectores -- */
+/* Todos devuelven { pos: Float32Array (x,y,z por esquina, 9 por triangulo), col: Uint16Array|null
+   (RGB565 por triangulo) }, Y hacia arriba. */
+
+function rgb565(r, g, b) {             /* 0..1 */
+  const c = v => Math.max(0, Math.min(255, Math.round(v * 255)));
+  return ((c(r) >> 3) << 11) | ((c(g) >> 2) << 5) | (c(b) >> 3);
+}
+
+function leerSTL(buf) {
+  const dv = new DataView(buf);
+  const n = buf.byteLength >= 84 ? dv.getUint32(80, true) : 0;
+  const pos = [];
+  if (84 + n * 50 === buf.byteLength) {
+    const out = new Float32Array(n * 9);
+    for (let i = 0; i < n; i++) {
+      const o = 84 + i * 50 + 12;
+      for (let k = 0; k < 3; k++) {
+        const x = dv.getFloat32(o + k * 12, true), y = dv.getFloat32(o + k * 12 + 4, true),
+              z = dv.getFloat32(o + k * 12 + 8, true);
+        out[i * 9 + k * 3] = x; out[i * 9 + k * 3 + 1] = z; out[i * 9 + k * 3 + 2] = -y;  /* Z arriba -> Y */
+      }
+    }
+    return { pos: out, col: null };
+  }
+  const txt = new TextDecoder().decode(buf);
+  const re = /vertex\s+(\S+)\s+(\S+)\s+(\S+)/g;
+  let m;
+  while ((m = re.exec(txt))) pos.push(+m[1], +m[3], -m[2]);
+  pos.length -= pos.length % 9;         /* un triangulo a medias al final: afuera */
+  return { pos: new Float32Array(pos), col: null };
+}
+
+function leerMTL(txt) {
+  const mats = {};
+  let cur = null;
+  for (const l of txt.split(/\r?\n/)) {
+    const p = l.trim().split(/\s+/);
+    if (p[0] === "newmtl") { cur = p.slice(1).join(" "); mats[cur] = null; }
+    else if (p[0] === "Kd" && cur !== null) mats[cur] = [+p[1], +p[2], +p[3]];
+  }
+  return mats;
+}
+
+function leerOBJ(txt, mats) {
+  const v = [], pos = [], col = [];
+  let color = null, alguno = false;
+  for (const l of txt.split(/\r?\n/)) {
+    if (l.startsWith("v ")) {
+      const p = l.trim().split(/\s+/);
+      v.push([+p[1], +p[2], +p[3]]);
+    } else if (l.startsWith("usemtl")) {
+      const k = l.trim().split(/\s+/).slice(1).join(" ");
+      color = mats && mats[k] ? mats[k] : null;
+    } else if (l.startsWith("f ")) {
+      const idx = l.trim().split(/\s+/).slice(1).map(s => {
+        const i = parseInt(s.split("/")[0], 10);
+        return i < 0 ? v.length + i : i - 1;
+      });
+      for (let k = 1; k + 1 < idx.length; k++) {         /* abanico: poligono -> triangulos */
+        for (const i of [idx[0], idx[k], idx[k + 1]]) {
+          const p = v[i] || [0, 0, 0];
+          pos.push(p[0], p[1], p[2]);
+        }
+        col.push(color ? rgb565(color[0], color[1], color[2]) : 0xFFFF);
+        if (color) alguno = true;
+      }
+    }
+  }
+  return { pos: new Float32Array(pos), col: alguno ? Uint16Array.from(col) : null };
+}
+
+/* glTF 2.0 binario: la escena con sus transformaciones, cada primitiva de triangulos, y el color
+   base del material (lineal en glTF: se pasa a sRGB para la pantalla). */
+function leerGLB(buf) {
+  const dv = new DataView(buf);
+  if (dv.getUint32(0, true) !== 0x46546C67) throw new Error("GLB?");
+  let off = 12, json = null, bin = null;
+  while (off < buf.byteLength) {
+    const len = dv.getUint32(off, true), tipo = dv.getUint32(off + 4, true);
+    if (tipo === 0x4E4F534A) json = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, off + 8, len)));
+    else if (tipo === 0x004E4942) bin = new DataView(buf, off + 8, len);
+    off += 8 + len;
+  }
+  if (!json || !bin) throw new Error("GLB?");
+  if ((json.extensionsUsed || []).includes("KHR_draco_mesh_compression")) throw new Error(t("draco"));
+
+  const accessor = (i) => {
+    const a = json.accessors[i], bv = json.bufferViews[a.bufferView];
+    const n = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 }[a.type];
+    const tam = { 5126: 4, 5125: 4, 5123: 2, 5121: 1 }[a.componentType];
+    const stride = bv.byteStride || n * tam, base = (bv.byteOffset || 0) + (a.byteOffset || 0);
+    const out = new Array(a.count * n);
+    for (let k = 0; k < a.count; k++)
+      for (let c = 0; c < n; c++) {
+        const o = base + k * stride + c * tam;
+        out[k * n + c] = a.componentType === 5126 ? bin.getFloat32(o, true) :
+                         a.componentType === 5125 ? bin.getUint32(o, true) :
+                         a.componentType === 5123 ? bin.getUint16(o, true) : bin.getUint8(o);
+      }
+    return out;
+  };
+  const mul = (a, b) => {                /* 4x4, columnas */
+    const r = new Array(16).fill(0);
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++)
+      for (let k = 0; k < 4; k++) r[j * 4 + i] += a[k * 4 + i] * b[j * 4 + k];
+    return r;
+  };
+  const local = (nd) => {
+    if (nd.matrix) return nd.matrix.slice();
+    const [tx, ty, tz] = nd.translation || [0, 0, 0], [x, y, z, w] = nd.rotation || [0, 0, 0, 1],
+          [sx, sy, sz] = nd.scale || [1, 1, 1];
+    return [(1 - 2 * (y * y + z * z)) * sx, (2 * (x * y + z * w)) * sx, (2 * (x * z - y * w)) * sx, 0,
+            (2 * (x * y - z * w)) * sy, (1 - 2 * (x * x + z * z)) * sy, (2 * (y * z + x * w)) * sy, 0,
+            (2 * (x * z + y * w)) * sz, (2 * (y * z - x * w)) * sz, (1 - 2 * (x * x + y * y)) * sz, 0,
+            tx, ty, tz, 1];
+  };
+  const srgb = v => Math.pow(Math.max(0, v), 1 / 2.2);
+  const pos = [], col = [];
+  let alguno = false;
+  const visitar = (ni, padre) => {
+    const nd = json.nodes[ni], m = mul(padre, local(nd));
+    if (nd.mesh !== undefined) {
+      for (const pr of json.meshes[nd.mesh].primitives) {
+        if (pr.mode !== undefined && pr.mode !== 4) continue;
+        if (pr.attributes.POSITION === undefined) continue;
+        const p = accessor(pr.attributes.POSITION);
+        const idx = pr.indices !== undefined ? accessor(pr.indices) : [...Array(p.length / 3).keys()];
+        let c = 0xFFFF;
+        const mat = pr.material !== undefined ? json.materials[pr.material] : null;
+        const f = mat && mat.pbrMetallicRoughness && mat.pbrMetallicRoughness.baseColorFactor;
+        if (f) { c = rgb565(srgb(f[0]), srgb(f[1]), srgb(f[2])); alguno = true; }
+        for (let k = 0; k + 2 < idx.length; k += 3) {
+          for (const i of [idx[k], idx[k + 1], idx[k + 2]]) {
+            const x = p[i * 3], y = p[i * 3 + 1], z = p[i * 3 + 2];
+            pos.push(m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x + m[5] * y + m[9] * z + m[13],
+                     m[2] * x + m[6] * y + m[10] * z + m[14]);
+          }
+          col.push(c);
+        }
+      }
+    }
+    for (const h of nd.children || []) visitar(h, m);
+  };
+  const escena = json.scenes ? json.scenes[json.scene || 0] : { nodes: json.nodes.map((_, i) => i) };
+  const I = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  for (const n of escena.nodes) visitar(n, I);
+  return { pos: new Float32Array(pos), col: alguno ? Uint16Array.from(col) : null };
+}
+
+/* ------------------------------------------------ soldar y reducir -- */
+/* Agrupar las esquinas en una grilla de G celdas por lado sobre la caja: las que caen en la misma
+   celda son un vertice (su promedio), y un triangulo con dos esquinas en la misma celda desaparece.
+   Con G grande solo suelda; con G chico reduce. Se busca el G mas fino que no pase del tope. */
+function agrupar(src, G) {
+  const pos = src.pos, nt = pos.length / 9;
+  let lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < pos.length; i += 3)
+    for (let a = 0; a < 3; a++) { lo[a] = Math.min(lo[a], pos[i + a]); hi[a] = Math.max(hi[a], pos[i + a]); }
+  const inv = [0, 1, 2].map(a => hi[a] > lo[a] ? G / (hi[a] - lo[a]) : 0);
+  const celdas = new Map(), sum = [], idx = [], col = [];
+  const celda = (i) => {
+    const q = [0, 1, 2].map(a => Math.min(G - 1, Math.max(0, Math.floor((pos[i + a] - lo[a]) * inv[a]))));
+    const k = (q[0] * 4096 + q[1]) * 4096 + q[2];
+    let c = celdas.get(k);
+    if (c === undefined) { c = sum.length / 4; celdas.set(k, c); sum.push(0, 0, 0, 0); }
+    sum[c * 4] += pos[i]; sum[c * 4 + 1] += pos[i + 1]; sum[c * 4 + 2] += pos[i + 2]; sum[c * 4 + 3]++;
+    return c;
+  };
+  for (let t = 0; t < nt; t++) {
+    const a = celda(t * 9), b = celda(t * 9 + 3), d = celda(t * 9 + 6);
+    if (a === b || b === d || a === d) continue;
+    idx.push(a, b, d);
+    if (src.col) col.push(src.col[t]);
+  }
+  const nv = sum.length / 4, v = new Float32Array(nv * 3);
+  for (let c = 0; c < nv; c++) for (let a = 0; a < 3; a++) v[c * 3 + a] = sum[c * 4 + a] / sum[c * 4 + 3];
+  return { v, idx: Uint32Array.from(idx), col: src.col ? Uint16Array.from(col) : null, nt: idx.length / 3 };
+}
+
+function reducir(src, tope) {
+  const nt = src.pos.length / 9;
+  if (nt <= tope) return agrupar(src, 4096);
+  let bajo = 8, alto = 4096, mejor = null;
+  for (let it = 0; it < 12 && bajo <= alto; it++) {      /* busqueda binaria sobre G */
+    const G = Math.floor((bajo + alto) / 2), r = agrupar(src, G);
+    if (r.nt <= tope) { mejor = r; bajo = G + 1; } else alto = G - 1;
+  }
+  return mejor || agrupar(src, 8);
+}
+
+function aM3D(m, colorDefecto) {
+  const nv = m.v.length / 3, nt = m.idx.length / 3;
+  let col = m.col;
+  if (col) col = col.map(c => c === 0xFFFF ? colorDefecto : c);
+  else if (colorDefecto !== null) col = new Uint16Array(nt).fill(colorDefecto);
+  const buf = new ArrayBuffer(16 + nv * 12 + nt * 12 + (col ? nt * 2 : 0));
+  const dv = new DataView(buf);
+  [0x4D, 0x33, 0x44, 0x31].forEach((b, i) => dv.setUint8(i, b));
+  dv.setUint32(4, nv, true); dv.setUint32(8, nt, true); dv.setUint32(12, col ? 1 : 0, true);
+  let o = 16;
+  for (let i = 0; i < nv * 3; i++, o += 4) dv.setFloat32(o, m.v[i], true);
+  for (let i = 0; i < nt * 3; i++, o += 4) dv.setUint32(o, m.idx[i], true);
+  if (col) for (let i = 0; i < nt; i++, o += 2) dv.setUint16(o, col[i], true);
+  return buf;
+}
+
+/* ------------------------------------------------------ la vista previa -- */
+/* Pintor con triangulos ordenados por profundidad, la misma luz que el reloj. */
+let modelo = null, yaw = 0.6, pitch = 0.35, girando = true;
+function dibujar() {
+  const cv = $("previa"), g = cv.getContext("2d"), W = cv.width;
+  g.fillStyle = "#0b0d14"; g.fillRect(0, 0, W, W);
+  if (!modelo) return;
+  const { v, idx, col } = modelo, nv = v.length / 3, nt = idx.length / 3;
+  let cx = 0, cy = 0, cz = 0, r = 0;
+  for (let i = 0; i < nv; i++) { cx += v[i * 3]; cy += v[i * 3 + 1]; cz += v[i * 3 + 2]; }
+  cx /= nv; cy /= nv; cz /= nv;
+  for (let i = 0; i < nv; i++) r = Math.max(r, Math.hypot(v[i * 3] - cx, v[i * 3 + 1] - cy, v[i * 3 + 2] - cz));
+  const cyw = Math.cos(yaw), syw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const p = new Float32Array(nv * 3), f = W * 0.36 * 3;
+  for (let i = 0; i < nv; i++) {
+    const x = (v[i * 3] - cx) / r, y = (v[i * 3 + 1] - cy) / r, z = (v[i * 3 + 2] - cz) / r;
+    const x1 = cyw * x + syw * z, z1 = -syw * x + cyw * z, y2 = cp * y - sp * z1, z2 = sp * y + cp * z1;
+    const d = 3 - z2;
+    p[i * 3] = W / 2 + x1 * f / d; p[i * 3 + 1] = W / 2 - y2 * f / d; p[i * 3 + 2] = d;
+  }
+  const orden = new Uint32Array(nt).map((_, i) => i);
+  const prof = new Float32Array(nt);
+  for (let t = 0; t < nt; t++) prof[t] = p[idx[t * 3] * 3 + 2] + p[idx[t * 3 + 1] * 3 + 2] + p[idx[t * 3 + 2] * 3 + 2];
+  orden.sort((a, b) => prof[b] - prof[a]);
+  const base = parseInt($("color").value.slice(1), 16);
+  for (const t of orden) {
+    const a = idx[t * 3] * 3, b = idx[t * 3 + 1] * 3, d = idx[t * 3 + 2] * 3;
+    const ux = p[b] - p[a], uy = p[b + 1] - p[a + 1], vx = p[d] - p[a], vy = p[d + 1] - p[a + 1];
+    /* la luz del reloj: de frente mas un poco de arriba, las dos caras */
+    const ax = v[b] - v[a], ay = v[b + 1] - v[a + 1], az = v[b + 2] - v[a + 2];
+    const bx = v[d] - v[a], by = v[d + 1] - v[a + 1], bz = v[d + 2] - v[a + 2];
+    let nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+    const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+    const nz1 = -syw * nx + cyw * nz, ny2 = cp * ny - sp * nz1, nz2 = sp * ny + cp * nz1;
+    const li = Math.min(1, 0.2 + 0.7 * Math.abs(nz2) + 0.15 * Math.max(0, ny2));
+    let rr, gg, bb;
+    const c = col && col[t] !== 0xFFFF ? col[t] : null;
+    if (c !== null) { rr = ((c >> 11) & 31) * 8.2; gg = ((c >> 5) & 63) * 4.05; bb = (c & 31) * 8.2; }
+    else { rr = base >> 16; gg = (base >> 8) & 255; bb = base & 255; }
+    g.fillStyle = "rgb(" + (rr * li | 0) + "," + (gg * li | 0) + "," + (bb * li | 0) + ")";
+    g.beginPath(); g.moveTo(p[a], p[a + 1]); g.lineTo(p[b], p[b + 1]); g.lineTo(p[d], p[d + 1]);
+    g.closePath(); g.fill();
+    if (Math.abs(ux * vy - uy * vx) < 40) { g.strokeStyle = g.fillStyle; g.lineWidth = 0.6; g.stroke(); }
+  }
+}
+setInterval(() => { if (girando && modelo) { yaw += 0.03; dibujar(); } }, 90);
+(function () {
+  const cv = $("previa");
+  let x0 = null, y0 = null;
+  cv.addEventListener("pointerdown", e => { x0 = e.clientX; y0 = e.clientY; girando = false; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointermove", e => {
+    if (x0 === null) return;
+    yaw += (e.clientX - x0) * 0.01; pitch += (e.clientY - y0) * 0.01; x0 = e.clientX; y0 = e.clientY; dibujar();
+  });
+  cv.addEventListener("pointerup", () => { x0 = null; });
+})();
+
+/* --------------------------------------------------------- el formulario -- */
+let fuente = null, nombre = "", stlCrudo = null;
+
+async function leerArchivos() {
+  const fs = [...$("archivo").files];
+  const datos = $("datos");
+  datos.className = "datos";
+  fuente = null; modelo = null; stlCrudo = null;
+  $("subir").disabled = true; $("crudo").hidden = true; $("crudo").disabled = true;
+  if (!fs.length) { datos.textContent = ""; dibujar(); return; }
+  datos.textContent = t("leyendo");
+  try {
+    const mtl = fs.find(f => /\.mtl$/i.test(f.name));
+    const m = fs.find(f => /\.(stl|obj|glb)$/i.test(f.name));
+    if (!m) throw new Error("?");
+    nombre = m.name.replace(/\.[^.]+$/, "").toLowerCase().replace(/[^a-z0-9_-]+/g, "_").slice(0, 40) || "modelo";
+    const ext = m.name.split(".").pop().toLowerCase();
+    if (ext === "stl") { stlCrudo = await m.arrayBuffer(); fuente = leerSTL(stlCrudo); }
+    else if (ext === "obj") fuente = leerOBJ(await m.text(), mtl ? leerMTL(await mtl.text()) : null);
+    else fuente = leerGLB(await m.arrayBuffer());
+    if (!fuente.pos.length) throw new Error(t("sin_nada"));
+    reprocesar();
+    $("subir").disabled = false;
+    if (stlCrudo) { $("crudo").hidden = false; $("crudo").disabled = false; }
+  } catch (e) {
+    datos.className = "datos mal";
+    datos.textContent = t("err_formato") + (e.message || e);
+    dibujar();
+  }
+}
+
+function reprocesar() {
+  if (!fuente) return;
+  const tope = +$("tope").value;
+  $("tope-v").textContent = tope;
+  modelo = reducir(fuente, tope);
+  $("datos").textContent = t("datos").replace("{n}", fuente.pos.length / 9).replace("{m}", modelo.nt)
+      .replace("{v}", modelo.v.length / 3).replace("{c}", fuente.col ? t("con_color") : "");
+  girando = true;
+  dibujar();
+}
+
+async function subir(cuerpo, archivo) {
+  const datos = $("datos");
+  datos.className = "datos";
+  datos.textContent = t("subiendo");
+  try {
+    const r = await fetch("/api/upload?dir=" + DIR + "&name=" + encodeURIComponent(archivo),
+                          { method: "POST", body: cuerpo });
+    if (!r.ok) throw new Error(await r.text());
+    datos.textContent = t("listo") + archivo;
+    cargarLista();
+  } catch (e) {
+    datos.className = "datos mal";
+    datos.textContent = t("err_placa") + " " + (e.message || "");
+  }
+}
+
+$("archivo").addEventListener("change", leerArchivos);
+$("tope").addEventListener("input", () => { $("tope-v").textContent = $("tope").value; });
+$("tope").addEventListener("change", reprocesar);
+$("color").addEventListener("input", dibujar);
+$("subir").addEventListener("click", () => {
+  const c = parseInt($("color").value.slice(1), 16);
+  const def = rgb565((c >> 16) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255);
+  subir(aM3D(modelo, fuente.col || $("color").value !== "#a8b8d0" ? def : null), nombre + ".m3d");
+});
+$("crudo").addEventListener("click", () => { if (stlCrudo) subir(stlCrudo, nombre + ".stl"); });
+
+aos.init(TR).then(() => { cargarLista(); dibujar(); });
+</script>
+</body>
+</html>

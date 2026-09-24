@@ -40,6 +40,8 @@ extern const uint8_t wifi_html_start[]   asm("_binary_wifi_html_start");
 extern const uint8_t wifi_html_end[]     asm("_binary_wifi_html_end");
 extern const uint8_t clima_html_start[]  asm("_binary_clima_html_start");
 extern const uint8_t clima_html_end[]    asm("_binary_clima_html_end");
+extern const uint8_t modelos_html_start[] asm("_binary_modelos_html_start");
+extern const uint8_t modelos_html_end[]   asm("_binary_modelos_html_end");
 extern const uint8_t pixel_html_start[]  asm("_binary_pixel_html_start");
 extern const uint8_t pixel_html_end[]    asm("_binary_pixel_html_end");
 extern const uint8_t pato_html_start[]   asm("_binary_pato_html_start");
@@ -182,6 +184,15 @@ static const char *resolve_dir(const char *dir)
             return NULL;
         }
         snprintf(path, sizeof(path), "%s/lua", root);
+    } else if (strcmp(dir, "3d") == 0) {
+        /* The 3D viewer's models (.stl, .m3d), on the card only (v0.6.0).
+         * The /3d page converts OBJ and GLB in the browser and uploads the
+         * result here; the firmware never learns the format either. */
+        const char *root = aos_hal_path_sd_root();
+        if (!root) {
+            return NULL;
+        }
+        snprintf(path, sizeof(path), "%s/3d", root);
     } else if (strcmp(dir, "sd") == 0 || strncmp(dir, "sd/", 3) == 0 ||
                strcmp(dir, "usb") == 0 || strncmp(dir, "usb/", 4) == 0) {
         /* The explorer: any folder of the card, or of the pendrive in host
@@ -601,6 +612,11 @@ static esp_err_t upload_handler(httpd_req_t *req)
     /* Same for /lua: a script written in the browser before the app has ever
      * been opened on the watch. */
     if (strstr(dir_path, "/lua") != NULL) {
+        mkdir(dir_path, 0777);
+    }
+    /* Same for /3d: a model converted in the browser before the viewer was
+     * ever opened on the watch. */
+    if (strstr(dir_path, "/3d") != NULL) {
         mkdir(dir_path, 0777);
     }
     /* And /icons: the first icon dropped from /iconos creates the folder. */
@@ -1644,6 +1660,16 @@ static esp_err_t pixel_page_handler(httpd_req_t *req)
     httpd_resp_set_type(req, "text/html; charset=utf-8");
     return httpd_resp_send(req, (const char *)pixel_html_start,
                            pixel_html_end - pixel_html_start - 1);
+}
+
+/* /3d: the 3D viewer's models (v0.6.0). Like /pixel, the page is the whole
+ * feature: it reads STL, OBJ and GLB in the browser, welds and reduces them
+ * to the viewer's budget and uploads an .m3d with dir=3d. */
+static esp_err_t modelos_page_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    return httpd_resp_send(req, (const char *)modelos_html_start,
+                           modelos_html_end - modelos_html_start - 1);
 }
 
 /* /pato: same idea as /pixel. The page is the whole editor of the Pato goma
@@ -3194,6 +3220,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/clima",   .method = HTTP_GET,  .handler = clima_get_handler },
         { .uri = "/api/clima",   .method = HTTP_POST, .handler = clima_set_handler },
         { .uri = "/pixel",       .method = HTTP_GET,  .handler = pixel_page_handler },
+        { .uri = "/3d",          .method = HTTP_GET,  .handler = modelos_page_handler },
         { .uri = "/pato",        .method = HTTP_GET,  .handler = pato_page_handler },
         { .uri = "/lua",         .method = HTTP_GET,  .handler = lua_page_handler },
         { .uri = "/iconos",      .method = HTTP_GET,  .handler = iconos_page_handler },
