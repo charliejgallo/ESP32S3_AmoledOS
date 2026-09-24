@@ -25,11 +25,11 @@ ESP32-S3-Touch-AMOLED-1.8 **v2**, CO5300 + CST820) unless it says otherwise.
 | B3 | Gestures in Lua (`aos.gesture`) | open |
 | B4 | Settings → Touch → Try gestures | **done** |
 | B5 | The CST820's scan period (0xEE) and config registers | **answered**: the CST820 does not implement the CST816's configuration (0xEE reads 00, most of 0xEC..0xFE read 0); nothing to tune, the real limit was ours (B2) |
-| A1 | Doom: stick and FIRE at once (B1) | open |
-| A2 | Pixel Art: pinch to zoom the canvas, two fingers to pan | open |
-| A3 | Control PC: a touchpad face (move, click, two-finger scroll, pinch = zoom) | open |
-| A4 | Mila: pinch out = whole room, pinch in = follow her | open |
-| A5 | Buscaminas: bigger boards, with zoom | open |
+| A1 | Doom: stick and FIRE at once (B1) | written, on the watch |
+| A2 | Pixel Art: pinch to zoom the canvas, two fingers to pan | written, on the watch (sim: x2.7, the first finger's stroke taken back) |
+| A3 | Control PC: the mouse face's surface is a touchpad (move, tap, two-finger scroll, two-finger tap = right click, pinch = cmd+=/-) | written, on the watch |
+| A4 | Mila: pinch in = the whole room (stays), pinch out or tap = back to her | written, on the watch |
+| A5 | Buscaminas: 16x16 and 20x20 boards, with zoom and drag | written, on the watch |
 | A6 | Golf: pinch and drag on the aiming map | open |
 | A7 | Laberinto: bigger mazes, with zoom | open |
 
