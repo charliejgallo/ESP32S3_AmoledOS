@@ -3301,10 +3301,12 @@ static void touch_disable_autosleep(void)
  * A 2-byte write every 5 s is unnoticeable next to the reads the touch driver
  * already does. Note: this is separate from the gesture polling we tried
  * earlier which set off watchdogs; that one read every 40 ms. */
+static TaskHandle_t s_touch_task;
+
 static void touch_keep_awake(void)
 {
-    if (!s_touch_dev) {
-        return;
+    if (!s_touch_dev || s_touch_task) {
+        return;             /* the touch task does it itself, see below */
     }
     const uint8_t dis_auto_sleep[2] = { 0xFE, 0xFF };
     i2c_master_transmit(s_touch_dev, dis_auto_sleep, sizeof(dis_auto_sleep), 50);
@@ -3405,9 +3407,18 @@ static aos_touch_frame_t s_frame;
 static uint8_t           s_touch_regs[AOS_TOUCH_REGS];
 static uint8_t           s_touch_prev[AOS_TOUCH_REGS];
 
+/* The last AOS_TOUCH_RING samples, oldest first, so a consumer that runs
+ * slower than the chip (the recogniser, from LVGL's task) still sees every
+ * one of them: a fling's speed and a pinch's path are made of the in-between
+ * samples. */
+#define AOS_TOUCH_RING 16
+static aos_touch_frame_t s_ring[AOS_TOUCH_RING];
+static volatile uint32_t s_touch_reads, s_touch_samples;
+
 static void frame_publish(uint8_t count, const int16_t x[2], const int16_t y[2],
                           bool changed)
 {
+    s_touch_reads++;
     if (!changed) {
         return;             /* same sample read again: the chip is slower than us */
     }
@@ -3420,16 +3431,43 @@ static void frame_publish(uint8_t count, const int16_t x[2], const int16_t y[2],
     }
     s_frame.seq++;
     s_frame.t_ms = now;
+    s_ring[s_frame.seq % AOS_TOUCH_RING] = s_frame;
+    s_touch_samples++;
     portEXIT_CRITICAL(&s_frame_lock);
 }
 
-static esp_err_t touch_read_cst820(esp_lcd_touch_handle_t tp)
+/* --------------------------------------------------------------------------
+ * The touch task (v0.6.0, docs/GESTURES.md "B2")
+ *
+ * The CST820 used to be read from LVGL's task, on LVGL's clock, and that
+ * clock slows down with whatever the screen is drawing. Measured: 88 reads a
+ * second on a light screen, 27 on the raw view, 11 while Photos zooms - and
+ * every read skipped is a sample of the finger lost, exactly while the
+ * finger is moving something.
+ *
+ * Now a small task of its own reads the chip. It wakes on the chip's INT
+ * line (GPIO21: the chip pulses it on a touch and on every change, IrqCtl =
+ * 0x70) and also on a timeout -every 20 ms with a finger down, every 100 ms
+ * without- because a lost pulse must never leave the screen deaf (that is
+ * why LVGL reads in TIMER mode, see aos_ui.c). It is the ONLY thing that
+ * talks to the chip: the burst read, the keep-awake write every 5 s (it
+ * used to come from the housekeeping task) and the diagnostics' register
+ * reads all go through s_touch_i2c. Two tasks polling the chip at once is
+ * what set off watchdogs once (touch_poll_gesture).
+ *
+ * LVGL's read (touch_read_frame) no longer touches the bus: it hands over
+ * the latest point 1 the task left. It is pinned to LVGL's core with a
+ * higher priority, so it preempts a long draw for the half millisecond a
+ * read takes.
+ * -------------------------------------------------------------------------- */
+
+static SemaphoreHandle_t s_touch_wake;
+static SemaphoreHandle_t s_touch_i2c;
+static volatile bool     s_touch_lvgl_pressed;
+static volatile int16_t  s_touch_lvgl_x, s_touch_lvgl_y;
+
+static void touch_decode_publish(const uint8_t r[AOS_TOUCH_REGS])
 {
-    uint8_t r[AOS_TOUCH_REGS];
-    esp_err_t ret = esp_lcd_panel_io_rx_param(tp->io, 0x00, r, sizeof(r));
-    if (ret != ESP_OK) {
-        return ret;
-    }
     uint8_t n  = r[2] & 0x0F;
     int16_t x1 = (int16_t)((r[3] & 0x0F) << 8 | r[4]);
     int16_t y1 = (int16_t)((r[5] & 0x0F) << 8 | r[6]);
@@ -3437,14 +3475,10 @@ static esp_err_t touch_read_cst820(esp_lcd_touch_handle_t tp)
     int16_t y2 = (int16_t)((r[9] & 0x0F) << 8 | r[10]);
     bool    p2 = r[7] || r[8] || r[9] || r[10];
 
-    /* LVGL: exactly what esp_lcd_touch_cst816s_read_data() would leave */
-    portENTER_CRITICAL(&tp->data.lock);
-    tp->data.points = n ? 1 : 0;
-    if (n) {
-        tp->data.coords[0].x = (uint16_t)x1;
-        tp->data.coords[0].y = (uint16_t)y1;
-    }
-    portEXIT_CRITICAL(&tp->data.lock);
+    /* For LVGL: exactly what esp_lcd_touch_cst816s_read_data() would leave */
+    s_touch_lvgl_x = x1;
+    s_touch_lvgl_y = y1;
+    s_touch_lvgl_pressed = n != 0;
 
     int16_t fx[2], fy[2];
     uint8_t count = 0;
@@ -3454,20 +3488,108 @@ static esp_err_t touch_read_cst820(esp_lcd_touch_handle_t tp)
     if (p2) {
         fx[count] = x2; fy[count] = y2; count++;
     }
-    /* A new sample is a change in count or coordinates (0x02..0x0A). The
-     * chip refreshes every ~70 ms and we read every ~36: half the reads
-     * bring nothing new, and the recogniser must not count them twice. */
+    /* A new sample is a change in count or coordinates (0x02..0x0A): a
+     * finger at rest is read again and again with nothing new, and the
+     * recogniser must not count it twice. */
     bool changed = memcmp(r + 2, s_touch_prev + 2, 9) != 0;
-    memcpy(s_touch_prev, r, sizeof(r));
-    memcpy(s_touch_regs, r, sizeof(r));
+    memcpy(s_touch_prev, r, AOS_TOUCH_REGS);
+    memcpy(s_touch_regs, r, AOS_TOUCH_REGS);
     frame_publish(count, fx, fy, changed);
-    return ESP_OK;
+}
+
+static void IRAM_ATTR touch_isr(esp_lcd_touch_handle_t tp)
+{
+    (void)tp;
+    BaseType_t woke = pdFALSE;
+    if (s_touch_wake) {
+        xSemaphoreGiveFromISR(s_touch_wake, &woke);
+    }
+    if (woke) {
+        portYIELD_FROM_ISR();
+    }
+}
+
+static void touch_task(void *arg)
+{
+    (void)arg;
+    uint32_t last_awake_ms = 0;
+    while (1) {
+        TickType_t wait = pdMS_TO_TICKS(s_frame.count ? 20 : 100);
+        xSemaphoreTake(s_touch_wake, wait);
+
+        uint8_t r[AOS_TOUCH_REGS];
+        xSemaphoreTake(s_touch_i2c, portMAX_DELAY);
+        esp_err_t ret = esp_lcd_panel_io_rx_param(s_touch_tp->io, 0x00, r, sizeof(r));
+        uint32_t now = (uint32_t)(esp_timer_get_time() / 1000);
+        if (now - last_awake_ms >= 5000) {
+            /* The CST820 puts itself back to sleep after its own resets;
+             * see touch_keep_awake(). */
+            last_awake_ms = now;
+            const uint8_t dis[2] = { 0xFE, 0xFF };
+            i2c_master_transmit(s_touch_dev, dis, sizeof(dis), 50);
+        }
+        xSemaphoreGive(s_touch_i2c);
+
+        if (ret == ESP_OK) {
+            touch_decode_publish(r);
+        }
+    }
+}
+
+/* Starts the task once the CST820 is known (touch_disable_autosleep found
+ * it at 0x15). Until then, and on any other chip, LVGL's read does the I2C
+ * itself as it always did. */
+static void touch_task_start(void)
+{
+    if (!s_touch_tp || !s_touch_dev || s_touch_task) {
+        return;
+    }
+    s_touch_wake = xSemaphoreCreateBinary();
+    s_touch_i2c  = xSemaphoreCreateMutex();
+    if (!s_touch_wake || !s_touch_i2c) {
+        return;
+    }
+    /* Above LVGL's task (the port's default, 4) and on its core. */
+    if (xTaskCreatePinnedToCore(touch_task, "touch", 3072, NULL, 6,
+                                &s_touch_task, AOS_LVGL_CORE) != pdPASS) {
+        s_touch_task = NULL;
+        ESP_LOGE(TAG, "touch task: could not start, LVGL keeps reading the chip");
+        return;
+    }
+    /* The INT line now wakes our task instead of LVGL's. */
+    esp_lcd_touch_register_interrupt_callback(s_touch_tp, touch_isr);
+    ESP_LOGI(TAG, "touch task: reading the CST820 on its INT line");
 }
 
 static esp_err_t touch_read_frame(esp_lcd_touch_handle_t tp)
 {
+    if (s_touch_task) {
+        /* The task reads the chip; LVGL takes the latest point 1. */
+        portENTER_CRITICAL(&tp->data.lock);
+        tp->data.points = s_touch_lvgl_pressed ? 1 : 0;
+        if (s_touch_lvgl_pressed) {
+            tp->data.coords[0].x = (uint16_t)s_touch_lvgl_x;
+            tp->data.coords[0].y = (uint16_t)s_touch_lvgl_y;
+        }
+        portEXIT_CRITICAL(&tp->data.lock);
+        return ESP_OK;
+    }
     if (s_touch_dev) {
-        return touch_read_cst820(tp);       /* the v2's CST820 */
+        /* The CST820 before its task is up: the same burst, from here. */
+        uint8_t r[AOS_TOUCH_REGS];
+        esp_err_t ret = esp_lcd_panel_io_rx_param(tp->io, 0x00, r, sizeof(r));
+        if (ret != ESP_OK) {
+            return ret;
+        }
+        touch_decode_publish(r);
+        portENTER_CRITICAL(&tp->data.lock);
+        tp->data.points = s_touch_lvgl_pressed ? 1 : 0;
+        if (s_touch_lvgl_pressed) {
+            tp->data.coords[0].x = (uint16_t)s_touch_lvgl_x;
+            tp->data.coords[0].y = (uint16_t)s_touch_lvgl_y;
+        }
+        portEXIT_CRITICAL(&tp->data.lock);
+        return ESP_OK;
     }
     esp_err_t ret = s_touch_orig_read(tp);
     if (ret != ESP_OK) {
@@ -3497,6 +3619,32 @@ static void touch_frame_install(esp_lcd_touch_handle_t tp)
     tp->read_data         = touch_read_frame;
 }
 
+uint32_t aos_hal_touch_frames(uint32_t after_seq, aos_touch_frame_t *out,
+                              uint32_t max)
+{
+    uint32_t n = 0;
+    portENTER_CRITICAL(&s_frame_lock);
+    uint32_t last = s_frame.seq;
+    uint32_t first = after_seq + 1;
+    if (last >= AOS_TOUCH_RING && first <= last - AOS_TOUCH_RING) {
+        first = last - AOS_TOUCH_RING + 1;      /* fell behind: the newest 16 */
+    }
+    if (last - first + 1 > max && last >= first) {
+        first = last - max + 1;
+    }
+    for (uint32_t s = first; s <= last && s != 0 && n < max; s++) {
+        out[n++] = s_ring[s % AOS_TOUCH_RING];
+    }
+    portEXIT_CRITICAL(&s_frame_lock);
+    return n;
+}
+
+void aos_hal_touch_stats(uint32_t *reads, uint32_t *samples)
+{
+    if (reads)   *reads   = s_touch_reads;
+    if (samples) *samples = s_touch_samples;
+}
+
 bool aos_hal_touch_frame(aos_touch_frame_t *out)
 {
     if (!s_touch_tp) {
@@ -3518,7 +3666,10 @@ bool aos_hal_touch_reg_read(uint8_t reg, uint8_t *val)
     if (!s_touch_dev || !val) {
         return false;
     }
-    return i2c_master_transmit_receive(s_touch_dev, &reg, 1, val, 1, 50) == ESP_OK;
+    if (s_touch_i2c) xSemaphoreTake(s_touch_i2c, portMAX_DELAY);
+    bool ok = i2c_master_transmit_receive(s_touch_dev, &reg, 1, val, 1, 50) == ESP_OK;
+    if (s_touch_i2c) xSemaphoreGive(s_touch_i2c);
+    return ok;
 }
 
 bool aos_hal_touch_reg_write(uint8_t reg, uint8_t val)
@@ -3527,7 +3678,9 @@ bool aos_hal_touch_reg_write(uint8_t reg, uint8_t val)
         return false;
     }
     const uint8_t buf[2] = { reg, val };
+    if (s_touch_i2c) xSemaphoreTake(s_touch_i2c, portMAX_DELAY);
     esp_err_t ret = i2c_master_transmit(s_touch_dev, buf, sizeof(buf), 50);
+    if (s_touch_i2c) xSemaphoreGive(s_touch_i2c);
     aos_hal_log("touch", "CST820 reg 0x%02X <- 0x%02X (%s)", reg, val, esp_err_to_name(ret));
     return ret == ESP_OK;
 }
@@ -4681,6 +4834,7 @@ bool aos_hal_init(void)
     bench_screen_copy();
     bench_full_refresh();
     touch_disable_autosleep();
+    touch_task_start();
 
     esp_err_t audio_ret = bsp_audio_init(NULL);
     if (audio_ret == ESP_OK) {

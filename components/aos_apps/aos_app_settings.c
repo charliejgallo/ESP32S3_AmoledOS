@@ -101,6 +101,9 @@ typedef struct {
     float       gt_zoom;
     uint32_t    gt_seq, gt_rate_ms, gt_rate_n, gt_last_ms;
     uint8_t     gt_last_count;
+    uint32_t    gt_win_ms, gt_win_reads, gt_win_samples;    /* 1 s window */
+    unsigned    gt_reads_hz, gt_samples_hz;
+    uint8_t     gt_ids[2];          /* last logged id per slot, 0 = up */
     int         gt_scan;            /* index in GT_SCAN, -1 = as the chip had it */
     uint8_t     gt_scan_orig;
     uint32_t    rate_last_ms;
@@ -1123,6 +1126,22 @@ static void gt_tick(lv_timer_t *t)
     (void)t;
     aos_touch_point_t pts[2];
     aos_touch_points(pts);
+    /* Every finger that lands or lifts goes to the log, with where the
+     * other one is: that is how a stray point is told from a real one. */
+    for (int i = 0; i < 2; i++) {
+        uint8_t id = pts[i].down ? pts[i].id : 0;
+        if (id != s_set.gt_ids[i]) {
+            const aos_touch_point_t *o = &pts[1 - i];
+            if (id) {
+                aos_hal_log("touch", "finger %u down in slot %d at %d,%d  (other: %s %d,%d)",
+                            id, i, (int)pts[i].x, (int)pts[i].y,
+                            o->down ? "down" : "up", (int)o->x, (int)o->y);
+            } else {
+                aos_hal_log("touch", "finger %u up from slot %d", s_set.gt_ids[i], i);
+            }
+            s_set.gt_ids[i] = id;
+        }
+    }
     for (int i = 0; i < 2; i++) {
         if (!s_set.gt_dot[i]) continue;
         if (pts[i].down) {
@@ -1149,11 +1168,28 @@ static void gt_tick(lv_timer_t *t)
             s_set.gt_last_count = f.count;
         }
     }
+    /* Reads of the chip and new samples, per second, over 1 s windows:
+     * with a finger moving, the second number IS the chip's rate. */
+    uint32_t reads, samples;
+    aos_hal_touch_stats(&reads, &samples);
+    if (now - s_set.gt_win_ms >= 1000) {
+        if (s_set.gt_win_ms) {
+            uint32_t dt = now - s_set.gt_win_ms;
+            s_set.gt_reads_hz   = (unsigned)((reads - s_set.gt_win_reads) * 1000u / dt);
+            s_set.gt_samples_hz = (unsigned)((samples - s_set.gt_win_samples) * 1000u / dt);
+            if (f.count) {
+                aos_hal_log("touch", "gesture test: %u reads/s, %u new samples/s, %d fingers",
+                            s_set.gt_reads_hz, s_set.gt_samples_hz, (int)f.count);
+            }
+        }
+        s_set.gt_win_ms = now;
+        s_set.gt_win_reads = reads;
+        s_set.gt_win_samples = samples;
+    }
     if (s_set.gt_stats) {
         int z = (int)(s_set.gt_zoom * 100.0f + 0.5f);
-        lv_label_set_text_fmt(s_set.gt_stats, _("dedos %d   chip %u Hz   zoom x%d.%02d"),
-                              (int)f.count,
-                              (unsigned)(s_set.gt_rate_ms ? s_set.gt_rate_n * 1000u / s_set.gt_rate_ms : 0),
+        lv_label_set_text_fmt(s_set.gt_stats, _("dedos %d   %u lect/s   %u Hz   x%d.%02d"),
+                              (int)f.count, s_set.gt_reads_hz, s_set.gt_samples_hz,
                               z / 100, z % 100);
     }
 }
@@ -1217,6 +1253,9 @@ static void gt_cb(lv_event_t *event)
     s_set.gt_zoom = 1.0f;
     s_set.gt_seq = s_set.gt_rate_ms = s_set.gt_rate_n = s_set.gt_last_ms = 0;
     s_set.gt_last_count = 0;
+    s_set.gt_win_ms = 0;
+    s_set.gt_reads_hz = s_set.gt_samples_hz = 0;
+    s_set.gt_ids[0] = s_set.gt_ids[1] = 0;
     s_set.gt_scan = -1;
     s_set.gt_scan_orig = 1;
     gt_dump_regs();

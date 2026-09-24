@@ -197,6 +197,13 @@ typedef struct {
 
 /* The latest sample. false = there is no touch panel. */
 bool     aos_hal_touch_frame(aos_touch_frame_t *out);
+/* Every sample newer than 'after_seq', oldest first, up to 'max' (the HAL
+ * keeps the last 16). Returns how many. A consumer that keeps the seq of the
+ * last one it saw gets them all, however slowly it runs. */
+uint32_t aos_hal_touch_frames(uint32_t after_seq, aos_touch_frame_t *out,
+                              uint32_t max);
+/* Counters since boot: reads of the chip, and new samples among them. */
+void     aos_hal_touch_stats(uint32_t *reads, uint32_t *samples);
 /* true = the hardware can report a second finger. */
 bool     aos_hal_touch_multi(void);
 

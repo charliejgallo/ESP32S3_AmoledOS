@@ -41,7 +41,7 @@
 #define CENTRE_JUMP     90.0f   /* px in one sample: not a real movement     */
 #define FLING_WINDOW_MS 160     /* speed measured over the last ~2 samples   */
 #define FLING_STALE_MS  150     /* last move older than this = it had stopped */
-#define HIST            6
+#define HIST            12      /* ~160 ms even at the task's fastest */
 #define ARMED_MS        300     /* how long a press waits for its first sample */
 
 typedef enum { ST_IDLE, ST_PENDING, ST_DRAG, ST_PINCH } state_t;
@@ -321,11 +321,15 @@ static void process(aos_gesture_t *g, const aos_touch_frame_t *f)
 static void tick_cb(lv_timer_t *timer)
 {
     aos_gesture_t *g = lv_timer_get_user_data(timer);
-    aos_touch_frame_t f;
+    aos_touch_frame_t fr[16];
 
-    if (aos_hal_touch_frame(&f) && f.seq != g->seq) {
-        g->seq = f.seq;
-        process(g, &f);
+    /* Every sample since the last tick, in order: the chip may have sent
+     * several (the touch task reads it at its own rate), and a fling's
+     * speed or a pinch's path is made of all of them. */
+    uint32_t n = aos_hal_touch_frames(g->seq, fr, 16);
+    for (uint32_t i = 0; i < n; i++) {
+        g->seq = fr[i].seq;
+        process(g, &fr[i]);
         if (g->dead) return;
     }
 
@@ -367,10 +371,21 @@ static void pressed_cb(lv_event_t *e)
     if (g->state != ST_IDLE) {
         return;
     }
-    /* The frame that carried this press is the first sample to process:
-     * step the counter back so the next tick takes it. */
-    if (aos_hal_touch_frame(&f)) {
+    /* Start from the first sample of THIS touch: LVGL reports the press on
+     * its own clock, some samples after the finger landed. Walk back from the
+     * newest to the last sample with no finger. */
+    if (aos_hal_touch_frame(&f) && f.seq) {
+        aos_touch_frame_t fr[16];
+        uint32_t from = f.seq > 16 ? f.seq - 16 : 0;
+        uint32_t n = aos_hal_touch_frames(from, fr, 16);
         g->seq = f.seq - 1;
+        for (uint32_t i = n; i-- > 0;) {
+            if (fr[i].count == 0) {
+                g->seq = fr[i].seq;
+                break;
+            }
+            g->seq = fr[i].seq - 1;
+        }
     }
     g->armed = true;
     g->armed_t = now_ms();
@@ -591,8 +606,12 @@ int aos_touch_points(aos_touch_point_t out[2])
     if (!aos_hal_touch_frame(&f)) {
         f.count = 0;
     } else if (f.seq != s_track_seq) {
+        aos_touch_frame_t fr[16];
+        uint32_t n = aos_hal_touch_frames(s_track_seq, fr, 16);
+        for (uint32_t i = 0; i < n; i++) {
+            tracks_update(&fr[i]);
+        }
         s_track_seq = f.seq;
-        tracks_update(&f);
     }
     /* A held finger expires on the clock too, not only on a new sample:
      * while the finger that stayed rests still the chip sends nothing new,

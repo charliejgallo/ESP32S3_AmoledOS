@@ -318,6 +318,9 @@ aos_touch_gesture_t aos_hal_touch_gesture(void)
  * mouse, Option and the script and hands it over here; this side only keeps
  * the latest one and counts the new ones, like the board's HAL does. */
 static aos_touch_frame_t s_frame;
+#define SIM_TOUCH_RING 16
+static aos_touch_frame_t s_ring[SIM_TOUCH_RING];
+static uint32_t          s_touch_samples;
 
 void aos_hal_sim_set_touch(int count, int x1, int y1, int x2, int y2)
 {
@@ -339,6 +342,30 @@ void aos_hal_sim_set_touch(int count, int x1, int y1, int x2, int y2)
     }
     s_frame.seq++;
     s_frame.t_ms = (uint32_t)aos_hal_uptime_ms();
+    s_ring[s_frame.seq % SIM_TOUCH_RING] = s_frame;
+    s_touch_samples++;
+}
+
+uint32_t aos_hal_touch_frames(uint32_t after_seq, aos_touch_frame_t *out,
+                              uint32_t max)
+{
+    uint32_t last = s_frame.seq, first = after_seq + 1, n = 0;
+    if (last >= SIM_TOUCH_RING && first <= last - SIM_TOUCH_RING) {
+        first = last - SIM_TOUCH_RING + 1;
+    }
+    if (last >= first && last - first + 1 > max) {
+        first = last - max + 1;
+    }
+    for (uint32_t s = first; s <= last && s != 0 && n < max; s++) {
+        out[n++] = s_ring[s % SIM_TOUCH_RING];
+    }
+    return n;
+}
+
+void aos_hal_touch_stats(uint32_t *reads, uint32_t *samples)
+{
+    if (reads)   *reads   = s_touch_samples;
+    if (samples) *samples = s_touch_samples;
 }
 
 bool aos_hal_touch_frame(aos_touch_frame_t *out)
