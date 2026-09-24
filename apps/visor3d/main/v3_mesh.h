@@ -19,6 +19,8 @@ typedef struct {
     float    *fn;           /* nt * 3, unit face normals                     */
     uint16_t *fc;           /* nt face colours (RGB565), NULL = one colour   */
     int       nt_file;      /* triangles in the file, before any reduction   */
+    bool      closed;       /* a solid, wound consistently (outwards after
+                               loading): back faces can be skipped          */
     char      err[64];      /* why it did not load                           */
 } v3_mesh_t;
 

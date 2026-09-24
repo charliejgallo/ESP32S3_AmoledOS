@@ -265,6 +265,34 @@ static bool clus_fn(void *ctx, const float p[9])
 
 /* ---- the result --------------------------------------------------------- */
 
+/* A surface wound consistently has every edge once in each direction; one
+ * that is not has edges twice in the SAME direction. That is what decides
+ * whether back faces can be skipped: a CAD export usually passes, a model
+ * with flipped patches does not, and neither does one reduced by clustering
+ * (collapsing a cell can turn a triangle over) - skipping "back" faces there
+ * would open holes. Up to 1 % of bad edges is forgiven. */
+static bool consistent(const v3_mesh_t *m)
+{
+    uint32_t ne = (uint32_t)m->nt * 3, size = 1;
+    while (size < ne * 2) size <<= 1;
+    uint64_t *tab = calloc(size, sizeof(uint64_t));
+    if (!tab) return false;
+    uint32_t bad = 0;
+    for (uint32_t t = 0; t < (uint32_t)m->nt; t++) {
+        for (int k = 0; k < 3; k++) {
+            uint64_t a = m->idx[t * 3 + k], b = m->idx[t * 3 + (k + 1) % 3];
+            uint64_t key = (a << 32 | b) + 1;           /* 0 = empty */
+            uint32_t h = (uint32_t)((a * 2654435761u) ^ (b * 40503u));
+            for (uint32_t i = h & (size - 1);; i = (i + 1) & (size - 1)) {
+                if (!tab[i]) { tab[i] = key; break; }
+                if (tab[i] == key) { bad++; break; }
+            }
+        }
+    }
+    free(tab);
+    return bad * 100 <= ne;
+}
+
 /* Centred on the box, radius 1, and the face normals. */
 static void finish(v3_mesh_t *m)
 {
@@ -286,6 +314,31 @@ static void finish(v3_mesh_t *m)
     }
     float k = r2 > 0 ? 1.0f / sqrtf(r2) : 1.0f;
     for (int i = 0; i < m->nv * 3; i++) m->v[i] *= k;
+
+    /* Is it a solid? The signed volume of a closed surface is its volume,
+     * positive when the triangles wind outwards; of an open one, a small
+     * number with no meaning. A solid's back faces are always hidden, so the
+     * rasteriser may skip them - half the work - and one wound inwards is
+     * turned round here. Anything else keeps both sides drawn. */
+    /* float, not double: the S3 has no double-precision unit and the
+     * firmware lends no soft-double helpers. Plenty for a sign. */
+    float vol = 0;
+    for (int t = 0; t < m->nt; t++) {
+        const float *a = &m->v[m->idx[t * 3 + 0] * 3];
+        const float *b = &m->v[m->idx[t * 3 + 1] * 3];
+        const float *d = &m->v[m->idx[t * 3 + 2] * 3];
+        vol += a[0] * (b[1] * d[2] - b[2] * d[1]) - a[1] * (b[0] * d[2] - b[2] * d[0]) +
+               a[2] * (b[0] * d[1] - b[1] * d[0]);
+    }
+    vol /= 6.0f;
+    m->closed = fabsf(vol) > 0.02f && consistent(m);   /* of the unit sphere's 4.19 */
+    if (vol < 0) {
+        for (int t = 0; t < m->nt; t++) {
+            uint32_t k = m->idx[t * 3 + 1];
+            m->idx[t * 3 + 1] = m->idx[t * 3 + 2];
+            m->idx[t * 3 + 2] = k;
+        }
+    }
 
     for (int t = 0; t < m->nt; t++) {
         const float *a = &m->v[m->idx[t * 3 + 0] * 3];

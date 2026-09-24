@@ -30,5 +30,8 @@ void v3_scratch_free(v3_scratch_t *s);
 int v3_render(const v3_mesh_t *m, const v3_view_t *view, v3_scratch_t *s,
               uint16_t *fb, uint16_t *zb, int w, int h);
 
+/* CPU cycles spent since the last call: clear, transform, rasterise. */
+void v3_prof(uint32_t out[3]);
+
 /* fb (w x h) from small (w/2 x h/2): each pixel twice each way. */
 void v3_upscale2(const uint16_t *small, uint16_t *fb, int w, int h);

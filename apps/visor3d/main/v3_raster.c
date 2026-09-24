@@ -28,6 +28,16 @@
 #define BG_BE       0x2108              /* 0x0821 (a near black blue), byte-swapped */
 #define BASE_RGB    0xA8B8D0            /* the model when the file has no colour */
 
+/* ceil(v - 0.5) = the first pixel centre at or after v, without a call into
+ * libm (ceilf is a function on this core, and it ran twice per scanline of
+ * every one of 12 000 triangles). Valid for |v| < 16384. */
+static inline int px_start(float v)
+{
+    float x = v - 0.5f;
+    int i = (int)x;                     /* truncates: ceil for x < 0 */
+    return i + (x > (float)i);
+}
+
 static inline uint16_t be565(uint32_t r, uint32_t g, uint32_t b)
 {
     uint16_t c = (uint16_t)(((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3));
@@ -66,7 +76,7 @@ static void fill_tri(uint16_t *fb, uint16_t *zb, int w, int h,
     if (y2 < y1) { float t; t = x1; x1 = x2; x2 = t; t = y1; y1 = y2; y2 = t; t = z1; z1 = z2; z2 = t; }
     if (y2 - y0 < 1e-4f) return;
 
-    int ys = (int)ceilf(y0 - 0.5f), ye = (int)ceilf(y2 - 0.5f);
+    int ys = px_start(y0), ye = px_start(y2);
     if (ys < 0) ys = 0;
     if (ye > h) ye = h;
     float inv02 = 1.0f / (y2 - y0);
@@ -88,7 +98,7 @@ static void fill_tri(uint16_t *fb, uint16_t *zb, int w, int h,
             zb2 = z1 + (z2 - z1) * u;
         }
         if (xa > xb) { float q = xa; xa = xb; xb = q; q = za; za = zb2; zb2 = q; }
-        int xs = (int)ceilf(xa - 0.5f), xe = (int)ceilf(xb - 0.5f);
+        int xs = px_start(xa), xe = px_start(xb);
         if (xs < 0) xs = 0;
         if (xe > w) xe = w;
         if (xs >= xe) continue;
@@ -121,12 +131,36 @@ static void line(uint16_t *fb, int w, int h, int x0, int y0, int x1, int y1, uin
     }
 }
 
+/* Where a frame's time goes, in CPU cycles (the S3's cycle counter: nothing
+ * finer than a millisecond is lent to the apps), summed until v3_prof()
+ * collects it: clearing, transforming, rasterising. */
+static uint32_t s_prof[3];
+
+static inline uint32_t cycles(void)
+{
+#if defined(__XTENSA__)
+    uint32_t c;
+    __asm__ volatile("rsr.ccount %0" : "=a"(c));
+    return c;
+#else
+    return 0;
+#endif
+}
+
+void v3_prof(uint32_t out[3])
+{
+    memcpy(out, s_prof, sizeof s_prof);
+    memset(s_prof, 0, sizeof s_prof);
+}
+
 int v3_render(const v3_mesh_t *m, const v3_view_t *view, v3_scratch_t *s,
               uint16_t *fb, uint16_t *zb, int w, int h)
 {
+    uint32_t c0 = cycles();
     size_t n = (size_t)w * h;
     for (size_t i = 0; i < n; i++) fb[i] = BG_BE;
     if (view->mode == V3_SOLID) memset(zb, 0xFF, n * 2);
+    uint32_t c1 = cycles();
 
     float cyw = cosf(view->yaw), syw = sinf(view->yaw);
     float cp = cosf(view->pitch), sp = sinf(view->pitch);
@@ -148,8 +182,10 @@ int v3_render(const v3_mesh_t *m, const v3_view_t *view, v3_scratch_t *s,
         s->sz[i] = (d - (CAM_D - 1.0f)) * (65535.0f / 2.0f);
     }
 
+    uint32_t c2 = cycles();
     int drawn = 0;
     uint32_t base = BASE_RGB;
+    bool cull = m->closed && view->mode == V3_SOLID;
     for (int t = 0; t < m->nt; t++) {
         uint32_t a = m->idx[t * 3], b = m->idx[t * 3 + 1], d = m->idx[t * 3 + 2];
         float ax = s->sx[a], ay = s->sy[a], bx = s->sx[b], by = s->sy[b];
@@ -163,6 +199,8 @@ int v3_render(const v3_mesh_t *m, const v3_view_t *view, v3_scratch_t *s,
         if (dy < miny) miny = dy;
         if (dy > maxy) maxy = dy;
         if (maxy < 0 || miny >= h) continue;
+        /* a solid's back faces: clockwise on screen (y grows down) */
+        if (cull && (bx - ax) * (dy - ay) - (by - ay) * (dx - ax) <= 0) continue;
 
         /* the face normal, rotated like the vertices */
         const float *nn = &m->fn[t * 3];
@@ -194,6 +232,10 @@ int v3_render(const v3_mesh_t *m, const v3_view_t *view, v3_scratch_t *s,
         }
         drawn++;
     }
+    uint32_t c3 = cycles();
+    s_prof[0] += c1 - c0;
+    s_prof[1] += c2 - c1;
+    s_prof[2] += c3 - c2;
     return drawn;
 }
 

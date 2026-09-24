@@ -237,10 +237,16 @@ static void worker(void *arg)
         if (moving) { a->t_half += t1 - t0; a->n_half++; }
         else        { a->t_full += t1 - t0; a->n_full++; }
         if (t1 - a->t_log >= 5000 && (a->n_half || a->n_full)) {
-            aos_hal_log("visor3d", "%s, %d tri: %u ms a frame at half size (%u frames), "
-                        "%u ms at full (%u)", a->name, a->mesh.nt,
+            uint32_t pc[3];
+            v3_prof(pc);
+            uint32_t nf = a->n_half + a->n_full;
+            aos_hal_log("visor3d", "%s, %d tri%s: %u ms a frame at half size (%u frames), "
+                        "%u ms at full (%u) | per frame: clear %u + vertices %u + triangles %u us",
+                        a->name, a->mesh.nt, a->mesh.closed ? " (solid)" : "",
                         (unsigned)(a->n_half ? a->t_half / a->n_half : 0), (unsigned)a->n_half,
-                        (unsigned)(a->n_full ? a->t_full / a->n_full : 0), (unsigned)a->n_full);
+                        (unsigned)(a->n_full ? a->t_full / a->n_full : 0), (unsigned)a->n_full,
+                        (unsigned)(pc[0] / 240 / nf), (unsigned)(pc[1] / 240 / nf),
+                        (unsigned)(pc[2] / 240 / nf));
             a->t_half = a->n_half = a->t_full = a->n_full = 0;
             a->t_log = t1;
         }
