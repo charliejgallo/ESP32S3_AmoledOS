@@ -20,11 +20,11 @@ ESP32-S3-Touch-AMOLED-1.8 **v2**, CO5300 + CST820) unless it says otherwise.
 
 | # | Item | State |
 | --- | --- | --- |
-| B1 | Fingers one by one for pads: `aos_touch_points()` (id per finger, dropout hold, jump filter) | written; measuring on the watch |
-| B2 | Drawing without stealing touch samples (Photos zooming dropped LVGL's reads from 27/s to ~11/s) | open |
+| B1 | Fingers one by one for pads: `aos_touch_points()` (id per finger, dropout hold, jump filter) | **done**: a "stick" finger kept its id for 10 s while three "fire" fingers came and went |
+| B2 | Drawing without stealing touch samples | **done**: the touch task — 73 samples/s whatever the screen draws |
 | B3 | Gestures in Lua (`aos.gesture`) | open |
-| B4 | Settings → Touch → Try gestures | written; on the watch |
-| B5 | The CST820's scan period (0xEE) and config registers | tool written (Try gestures) |
+| B4 | Settings → Touch → Try gestures | **done** |
+| B5 | The CST820's scan period (0xEE) and config registers | **answered**: the CST820 does not implement the CST816's configuration (0xEE reads 00, most of 0xEC..0xFE read 0); nothing to tune, the real limit was ours (B2) |
 | A1 | Doom: stick and FIRE at once (B1) | open |
 | A2 | Pixel Art: pinch to zoom the canvas, two fingers to pan | open |
 | A3 | Control PC: a touchpad face (move, click, two-finger scroll, pinch = zoom) | open |
@@ -107,18 +107,23 @@ separately, so with two fingers it knows two X and two Y but not which goes
 with which. Distance and midpoint are the same for both pairings, which is
 why a pinch survives it and a two-finger rotation would not.
 
-### Rate
+### Rate — first wrong, then measured
 
-- LVGL reads the touch every ~36 ms (27.5 reads/s, `LV_DEF_REFR_PERIOD` 33).
-- **The chip delivers a new sample every ~70 ms (~14 Hz)**, with one finger or
-  two: a fast one-finger circle logged a new point every 70 ms while the reads
-  held at 27.5/s. Half the reads bring nothing new.
-- **Drawing in LVGL's task slows the reads.** The first measurement said 13.7
-  reads/s — the raw view itself was scrolling sideways (a dot poking past the
-  edge made the box scrollable; fixed) and repainting the whole screen on
-  every move. Anything heavy that moves under the finger has to be drawn
-  outside LVGL's task (a worker blitting to the panel, as Doom and Turbo do),
-  or it steals the samples it is trying to follow.
+- **First reading, wrong: "the chip gives ~14 Hz".** The raw view logged a
+  new point every ~70 ms while LVGL read at 27.5/s. It was our own limit:
+  the chip was read from LVGL's task, on LVGL's clock, and the raw view's
+  logging timer missed samples while the screen redrew.
+- **LVGL's read rate is whatever the screen lets it be**: 88 reads/s on a
+  light screen, 27 on the raw view, **11 while Photos zoomed** a photo.
+- **Measured with the touch task (Phase 6, B2): the CST820 delivers ~73 new
+  samples a second** with a finger moving (60..77 with two), read at ~76/s
+  — its INT line pulses at that rate. The datasheet's ">100 Hz" is the scan;
+  the reports come at ~75 Hz. Five times what we first believed.
+- Its configuration registers (0xEC..0xFE) mostly read 0 on the CST820
+  (`CST820 id B7 proj 41 fw 02 | 0xEC..0xFE: 01 01 00 00 00 00 00 00 00 00 00
+  00 00 00 70 00 00 17 FF`): no scan period to tune, and no 10 s long-press
+  reset (0xFC = 0; two fingers held 14 s, nothing happened). IrqCtl 0xFA =
+  0x70: INT pulses on touch, on change and on motion.
 
 ## Phase 1 — the HAL
 
@@ -224,6 +229,26 @@ drag of 800 px/s.
   watch can be read from the Mac.
 - **Open:** how many frames per second a zoomed 1 MB photo draws at on the
   board, and whether it steals touch samples while it does (see Rate).
+
+## Phase 6 — the touch task (B2)
+
+`aos_hal_esp32.c`, "The touch task". The CST820 is now read by a task of its
+own, pinned to LVGL's core with a higher priority, woken by the chip's INT
+line (and by a timeout — 20 ms with a finger down, 100 ms without — so a
+lost pulse never leaves the screen deaf). It is the only thing that talks to
+the chip: the burst, the keep-awake write every 5 s, the diagnostics. LVGL's
+read hands over the latest point 1 without touching the bus. The HAL keeps
+the last 16 samples (`aos_hal_touch_frames()`) and the recogniser and
+`aos_touch_points()` consume every one of them.
+
+| | before | after |
+| --- | --- | --- |
+| new samples/s, finger moving | ≤ LVGL's reads (11..27 on busy screens) | **73** |
+| a pinch in the simulator, unrationed 80 → 260 px | ×2.45 at 14 Hz | ×3.15 (true ×3.25) |
+| "the touch feels..." | | "re suave" (the user, 2026-09-24) |
+
+The simulator still rations to 14 Hz by default (`AOS_SIM_TOUCH_HZ`), now as
+a worst case rather than the chip's rate.
 
 ## Phase 5 — the 3D viewer (planned, v0.6.1)
 
