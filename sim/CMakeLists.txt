@@ -71,6 +71,24 @@ if(AOS_LUA_SRC)
     target_compile_options(aos_lua PRIVATE -w)
 endif()
 
+# Doom's engine (apps/doom/main/doomgeneric, GPL, third-party) and its port
+# live below the glob too, and for the same reasons as Lua they build apart:
+# Chocolate Doom does not survive our warnings, and the port's files see the
+# engine's headers, which reroute malloc and exit (port/dg_compat.h) - that
+# must not leak into the rest of the simulator.
+file(GLOB AOS_DOOM_SRC CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/../apps/doom/main/doomgeneric/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../apps/doom/main/port/*.c)
+if(AOS_DOOM_SRC)
+    add_library(aos_doom STATIC ${AOS_DOOM_SRC})
+    target_include_directories(aos_doom PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../apps/doom/main/doomgeneric
+        ${CMAKE_CURRENT_SOURCE_DIR}/../apps/doom/main/port
+        ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/include)
+    target_compile_definitions(aos_doom PRIVATE AOS_SIM)
+    target_compile_options(aos_doom PRIVATE -w)
+endif()
+
 add_executable(amoledos_sim
     main.c
     hal_sim.c
@@ -99,5 +117,6 @@ target_compile_options(amoledos_sim PRIVATE -Wall -Wextra -Wno-unused-parameter)
 target_compile_definitions(amoledos_sim PRIVATE AOS_SIM_BUILTIN AOS_SIM)
 target_link_libraries(amoledos_sim PRIVATE lvgl ${SDL2_LIBRARIES} m
     $<$<BOOL:${AOS_LUA_SRC}>:aos_lua>
+    $<$<BOOL:${AOS_DOOM_SRC}>:aos_doom>
     ${MBEDTLS_LIB} ${MBEDX509_LIB} ${MBEDCRYPTO_LIB})
 target_link_directories(amoledos_sim PRIVATE ${SDL2_LIBRARY_DIRS})

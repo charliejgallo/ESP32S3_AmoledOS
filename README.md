@@ -172,7 +172,7 @@ Twenty-one ship inside the binary. They are the ones the watch cannot be without
 
 ### Loaded from the microSD
 
-Thirty-three more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
+Thirty-four more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
 `.so` files at startup. The same source builds into the simulator, so they are
 designed on a laptop and copied to the card without changing a line — and a new
 one needs no firmware rebuild. That includes its **launcher icon**: an app
@@ -315,6 +315,29 @@ in the pack, so a new one needs no code. 25-26 fps on the board. More in
   <img src="docs/img/app-mila-peek.png" width="200" alt="The whole rooftop level while a finger holds Mila, with the holes and the crates where they are now">
   <img src="docs/img/app-mila-loader.png" width="200" alt="The loading screen: the Mila logo, a gold-to-pink bar and a tip">
 </p>
+
+#### Doom
+
+<p align="center">
+  <img src="docs/img/app-doom-demo.png" width="200" alt="Doom's attract demo on the watch, the marine firing, with the pad below the picture">
+  <img src="docs/img/app-doom-e1m1.png" width="200" alt="E1M1, Hangar, at the start of the level, with MENU, MAP and GUN, a stick, USE and FIRE">
+  <img src="docs/img/app-doom-map.png" width="200" alt="The automap of E1M1">
+</p>
+
+Can it run Doom? It can: Chocolate Doom through doomgeneric, as a 428 KB
+`.so` from the card, with no line of the firmware changed for it. E1M1 runs at
+35 fps on the board, Doom's own tic rate. The engine runs on the second core
+and hands its frames over in three slots; LVGL's task pushes the newest
+straight to the panel, and draws a pad below it: an analogue stick (a mouse to
+Doom), FIRE, USE, the menu, the map and the next weapon, with the side button
+firing while the thumb walks. `exit()` is a `longjmp` back to the worker, so
+quitting from Doom's menu returns to the watch and gives every byte back.
+Sound effects and the OPL2 music, synthesised on the watch for 3-7 % of a
+core. Bring your own WAD: it was tested with the shareware `DOOM1.WAD` 1.9
+(episode 1, freely distributable but id Software's, so it is not in the
+repository), and the full games' WADs are searched first and should work,
+untested. The engine is GPL v2. More in
+[apps/doom/README.md](apps/doom/README.md).
 
 #### The others
 
@@ -650,5 +673,8 @@ the protocol and `tools/battery_night.py` the recorder.
 MIT — see [LICENSE](LICENSE).
 
 `components/elf_loader/` is Espressif's, under Apache-2.0, vendored with a
-small local change. LVGL and ESP-IDF are pulled in by the component manager
+small local change. `apps/doom/` is Chocolate Doom through doomgeneric, and
+like them under the GNU GPL v2; no WAD is included (see
+[apps/doom/README.md](apps/doom/README.md#the-wad) for which one was used and
+what its licence allows). LVGL and ESP-IDF are pulled in by the component manager
 under their own licences.
