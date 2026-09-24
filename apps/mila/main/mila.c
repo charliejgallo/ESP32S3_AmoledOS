@@ -1078,6 +1078,14 @@ static void frame(lv_timer_t *t)
             ml_ui_loader(a, false, 0);
             a->ld_key[0] = 0;
         }
+        /* Frames the worker finished for the PREVIOUS scene are never shown
+         * now: give their slots back. Without this the loader could wait
+         * forever - seen on the watch on 2026-09-24, casita -> level: one
+         * slot SHOWN and the other two READY with the casita, the worker
+         * with nowhere to draw the level's first frame and the loader
+         * waiting for exactly that frame (0.0 fps, the bar full). */
+        for (int i = 0; i < ML_NFB; i++)
+            if (a->fb_state[i] == FB_READY && a->fb_seq[i] <= a->scene_seq) a->fb_state[i] = FB_FREE;
         if (want != SC_NONE && a->scene == want)
             for (int i = 0; i < ML_NFB; i++)
                 if (a->fb_state[i] == FB_READY && a->fb_seq[i] > a->scene_seq) ready = true;
