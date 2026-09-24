@@ -9,10 +9,16 @@
  *     y 230..447   the pad: MENU / MAP / WEAPON on a strip across it, then
  *                  a floating stick on the left and USE and FIRE on the right.
  *
- * The touch is one finger, so walking and shooting at once takes the side
- * button: it fires while held, and that is what it does in here, all of it.
- * Whatever a press lands on owns the finger until it lifts, so the stick
- * keeps working when the thumb slides out of its half.
+ * Two fingers (v0.6.0, aos_touch_points): each finger owns whatever it
+ * landed on until it lifts - the stick, a button, or the picture (fire) -
+ * so the left thumb walks while the right one shoots. The stick keeps
+ * working when its thumb slides out of its half. The side button still
+ * fires while held. The stick and FIRE sit level with each other on
+ * purpose: the chip pairs two fingers cleanly side by side, and can swap
+ * them on the ↗↙ diagonal (docs/GESTURES.md).
+ *
+ * On hardware without a second finger (aos_gesture_multitouch() false) it
+ * falls back to one finger through LVGL, as before.
  *
  * The WAD is not in the app: the card's doom/ folder is searched for the
  * full game first and the shareware DOOM1.WAD last (port/dg_system.c). The
@@ -24,6 +30,7 @@
 #include "aos_theme.h"
 #include "aos_i18n.h"
 #include "aos_icon_ops.h"
+#include "aos_gesture.h"
 #include "lvgl.h"
 
 #include "doom_port.h"
@@ -79,8 +86,15 @@ typedef struct {
     bool        shown_any;
     bool        want_exit;
     bool        exit_on_tap;
-    int         owner;
+    int         owner;              /* one finger (the fallback) */
     int         cx, cy;             /* the stick's centre */
+
+    /* two fingers: what each slot of aos_touch_points() owns */
+    bool        multi;
+    uint8_t     fid[2];             /* the finger's id, 0 = none */
+    int         fown[2];
+    bool        hw_fire;            /* the side button, held */
+    bool        btn_on[DP_BTN_N];   /* what Doom was last told */
 
     uint32_t    hw_press_ms;
     uint32_t    fps_ms, fps_frames, fps_blits, blits;
@@ -221,11 +235,15 @@ static void touch_cb(lv_event_t *e)
     if (!indev) return;
     lv_indev_get_point(indev, &p);
 
+    if (code == LV_EVENT_PRESSED && a->exit_on_tap) {
+        a->want_exit = true;
+        return;
+    }
+    if (a->multi) {
+        return;                         /* the pad is polled: pad_poll() */
+    }
+
     if (code == LV_EVENT_PRESSED) {
-        if (a->exit_on_tap) {
-            a->want_exit = true;
-            return;
-        }
         if (!a->running) return;
         release_owner(a);
         int b = hit_button(p.x, p.y);
@@ -254,6 +272,97 @@ static void touch_cb(lv_event_t *e)
     } else if (code == LV_EVENT_RELEASED || code == LV_EVENT_PRESS_LOST) {
         release_owner(a);
     }
+}
+
+/* --------------------------------------------------------------------------
+ * Two fingers
+ *
+ * Polled on every frame (8 ms) instead of LVGL's events, which only know
+ * one finger. Each finger claims what it landed on, exactly as the one
+ * finger did; Doom is then told the union: a button is down while any
+ * finger (or, for FIRE, the side button) holds it.
+ * -------------------------------------------------------------------------- */
+
+static int claim(app_t *a, int x, int y, int other_owner)
+{
+    int b = hit_button(x, y);
+    if (y < PAD_Y) {
+        return OWN_PICTURE;
+    }
+    if (b >= 0) {
+        return b;
+    }
+    if (x < STICK_ZONE_W + 10 && y >= STICK_TOP - 6 && other_owner != OWN_STICK) {
+        /* the base comes to the thumb, kept whole inside the pad */
+        int cx = x, cy = y;
+        if (cx < STICK_R + 2) cx = STICK_R + 2;
+        if (cx > STICK_ZONE_W - 4) cx = STICK_ZONE_W - 4;
+        if (cy < STICK_TOP + STICK_R + 2) cy = STICK_TOP + STICK_R + 2;
+        if (cy > TOUCH_BOTTOM - STICK_R / 2) cy = TOUCH_BOTTOM - STICK_R / 2;
+        a->cx = cx;
+        a->cy = cy;
+        stick_show(a, true);
+        return OWN_STICK;
+    }
+    return OWN_NONE;
+}
+
+static void pad_apply(app_t *a)
+{
+    bool want[DP_BTN_N] = { false };
+    for (int i = 0; i < 2; i++) {
+        if (a->fown[i] == OWN_PICTURE) {
+            want[DP_BTN_FIRE] = true;
+        } else if (a->fown[i] >= 0 && a->fown[i] < DP_BTN_N) {
+            want[a->fown[i]] = true;
+        }
+    }
+    if (a->hw_fire) {
+        want[DP_BTN_FIRE] = true;
+    }
+    for (int b = 0; b < DP_BTN_N; b++) {
+        if (want[b] != a->btn_on[b]) {
+            a->btn_on[b] = want[b];
+            dp_button(b, want[b]);
+            pad_lit(a, b, want[b]);
+        }
+    }
+}
+
+static void pad_release_all(app_t *a)
+{
+    for (int i = 0; i < 2; i++) {
+        if (a->fown[i] == OWN_STICK) {
+            dp_stick(0, 0);
+            stick_show(a, false);
+        }
+        a->fown[i] = OWN_NONE;
+        a->fid[i] = 0;
+    }
+    a->hw_fire = false;
+    pad_apply(a);
+}
+
+static void pad_poll(app_t *a)
+{
+    aos_touch_point_t pts[2];
+    aos_touch_points(pts);
+    for (int i = 0; i < 2; i++) {
+        uint8_t id = pts[i].down ? pts[i].id : 0;
+        if (id != a->fid[i]) {
+            if (a->fown[i] == OWN_STICK) {      /* the finger that had it left */
+                dp_stick(0, 0);
+                stick_show(a, false);
+            }
+            a->fown[i] = id ? claim(a, (int)pts[i].x, (int)pts[i].y, a->fown[1 - i])
+                            : OWN_NONE;
+            a->fid[i] = id;
+        }
+        if (id && a->fown[i] == OWN_STICK) {
+            stick_update(a, (int)pts[i].x, (int)pts[i].y);
+        }
+    }
+    pad_apply(a);
 }
 
 /* --------------------------------------------------------------------------
@@ -321,11 +430,15 @@ static void frame(lv_timer_t *t)
     if (st == DP_ERROR || st == DP_STOPPED) {
         a->running = false;
         release_owner(a);
+        if (a->multi) pad_release_all(a);
         char text[300];
         snprintf(text, sizeof text, "%s\n\n%s\n\n%s", _("Doom se detuvo"), dp_error(),
                  _("Tocá para salir"));
         show_msg(a, text, true);
         return;
+    }
+    if (a->multi) {
+        pad_poll(a);
     }
     push_frame(a);
 
@@ -371,15 +484,17 @@ static bool doom_button(aos_app_t *self, void *inst, int action)
     app_t *a = (app_t *)inst;
     if (!a || !a->running) return false;    /* the button leaves, as everywhere */
     uint32_t now = (uint32_t)aos_hal_uptime_ms();
+    bool no_finger = a->multi ? (!a->fid[0] && !a->fid[1]) : a->owner == OWN_NONE;
     if (action == AOS_BUTTON_PRESS) {
         a->hw_press_ms = now;
-        dp_button(DP_BTN_FIRE, true);
+        if (a->multi) { a->hw_fire = true; pad_apply(a); }
+        else          dp_button(DP_BTN_FIRE, true);
     } else {
-        dp_button(DP_BTN_FIRE, false);
+        if (a->multi) { a->hw_fire = false; pad_apply(a); }
+        else          dp_button(DP_BTN_FIRE, false);
         /* the way out if the game ever stops answering: five seconds held
          * with no finger on the glass. Doom's own Quit Game is the usual one */
-        if (action == AOS_BUTTON_LONG && a->owner == OWN_NONE &&
-            now - a->hw_press_ms > 5000) {
+        if (action == AOS_BUTTON_LONG && no_finger && now - a->hw_press_ms > 5000) {
             a->want_exit = true;
         }
     }
@@ -401,6 +516,8 @@ static void *doom_create(aos_app_t *self, lv_obj_t *root)
     a->self = self;
     a->root = root;
     a->owner = OWN_NONE;
+    a->multi = aos_gesture_multitouch();
+    a->fown[0] = a->fown[1] = OWN_NONE;
     uint32_t hi = 0, hp = 0;
     aos_hal_heap_info(&hi, &hp);
     aos_hal_log("doom", "opening | internal %u B, psram %u B", (unsigned)hi, (unsigned)hp);
