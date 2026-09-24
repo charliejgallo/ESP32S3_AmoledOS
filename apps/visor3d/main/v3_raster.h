@@ -12,6 +12,7 @@ typedef struct {
     float scale;            /* 1 = the model fills about 70% of the view    */
     float px, py;           /* pan, in pixels of the target                 */
     int   mode;             /* V3_SOLID or V3_WIRE                          */
+    uint32_t bg;            /* background, 0xRRGGBB                         */
 } v3_view_t;
 
 enum { V3_SOLID = 0, V3_WIRE, V3_MODES };

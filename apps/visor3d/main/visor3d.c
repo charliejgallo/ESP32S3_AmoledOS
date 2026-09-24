@@ -20,8 +20,10 @@
  *     panel with aos_hal_display_blit(), three slots, the newest wins.
  *   - While anything moves it draws at half resolution and doubles the
  *     pixels; once the view has been still for a moment, one frame at full.
- *   - The bottom strip (y 400..447), where the glass does not read reliably,
- *     is an LVGL label: name, triangles, frames per second, mode.
+ *   - Below the view (y 352..), three buttons -background, solid/wireframe,
+ *     turntable- and under them, where the glass does not read reliably, an
+ *     LVGL label: name, triangles, frames per second. A black cat on a black
+ *     background is why the background is a choice (dark, grey, light).
  *   - Loading (v3_mesh.c) welds the STL's loose triangles and reduces a model
  *     over V3_BUDGET triangles, in the worker, with its progress in the strip.
  */
@@ -45,7 +47,9 @@
 #include <sys/stat.h>
 
 #define VW          AOS_SCREEN_W        /* 368 */
-#define VH          400                 /* the view; the strip below is text */
+#define VH          352                 /* the view; the buttons and the strip below */
+#define BTN_Y       (VH + 6)
+#define BTN_H       40
 #define NSLOT       3
 #define MAX_FILES   48
 #define NAME_LEN    64
@@ -66,6 +70,7 @@ typedef struct {
     lv_obj_t   *viewer;
     lv_obj_t   *touch;
     lv_obj_t   *strip;
+    lv_obj_t   *btn_bg, *btn_mode, *btn_spin;
     lv_obj_t   *canvas;                 /* the simulator's way to see a frame */
     uint16_t   *cv;
     lv_timer_t *timer;
@@ -98,10 +103,15 @@ typedef struct {
     bool        touching;
     uint32_t    moved_ms;
     int         shown;
+    int         bg;                     /* index in BG */
     uint32_t    fps_ms, fps_frames;
     unsigned    fps;
     bool        viewing;
 } app_t;
+
+/* The three backgrounds: a dark one for the AMOLED, a grey one, and a light
+ * one for dark models. */
+static const uint32_t BG[3] = { 0x0B0E14, 0x4A505E, 0xE4E6EA };
 
 /* ---------------------------------------------------------------------------
  * Files
@@ -317,12 +327,11 @@ static void strip_text(app_t *a)
     } else if (a->load_failed) {
         snprintf(buf, sizeof buf, "%s: %s", _("No se pudo abrir"), a->mesh.err[0] ? _(a->mesh.err) : "?");
     } else if (a->mesh_ready) {
-        const char *mode = a->view.mode == V3_WIRE ? _("alambre") : _("sólido");
         if (a->mesh.nt < a->mesh.nt_file) {
-            snprintf(buf, sizeof buf, "%.24s · %d/%d tri · %u fps · %s", a->name, a->mesh.nt,
-                     a->mesh.nt_file, a->fps, mode);
+            snprintf(buf, sizeof buf, "%.24s · %d/%d tri · %u fps", a->name, a->mesh.nt,
+                     a->mesh.nt_file, a->fps);
         } else {
-            snprintf(buf, sizeof buf, "%.24s · %d tri · %u fps · %s", a->name, a->mesh.nt, a->fps, mode);
+            snprintf(buf, sizeof buf, "%.24s · %d tri · %u fps", a->name, a->mesh.nt, a->fps);
         }
     } else {
         buf[0] = 0;
@@ -356,6 +365,41 @@ static void tick(lv_timer_t *t)
         a->fps_ms = now;
         strip_text(a);
     }
+}
+
+/* The buttons say what they are set to. */
+static void buttons_refresh(app_t *a)
+{
+    static const char *const BGN[3] = { N_("Fondo oscuro"), N_("Fondo gris"), N_("Fondo claro") };
+    lv_label_set_text(lv_obj_get_child(a->btn_bg, 0), _(BGN[a->bg]));
+    lv_label_set_text(lv_obj_get_child(a->btn_mode, 0),
+                      a->view.mode == V3_WIRE ? _("alambre") : _("sólido"));
+    lv_obj_set_style_bg_color(a->btn_spin, a->turntable ? AOS_C_ACCENT : AOS_C_CARD2, 0);
+}
+
+static void bg_cb(lv_event_t *e)
+{
+    app_t *a = (app_t *)lv_event_get_user_data(e);
+    a->bg = (a->bg + 1) % 3;
+    a->view.bg = BG[a->bg];
+    aos_hal_pref_set_i32("v3_bg", a->bg);
+    buttons_refresh(a);
+    view_moved(a);
+}
+
+static void mode_cb(lv_event_t *e)
+{
+    app_t *a = (app_t *)lv_event_get_user_data(e);
+    a->view.mode = (a->view.mode + 1) % V3_MODES;
+    buttons_refresh(a);
+    view_moved(a);
+}
+
+static void spin_cb(lv_event_t *e)
+{
+    app_t *a = (app_t *)lv_event_get_user_data(e);
+    a->turntable = !a->turntable;
+    buttons_refresh(a);
 }
 
 static void gesture_cb(const aos_gesture_event_t *ev, void *user)
@@ -402,11 +446,12 @@ static void gesture_cb(const aos_gesture_event_t *ev, void *user)
         break;
     case AOS_GESTURE_TAP:
         a->turntable = !a->turntable;
+        buttons_refresh(a);
         break;
     case AOS_GESTURE_LONG_PRESS:
         a->view.mode = (a->view.mode + 1) % V3_MODES;
+        buttons_refresh(a);
         view_moved(a);
-        strip_text(a);
         break;
     default:
         break;
@@ -436,7 +481,9 @@ static void open_cb(lv_event_t *e)
     snprintf(a->path, sizeof a->path, "%.90s/%.63s", models_dir(), a->names[i]);
     view_home(a);
     a->view.mode = V3_SOLID;
+    a->view.bg = BG[a->bg];
     a->turntable = false;
+    buttons_refresh(a);
     a->mesh_ready = false;
     a->loading = true;                  /* until the worker says otherwise */
     a->want_load = true;
@@ -516,13 +563,26 @@ static void build_viewer(app_t *a)
     lv_obj_set_size(a->touch, VW, VH);
     aos_gesture_attach(a->touch, 0, gesture_cb, a);
 
+    /* three buttons under the view, where a thumb still lands (above 395) */
+    lv_obj_t **btn[3] = { &a->btn_bg, &a->btn_mode, &a->btn_spin };
+    lv_event_cb_t cbs[3] = { bg_cb, mode_cb, spin_cb };
+    const char *txt[3] = { "", "", _("Girar") };
+    for (int i = 0; i < 3; i++) {
+        lv_obj_t *b = aos_button(a->viewer, txt[i], AOS_C_CARD2, cbs[i], a);
+        lv_obj_set_size(b, 112, BTN_H);
+        lv_obj_set_pos(b, 8 + i * 120, BTN_Y);
+        lv_obj_set_style_pad_hor(b, 4, 0);
+        lv_obj_set_style_text_font(lv_obj_get_child(b, 0), aos_font_small, 0);
+        *btn[i] = b;
+    }
+
     a->strip = lv_label_create(a->viewer);
     lv_obj_set_size(a->strip, AOS_SCREEN_W - 24, 20);   /* one line: DOTS needs the height */
     lv_label_set_long_mode(a->strip, LV_LABEL_LONG_MODE_DOTS);
     lv_obj_set_style_text_align(a->strip, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_color(a->strip, lv_color_hex(0x8E8E93), 0);
     lv_obj_set_style_text_font(a->strip, aos_font_small, 0);
-    lv_obj_set_pos(a->strip, 12, VH + 12);
+    lv_obj_set_pos(a->strip, 12, BTN_Y + BTN_H + 8);
 }
 
 /* ---------------------------------------------------------------------------
@@ -558,6 +618,8 @@ static void *v3_create(aos_app_t *self, lv_obj_t *root)
         return NULL;
     }
 
+    int32_t v = 0;
+    if (aos_hal_pref_get_i32("v3_bg", &v) && v >= 0 && v < 3) a->bg = (int)v;
     scan(a);
     build_list(a);
     build_viewer(a);

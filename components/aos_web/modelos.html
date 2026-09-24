@@ -320,16 +320,23 @@ function agrupar(src, G) {
     for (let a = 0; a < 3; a++) { lo[a] = Math.min(lo[a], pos[i + a]); hi[a] = Math.max(hi[a], pos[i + a]); }
   const inv = [0, 1, 2].map(a => hi[a] > lo[a] ? G / (hi[a] - lo[a]) : 0);
   const celdas = new Map(), sum = [], idx = [], col = [];
-  const celda = (i) => {
+  /* La celda y el COLOR: los vertices de piezas de distinto color no se funden aunque caigan
+     juntos. Sin esto la pupila negra de Mila, pegada al ojo amarillo, se mezclaba con el y
+     los ojos salian deformes al reducir; con esto cada pieza se reduce sola. */
+  const colores = new Map();
+  const celda = (i, color) => {
     const q = [0, 1, 2].map(a => Math.min(G - 1, Math.max(0, Math.floor((pos[i + a] - lo[a]) * inv[a]))));
-    const k = (q[0] * 4096 + q[1]) * 4096 + q[2];
+    let ci = colores.get(color);
+    if (ci === undefined) { ci = colores.size; colores.set(color, ci); }
+    const k = ((q[0] * 4096 + q[1]) * 4096 + q[2]) * 64 + (ci & 63);
     let c = celdas.get(k);
     if (c === undefined) { c = sum.length / 4; celdas.set(k, c); sum.push(0, 0, 0, 0); }
     sum[c * 4] += pos[i]; sum[c * 4 + 1] += pos[i + 1]; sum[c * 4 + 2] += pos[i + 2]; sum[c * 4 + 3]++;
     return c;
   };
   for (let t = 0; t < nt; t++) {
-    const a = celda(t * 9), b = celda(t * 9 + 3), d = celda(t * 9 + 6);
+    const c = src.col ? src.col[t] : 0;
+    const a = celda(t * 9, c), b = celda(t * 9 + 3, c), d = celda(t * 9 + 6, c);
     if (a === b || b === d || a === d) continue;
     idx.push(a, b, d);
     if (src.col) col.push(src.col[t]);

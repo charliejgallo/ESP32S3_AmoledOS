@@ -2441,10 +2441,14 @@ static const char blob_en_demo_visor3d_lang[] =
     "Reduciendo...\tReducing...\n"
     "Cargando...\tLoading...\n"
     "No se pudo abrir\tCould not open\n"
+    "Fondo oscuro\tDark bg\n"
+    "Fondo gris\tGrey bg\n"
+    "Fondo claro\tLight bg\n"
     "alambre\twireframe\n"
     "sólido\tsolid\n"
     "Visor 3D\t3D Viewer\n"
     "No hay modelos.\\nCopiá archivos .stl a\\n%s\\no convertí OBJ y GLB\\nen el portal (/3d).\tNo models.\\nCopy .stl files to\\n%s\\nor convert OBJ and GLB\\nin the portal (/3d).\n"
+    "Girar\tTurn\n"
     "Sin memoria\tOut of memory\n"
     ;
 
@@ -4916,10 +4920,14 @@ static const char blob_de_demo_visor3d_lang[] =
     "Reduciendo...\tReduziere...\n"
     "Cargando...\tLädt...\n"
     "No se pudo abrir\tÖffnen fehlgeschlagen\n"
+    "Fondo oscuro\tDunkel\n"
+    "Fondo gris\tGrau\n"
+    "Fondo claro\tHell\n"
     "alambre\tGitter\n"
     "sólido\tmassiv\n"
     "Visor 3D\t3D-Viewer\n"
     "No hay modelos.\\nCopiá archivos .stl a\\n%s\\no convertí OBJ y GLB\\nen el portal (/3d).\tKeine Modelle.\\n.stl-Dateien nach\\n%s\\nkopieren oder OBJ und GLB\\nim Portal (/3d) umwandeln.\n"
+    "Girar\tDrehen\n"
     "Sin memoria\tKein Speicher\n"
     ;
 

@@ -25,7 +25,6 @@
 
 #define CAM_D       3.0f                /* camera distance, in model radii */
 #define FILL        0.72f               /* of half the smaller side, at scale 1 */
-#define BG_BE       0x2108              /* 0x0821 (a near black blue), byte-swapped */
 #define BASE_RGB    0xA8B8D0            /* the model when the file has no colour */
 
 /* ceil(v - 0.5) = the first pixel centre at or after v, without a call into
@@ -154,7 +153,8 @@ int v3_render(const v3_mesh_t *m, const v3_view_t *view, v3_scratch_t *s,
 {
     uint32_t c0 = cycles();
     size_t n = (size_t)w * h;
-    for (size_t i = 0; i < n; i++) fb[i] = BG_BE;
+    uint16_t bg = be565((view->bg >> 16) & 255, (view->bg >> 8) & 255, view->bg & 255);
+    for (size_t i = 0; i < n; i++) fb[i] = bg;
     if (view->mode == V3_SOLID) memset(zb, 0xFF, n * 2);
     uint32_t c1 = cycles();
 
