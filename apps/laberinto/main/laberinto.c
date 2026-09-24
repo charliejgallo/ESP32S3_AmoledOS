@@ -997,8 +997,8 @@ static lv_obj_t *bar_button(lv_obj_t *parent, const char *text, int32_t x,
 {
     lv_obj_t *btn = lv_obj_create(parent);
     lv_obj_remove_style_all(btn);
-    lv_obj_set_size(btn, w, 34);
-    lv_obj_set_pos(btn, x, 26);
+    lv_obj_set_size(btn, w, 38);
+    lv_obj_set_pos(btn, x, 24);
     lv_obj_set_style_radius(btn, 12, 0);
     lv_obj_set_style_bg_color(btn, color, 0);
     lv_obj_set_style_bg_opa(btn, LV_OPA_COVER, 0);
@@ -1083,15 +1083,16 @@ static void *create(aos_app_t *self, lv_obj_t *root)
                                    AOS_SCREEN_W, 20);
     lv_obj_align(s_z.lbl_info, LV_ALIGN_TOP_MID, 0, 3);
 
-    lv_obj_t *zero = bar_button(bar, _("CERO"), 40, 110, AOS_C_CARD2, zero_cb, NULL);
+    /* three buttons of the same size across the bar: the size one used to
+     * be squeezed into the 68 px between the other two, and a thumb missed
+     * it (the user, 2026-09-24) */
+    lv_obj_t *zero = bar_button(bar, _("CERO"), 20, 104, AOS_C_CARD2, zero_cb, NULL);
     lv_obj_add_event_cb(zero, axes_cb, LV_EVENT_LONG_PRESSED, NULL);
-    bar_button(bar, _("NUEVO"), AOS_SCREEN_W - 40 - 110, 110, AOS_C_ACCENT,
-               new_cb, NULL);
+    bar_button(bar, _("NUEVO"), 244, 104, AOS_C_ACCENT, new_cb, NULL);
 
-    /* The size, in the gap between the two buttons (110 px each with 40 of
-     * margin: 68 in the middle). It used to show the axis mapping, which a
-     * long press on CERO still cycles and announces in a toast. */
-    bar_button(bar, "15x15", 150, 68, AOS_C_CARD2, size_cb, &s_z.lbl_size);
+    /* The size, between the two. The middle used to show the axis mapping,
+     * which a long press on CERO still cycles and announces in a toast. */
+    bar_button(bar, "15x15", 132, 104, AOS_C_CARD2, size_cb, &s_z.lbl_size);
     size_label();
 
     /* the maze itself: two fingers zoom the big one */
