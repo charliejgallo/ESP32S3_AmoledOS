@@ -89,8 +89,10 @@ typedef struct {
     lv_obj_t   *probe_dot2;     /* point 2 from 0x09..0x0C, if the chip fills it */
     lv_timer_t *probe_timer;
     uint32_t    probe_seq;
-    uint8_t     probe_last[AOS_TOUCH_PROBE_REGS];   /* last burst logged */
+    uint8_t     probe_last[AOS_TOUCH_REGS];   /* last burst logged */
     uint32_t    probe_reads, probe_two, probe_p2;
+    uint32_t    rate_ms, rate_n;    /* time with a finger down, samples in it */
+    uint32_t    rate_last_ms;
     uint8_t     probe_max_fingers;
     lv_obj_t *r_day, *r_mon, *r_year, *r_hour, *r_min;
     lv_timer_t *timer;
@@ -784,8 +786,8 @@ static void raw_refresh(int32_t x, int32_t y)
 static void probe_tick(lv_timer_t *t)
 {
     (void)t;
-    uint8_t r[AOS_TOUCH_PROBE_REGS];
-    uint32_t seq = aos_hal_touch_probe_regs(r);
+    uint8_t r[AOS_TOUCH_REGS];
+    uint32_t seq = aos_hal_touch_regs(r);
     if (!s_set.probe_label) {
         return;
     }
@@ -796,7 +798,17 @@ static void probe_tick(lv_timer_t *t)
     if (seq == s_set.probe_seq) {
         return;
     }
+    uint32_t now = lv_tick_get();
     s_set.probe_reads += seq - s_set.probe_seq;
+    /* The chip's own refresh rate: new samples per second of touching.
+     * aos_hal_touch_regs' counter only moves when the registers change, so
+     * with a finger moving it IS the chip's rate, not ours. */
+    if (s_set.probe_seq && (r[2] & 0x0F) && (s_set.probe_last[2] & 0x0F) &&
+        now - s_set.rate_last_ms < 500) {
+        s_set.rate_ms += now - s_set.rate_last_ms;
+        s_set.rate_n  += seq - s_set.probe_seq;
+    }
+    s_set.rate_last_ms = now;
     s_set.probe_seq = seq;
 
     uint8_t fingers = r[2] & 0x0F;
@@ -832,8 +844,8 @@ static void probe_tick(lv_timer_t *t)
         lv_obj_set_pos(s_set.raw_dot, fx - 7, fy - 7);
     }
 
-    char hex[AOS_TOUCH_PROBE_REGS * 3 + 1];
-    for (int i = 0; i < AOS_TOUCH_PROBE_REGS; i++) {
+    char hex[AOS_TOUCH_REGS * 3 + 1];
+    for (int i = 0; i < AOS_TOUCH_REGS; i++) {
         snprintf(hex + i * 3, 4, "%02X ", r[i]);
     }
     lv_label_set_text_fmt(s_set.probe_label,
@@ -841,11 +853,12 @@ static void probe_tick(lv_timer_t *t)
                           "P1 %d,%d   P2 %d,%d\n"
                           "d = %d\n"
                           "%.24s\n%s\n"
-                          "con P2: %u de %u",
+                          "con P2: %u de %u   chip %u Hz",
                           r[1], fingers, s_set.probe_max_fingers,
                           (int)x1, (int)y1, (int)x2, (int)y2, (int)dist,
                           hex, hex + 24,
-                          (unsigned)s_set.probe_p2, (unsigned)s_set.probe_reads);
+                          (unsigned)s_set.probe_p2, (unsigned)s_set.probe_reads,
+                          (unsigned)(s_set.rate_ms ? s_set.rate_n * 1000u / s_set.rate_ms : 0));
 
     bool changed = memcmp(r, s_set.probe_last, sizeof(r)) != 0;
     bool worth   = fingers || p2 || (s_set.probe_last[2] & 0x0F) ||
@@ -869,12 +882,14 @@ static void raw_close(void)
         s_set.probe_timer = NULL;
     }
     if (s_set.probe_seq) {
-        aos_hal_log("touch", "probe summary: %u reads, max fingers %u, "
-                    "%u reads with fingers>=2, %u with a point 2 (0x07..0x0A)",
+        aos_hal_log("touch", "probe summary: %u samples, max fingers %u, "
+                    "%u with fingers>=2, %u with a point 2 (0x07..0x0A), "
+                    "chip rate %u Hz over %u ms of touching",
                     (unsigned)s_set.probe_reads, s_set.probe_max_fingers,
-                    (unsigned)s_set.probe_two, (unsigned)s_set.probe_p2);
+                    (unsigned)s_set.probe_two, (unsigned)s_set.probe_p2,
+                    (unsigned)(s_set.rate_ms ? s_set.rate_n * 1000u / s_set.rate_ms : 0),
+                    (unsigned)s_set.rate_ms);
     }
-    aos_hal_touch_probe(false);
     s_set.probe_label = NULL;
     s_set.probe_dot2  = NULL;
     aos_ui_touch_raw(false);
@@ -926,8 +941,8 @@ static void raw_cb(lv_event_t *event)
     aos_ui_block_gestures(true);    /* the sweep IS a long drag: no "back" */
     s_set.probe_seq = s_set.probe_reads = s_set.probe_two = s_set.probe_p2 = 0;
     s_set.probe_max_fingers = 0;
+    s_set.rate_ms = s_set.rate_n = s_set.rate_last_ms = 0;
     memset(s_set.probe_last, 0, sizeof(s_set.probe_last));
-    aos_hal_touch_probe(true);
 
     lv_obj_t *box = lv_obj_create(lv_layer_top());
     s_set.raw_box = box;

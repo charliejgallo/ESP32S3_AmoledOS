@@ -171,14 +171,40 @@ typedef enum {
 
 aos_touch_gesture_t aos_hal_touch_gesture(void);
 
-/* Touch register probe (pinch-probe fork). While on, every touch read is a
- * burst of registers 0x00..0x0E instead of the driver's 5 bytes; LVGL still
- * gets point 1 as always. aos_hal_touch_probe_regs() copies the last burst and
- * returns a counter that grows with each read (0 = probe off, or not a
- * CST820). Settings -> Touch -> Raw view uses it. Always 0 in the simulator. */
-#define AOS_TOUCH_PROBE_REGS 15
-void     aos_hal_touch_probe(bool on);
-uint32_t aos_hal_touch_probe_regs(uint8_t regs[AOS_TOUCH_PROBE_REGS]);
+/* --------------------------------------------------------------------------
+ * Two fingers (docs/GESTURES.md)
+ *
+ * The v2's CST820 reports a second finger in registers its datasheet never
+ * documents; the HAL reads both on every touch read and publishes them here.
+ * LVGL keeps seeing a single pointer, as always.
+ *
+ * Apps do not want this: they want aos_gesture.h, which turns these frames
+ * into taps, drags and pinches and filters what the chip gets wrong. This is
+ * the raw material, for the recogniser and for diagnostics.
+ *
+ * Coordinates are the DIGITISER's, before the calibration: pass them through
+ * aos_ui_touch_map() to get screen pixels. In the simulator they are already
+ * screen pixels (the mouse is one finger; with Option held, two -mirrored
+ * around the centre of the screen-, and Option+Shift moves both together).
+ * -------------------------------------------------------------------------- */
+
+typedef struct {
+    uint8_t  count;         /* fingers in this sample: 0, 1 or 2           */
+    int16_t  x[2], y[2];    /* [0] first; only the first 'count' are valid  */
+    uint32_t seq;           /* +1 per NEW sample from the chip (~14 Hz)     */
+    uint32_t t_ms;          /* uptime when that sample was read             */
+} aos_touch_frame_t;
+
+/* The latest sample. false = there is no touch panel. */
+bool     aos_hal_touch_frame(aos_touch_frame_t *out);
+/* true = the hardware can report a second finger. */
+bool     aos_hal_touch_multi(void);
+
+/* The CST820's registers 0x00..0x0E as of the last read, for the raw view
+ * (Settings -> Touch -> Raw view). Returns the sample counter, 0 = not a
+ * CST820 (the v1 board, the simulator). */
+#define AOS_TOUCH_REGS 15
+uint32_t aos_hal_touch_regs(uint8_t regs[AOS_TOUCH_REGS]);
 
 /* --------------------------------------------------------------------------
  * Display state

@@ -314,15 +314,48 @@ aos_touch_gesture_t aos_hal_touch_gesture(void)
     return AOS_TOUCH_GESTURE_NONE;  /* on the desktop LVGL detects them */
 }
 
-void aos_hal_touch_probe(bool on)
+/* Two fingers (docs/GESTURES.md). sim/main.c builds each sample from the
+ * mouse, Option and the script and hands it over here; this side only keeps
+ * the latest one and counts the new ones, like the board's HAL does. */
+static aos_touch_frame_t s_frame;
+
+void aos_hal_sim_set_touch(int count, int x1, int y1, int x2, int y2)
 {
-    (void)on;                       /* no touch chip on the desktop */
+    int16_t x[2] = { (int16_t)x1, (int16_t)x2 };
+    int16_t y[2] = { (int16_t)y1, (int16_t)y2 };
+    if (count < 0) count = 0;
+    if (count > 2) count = 2;
+    bool changed = count != s_frame.count;
+    for (int i = 0; i < count; i++) {
+        changed |= x[i] != s_frame.x[i] || y[i] != s_frame.y[i];
+    }
+    if (!changed) {
+        return;
+    }
+    s_frame.count = (uint8_t)count;
+    for (int i = 0; i < 2; i++) {
+        s_frame.x[i] = i < count ? x[i] : 0;
+        s_frame.y[i] = i < count ? y[i] : 0;
+    }
+    s_frame.seq++;
+    s_frame.t_ms = (uint32_t)aos_hal_uptime_ms();
 }
 
-uint32_t aos_hal_touch_probe_regs(uint8_t regs[AOS_TOUCH_PROBE_REGS])
+bool aos_hal_touch_frame(aos_touch_frame_t *out)
+{
+    *out = s_frame;
+    return true;
+}
+
+bool aos_hal_touch_multi(void)
+{
+    return true;                    /* emulated: Option + drag */
+}
+
+uint32_t aos_hal_touch_regs(uint8_t regs[AOS_TOUCH_REGS])
 {
     (void)regs;
-    return 0;
+    return 0;                       /* no CST820 on the desktop */
 }
 
 aos_display_state_t aos_hal_display_state(void)

@@ -36,6 +36,7 @@ int  aos_hal_sim_get_pose(void);
 int  aos_hal_effective_brightness(void);
 void aos_hal_sim_button(int action);
 void aos_hal_sim_set_tilt(float x, float y);
+void aos_hal_sim_set_touch(int count, int x1, int y1, int x2, int y2);
 
 /* --------------------------------------------------------------------------
  * Simulated dimming
@@ -592,11 +593,25 @@ static void btn_queue(int action)
     }
 }
 
+/* The mouse as the finger(s) of aos_hal_touch_frame(); see sim_touch_tick. */
+static int  s_mouse_x, s_mouse_y;
+static bool s_mouse_down;
+
 static int sim_event_watch(void *userdata, SDL_Event *event)
 {
     (void)userdata;
 
+    if ((event->type == SDL_MOUSEBUTTONDOWN || event->type == SDL_MOUSEBUTTONUP) &&
+        event->button.button == SDL_BUTTON_LEFT) {
+        s_mouse_down = event->type == SDL_MOUSEBUTTONDOWN;
+        s_mouse_x = event->button.x / ZOOM;
+        s_mouse_y = event->button.y / ZOOM;
+        return 1;
+    }
+
     if (event->type == SDL_MOUSEMOTION) {
+        s_mouse_x = event->motion.x / ZOOM;
+        s_mouse_y = event->motion.y / ZOOM;
         /* centre of the window = flat; the edges, half a g each way */
         float x = ((float)event->motion.x / (float)(AOS_SCREEN_W * ZOOM)) - 0.5f;
         float y = ((float)event->motion.y / (float)(AOS_SCREEN_H * ZOOM)) - 0.5f;
@@ -835,8 +850,155 @@ static void tap_start(const char *arg)
     printf("[script] tap at (%d,%d)\n", x, y);
 }
 
+/* Scripted two-finger pinch and one-finger drag, for aos_gesture without
+ * hands (docs/GESTURES.md).
+ *
+ *   pinch:CXxCY:D0:D1:MS   two fingers side by side around (CX,CY), their
+ *                          distance going from D0 to D1 in MS milliseconds
+ *   drag:X0xY0:X1xY1:MS    one finger from (X0,Y0) to (X1,Y1) in MS, then up
+ *                          (so it also flings: the speed at release is real)
+ *
+ * The first finger is the virtual pointer, so LVGL sees the press as on the
+ * board; the second exists only in aos_hal_touch_frame(). */
+static bool     s_pinch_active, s_drag_active;
+static uint64_t s_gest_start, s_gest_ms;
+static int      s_pinch_cx, s_pinch_cy, s_pinch_d0, s_pinch_d1;
+static int      s_drag_x0, s_drag_y0, s_drag_x1, s_drag_y1;
+static int      s_pinch_x2, s_pinch_y2;     /* the second finger, for sim_touch_tick */
+
+static void pinch_start(const char *arg)
+{
+    s_pinch_cx = AOS_SCREEN_W / 2; s_pinch_cy = AOS_SCREEN_H / 2;
+    s_pinch_d0 = 80; s_pinch_d1 = 300;
+    int ms = 800;
+    if (arg && *arg) {
+        sscanf(arg, "%dx%d:%d:%d:%d", &s_pinch_cx, &s_pinch_cy,
+               &s_pinch_d0, &s_pinch_d1, &ms);
+    }
+    s_gest_ms = (uint64_t)(ms > 0 ? ms : 1);
+    s_gest_start = aos_hal_uptime_ms();
+    s_pinch_active = true;
+    s_virtual_point.x = s_pinch_cx - s_pinch_d0 / 2;
+    s_virtual_point.y = s_pinch_cy;
+    s_pinch_x2 = s_pinch_cx + s_pinch_d0 / 2;
+    s_pinch_y2 = s_pinch_cy;
+    s_virtual_down = true;
+    printf("[script] pinch around (%d,%d) from %d to %d px in %d ms\n",
+           s_pinch_cx, s_pinch_cy, s_pinch_d0, s_pinch_d1, ms);
+}
+
+static void drag_start(const char *arg)
+{
+    int ms = 500;
+    s_drag_x0 = 100; s_drag_y0 = 224; s_drag_x1 = 268; s_drag_y1 = 224;
+    if (arg && *arg) {
+        sscanf(arg, "%dx%d:%dx%d:%d", &s_drag_x0, &s_drag_y0,
+               &s_drag_x1, &s_drag_y1, &ms);
+    }
+    s_gest_ms = (uint64_t)(ms > 0 ? ms : 1);
+    s_gest_start = aos_hal_uptime_ms();
+    s_drag_active = true;
+    s_virtual_point.x = s_drag_x0;
+    s_virtual_point.y = s_drag_y0;
+    s_virtual_down = true;
+    printf("[script] drag (%d,%d) -> (%d,%d) in %d ms\n",
+           s_drag_x0, s_drag_y0, s_drag_x1, s_drag_y1, ms);
+}
+
+/* true while a scripted pinch or drag is still moving */
+static bool gesture_script_tick(uint64_t now_ms)
+{
+    if (!s_pinch_active && !s_drag_active) {
+        return false;
+    }
+    uint64_t t = now_ms - s_gest_start;
+    if (t >= s_gest_ms) {
+        s_pinch_active = s_drag_active = false;
+        s_virtual_down = false;
+        s_script_next_ms = now_ms + s_script_gap_ms;
+        return true;
+    }
+    float f = (float)t / (float)s_gest_ms;
+    if (s_pinch_active) {
+        int d = s_pinch_d0 + (int)((float)(s_pinch_d1 - s_pinch_d0) * f);
+        s_virtual_point.x = s_pinch_cx - d / 2;
+        s_pinch_x2 = s_pinch_cx + d / 2;
+    } else {
+        s_virtual_point.x = s_drag_x0 + (int)((float)(s_drag_x1 - s_drag_x0) * f);
+        s_virtual_point.y = s_drag_y0 + (int)((float)(s_drag_y1 - s_drag_y0) * f);
+    }
+    return true;
+}
+
+/* The sample aos_hal_touch_frame() hands out, built from whoever is touching:
+ * the script's virtual finger(s) or the mouse.
+ *
+ * With Option held the mouse is TWO fingers: the second is the mirror image
+ * of the first around the centre of the screen (iOS Simulator does the
+ * same), so dragging away from the centre is a pinch out. Adding Shift
+ * freezes the gap between them and both move together: a two-finger pan.
+ *
+ * Samples are rationed to AOS_SIM_TOUCH_HZ (14 by default), the rate the
+ * CST820 was measured at: whatever feels smooth here with 100 samples a
+ * second would stutter on the watch. AOS_SIM_TOUCH_HZ=0 lifts the ration. */
+static void sim_touch_tick(uint64_t now_ms)
+{
+    static int      hz = -1;
+    static uint64_t last_ms;
+    static bool     parallel;
+    static int      par_dx, par_dy;
+
+    if (hz < 0) {
+        const char *env = getenv("AOS_SIM_TOUCH_HZ");
+        hz = env ? atoi(env) : 14;
+        if (hz < 0) hz = 0;
+    }
+    if (hz && now_ms - last_ms < (uint64_t)(1000 / hz)) {
+        return;
+    }
+    last_ms = now_ms;
+
+    if (s_pinch_active) {
+        aos_hal_sim_set_touch(2, s_virtual_point.x, s_virtual_point.y,
+                              s_pinch_x2, s_pinch_y2);
+        return;
+    }
+    if (s_virtual_down) {
+        aos_hal_sim_set_touch(1, s_virtual_point.x, s_virtual_point.y, 0, 0);
+        return;
+    }
+    if (!s_mouse_down) {
+        parallel = false;
+        aos_hal_sim_set_touch(0, 0, 0, 0, 0);
+        return;
+    }
+    SDL_Keymod mod = SDL_GetModState();
+    if (!(mod & KMOD_ALT)) {
+        parallel = false;
+        aos_hal_sim_set_touch(1, s_mouse_x, s_mouse_y, 0, 0);
+        return;
+    }
+    int mx = AOS_SCREEN_W - 1 - s_mouse_x;
+    int my = AOS_SCREEN_H - 1 - s_mouse_y;
+    if (mod & KMOD_SHIFT) {
+        if (!parallel) {
+            parallel = true;
+            par_dx = mx - s_mouse_x;
+            par_dy = my - s_mouse_y;
+        }
+        mx = s_mouse_x + par_dx;
+        my = s_mouse_y + par_dy;
+    } else {
+        parallel = false;
+    }
+    aos_hal_sim_set_touch(2, s_mouse_x, s_mouse_y, mx, my);
+}
+
 static void script_tick(uint64_t now_ms)
 {
+    if (gesture_script_tick(now_ms)) {
+        return;
+    }
     if (now_ms < s_script_next_ms) {
         return;
     }
@@ -919,6 +1081,12 @@ static void script_tick(uint64_t now_ms)
         /* besides setting the spacing, it waits: that way "ms:3000,tap" is
          * enough to give something time to connect before the first step */
         s_script_next_ms = now_ms + s_script_gap_ms;
+    } else if (strncmp(s_script_cursor, "pinch", 5) == 0) {
+        pinch_start(s_script_cursor[5] == ':' ? s_script_cursor + 6 : NULL);
+        s_script_next_ms = now_ms + 30;
+    } else if (strncmp(s_script_cursor, "drag", 4) == 0) {
+        drag_start(s_script_cursor[4] == ':' ? s_script_cursor + 5 : NULL);
+        s_script_next_ms = now_ms + 30;
     } else if (strncmp(s_script_cursor, "hold:", 5) == 0) {
         hold_start(s_script_cursor + 5);
         s_script_next_ms = now_ms + 30;
@@ -1286,6 +1454,8 @@ static void print_help(void)
     printf("\n  AmoledOS - simulator\n"
            "  ---------------------------------------------------------\n"
            "  mouse: drag up = menu, drag right = back\n"
+           "  Option + drag: two fingers (pinch around the centre),\n"
+           "  Option + Shift + drag: both fingers move together\n"
            "  ESC / backspace / left arrow ....... back\n"
            "  H / Home key ....................... watch\n"
            "  M / up arrow ....................... app menu\n"
@@ -1449,6 +1619,7 @@ int main(void)
 
         uint64_t now = aos_hal_uptime_ms();
         script_tick(now);
+        sim_touch_tick(now);
         {
             static uint64_t last_steps_tick;
             if (now - last_steps_tick >= 5000) {

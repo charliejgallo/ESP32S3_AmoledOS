@@ -3363,72 +3363,167 @@ aos_touch_gesture_t aos_hal_touch_gesture(void)
 }
 
 /* --------------------------------------------------------------------------
- * Touch register probe (pinch-probe fork)
+ * Two fingers (docs/GESTURES.md)
  *
- * Does the CST820 ever report a second finger? Its datasheet promises "real
- * two-point operation", the only published register map documents a single
- * X/Y pair, and every driver we know of reads one point. The question has to
- * be put to the chip itself.
+ * The v2's CST820 reports a SECOND finger, and no published driver knows it.
+ * Measured on 2026-09-24 by bursting registers 0x00..0x0E while pinching:
  *
- * While the probe is on, the driver's read (5 bytes from 0x02) is swapped for
- * a burst of 0x00..0x0E: gesture, finger count, point 1 at 0x03..0x08 and the
- * slot where a FocalTech-style layout would put point 2, 0x09..0x0E. It is
- * the SAME read, from the same task, at the same moment, only longer: no
- * second poller on the bus (that is what set off the watchdogs before; see
- * touch_poll_gesture). Point 1 is handed to LVGL exactly as the driver does,
- * and with the probe off the driver's own function is back in place.
+ *   0x01        gesture id (0 while we read continuously)
+ *   0x02        finger count - and it NEVER goes above 1, even with two down
+ *   0x03..0x06  point 1: XH XL YH YL (12 bits each, low nibble of the H byte)
+ *   0x07..0x0A  point 2, same format; all zero while only one finger is down
+ *   0x0B..0x0E  FF with one finger; with two, 0x0B/0x0C echo point 2's Y
+ *
+ * Every driver looks at 0x02, reads "1" and stops at point 1. The one
+ * public attempt at a second point looked at 0x09..0x0C, the FocalTech
+ * 6-byte stride, which on this chip is half of point 2 and half an echo.
+ *
+ * So the driver's read_data is swapped, once, for our own: one burst of
+ * 0x00..0x0E (15 bytes, ~0.5 ms at 400 kHz, the same transaction the driver
+ * did with 5), from the same task at the same moment. Point 1 goes to LVGL
+ * exactly as the driver put it -a single pointer, count 0 or 1- so nothing
+ * that exists today sees a difference. The two points go to a frame that
+ * aos_hal_touch_frame() hands out, for the gesture recogniser (aos_gesture.c).
+ *
+ * The finger count of the frame is derived, not read:
+ *   0x02 >= 1 and point 2 set  -> 2 fingers
+ *   0x02 >= 1                  -> 1 finger, point 1
+ *   0x02 == 0 and point 2 set  -> 1 finger, point 2. Lifting the FIRST of two
+ *                                 fingers leaves the other one only in slot 2
+ *                                 for a while, with 0x02 already at 0: LVGL
+ *                                 sees a release with a finger still down.
+ *
+ * On any other touch controller (the v1's FT3168, which is documented as two
+ * point) the driver's own read runs and the frame copies what it left in
+ * tp->data, up to two points. Untested: nobody here has a v1.
  * -------------------------------------------------------------------------- */
 
 static esp_lcd_touch_handle_t s_touch_tp;
 static esp_err_t (*s_touch_orig_read)(esp_lcd_touch_handle_t tp);
-static uint8_t           s_probe_regs[AOS_TOUCH_PROBE_REGS];
-static volatile uint32_t s_probe_seq;
+static portMUX_TYPE      s_frame_lock = portMUX_INITIALIZER_UNLOCKED;
+static aos_touch_frame_t s_frame;
+static uint8_t           s_touch_regs[AOS_TOUCH_REGS];
+static uint8_t           s_touch_prev[AOS_TOUCH_REGS];
 
-static esp_err_t touch_probe_read(esp_lcd_touch_handle_t tp)
+static void frame_publish(uint8_t count, const int16_t x[2], const int16_t y[2],
+                          bool changed)
 {
-    uint8_t r[AOS_TOUCH_PROBE_REGS];
+    if (!changed) {
+        return;             /* same sample read again: the chip is slower than us */
+    }
+    uint32_t now = (uint32_t)(esp_timer_get_time() / 1000);
+    portENTER_CRITICAL(&s_frame_lock);
+    s_frame.count = count;
+    for (int i = 0; i < 2; i++) {
+        s_frame.x[i] = i < count ? x[i] : 0;
+        s_frame.y[i] = i < count ? y[i] : 0;
+    }
+    s_frame.seq++;
+    s_frame.t_ms = now;
+    portEXIT_CRITICAL(&s_frame_lock);
+}
+
+static esp_err_t touch_read_cst820(esp_lcd_touch_handle_t tp)
+{
+    uint8_t r[AOS_TOUCH_REGS];
     esp_err_t ret = esp_lcd_panel_io_rx_param(tp->io, 0x00, r, sizeof(r));
     if (ret != ESP_OK) {
         return ret;
     }
-    uint8_t num = r[2] & 0x0F;
+    uint8_t n  = r[2] & 0x0F;
+    int16_t x1 = (int16_t)((r[3] & 0x0F) << 8 | r[4]);
+    int16_t y1 = (int16_t)((r[5] & 0x0F) << 8 | r[6]);
+    int16_t x2 = (int16_t)((r[7] & 0x0F) << 8 | r[8]);
+    int16_t y2 = (int16_t)((r[9] & 0x0F) << 8 | r[10]);
+    bool    p2 = r[7] || r[8] || r[9] || r[10];
 
+    /* LVGL: exactly what esp_lcd_touch_cst816s_read_data() would leave */
     portENTER_CRITICAL(&tp->data.lock);
-    tp->data.points = num > 1 ? 1 : num;     /* LVGL still gets one point */
-    if (num) {
-        tp->data.coords[0].x = (uint16_t)((r[3] & 0x0F) << 8 | r[4]);
-        tp->data.coords[0].y = (uint16_t)((r[5] & 0x0F) << 8 | r[6]);
+    tp->data.points = n ? 1 : 0;
+    if (n) {
+        tp->data.coords[0].x = (uint16_t)x1;
+        tp->data.coords[0].y = (uint16_t)y1;
     }
     portEXIT_CRITICAL(&tp->data.lock);
 
-    memcpy(s_probe_regs, r, sizeof(r));
-    s_probe_seq++;
+    int16_t fx[2], fy[2];
+    uint8_t count = 0;
+    if (n) {
+        fx[count] = x1; fy[count] = y1; count++;
+    }
+    if (p2) {
+        fx[count] = x2; fy[count] = y2; count++;
+    }
+    /* A new sample is a change in count or coordinates (0x02..0x0A). The
+     * chip refreshes every ~70 ms and we read every ~36: half the reads
+     * bring nothing new, and the recogniser must not count them twice. */
+    bool changed = memcmp(r + 2, s_touch_prev + 2, 9) != 0;
+    memcpy(s_touch_prev, r, sizeof(r));
+    memcpy(s_touch_regs, r, sizeof(r));
+    frame_publish(count, fx, fy, changed);
     return ESP_OK;
 }
 
-void aos_hal_touch_probe(bool on)
+static esp_err_t touch_read_frame(esp_lcd_touch_handle_t tp)
 {
-    if (!s_touch_tp || !s_touch_dev) {
-        return;                 /* not the v2's CST820 */
+    if (s_touch_dev) {
+        return touch_read_cst820(tp);       /* the v2's CST820 */
     }
-    if (on && !s_touch_orig_read) {
-        s_touch_orig_read     = s_touch_tp->read_data;
-        s_touch_tp->read_data = touch_probe_read;
-        aos_hal_log("touch", "register probe ON (burst 0x00..0x0E)");
-    } else if (!on && s_touch_orig_read) {
-        s_touch_tp->read_data = s_touch_orig_read;
-        s_touch_orig_read     = NULL;
-        aos_hal_log("touch", "register probe off");
+    esp_err_t ret = s_touch_orig_read(tp);
+    if (ret != ESP_OK) {
+        return ret;
     }
+    int16_t fx[2] = { 0 }, fy[2] = { 0 };
+    uint8_t count;
+    portENTER_CRITICAL(&tp->data.lock);
+    count = tp->data.points > 2 ? 2 : tp->data.points;
+    for (int i = 0; i < count; i++) {
+        fx[i] = (int16_t)tp->data.coords[i].x;
+        fy[i] = (int16_t)tp->data.coords[i].y;
+    }
+    portEXIT_CRITICAL(&tp->data.lock);
+    bool changed = count != s_frame.count ||
+                   (count && (fx[0] != s_frame.x[0] || fy[0] != s_frame.y[0])) ||
+                   (count > 1 && (fx[1] != s_frame.x[1] || fy[1] != s_frame.y[1]));
+    frame_publish(count, fx, fy, changed);
+    return ESP_OK;
 }
 
-uint32_t aos_hal_touch_probe_regs(uint8_t regs[AOS_TOUCH_PROBE_REGS])
+/* Called once the touch panel exists, before LVGL reads it. */
+static void touch_frame_install(esp_lcd_touch_handle_t tp)
 {
-    if (!s_touch_orig_read) {
+    s_touch_tp            = tp;
+    s_touch_orig_read     = tp->read_data;
+    tp->read_data         = touch_read_frame;
+}
+
+bool aos_hal_touch_frame(aos_touch_frame_t *out)
+{
+    if (!s_touch_tp) {
+        return false;
+    }
+    portENTER_CRITICAL(&s_frame_lock);
+    *out = s_frame;
+    portEXIT_CRITICAL(&s_frame_lock);
+    return true;
+}
+
+bool aos_hal_touch_multi(void)
+{
+    return s_touch_tp != NULL;
+}
+
+uint32_t aos_hal_touch_regs(uint8_t regs[AOS_TOUCH_REGS])
+{
+    if (!s_touch_tp || !s_touch_dev) {
         return 0;
     }
-    memcpy(regs, s_probe_regs, AOS_TOUCH_PROBE_REGS);
-    return s_probe_seq;
+    uint32_t seq;
+    portENTER_CRITICAL(&s_frame_lock);
+    memcpy(regs, s_touch_regs, AOS_TOUCH_REGS);
+    seq = s_frame.seq;
+    portEXIT_CRITICAL(&s_frame_lock);
+    return seq ? seq : 1;
 }
 
 /* --------------------------------------------------------------------------
@@ -4383,7 +4478,7 @@ static lv_display_t *display_start(void)
 
     esp_lcd_touch_handle_t tp = NULL;
     if (bsp_touch_new(NULL, &tp) == ESP_OK && tp) {
-        s_touch_tp = tp;
+        touch_frame_install(tp);
         const lvgl_port_touch_cfg_t touch_cfg = {
             .disp   = disp,
             .handle = tp,

@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 120 funciones de libc/libm agregadas a mano.
- * Total: 2806 simbolos.
+ * Total: 2814 simbolos.
  */
 
 #include <stddef.h>
@@ -116,6 +116,9 @@ extern int aos_font_body;
 extern int aos_font_huge;
 extern int aos_font_small;
 extern int aos_font_title;
+extern int aos_gesture_attach;
+extern int aos_gesture_detach;
+extern int aos_gesture_multitouch;
 extern int aos_hal_activity;
 extern int aos_hal_aod_brightness_get;
 extern int aos_hal_aod_brightness_set;
@@ -353,7 +356,10 @@ extern int aos_hal_time_now;
 extern int aos_hal_time_set;
 extern int aos_hal_timezone_get;
 extern int aos_hal_timezone_set;
+extern int aos_hal_touch_frame;
 extern int aos_hal_touch_gesture;
+extern int aos_hal_touch_multi;
+extern int aos_hal_touch_regs;
 extern int aos_hal_unlock;
 extern int aos_hal_uptime_ms;
 extern int aos_hal_usb_busy;
@@ -545,8 +551,10 @@ extern int aos_watchface_open_picker;
 extern int aos_watchface_picker_visible;
 extern int aos_watchface_refresh;
 extern int aos_watchface_register;
+extern int aos_watchface_resume;
 extern int aos_watchface_select;
 extern int aos_watchface_set_aod;
+extern int aos_watchface_suspend;
 extern int aos_watchfaces_register_builtin;
 extern int aos_wifi_qr_text;
 extern int asinf;
@@ -2925,6 +2933,9 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_font_huge),
     ESP_ELFSYM_EXPORT(aos_font_small),
     ESP_ELFSYM_EXPORT(aos_font_title),
+    ESP_ELFSYM_EXPORT(aos_gesture_attach),
+    ESP_ELFSYM_EXPORT(aos_gesture_detach),
+    ESP_ELFSYM_EXPORT(aos_gesture_multitouch),
     ESP_ELFSYM_EXPORT(aos_hal_activity),
     ESP_ELFSYM_EXPORT(aos_hal_aod_brightness_get),
     ESP_ELFSYM_EXPORT(aos_hal_aod_brightness_set),
@@ -3162,7 +3173,10 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_time_set),
     ESP_ELFSYM_EXPORT(aos_hal_timezone_get),
     ESP_ELFSYM_EXPORT(aos_hal_timezone_set),
+    ESP_ELFSYM_EXPORT(aos_hal_touch_frame),
     ESP_ELFSYM_EXPORT(aos_hal_touch_gesture),
+    ESP_ELFSYM_EXPORT(aos_hal_touch_multi),
+    ESP_ELFSYM_EXPORT(aos_hal_touch_regs),
     ESP_ELFSYM_EXPORT(aos_hal_unlock),
     ESP_ELFSYM_EXPORT(aos_hal_uptime_ms),
     ESP_ELFSYM_EXPORT(aos_hal_usb_busy),
@@ -3354,8 +3368,10 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_watchface_picker_visible),
     ESP_ELFSYM_EXPORT(aos_watchface_refresh),
     ESP_ELFSYM_EXPORT(aos_watchface_register),
+    ESP_ELFSYM_EXPORT(aos_watchface_resume),
     ESP_ELFSYM_EXPORT(aos_watchface_select),
     ESP_ELFSYM_EXPORT(aos_watchface_set_aod),
+    ESP_ELFSYM_EXPORT(aos_watchface_suspend),
     ESP_ELFSYM_EXPORT(aos_watchfaces_register_builtin),
     ESP_ELFSYM_EXPORT(aos_wifi_qr_text),
     ESP_ELFSYM_EXPORT(asinf),
