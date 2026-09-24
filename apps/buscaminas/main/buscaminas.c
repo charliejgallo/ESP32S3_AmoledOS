@@ -1,7 +1,12 @@
 /*
  * AmoledOS - Minesweeper
  *
- * Three boards: 8x8 with 10 mines, 10x10 with 18 and 12x12 with 28.
+ * Five boards: 8x8 with 10 mines, 10x10 with 18, 12x12 with 28 and, since
+ * v0.6.0, 16x16 with 40 and 20x20 with 66. The two big ones do not fit a
+ * finger at the size of the screen, so they are drawn at 36 px a cell into
+ * a canvas of their own and shown scaled: whole at first, pinch to come
+ * closer, one finger to move around (aos_gesture.h). The three small ones
+ * fill the screen 1:1 as always, and do not zoom.
  *
  * The decision that orders the whole file is HOW THE BOARD IS DRAWN, and it is
  * not the obvious one. The natural thing in LVGL would be one object per cell,
@@ -29,7 +34,9 @@
 #include "aos_hal.h"
 #include "aos_i18n.h"
 #include "aos_ui.h"
+#include "aos_gesture.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,13 +73,15 @@
 #define INFO_Y      396
 #define INFO_H      24
 
-#define MAX_N       12
+#define MAX_N       20
 #define MAX_CELLS   (MAX_N * MAX_N)
+#define LEVELS      5
+#define ZOOM_CELL   36          /* px a cell is drawn at on the big boards */
+#define ZOOM_FROM   13          /* boards this big and up zoom */
 
-/* 360 is divisible by all three sides: 45, 36 and 30 px per cell. */
-static const uint8_t LEVEL_N[3]     = { 8, 10, 12 };
-static const uint8_t LEVEL_MINES[3] = { 10, 18, 28 };
-static const char *const LEVEL_NAME[3] = { "8x8", "10x10", "12x12" };
+static const uint8_t LEVEL_N[LEVELS]     = { 8, 10, 12, 16, 20 };
+static const uint8_t LEVEL_MINES[LEVELS] = { 10, 18, 28, 40, 66 };
+static const char *const LEVEL_NAME[LEVELS] = { "8x8", "10x10", "12x12", "16x16", "20x20" };
 
 #define ST_HIDDEN   0
 #define ST_OPEN     1
@@ -87,13 +96,22 @@ static const uint32_t NUM_COLOR[9] = {
 };
 
 typedef struct {
+    aos_app_t  *self;
+    lv_obj_t   *view;           /* the 368x330 window the board is shown in */
     lv_obj_t   *canvas;
     lv_obj_t   *lbl_info;
     lv_obj_t   *lbl_level;
     lv_obj_t   *lbl_mode;
     lv_timer_t *timer;
 
-    uint16_t *buf;              /* 368x368 RGB565, PSRAM */
+    uint16_t *buf;              /* the board, RGB565, PSRAM: 368x330 for the
+                                 * small boards, n*36 square for the big ones */
+    int       buf_w, buf_h;
+
+    /* How the board sits in the window: s = screen px per canvas px, and
+     * the canvas' top-left corner at (vx, vy). */
+    float     vs, vfit, vx, vy;
+    bool      zoomable;
 
     uint8_t mine[MAX_CELLS];
     uint8_t adj[MAX_CELLS];
@@ -110,13 +128,12 @@ typedef struct {
     phase_t phase;
     bool    flag_mode;
     bool    xray;               /* MINES_XRAY=1: draws the hidden mines */
-    bool    long_done;          /* the CLICKED that follows a LONG_PRESSED */
     int     boom;               /* the cell that exploded, -1 if none */
 
     uint32_t start_ms;
     uint32_t elapsed_s;
     uint32_t end_ms;            /* when the game ended, for the deafness */
-    int      best[3];
+    int      best[LEVELS];
 
     /* rectangle of cells to redraw */
     bool dirty;
@@ -578,17 +595,80 @@ static void chord(int x, int y)
     }
 }
 
+/* -------------------------------------------------------------------------- */
+/* The window onto the board                                                    */
+
+static void view_apply(void)
+{
+    uint32_t sc = (uint32_t)(s_m.vs * 256.0f + 0.5f);
+    lv_image_set_scale(s_m.canvas, sc ? sc : 1);
+    lv_obj_set_pos(s_m.canvas, (int32_t)floorf(s_m.vx + 0.5f), (int32_t)floorf(s_m.vy + 0.5f));
+}
+
+static void view_clamp(void)
+{
+    if (s_m.vs < s_m.vfit) s_m.vs = s_m.vfit;
+    if (s_m.vs > 1.0f)     s_m.vs = 1.0f;
+    float w = s_m.buf_w * s_m.vs, h = s_m.buf_h * s_m.vs;
+    if (w <= CV_W) s_m.vx = (CV_W - w) * 0.5f;
+    else if (s_m.vx > 0) s_m.vx = 0;
+    else if (s_m.vx < CV_W - w) s_m.vx = CV_W - w;
+    if (h <= CV_H) s_m.vy = (CV_H - h) * 0.5f;
+    else if (s_m.vy > 0) s_m.vy = 0;
+    else if (s_m.vy < CV_H - h) s_m.vy = CV_H - h;
+}
+
+/* The canvas for this board: the fixed window for the small ones, a square
+ * of n * ZOOM_CELL for the big ones, shown whole to start. */
+static void board_alloc(void)
+{
+    int w = s_m.zoomable ? s_m.n * ZOOM_CELL : CV_W;
+    int h = s_m.zoomable ? s_m.n * ZOOM_CELL : CV_H;
+    if (!s_m.buf || w != s_m.buf_w || h != s_m.buf_h) {
+        uint16_t *nb = malloc((size_t)w * h * 2);
+        if (!nb) {
+            aos_ui_toast(_("Sin memoria"), 2000);
+            return;
+        }
+        lv_canvas_set_buffer(s_m.canvas, nb, w, h, LV_COLOR_FORMAT_RGB565);
+        free(s_m.buf);
+        s_m.buf = nb;
+        s_m.buf_w = w;
+        s_m.buf_h = h;
+    }
+    memset(s_m.buf, 0, (size_t)w * h * 2);
+    lv_obj_set_size(s_m.canvas, w, h);
+    s_m.vfit = s_m.zoomable ? (float)CV_H / (float)h : 1.0f;
+    s_m.vs = s_m.vfit;
+    s_m.vx = s_m.vy = 0;
+    view_clamp();
+    view_apply();
+    /* A drag on a big board moves the board: no back swipe while one is up. */
+    if (s_m.self) {
+        if (s_m.zoomable) s_m.self->desc.flags |= AOS_APP_FLAG_NO_SWIPE | AOS_APP_FLAG_LONG_DRAG;
+        else s_m.self->desc.flags &= ~(uint32_t)(AOS_APP_FLAG_NO_SWIPE | AOS_APP_FLAG_LONG_DRAG);
+    }
+}
+
 static void new_game(void)
 {
     s_m.n     = LEVEL_N[s_m.level];
     s_m.mines = LEVEL_MINES[s_m.level];
-    /* The largest cell that fits in the canvas, and the board centred in
-     * whatever is left over. The board used to be a fixed 360 px and the cell
-     * came out exact for all three sides; now the height rules and it does not
-     * always divide. */
-    s_m.cell  = CV_H / s_m.n;
-    s_m.off_x = (CV_W - s_m.n * s_m.cell) / 2;
-    s_m.off_y = (CV_H - s_m.n * s_m.cell) / 2;
+    s_m.zoomable = s_m.n >= ZOOM_FROM;
+    if (s_m.zoomable) {
+        /* the board IS the canvas, at a size a finger can hit once zoomed */
+        s_m.cell  = ZOOM_CELL;
+        s_m.off_x = s_m.off_y = 0;
+    } else {
+        /* The largest cell that fits in the canvas, and the board centred in
+         * whatever is left over. The board used to be a fixed 360 px and the
+         * cell came out exact for all three sides; now the height rules and
+         * it does not always divide. */
+        s_m.cell  = CV_H / s_m.n;
+        s_m.off_x = (CV_W - s_m.n * s_m.cell) / 2;
+        s_m.off_y = (CV_H - s_m.n * s_m.cell) / 2;
+    }
+    board_alloc();
     s_m.opened = 0;
     s_m.flags  = 0;
     s_m.boom   = -1;
@@ -606,22 +686,18 @@ static void new_game(void)
 /* -------------------------------------------------------------------------- */
 /* Input                                                                       */
 
-static bool touch_cell(lv_event_t *event, int *out_x, int *out_y)
+/* The cell under a screen point, through the window's scale and offset. */
+static bool touch_cell(float px, float py, int *out_x, int *out_y)
 {
-    (void)event;
-    lv_indev_t *indev = lv_indev_active();
-    if (!indev) {
+    lv_area_t co;
+    lv_obj_get_coords(s_m.view, &co);
+    float bx = (px - co.x1 - s_m.vx) / s_m.vs - s_m.off_x;
+    float by = (py - co.y1 - s_m.vy) / s_m.vs - s_m.off_y;
+    if (bx < 0 || by < 0) {
         return false;
     }
-    lv_point_t p;
-    lv_indev_get_point(indev, &p);
-
-    lv_area_t co;
-    lv_obj_get_coords(s_m.canvas, &co);
-    int x = (p.x - co.x1 - s_m.off_x) / s_m.cell;
-    int y = (p.y - co.y1 - s_m.off_y) / s_m.cell;
-    if (p.x - co.x1 - s_m.off_x < 0 || p.y - co.y1 - s_m.off_y < 0 ||
-        !inside(x, y)) {
+    int x = (int)bx / s_m.cell, y = (int)by / s_m.cell;
+    if (!inside(x, y)) {
         return false;
     }
     *out_x = x;
@@ -629,16 +705,10 @@ static bool touch_cell(lv_event_t *event, int *out_x, int *out_y)
     return true;
 }
 
-static void canvas_click_cb(lv_event_t *event)
+static void tap(float px, float py)
 {
-    if (s_m.long_done) {
-        /* LVGL sends CLICKED on release even after having sent LONG_PRESSED:
-         * without this guard, placing a flag also digs. */
-        s_m.long_done = false;
-        return;
-    }
     int x, y;
-    if (!touch_cell(event, &x, &y)) {
+    if (!touch_cell(px, py, &x, &y)) {
         return;
     }
     if (s_m.phase == GAME_LOST || s_m.phase == GAME_WON) {
@@ -680,16 +750,52 @@ static void canvas_click_cb(lv_event_t *event)
     present();
 }
 
-static void canvas_long_cb(lv_event_t *event)
+/* Tap digs (or flags, in flag mode), a long press flags; on the big boards
+ * one finger moves the board and two zoom it. The recogniser tells a tap
+ * from a drag, which LVGL's CLICKED did not (it clicked at the end of any
+ * drag), and a long press is not followed by a tap. */
+static void gesture_cb(const aos_gesture_event_t *ev, void *user)
 {
-    s_m.long_done = true;
-    int x, y;
-    if (!touch_cell(event, &x, &y)) {
-        return;
+    (void)user;
+    lv_area_t co;
+    lv_obj_get_coords(s_m.view, &co);
+    switch (ev->type) {
+    case AOS_GESTURE_TAP:
+        tap(ev->x, ev->y);
+        break;
+    case AOS_GESTURE_LONG_PRESS: {
+        int x, y;
+        if (touch_cell(ev->x, ev->y, &x, &y) &&
+            (s_m.phase == GAME_READY || s_m.phase == GAME_RUN)) {
+            toggle_flag(x, y);
+            present();
+        }
+        break;
     }
-    if (s_m.phase == GAME_READY || s_m.phase == GAME_RUN) {
-        toggle_flag(x, y);
-        present();
+    case AOS_GESTURE_DRAG:
+        if (s_m.zoomable) {
+            s_m.vx += ev->dx;
+            s_m.vy += ev->dy;
+            view_clamp();
+            view_apply();
+        }
+        break;
+    case AOS_GESTURE_PINCH:
+        if (s_m.zoomable) {
+            float cx = ev->x - co.x1, cy = ev->y - co.y1;
+            float ns = s_m.vs * ev->scale;
+            if (ns < s_m.vfit) ns = s_m.vfit;
+            if (ns > 1.0f) ns = 1.0f;
+            float k = ns / s_m.vs;
+            s_m.vx = cx - (cx - s_m.vx) * k + ev->dx;
+            s_m.vy = cy - (cy - s_m.vy) * k + ev->dy;
+            s_m.vs = ns;
+            view_clamp();
+            view_apply();
+        }
+        break;
+    default:
+        break;
     }
 }
 
@@ -705,7 +811,7 @@ static void mode_cb(lv_event_t *event)
 static void level_cb(lv_event_t *event)
 {
     (void)event;
-    s_m.level = (s_m.level + 1) % 3;
+    s_m.level = (s_m.level + 1) % LEVELS;
     aos_hal_pref_set_i32("mines_level", s_m.level);
     lv_label_set_text(s_m.lbl_level, LEVEL_NAME[s_m.level]);
     new_game();
@@ -764,8 +870,8 @@ static lv_obj_t *bar_button(lv_obj_t *parent, const char *text, int32_t x,
 
 static void *create(aos_app_t *self, lv_obj_t *root)
 {
-    (void)self;
     memset(&s_m, 0, sizeof(s_m));
+    s_m.self = self;
     s_m.rng  = (uint32_t)aos_hal_uptime_ms() * 2654435761u | 1u;
     s_m.boom = -1;
 
@@ -778,10 +884,10 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     }
 
     int32_t v = 0;
-    if (aos_hal_pref_get_i32("mines_level", &v) && v >= 0 && v < 3) {
+    if (aos_hal_pref_get_i32("mines_level", &v) && v >= 0 && v < LEVELS) {
         s_m.level = (int)v;
     }
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < LEVELS; i++) {
         char key[32];
         snprintf(key, sizeof(key), "mines_best%d", i);
         if (aos_hal_pref_get_i32(key, &v) && v > 0) {
@@ -789,29 +895,30 @@ static void *create(aos_app_t *self, lv_obj_t *root)
         }
     }
 
-    /* The large buffers through malloc(): with CONFIG_SPIRAM_USE_MALLOC they
-     * go to PSRAM, of which there is plenty. What has to be looked after is
-     * internal RAM. */
-    s_m.buf = malloc((size_t)CV_W * CV_H * 2);
-    if (!s_m.buf) {
-        aos_ui_toast(_("Sin memoria"), 2000);
-        return NULL;
-    }
-    memset(s_m.buf, 0, (size_t)CV_W * CV_H * 2);
-
     lv_obj_t *page = aos_page(root);
 
-    s_m.canvas = lv_canvas_create(page);
-    lv_canvas_set_buffer(s_m.canvas, s_m.buf, CV_W, CV_H, LV_COLOR_FORMAT_RGB565);
-    lv_obj_set_size(s_m.canvas, CV_W, CV_H);
-    lv_obj_set_pos(s_m.canvas, 0, CANVAS_Y);
+    /* The window: the board's canvas lives inside it, placed and scaled by
+     * hand (view_apply), and the gestures land on it. The canvas buffer is
+     * allocated per board (board_alloc), in PSRAM through malloc(). */
+    s_m.view = lv_obj_create(page);
+    lv_obj_remove_style_all(s_m.view);
+    lv_obj_set_size(s_m.view, CV_W, CV_H);
+    lv_obj_set_pos(s_m.view, 0, CANVAS_Y);
+    lv_obj_remove_flag(s_m.view, LV_OBJ_FLAG_SCROLLABLE);
+
+    s_m.canvas = lv_canvas_create(s_m.view);
     /* The theme gives everything a radius, and on a canvas that forces
      * clipping with a mask and drawing in layers. */
     lv_obj_set_style_radius(s_m.canvas, 0, 0);
     lv_image_set_antialias(s_m.canvas, false);
-    lv_obj_add_flag(s_m.canvas, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(s_m.canvas, canvas_click_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_add_event_cb(s_m.canvas, canvas_long_cb, LV_EVENT_LONG_PRESSED, NULL);
+    lv_image_set_pivot(s_m.canvas, 0, 0);
+    lv_obj_remove_flag(s_m.canvas, LV_OBJ_FLAG_CLICKABLE);
+
+    /* over the board: taps, long presses, and on the big boards drag and pinch */
+    lv_obj_t *touch = lv_obj_create(s_m.view);
+    lv_obj_remove_style_all(touch);
+    lv_obj_set_size(touch, CV_W, CV_H);
+    aos_gesture_attach(touch, AOS_GESTURE_FLAG_FAST_TAP, gesture_cb, NULL);
 
     lv_obj_t *bar = lv_obj_create(page);
     lv_obj_remove_style_all(bar);
