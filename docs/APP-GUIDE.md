@@ -622,6 +622,50 @@ adds:
   canvas under the panel before hiding it, so there is no black gap between
   the loader and the scene (on the board frames go to the panel past LVGL).
 
+### 6.12 Somebody else's C program (Doom)
+
+Doom (`apps/doom/`, v0.5.6) is Chocolate Doom through doomgeneric: a
+program written for a PC process, brought in as an app without changing the
+firmware. What it takes, in the order it bit:
+
+- **Third-party code in a folder of its own.** `project_so()` compiles every
+  `.c` under `main/` recursively, so the vendored engine goes in
+  `main/doomgeneric/` and needs no build list; copy only the files you use
+  (the SDL and X11 back ends would be compiled too). The simulator globs
+  `main/*.c` only: third-party code is built there as a library of its own,
+  with its warnings off, like Lua (`sim/CMakeLists.txt`).
+- **A header every engine file includes** (`doomtype.h` here) is where the C
+  library gets rerouted: `port/dg_compat.h` includes the system headers first
+  and then `#define`s malloc, fopen, exit and printf to the port's versions.
+  The port's own files do not include it, so they reach the real ones.
+- **`exit()` is a `longjmp`.** There is no process to end: exit, the
+  engine's fatal error and the app's stop all jump back to the top of the
+  worker, which frees everything and reports to the app. Only the worker's
+  own task can `longjmp` to its `setjmp`, so a stop from the app is a flag
+  the engine polls where it waits (the frame hand-off, the sleeps).
+- **Every allocation on a list.** A PC program frees nothing at exit; on the
+  watch the heap outlives the `.so`. A two-pointer header per block keeps
+  malloc's alignment on both platforms, and PSRAM always
+  (`heap_caps_malloc`), since small blocks would otherwise go to internal
+  RAM. Buffers the app still reads after the engine leaves (the frame on
+  the panel) come from outside the list.
+- **Once per simulator run.** On the board each open is a fresh `dlopen`;
+  in the simulator the app is built in, the engine's globals keep their
+  last values, and a second game would start on the first one's leftovers.
+  Refuse it with a message.
+- **The engine's own audio thread becomes the mixer's clock.** Chocolate's
+  OPL music ran the chip in SDL's audio thread and fired timed callbacks
+  from there (and `OPL_Delay` blocked on it). On the watch the effects
+  mixer, in the engine's task, asks for the samples it queues and the chip
+  is generated up to each callback: one thread, no locks, and the tempo is
+  the sample count.
+- **Read the code for switched-off features.** doomgeneric ships with the
+  config file's save and load under `#if ORIGCODE`: the game ran, and quietly
+  forgot every option.
+- **Measure CPU with the cycle counter.** Nothing finer than a millisecond is
+  lent to apps; on the board `rsr.ccount` (inline asm, core-local, 240 per
+  microsecond) timed the music at 3-7 % of a core.
+
 ## 7. The icon
 
 It travels with the app, as a few dozen bytes of shapes handed over from
@@ -955,6 +999,24 @@ set_source_files_properties(my_dsp.c PROPERTIES COMPILE_OPTIONS "-O2"
 
 **`mode_t` is a libc typedef on macOS**: as a variable name the app does not
 compile in the simulator.
+
+**A libgcc helper you write yourself can call itself.** Xtensa has no
+byte-swap instruction, so gcc compiles `x >> 24 | ... | x << 24` into a
+call to `__bswapsi2`, which the firmware does not lend; if the app supplies
+it written with the same shifts, gcc recognises the idiom inside it too and
+compiles the body into a call to itself. The recursion ran through Doom's
+worker stack into the kernel's lists beside it, and the board panicked three
+different ways, always on the other core. The tell: one address of the
+`.so` repeated in the backtrace with frames 32 bytes apart. Build such a
+helper with `__attribute__((optimize("O0")))` and check the disassembly
+(`objdump -d`) for calls.
+
+**`double`, and conversions between float and 64-bit integers, are libgcc
+calls the firmware does not lend** (`__muldf3`, `__floatdisf`,
+`__fixunssfdi`...). Third-party code is full of them: table set-up in
+`double` (DBOPL, where `float` gave bit-identical output), a `fabs` compare,
+a 64-bit time scaled by a float. `build_apps.sh` names every one; rewrite in
+`float` and 32 bits rather than asking for a firmware release.
 
 ### Touch and gestures
 
