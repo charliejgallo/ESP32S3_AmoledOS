@@ -3,7 +3,7 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased — v0.6.0
+## v0.6.0 — 2026-09-24
 
 **Two fingers.** The v2's touch chip reports a second finger in registers no
 driver reads; the firmware now reads them, and apps get pinch-to-zoom and a
