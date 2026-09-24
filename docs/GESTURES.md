@@ -13,8 +13,25 @@ ESP32-S3-Touch-AMOLED-1.8 **v2**, CO5300 + CST820) unless it says otherwise.
 | 2 | Recogniser: `aos_gesture.h` (tap, double tap, long press, drag + fling, pinch) | done, tuned in the simulator |
 | 3 | Simulator: Option-drag, `pinch:` / `drag:` script steps, 14 Hz ration | done |
 | 4 | Photos: native-resolution decode, zoom, pan, fling, paging | done, on the watch for testing |
-| 5 | 3D viewer app | planned (v0.6.1) |
-| 6 | Other apps; scan-rate register; release | planned |
+| 5 | 3D viewer app | planned (**v0.6.1**) |
+| 6 | The rest of v0.6.0 (below) | in progress |
+
+### v0.6.0 scope (agreed 2026-09-24)
+
+| # | Item | State |
+| --- | --- | --- |
+| B1 | Fingers one by one for pads: `aos_touch_points()` (id per finger, dropout hold, jump filter) | written; measuring on the watch |
+| B2 | Drawing without stealing touch samples (Photos zooming dropped LVGL's reads from 27/s to ~11/s) | open |
+| B3 | Gestures in Lua (`aos.gesture`) | open |
+| B4 | Settings → Touch → Try gestures | written; on the watch |
+| B5 | The CST820's scan period (0xEE) and config registers | tool written (Try gestures) |
+| A1 | Doom: stick and FIRE at once (B1) | open |
+| A2 | Pixel Art: pinch to zoom the canvas, two fingers to pan | open |
+| A3 | Control PC: a touchpad face (move, click, two-finger scroll, pinch = zoom) | open |
+| A4 | Mila: pinch out = whole room, pinch in = follow her | open |
+| A5 | Buscaminas: bigger boards, with zoom | open |
+| A6 | Golf: pinch and drag on the aiming map | open |
+| A7 | Laberinto: bigger mazes, with zoom | open |
 
 ## Phase 0 — the probe
 
@@ -219,6 +236,27 @@ drag of 800 px/s.
   finger moves, full detail at rest.
 - **Gestures:** drag = orbit with inertia, pinch = zoom about the centre,
   two-finger move = pan, double tap = frame the model, tap = info overlay.
+
+## The chip's configuration registers
+
+From the CST816S register declaration (Waveshare), the only published map of
+this family's configuration; whether the CST820 honours each one is what the
+Try-gestures screen measures:
+
+| Reg | Name | Datasheet | Why it matters here |
+| --- | --- | --- | --- |
+| 0xEC | MotionMask | continuous LR/UD scroll, double click | gesture engine |
+| 0xED | IrqPluseWidth | 0.1 ms units, default 10 | |
+| **0xEE** | **NorScanPer** | **scan period, 10 ms units, 1..30, default 1** | the datasheet promises >100 Hz; we measure ~14 Hz |
+| 0xF9 | AutoSleepTime | seconds, default 2 | we already disable sleep (0xFE) |
+| 0xFA | IrqCtl | EnTest, EnTouch, EnChange, EnMotion | when INT pulses |
+| 0xFB | AutoReset | reset if touched with no gesture for N s | a thumb resting on Doom's stick |
+| **0xFC** | **LongPressTime** | **reset after a long press of N s, default 10** | same: a held stick or FIRE |
+| 0xFE | DisAutoSleep | non-zero = never sleep | written at start and every 5 s |
+
+Try gestures logs `0xEC..0xFE` on opening, cycles 0xEE through 10, 20, 30,
+50, 70 and 100 ms with its button (showing the chip's measured rate), and
+puts back what the chip had on closing.
 
 ## Phase 6 — after
 
