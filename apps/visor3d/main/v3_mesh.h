@@ -27,6 +27,11 @@ typedef struct {
 bool v3_mesh_load(v3_mesh_t *m, const char *path, volatile int *progress);
 void v3_mesh_free(v3_mesh_t *m);
 
+/* Called every 1024 triangles while loading: the worker gives its core away
+ * for a moment, or the task watchdog fires on IDLE0 (a big STL is seconds
+ * of work). */
+void v3_mesh_set_yield(void (*fn)(void));
+
 /* M3D, the portal's format (/3d converts STL, OBJ and GLB into it):
  *
  *   "M3D1"  uint32 nv  uint32 nt  uint32 flags

@@ -85,6 +85,7 @@ typedef struct {
     uint32_t    drawn_seq;
     bool        drawn_full;
     uint32_t    frames, drawn_tris;
+    uint32_t    t_half, n_half, t_full, n_full, t_log;  /* render timing, for the log */
 
     /* LVGL's side */
     v3_view_t   view;
@@ -150,9 +151,15 @@ static void unload(app_t *a)
     v3_mesh_free(&a->mesh);
 }
 
+static void give_core(void)
+{
+    aos_hal_worker_sleep(1);
+}
+
 static void worker(void *arg)
 {
     app_t *a = (app_t *)arg;
+    v3_mesh_set_yield(give_core);
     while (!aos_hal_worker_should_stop()) {
         if (a->want_unload) {
             unload(a);
@@ -205,6 +212,7 @@ static void worker(void *arg)
         }
         a->slot_state[i] = SLOT_BUSY;
         v3_view_t v = a->view;
+        uint32_t t0 = (uint32_t)aos_hal_uptime_ms();
         if (moving) {
             v.px *= 0.5f;
             v.py *= 0.5f;
@@ -215,10 +223,27 @@ static void worker(void *arg)
             a->drawn_tris = (uint32_t)v3_render(&a->mesh, &v, &a->scr, a->slot[i], a->zb, VW, VH);
             a->drawn_full = true;
         }
+        uint32_t t1 = (uint32_t)aos_hal_uptime_ms();
+        if (moving) { a->t_half += t1 - t0; a->n_half++; }
+        else        { a->t_full += t1 - t0; a->n_full++; }
+        if (t1 - a->t_log >= 5000 && (a->n_half || a->n_full)) {
+            aos_hal_log("visor3d", "%s, %d tri: %u ms a frame at half size (%u frames), "
+                        "%u ms at full (%u)", a->name, a->mesh.nt,
+                        (unsigned)(a->n_half ? a->t_half / a->n_half : 0), (unsigned)a->n_half,
+                        (unsigned)(a->n_full ? a->t_full / a->n_full : 0), (unsigned)a->n_full);
+            a->t_half = a->n_half = a->t_full = a->n_full = 0;
+            a->t_log = t1;
+        }
         a->drawn_seq = vs;
         a->frames++;
         a->slot_seq[i] = ++a->seq;
         a->slot_state[i] = SLOT_READY;
+        /* A millisecond back to the core after every frame. While a finger
+         * turns the model there is always a next frame to draw, and a worker
+         * that never blocks starves IDLE0: the task watchdog fired on the
+         * watch after ~5 s of turning (2026-09-24), and the panic handler
+         * then hung until the hardware watchdog reset the board. */
+        give_core();
     }
 }
 

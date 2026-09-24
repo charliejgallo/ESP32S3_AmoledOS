@@ -48,6 +48,18 @@ typedef struct {
 
 typedef bool (*tri_fn)(void *ctx, const float p[9]);
 
+static void (*s_yield)(void);
+
+void v3_mesh_set_yield(void (*fn)(void))
+{
+    s_yield = fn;
+}
+
+static inline void maybe_yield(uint32_t n)
+{
+    if (s_yield && (n & 1023) == 0) s_yield();
+}
+
 /* STL is Z-up (CAD); the viewer is Y-up: (x, y, z) -> (x, z, -y). */
 static void zup_to_yup(float p[9])
 {
@@ -75,6 +87,7 @@ static bool read_binary(src_t *s, tri_fn fn, void *ctx)
             ok = fn(ctx, p);
         }
         done += n;
+        maybe_yield(done);
         if (s->progress) *s->progress = (int)(done * 100 / s->nt);
     }
     free(buf);
@@ -137,6 +150,7 @@ static bool read_ascii(src_t *s, tri_fn fn, void *ctx, bool count_only)
             zup_to_yup(p);
             ok = fn(ctx, p);
             n++;
+            maybe_yield(n);
             if (s->progress && s->nt) *s->progress = (int)(n * 100 / s->nt);
         }
     }
