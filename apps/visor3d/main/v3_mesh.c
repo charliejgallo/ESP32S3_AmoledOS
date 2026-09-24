@@ -329,14 +329,11 @@ static bool load_stl(v3_mesh_t *m, FILE *f, long size, volatile int *progress)
     m->nt_file = (int)s.nt;
 
     box_t box = { { 1e30f, 1e30f, 1e30f }, { -1e30f, -1e30f, -1e30f } };
-    volatile int *keep = s.progress;
-    s.progress = NULL;                  /* the box pass is quick: one bar */
+    s_stage = 1;                        /* the box: the first read of the file */
     if (!for_each_tri(&s, box_fn, &box)) {
         snprintf(m->err, sizeof m->err, "%s", s_cancel ? N_("cancelado") : N_("error de lectura"));
         return false;
     }
-    s.progress = keep;
-
     clus_t c = { .box = box };
     c.table = malloc(TSIZE * sizeof(uint32_t));
     c.cl = malloc(MAX_CL * sizeof(cluster_t));
@@ -356,7 +353,7 @@ static bool load_stl(v3_mesh_t *m, FILE *f, long size, volatile int *progress)
     int good = 0;
     bool ok = false;
     for (int attempt = 0; attempt < 6; attempt++) {
-        s_stage = attempt + 1;
+        s_stage = attempt + 2;
         c.grid = grid;
         for (int a = 0; a < 3; a++) {
             float span = box.hi[a] - box.lo[a];
@@ -476,15 +473,11 @@ bool v3_mesh_load(v3_mesh_t *m, const char *path, volatile int *progress)
         snprintf(m->err, sizeof m->err, "%s", N_("no se pudo abrir el archivo"));
         return false;
     }
-#if defined(ESP_PLATFORM) && defined(__SNBF)
-    /* Unbuffered, which is what setvbuf(f, NULL, _IONBF, 0) does - but
-     * setvbuf is not in the firmware's table. With newlib's 128-byte buffer
-     * every fread of 6 KB became 50 reads through VFS, FATFS and the SD
-     * driver: a 4 MB STL took seconds a pass. Unbuffered, newlib hands our
-     * buffer straight to read(). Set before the first read, as setvbuf
-     * requires. */
-    f->_flags |= __SNBF;
-#endif
+/* A real buffer: newlib's default is 128 bytes, and a 4 MB STL read
+     * through it is 32 000 trips down VFS, FATFS and the SD driver per pass.
+     * (Unbuffered is worse: newlib-nano then reads one byte per call - tried,
+     * the bar sat at 0 %.) setvbuf is lent by the firmware since v0.6.0. */
+    setvbuf(f, NULL, _IOFBF, 8192);
     fseek(f, 0, SEEK_END);
     long size = ftell(f);
     fseek(f, 0, SEEK_SET);

@@ -74,6 +74,11 @@ EXTRA_SYMBOLS = [
     "fopen", "fclose", "fread", "fwrite", "fseek", "ftell", "rewind", "fflush",
     "remove", "rename", "unlink", "mkdir", "stat",
     "opendir", "readdir", "closedir",
+    # v0.6.0, for the 3D viewer: newlib's FILE buffer is 128 bytes, so a
+    # 4 MB STL read with fread went through VFS, FATFS and the SD driver 128
+    # bytes at a time. setvbuf gives a stream a real buffer. (Unbuffered is
+    # no way out: newlib-nano then reads ONE byte per call.)
+    "setvbuf",
     # time: to put a date on whatever is stored
     "time", "localtime_r", "gmtime_r", "mktime",
     # Compiler helpers. The ESP32-S3 has a single-precision FPU but neither

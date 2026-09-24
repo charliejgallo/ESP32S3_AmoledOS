@@ -23,9 +23,10 @@ typedef struct {
 } v3_mesh_t;
 
 /* Loads .stl (binary or ASCII) or .m3d. 'progress', if given, is
- * stage * 1000 + percent: stage 1 is the first read of the triangles, 2 and
- * up the passes that reduce a model over the budget (each one reads the
- * file again). The UI polls it from the other task. */
+ * stage * 1000 + percent: stage 1 measures the model's box, 2 welds it (and
+ * reduces it, when it is over the budget), 3 and up are further passes
+ * with another grid - each one reads the whole file again. The UI polls it
+ * from the other task. */
 bool v3_mesh_load(v3_mesh_t *m, const char *path, volatile int *progress);
 void v3_mesh_free(v3_mesh_t *m);
 

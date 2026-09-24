@@ -306,7 +306,7 @@ static void strip_text(app_t *a)
     char buf[128];
     if (a->loading) {
         int p = a->progress;
-        snprintf(buf, sizeof buf, "%s  %d%%", p >= 2000 ? _("Reduciendo...") : _("Cargando..."),
+        snprintf(buf, sizeof buf, "%s  %d%%", p >= 3000 ? _("Reduciendo...") : _("Cargando..."),
                  p % 1000);
     } else if (a->load_failed) {
         snprintf(buf, sizeof buf, "%s: %s", _("No se pudo abrir"), a->mesh.err[0] ? _(a->mesh.err) : "?");
