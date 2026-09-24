@@ -445,6 +445,11 @@ void gfp_poll(app_t *a)
         break;
     case JOB_MAP:
         a->map_ready = true;
+        if (a->rezoom && !a->pinching) {
+            /* the sharp map for the zoom the fingers left */
+            a->rezoom = false;
+            if (a->state == ST_AIM || a->state == ST_PUTT) gfo_set_bg(a, a->mapbuf);
+        }
         break;
     case JOB_3D:
         a->v3d_valid = true;
@@ -879,6 +884,106 @@ bool gfp_back(app_t *a)
         return true;
     }
     return false;
+}
+
+/* --------------------------------------------------------------------------
+ * Two fingers on the map (v0.6.0)
+ *
+ * The map takes a few hundred ms to render (textures, light, trees), far
+ * too slow to follow a pinch. So while the fingers move, what is shown is
+ * the map already rendered, stretched by hand (nearest pixel: fast, and a
+ * moment of blockiness is honest about being a preview), and a->view is
+ * moved along with it so the marker, the line and the ball stay where they
+ * belong. When the fingers lift, the map is rendered again for the new view
+ * and swapped in when it is ready (JOB_MAP, gfp_poll).
+ * -------------------------------------------------------------------------- */
+
+#define ZOOM_PREVIEW_MS 30
+
+static void zoom_view(app_t *a, gf_view_t *out)
+{
+    /* the new screen centre shows what was at c + (S - c - d) / k before */
+    float sx = a->zcx + (a->view0.scx - a->zcx - a->zdx) / a->zk;
+    float sy = a->zcy + (a->view0.scy - a->zcy - a->zdy) / a->zk;
+    float wx, wy;
+    gf_view_s2w(&a->view0, sx, sy, &wx, &wy);
+    gf_view_set(out, wx, wy, a->view0.scx, a->view0.scy, a->view0.ppm * a->zk, a->view0.ang);
+}
+
+static void zoom_preview(app_t *a)
+{
+    static int16_t col[GF_W];
+    for (int x = 0; x < GF_W; x++) {
+        col[x] = (int16_t)floorf(a->zcx + ((float)x - a->zcx - a->zdx) / a->zk);
+    }
+    const uint16_t bgc = gf_hex(0x10301A);
+    for (int y = 0; y < GF_H; y++) {
+        int sy = (int)floorf(a->zcy + ((float)y - a->zcy - a->zdy) / a->zk);
+        uint16_t *d = a->zoombuf + (size_t)y * GF_W;
+        if (sy < 0 || sy >= GF_H) {
+            for (int x = 0; x < GF_W; x++) d[x] = bgc;
+            continue;
+        }
+        const uint16_t *s = a->mapbuf + (size_t)sy * GF_W;
+        for (int x = 0; x < GF_W; x++) {
+            int sx = col[x];
+            d[x] = (sx >= 0 && sx < GF_W) ? s[sx] : bgc;
+        }
+    }
+    zoom_view(a, &a->view);
+    gfo_set_bg(a, a->zoombuf);
+}
+
+void gfp_pinch(app_t *a, const aos_gesture_event_t *ev, int ox, int oy)
+{
+    bool map_up = (a->state == ST_AIM || a->state == ST_PUTT) && a->meter == MT_IDLE;
+    switch (ev->type) {
+    case AOS_GESTURE_PINCH_BEGIN:
+        /* not while the map is being rendered: the preview reads it */
+        if (!map_up || !a->map_ready || gfp_busy()) return;
+        if (!a->zoombuf) a->zoombuf = (uint16_t *)malloc((size_t)GF_W * GF_H * 2);
+        if (!a->zoombuf) return;
+        a->pinching = true;
+        if (a->aim != a->aim_pre) {         /* the first finger aimed: undo */
+            a->aim = a->aim_pre;
+            a->v3d_valid = false;
+        }
+        a->view0 = a->view;
+        a->zk = 1.0f;
+        a->zdx = a->zdy = 0;
+        a->zcx = ev->x - ox;
+        a->zcy = ev->y - oy;
+        a->zoom_ms = 0;
+        break;
+    case AOS_GESTURE_PINCH: {
+        if (!a->pinching) return;
+        bool green = a->putting;
+        float lo = green ? 3.0f : 0.5f, hi = green ? 40.0f : 12.0f;
+        float k = a->zk * ev->scale;
+        if (a->view0.ppm * k < lo) k = lo / a->view0.ppm;
+        if (a->view0.ppm * k > hi) k = hi / a->view0.ppm;
+        a->zk = k;
+        a->zdx += ev->dx;
+        a->zdy += ev->dy;
+        uint32_t now = (uint32_t)aos_hal_uptime_ms();
+        if (now - a->zoom_ms >= ZOOM_PREVIEW_MS) {
+            a->zoom_ms = now;
+            zoom_preview(a);
+        }
+        break;
+    }
+    case AOS_GESTURE_PINCH_END:
+        if (!a->pinching) return;
+        a->pinching = false;
+        zoom_preview(a);                    /* the last position, exactly */
+        zoom_view(a, &a->view);
+        a->rezoom = true;
+        a->job_green = a->putting;
+        job_start(a, JOB_MAP);
+        break;
+    default:
+        break;
+    }
 }
 
 /* --------------------------------------------------------------------------

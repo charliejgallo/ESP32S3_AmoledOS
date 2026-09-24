@@ -1003,8 +1003,19 @@ static void touch_cb(lv_event_t *e)
     lv_event_code_t code = lv_event_get_code(e);
     int ev = code == LV_EVENT_PRESSED ? 0 : (code == LV_EVENT_PRESSING ? 1 : 2);
     int x = pt.x - co.x1, y = pt.y - co.y1;
+    if (ev == 0) a->aim_pre = a->aim;
+    if (a->pinching) return;            /* two fingers: gfp_pinch has the map */
     if (a->state == ST_SHOP) gfs_touch(a, x, y, ev);
     else gfp_touch(a, x, y, ev);
+}
+
+static void pinch_cb(const aos_gesture_event_t *ev, void *user)
+{
+    app_t *a = (app_t *)user;
+    if (a->closing || a->paused) return;
+    lv_area_t co;
+    lv_obj_get_coords(a->canvas, &co);
+    gfp_pinch(a, ev, co.x1, co.y1);
 }
 
 static void handle_gesture(app_t *a, int dir)
@@ -1141,6 +1152,8 @@ static void free_all(app_t *a)
     free(a->fb);
     free(a->mapbuf);
     free(a->v3dbuf);
+    free(a->zoombuf);
+    a->zoombuf = NULL;
     free(a->depth);
     free(a->albedo);
     a->fb = a->mapbuf = a->v3dbuf = a->depth = a->albedo = NULL;
@@ -1253,6 +1266,7 @@ static void *golf_create(aos_app_t *self, lv_obj_t *root)
     lv_obj_add_event_cb(a->touch, touch_cb, LV_EVENT_PRESSED, a);
     lv_obj_add_event_cb(a->touch, touch_cb, LV_EVENT_PRESSING, a);
     lv_obj_add_event_cb(a->touch, touch_cb, LV_EVENT_RELEASED, a);
+    aos_gesture_attach(a->touch, 0, pinch_cb, a);
 
     build_hud(a, root);
     build_menu(a, root);

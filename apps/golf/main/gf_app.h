@@ -16,6 +16,7 @@
 #pragma once
 
 #include "aos_app.h"
+#include "aos_gesture.h"
 
 #include "gf_art.h"
 #include "gf_game.h"
@@ -97,6 +98,16 @@ struct app {
     float       aim;
     int         club;
     gf_view_t   view;
+    /* two fingers on the aiming map (v0.6.0): the map zooms and moves live
+     * as a stretched copy of the rendered one, and is rendered sharp again
+     * once the fingers are up (gfp_pinch) */
+    bool        pinching, rezoom;
+    float       aim_pre;        /* the line before the touch: a pinch's first
+                                   finger must not have moved it            */
+    gf_view_t   view0;          /* the view the map was rendered for        */
+    float       zk, zdx, zdy, zcx, zcy;
+    uint16_t   *zoombuf;
+    uint32_t    zoom_ms;
     float       aim_dist;       /* metres to the aim marker                   */
     bool        dragging;
     bool        putting;
@@ -211,6 +222,7 @@ void gfa_booted(app_t *a);
 void gfa_menu_ready(app_t *a);
 void gfp_frame(app_t *a, int dt);
 void gfp_touch(app_t *a, int x, int y, int ev);     /* ev: 0 press, 1 drag, 2 release */
+void gfp_pinch(app_t *a, const aos_gesture_event_t *ev, int ox, int oy);
 void gfp_hit_pressed(app_t *a);
 void gfp_club_step(app_t *a, int d);
 bool gfp_back(app_t *a);
