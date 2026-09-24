@@ -191,7 +191,7 @@ aos_touch_gesture_t aos_hal_touch_gesture(void);
 typedef struct {
     uint8_t  count;         /* fingers in this sample: 0, 1 or 2           */
     int16_t  x[2], y[2];    /* [0] first; only the first 'count' are valid  */
-    uint32_t seq;           /* +1 per NEW sample from the chip (~14 Hz)     */
+    uint32_t seq;           /* +1 per NEW sample from the chip (~73 Hz)     */
     uint32_t t_ms;          /* uptime when that sample was read             */
 } aos_touch_frame_t;
 

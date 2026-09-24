@@ -24,9 +24,9 @@
  *  - Events arrive in the LVGL task, from a timer: the callback may touch
  *    LVGL, and may delete the object it is attached to (the recogniser goes
  *    with it).
- *  - The chip refreshes ~14 times a second, so DRAG and PINCH come at that
- *    rate. Something that moves under the finger looks best eased towards
- *    the target on every frame, not jumped to it on every event.
+ *  - The chip sends ~73 samples a second and every one becomes an event, so
+ *    DRAG and PINCH can come several per LVGL frame: accumulate them into a
+ *    target and draw once per frame (easing towards it hides the odd gap).
  *  - Attaching makes the object clickable, NOT scrollable and not chained to
  *    a scrollable parent, and it only listens to touches that START on that
  *    object. An app that pinches

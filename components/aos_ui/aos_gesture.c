@@ -9,8 +9,9 @@
  * Every rule below comes from a measurement on the board (2026-09-24); the
  * document has the logs. In short, the chip:
  *
- *  - refreshes ~every 70 ms; we read every ~36, and the HAL only bumps seq on
- *    a real change, so each new sample is processed exactly once;
+ *  - sends ~73 samples a second, read by the HAL's touch task into a ring
+ *    of 16; the HAL only bumps seq on a real change and every sample is
+ *    processed exactly once, in order;
  *  - sometimes reports a bogus second point for the first sample after it
  *    lands (1,447 with the finger at the top): a second finger counts only
  *    after TWO samples in a row;

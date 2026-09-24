@@ -247,8 +247,8 @@ static void on_gesture(const aos_gesture_event_t *ev, void *user)
 aos_gesture_attach(area, 0, on_gesture, me);   /* freed with the object */
 ```
 
-- Events come ~14 times a second (the chip's rate): ease what moves towards
-  its target every frame instead of jumping on every event.
+- Events come at the chip's rate (~73 a second, several per frame):
+  accumulate them into a target and draw once per frame.
 - `TAP` waits ~300 ms to rule out a double tap; `AOS_GESTURE_FLAG_FAST_TAP`
   delivers it at once.
 - Set `AOS_APP_FLAG_NO_SWIPE | AOS_APP_FLAG_LONG_DRAG` while the area is on

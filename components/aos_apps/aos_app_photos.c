@@ -51,7 +51,7 @@ typedef struct {
 
     /* View: s = screen px per photo px, (ox, oy) = where the photo's top-left
      * corner lands. What is on screen eases towards the target, because the
-     * touch only refreshes ~14 times a second. */
+     * a photo redraws slower than the touch moves. */
     int32_t   img_w, img_h;
     int32_t   vw, vh;           /* the view's size and where it sits on the  */
     int32_t   vx0, vy0;         /* screen: under the status bar, not at 0,0  */
