@@ -42,9 +42,9 @@ showcase of those apps as of this one:
 | `zombie.m3d` | Monster Hop's zombie, in its default clothes | 15 966 |
 | `muscle.m3d` | Turbo's muscle car, navy with white stripes | 15 940 |
 
-Copy them to the card's `3d/` folder (the release has them as
-`3d-models.zip`), or upload them from the portal's `/3d` page. To make them
-again, or other poses:
+Copy them to the card's `3d/` folder (v0.6.0's release also carries them
+as `3d-models.zip`), or upload them from the portal: Files → Card → `3d`.
+To make them again, or other poses:
 
 ```bash
 B=/Applications/Blender.app/Contents/MacOS/Blender

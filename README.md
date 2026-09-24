@@ -516,25 +516,42 @@ with no WiFi. Everything measured is in [docs/USB.md](docs/USB.md).
 | <img src="docs/img/usb-pcremote-midi.png" width="200"><br>**MIDI** — an octave of keys into any synthesizer, the octave up and down, and the wrist's roll as pitch bend. | <img src="docs/img/usb-settings.png" width="200"><br>**Settings → USB** — the mode as a dropdown and what the port is doing right now. The portal's `/usb` page has the same, plus a key pad and the diagnostics. | |
 | <img src="docs/img/usb-pato-list.png" width="200"><br>**Pato goma** — keyboard-and-mouse scripts the watch plays over USB onto the computer. You write them in the portal's `/pato` page — a step builder or raw DuckyScript-like text — pick one on the watch, and confirm before anything is sent. For education and demonstration only. | <img src="docs/img/usb-pato-confirm.png" width="200"><br>The confirmation, with a preview of the script and its step count. Nothing runs without this tap. | <img src="docs/img/usb-pato-run.png" width="200"><br>Playing out: a progress bar, the current step and a Stop. Each key or typed character is one timer tick, so the screen stays responsive and Stop always answers. |
 
-## Flash it without building
+## First install
 
-The [latest release](https://github.com/charliejgallo/ESP32S3_AmoledOS/releases/latest)
-carries the firmware and the thirty-four dynamic apps already built, for the
-Waveshare ESP32-S3-Touch-AMOLED-1.8.
+Everything below uses the files of the
+[latest release](https://github.com/charliejgallo/ESP32S3_AmoledOS/releases/latest):
+the firmware and every dynamic app already built. No toolchain needed.
+
+> **Tested on v2 boards only.** Every feature and every number in this
+> repository comes from the v2 of the board (CO5300 panel, CST820 touch).
+> The firmware detects a v1 (SH8601 + FT3168) at run time and should work
+> on it, but nobody has tried one yet. If you have a v1 and something does
+> not work, please [open an issue](https://github.com/charliejgallo/ESP32S3_AmoledOS/issues)
+> with what you see (the portal's `/api/log` helps a lot), and we will fix it
+> together. See [HARDWARE.md](docs/HARDWARE.md#one-binary-both-revisions).
+
+**What you need:** the board, a microSD card formatted **FAT32** (see
+[the card](#the-microsd-card)), a USB-C cable that carries data, not just
+charge, and Chrome or Edge for the browser flasher.
+
+### 1. Flash the firmware
+
+`amoledos-full.bin` is the whole flash in one file, written at address 0x0.
+The easiest way is a browser:
+
+1. Open [web.esphome.io](https://web.esphome.io) in Chrome or Edge (it uses
+   Web Serial; Safari and Firefox do not have it) and plug the watch in.
+2. **Connect**, pick the watch's serial port, then **Install** and choose
+   `amoledos-full.bin`. It takes a minute or two; the watch restarts at
+   the end. That is how the second watch of this project was flashed.
+
+If the port does not show up, or the flasher cannot talk to the board, put
+it in download mode: hold **BOOT** while you plug the cable in, then try
+again. [Espressif's esptool-js](https://espressif.github.io/esptool-js/) also
+works (write `amoledos-full.bin` at `0x0`), and so does the command line:
 
 ```bash
-# 1. the firmware: one file, written at 0x0
 esptool --chip esp32s3 -p <PORT> -b 460800 write_flash 0x0 amoledos-full.bin
-
-# 2. the apps: unzip onto the microSD, in a folder called apps/
-unzip apps.zip -d /Volumes/<sd>/apps/
-
-# 3. the language packs, in a folder called lang/ (English and German ship
-#    inside the binary too, but a pack on the card wins, so keep them current)
-unzip lang.zip -d /Volumes/<sd>/lang/
-
-# 4. the example Lua scripts, in a folder called lua/ (optional)
-unzip lua-scripts.zip -d /Volumes/<sd>/lua/
 ```
 
 > `amoledos-full.bin` is a **factory image**: it spans the flash from 0x0, so it
@@ -542,20 +559,86 @@ unzip lua-scripts.zip -d /Volumes/<sd>/lua/
 > no language, no watchface and no app data. That is what you want on a fresh
 > board. To update a watch already in use, take
 > `amoledos-firmware-files.zip` instead — the same build as four separate files
-> that leave NVS alone. Or, since v0.5.0, download a backup from the portal's
-> `/ajustes` page first and restore it after: every setting, every app's
-> data and the menu's folders come back.
+> that leave NVS alone (their offsets are in `flash_args.txt`). Or, since
+> v0.5.0, download a backup from the portal's `/ajustes` page first and restore
+> it after: every setting, every app's data and the menu's folders come back.
 
-The apps are loaded once at startup, so restart the board after copying them.
-Then set the wifi up from the watch: Settings → Wi-Fi → Set up network raises
-an access point and shows a QR code.
+### 2. Fill the card
+
+With a card reader, before the card goes into the watch:
+
+```bash
+unzip apps.zip        -d /Volumes/<sd>/apps/    # the apps, and the games' .pak files
+unzip lang.zip        -d /Volumes/<sd>/lang/    # English and German, current
+unzip lua-scripts.zip -d /Volumes/<sd>/lua/     # example scripts (optional)
+```
+
+v0.6.0's release also carries `3d-models.zip`, the Visor 3D's samples, for
+`3d/`; in any other version take them from
+[`apps/visor3d/models/`](apps/visor3d/models). What else goes on the card,
+and where, is in [the next section](#the-microsd-card).
+
+No card reader? Two other ways, once the watch is up and on wifi:
+**Settings → USB → Disk (the card)** turns the watch into a USB drive on
+your computer, and the portal's **Files** page (its **Card** tab) uploads
+into any folder of the card from the browser (up to 8 MB a file). The apps are read at startup, so
+**restart the watch after copying apps**.
+
+### 3. First boot
+
+The watch starts in Spanish; the settings are **Ajustes** in the launcher.
+
+1. **Language**: Ajustes → Idioma → English or Deutsch. The packs from
+   `lang.zip` are used if they are on the card; the binary carries its own
+   copy otherwise.
+2. **Calibrate the touch**: Settings → Touch → **Calibrate**, and touch the
+   five crosses. Do this on every new watch: each glass stretches its
+   coordinates a little differently, and it is the first thing to suspect
+   when a button seems to need a second tap. **Try gestures**, on the same
+   page, shows both fingers and the gestures as the apps see them.
+3. **Wifi**: Settings → Wi-Fi → **Set up network** raises an access point
+   and shows a QR code; join it with a phone and pick your network. The
+   clock sets itself over NTP, and the web portal answers at the watch's
+   address or at `<name>.local`, both shown in Settings → Wi-Fi.
+
+### 4. From then on, over wifi
 
 **After that first install the cable is optional.** The firmware updates over
-WiFi — `./tools/install_fw.sh <board-ip>`, or drop the `.bin` on the portal's
+WiFi — `./tools/install_fw.sh <board-ip>`, or drop `amoledos.bin` on the portal's
 front page — writing into the idle one of the two 5 MB app slots and leaving
 NVS alone, so your wifi, language and app data survive. The new image boots on
 trial and the bootloader goes back to the previous one on its own if it does
-not come up. See [docs/BUILDING.md](docs/BUILDING.md).
+not come up. New apps and languages go to the card through the portal. See
+[docs/BUILDING.md](docs/BUILDING.md).
+
+## The microSD card
+
+FAT32 only: the ESP32's FatFs is built without exFAT, and a card over 32 GB
+comes formatted exFAT, so reformat it as FAT32 first (any size works once it
+is). Long file names are fine. Everything on the card is optional: without
+one the watch runs, with the built-in apps and its internal flash. The
+settings and the apps' own data (saves, scores, preferences) live in the
+internal flash, not on the card; the `/ajustes` backup covers them.
+
+The watch creates the folders it writes to; you only make the ones you copy
+into. The portal serves each one by name.
+
+| folder | what goes in it | where from |
+|---|---|---|
+| `apps/` | the dynamic apps (`.so`) and the big games' assets (`golf.pak`, `turbo.pak`, `monsterhop.pak`, `mila.pak`) | `apps.zip`; read at startup |
+| `lang/<code>/` | translation packs (`en/`, `de/`), one `.lang` per app plus `_sistema.lang`; a pack on the card wins over the copy in the binary | `lang.zip`, or `tools/install_lang.sh` ([I18N.md](docs/I18N.md)) |
+| `lua/` | Lua scripts, each one an app in the launcher | `lua-scripts.zip`, or written in the portal's `/lua` |
+| `3d/` | models for Visor 3D: `.stl` and `.m3d` | `apps/visor3d/models/` (v0.6.0: `3d-models.zip`), or the portal's `/3d`, which converts STL, OBJ and GLB |
+| `photos/` | JPEG, PNG and BMP for Fotos | your own |
+| `music/` | WAV, 16-bit PCM, for Música | your own |
+| `videos/` | MJPEG AVI at 368x448 with its WAV beside it | `tools/video_convert.sh` ([VIDEO.md](docs/VIDEO.md)) |
+| `doom/` | a Doom WAD (`DOOM1.WAD`, the shareware one, was the one tested) | yours: none is included ([why](apps/doom/README.md#the-wad)) |
+| `pixel/` | Pixel Art's canvases (`.pix`) and their PNG/GIF exports | the app, or the portal's `/pixel` |
+| `pato/` | Pato goma's keyboard scripts (`.pato`) | the portal's `/pato` |
+| `icons/` | icon files (`<app.id>.aic`) that replace an app's icon | the portal's `/iconos` ([ICONS.md](docs/ICONS.md)) |
+| `recordings/` | what Grabadora records (WAV, 16 kHz mono) | the watch |
+| `redes/` | the network scanner's surveys | the watch |
+| `menu.txt` | the launcher's order and folders | the portal's `/menu` ([MENU.md](docs/MENU.md)) |
 
 ## Quick start
 
@@ -631,9 +714,16 @@ Most of the comments in this repository explain *why*, not *what*, and many of
 them record something that was measured rather than assumed. A few examples of
 what that looks like in practice:
 
-* The touch panel **reports nothing below y = 395**, although the display draws
-  to 447. It was found by printing every touch across four apps. No calibration
-  fixes it. Every screen in the project is laid out around it.
+* For months the touch panel seemed to **report nothing below y = 395**,
+  although the display draws to 447: printing every touch across four apps
+  said so, and every screen was laid out around it. Reading the chip raw
+  showed it reaching 447 at the bezel; the dead band was made by our own
+  calibration's fit, and went away with it
+  ([HARDWARE.md](docs/HARDWARE.md#the-touch-panel-does-not-reach-the-bottom)).
+  A measurement can be right and its explanation wrong.
+* The v2's touch chip **reports a second finger** in registers no driver
+  reads, while its finger count never says more than one. Pinch-to-zoom in
+  v0.6.0 comes from there ([GESTURES.md](docs/GESTURES.md)).
 * Letting LVGL stretch a canvas costs **129 ms per frame**. Every game upscales
   by hand.
 * Rebuilding a twenty-row list costs **111–124 ms** with the LVGL thread

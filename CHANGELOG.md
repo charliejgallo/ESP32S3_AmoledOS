@@ -33,6 +33,12 @@ driver reads; the firmware now reads them, and apps get pinch-to-zoom
   backgrounds; the portal's `/3d` page converts STL, OBJ and GLB with their
   colours. Four samples from the games' own Blender models: Mila (the
   mascot), Tommy, the zombie and Turbo's muscle car (`apps/visor3d/README.md`).
+- **README**: a first-install guide (the browser flasher at web.esphome.io
+  with `amoledos-full.bin`, filling the card, language, **calibrating the
+  touch on every new watch**, wifi), a table of what goes where on the
+  microSD, and a note that everything was tested on v2 boards — v1 owners,
+  please open an issue if something fails. The old "nothing below y = 395"
+  example is corrected: the dead band was the calibration's.
 - New symbols only: **no app needs rebuilding**.
 
 ## v0.5.6 — 2026-09-24

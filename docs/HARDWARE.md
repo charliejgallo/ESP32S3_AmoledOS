@@ -33,6 +33,19 @@ controller's I2C address: `0x15` = CST816 → v2, `0x38` = FT3168 → v1. The sa
 binary runs on both. This is done by the official BSP; `components/aos_board/`
 only reads the result.
 
+**Only the v2 has been tested.** Every watch this project was built and
+measured on is a v2 (CO5300, and a CST820 behind the address the BSP calls
+CST816, see below). On a v1 the firmware takes the other branch everywhere
+it matters: the touch goes through the stock FT3168 driver instead of the
+CST820 task (`touch_task_start()` only starts when the chip answered at
+`0x15`), the second finger comes from that driver's own point list, and
+the CST820's auto-sleep register is never written. That is the design; it
+has never run, and the gesture filters (docs/GESTURES.md) were tuned on the
+CST820's faults, not on the FT3168's. If you have a v1 and
+something misbehaves, please
+[open an issue](https://github.com/charliejgallo/ESP32S3_AmoledOS/issues)
+with what you see and the portal's `/api/log`.
+
 ## Measured quirks
 
 These are things the datasheets do not say and that cost real debugging time.
