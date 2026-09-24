@@ -156,6 +156,8 @@ struct app {
     /* input: written by the UI, read by the worker */
     lv_point_t  p0;
     bool        pressed, dragged, held_mila, repeating;
+    bool        pinching;           /* two fingers on the glass (v0.6.0) */
+    float       pinch_acc;          /* the pinch's scale since the last switch */
     uint32_t    press_ms, last_step_ms;
     int         held_dir;
     volatile bool want_pause;

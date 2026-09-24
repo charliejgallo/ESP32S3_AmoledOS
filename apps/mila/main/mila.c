@@ -20,6 +20,7 @@
 #include "aos_icon_ops.h"
 #include "aos_theme.h"
 #include "aos_ui.h"
+#include "aos_gesture.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -699,6 +700,7 @@ static void level_touch(app_t *a, lv_event_code_t code, lv_point_t p)
         return;
     }
     if (a->lmode != LM_PLAY && a->lmode != LM_PEEK) return;
+    if (a->pinching) return;            /* two fingers: pinch_cb has it */
     if (code == LV_EVENT_PRESSED) {
         a->p0 = p;
         a->pressed = true;
@@ -771,6 +773,49 @@ static void touch_cb(lv_event_t *e)
         break;
     case ST_MAP:
         mlm_touch(a, code, p.x, p.y);
+        break;
+    default:
+        break;
+    }
+}
+
+/* Two fingers (v0.6.0): pinching them together pulls the camera back to
+ * the whole room -the same view a finger held on Mila gives, but it stays
+ * after the fingers lift-; spreading them flies back down to her, and so
+ * does a tap. The first finger of a pinch must not become a step: the
+ * pinch takes the touch over as soon as the second finger is sure. */
+#define PINCH_OUT       0.80f
+#define PINCH_IN        1.25f
+
+static void pinch_cb(const aos_gesture_event_t *ev, void *user)
+{
+    app_t *a = (app_t *)user;
+    if (a->closing || a->state != ST_LEVEL || !a->level_ok) return;
+    if (a->lmode != LM_PLAY && a->lmode != LM_PEEK) return;
+    switch (ev->type) {
+    case AOS_GESTURE_PINCH_BEGIN:
+        a->pinching = true;
+        a->pinch_acc = 1.0f;
+        a->pressed = false;             /* whatever the first finger started */
+        a->held_dir = -1;
+        break;
+    case AOS_GESTURE_PINCH:
+        a->pinch_acc *= ev->scale;
+        if (a->lmode == LM_PLAY && a->pinch_acc < PINCH_OUT) {
+            a->lmode = LM_PEEK;
+            a->peek_ready = false;
+            if (!job(a, JOB_PEEK)) a->pending_job = JOB_PEEK;
+            a->pinch_acc = 1.0f;
+            ml_snd(SND_ZOOM);
+        } else if (a->lmode == LM_PEEK && a->pinch_acc > PINCH_IN) {
+            a->lmode = LM_PLAY;
+            a->peek_ready = false;
+            a->pinch_acc = 1.0f;
+            ml_snd(SND_ZOOM);
+        }
+        break;
+    case AOS_GESTURE_PINCH_END:
+        a->pinching = false;
         break;
     default:
         break;
@@ -1188,6 +1233,7 @@ static void *ml_create(aos_app_t *self, lv_obj_t *root)
     lv_obj_add_event_cb(a->touch, touch_cb, LV_EVENT_PRESSING, a);
     lv_obj_add_event_cb(a->touch, touch_cb, LV_EVENT_RELEASED, a);
     lv_obj_add_event_cb(a->touch, touch_cb, LV_EVENT_PRESS_LOST, a);
+    aos_gesture_attach(a->touch, 0, pinch_cb, a);
 
     hud_build(a);
     ml_ui_build(a, root);
