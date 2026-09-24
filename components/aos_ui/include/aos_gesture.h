@@ -91,6 +91,42 @@ aos_gesture_t *aos_gesture_attach(lv_obj_t *obj, uint32_t flags,
 /* Optional: deleting the object detaches too. */
 void aos_gesture_detach(aos_gesture_t *g);
 
+/* --------------------------------------------------------------------------
+ * Fingers, one by one (for on-screen game pads)
+ *
+ * A pinch cares about two fingers together; a pad cares about each finger
+ * on its own: one on the stick, the other on FIRE, pressing and lifting
+ * independently. aos_touch_points() hands out the fingers that are down with
+ * an id that stays with each finger while it stays down, and the same
+ * filtering of the chip as the pinch:
+ *
+ *  - a second finger counts after two samples (the first can be bogus);
+ *  - a finger that vanishes for one sample is kept (up to ~120 ms): the
+ *    chip drops the second finger now and then, and a FIRE that flickers
+ *    off is worse than one that lifts a sample late;
+ *  - a finger that jumps more than ~110 px in one sample is held where it
+ *    was for that sample: that is the garbage sample of a finger lifting,
+ *    and if the next sample agrees it is a different finger (new id).
+ *
+ * Pairing: with the two fingers at about the same height (a pad along the
+ * bottom) the points are clean; on the ↗↙ diagonal the chip can swap their
+ * X (docs/GESTURES.md), so a pad should keep its controls level.
+ *
+ * Call it from the LVGL task (a timer, the app's frame); it reads the
+ * latest sample and only does work when there is a new one. Screen pixels.
+ * -------------------------------------------------------------------------- */
+
+typedef struct {
+    bool     down;
+    uint8_t  id;            /* 1..255, new for every finger that lands     */
+    float    x, y;
+    uint32_t t_down;        /* when it landed (aos_hal_uptime_ms clock)    */
+} aos_touch_point_t;
+
+/* Fills both slots (down = false for an empty one) and returns how many
+ * fingers are down. A finger keeps its slot while it stays down. */
+int aos_touch_points(aos_touch_point_t out[2]);
+
 /* true = this hardware reports two fingers, so pinching is there to use.
  * Worth checking to decide whether to offer +/- buttons instead. */
 bool aos_gesture_multitouch(void);

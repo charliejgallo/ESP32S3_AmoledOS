@@ -352,6 +352,18 @@ bool aos_hal_touch_multi(void)
     return true;                    /* emulated: Option + drag */
 }
 
+bool aos_hal_touch_reg_read(uint8_t reg, uint8_t *val)
+{
+    (void)reg; (void)val;
+    return false;
+}
+
+bool aos_hal_touch_reg_write(uint8_t reg, uint8_t val)
+{
+    (void)reg; (void)val;
+    return false;
+}
+
 uint32_t aos_hal_touch_regs(uint8_t regs[AOS_TOUCH_REGS])
 {
     (void)regs;

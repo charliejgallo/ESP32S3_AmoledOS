@@ -23,6 +23,7 @@
 #include "aos_pair_ui.h"
 #include "aos_settings_glyphs.h"
 #include "aos_quick.h"
+#include "aos_gesture.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -92,6 +93,16 @@ typedef struct {
     uint8_t     probe_last[AOS_TOUCH_REGS];   /* last burst logged */
     uint32_t    probe_reads, probe_two, probe_p2;
     uint32_t    rate_ms, rate_n;    /* time with a finger down, samples in it */
+    /* Gesture test (Settings -> Touch -> Try gestures) */
+    lv_obj_t   *gt_box, *gt_events, *gt_stats, *gt_scan_lbl;
+    lv_obj_t   *gt_dot[2], *gt_dot_lbl[2];
+    lv_timer_t *gt_timer;
+    char        gt_lines[5][48];
+    float       gt_zoom;
+    uint32_t    gt_seq, gt_rate_ms, gt_rate_n, gt_last_ms;
+    uint8_t     gt_last_count;
+    int         gt_scan;            /* index in GT_SCAN, -1 = as the chip had it */
+    uint8_t     gt_scan_orig;
     uint32_t    rate_last_ms;
     uint8_t     probe_max_fingers;
     lv_obj_t *r_day, *r_mon, *r_year, *r_hour, *r_min;
@@ -1032,6 +1043,235 @@ static void raw_cb(lv_event_t *event)
      * crosses. The physical button closes it too (back()). */
     lv_obj_t *btn = aos_button(box, _("Listo"), AOS_C_CARD2, raw_close_cb, NULL);
     lv_obj_align(btn, LV_ALIGN_CENTER, 0, 95);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Gesture test                                                                */
+/*                                                                             */
+/* The two fingers as the firmware sees them (aos_touch_points: each with its  */
+/* id), the gestures the recogniser makes of them (aos_gesture), the chip's    */
+/* real refresh rate, and the CST820's scan period (0xEE) to try. It is for    */
+/* anyone who wants to see what the watch understands, and it is the tool the  */
+/* two-finger work was measured with (docs/GESTURES.md).                       */
+/* -------------------------------------------------------------------------- */
+
+/* Scan periods to try, in the chip's 10 ms units (datasheet: 1..30,
+ * default 1). What the chip had is restored on closing. */
+static const uint8_t GT_SCAN[] = { 1, 2, 3, 5, 7, 10 };
+
+static void gt_push(const char *line)
+{
+    memmove(s_set.gt_lines[1], s_set.gt_lines[0],
+            sizeof(s_set.gt_lines[0]) * 4);
+    snprintf(s_set.gt_lines[0], sizeof(s_set.gt_lines[0]), "%s", line);
+    if (s_set.gt_events) {
+        lv_label_set_text_fmt(s_set.gt_events, "%s\n%s\n%s\n%s\n%s",
+                              s_set.gt_lines[0], s_set.gt_lines[1],
+                              s_set.gt_lines[2], s_set.gt_lines[3],
+                              s_set.gt_lines[4]);
+    }
+}
+
+static void gt_gesture_cb(const aos_gesture_event_t *ev, void *user)
+{
+    (void)user;
+    char line[48];
+    switch (ev->type) {
+    case AOS_GESTURE_TAP:        snprintf(line, sizeof(line), "TAP %d,%d", (int)ev->x, (int)ev->y); break;
+    case AOS_GESTURE_DOUBLE_TAP: snprintf(line, sizeof(line), "DOUBLE TAP"); break;
+    case AOS_GESTURE_LONG_PRESS: snprintf(line, sizeof(line), "LONG PRESS"); break;
+    case AOS_GESTURE_DRAG_END:   snprintf(line, sizeof(line), "DRAG  v %d,%d px/s", (int)ev->vx, (int)ev->vy); break;
+    case AOS_GESTURE_PINCH_BEGIN:
+        s_set.gt_zoom = 1.0f;
+        snprintf(line, sizeof(line), "PINCH  d %d", (int)ev->dist);
+        break;
+    case AOS_GESTURE_PINCH:
+        s_set.gt_zoom *= ev->scale;
+        return;                         /* shown live in the stats */
+    case AOS_GESTURE_PINCH_END: {
+        int z = (int)(s_set.gt_zoom * 100.0f + 0.5f);
+        snprintf(line, sizeof(line), "PINCH END  x%d.%02d", z / 100, z % 100);
+        break;
+    }
+    default: return;
+    }
+    gt_push(line);
+    aos_hal_log("touch", "gesture test: %s", line);
+}
+
+static void gt_scan_show(void)
+{
+    uint8_t v = 0;
+    bool ok = aos_hal_touch_reg_read(0xEE, &v);
+    if (s_set.gt_scan_lbl) {
+        if (ok) lv_label_set_text_fmt(s_set.gt_scan_lbl, _("Escaneo %d ms"), v * 10);
+        else    lv_label_set_text(s_set.gt_scan_lbl, _("Escaneo n/d"));
+    }
+}
+
+static void gt_scan_cb(lv_event_t *e)
+{
+    (void)e;
+    s_set.gt_scan = (s_set.gt_scan + 1) % (int)sizeof(GT_SCAN);
+    aos_hal_touch_reg_write(0xEE, GT_SCAN[s_set.gt_scan]);
+    s_set.gt_rate_ms = s_set.gt_rate_n = 0;     /* measure the new one afresh */
+    gt_scan_show();
+}
+
+static void gt_tick(lv_timer_t *t)
+{
+    (void)t;
+    aos_touch_point_t pts[2];
+    aos_touch_points(pts);
+    for (int i = 0; i < 2; i++) {
+        if (!s_set.gt_dot[i]) continue;
+        if (pts[i].down) {
+            lv_obj_set_pos(s_set.gt_dot[i], (int32_t)pts[i].x - 24, (int32_t)pts[i].y - 24);
+            lv_label_set_text_fmt(s_set.gt_dot_lbl[i], "%u", pts[i].id);
+            lv_obj_remove_flag(s_set.gt_dot[i], LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(s_set.gt_dot[i], LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+
+    /* The chip's rate: new samples per second while something is down. */
+    aos_touch_frame_t f;
+    uint32_t now = lv_tick_get();
+    if (aos_hal_touch_frame(&f)) {
+        if (f.seq != s_set.gt_seq) {
+            if (s_set.gt_seq && f.count && s_set.gt_last_count &&
+                now - s_set.gt_last_ms < 500) {
+                s_set.gt_rate_ms += now - s_set.gt_last_ms;
+                s_set.gt_rate_n  += f.seq - s_set.gt_seq;
+            }
+            s_set.gt_seq = f.seq;
+            s_set.gt_last_ms = now;
+            s_set.gt_last_count = f.count;
+        }
+    }
+    if (s_set.gt_stats) {
+        int z = (int)(s_set.gt_zoom * 100.0f + 0.5f);
+        lv_label_set_text_fmt(s_set.gt_stats, _("dedos %d   chip %u Hz   zoom x%d.%02d"),
+                              (int)f.count,
+                              (unsigned)(s_set.gt_rate_ms ? s_set.gt_rate_n * 1000u / s_set.gt_rate_ms : 0),
+                              z / 100, z % 100);
+    }
+}
+
+static void gt_close(void)
+{
+    if (!s_set.gt_box) {
+        return;
+    }
+    if (s_set.gt_timer) {
+        lv_timer_delete(s_set.gt_timer);
+        s_set.gt_timer = NULL;
+    }
+    aos_hal_log("touch", "gesture test closed: chip rate %u Hz over %u ms",
+                (unsigned)(s_set.gt_rate_ms ? s_set.gt_rate_n * 1000u / s_set.gt_rate_ms : 0),
+                (unsigned)s_set.gt_rate_ms);
+    if (s_set.gt_scan >= 0) {
+        aos_hal_touch_reg_write(0xEE, s_set.gt_scan_orig);  /* as it was */
+    }
+    aos_ui_block_gestures(false);
+    lv_obj_delete(s_set.gt_box);            /* the recogniser goes with it */
+    s_set.gt_box = s_set.gt_events = s_set.gt_stats = s_set.gt_scan_lbl = NULL;
+    s_set.gt_dot[0] = s_set.gt_dot[1] = NULL;
+}
+
+static void gt_close_cb(lv_event_t *e)
+{
+    (void)e;
+    gt_close();
+}
+
+/* The chip's configuration as it is right now, in the log: the scan period,
+ * the interrupt control, the auto-sleep and long-press reset timers... */
+static void gt_dump_regs(void)
+{
+    uint8_t v[0x13];
+    char hex[0x13 * 3 + 1] = "";
+    uint8_t id = 0, proj = 0, fw = 0;
+    if (!aos_hal_touch_reg_read(0xA7, &id)) {
+        return;                                 /* not a CST820 */
+    }
+    aos_hal_touch_reg_read(0xA8, &proj);
+    aos_hal_touch_reg_read(0xA9, &fw);
+    for (int i = 0; i < 0x13; i++) {
+        v[i] = 0;
+        aos_hal_touch_reg_read((uint8_t)(0xEC + i), &v[i]);
+        snprintf(hex + i * 3, 4, "%02X ", v[i]);
+    }
+    aos_hal_log("touch", "CST820 id %02X proj %02X fw %02X | 0xEC..0xFE: %s",
+                id, proj, fw, hex);
+    s_set.gt_scan_orig = v[0xEE - 0xEC];
+}
+
+static void gt_cb(lv_event_t *event)
+{
+    (void)event;
+    if (s_set.gt_box) {
+        return;
+    }
+    memset(s_set.gt_lines, 0, sizeof(s_set.gt_lines));
+    s_set.gt_zoom = 1.0f;
+    s_set.gt_seq = s_set.gt_rate_ms = s_set.gt_rate_n = s_set.gt_last_ms = 0;
+    s_set.gt_last_count = 0;
+    s_set.gt_scan = -1;
+    s_set.gt_scan_orig = 1;
+    gt_dump_regs();
+    aos_ui_block_gestures(true);    /* every drag here is the test's */
+
+    lv_obj_t *box = lv_obj_create(lv_layer_top());
+    s_set.gt_box = box;
+    lv_obj_remove_style_all(box);
+    lv_obj_remove_flag(box, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_size(box, AOS_SCREEN_W, AOS_SCREEN_H);
+    lv_obj_set_pos(box, 0, 0);
+    lv_obj_set_style_bg_color(box, AOS_C_BG, 0);
+    lv_obj_set_style_bg_opa(box, LV_OPA_COVER, 0);
+
+    lv_obj_t *hint = aos_label(box, _("Tocá, arrastrá, pellizcá\ncon uno o dos dedos"),
+                               aos_font_small, AOS_C_DIM);
+    lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(hint, LV_ALIGN_TOP_MID, 0, 34);
+    aos_make_decorative(hint);
+
+    s_set.gt_stats = aos_label(box, "", aos_font_small, AOS_C_TEXT);
+    lv_obj_align(s_set.gt_stats, LV_ALIGN_TOP_MID, 0, 84);
+    aos_make_decorative(s_set.gt_stats);
+
+    s_set.gt_events = aos_label(box, "", aos_font_small, AOS_C_ACCENT);
+    lv_obj_set_style_text_align(s_set.gt_events, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(s_set.gt_events, LV_ALIGN_CENTER, 0, 0);
+    aos_make_decorative(s_set.gt_events);
+
+    static const uint32_t colours[2] = { 0x2EC4FF, 0xFF3B6B };
+    for (int i = 0; i < 2; i++) {
+        lv_obj_t *d = lv_obj_create(box);
+        lv_obj_remove_style_all(d);
+        lv_obj_set_size(d, 48, 48);
+        lv_obj_set_style_radius(d, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_border_width(d, 4, 0);
+        lv_obj_set_style_border_color(d, lv_color_hex(colours[i]), 0);
+        lv_obj_add_flag(d, LV_OBJ_FLAG_HIDDEN);
+        aos_make_decorative(d);
+        s_set.gt_dot_lbl[i] = aos_label(d, "", aos_font_small, lv_color_hex(colours[i]));
+        lv_obj_center(s_set.gt_dot_lbl[i]);
+        s_set.gt_dot[i] = d;
+    }
+
+    lv_obj_t *scan = aos_button(box, "", AOS_C_CARD2, gt_scan_cb, NULL);
+    lv_obj_align(scan, LV_ALIGN_BOTTOM_LEFT, 20, -16);
+    s_set.gt_scan_lbl = lv_obj_get_child(scan, 0);
+    gt_scan_show();
+
+    lv_obj_t *btn = aos_button(box, _("Listo"), AOS_C_CARD2, gt_close_cb, NULL);
+    lv_obj_align(btn, LV_ALIGN_BOTTOM_RIGHT, -20, -16);
+
+    aos_gesture_attach(box, 0, gt_gesture_cb, NULL);
+    s_set.gt_timer = lv_timer_create(gt_tick, 20, NULL);
+    gt_tick(NULL);
 }
 
 /* Held, not tapped: a restart is one brush of a finger away from the bottom
@@ -2773,6 +3013,7 @@ static void build_touch(lv_obj_t *p)
     lv_obj_t *c = card(p);
     nav_row(c, NULL, AOS_C_CARD, _("Calibrar"), NULL, cal_cb, NULL);
     nav_row(c, NULL, AOS_C_CARD, _("Ver crudo"), NULL, raw_cb, NULL);
+    nav_row(c, NULL, AOS_C_CARD, _("Probar gestos"), NULL, gt_cb, NULL);
     note(p, _("Calibrar pide tocar cinco cruces. \"Ver crudo\" muestra lo que lee el "
               "chip tactil, sin correccion."));
 }
@@ -3359,12 +3600,15 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     } else if (sim_bt && sim_bt[0] == '2') {
         cat_cb(NULL);
     }
-    /* AOS_SIM_TOUCH=1 opens the raw view, =2 the calibration screen. */
+    /* AOS_SIM_TOUCH=1 opens the raw view, =2 the calibration screen, =3 the
+     * gesture test. */
     const char *sim_touch = getenv("AOS_SIM_TOUCH");
     if (sim_touch && sim_touch[0] == '1') {
         raw_cb(NULL);
     } else if (sim_touch && sim_touch[0] == '2') {
         cal_cb(NULL);
+    } else if (sim_touch && sim_touch[0] == '3') {
+        gt_cb(NULL);
     }
 #endif
     return &s_set;
@@ -3391,6 +3635,10 @@ static bool back(aos_app_t *self, void *inst)
     }
     if (s_set.raw_box) {
         raw_close();
+        return true;
+    }
+    if (s_set.gt_box) {
+        gt_close();
         return true;
     }
     if (s_set.bt_box) {
@@ -3422,6 +3670,7 @@ static void destroy(aos_app_t *self, void *inst)
     clock_close();
     cal_cerrar();
     raw_close();
+    gt_close();
     ap_box_close();
     bt_box_close();
     cat_box_close();

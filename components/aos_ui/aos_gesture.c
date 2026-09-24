@@ -454,6 +454,172 @@ void aos_gesture_detach(aos_gesture_t *g)
     free_gesture(g);
 }
 
+/* --------------------------------------------------------------------------
+ * Fingers one by one (aos_touch_points)
+ * -------------------------------------------------------------------------- */
+
+#define TRACK_HOLD_MS   120     /* a finger missing this long is up          */
+#define TRACK_JUMP      110.0f  /* px in one sample: garbage, held once      */
+
+typedef struct {
+    aos_touch_point_t p;
+    uint32_t seen_ms;           /* last sample that had it                   */
+    bool     jumped;            /* held one sample on a jump                 */
+    float    jx, jy;            /* where it jumped to                        */
+} track_t;
+
+static track_t  s_tracks[2];
+static uint32_t s_track_seq;
+static uint8_t  s_next_id;
+static int      s_new_streak;   /* samples in a row with an unmatched point */
+
+static float dist2(float ax, float ay, float bx, float by)
+{
+    return (ax - bx) * (ax - bx) + (ay - by) * (ay - by);
+}
+
+static void track_start(track_t *t, float x, float y, uint32_t now)
+{
+    if (++s_next_id == 0) s_next_id = 1;
+    t->p.down = true;
+    t->p.id = s_next_id;
+    t->p.x = x;
+    t->p.y = y;
+    t->p.t_down = now;
+    t->seen_ms = now;
+    t->jumped = false;
+}
+
+/* One point for one track: move it, unless it jumped. */
+static void track_feed(track_t *t, float x, float y, uint32_t now)
+{
+    t->seen_ms = now;
+    if (dist2(x, y, t->p.x, t->p.y) > TRACK_JUMP * TRACK_JUMP) {
+        if (!t->jumped || dist2(x, y, t->jx, t->jy) > TRACK_JUMP * TRACK_JUMP) {
+            t->jumped = true;           /* hold it here for this sample */
+            t->jx = x;
+            t->jy = y;
+            return;
+        }
+        track_start(t, x, y, now);      /* confirmed: another finger */
+        return;
+    }
+    t->jumped = false;
+    t->p.x = x;
+    t->p.y = y;
+}
+
+static void tracks_update(const aos_touch_frame_t *f)
+{
+    float x[2], y[2];
+    int n = f->count > 2 ? 2 : f->count;
+    for (int i = 0; i < n; i++) {
+        int32_t sx, sy;
+        aos_ui_touch_map(f->x[i], f->y[i], &sx, &sy);
+        x[i] = (float)sx;
+        y[i] = (float)sy;
+    }
+    uint32_t now = f->t_ms;
+    bool used[2] = { false, false };
+
+    if (n == 0) {
+        s_tracks[0].p.down = s_tracks[1].p.down = false;
+        s_new_streak = 0;
+        return;
+    }
+
+    /* Match the fingers that are down to the nearest points. */
+    int down = (s_tracks[0].p.down ? 1 : 0) + (s_tracks[1].p.down ? 1 : 0);
+    if (down == 2 && n == 2) {
+        float keep = dist2(x[0], y[0], s_tracks[0].p.x, s_tracks[0].p.y) +
+                     dist2(x[1], y[1], s_tracks[1].p.x, s_tracks[1].p.y);
+        float swap = dist2(x[1], y[1], s_tracks[0].p.x, s_tracks[0].p.y) +
+                     dist2(x[0], y[0], s_tracks[1].p.x, s_tracks[1].p.y);
+        int a = swap < keep ? 1 : 0;
+        track_feed(&s_tracks[0], x[a], y[a], now);
+        track_feed(&s_tracks[1], x[1 - a], y[1 - a], now);
+        used[0] = used[1] = true;
+    } else {
+        for (int t = 0; t < 2; t++) {
+            if (!s_tracks[t].p.down) continue;
+            int best = -1;
+            float bd = 0;
+            for (int i = 0; i < n; i++) {
+                if (used[i]) continue;
+                float d = dist2(x[i], y[i], s_tracks[t].p.x, s_tracks[t].p.y);
+                if (best < 0 || d < bd) { best = i; bd = d; }
+            }
+            if (best >= 0) {
+                used[best] = true;
+                track_feed(&s_tracks[t], x[best], y[best], now);
+            }
+        }
+    }
+
+    /* Fingers missing from this sample: kept a moment, then up. */
+    for (int t = 0; t < 2; t++) {
+        if (s_tracks[t].p.down && now - s_tracks[t].seen_ms > TRACK_HOLD_MS) {
+            s_tracks[t].p.down = false;
+        }
+    }
+
+    /* A point nobody claimed is a new finger: the first one at once, a
+     * second one after two samples (the chip's first point 2 can be bogus). */
+    int unmatched = -1;
+    for (int i = 0; i < n; i++) {
+        if (!used[i]) { unmatched = i; break; }
+    }
+    if (unmatched < 0) {
+        s_new_streak = 0;
+        return;
+    }
+    int free_slot = !s_tracks[0].p.down ? 0 : (!s_tracks[1].p.down ? 1 : -1);
+    if (free_slot < 0) {
+        return;
+    }
+    bool other_down = s_tracks[1 - free_slot].p.down;
+    if (other_down && ++s_new_streak < 2) {
+        return;
+    }
+    s_new_streak = 0;
+    track_start(&s_tracks[free_slot], x[unmatched], y[unmatched], now);
+}
+
+int aos_touch_points(aos_touch_point_t out[2])
+{
+    aos_touch_frame_t f;
+    if (!aos_hal_touch_frame(&f)) {
+        f.count = 0;
+    } else if (f.seq != s_track_seq) {
+        s_track_seq = f.seq;
+        tracks_update(&f);
+    }
+    /* A held finger expires on the clock too, not only on a new sample:
+     * while the finger that stayed rests still the chip sends nothing new,
+     * and the missing one would be down forever. Only when the latest
+     * sample really has fewer fingers than we hold, and the oldest goes. */
+    int held = (s_tracks[0].p.down ? 1 : 0) + (s_tracks[1].p.down ? 1 : 0);
+    if (held > f.count) {
+        uint32_t now = (uint32_t)aos_hal_uptime_ms();
+        int t = -1;
+        for (int i = 0; i < 2; i++) {
+            if (s_tracks[i].p.down &&
+                (t < 0 || s_tracks[i].seen_ms < s_tracks[t].seen_ms)) {
+                t = i;
+            }
+        }
+        if (t >= 0 && now - s_tracks[t].seen_ms > TRACK_HOLD_MS) {
+            s_tracks[t].p.down = false;
+        }
+    }
+    int n = 0;
+    for (int t = 0; t < 2; t++) {
+        out[t] = s_tracks[t].p;
+        if (out[t].down) n++;
+    }
+    return n;
+}
+
 bool aos_gesture_multitouch(void)
 {
     return aos_hal_touch_multi();

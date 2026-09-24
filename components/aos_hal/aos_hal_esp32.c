@@ -3508,6 +3508,30 @@ bool aos_hal_touch_frame(aos_touch_frame_t *out)
     return true;
 }
 
+/* The CST820's configuration registers (0xEC..0xFE on the CST816S map:
+ * motion mask, IRQ, scan period, auto sleep, long-press reset...), for the
+ * gesture test screen. A separate transaction on the chip's own device
+ * handle, the one the keep-awake write already uses from another task; the
+ * I2C master driver serialises it with the touch reads. */
+bool aos_hal_touch_reg_read(uint8_t reg, uint8_t *val)
+{
+    if (!s_touch_dev || !val) {
+        return false;
+    }
+    return i2c_master_transmit_receive(s_touch_dev, &reg, 1, val, 1, 50) == ESP_OK;
+}
+
+bool aos_hal_touch_reg_write(uint8_t reg, uint8_t val)
+{
+    if (!s_touch_dev) {
+        return false;
+    }
+    const uint8_t buf[2] = { reg, val };
+    esp_err_t ret = i2c_master_transmit(s_touch_dev, buf, sizeof(buf), 50);
+    aos_hal_log("touch", "CST820 reg 0x%02X <- 0x%02X (%s)", reg, val, esp_err_to_name(ret));
+    return ret == ESP_OK;
+}
+
 bool aos_hal_touch_multi(void)
 {
     return s_touch_tp != NULL;

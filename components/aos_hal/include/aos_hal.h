@@ -206,6 +206,13 @@ bool     aos_hal_touch_multi(void);
 #define AOS_TOUCH_REGS 15
 uint32_t aos_hal_touch_regs(uint8_t regs[AOS_TOUCH_REGS]);
 
+/* One configuration register of the CST820 (0xEC..0xFE: scan period,
+ * interrupt control, auto sleep, long-press reset...). DIAGNOSTICS: the chip
+ * forgets them on its own resets, and a wrong value can leave the touch deaf
+ * until a restart. false = not a CST820, or the bus said no. */
+bool aos_hal_touch_reg_read(uint8_t reg, uint8_t *val);
+bool aos_hal_touch_reg_write(uint8_t reg, uint8_t val);
+
 /* --------------------------------------------------------------------------
  * Display state
  *
