@@ -51,7 +51,11 @@
 #define NAME_LEN    64
 #define TICK_MS     10
 #define STILL_MS    160                 /* still this long: draw at full size */
-#define WORKER_STACK (8 * 1024)
+/* 16 KB like Doom's. With 8 the board panicked loading a 4 MB STL, inside
+ * fread -> FATFS -> the SD driver, with the stack's frames already garbage
+ * (2026-09-24): the whole card path runs on this stack, and in the
+ * simulator every thread has megabytes, so it never showed there. */
+#define WORKER_STACK (16 * 1024)
 
 enum { SLOT_FREE = 0, SLOT_BUSY, SLOT_READY, SLOT_SHOWN };
 
