@@ -155,8 +155,10 @@ generated up to each callback's time, which then runs. The song's clock is
 the sample count, so the tempo holds whatever the frame rate does. The Nuked
 OPL3 that replaced DBOPL in Chocolate 2.3 is more exact and heavier (it
 emulates the chip at its own 49716 Hz and resamples; not measured here);
-DBOPL generates at 16 kHz directly, skips silent channels and costs **3-7 % of core 0**, measured with the cycle counter while E1M1 stays
-at 35 fps. A one-pole high-pass takes off the DC DBOPL's output carries, and
+DBOPL generates at 16 kHz directly and skips silent channels, so it costs
+what the track asks for: measured with the cycle counter, **3-7 % of core 0**
+in E1M1 and **9-13 %** on the title and in E1M3, which use more voices; the
+game stays at 34-35 fps either way, on both watches. A one-pole high-pass takes off the DC DBOPL's output carries, and
 the music is mixed at four times the emulator's level: at 1:1, E1M1 measured
 470 RMS against the pistol's 20000 peaks. A soft knee above three quarters
 of full scale keeps a shotgun over the music from clipping flat.

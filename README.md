@@ -332,8 +332,8 @@ straight to the panel, and draws a pad below it: an analogue stick (a mouse to
 Doom), FIRE, USE, the menu, the map and the next weapon, with the side button
 firing while the thumb walks. `exit()` is a `longjmp` back to the worker, so
 quitting from Doom's menu returns to the watch and gives every byte back.
-Sound effects and the OPL2 music, synthesised on the watch for 3-7 % of a
-core. Bring your own WAD: it was tested with the shareware `DOOM1.WAD` 1.9
+Sound effects and the OPL2 music, synthesised on the watch for 3-13 % of a
+core, depending on the track. Bring your own WAD: it was tested with the shareware `DOOM1.WAD` 1.9
 (episode 1, freely distributable but id Software's, so it is not in the
 repository), and the full games' WADs are searched first and should work,
 untested. The engine is GPL v2. More in

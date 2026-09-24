@@ -664,7 +664,7 @@ firmware. What it takes, in the order it bit:
   forgot every option.
 - **Measure CPU with the cycle counter.** Nothing finer than a millisecond is
   lent to apps; on the board `rsr.ccount` (inline asm, core-local, 240 per
-  microsecond) timed the music at 3-7 % of a core.
+  microsecond) timed the music at 3-13 % of a core, by track.
 
 ## 7. The icon
 

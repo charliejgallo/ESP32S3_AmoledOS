@@ -19,8 +19,8 @@ Newest first. Versions are git tags; what is above the latest tag is on
   all `longjmp` to the worker, which frees every block and file the engine
   had.
 - **Sound effects and the OPL2 music**: Chocolate Doom 2.2.1's OPL player on
-  DOSBox's DBOPL, generated from the effects mixer on the sample clock, 3-7 %
-  of core 0 with E1M1 still at 35 fps. The options are saved in
+  DOSBox's DBOPL, generated from the effects mixer on the sample clock, 3-13 %
+  of core 0 depending on the track, with E1M1 still at 35 fps. The options are saved in
   `default.cfg` (doomgeneric had the config switched off).
 - **No firmware change**: all of its symbols are already in the table, so it
   runs on v0.4.10 and later. GPL v2, like the engine.
