@@ -200,6 +200,15 @@ worker and pushes the frames from an LVGL timer gets the two in series.
 Turbo runs its worker on core 0 and went from 16 to 19 fps on that alone.
 Same rules: no LVGL, no SPI.
 
+Three more, learnt with Visor 3D (v0.6.0), each written up in
+[APP-GUIDE.md](APP-GUIDE.md): a worker that always has work must still
+`aos_hal_worker_sleep(1)` now and then (after each frame), or the idle
+task starves and the task watchdog fires; `stop()` gives up after 3 s and
+the `.so` is unloaded under a worker that did not return, so long jobs
+check `should_stop()` and bail out; and a worker that reads the card wants
+16 KB of stack and `setvbuf()` on its files (unbuffered, every `fread` is a
+card access).
+
 ## Flags
 
 | Flag | Effect |

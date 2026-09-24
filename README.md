@@ -2,7 +2,7 @@
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
 368x448 AMOLED you can hold in your hand. Seven watchfaces, twenty
-built-in apps, thirty-four more loaded from the microSD as shared objects — one
+built-in apps, thirty-five more loaded from the microSD as shared objects — one
 of them a Lua interpreter, so a text file on the card is an app too — a web
 portal, iPhone notifications over BLE, a link between two watches over ESP-NOW
 with ten apps on it, and a desktop simulator that runs the same UI code so
@@ -172,7 +172,7 @@ Twenty-one ship inside the binary. They are the ones the watch cannot be without
 
 ### Loaded from the microSD
 
-Thirty-four more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
+Thirty-five more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
 `.so` files at startup. The same source builds into the simulator, so they are
 designed on a laptop and copied to the card without changing a line — and a new
 one needs no firmware rebuild. That includes its **launcher icon**: an app
@@ -338,6 +338,29 @@ core, depending on the track. Bring your own WAD: it was tested with the sharewa
 repository), and the full games' WADs are searched first and should work,
 untested. The engine is GPL v2. More in
 [apps/doom/README.md](apps/doom/README.md).
+
+#### Visor 3D, and two fingers everywhere
+
+<p align="center">
+  <img src="docs/img/app-visor3d-mila.png" width="200" alt="Mila, the mascot, as a 3D model on a light background">
+  <img src="docs/img/app-visor3d-tommy.png" width="200" alt="Tommy from Monster Hop in the viewer">
+  <img src="docs/img/app-visor3d-muscle.png" width="200" alt="Turbo's muscle car in the viewer">
+</p>
+
+The v2's touch chip reports a second finger in registers no driver reads,
+while its finger count never says more than one. Since v0.6.0 the firmware
+reads them, on the chip's interrupt, about 73 times a second, and apps get
+tap, double tap, long press, drag with fling and pinch
+([docs/GESTURES.md](docs/GESTURES.md) has the registers, the chip's faults
+and the filters). **Visor 3D** is the app built for it: STL and M3D models
+from the card, turned with one finger and zoomed with two, drawn by a
+software rasteriser on the second core, about 18 fps at 16 000 triangles
+while moving. The portal's `/3d` page converts STL, OBJ and GLB with their
+colours, and the samples are the games' own characters: Mila, Tommy, the
+zombie and Turbo's muscle car. Photos, Pixel Art, Buscaminas, Laberinto,
+Golf's aiming map and Mila zoom with a pinch too; Control PC's mouse face is
+a touchpad, Doom walks and shoots with two fingers, and Lua scripts get a
+`gesture()` callback. More in [apps/visor3d/README.md](apps/visor3d/README.md).
 
 #### The others
 
@@ -671,7 +694,7 @@ components/
   aos_dynapp/         .so loader and symbol table
   aos_ble/            NimBLE: ANCS, AMS, pairing
   aos_web/            the web portal, embedded in the binary
-apps/                 34 dynamic apps
+apps/                 35 dynamic apps
 tools/                generators, test benches, board utilities
 ```
 

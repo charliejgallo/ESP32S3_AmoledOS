@@ -88,10 +88,23 @@ small coloured part — Mila's pupils — does not melt into its neighbours.
   strip; leaving mid-load cancels it at once, since the app's code is
   unloaded as soon as it closes.
 
-Measured on the board (v0.6.0 development, before the last raster tuning):
-the torus knot (8 640 triangles, solid) ~36 ms a frame at half size, the
-planet ~31 ms, the 24 000-triangle sphere 53-59 ms; full frames 45-70 ms.
-The 80 000-triangle STL loads and reduces in about 10 s.
+Measured on the board (the log prints a line every 5 s while the model
+moves: time a frame at half and at full size, and where it went):
+
+| model | triangles | moving (half size) | still (full size) |
+|---|---|---|---|
+| torus knot | 8 640, solid | ~36 ms, ~28 fps | 45-70 ms |
+| planet | 5 120, coloured | ~31 ms | |
+| zombie | 15 966, solid | 47-59 ms, 17-21 fps | 65-120 ms |
+| Tommy | 15 904, open | ~70 ms, ~14 fps | ~100 ms |
+
+Of a zombie frame, clearing takes ~3.4 ms, the vertices ~5 ms and the
+triangles 35-60: the fill is the ceiling, so time follows the triangles and
+whether back faces can be skipped (Tommy, with his cap and hair as separate
+open pieces, cannot). A sample opens in about 315 ms; the 80 000-triangle
+STL loads and reduces in about 10 s. The samples stay at 16 000 triangles:
+the motion felt right on the watch, and at 10 000 they would gain perhaps a
+third.
 
 ## Formats
 

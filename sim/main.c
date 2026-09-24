@@ -938,9 +938,10 @@ static bool gesture_script_tick(uint64_t now_ms)
  * same), so dragging away from the centre is a pinch out. Adding Shift
  * freezes the gap between them and both move together: a two-finger pan.
  *
- * Samples are rationed to AOS_SIM_TOUCH_HZ (14 by default), the rate the
- * CST820 was measured at: whatever feels smooth here with 100 samples a
- * second would stutter on the watch. AOS_SIM_TOUCH_HZ=0 lifts the ration. */
+ * Samples are rationed to AOS_SIM_TOUCH_HZ (73 by default), the rate the
+ * CST820 gives the touch task (docs/GESTURES.md; the 14 first measured was
+ * LVGL's task polling it). Set 14 to feel what an app that reads the touch
+ * from its own timer gets; AOS_SIM_TOUCH_HZ=0 lifts the ration. */
 static void sim_touch_tick(uint64_t now_ms)
 {
     static int      hz = -1;
@@ -950,7 +951,7 @@ static void sim_touch_tick(uint64_t now_ms)
 
     if (hz < 0) {
         const char *env = getenv("AOS_SIM_TOUCH_HZ");
-        hz = env ? atoi(env) : 14;
+        hz = env ? atoi(env) : 73;
         if (hz < 0) hz = 0;
     }
     if (hz && now_ms - last_ms < (uint64_t)(1000 / hz)) {

@@ -3,43 +3,88 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased — v0.6.0 (in progress)
+## Unreleased — v0.6.0
 
 **Two fingers.** The v2's touch chip reports a second finger in registers no
-driver reads; the firmware now reads them, and apps get pinch-to-zoom
-(docs/GESTURES.md has the whole story and the measurements).
+driver reads; the firmware now reads them, and apps get pinch-to-zoom and a
+gesture recogniser. Seven apps use it, and a new one is built on it: a 3D
+model viewer. [docs/GESTURES.md](docs/GESTURES.md) has the whole story, in
+phases, with the measurements.
 
+**The touch**
 - **The CST820's second finger** is at `0x07..0x0A`, while its finger count
-  (`0x02`) never says more than 1 — which is why nobody had seen it. The HAL
-  reads both points on every touch read (15 bytes in the transaction that
-  read 5) and publishes them in `aos_hal_touch_frame()`; LVGL still sees one
-  pointer, so nothing that exists changes.
+  (`0x02`) never says more than 1 — which is why nobody had seen it.
+- **A touch task of its own**: the chip is read on its interrupt line by a
+  task on core 1 (one 15-byte read per sample, the only owner of the chip's
+  I2C), into a 16-sample ring that apps read in full. The chip gives
+  **~73 samples a second**; the 14 Hz measured at first was our own read
+  rate, LVGL's task polling it between redraws. LVGL still sees one pointer,
+  so nothing that existed changes.
 - **`aos_gesture.h`**: tap, double tap, long press, drag with fling speed,
   and pinch (scale, centre, centre motion), with the chip's measured faults
-  filtered — the second finger dropping out on one diagonal, the swapped X
-  on that diagonal, the garbage sample when a finger lifts, a bogus first
-  point.
-- **Photos zooms**: decoded at the photo's own resolution (up to 2 MB),
-  pinch to zoom where your fingers are, drag and fling to pan, double tap
-  to 3× and back, tap for the controls, fling sideways to change photo.
-- **Simulator**: Option-drag is a pinch, Option+Shift a two-finger pan;
-  `pinch:` and `drag:` script steps; touch samples rationed to the chip's
-  14 Hz (`AOS_SIM_TOUCH_HZ`).
-- **Raw view** (Settings → Touch): shows the registers, the second point and
-  the chip's refresh rate; it no longer slides sideways when a dot reaches
-  the edge.
-- **Visor 3D** (new app): STL and M3D from the card's `3d/`, turned with one
-  finger, zoomed with two, a ↻ button back to the first view, dark/grey/light
-  backgrounds; the portal's `/3d` page converts STL, OBJ and GLB with their
-  colours. Four samples from the games' own Blender models: Mila (the
-  mascot), Tommy, the zombie and Turbo's muscle car (`apps/visor3d/README.md`).
+  filtered — the second finger dropping out on the ↗↙ diagonal, the swapped
+  X on that diagonal, the garbage sample when a finger lifts, a bogus first
+  point. `aos_touch_points()` gives each finger with an id that survives the
+  other one lifting.
+- **Settings → Touch → Try gestures**: both fingers with their ids, every
+  event, reads and samples per second, and the chip's config registers.
+  The raw view shows the registers and the second point, and no longer
+  slides sideways when a dot reaches the edge. The CST820 turned out not to
+  implement the CST816's config registers (scan period and the rest read 0):
+  nothing to tune there.
+
+**The apps**
+- **Visor 3D** (new): STL (binary or ASCII) and M3D from the card's `3d/`,
+  turned with one finger (a flick keeps it turning), zoomed with two about
+  the point between them, a ↻ button and a double tap back to the first
+  view, a turntable, solid or wireframe, and a dark, grey or light
+  background. A software rasteriser on core 0: about 18 fps at 16 000
+  triangles while moving, a full-size frame when still. Big STLs are welded
+  and reduced to 24 000 triangles while loading. Four samples from the games'
+  own Blender models: Mila (the mascot), Tommy, the zombie and Turbo's
+  muscle car ([apps/visor3d/README.md](apps/visor3d/README.md)).
+- **Portal `/3d`**: STL, OBJ (with its `.mtl`) and GLB read in the browser,
+  welded, reduced per colour to the triangle cap you pick, previewed,
+  recoloured if you like, and saved to the watch as `.m3d`.
+- **Photos**: decoded at the photo's own resolution (up to 2 MB), pinch to
+  zoom where your fingers are, drag and fling to pan, double tap to 3× and
+  back, fling sideways to change photo.
+- **Doom**: walk with one finger and shoot with the other; FIRE and USE are
+  columns below the picture, so the chip's diagonal fault cannot give the
+  fire finger the stick's height, and a press lasts at least 70 ms so a
+  quick tap reaches the engine. The side button still fires.
+- **Pixel Art**: pinch to zoom the canvas 1×-4× and move it with two
+  fingers; the stroke the pinch's first finger started is taken back.
+- **Control PC**: the mouse face is a touchpad — pointer, tap to click,
+  two-finger scroll, two-finger tap for the right button, pinch for
+  zoom in and out (cmd+= / cmd+-).
+- **Mila**: pinch in to see the whole room, out (or a tap) to go back to
+  her. Also fixed: going from the casita to a level could hang on the
+  loading bar.
+- **Golf**: pinch and two-finger drag on the aiming map, with a stretched
+  preview while the fingers move and the map redrawn sharp when they lift.
+- **Buscaminas**: two bigger boards, 16×16 and 20×20, with pinch and drag.
+- **Laberinto**: a 29×29 maze with a camera that follows the ball and a
+  pinch from the whole maze to close up; three buttons of the same size.
+- **Lua**: `gesture(ev, x, y, a, b, c)` and `aos.fingers()`, with
+  `gestos.lua` as the example ([docs/LUA.md](docs/LUA.md)).
+
+**Everything else**
+- `setvbuf` is lent to apps: on newlib-nano a file without a buffer reads
+  one byte a call.
+- English and German for everything new, and Doom's catalogue embedded in
+  the firmware at last.
 - **README**: a first-install guide (the browser flasher at web.esphome.io
   with `amoledos-full.bin`, filling the card, language, **calibrating the
   touch on every new watch**, wifi), a table of what goes where on the
   microSD, and a note that everything was tested on v2 boards — v1 owners,
   please open an issue if something fails. The old "nothing below y = 395"
   example is corrected: the dead band was the calibration's.
-- New symbols only: **no app needs rebuilding**.
+- Simulator: Option-drag is a pinch, Option+Shift a two-finger pan;
+  `pinch:` and `drag:` script steps; touch samples rationed to the chip's
+  rate (`AOS_SIM_TOUCH_HZ`, now 73 by default).
+- New symbols only: **no app needs rebuilding**; the apps above changed
+  because they use the new gestures.
 
 ## v0.5.6 — 2026-09-24
 

@@ -11,10 +11,10 @@ ESP32-S3-Touch-AMOLED-1.8 **v2**, CO5300 + CST820) unless it says otherwise.
 | 0 | Probe: does the CST820 report a second finger? | done, 2026-09-24 — **yes** |
 | 1 | HAL: both fingers on every read, `aos_hal_touch_frame()` | done |
 | 2 | Recogniser: `aos_gesture.h` (tap, double tap, long press, drag + fling, pinch) | done, tuned in the simulator |
-| 3 | Simulator: Option-drag, `pinch:` / `drag:` script steps, 14 Hz ration | done |
-| 4 | Photos: native-resolution decode, zoom, pan, fling, paging | done, on the watch for testing |
-| 5 | 3D viewer app | planned (**v0.6.1**) |
-| 6 | The rest of v0.6.0 (below) | in progress |
+| 3 | Simulator: Option-drag, `pinch:` / `drag:` script steps, touch rationed to the chip's rate | done |
+| 4 | Photos: native-resolution decode, zoom, pan, fling, paging | **ok on the watch** |
+| 5 | 3D viewer app, and the portal's `/3d` | **ok on the watch**, moved into v0.6.0 |
+| 6 | The rest of v0.6.0 (below) | **done** |
 
 ### v0.6.0 scope (agreed 2026-09-24)
 
@@ -22,16 +22,16 @@ ESP32-S3-Touch-AMOLED-1.8 **v2**, CO5300 + CST820) unless it says otherwise.
 | --- | --- | --- |
 | B1 | Fingers one by one for pads: `aos_touch_points()` (id per finger, dropout hold, jump filter) | **done**: a "stick" finger kept its id for 10 s while three "fire" fingers came and went |
 | B2 | Drawing without stealing touch samples | **done**: the touch task — 73 samples/s whatever the screen draws |
-| B3 | Gestures in Lua (`aos.gesture`) | open |
+| B3 | Gestures in Lua | **done**: `gesture(ev, x, y, a, b, c)` and `aos.fingers()`, `gestos.lua` ([LUA.md](LUA.md)) |
 | B4 | Settings → Touch → Try gestures | **done** |
 | B5 | The CST820's scan period (0xEE) and config registers | **answered**: the CST820 does not implement the CST816's configuration (0xEE reads 00, most of 0xEC..0xFE read 0); nothing to tune, the real limit was ours (B2) |
-| A1 | Doom: stick and FIRE at once (B1) | on the watch; "works almost always" -> FIRE/USE by column (the ↗↙ swap gave the fire finger the stick's height) and a 70 ms minimum press |
+| A1 | Doom: stick and FIRE at once (B1) | **ok on the watch**, "much better" after FIRE/USE by column (the ↗↙ swap gave the fire finger the stick's height) and a 70 ms minimum press; with the stick far out a tap on FIRE can still be missed (the diagonal again), and the side button stays the comfortable way to fire |
 | A2 | Pixel Art: pinch to zoom the canvas, two fingers to pan | **ok on the watch** |
 | A3 | Control PC: the mouse face's surface is a touchpad (move, tap, two-finger scroll, two-finger tap = right click, pinch = cmd+=/-) | **ok on the watch** (pointer, click, double, right click, scroll, zoom) |
 | A4 | Mila: pinch in = the whole room (stays), pinch out or tap = back to her | **ok on the watch**; found and fixed a loader deadlock on the way (casita -> level) |
 | A5 | Buscaminas: 16x16 and 20x20 boards, with zoom and drag | **ok on the watch** |
-| A6 | Golf: pinch and two-finger drag on the aiming map (stretched preview, sharp render on release) | on the watch |
-| A7 | Laberinto: a 29x29 size, camera on the ball, pinch from the whole maze to scale 2 | on the watch |
+| A6 | Golf: pinch and two-finger drag on the aiming map (stretched preview, sharp render on release) | **ok on the watch** |
+| A7 | Laberinto: a 29x29 size, camera on the ball, pinch from the whole maze to scale 2 | **ok on the watch**; the size button was too small and the three became one width |
 
 ## Phase 0 — the probe
 
@@ -195,9 +195,11 @@ while a photo is on screen).
 - Script steps: `pinch:CXxCY:D0:D1:MS` (two fingers side by side, distance
   D0 → D1) and `drag:X0xY0:X1xY1:MS` (one finger, released at the end, so it
   flings at its real speed).
-- **Samples are rationed to 14 Hz** (`AOS_SIM_TOUCH_HZ`, 0 = unrationed):
-  what feels smooth at 100 samples/s stutters on the watch. The ration is also
-  what exposed the press-before-sample race above.
+- **Samples are rationed** (`AOS_SIM_TOUCH_HZ`, 0 = unrationed): what feels
+  smooth at the desktop's 100+ samples/s may not on the watch. It was 14 Hz
+  until the touch task (phase B2) showed that to be our read rate and not
+  the chip's; the default is 73 since. The ration is also what exposed the
+  press-before-sample race above.
 
 ```bash
 AOS_SIM_VIEW=aos.photos \
@@ -247,20 +249,22 @@ the last 16 samples (`aos_hal_touch_frames()`) and the recogniser and
 | a pinch in the simulator, unrationed 80 → 260 px | ×2.45 at 14 Hz | ×3.15 (true ×3.25) |
 | "the touch feels..." | | "re suave" (the user, 2026-09-24) |
 
-The simulator still rations to 14 Hz by default (`AOS_SIM_TOUCH_HZ`), now as
-a worst case rather than the chip's rate.
+The simulator rations to 73 Hz by default since (`AOS_SIM_TOUCH_HZ=14` still
+gives the old worst case).
 
-## Phase 5 — the 3D viewer (planned, v0.6.1)
+## Phase 5 — the 3D viewer (done, in v0.6.0)
 
-- **Files:** binary STL straight from the card, and a portal page (`/3d`)
-  that takes STL, OBJ or GLB, reduces it in the browser to a triangle budget
-  and uploads a compact format of our own (with colours).
-- **Drawing:** a software rasteriser (flat shading, z-buffer) in a worker on
-  core 0 blitting to the panel, as Doom (35 fps) and Turbo do — never in
-  LVGL's task, or the touch loses samples. Wireframe or reduced detail while a
-  finger moves, full detail at rest.
-- **Gestures:** drag = orbit with inertia, pinch = zoom about the centre,
-  two-finger move = pan, double tap = frame the model, tap = info overlay.
+Planned for v0.6.1 and brought into v0.6.0 once the touch task made two
+fingers dependable. What was built, as planned: STL straight from the card,
+the portal's `/3d` page turning STL, OBJ and GLB into a compact format with
+colours, and a software rasteriser in a worker on core 0 that blits to the
+panel, half size while anything moves and full size at rest. The gestures
+ended up as: drag = orbit with inertia, pinch = zoom about the point between
+the fingers with the centre's motion as pan, double tap or the ↻ button =
+the first view, tap = turntable, long press = solid or wireframe. The app,
+its traps and its measurements are in
+[apps/visor3d/README.md](../apps/visor3d/README.md): about 18 fps at 16 000
+triangles while moving, the fill being the ceiling.
 
 ## The chip's configuration registers
 
@@ -272,7 +276,7 @@ Try-gestures screen measures:
 | --- | --- | --- | --- |
 | 0xEC | MotionMask | continuous LR/UD scroll, double click | gesture engine |
 | 0xED | IrqPluseWidth | 0.1 ms units, default 10 | |
-| **0xEE** | **NorScanPer** | **scan period, 10 ms units, 1..30, default 1** | the datasheet promises >100 Hz; we measure ~14 Hz |
+| **0xEE** | **NorScanPer** | **scan period, 10 ms units, 1..30, default 1** | the datasheet promises >100 Hz; the chip gives ~73 through the touch task |
 | 0xF9 | AutoSleepTime | seconds, default 2 | we already disable sleep (0xFE) |
 | 0xFA | IrqCtl | EnTest, EnTouch, EnChange, EnMotion | when INT pulses |
 | 0xFB | AutoReset | reset if touched with no gesture for N s | a thumb resting on Doom's stick |
@@ -283,12 +287,13 @@ Try gestures logs `0xEC..0xFE` on opening, cycles 0xEE through 10, 20, 30,
 50, 70 and 100 ms with its button (showing the chip's measured rate), and
 puts back what the chip had on closing.
 
-## Phase 6 — after
+## After v0.6.0
 
-- The scan-period register (`0xEE` on the CST816S map): can the chip go
-  faster than 14 Hz, and what does it cost in power?
-- Other apps that would take a pinch: Pixel Art (zoom the canvas), Golf's
-  map, Chatarra's map, the Lua API (`aos.gesture`).
-- The ↗↙ diagonal: nothing to do in software beyond what is done; worth
-  saying in the app guide.
-- v0.6.0 release: the usual seven assets.
+- **The ↗↙ diagonal** is the chip's, and nothing more can be done in
+  software than what is done (docs/APP-GUIDE.md says it to app authors: put
+  two-finger controls side by side or in columns, not on that diagonal).
+  Doom's FIRE with the stick far out is where it still shows.
+- Other apps that would take a pinch: Chatarra's map, the Pixel Art gallery.
+- **A v1 board** (FT3168) has never run any of this: its second finger would
+  come from the stock driver's point list, and the filters were tuned on the
+  CST820's faults. Reports welcome as issues.

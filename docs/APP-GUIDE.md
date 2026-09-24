@@ -1037,6 +1037,18 @@ glass: 38 px corner radius plus bezel eat ~10 px each side of the first rows
 (Claude Jump's score read "_9M" on the board and was perfect in the
 simulator). See [HARDWARE.md](HARDWARE.md).
 
+**Two fingers go through `aos_gesture.h`, not LVGL.** LVGL sees one pointer
+(the first finger) and nothing else; `aos_gesture_attach()` gives an object
+tap, double tap, long press, drag with fling speed and pinch, fed by every
+sample of the touch task (~73 a second), with the CST820's faults already
+filtered. For pads, `aos_touch_points()` gives each finger with an id.
+Two things the filters cannot undo: on the **↗↙ diagonal** the chip swaps
+or loses the second finger's X - put two-finger controls side by side or in
+columns, as Doom's FIRE and USE are - and a pinch **starts with one finger**,
+so whatever that finger began (a stroke, an aim) has to be taken back when
+the second arrives, as Pixel Art and Golf do. [GESTURES.md](GESTURES.md) has
+the chip, the measurements and the rules.
+
 **Every `lv_obj` is born clickable.** In LVGL 9 the constructor sets
 `LV_OBJ_FLAG_CLICKABLE`, so any decoration eats the touch meant for its
 container. Strip it from decorations, or put a transparent listening layer
@@ -1279,10 +1291,32 @@ once, bit replication instead of `* 255 / 31`.
 simulator).
 
 **A worker that renders for seconds must really sleep.** The task watchdog
-watches the idle task of both cores, and the worker runs above it on the
-second one. `aos_hal_worker_sleep(2)` at a 100 Hz tick is `vTaskDelay(0)`,
-which yields to nobody below the worker; sleep at least 10 ms (one tick)
-every few tens of milliseconds of work.
+watches the idle task of both cores, and the worker runs above it. What
+starves the idle task is a loop that never blocks - there is always a next
+frame while a finger turns a model - not a short sleep: the tick is 1000 Hz,
+so `aos_hal_worker_sleep(1)` is a real millisecond off the core. Visor 3D
+drew without a pause and the watchdog fired after ~5 s of turning (the panic
+handler then hung until the hardware watchdog reset the board); one
+millisecond after every frame, and every 1024 triangles while loading,
+cured it (v0.6.0).
+
+**A long job must be cancellable, or leaving the app crashes the watch.**
+`aos_hal_worker_stop()` waits 3 s for the worker to come back and then
+abandons it - and the loader unloads the `.so` right after `destroy()`, with
+the worker still running its code: a `Cache error` panic. Visor 3D leaving
+while a 4 MB STL loaded did exactly that. Check `aos_hal_worker_should_stop()`
+(and the app's own "not wanted any more" flag) inside any loop that can take
+more than a moment, and bail out.
+
+**Give a worker that reads the card 16 KB of stack.** The FAT path goes deep;
+8 KB was enough for everything the simulator tried (its threads have
+megabytes) and panicked on the board loading a big STL.
+
+**Files are unbuffered unless you say so.** newlib-nano's `fopen` hands out
+`FILE`s without a buffer on this build, so `fread` of a few bytes at a time
+is one card access each: a 4 MB STL sat at 0 % for ever. `setvbuf(f, NULL,
+_IOFBF, 8192)` right after opening (exported to apps since v0.6.0), or read
+in big blocks yourself.
 
 **Requests to a worker must add up, not replace each other.** If the app
 keeps the parameters of the next job in one place, a second request made
