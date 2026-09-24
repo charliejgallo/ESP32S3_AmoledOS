@@ -23,6 +23,15 @@
  *    code than carrying each cell's wall list and it does not get the corners
  *    wrong, which is where the other way always gets them wrong.
  *
+ * 4. TWO SIZES (v0.6.0). The classic 15x15 is all of the above, untouched.
+ *    The big one, 29x29, is a world of 352x352 logical px that does not fit
+ *    at scale 2: a camera follows the ball (it only moves when the ball
+ *    leaves the middle of the view) and two fingers zoom from the whole maze
+ *    (~1x) to scale 2 (aos_gesture.h). Its frames are drawn by a nearest-
+ *    pixel scaler with a column table (view_render), the dirty rectangle of
+ *    the ball mapped through the view while the camera stands still, the
+ *    whole view when it moves.
+ *
  * 3. THE ACCELEROMETER'S AXES. The board measures (2026-08-28,
  *    DECISIONES.md) with +ax pointing DOWN the screen and the right at -ay, so
  *    the ball's acceleration is (x = -ay, y = +ax). That mapping is measured
@@ -36,6 +45,7 @@
 #include "aos_hal.h"
 #include "aos_i18n.h"
 #include "aos_ui.h"
+#include "aos_gesture.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -46,11 +56,11 @@
  * Exact scale 2: 184x192 logical is 368x384 on screen, and the 64 px left over
  * at the bottom are the bar. The maze is 15x15 cells of 12 px plus the outside
  * wall: 182x182, centred with 1 px on each side. */
-#define LW          184
-#define LH          192
+#define LW_CLASSIC  184
+#define LH_CLASSIC  192
 #define SCALE       2
-#define DW          (LW * SCALE)
-#define DH          (LH * SCALE)
+#define DW          (LW_CLASSIC * SCALE)
+#define DH          (LH_CLASSIC * SCALE)
 #define BAR_H       (AOS_SCREEN_H - DH)
 
 /* The bar goes ON TOP, and not at the bottom as it was.
@@ -69,10 +79,19 @@
 #define BAR_Y       0
 #define CANVAS_Y    BAR_H
 
-#define MW          15
-#define MH          15
+#define MW_CLASSIC  15
+#define MW_BIG      29
+#define LW_BIG      352                 /* 29 * 12 + 2 = 350, and 1 px of air */
+#define MAXC        (MW_BIG * MW_BIG)
 #define CELL        12
 #define WT          2                   /* wall thickness */
+/* The world's size is the level's: the classic one or the big one. The
+ * macros keep every line below that was written for one size reading as it
+ * did. */
+#define LW          s_z.lw
+#define LH          s_z.lh
+#define MW          s_z.mw
+#define MH          s_z.mh
 #define OX          ((LW - (MW * CELL + WT)) / 2)
 #define OY          ((LH - (MH * CELL + WT)) / 2)
 
@@ -99,15 +118,26 @@
 typedef struct {
     lv_obj_t   *canvas;
     lv_obj_t   *lbl_info;
-    lv_obj_t   *lbl_axes;
     lv_timer_t *timer;
 
     uint16_t *big;              /* 368x384 RGB565, PSRAM */
-    uint16_t *fb;               /* 184x192, the frame          */
-    uint16_t *bg;               /* 184x192, the maze alone     */
-    uint8_t  *solid;            /* 184x192, 1 = wall           */
+    uint16_t *fb;               /* LW x LH, the frame          */
+    uint16_t *bg;               /* LW x LH, the maze alone     */
+    uint8_t  *solid;            /* LW x LH, 1 = wall           */
 
-    uint8_t wall[MW * MH];
+    /* the world: 184x192 and 15x15 cells, or 352x352 and 29x29 */
+    int  lw, lh, mw, mh;
+    bool big_mode;              /* this level is the big one           */
+    bool want_big;              /* the size chosen for the next level  */
+    lv_obj_t *lbl_size;
+
+    /* the big one's view: world px (camx, camy) at the canvas' corner,
+     * zoom screen px per world px */
+    float zoom, zfit, camx, camy;
+    bool  view_dirty;           /* redraw it all on the next frame */
+    int16_t colmap[DW];
+
+    uint8_t wall[MAXC];
 
     float x, y;                 /* centre of the ball, in logical px */
     float vx, vy;
@@ -141,7 +171,7 @@ typedef struct {
 
     /* Development switches (getenv returns NULL on the board) */
     bool    autoplay;
-    uint8_t next_cell[MW * MH];     /* MAZE_AUTO: where to go from each cell */
+    uint16_t next_cell[MAXC];       /* MAZE_AUTO: where to go from each cell */
 } maze_t;
 
 static maze_t s_z;
@@ -192,8 +222,8 @@ static void carve(void)
     /* Backtracking with an explicit stack. Recursive it would be 225 frames in
      * the LVGL task's 20 KB of stack, which is exactly the kind of thing that
      * on the board does not give a clean error. */
-    static uint8_t seen[MW * MH];
-    static int16_t stack[MW * MH];
+    static uint8_t seen[MAXC];
+    static int16_t stack[MAXC];
     int top = 0;
 
     memset(seen, 0, sizeof(seen));
@@ -387,10 +417,104 @@ static void push(int x0, int y0, int x1, int y1)
     lv_obj_invalidate_area(s_z.canvas, &area);
 }
 
+/* ---- the big one's view ---- */
+
+/* The column table and the camera's limits, after the camera or the zoom
+ * moved. */
+static void view_prepare(void)
+{
+    for (int x = 0; x < DW; x++) {
+        int sx = (int)floorf(s_z.camx + ((float)x + 0.5f) / s_z.zoom);
+        s_z.colmap[x] = (int16_t)((sx >= 0 && sx < LW) ? sx : -1);
+    }
+}
+
+/* Canvas rows y0..y1 and columns x0..x1 (exclusive), from fb. */
+static void view_render(int x0, int y0, int x1, int y1)
+{
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x1 > DW) x1 = DW;
+    if (y1 > DH) y1 = DH;
+    for (int y = y0; y < y1; y++) {
+        uint16_t *d = s_z.big + (size_t)y * DW;
+        int sy = (int)floorf(s_z.camy + ((float)y + 0.5f) / s_z.zoom);
+        if (sy < 0 || sy >= LH) {
+            for (int x = x0; x < x1; x++) d[x] = C_FLOOR;
+            continue;
+        }
+        const uint16_t *row = s_z.fb + (size_t)sy * LW;
+        for (int x = x0; x < x1; x++) {
+            int sx = s_z.colmap[x];
+            d[x] = sx >= 0 ? row[sx] : C_FLOOR;
+        }
+    }
+}
+
+/* Keeps the ball in the middle half of the view; true if the camera moved.
+ * A view wider than the world centres it instead. */
+static bool camera_follow(bool snap)
+{
+    float vw = DW / s_z.zoom, vh = DH / s_z.zoom;
+    float cx = s_z.camx, cy = s_z.camy;
+    float mx = vw * 0.25f, my = vh * 0.25f;
+    if (snap) {
+        cx = s_z.x - vw / 2;
+        cy = s_z.y - vh / 2;
+    } else {
+        if (s_z.x < cx + mx)      cx = s_z.x - mx;
+        if (s_z.x > cx + vw - mx) cx = s_z.x - vw + mx;
+        if (s_z.y < cy + my)      cy = s_z.y - my;
+        if (s_z.y > cy + vh - my) cy = s_z.y - vh + my;
+    }
+    if (vw >= LW) cx = (LW - vw) / 2;
+    else if (cx < 0) cx = 0;
+    else if (cx > LW - vw) cx = LW - vw;
+    if (vh >= LH) cy = (LH - vh) / 2;
+    else if (cy < 0) cy = 0;
+    else if (cy > LH - vh) cy = LH - vh;
+    cx = floorf(cx);
+    cy = floorf(cy);
+    bool moved = cx != s_z.camx || cy != s_z.camy;
+    s_z.camx = cx;
+    s_z.camy = cy;
+    return moved;
+}
+
 static void push_all(void)
 {
-    push(0, 0, LW, LH);
+    if (s_z.big_mode) {
+        view_prepare();
+        view_render(0, 0, DW, DH);
+        lv_obj_invalidate(s_z.canvas);
+        s_z.view_dirty = false;
+    } else {
+        push(0, 0, LW, LH);
+    }
     s_z.prev_valid = false;
+}
+
+/* A world rectangle to the screen, whichever size is being played. */
+static void present(int x0, int y0, int x1, int y1)
+{
+    if (!s_z.big_mode) {
+        push(x0, y0, x1, y1);
+        return;
+    }
+    int dx0 = (int)floorf((x0 - s_z.camx) * s_z.zoom) - 1;
+    int dy0 = (int)floorf((y0 - s_z.camy) * s_z.zoom) - 1;
+    int dx1 = (int)ceilf((x1 - s_z.camx) * s_z.zoom) + 1;
+    int dy1 = (int)ceilf((y1 - s_z.camy) * s_z.zoom) + 1;
+    if (dx0 < 0) dx0 = 0;
+    if (dy0 < 0) dy0 = 0;
+    if (dx1 > DW) dx1 = DW;
+    if (dy1 > DH) dy1 = DH;
+    if (dx1 <= dx0 || dy1 <= dy0) return;
+    view_render(dx0, dy0, dx1, dy1);
+    lv_area_t co;
+    lv_obj_get_coords(s_z.canvas, &co);
+    lv_area_t area = { co.x1 + dx0, co.y1 + dy0, co.x1 + dx1 - 1, co.y1 + dy1 - 1 };
+    lv_obj_invalidate_area(s_z.canvas, &area);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -433,6 +557,22 @@ static void new_level(bool reset_run)
         s_z.elapsed_s = 0;
     }
 
+    /* the size chosen takes effect here, at a new maze */
+    s_z.big_mode = s_z.want_big;
+    s_z.mw = s_z.mh = s_z.big_mode ? MW_BIG : MW_CLASSIC;
+    s_z.lw = s_z.big_mode ? LW_BIG : LW_CLASSIC;
+    s_z.lh = s_z.big_mode ? LW_BIG : LH_CLASSIC;
+    if (s_z.big_mode) {
+        float fx = (float)DW / LW, fy = (float)DH / LH;
+        s_z.zfit = fx < fy ? fx : fy;
+        if (s_z.zoom < s_z.zfit || s_z.zoom > SCALE) s_z.zoom = SCALE;
+    }
+    if (s_z.self) {
+        /* two fingers zoom the big one: no back swipe from a pinch */
+        if (s_z.big_mode) s_z.self->desc.flags |= AOS_APP_FLAG_NO_SWIPE | AOS_APP_FLAG_LONG_DRAG;
+        else s_z.self->desc.flags &= ~(uint32_t)(AOS_APP_FLAG_NO_SWIPE | AOS_APP_FLAG_LONG_DRAG);
+    }
+
     s_z.goal_cx = MW - 1;
     s_z.goal_cy = MH - 1;
     carve();
@@ -457,6 +597,10 @@ static void new_level(bool reset_run)
 
     build_background();
     reset_ball();
+    if (s_z.big_mode) {
+        camera_follow(true);
+        s_z.view_dirty = true;
+    }
     s_z.won = false;
     if (s_z.autoplay) {
         solve();
@@ -477,12 +621,12 @@ static void new_level(bool reset_run)
 
 static void solve(void)
 {
-    static int16_t queue[MW * MH];
+    static int16_t queue[MAXC];
     int head = 0, tail = 0;
 
     memset(s_z.next_cell, 0xFF, sizeof(s_z.next_cell));
     int goal = s_z.goal_cy * MW + s_z.goal_cx;
-    s_z.next_cell[goal] = (uint8_t)goal;        /* the exit points at itself */
+    s_z.next_cell[goal] = (uint16_t)goal;       /* the exit points at itself */
     queue[tail++] = (int16_t)goal;
 
     while (head < tail) {
@@ -499,8 +643,8 @@ static void solve(void)
         if (!(w & WWW) && cx > 0)      nb[n++] = c - 1;
 
         for (int i = 0; i < n; i++) {
-            if (s_z.next_cell[nb[i]] == 0xFF) {
-                s_z.next_cell[nb[i]] = (uint8_t)c;
+            if (s_z.next_cell[nb[i]] == 0xFFFF) {
+                s_z.next_cell[nb[i]] = (uint16_t)c;
                 queue[tail++] = (int16_t)nb[i];
             }
         }
@@ -518,7 +662,7 @@ static void autoplay_step(void)
 
     int c = cy * MW + cx;
     int t = s_z.next_cell[c];
-    if (t == 0xFF) {
+    if (t == 0xFFFF) {
         t = c;
     }
     float tx = (float)OX + cell_center(t % MW);
@@ -723,13 +867,16 @@ static void frame_cb(lv_timer_t *timer)
     }
     draw_ball(&nx0, &ny0, &nx1, &ny1);
 
-    if (s_z.prev_valid) {
-        push(nx0 < s_z.prev_x0 ? nx0 : s_z.prev_x0,
-             ny0 < s_z.prev_y0 ? ny0 : s_z.prev_y0,
-             nx1 > s_z.prev_x1 ? nx1 : s_z.prev_x1,
-             ny1 > s_z.prev_y1 ? ny1 : s_z.prev_y1);
+    if (s_z.big_mode && (camera_follow(false) || s_z.view_dirty)) {
+        push_all();                 /* the camera moved: the whole view */
+        s_z.prev_valid = true;
+    } else if (s_z.prev_valid) {
+        present(nx0 < s_z.prev_x0 ? nx0 : s_z.prev_x0,
+                ny0 < s_z.prev_y0 ? ny0 : s_z.prev_y0,
+                nx1 > s_z.prev_x1 ? nx1 : s_z.prev_x1,
+                ny1 > s_z.prev_y1 ? ny1 : s_z.prev_y1);
     } else {
-        push(nx0, ny0, nx1, ny1);
+        present(nx0, ny0, nx1, ny1);
     }
     s_z.prev_x0 = nx0; s_z.prev_y0 = ny0;
     s_z.prev_x1 = nx1; s_z.prev_y1 = ny1;
@@ -741,9 +888,13 @@ static void frame_cb(lv_timer_t *timer)
         float dy = s_z.y - (float)s_z.hole_y[i];
         if (dx * dx + dy * dy < (float)(HOLE_R * HOLE_R)) {
             restore(s_z.prev_x0, s_z.prev_y0, s_z.prev_x1, s_z.prev_y1);
-            push(s_z.prev_x0, s_z.prev_y0, s_z.prev_x1, s_z.prev_y1);
+            present(s_z.prev_x0, s_z.prev_y0, s_z.prev_x1, s_z.prev_y1);
             s_z.prev_valid = false;
             fall_in_hole();
+            if (s_z.big_mode) {
+                camera_follow(true);        /* back at the start: go there */
+                s_z.view_dirty = true;
+            }
             break;
         }
     }
@@ -789,9 +940,43 @@ static void axes_cb(lv_event_t *event)
 
     char buf[24];
     snprintf(buf, sizeof(buf), "ejes %d", s_z.axes);
-    lv_label_set_text(s_z.lbl_axes, buf);
     aos_ui_toast(buf, 900);
     aos_hal_beep(700, 40);
+}
+
+static void size_label(void)
+{
+    lv_label_set_text(s_z.lbl_size, s_z.want_big ? "29x29" : "15x15");
+}
+
+/* The size of the NEXT maze: it starts one right away, like NUEVO. */
+static void size_cb(lv_event_t *event)
+{
+    (void)event;
+    s_z.want_big = !s_z.want_big;
+    aos_hal_pref_set_i32("maze_big", s_z.want_big ? 1 : 0);
+    size_label();
+    memset(s_z.fb, 0, (size_t)LW_BIG * LW_BIG * 2);
+    new_level(true);
+    push_all();
+    refresh_info(true);
+    aos_hal_beep(600, 30);
+}
+
+/* Two fingers on the big maze: from the whole of it to scale 2. The camera
+ * keeps following the ball; the zoom is about the ball, which is what one
+ * wants to see closer. */
+static void pinch_cb(const aos_gesture_event_t *ev, void *user)
+{
+    (void)user;
+    if (!s_z.big_mode || ev->type != AOS_GESTURE_PINCH) return;
+    float z = s_z.zoom * ev->scale;
+    if (z < s_z.zfit) z = s_z.zfit;
+    if (z > SCALE) z = SCALE;
+    if (z == s_z.zoom) return;
+    s_z.zoom = z;
+    camera_follow(true);
+    s_z.view_dirty = true;
 }
 
 static void new_cb(lv_event_t *event)
@@ -851,13 +1036,18 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     if (aos_hal_pref_get_i32("maze_axes", &v) && v >= 0 && v < 4) {
         s_z.axes = (int)v;
     }
+    if (aos_hal_pref_get_i32("maze_big", &v)) {
+        s_z.want_big = v != 0;
+    }
+    s_z.zoom = SCALE;
 
     /* The large ones through malloc(), which with CONFIG_SPIRAM_USE_MALLOC go
      * to PSRAM. What is scarce is internal RAM and none of it is used here. */
+    /* sized for the big world; the classic one uses the start of them */
     s_z.big   = malloc((size_t)DW * DH * 2);
-    s_z.fb    = malloc((size_t)LW * LH * 2);
-    s_z.bg    = malloc((size_t)LW * LH * 2);
-    s_z.solid = malloc((size_t)LW * LH);
+    s_z.fb    = malloc((size_t)LW_BIG * LW_BIG * 2);
+    s_z.bg    = malloc((size_t)LW_BIG * LW_BIG * 2);
+    s_z.solid = malloc((size_t)LW_BIG * LW_BIG);
     if (!s_z.big || !s_z.fb || !s_z.bg || !s_z.solid) {
         free(s_z.big);
         free(s_z.fb);
@@ -898,17 +1088,14 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     bar_button(bar, _("NUEVO"), AOS_SCREEN_W - 40 - 110, 110, AOS_C_ACCENT,
                new_cb, NULL);
 
-    /* A little indicator of the axis mapping, so you know which one you ended
-     * up in without having to open the menu. */
-    {
-        char buf[24];
-        snprintf(buf, sizeof(buf), "ejes %d", s_z.axes);
-        s_z.lbl_axes = aos_label(bar, buf, aos_font_small, AOS_C_DIM);
-        /* In the gap left between the two buttons, which are 110 px each with
-         * 40 of margin: 68 are left in the middle. */
-        lv_obj_align(s_z.lbl_axes, LV_ALIGN_TOP_MID, 0, 33);
-        lv_obj_remove_flag(s_z.lbl_axes, LV_OBJ_FLAG_CLICKABLE);
-    }
+    /* The size, in the gap between the two buttons (110 px each with 40 of
+     * margin: 68 in the middle). It used to show the axis mapping, which a
+     * long press on CERO still cycles and announces in a toast. */
+    bar_button(bar, "15x15", 150, 68, AOS_C_CARD2, size_cb, &s_z.lbl_size);
+    size_label();
+
+    /* the maze itself: two fingers zoom the big one */
+    aos_gesture_attach(s_z.canvas, 0, pinch_cb, NULL);
 
     /* The tilt at startup is the zero: it is played holding the board however
      * you happen to hold it, not necessarily horizontal. */
