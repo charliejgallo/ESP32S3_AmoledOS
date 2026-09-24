@@ -22,6 +22,14 @@
  *     Nothing is destroyed from inside an event callback, which is the rule
  *     this system enforces the hard way.
  *
+ * Zoom (v0.6.0, aos_gesture.h): two fingers pinch the canvas from 1x to 4x
+ * about the point between them and drag it around; one finger still
+ * paints. The canvas stays the same 288 px window - what changes is how big
+ * a cell is drawn in it and where the document sits (view_*), so painting a
+ * cell still invalidates only its square. The first finger of a pinch lands
+ * a moment before the second and has already painted: a stroke younger than
+ * PINCH_UNDO_MS when the pinch starts is taken back.
+ *
  * Layout, dictated by the panel (see HARDWARE.md): nothing touchable below
  * y=390, the glass corners eat the first rows, so the bar is at y=8..48, the
  * canvas at 52..340, the palette strip at 344..386, and the dead strip at the
@@ -33,10 +41,12 @@
 #include "aos_i18n.h"
 #include "aos_theme.h"
 #include "aos_ui.h"
+#include "aos_gesture.h"
 
 #include "px_file.h"
 #include "px_export.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -69,6 +79,8 @@
 #define PAL_W           (PX_COLORS * PAL_PITCH)
 #define AUTOSAVE_MS     3000
 #define WATCH_MS        3000
+#define ZOOM_MAX        4.0f
+#define PINCH_UNDO_MS   350                 /* a stroke this young is the pinch's first finger */
 
 enum { TOOL_PEN = 0, TOOL_FILL, TOOL_PICK, TOOL_COUNT };
 
@@ -93,6 +105,14 @@ typedef struct {
     bool       has_undo;
     bool       stroke;          /* a finger is down and painting             */
     int        last_cell;       /* to skip repaints while dragging inside one */
+    uint32_t   stroke_ms;       /* when it started                           */
+
+    /* the view: a cell is view_cell px, the document's corner at view_x/y
+     * inside the 288 px window (both <= 0 when zoomed) */
+    float      view_zoom, view_x, view_y;
+    bool       pinching;        /* from the pinch's start to every finger up */
+    bool       view_dirty;
+    lv_timer_t *view_timer;
 
     /* what the file looked like when loaded, to notice the portal */
     long       file_size;
@@ -232,26 +252,76 @@ static uint16_t rgb565(uint32_t rgb)
     return (uint16_t)(((rgb >> 8) & 0xF800) | ((rgb >> 5) & 0x07E0) | ((rgb >> 3) & 0x001F));
 }
 
+/* lroundf is not in the firmware's table; this is all it takes. */
+static int rnd(float v)
+{
+    return (int)floorf(v + 0.5f);
+}
+
+/* Where cell (x, y) lands in the window, clipped to it: false if it is out
+ * of view. The edges are rounded from the view so neighbouring cells meet
+ * exactly at any zoom. */
+static bool cell_rect(const app_t *a, int x, int y, int *x0, int *y0, int *x1, int *y1)
+{
+    float cs = (float)CV_PX / (float)a->doc->size * a->view_zoom;
+    int l = (int)rnd(a->view_x + x * cs), r = (int)rnd(a->view_x + (x + 1) * cs);
+    int t = (int)rnd(a->view_y + y * cs), b = (int)rnd(a->view_y + (y + 1) * cs);
+    if (l < 0) l = 0;
+    if (t < 0) t = 0;
+    if (r > CV_PX) r = CV_PX;
+    if (b > CV_PX) b = CV_PX;
+    if (l >= r || t >= b) return false;
+    *x0 = l; *y0 = t; *x1 = r; *y1 = b;
+    return true;
+}
+
 /* One cell of the big canvas: the colour inset by the grid line. */
 static void draw_cell(app_t *a, int x, int y, bool invalidate)
 {
     int n = a->doc->size;
-    int cell = CV_PX / n;
+    int l, t, r, b;
+    if (!cell_rect(a, x, y, &l, &t, &r, &b)) {
+        return;
+    }
     uint16_t c = px_rgb565(a->doc->px[a->frame][y * n + x]);
-    fill_rect(a->big, CV_PX, x * cell + 1, y * cell + 1, cell - 1, cell - 1, c);
+    /* the grid line is the cell's first row and column, as at 1x */
+    int gl = (l > 0 || a->view_x + x * ((float)CV_PX / n * a->view_zoom) >= 0) ? 1 : 0;
+    int gt = (t > 0 || a->view_y + y * ((float)CV_PX / n * a->view_zoom) >= 0) ? 1 : 0;
+    if (r - l - gl > 0 && b - t - gt > 0) {
+        fill_rect(a->big, CV_PX, l + gl, t + gt, r - l - gl, b - t - gt, c);
+    }
     if (invalidate) {
         lv_area_t co;
         lv_obj_get_coords(a->canvas, &co);
-        lv_area_t area = { co.x1 + x * cell, co.y1 + y * cell,
-                           co.x1 + x * cell + cell - 1, co.y1 + y * cell + cell - 1 };
+        lv_area_t area = { co.x1 + l, co.y1 + t, co.x1 + r - 1, co.y1 + b - 1 };
         lv_obj_invalidate_area(a->canvas, &area);
     }
+}
+
+/* The cell under a screen point, or false. */
+static bool cell_at(const app_t *a, int px, int py, int *x, int *y)
+{
+    lv_area_t co;
+    lv_obj_get_coords(a->canvas, &co);
+    if (px < co.x1 || py < co.y1 || px >= co.x1 + CV_PX || py >= co.y1 + CV_PX) {
+        return false;
+    }
+    float cs = (float)CV_PX / (float)a->doc->size * a->view_zoom;
+    int cx = (int)floorf(((float)(px - co.x1) - a->view_x) / cs);
+    int cy = (int)floorf(((float)(py - co.y1) - a->view_y) / cs);
+    if (cx < 0 || cy < 0 || cx >= a->doc->size || cy >= a->doc->size) {
+        return false;
+    }
+    *x = cx;
+    *y = cy;
+    return true;
 }
 
 static void draw_frame(app_t *a)
 {
     int n = a->doc->size;
     uint16_t grid = rgb565(GRID_COLOR);
+    a->view_dirty = false;
     /* the grid is the background: cells are painted on top, inset by 1 px */
     for (size_t i = 0; i < (size_t)CV_PX * CV_PX; i++) {
         a->big[i] = grid;
@@ -723,14 +793,14 @@ static void touch_cb(lv_event_t *e)
     if (!indev) {
         return;
     }
+    if (a->pinching) {
+        return;                         /* two fingers are zooming, not painting */
+    }
     lv_point_t p;
     lv_indev_get_point(indev, &p);
-    lv_area_t co;
-    lv_obj_get_coords(a->canvas, &co);
     int n = a->doc->size;
-    int cell = CV_PX / n;
-    int x = (p.x - co.x1) / cell, y = (p.y - co.y1) / cell;
-    if (p.x < co.x1 || p.y < co.y1 || x < 0 || y < 0 || x >= n || y >= n) {
+    int x, y;
+    if (!cell_at(a, p.x, p.y, &x, &y)) {
         return;
     }
     uint8_t *px = a->doc->px[a->frame];
@@ -755,6 +825,7 @@ static void touch_cb(lv_event_t *e)
         default:
             undo_snapshot(a);
             a->stroke = true;
+            a->stroke_ms = now_ms();
             break;
         }
     }
@@ -766,6 +837,84 @@ static void touch_cb(lv_event_t *e)
         px[idx] = (uint8_t)a->color;
         draw_cell(a, x, y, true);
         mark_dirty(a);
+    }
+}
+
+/* --------------------------------------------------------------------------
+ * Editor: zoom (two fingers)
+ * -------------------------------------------------------------------------- */
+
+static void view_clamp(app_t *a)
+{
+    if (a->view_zoom < 1.0f) a->view_zoom = 1.0f;
+    if (a->view_zoom > ZOOM_MAX) a->view_zoom = ZOOM_MAX;
+    float span = CV_PX * a->view_zoom;
+    if (a->view_x > 0) a->view_x = 0;
+    if (a->view_y > 0) a->view_y = 0;
+    if (a->view_x < CV_PX - span) a->view_x = CV_PX - span;
+    if (a->view_y < CV_PX - span) a->view_y = CV_PX - span;
+}
+
+static void view_reset(app_t *a)
+{
+    a->view_zoom = 1.0f;
+    a->view_x = a->view_y = 0.0f;
+    a->pinching = false;
+}
+
+/* The redraw of a moving view, once per LVGL frame however many pinch
+ * events came in it (the touch sends ~73 a second). */
+static void view_timer_cb(lv_timer_t *t)
+{
+    app_t *a = (app_t *)lv_timer_get_user_data(t);
+    if (a->view_dirty && a->doc && !lv_obj_has_flag(a->ed, LV_OBJ_FLAG_HIDDEN)) {
+        draw_frame(a);
+    }
+}
+
+static void gesture_cb(const aos_gesture_event_t *ev, void *user)
+{
+    app_t *a = (app_t *)user;
+    if (a->closing || a->playing) {
+        return;
+    }
+    lv_area_t co;
+    lv_obj_get_coords(a->canvas, &co);
+    switch (ev->type) {
+    case AOS_GESTURE_PINCH_BEGIN:
+        a->pinching = true;
+        if (a->stroke && now_ms() - a->stroke_ms < PINCH_UNDO_MS && a->has_undo) {
+            /* the first finger of the pinch had started painting */
+            memcpy(a->doc->px[a->frame], a->undo, PX_CELLS);
+            a->has_undo = false;
+            a->view_dirty = true;
+        }
+        a->stroke = false;
+        a->last_cell = -1;
+        break;
+    case AOS_GESTURE_PINCH: {
+        float cx = ev->x - co.x1, cy = ev->y - co.y1;     /* in the window */
+        float nz = a->view_zoom * ev->scale;
+        if (nz < 1.0f) nz = 1.0f;
+        if (nz > ZOOM_MAX) nz = ZOOM_MAX;
+        float k = nz / a->view_zoom;
+        a->view_x = cx - (cx - a->view_x) * k + ev->dx;
+        a->view_y = cy - (cy - a->view_y) * k + ev->dy;
+        a->view_zoom = nz;
+        view_clamp(a);
+        a->view_dirty = true;
+        break;
+    }
+    case AOS_GESTURE_PINCH_END:
+        a->pinching = false;
+        if (a->view_zoom < 1.05f) {
+            view_reset(a);              /* close enough: back to the whole canvas */
+            a->view_dirty = true;
+        }
+        editor_refresh(a);
+        break;
+    default:
+        break;
     }
 }
 
@@ -800,8 +949,15 @@ static void editor_refresh(app_t *a)
     lv_obj_set_style_text_color(a->lbl_tool, luma > 140 ? lv_color_hex(0x000000) : AOS_C_TEXT, 0);
     lv_obj_set_style_border_width(a->btn_tool, a->color == 0 ? 2 : 0, 0);
 
-    lv_label_set_text_fmt(a->info, "%s %d · %d×%d · %d ms",
-                          _("Lienzo"), a->slot + 1, a->doc->size, a->doc->size, a->doc->delay_ms);
+    if (a->view_zoom > 1.01f) {
+        int z = (int)rnd(a->view_zoom * 10.0f);
+        lv_label_set_text_fmt(a->info, "%s %d · %d×%d · %d ms · x%d.%d",
+                              _("Lienzo"), a->slot + 1, a->doc->size, a->doc->size,
+                              a->doc->delay_ms, z / 10, z % 10);
+    } else {
+        lv_label_set_text_fmt(a->info, "%s %d · %d×%d · %d ms",
+                              _("Lienzo"), a->slot + 1, a->doc->size, a->doc->size, a->doc->delay_ms);
+    }
 }
 
 static void ed_back_cb(lv_event_t *e)
@@ -1155,6 +1311,8 @@ static void build_editor(app_t *a, lv_obj_t *root)
     lv_obj_add_event_cb(a->touch, touch_cb, LV_EVENT_PRESSING, a);
     lv_obj_add_event_cb(a->touch, touch_cb, LV_EVENT_RELEASED, a);
     lv_obj_add_event_cb(a->touch, touch_cb, LV_EVENT_PRESS_LOST, a);
+    aos_gesture_attach(a->touch, 0, gesture_cb, a);
+    a->view_timer = lv_timer_create(view_timer_cb, 16, a);
 
     /* the palette strip: one canvas inside a container that scrolls sideways */
     a->strip = lv_obj_create(a->ed);
@@ -1212,6 +1370,7 @@ static void go_editor(app_t *a, int slot)
     a->has_undo = false;
     a->playing = false;
     a->tool = TOOL_PEN;
+    view_reset(a);
     a->watch_ms = now_ms();
     lv_obj_add_flag(a->gal, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(a->sizer, LV_OBJ_FLAG_HIDDEN);
@@ -1599,6 +1758,9 @@ static bool folder_empty(void)
 static void *px_create(aos_app_t *self, lv_obj_t *root)
 {
     app_t *a = (app_t *)lv_malloc_zeroed(sizeof(app_t));
+    if (a) {
+        a->view_zoom = 1.0f;
+    }
     if (!a) {
         return NULL;
     }
@@ -1713,6 +1875,10 @@ static void px_destroy(aos_app_t *self, void *inst)
     app_t *a = (app_t *)inst;
     if (!a) {
         return;
+    }
+    if (a->view_timer) {
+        lv_timer_delete(a->view_timer);
+        a->view_timer = NULL;
     }
     if (a->timer) {
         lv_timer_delete(a->timer);
