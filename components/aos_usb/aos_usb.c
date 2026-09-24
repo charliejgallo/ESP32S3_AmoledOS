@@ -570,6 +570,8 @@ static const aos_hid_name_t s_hid_names[] = {
     { "b",       HID_KEY_B,           false },     /* blank screen, Keynote and PowerPoint */
     { "f5",      HID_KEY_F5,          false },
     { "delete",  HID_KEY_BACKSPACE,   false },
+    { "minus",   HID_KEY_MINUS,       false },     /* "cmd+minus": zoom out (Control PC's pinch) */
+    { "equal",   HID_KEY_EQUAL,       false },     /* "cmd+equal": zoom in */
 };
 
 bool aos_usb_hid_named(const char *name)

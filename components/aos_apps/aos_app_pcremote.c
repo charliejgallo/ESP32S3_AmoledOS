@@ -22,6 +22,12 @@
  * here too (invert X, invert Y, swap the axes), in preferences. Tap = left
  * click, hold = right click, the side button = left click.
  *
+ * Since v0.6.0 the same surface is also a touchpad (aos_gesture.h): one
+ * finger moves the pointer, two fingers scroll, a two-finger tap is the
+ * right click and a pinch zooms (cmd+= / cmd+-, which is what a Mac and a
+ * browser zoom with). While a finger is on the surface the gyroscope is
+ * ignored: a wrist steadying itself for a swipe would drag the pointer.
+ *
  * The gamepad (D5) is a fifth face: the tilt is the left stick (an angle
  * again: a stick is a position, and "Centrar" makes the current rest the
  * centre), a cross for the hat, four face buttons, shoulders, select and
@@ -37,7 +43,9 @@
 #include "aos_theme.h"
 #include "aos_hal.h"
 #include "aos_ui.h"
+#include "aos_gesture.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -69,7 +77,19 @@ typedef struct {
     bool        mouse_on;
     bool        inv_x, inv_y, swap_xy;
     int         gain;       /* 1..4 */
+    /* the touchpad on the mouse face */
+    aos_app_t  *self;
+    bool        tp_touching;
+    float       tp_ax, tp_ay;       /* pointer motion not sent yet (sub-pixel) */
+    float       tp_scroll;          /* finger travel not yet a wheel notch */
+    float       tp_zoom;            /* log of the pinch not yet a zoom step */
+    float       tp_moved;           /* how much a two-finger touch moved */
+    uint32_t    tp_t0;
 } pcremote_t;
+
+#define TP_NOTCH_PX     14.0f   /* two-finger travel per wheel notch */
+#define TP_ZOOM_STEP    0.18f   /* log(1.2): pinch per cmd+= / cmd+- */
+#define TP_RCLICK_MS    300     /* a two-finger touch this short and still is a right click */
 
 #define MOUSE_PERIOD_MS 20
 #define MOUSE_DEADBAND  3.0f    /* dps: the hand at rest is never at zero */
@@ -117,6 +137,9 @@ static void mouse_tick(lv_timer_t *timer)
      * measured on the wrist (2026-09-13, "had to invert Y"): the minus is
      * that measurement, so the switches start off. They fix whatever
      * another wrist does to it. */
+    if (s_pc.tp_touching) {
+        return;                 /* the finger drives: see the touchpad below */
+    }
     float rx = imu.gz, ry = -imu.gx;
     if (s_pc.swap_xy) { float t = rx; rx = ry; ry = t; }
     if (s_pc.inv_x) rx = -rx;
@@ -136,6 +159,13 @@ static void mouse_tick(lv_timer_t *timer)
 static void mouse_show(bool on)
 {
     s_pc.mouse_on = on;
+    s_pc.tp_touching = false;
+    /* On the surface every drag is the pointer's: no back swipe, no cut at
+     * 50 px. The rest of the app goes back with a swipe as before. */
+    if (s_pc.self) {
+        if (on) s_pc.self->desc.flags |= AOS_APP_FLAG_NO_SWIPE | AOS_APP_FLAG_LONG_DRAG;
+        else    s_pc.self->desc.flags &= ~(uint32_t)(AOS_APP_FLAG_NO_SWIPE | AOS_APP_FLAG_LONG_DRAG);
+    }
     if (on) {
         lv_obj_remove_flag(s_pc.mouse, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(s_pc.pad, LV_OBJ_FLAG_HIDDEN);
@@ -364,18 +394,75 @@ static lv_obj_t *midi_key(lv_obj_t *parent, int semitone, bool black, int x, int
     return k;
 }
 
-static void mouse_open_cb(lv_event_t *event)  { (void)event; mouse_show(true); }
-static void mouse_close_cb(lv_event_t *event) { (void)event; mouse_show(false); }
-
-static void mouse_touch_cb(lv_event_t *event)
+/* The surface as a touchpad. Pointer speed grows with the finger's: slow
+ * for precision, fast to cross a big screen, scaled by the same "Vel." as
+ * the air mouse. */
+static void tp_gesture_cb(const aos_gesture_event_t *ev, void *user)
 {
-    lv_event_code_t code = lv_event_get_code(event);
-    if (code == LV_EVENT_SHORT_CLICKED) {
+    (void)user;
+    switch (ev->type) {
+    case AOS_GESTURE_TAP:
         if (aos_hal_usb_click(1)) aos_hal_beep(1400, 10);
-    } else if (code == LV_EVENT_LONG_PRESSED) {
+        break;
+    case AOS_GESTURE_LONG_PRESS:
         if (aos_hal_usb_click(2)) aos_hal_beep(1000, 20);
+        break;
+    case AOS_GESTURE_DRAG_BEGIN:
+        s_pc.tp_touching = true;
+        s_pc.tp_ax = s_pc.tp_ay = 0;
+        break;
+    case AOS_GESTURE_DRAG: {
+        float d = sqrtf(ev->dx * ev->dx + ev->dy * ev->dy);
+        float k = 0.5f * (float)s_pc.gain * (1.0f + 0.12f * d);
+        s_pc.tp_ax += ev->dx * k;
+        s_pc.tp_ay += ev->dy * k;
+        int mx = (int)s_pc.tp_ax, my = (int)s_pc.tp_ay;
+        if (mx || my) {
+            aos_hal_usb_mouse(mx, my, 0);
+            s_pc.tp_ax -= (float)mx;
+            s_pc.tp_ay -= (float)my;
+        }
+        break;
+    }
+    case AOS_GESTURE_DRAG_END:
+    case AOS_GESTURE_PINCH_END:
+        if (ev->type == AOS_GESTURE_PINCH_END &&
+            ev->t_ms - s_pc.tp_t0 < TP_RCLICK_MS && s_pc.tp_moved < 20.0f) {
+            if (aos_hal_usb_click(2)) aos_hal_beep(1000, 20);
+        }
+        s_pc.tp_touching = false;
+        break;
+    case AOS_GESTURE_PINCH_BEGIN:
+        s_pc.tp_touching = true;
+        s_pc.tp_t0 = ev->t_ms;
+        s_pc.tp_moved = 0;
+        s_pc.tp_scroll = 0;
+        s_pc.tp_zoom = 0;
+        break;
+    case AOS_GESTURE_PINCH:
+        s_pc.tp_moved += fabsf(ev->dx) + fabsf(ev->dy) + fabsf(ev->dist - ev->dist / ev->scale);
+        /* Fingers down, notch "towards you": with the Mac's natural
+         * scrolling (its default) the page then follows the fingers, as on
+         * a trackpad. */
+        s_pc.tp_scroll += ev->dy;
+        while (s_pc.tp_scroll >= TP_NOTCH_PX)  { aos_hal_usb_mouse(0, 0, -1); s_pc.tp_scroll -= TP_NOTCH_PX; }
+        while (s_pc.tp_scroll <= -TP_NOTCH_PX) { aos_hal_usb_mouse(0, 0, 1);  s_pc.tp_scroll += TP_NOTCH_PX; }
+        s_pc.tp_zoom += logf(ev->scale);
+        if (s_pc.tp_zoom >= TP_ZOOM_STEP) {
+            aos_hal_usb_key("cmd+equal");
+            s_pc.tp_zoom -= TP_ZOOM_STEP;
+        } else if (s_pc.tp_zoom <= -TP_ZOOM_STEP) {
+            aos_hal_usb_key("cmd+minus");
+            s_pc.tp_zoom += TP_ZOOM_STEP;
+        }
+        break;
+    default:
+        break;
     }
 }
+
+static void mouse_open_cb(lv_event_t *event)  { (void)event; mouse_show(true); }
+static void mouse_close_cb(lv_event_t *event) { (void)event; mouse_show(false); }
 
 static void mouse_gain_label(void)
 {
@@ -472,7 +559,7 @@ static void refresh(lv_timer_t *timer)
 
 static void *create(aos_app_t *self, lv_obj_t *root)
 {
-    (void)self;
+    s_pc.self = self;
     lv_obj_t *page = aos_page(root);
 
     s_pc.status = aos_label_boxed(page, "", aos_font_small, AOS_C_DIM, AOS_SCREEN_W, 22);
@@ -631,9 +718,9 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     lv_obj_set_size(touch, AOS_SCREEN_W - 40, 170);
     lv_obj_align(touch, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_remove_flag(touch, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_event_cb(touch, mouse_touch_cb, LV_EVENT_SHORT_CLICKED, NULL);
-    lv_obj_add_event_cb(touch, mouse_touch_cb, LV_EVENT_LONG_PRESSED, NULL);
-    lv_obj_t *hint = aos_label(touch, _("Inclina el reloj para mover el puntero.\nToca: clic. Mantene: clic derecho."),
+    /* FAST_TAP: a double click is two taps, and the computer times it */
+    aos_gesture_attach(touch, AOS_GESTURE_FLAG_FAST_TAP, tp_gesture_cb, NULL);
+    lv_obj_t *hint = aos_label(touch, _("Inclina el reloj o desliza el dedo.\nToca: clic. Dos dedos: scroll,\nzoom y clic derecho."),
                                aos_font_small, AOS_C_DIM);
     lv_obj_set_width(hint, AOS_SCREEN_W - 70);
     lv_label_set_long_mode(hint, LV_LABEL_LONG_MODE_WRAP);
