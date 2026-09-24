@@ -3,7 +3,7 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.5.6 — 2026-09-24
 
 **Doom**, from the card: Chocolate Doom through doomgeneric, as an app.
 
