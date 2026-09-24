@@ -309,7 +309,7 @@ static void strip_text(app_t *a)
         snprintf(buf, sizeof buf, "%s  %d%%", p >= 2000 ? _("Reduciendo...") : _("Cargando..."),
                  p % 1000);
     } else if (a->load_failed) {
-        snprintf(buf, sizeof buf, "%s: %s", _("No se pudo abrir"), a->mesh.err[0] ? a->mesh.err : "?");
+        snprintf(buf, sizeof buf, "%s: %s", _("No se pudo abrir"), a->mesh.err[0] ? _(a->mesh.err) : "?");
     } else if (a->mesh_ready) {
         const char *mode = a->view.mode == V3_WIRE ? _("alambre") : _("sólido");
         if (a->mesh.nt < a->mesh.nt_file) {

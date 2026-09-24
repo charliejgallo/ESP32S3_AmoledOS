@@ -282,7 +282,7 @@ static const char blob_en__sistema_lang[] =
     "Centrar\tCentre\n"
     "Inclinar\tTilt\n"
     "Teclas\tKeys\n"
-    "Inclina el reloj para mover el puntero.\\nToca: clic. Mantene: clic derecho.\tTilt the watch to move the pointer.\\nTap: click. Hold: right click.\n"
+    "Inclina el reloj o desliza el dedo.\\nToca: clic. Dos dedos: scroll,\\nzoom y clic derecho.\tTilt the watch or slide a finger.\\nTap: click. Two fingers: scroll,\\nzoom and right click.\n"
     "Inv X\tInv X\n"
     "Inv Y\tInv Y\n"
     "Ejes\tAxes\n"
@@ -339,6 +339,12 @@ static const char blob_en__sistema_lang[] =
     "Tocá el centro de la cruz\\n%d de %d\tTouch the centre of the cross\\n%d of %d\n"
     "Recorré todo el vidrio con el dedo\tRun a finger over the whole glass\n"
     "crudo %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u lecturas\traw %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u samples\n"
+    "sin CST820: no hay registros para ver\tno CST820: no registers to show\n"
+    "g=%02X  dedos=%u (max %u)\\nP1 %d,%d   P2 %d,%d\\nd = %d\\n%.24s\\n%s\\ncon P2: %u de %u   chip %u Hz\tg=%02X  fingers=%u (max %u)\\nP1 %d,%d   P2 %d,%d\\nd = %d\\n%.24s\\n%s\\nwith P2: %u of %u   chip %u Hz\n"
+    "Escaneo %d ms\tScan %d ms\n"
+    "Escaneo n/d\tScan n/a\n"
+    "dedos %d   %u lect/s   %u Hz   x%d.%02d\tfingers %d   %u reads/s   %u Hz   x%d.%02d\n"
+    "Tocá, arrastrá, pellizcá\\ncon uno o dos dedos\tTap, drag, pinch\\nwith one or two fingers\n"
     "Mantene apretado para reiniciar\tHold to restart\n"
     "teclado y red listos\\n192.168.7.1\tkeyboard and network ready\\n192.168.7.1\n"
     "la computadora tiene la tarjeta\tthe computer has the card\n"
@@ -464,6 +470,7 @@ static const char blob_en__sistema_lang[] =
     "con la pantalla apagada el procesador duerme entre avisos\twith the screen off the processor sleeps between events\n"
     "Calibrar\tCalibrate\n"
     "Ver crudo\tRaw view\n"
+    "Probar gestos\tTry gestures\n"
     "Calibrar pide tocar cinco cruces. \\\"Ver crudo\\\" muestra lo que lee el chip tactil, sin correccion.\tCalibrate asks you to touch five crosses. \\\"Raw view\\\" shows what the touch chip reads, uncorrected.\n"
     "Tarjeta\tCard\n"
     "%.1f de %.1f GB  ·  %d apps\t%.1f of %.1f GB  ·  %d apps\n"
@@ -586,6 +593,7 @@ static const char blob_en__sistema_lang[] =
     "Clima\tWeather\n"
     "Cotizaciones\tCurrencies\n"
     "Dados\tDice\n"
+    "Doom\tDoom\n"
     "Escaner\tScanner\n"
     "Flappy\tFlappy\n"
     "2043\t2043\n"
@@ -608,6 +616,7 @@ static const char blob_en__sistema_lang[] =
     "Truco\tTruco\n"
     "Turbo\tTurbo\n"
     "Video\tVideo\n"
+    "Visor 3D\t3D Viewer\n"
     "Walkie\tWalkie\n"
     ;
 
@@ -708,9 +717,9 @@ static const char blob_en_aos_mines_lang[] =
     "   GANASTE\t   YOU WIN\n"
     "   BOOM\t   BOOM\n"
     "   mejor %d\\\"\t   best %d\\\"\n"
+    "Sin memoria\tOut of memory\n"
     "BANDERA\tFLAG\n"
     "CAVAR\tDIG\n"
-    "Sin memoria\tOut of memory\n"
     "NUEVO\tNEW\n"
     ;
 
@@ -1802,6 +1811,22 @@ static const char blob_en_demo_claudito_lang[] =
     "REINICIAR\tRESTART\n"
     ;
 
+static const char blob_en_demo_doom_lang[] =
+    "FUEGO\tFIRE\n"
+    "USAR\tUSE\n"
+    "MENÚ\tMENU\n"
+    "MAPA\tMAP\n"
+    "ARMA\tGUN\n"
+    "No hay ningún WAD\tNo WAD found\n"
+    "Copiá doom1.wad (shareware) o doom.wad a la carpeta\tCopy doom1.wad (shareware) or doom.wad to the folder\n"
+    "Tocá para salir\tTap to exit\n"
+    "Doom se detuvo\tDoom stopped\n"
+    "Doom ya corrió en este simulador: reinicialo para jugar otra vez\tDoom already ran in this simulator: restart it to play again\n"
+    "Cargando...\tLoading...\n"
+    "Doom no pudo arrancar\tDoom could not start\n"
+    "Falta memoria\tNot enough memory\n"
+    ;
+
 static const char blob_en_demo_flappy_lang[] =
     "tocar para empezar\\nrecord  %d\ttap to start\\nbest  %d\n"
     "Perdiste\tYou lost\n"
@@ -2400,6 +2425,29 @@ static const char blob_en_demo_turbo_lang[] =
     "No hay memoria para el tramo\tNot enough memory for the stage\n"
     ;
 
+static const char blob_en_demo_visor3d_lang[] =
+    "archivo demasiado corto\tfile too short\n"
+    "no es un STL\tnot an STL\n"
+    "no tiene triángulos\tno triangles\n"
+    "cancelado\tcancelled\n"
+    "error de lectura\tread error\n"
+    "sin memoria\tout of memory\n"
+    "no se pudo reducir\tcould not reduce it\n"
+    "no es un M3D\tnot an M3D\n"
+    "demasiados triángulos\ttoo many triangles\n"
+    "índice inválido\tbad index\n"
+    "archivo incompleto\tfile cut short\n"
+    "no se pudo abrir el archivo\tcannot open the file\n"
+    "Reduciendo...\tReducing...\n"
+    "Cargando...\tLoading...\n"
+    "No se pudo abrir\tCould not open\n"
+    "alambre\twireframe\n"
+    "sólido\tsolid\n"
+    "Visor 3D\t3D Viewer\n"
+    "No hay modelos.\\nCopiá archivos .stl a\\n%s\\no convertí OBJ y GLB\\nen el portal (/3d).\tNo models.\\nCopy .stl files to\\n%s\\nor convert OBJ and GLB\\nin the portal (/3d).\n"
+    "Sin memoria\tOut of memory\n"
+    ;
+
 static const aos_lang_file_t files_en[] = {
     { "_sistema.lang", blob_en__sistema_lang },
     { "aos.clima.lang", blob_en_aos_clima_lang },
@@ -2427,6 +2475,7 @@ static const aos_lang_file_t files_en[] = {
     { "demo.chatarra.lang", blob_en_demo_chatarra_lang },
     { "demo.cjump.lang", blob_en_demo_cjump_lang },
     { "demo.claudito.lang", blob_en_demo_claudito_lang },
+    { "demo.doom.lang", blob_en_demo_doom_lang },
     { "demo.flappy.lang", blob_en_demo_flappy_lang },
     { "demo.gemas.lang", blob_en_demo_gemas_lang },
     { "demo.golf.lang", blob_en_demo_golf_lang },
@@ -2436,6 +2485,7 @@ static const aos_lang_file_t files_en[] = {
     { "demo.neon.lang", blob_en_demo_neon_lang },
     { "demo.topos.lang", blob_en_demo_topos_lang },
     { "demo.turbo.lang", blob_en_demo_turbo_lang },
+    { "demo.visor3d.lang", blob_en_demo_visor3d_lang },
 };
 
 static const char blob_de__sistema_lang[] =
@@ -2707,7 +2757,7 @@ static const char blob_de__sistema_lang[] =
     "Centrar\tZentrieren\n"
     "Inclinar\tNeigen\n"
     "Teclas\tTasten\n"
-    "Inclina el reloj para mover el puntero.\\nToca: clic. Mantene: clic derecho.\tNeige die Uhr, um den Zeiger zu bewegen.\\nTippen: Klick. Halten: Rechtsklick.\n"
+    "Inclina el reloj o desliza el dedo.\\nToca: clic. Dos dedos: scroll,\\nzoom y clic derecho.\tUhr neigen oder Finger ziehen.\\nTippen: Klick. Zwei Finger: Scrollen,\\nZoom und Rechtsklick.\n"
     "Inv X\tInv X\n"
     "Inv Y\tInv Y\n"
     "Ejes\tAchsen\n"
@@ -2764,6 +2814,12 @@ static const char blob_de__sistema_lang[] =
     "Tocá el centro de la cruz\\n%d de %d\tMitte des Kreuzes antippen\\n%d von %d\n"
     "Recorré todo el vidrio con el dedo\tMit dem Finger über das ganze Glas fahren\n"
     "crudo %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u lecturas\troh %d,%d  ->  %d,%d\\nx %d..%d\\ny %d..%d\\n%u Messungen\n"
+    "sin CST820: no hay registros para ver\tkein CST820: keine Register\n"
+    "g=%02X  dedos=%u (max %u)\\nP1 %d,%d   P2 %d,%d\\nd = %d\\n%.24s\\n%s\\ncon P2: %u de %u   chip %u Hz\tg=%02X  Finger=%u (max %u)\\nP1 %d,%d   P2 %d,%d\\nd = %d\\n%.24s\\n%s\\nmit P2: %u von %u   Chip %u Hz\n"
+    "Escaneo %d ms\tScan %d ms\n"
+    "Escaneo n/d\tScan k. A.\n"
+    "dedos %d   %u lect/s   %u Hz   x%d.%02d\tFinger %d   %u Les./s   %u Hz   x%d.%02d\n"
+    "Tocá, arrastrá, pellizcá\\ncon uno o dos dedos\tTippen, ziehen, zoomen\\nmit einem oder zwei Fingern\n"
     "Mantene apretado para reiniciar\tZum Neustarten gedrückt halten\n"
     "teclado y red listos\\n192.168.7.1\tTastatur und Netzwerk bereit\\n192.168.7.1\n"
     "la computadora tiene la tarjeta\tder Computer hat die Karte\n"
@@ -2889,6 +2945,7 @@ static const char blob_de__sistema_lang[] =
     "con la pantalla apagada el procesador duerme entre avisos\tbei ausgeschaltetem Bildschirm schläft der Prozessor zwischen Ereignissen\n"
     "Calibrar\tKalibrieren\n"
     "Ver crudo\tRohwerte\n"
+    "Probar gestos\tGesten testen\n"
     "Calibrar pide tocar cinco cruces. \\\"Ver crudo\\\" muestra lo que lee el chip tactil, sin correccion.\tKalibrieren verlangt fünf Kreuze zu tippen. \\\"Rohwerte\\\" zeigt, was der Touch-Chip liest, ohne Korrektur.\n"
     "Tarjeta\tKarte\n"
     "%.1f de %.1f GB  ·  %d apps\t%.1f von %.1f GB  ·  %d Apps\n"
@@ -3011,6 +3068,7 @@ static const char blob_de__sistema_lang[] =
     "Clima\tWetter\n"
     "Cotizaciones\tKurse\n"
     "Dados\tWürfel\n"
+    "Doom\tDoom\n"
     "Escaner\tScanner\n"
     "Flappy\tFlappy\n"
     "2043\t2043\n"
@@ -3033,6 +3091,7 @@ static const char blob_de__sistema_lang[] =
     "Truco\tTruco\n"
     "Turbo\tTurbo\n"
     "Video\tVideo\n"
+    "Visor 3D\t3D-Viewer\n"
     "Walkie\tWalkie\n"
     ;
 
@@ -3133,9 +3192,9 @@ static const char blob_de_aos_mines_lang[] =
     "   GANASTE\t   GEWONNEN\n"
     "   BOOM\t   BUMM\n"
     "   mejor %d\\\"\t   best %d\\\"\n"
+    "Sin memoria\tKein Speicher\n"
     "BANDERA\tFLAGGE\n"
     "CAVAR\tGRABEN\n"
-    "Sin memoria\tKein Speicher\n"
     "NUEVO\tNEU\n"
     ;
 
@@ -4227,6 +4286,22 @@ static const char blob_de_demo_claudito_lang[] =
     "REINICIAR\tNEUSTART\n"
     ;
 
+static const char blob_de_demo_doom_lang[] =
+    "FUEGO\tFEUER\n"
+    "USAR\tNUTZEN\n"
+    "MENÚ\tMENÜ\n"
+    "MAPA\tKARTE\n"
+    "ARMA\tWAFFE\n"
+    "No hay ningún WAD\tKeine WAD gefunden\n"
+    "Copiá doom1.wad (shareware) o doom.wad a la carpeta\tKopiere doom1.wad (Shareware) oder doom.wad in den Ordner\n"
+    "Tocá para salir\tTippen zum Beenden\n"
+    "Doom se detuvo\tDoom wurde beendet\n"
+    "Doom ya corrió en este simulador: reinicialo para jugar otra vez\tDoom lief schon in diesem Simulator: starte ihn neu, um wieder zu spielen\n"
+    "Cargando...\tLädt...\n"
+    "Doom no pudo arrancar\tDoom konnte nicht starten\n"
+    "Falta memoria\tNicht genug Speicher\n"
+    ;
+
 static const char blob_de_demo_flappy_lang[] =
     "tocar para empezar\\nrecord  %d\ttippen zum Start\\nBestwert  %d\n"
     "Perdiste\tVerloren\n"
@@ -4825,6 +4900,29 @@ static const char blob_de_demo_turbo_lang[] =
     "No hay memoria para el tramo\tKein Speicher für die Strecke\n"
     ;
 
+static const char blob_de_demo_visor3d_lang[] =
+    "archivo demasiado corto\tDatei zu kurz\n"
+    "no es un STL\tkeine STL-Datei\n"
+    "no tiene triángulos\tkeine Dreiecke\n"
+    "cancelado\tabgebrochen\n"
+    "error de lectura\tLesefehler\n"
+    "sin memoria\tkein Speicher\n"
+    "no se pudo reducir\tnicht reduzierbar\n"
+    "no es un M3D\tkeine M3D-Datei\n"
+    "demasiados triángulos\tzu viele Dreiecke\n"
+    "índice inválido\tungültiger Index\n"
+    "archivo incompleto\tDatei unvollständig\n"
+    "no se pudo abrir el archivo\tDatei nicht lesbar\n"
+    "Reduciendo...\tReduziere...\n"
+    "Cargando...\tLädt...\n"
+    "No se pudo abrir\tÖffnen fehlgeschlagen\n"
+    "alambre\tGitter\n"
+    "sólido\tmassiv\n"
+    "Visor 3D\t3D-Viewer\n"
+    "No hay modelos.\\nCopiá archivos .stl a\\n%s\\no convertí OBJ y GLB\\nen el portal (/3d).\tKeine Modelle.\\n.stl-Dateien nach\\n%s\\nkopieren oder OBJ und GLB\\nim Portal (/3d) umwandeln.\n"
+    "Sin memoria\tKein Speicher\n"
+    ;
+
 static const aos_lang_file_t files_de[] = {
     { "_sistema.lang", blob_de__sistema_lang },
     { "aos.clima.lang", blob_de_aos_clima_lang },
@@ -4852,6 +4950,7 @@ static const aos_lang_file_t files_de[] = {
     { "demo.chatarra.lang", blob_de_demo_chatarra_lang },
     { "demo.cjump.lang", blob_de_demo_cjump_lang },
     { "demo.claudito.lang", blob_de_demo_claudito_lang },
+    { "demo.doom.lang", blob_de_demo_doom_lang },
     { "demo.flappy.lang", blob_de_demo_flappy_lang },
     { "demo.gemas.lang", blob_de_demo_gemas_lang },
     { "demo.golf.lang", blob_de_demo_golf_lang },
@@ -4861,10 +4960,11 @@ static const aos_lang_file_t files_de[] = {
     { "demo.neon.lang", blob_de_demo_neon_lang },
     { "demo.topos.lang", blob_de_demo_topos_lang },
     { "demo.turbo.lang", blob_de_demo_turbo_lang },
+    { "demo.visor3d.lang", blob_de_demo_visor3d_lang },
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 595, 34, files_en, 35 },
-    { "de", "Deutsch", 595, 34, files_de, 35 },
+    { "en", "English", 604, 36, files_en, 37 },
+    { "de", "Deutsch", 604, 36, files_de, 37 },
 };
 const int aos_lang_pack_count = 2;

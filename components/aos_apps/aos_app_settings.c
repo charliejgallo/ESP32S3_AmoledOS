@@ -806,7 +806,7 @@ static void probe_tick(lv_timer_t *t)
         return;
     }
     if (seq == 0) {
-        lv_label_set_text(s_set.probe_label, "probe: n/a (no CST820)");
+        lv_label_set_text(s_set.probe_label, _("sin CST820: no hay registros para ver"));
         return;
     }
     if (seq == s_set.probe_seq) {
@@ -863,11 +863,7 @@ static void probe_tick(lv_timer_t *t)
         snprintf(hex + i * 3, 4, "%02X ", r[i]);
     }
     lv_label_set_text_fmt(s_set.probe_label,
-                          "g=%02X  dedos=%u (max %u)\n"
-                          "P1 %d,%d   P2 %d,%d\n"
-                          "d = %d\n"
-                          "%.24s\n%s\n"
-                          "con P2: %u de %u   chip %u Hz",
+                          _("g=%02X  dedos=%u (max %u)\nP1 %d,%d   P2 %d,%d\nd = %d\n%.24s\n%s\ncon P2: %u de %u   chip %u Hz"),
                           r[1], fingers, s_set.probe_max_fingers,
                           (int)x1, (int)y1, (int)x2, (int)y2, (int)dist,
                           hex, hex + 24,

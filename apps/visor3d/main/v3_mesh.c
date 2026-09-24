@@ -16,6 +16,12 @@
  */
 #include "v3_mesh.h"
 
+/* The errors are shown to the user (the viewer's strip translates them with
+ * _()); marked here for tools/gen_lang.py, with no dependency on the UI. */
+#ifndef N_
+#define N_(s) (s)
+#endif
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -301,7 +307,7 @@ static bool load_stl(v3_mesh_t *m, FILE *f, long size, volatile int *progress)
     src_t s = { .f = f, .size = size, .progress = progress };
     uint8_t head[84];
     if (fread(head, 1, 84, f) != 84) {
-        snprintf(m->err, sizeof m->err, "file too short");
+        snprintf(m->err, sizeof m->err, "%s", N_("archivo demasiado corto"));
         return false;
     }
     uint32_t n;
@@ -309,7 +315,7 @@ static bool load_stl(v3_mesh_t *m, FILE *f, long size, volatile int *progress)
     s.ascii = !((long)n * 50 + 84 == size);
     if (s.ascii) {
         if (strncmp((const char *)head, "solid", 5) != 0) {
-            snprintf(m->err, sizeof m->err, "not an STL");
+            snprintf(m->err, sizeof m->err, "%s", N_("no es un STL"));
             return false;
         }
         read_ascii(&s, NULL, NULL, true);
@@ -317,7 +323,7 @@ static bool load_stl(v3_mesh_t *m, FILE *f, long size, volatile int *progress)
         s.nt = n;
     }
     if (s.nt == 0) {
-        snprintf(m->err, sizeof m->err, "no triangles");
+        snprintf(m->err, sizeof m->err, "%s", N_("no tiene triángulos"));
         return false;
     }
     m->nt_file = (int)s.nt;
@@ -326,7 +332,7 @@ static bool load_stl(v3_mesh_t *m, FILE *f, long size, volatile int *progress)
     volatile int *keep = s.progress;
     s.progress = NULL;                  /* the box pass is quick: one bar */
     if (!for_each_tri(&s, box_fn, &box)) {
-        snprintf(m->err, sizeof m->err, s_cancel ? "cancelled" : "read error");
+        snprintf(m->err, sizeof m->err, "%s", s_cancel ? N_("cancelado") : N_("error de lectura"));
         return false;
     }
     s.progress = keep;
@@ -338,7 +344,7 @@ static bool load_stl(v3_mesh_t *m, FILE *f, long size, volatile int *progress)
     c.tri = malloc((size_t)c.cap * 3 * sizeof(uint32_t));
     if (!c.table || !c.cl || !c.tri) {
         free(c.table); free(c.cl); free(c.tri);
-        snprintf(m->err, sizeof m->err, "no memory");
+        snprintf(m->err, sizeof m->err, "%s", N_("sin memoria"));
         return false;
     }
 
@@ -361,11 +367,11 @@ static bool load_stl(v3_mesh_t *m, FILE *f, long size, volatile int *progress)
         c.overflow = false;
         bool read = for_each_tri(&s, clus_fn, &c);
         if (s_cancel) {
-            snprintf(m->err, sizeof m->err, "cancelled");
+            snprintf(m->err, sizeof m->err, "%s", N_("cancelado"));
             break;
         }
         if (!read && !c.overflow) {
-            snprintf(m->err, sizeof m->err, "read error");
+            snprintf(m->err, sizeof m->err, "%s", N_("error de lectura"));
             break;
         }
         bool fits = !c.overflow && c.ntri <= V3_BUDGET;
@@ -387,7 +393,7 @@ static bool load_stl(v3_mesh_t *m, FILE *f, long size, volatile int *progress)
         if (grid < 8) break;
     }
     if (!ok || c.ntri == 0) {
-        if (!m->err[0]) snprintf(m->err, sizeof m->err, "could not reduce it");
+        if (!m->err[0]) snprintf(m->err, sizeof m->err, "%s", N_("no se pudo reducir"));
         free(c.table); free(c.cl); free(c.tri);
         return false;
     }
@@ -401,7 +407,7 @@ static bool load_stl(v3_mesh_t *m, FILE *f, long size, volatile int *progress)
     if (!m->idx) m->idx = c.tri;
     if (!m->v || !m->fn) {
         free(c.cl);
-        snprintf(m->err, sizeof m->err, "no memory");
+        snprintf(m->err, sizeof m->err, "%s", N_("sin memoria"));
         return false;
     }
     for (int i = 0; i < m->nv; i++) {
@@ -419,7 +425,7 @@ static bool load_m3d(v3_mesh_t *m, FILE *f, volatile int *progress)
 {
     uint8_t h[16];
     if (fread(h, 1, 16, f) != 16 || memcmp(h, "M3D1", 4) != 0) {
-        snprintf(m->err, sizeof m->err, "not an M3D");
+        snprintf(m->err, sizeof m->err, "%s", N_("no es un M3D"));
         return false;
     }
     uint32_t nv, nt, flags;
@@ -427,7 +433,7 @@ static bool load_m3d(v3_mesh_t *m, FILE *f, volatile int *progress)
     memcpy(&nt, h + 8, 4);
     memcpy(&flags, h + 12, 4);
     if (nv == 0 || nt == 0 || nt > V3_BUDGET * 4u || nv > MAX_CL) {
-        snprintf(m->err, sizeof m->err, "%u triangles: too many", (unsigned)nt);
+        snprintf(m->err, sizeof m->err, "%s", N_("demasiados triángulos"));
         return false;
     }
     m->nv = (int)nv;
@@ -438,7 +444,7 @@ static bool load_m3d(v3_mesh_t *m, FILE *f, volatile int *progress)
     m->fn = malloc((size_t)nt * 12);
     if (flags & V3_M3D_COLORS) m->fc = malloc((size_t)nt * 2);
     if (!m->v || !m->idx || !m->fn || ((flags & V3_M3D_COLORS) && !m->fc)) {
-        snprintf(m->err, sizeof m->err, "no memory");
+        snprintf(m->err, sizeof m->err, "%s", N_("sin memoria"));
         return false;
     }
     if (progress) *progress = 20;
@@ -448,7 +454,7 @@ static bool load_m3d(v3_mesh_t *m, FILE *f, volatile int *progress)
     if (m->fc && fread(m->fc, 2, nt, f) != nt) goto short_file;
     for (uint32_t i = 0; i < nt * 3; i++) {
         if (m->idx[i] >= nv) {
-            snprintf(m->err, sizeof m->err, "bad index");
+            snprintf(m->err, sizeof m->err, "%s", N_("índice inválido"));
             return false;
         }
     }
@@ -456,7 +462,7 @@ static bool load_m3d(v3_mesh_t *m, FILE *f, volatile int *progress)
     finish(m);
     return true;
 short_file:
-    snprintf(m->err, sizeof m->err, "file cut short");
+    snprintf(m->err, sizeof m->err, "%s", N_("archivo incompleto"));
     return false;
 }
 
@@ -467,7 +473,7 @@ bool v3_mesh_load(v3_mesh_t *m, const char *path, volatile int *progress)
     s_stage = 1;
     FILE *f = fopen(path, "rb");
     if (!f) {
-        snprintf(m->err, sizeof m->err, "cannot open");
+        snprintf(m->err, sizeof m->err, "%s", N_("no se pudo abrir el archivo"));
         return false;
     }
 #if defined(ESP_PLATFORM) && defined(__SNBF)
