@@ -224,6 +224,40 @@ carries the flag **only while it is actually recording** for exactly that
 reason — it was holding 38 KB of executable RAM permanently, after which the
 large apps no longer fitted.
 
+## Gestures and two fingers
+
+The v2's touch chip reports two fingers (see [GESTURES.md](GESTURES.md)).
+Do not read it yourself: attach the recogniser to the area that takes the
+gestures and handle events.
+
+```c
+#include "aos_gesture.h"
+
+static void on_gesture(const aos_gesture_event_t *ev, void *user)
+{
+    switch (ev->type) {
+    case AOS_GESTURE_DRAG:       pan(ev->dx, ev->dy);              break;
+    case AOS_GESTURE_DRAG_END:   fling(ev->vx, ev->vy);            break;   /* px/s */
+    case AOS_GESTURE_PINCH:      zoom_at(ev->scale, ev->x, ev->y); break;   /* multiply */
+    case AOS_GESTURE_DOUBLE_TAP: reset_view();                     break;
+    default: break;
+    }
+}
+
+aos_gesture_attach(area, 0, on_gesture, me);   /* freed with the object */
+```
+
+- Events come ~14 times a second (the chip's rate): ease what moves towards
+  its target every frame instead of jumping on every event.
+- `TAP` waits ~300 ms to rule out a double tap; `AOS_GESTURE_FLAG_FAST_TAP`
+  delivers it at once.
+- Set `AOS_APP_FLAG_NO_SWIPE | AOS_APP_FLAG_LONG_DRAG` while the area is on
+  screen, or the global back swipe fires on a drag.
+- After a pinch the touch never becomes a drag until every finger is up.
+- `aos_gesture_multitouch()` says whether a pinch is possible on this
+  hardware; offer +/- if not.
+- Needs firmware v0.6.0 or later.
+
 ## Things that will bite you
 
 These are all measured, and each is written up next to the code that deals with

@@ -3,6 +3,33 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased — v0.6.0 (in progress)
+
+**Two fingers.** The v2's touch chip reports a second finger in registers no
+driver reads; the firmware now reads them, and apps get pinch-to-zoom
+(docs/GESTURES.md has the whole story and the measurements).
+
+- **The CST820's second finger** is at `0x07..0x0A`, while its finger count
+  (`0x02`) never says more than 1 — which is why nobody had seen it. The HAL
+  reads both points on every touch read (15 bytes in the transaction that
+  read 5) and publishes them in `aos_hal_touch_frame()`; LVGL still sees one
+  pointer, so nothing that exists changes.
+- **`aos_gesture.h`**: tap, double tap, long press, drag with fling speed,
+  and pinch (scale, centre, centre motion), with the chip's measured faults
+  filtered — the second finger dropping out on one diagonal, the swapped X
+  on that diagonal, the garbage sample when a finger lifts, a bogus first
+  point.
+- **Photos zooms**: decoded at the photo's own resolution (up to 2 MB),
+  pinch to zoom where your fingers are, drag and fling to pan, double tap
+  to 3× and back, tap for the controls, fling sideways to change photo.
+- **Simulator**: Option-drag is a pinch, Option+Shift a two-finger pan;
+  `pinch:` and `drag:` script steps; touch samples rationed to the chip's
+  14 Hz (`AOS_SIM_TOUCH_HZ`).
+- **Raw view** (Settings → Touch): shows the registers, the second point and
+  the chip's refresh rate; it no longer slides sideways when a dot reaches
+  the edge.
+- New symbols only: **no app needs rebuilding**.
+
 ## v0.5.6 — 2026-09-24
 
 **Doom**, from the card: Chocolate Doom through doomgeneric, as an app.
