@@ -90,7 +90,6 @@ typedef struct {
     lv_timer_t *probe_timer;
     uint32_t    probe_seq;
     uint8_t     probe_last[AOS_TOUCH_PROBE_REGS];   /* last burst logged */
-    uint32_t    probe_log_ms;
     uint32_t    probe_reads, probe_two, probe_p2;
     uint8_t     probe_max_fingers;
     lv_obj_t *r_day, *r_mon, *r_year, *r_hour, *r_min;
@@ -772,9 +771,16 @@ static void raw_refresh(int32_t x, int32_t y)
 
 /* The register probe, refreshed on a timer and not on touch events: with two
  * fingers down LVGL may see nothing new at all, and that is precisely the
- * case to watch. Every burst that differs from the last one logged goes to
- * /api/log (at most every 100 ms, and only while a finger is down or the
- * count just dropped), so a two-finger session can be read afterwards. */
+ * case to watch.
+ *
+ * Measured on 2026-09-24, first session: the CST820 DOES report a second
+ * point, at 0x07..0x0A (XH XL YH YL, same format as point 1), while the
+ * finger count at 0x02 stays at 1. With one finger 0x07..0x0A read 00 and
+ * 0x0B..0x0E read FF. The first version of this view read point 2 at
+ * 0x09..0x0C (the FocalTech 6-byte stride) and got nonsense.
+ *
+ * Every read that changes while a finger is down goes to /api/log, compact,
+ * so a pinch of a few seconds fits in the 16 KB ring. */
 static void probe_tick(lv_timer_t *t)
 {
     (void)t;
@@ -795,12 +801,18 @@ static void probe_tick(lv_timer_t *t)
 
     uint8_t fingers = r[2] & 0x0F;
     int32_t x1 = (r[3] & 0x0F) << 8 | r[4], y1 = (r[5] & 0x0F) << 8 | r[6];
-    int32_t x2 = (r[9] & 0x0F) << 8 | r[10], y2 = (r[11] & 0x0F) << 8 | r[12];
-    bool p2 = r[9] || r[10] || r[11] || r[12];
+    int32_t x2 = (r[7] & 0x0F) << 8 | r[8], y2 = (r[9] & 0x0F) << 8 | r[10];
+    bool p2 = r[7] || r[8] || r[9] || r[10];
 
     if (fingers > s_set.probe_max_fingers) s_set.probe_max_fingers = fingers;
     if (fingers >= 2) s_set.probe_two++;
     if (p2)           s_set.probe_p2++;
+
+    int32_t dist = 0;
+    if (p2) {
+        int32_t dx = x2 - x1, dy = y2 - y1;
+        dist = (int32_t)(sqrtf((float)(dx * dx + dy * dy)) + 0.5f);
+    }
 
     if (s_set.probe_dot2) {
         if (p2) {
@@ -812,6 +824,13 @@ static void probe_tick(lv_timer_t *t)
             lv_obj_add_flag(s_set.probe_dot2, LV_OBJ_FLAG_HIDDEN);
         }
     }
+    /* The raw view's own dot follows LVGL's events, which may not fire while
+     * two fingers are down: keep it on point 1 from here too. */
+    if (s_set.raw_dot && fingers) {
+        int32_t fx, fy;
+        aos_ui_touch_map(x1, y1, &fx, &fy);
+        lv_obj_set_pos(s_set.raw_dot, fx - 7, fy - 7);
+    }
 
     char hex[AOS_TOUCH_PROBE_REGS * 3 + 1];
     for (int i = 0; i < AOS_TOUCH_PROBE_REGS; i++) {
@@ -820,21 +839,23 @@ static void probe_tick(lv_timer_t *t)
     lv_label_set_text_fmt(s_set.probe_label,
                           "g=%02X  dedos=%u (max %u)\n"
                           "P1 %d,%d   P2 %d,%d\n"
+                          "d = %d\n"
                           "%.24s\n%s\n"
-                          "2 dedos: %u   P2!=0: %u",
+                          "con P2: %u de %u",
                           r[1], fingers, s_set.probe_max_fingers,
-                          (int)x1, (int)y1, (int)x2, (int)y2,
+                          (int)x1, (int)y1, (int)x2, (int)y2, (int)dist,
                           hex, hex + 24,
-                          (unsigned)s_set.probe_two, (unsigned)s_set.probe_p2);
+                          (unsigned)s_set.probe_p2, (unsigned)s_set.probe_reads);
 
-    uint32_t now = lv_tick_get();
     bool changed = memcmp(r, s_set.probe_last, sizeof(r)) != 0;
-    bool worth   = fingers || (s_set.probe_last[2] & 0x0F);
-    if (changed && worth && now - s_set.probe_log_ms >= 100) {
-        aos_hal_log("touch", "probe %s| n=%u P1 %d,%d P2 %d,%d",
-                    hex, fingers, (int)x1, (int)y1, (int)x2, (int)y2);
+    bool worth   = fingers || p2 || (s_set.probe_last[2] & 0x0F) ||
+                   s_set.probe_last[7] || s_set.probe_last[8] ||
+                   s_set.probe_last[9] || s_set.probe_last[10];
+    if (changed && worth) {
+        aos_hal_log("touch", "tp %u %d,%d %d,%d d%d g%02X %02X%02X%02X%02X",
+                    fingers, (int)x1, (int)y1, (int)x2, (int)y2, (int)dist,
+                    r[1], r[11], r[12], r[13], r[14]);
         memcpy(s_set.probe_last, r, sizeof(r));
-        s_set.probe_log_ms = now;
     }
 }
 
@@ -849,7 +870,7 @@ static void raw_close(void)
     }
     if (s_set.probe_seq) {
         aos_hal_log("touch", "probe summary: %u reads, max fingers %u, "
-                    "%u reads with fingers>=2, %u with 0x09..0x0C non-zero",
+                    "%u reads with fingers>=2, %u with a point 2 (0x07..0x0A)",
                     (unsigned)s_set.probe_reads, s_set.probe_max_fingers,
                     (unsigned)s_set.probe_two, (unsigned)s_set.probe_p2);
     }
@@ -905,7 +926,6 @@ static void raw_cb(lv_event_t *event)
     aos_ui_block_gestures(true);    /* the sweep IS a long drag: no "back" */
     s_set.probe_seq = s_set.probe_reads = s_set.probe_two = s_set.probe_p2 = 0;
     s_set.probe_max_fingers = 0;
-    s_set.probe_log_ms = 0;
     memset(s_set.probe_last, 0, sizeof(s_set.probe_last));
     aos_hal_touch_probe(true);
 
