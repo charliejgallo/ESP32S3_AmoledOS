@@ -3363,6 +3363,75 @@ aos_touch_gesture_t aos_hal_touch_gesture(void)
 }
 
 /* --------------------------------------------------------------------------
+ * Touch register probe (pinch-probe fork)
+ *
+ * Does the CST820 ever report a second finger? Its datasheet promises "real
+ * two-point operation", the only published register map documents a single
+ * X/Y pair, and every driver we know of reads one point. The question has to
+ * be put to the chip itself.
+ *
+ * While the probe is on, the driver's read (5 bytes from 0x02) is swapped for
+ * a burst of 0x00..0x0E: gesture, finger count, point 1 at 0x03..0x08 and the
+ * slot where a FocalTech-style layout would put point 2, 0x09..0x0E. It is
+ * the SAME read, from the same task, at the same moment, only longer: no
+ * second poller on the bus (that is what set off the watchdogs before; see
+ * touch_poll_gesture). Point 1 is handed to LVGL exactly as the driver does,
+ * and with the probe off the driver's own function is back in place.
+ * -------------------------------------------------------------------------- */
+
+static esp_lcd_touch_handle_t s_touch_tp;
+static esp_err_t (*s_touch_orig_read)(esp_lcd_touch_handle_t tp);
+static uint8_t           s_probe_regs[AOS_TOUCH_PROBE_REGS];
+static volatile uint32_t s_probe_seq;
+
+static esp_err_t touch_probe_read(esp_lcd_touch_handle_t tp)
+{
+    uint8_t r[AOS_TOUCH_PROBE_REGS];
+    esp_err_t ret = esp_lcd_panel_io_rx_param(tp->io, 0x00, r, sizeof(r));
+    if (ret != ESP_OK) {
+        return ret;
+    }
+    uint8_t num = r[2] & 0x0F;
+
+    portENTER_CRITICAL(&tp->data.lock);
+    tp->data.points = num > 1 ? 1 : num;     /* LVGL still gets one point */
+    if (num) {
+        tp->data.coords[0].x = (uint16_t)((r[3] & 0x0F) << 8 | r[4]);
+        tp->data.coords[0].y = (uint16_t)((r[5] & 0x0F) << 8 | r[6]);
+    }
+    portEXIT_CRITICAL(&tp->data.lock);
+
+    memcpy(s_probe_regs, r, sizeof(r));
+    s_probe_seq++;
+    return ESP_OK;
+}
+
+void aos_hal_touch_probe(bool on)
+{
+    if (!s_touch_tp || !s_touch_dev) {
+        return;                 /* not the v2's CST820 */
+    }
+    if (on && !s_touch_orig_read) {
+        s_touch_orig_read     = s_touch_tp->read_data;
+        s_touch_tp->read_data = touch_probe_read;
+        aos_hal_log("touch", "register probe ON (burst 0x00..0x0E)");
+    } else if (!on && s_touch_orig_read) {
+        s_touch_tp->read_data = s_touch_orig_read;
+        s_touch_orig_read     = NULL;
+        aos_hal_log("touch", "register probe off");
+    }
+}
+
+uint32_t aos_hal_touch_probe_regs(uint8_t regs[AOS_TOUCH_PROBE_REGS])
+{
+    if (!s_touch_orig_read) {
+        return 0;
+    }
+    memcpy(regs, s_probe_regs, AOS_TOUCH_PROBE_REGS);
+    return s_probe_seq;
+}
+
+/* --------------------------------------------------------------------------
  * Panel sleep
  *
  * "Screen off" used to mean brightness 0: every pixel dark, but the driver IC
@@ -4314,6 +4383,7 @@ static lv_display_t *display_start(void)
 
     esp_lcd_touch_handle_t tp = NULL;
     if (bsp_touch_new(NULL, &tp) == ESP_OK && tp) {
+        s_touch_tp = tp;
         const lvgl_port_touch_cfg_t touch_cfg = {
             .disp   = disp,
             .handle = tp,

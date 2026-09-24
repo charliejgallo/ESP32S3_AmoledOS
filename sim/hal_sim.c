@@ -314,6 +314,17 @@ aos_touch_gesture_t aos_hal_touch_gesture(void)
     return AOS_TOUCH_GESTURE_NONE;  /* on the desktop LVGL detects them */
 }
 
+void aos_hal_touch_probe(bool on)
+{
+    (void)on;                       /* no touch chip on the desktop */
+}
+
+uint32_t aos_hal_touch_probe_regs(uint8_t regs[AOS_TOUCH_PROBE_REGS])
+{
+    (void)regs;
+    return 0;
+}
+
 aos_display_state_t aos_hal_display_state(void)
 {
     return s_display_state;

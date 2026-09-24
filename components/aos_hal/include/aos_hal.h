@@ -171,6 +171,15 @@ typedef enum {
 
 aos_touch_gesture_t aos_hal_touch_gesture(void);
 
+/* Touch register probe (pinch-probe fork). While on, every touch read is a
+ * burst of registers 0x00..0x0E instead of the driver's 5 bytes; LVGL still
+ * gets point 1 as always. aos_hal_touch_probe_regs() copies the last burst and
+ * returns a counter that grows with each read (0 = probe off, or not a
+ * CST820). Settings -> Touch -> Raw view uses it. Always 0 in the simulator. */
+#define AOS_TOUCH_PROBE_REGS 15
+void     aos_hal_touch_probe(bool on);
+uint32_t aos_hal_touch_probe_regs(uint8_t regs[AOS_TOUCH_PROBE_REGS]);
+
 /* --------------------------------------------------------------------------
  * Display state
  *

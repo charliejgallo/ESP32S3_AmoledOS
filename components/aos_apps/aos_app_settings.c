@@ -84,6 +84,15 @@ typedef struct {
     lv_obj_t *raw_dot;          /* where the stored fit puts the raw point     */
     int32_t   raw_xmin, raw_xmax, raw_ymin, raw_ymax;
     uint32_t  raw_n;
+    /* Register probe (pinch-probe fork): does a second finger ever show up? */
+    lv_obj_t   *probe_label;
+    lv_obj_t   *probe_dot2;     /* point 2 from 0x09..0x0C, if the chip fills it */
+    lv_timer_t *probe_timer;
+    uint32_t    probe_seq;
+    uint8_t     probe_last[AOS_TOUCH_PROBE_REGS];   /* last burst logged */
+    uint32_t    probe_log_ms;
+    uint32_t    probe_reads, probe_two, probe_p2;
+    uint8_t     probe_max_fingers;
     lv_obj_t *r_day, *r_mon, *r_year, *r_hour, *r_min;
     lv_timer_t *timer;
 
@@ -761,11 +770,92 @@ static void raw_refresh(int32_t x, int32_t y)
                           (unsigned)s_set.raw_n);
 }
 
+/* The register probe, refreshed on a timer and not on touch events: with two
+ * fingers down LVGL may see nothing new at all, and that is precisely the
+ * case to watch. Every burst that differs from the last one logged goes to
+ * /api/log (at most every 100 ms, and only while a finger is down or the
+ * count just dropped), so a two-finger session can be read afterwards. */
+static void probe_tick(lv_timer_t *t)
+{
+    (void)t;
+    uint8_t r[AOS_TOUCH_PROBE_REGS];
+    uint32_t seq = aos_hal_touch_probe_regs(r);
+    if (!s_set.probe_label) {
+        return;
+    }
+    if (seq == 0) {
+        lv_label_set_text(s_set.probe_label, "probe: n/a (no CST820)");
+        return;
+    }
+    if (seq == s_set.probe_seq) {
+        return;
+    }
+    s_set.probe_reads += seq - s_set.probe_seq;
+    s_set.probe_seq = seq;
+
+    uint8_t fingers = r[2] & 0x0F;
+    int32_t x1 = (r[3] & 0x0F) << 8 | r[4], y1 = (r[5] & 0x0F) << 8 | r[6];
+    int32_t x2 = (r[9] & 0x0F) << 8 | r[10], y2 = (r[11] & 0x0F) << 8 | r[12];
+    bool p2 = r[9] || r[10] || r[11] || r[12];
+
+    if (fingers > s_set.probe_max_fingers) s_set.probe_max_fingers = fingers;
+    if (fingers >= 2) s_set.probe_two++;
+    if (p2)           s_set.probe_p2++;
+
+    if (s_set.probe_dot2) {
+        if (p2) {
+            int32_t fx, fy;
+            aos_ui_touch_map(x2, y2, &fx, &fy);
+            lv_obj_set_pos(s_set.probe_dot2, fx - 9, fy - 9);
+            lv_obj_remove_flag(s_set.probe_dot2, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(s_set.probe_dot2, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+
+    char hex[AOS_TOUCH_PROBE_REGS * 3 + 1];
+    for (int i = 0; i < AOS_TOUCH_PROBE_REGS; i++) {
+        snprintf(hex + i * 3, 4, "%02X ", r[i]);
+    }
+    lv_label_set_text_fmt(s_set.probe_label,
+                          "g=%02X  dedos=%u (max %u)\n"
+                          "P1 %d,%d   P2 %d,%d\n"
+                          "%.24s\n%s\n"
+                          "2 dedos: %u   P2!=0: %u",
+                          r[1], fingers, s_set.probe_max_fingers,
+                          (int)x1, (int)y1, (int)x2, (int)y2,
+                          hex, hex + 24,
+                          (unsigned)s_set.probe_two, (unsigned)s_set.probe_p2);
+
+    uint32_t now = lv_tick_get();
+    bool changed = memcmp(r, s_set.probe_last, sizeof(r)) != 0;
+    bool worth   = fingers || (s_set.probe_last[2] & 0x0F);
+    if (changed && worth && now - s_set.probe_log_ms >= 100) {
+        aos_hal_log("touch", "probe %s| n=%u P1 %d,%d P2 %d,%d",
+                    hex, fingers, (int)x1, (int)y1, (int)x2, (int)y2);
+        memcpy(s_set.probe_last, r, sizeof(r));
+        s_set.probe_log_ms = now;
+    }
+}
+
 static void raw_close(void)
 {
     if (!s_set.raw_box) {
         return;
     }
+    if (s_set.probe_timer) {
+        lv_timer_delete(s_set.probe_timer);
+        s_set.probe_timer = NULL;
+    }
+    if (s_set.probe_seq) {
+        aos_hal_log("touch", "probe summary: %u reads, max fingers %u, "
+                    "%u reads with fingers>=2, %u with 0x09..0x0C non-zero",
+                    (unsigned)s_set.probe_reads, s_set.probe_max_fingers,
+                    (unsigned)s_set.probe_two, (unsigned)s_set.probe_p2);
+    }
+    aos_hal_touch_probe(false);
+    s_set.probe_label = NULL;
+    s_set.probe_dot2  = NULL;
     aos_ui_touch_raw(false);
     aos_ui_block_gestures(false);
     if (s_set.raw_n) {
@@ -813,6 +903,11 @@ static void raw_cb(lv_event_t *event)
     s_set.raw_n = 0;
     aos_ui_touch_raw(true);
     aos_ui_block_gestures(true);    /* the sweep IS a long drag: no "back" */
+    s_set.probe_seq = s_set.probe_reads = s_set.probe_two = s_set.probe_p2 = 0;
+    s_set.probe_max_fingers = 0;
+    s_set.probe_log_ms = 0;
+    memset(s_set.probe_last, 0, sizeof(s_set.probe_last));
+    aos_hal_touch_probe(true);
 
     lv_obj_t *box = lv_obj_create(lv_layer_top());
     s_set.raw_box = box;
@@ -871,14 +966,31 @@ static void raw_cb(lv_event_t *event)
 
     s_set.raw_label = aos_label(box, "", aos_font_small, AOS_C_TEXT);
     lv_obj_set_style_text_align(s_set.raw_label, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(s_set.raw_label, LV_ALIGN_CENTER, 0, -70);
+    lv_obj_align(s_set.raw_label, LV_ALIGN_CENTER, 0, -5);
     aos_make_decorative(s_set.raw_label);
     raw_refresh(0, 0);
+
+    /* Point 2, in another colour, only if the chip ever fills 0x09..0x0C. */
+    s_set.probe_dot2 = lv_obj_create(box);
+    lv_obj_remove_style_all(s_set.probe_dot2);
+    lv_obj_set_size(s_set.probe_dot2, 18, 18);
+    lv_obj_set_style_radius(s_set.probe_dot2, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(s_set.probe_dot2, lv_color_hex(0xFF3B6B), 0);
+    lv_obj_set_style_bg_opa(s_set.probe_dot2, LV_OPA_COVER, 0);
+    lv_obj_add_flag(s_set.probe_dot2, LV_OBJ_FLAG_HIDDEN);
+    aos_make_decorative(s_set.probe_dot2);
+
+    s_set.probe_label = aos_label(box, "", aos_font_small, AOS_C_TEXT);
+    lv_obj_set_style_text_align(s_set.probe_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(s_set.probe_label, LV_ALIGN_TOP_MID, 0, 30);
+    aos_make_decorative(s_set.probe_label);
+    s_set.probe_timer = lv_timer_create(probe_tick, 30, NULL);
+    probe_tick(NULL);
 
     /* Closes from the centre, the one place a sweep along the edges never
      * crosses. The physical button closes it too (back()). */
     lv_obj_t *btn = aos_button(box, _("Listo"), AOS_C_CARD2, raw_close_cb, NULL);
-    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 50);
+    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 95);
 }
 
 /* Held, not tapped: a restart is one brush of a finger away from the bottom
