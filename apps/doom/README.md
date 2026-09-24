@@ -11,24 +11,69 @@ ceiling; with the cap lifted the renderer did 43-61 fps in the attract demos.
 |---|---|---|
 | <img src="../../docs/img/app-doom-demo.png" width="200"><br>The attract demo, as Doom plays it on start-up. The picture is 320x200 scaled to 368x230. | <img src="../../docs/img/app-doom-e1m1.png" width="200"><br>E1M1, Hangar. The pad sits below the picture, above where the glass stops reading reliably. | <img src="../../docs/img/app-doom-map.png" width="200"><br>The automap, from the MAP button. |
 
-## Setting it up
+## The WAD
 
-The game data is not in the app and not in the repository: copy a WAD to the
-card's `doom/` folder. The portal's file explorer does it (`sd/doom`, the
-folder is created on the first run too), or by hand:
+The game's data (levels, graphics, sounds, music) lives in a WAD file, and
+the WAD is **not** part of this app, of the repository or of the releases:
+you bring it, and copy it to the card's `doom/` folder. The portal's file
+explorer does it (`sd/doom`; the folder is also created on the first run), or
+by hand:
 
 ```bash
 curl -X POST "http://<watch>/api/mkdir?dir=sd&name=doom"
 curl -X POST "http://<watch>/api/upload?dir=sd/doom&name=doom1.wad" --data-binary @doom1.wad
 ```
 
-The shareware `DOOM1.WAD` (episode 1, 4.2 MB, freely distributable) is what it
-was tested with. The full games are searched first, in this order: `doom.wad`,
-`doom2.wad`, `doomu.wad`, `plutonia.wad`, `tnt.wad`, then `doom1.wad` and the
-Freedoom IWADs. The portal takes uploads up to 8 MB; a bigger WAD goes through
-the card in USB disk mode or a card reader.
+The config (`default.cfg`, `doomgenericdoom.cfg`) and the saves (`saves/`)
+land in the same folder.
 
-The config (`default.cfg`) and the saves (`saves/`) land in the same folder.
+### What it was tested with
+
+**The shareware `DOOM1.WAD`, version 1.9**: episode 1, *Knee-Deep in the
+Dead*, nine levels, 4,196,020 bytes, SHA-1
+`5b2e249b9c5133ec987b3ea77596381dc0d6bc1d`. Every number in this README was
+measured with it, on two watches.
+
+### What its licence allows
+
+The shareware WAD is **id Software's copyrighted data**, not free software
+and not under the GPL that covers the code. What makes it usable here is
+the licence it has always shipped with: it may be **copied and given to
+other people, for free**, whole and unmodified; nobody may charge for it or
+for its use. John Carmack put it shortly: the Doom shareware WAD is freely
+distributable. That is why so many source ports and Linux distributions
+point you to it (Ubuntu has packaged it as `doom-wad-shareware`).
+
+What it does **not** allow: selling it or charging for it, modifying it, or
+treating it as open data. id also asked back then that nobody make levels
+that run on the shareware version, since it was the demo for the paid game.
+
+This repository does not ship it anyway: the code is GPL v2 and the WAD's
+terms are different, so it stays a separate download. This is a summary to
+explain the choice, not legal advice; the licence text comes with the
+original shareware package. Sources:
+[the copyright file of Ubuntu's doom-wad-shareware](https://launchpad.net/ubuntu/trusty/+source/doom-wad-shareware/+copyright)
+and [the Doom Wiki's page on licences](https://doomwiki.org/wiki/Licences).
+
+### The full games (in theory)
+
+Chocolate Doom plays every official IWAD, and the app looks for them
+**before** the shareware one, in this order: `doom.wad` (registered or *The
+Ultimate Doom*), `doom2.wad`, `doomu.wad`, `plutonia.wad` and `tnt.wad`
+(*Final Doom*), then `doom1.wad`, then Freedoom's `freedoom1.wad` and
+`freedoom2.wad`. So with a WAD from a copy of the game you own (the Steam
+and GOG editions carry them) it **should** work: the engine is the same and
+nothing here is specific to episode 1. **It is not tested**, and two things
+to know:
+
+- The commercial WADs are **not** redistributable: yours, for your watch.
+- They are bigger than the portal's 8 MB upload limit (`doom.wad` ~12 MB,
+  `doom2.wad` ~14 MB): copy them with the card in a reader, or through the
+  watch's USB disk mode. Doom II's bigger levels also want more of the zone;
+  5.25 MB is well above the 4 MB DOS Doom II ran in, but it is not measured.
+
+[Freedoom](https://freedoom.github.io/) is the other road: complete games
+built from new, BSD-licensed data, which can be shared freely.
 
 ## Playing
 

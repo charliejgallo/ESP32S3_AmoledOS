@@ -333,8 +333,10 @@ Doom), FIRE, USE, the menu, the map and the next weapon, with the side button
 firing while the thumb walks. `exit()` is a `longjmp` back to the worker, so
 quitting from Doom's menu returns to the watch and gives every byte back.
 Sound effects and the OPL2 music, synthesised on the watch for 3-7 % of a
-core. Bring your own WAD: the shareware `DOOM1.WAD` goes in the card's
-`doom/` folder. The engine is GPL v2. More in
+core. Bring your own WAD: it was tested with the shareware `DOOM1.WAD` 1.9
+(episode 1, freely distributable but id Software's, so it is not in the
+repository), and the full games' WADs are searched first and should work,
+untested. The engine is GPL v2. More in
 [apps/doom/README.md](apps/doom/README.md).
 
 #### The others
@@ -672,5 +674,7 @@ MIT — see [LICENSE](LICENSE).
 
 `components/elf_loader/` is Espressif's, under Apache-2.0, vendored with a
 small local change. `apps/doom/` is Chocolate Doom through doomgeneric, and
-like them under the GNU GPL v2; no WAD is included. LVGL and ESP-IDF are pulled in by the component manager
+like them under the GNU GPL v2; no WAD is included (see
+[apps/doom/README.md](apps/doom/README.md#the-wad) for which one was used and
+what its licence allows). LVGL and ESP-IDF are pulled in by the component manager
 under their own licences.
