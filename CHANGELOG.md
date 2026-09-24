@@ -28,6 +28,11 @@ driver reads; the firmware now reads them, and apps get pinch-to-zoom
 - **Raw view** (Settings → Touch): shows the registers, the second point and
   the chip's refresh rate; it no longer slides sideways when a dot reaches
   the edge.
+- **Visor 3D** (new app): STL and M3D from the card's `3d/`, turned with one
+  finger, zoomed with two, a ↻ button back to the first view, dark/grey/light
+  backgrounds; the portal's `/3d` page converts STL, OBJ and GLB with their
+  colours. Four samples from the games' own Blender models: Mila (the
+  mascot), Tommy, the zombie and Turbo's muscle car (`apps/visor3d/README.md`).
 - New symbols only: **no app needs rebuilding**.
 
 ## v0.5.6 — 2026-09-24

@@ -6,6 +6,7 @@ sim/build/
 # Pulled by the component manager, not by us.
 managed_components/
 apps/*/managed_components/
+apps/*/managed_components
 dependencies.lock
 apps/*/dependencies.lock
 

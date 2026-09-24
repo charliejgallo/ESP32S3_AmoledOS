@@ -8,6 +8,7 @@
  *   one finger ....... turn it (and let go with a flick: it keeps turning)
  *   two fingers ...... zoom about the point between them, and move it
  *   double tap ....... back to the first view
+ *   ↻ top right ...... the same with one tap (the turntable stays as it is)
  *   tap .............. the turntable on or off
  *   long press ....... solid or wireframe
  *
@@ -44,6 +45,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/stat.h>
 
 #define VW          AOS_SCREEN_W        /* 368 */
@@ -60,6 +62,15 @@
  * (2026-09-24): the whole card path runs on this stack, and in the
  * simulator every thread has megabytes, so it never showed there. */
 #define WORKER_STACK (16 * 1024)
+
+/* The reset button, top right of the view. It is drawn into every frame by
+ * the worker (the frames are blitted over whatever LVGL has there) and a tap
+ * inside HOME_HIT of its centre is the reset. Far enough from the corner for
+ * the panel's rounded glass. */
+#define HOME_SZ     44
+#define HOME_CX     (VW - 40)
+#define HOME_CY     40
+#define HOME_HIT    34
 
 enum { SLOT_FREE = 0, SLOT_BUSY, SLOT_READY, SLOT_SHOWN };
 
@@ -95,6 +106,8 @@ typedef struct {
     bool        drawn_full;
     uint32_t    frames, drawn_tris;
     uint32_t    t_half, n_half, t_full, n_full, t_log;  /* render timing, for the log */
+    uint8_t     home_disc[HOME_SZ * HOME_SZ];   /* the reset button's coverage, 0..255 */
+    uint8_t     home_glyph[HOME_SZ * HOME_SZ];
 
     /* LVGL's side */
     v3_view_t   view;
@@ -133,6 +146,12 @@ static bool is_model(const char *n)
     return dot && (!strcasecmp(dot, ".stl") || !strcasecmp(dot, ".m3d"));
 }
 
+static int name_cmp(const void *x, const void *y)
+{
+    return strcasecmp((const char *)x, (const char *)y);
+}
+
+/* the models in the folder, by name (readdir gives them in any order) */
 static void scan(app_t *a)
 {
     a->count = 0;
@@ -145,6 +164,7 @@ static void scan(app_t *a)
         snprintf(a->names[a->count++], NAME_LEN, "%.63s", e->d_name);
     }
     closedir(d);
+    qsort(a->names, (size_t)a->count, NAME_LEN, name_cmp);
 }
 
 /* ---------------------------------------------------------------------------
@@ -163,6 +183,85 @@ static void unload(app_t *a)
     a->mesh_ready = false;
     v3_scratch_free(&a->scr);
     v3_mesh_free(&a->mesh);
+}
+
+/* ---------------------------------------------------------------------------
+ * The reset button: a disc with a circular arrow, as two coverage masks made
+ * once (4 x 4 samples a pixel) and blended into each frame - 44 x 44 pixels,
+ * nothing next to the model.
+ * ------------------------------------------------------------------------- */
+
+static bool in_tri(float px, float py, const float t[6])
+{
+    float d0 = (t[2] - t[0]) * (py - t[1]) - (t[3] - t[1]) * (px - t[0]);
+    float d1 = (t[4] - t[2]) * (py - t[3]) - (t[5] - t[3]) * (px - t[2]);
+    float d2 = (t[0] - t[4]) * (py - t[5]) - (t[1] - t[5]) * (px - t[4]);
+    return (d0 >= 0 && d1 >= 0 && d2 >= 0) || (d0 <= 0 && d1 <= 0 && d2 <= 0);
+}
+
+static void home_make(app_t *a)
+{
+    const float c = HOME_SZ * 0.5f, R = 19.5f, RA = 10.0f, W = 1.7f;
+    const float PI = 3.14159265f;
+    /* the arc leaves a gap at the top right (screen angles, y down); the
+     * arrowhead sits at its end, pointing into the gap: a clockwise turn */
+    const float g0 = -80.0f * PI / 180, g1 = -20.0f * PI / 180;
+    float tip = -42.0f * PI / 180, base = -84.0f * PI / 180;
+    float tri[6] = {
+        c + cosf(base) * (RA - 5.5f), c + sinf(base) * (RA - 5.5f),
+        c + cosf(base) * (RA + 5.5f), c + sinf(base) * (RA + 5.5f),
+        c + cosf(tip) * RA,           c + sinf(tip) * RA,
+    };
+    for (int y = 0; y < HOME_SZ; y++) {
+        for (int x = 0; x < HOME_SZ; x++) {
+            int nd = 0, ng = 0;
+            for (int sy = 0; sy < 4; sy++) {
+                for (int sx = 0; sx < 4; sx++) {
+                    float px = x + (sx + 0.5f) / 4, py = y + (sy + 0.5f) / 4;
+                    float dx = px - c, dy = py - c, r = sqrtf(dx * dx + dy * dy);
+                    if (r <= R) nd++;
+                    float an = atan2f(dy, dx);
+                    bool arc = fabsf(r - RA) <= W && !(an > g0 && an < g1);
+                    if (arc || in_tri(px, py, tri)) ng++;
+                }
+            }
+            a->home_disc[y * HOME_SZ + x] = (uint8_t)(nd * 255 / 16);
+            a->home_glyph[y * HOME_SZ + x] = (uint8_t)(ng * 255 / 16);
+        }
+    }
+}
+
+static inline uint16_t be565(uint32_t rgb)
+{
+    uint16_t v = (uint16_t)(((rgb >> 8) & 0xF800) | ((rgb >> 5) & 0x07E0) | ((rgb >> 3) & 0x001F));
+    return (uint16_t)((v >> 8) | (v << 8));
+}
+
+/* over a (big-endian RGB565) pixel, colour 0xRRGGBB at alpha 0..255 */
+static inline uint16_t blend(uint16_t px, uint32_t rgb, int al)
+{
+    uint16_t v = (uint16_t)((px >> 8) | (px << 8));
+    int r = (v >> 11) << 3, g = ((v >> 5) & 63) << 2, b = (v & 31) << 3;
+    r += (((int)(rgb >> 16) - r) * al) >> 8;
+    g += ((((int)(rgb >> 8) & 255) - g) * al) >> 8;
+    b += (((int)rgb & 255) - b) * al >> 8;
+    return be565(((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b);
+}
+
+static void home_draw(const app_t *a, uint16_t *fb, uint32_t bg)
+{
+    /* a disc that stands out from the background, and the arrow on it */
+    bool light = ((bg >> 16) & 255) + ((bg >> 8) & 255) + (bg & 255) > 3 * 150;
+    uint32_t disc = light ? 0xB9BDC6 : 0x2B303B, glyph = light ? 0x262A33 : 0xE8EAEE;
+    int x0 = HOME_CX - HOME_SZ / 2, y0 = HOME_CY - HOME_SZ / 2;
+    for (int y = 0; y < HOME_SZ; y++) {
+        uint16_t *row = fb + (size_t)(y0 + y) * VW + x0;
+        const uint8_t *d = a->home_disc + y * HOME_SZ, *g = a->home_glyph + y * HOME_SZ;
+        for (int x = 0; x < HOME_SZ; x++) {
+            if (d[x]) row[x] = blend(row[x], disc, d[x] * 7 / 8);
+            if (g[x]) row[x] = blend(row[x], glyph, g[x]);
+        }
+    }
 }
 
 static app_t *s_app;                    /* for give_core: one viewer at a time */
@@ -243,6 +342,7 @@ static void worker(void *arg)
             a->drawn_tris = (uint32_t)v3_render(&a->mesh, &v, &a->scr, a->slot[i], a->zb, VW, VH);
             a->drawn_full = true;
         }
+        home_draw(a, a->slot[i], v.bg);
         uint32_t t1 = (uint32_t)aos_hal_uptime_ms();
         if (moving) { a->t_half += t1 - t0; a->n_half++; }
         else        { a->t_full += t1 - t0; a->n_full++; }
@@ -327,11 +427,15 @@ static void strip_text(app_t *a)
     } else if (a->load_failed) {
         snprintf(buf, sizeof buf, "%s: %s", _("No se pudo abrir"), a->mesh.err[0] ? _(a->mesh.err) : "?");
     } else if (a->mesh_ready) {
+        int n;
         if (a->mesh.nt < a->mesh.nt_file) {
-            snprintf(buf, sizeof buf, "%.24s · %d/%d tri · %u fps", a->name, a->mesh.nt,
-                     a->mesh.nt_file, a->fps);
+            n = snprintf(buf, sizeof buf, "%.24s · %d/%d tri", a->name, a->mesh.nt, a->mesh.nt_file);
         } else {
-            snprintf(buf, sizeof buf, "%.24s · %d tri · %u fps", a->name, a->mesh.nt, a->fps);
+            n = snprintf(buf, sizeof buf, "%.24s · %d tri", a->name, a->mesh.nt);
+        }
+        /* the rate only while something moves: a still model sends nothing */
+        if (a->fps && n > 0 && n < (int)sizeof buf) {
+            snprintf(buf + n, sizeof buf - (size_t)n, " · %u fps", a->fps);
         }
     } else {
         buf[0] = 0;
@@ -445,6 +549,13 @@ static void gesture_cb(const aos_gesture_event_t *ev, void *user)
         view_moved(a);
         break;
     case AOS_GESTURE_TAP:
+        if (fabsf(ev->x - HOME_CX) < HOME_HIT && fabsf(ev->y - HOME_CY) < HOME_HIT) {
+            /* the reset button: the first view, size, place and angle, as
+             * the double tap - but the turntable stays as it was */
+            view_home(a);
+            view_moved(a);
+            break;
+        }
         a->turntable = !a->turntable;
         buttons_refresh(a);
         break;
@@ -620,6 +731,7 @@ static void *v3_create(aos_app_t *self, lv_obj_t *root)
 
     int32_t v = 0;
     if (aos_hal_pref_get_i32("v3_bg", &v) && v >= 0 && v < 3) a->bg = (int)v;
+    home_make(a);
     scan(a);
     build_list(a);
     build_viewer(a);
