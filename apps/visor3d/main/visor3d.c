@@ -155,9 +155,15 @@ static void unload(app_t *a)
     v3_mesh_free(&a->mesh);
 }
 
-static void give_core(void)
+static app_t *s_app;                    /* for give_core: one viewer at a time */
+
+/* A millisecond back to the core, and whether to go on loading: not if the
+ * app is closing (its code is about to be unloaded) nor if the user went
+ * back to the list. */
+static bool give_core(void)
 {
     aos_hal_worker_sleep(1);
+    return !aos_hal_worker_should_stop() && !(s_app && s_app->want_unload);
 }
 
 static void worker(void *arg)
@@ -247,7 +253,7 @@ static void worker(void *arg)
          * that never blocks starves IDLE0: the task watchdog fired on the
          * watch after ~5 s of turning (2026-09-24), and the panic handler
          * then hung until the hardware watchdog reset the board. */
-        give_core();
+        aos_hal_worker_sleep(1);
     }
 }
 
@@ -299,7 +305,9 @@ static void strip_text(app_t *a)
 {
     char buf[128];
     if (a->loading) {
-        snprintf(buf, sizeof buf, "%s  %d%%", _("Cargando..."), a->progress);
+        int p = a->progress;
+        snprintf(buf, sizeof buf, "%s  %d%%", p >= 2000 ? _("Reduciendo...") : _("Cargando..."),
+                 p % 1000);
     } else if (a->load_failed) {
         snprintf(buf, sizeof buf, "%s: %s", _("No se pudo abrir"), a->mesh.err[0] ? a->mesh.err : "?");
     } else if (a->mesh_ready) {
@@ -524,6 +532,7 @@ static void *v3_create(aos_app_t *self, lv_obj_t *root)
     a->self = self;
     a->root = root;
     a->shown = -1;
+    s_app = a;
     lv_obj_set_style_bg_color(root, lv_color_hex(0x000000), 0);
     lv_obj_set_style_bg_opa(root, LV_OPA_COVER, 0);
     lv_obj_remove_flag(root, LV_OBJ_FLAG_SCROLLABLE);
@@ -562,6 +571,7 @@ static void v3_destroy(aos_app_t *self, void *inst)
     if (a->timer) lv_timer_delete(a->timer);
     aos_hal_worker_stop();
     unload(a);
+    s_app = NULL;
     for (int i = 0; i < NSLOT; i++) free(a->slot[i]);
     free(a->zb);
     free(a->small);

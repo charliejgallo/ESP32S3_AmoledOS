@@ -48,16 +48,25 @@ typedef struct {
 
 typedef bool (*tri_fn)(void *ctx, const float p[9]);
 
-static void (*s_yield)(void);
+static bool (*s_yield)(void);
+static bool s_cancel;
+static int  s_stage;                    /* for the progress: see v3_mesh.h */
 
-void v3_mesh_set_yield(void (*fn)(void))
+void v3_mesh_set_yield(bool (*fn)(void))
 {
     s_yield = fn;
 }
 
-static inline void maybe_yield(uint32_t n)
+/* false = cancelled: every reading loop stops on it. */
+static inline bool maybe_yield(uint32_t n)
 {
-    if (s_yield && (n & 1023) == 0) s_yield();
+    if (s_yield && (n & 1023) == 0 && !s_yield()) s_cancel = true;
+    return !s_cancel;
+}
+
+static inline void report(volatile int *p, uint32_t done, uint32_t total)
+{
+    if (p && total) *p = s_stage * 1000 + (int)(done * 100 / total);
 }
 
 /* STL is Z-up (CAD); the viewer is Y-up: (x, y, z) -> (x, z, -y). */
@@ -87,8 +96,8 @@ static bool read_binary(src_t *s, tri_fn fn, void *ctx)
             ok = fn(ctx, p);
         }
         done += n;
-        maybe_yield(done);
-        if (s->progress) *s->progress = (int)(done * 100 / s->nt);
+        if (!maybe_yield(done)) ok = false;
+        report(s->progress, done, s->nt);
     }
     free(buf);
     return ok;
@@ -137,7 +146,10 @@ static bool read_ascii(src_t *s, tri_fn fn, void *ctx, bool count_only)
         while (*t == ' ' || *t == '\t') t++;
         if (strncmp(t, "vertex", 6) != 0) continue;
         if (count_only) {
-            if (++k == 3) { k = 0; n++; }
+            if (++k == 3) {
+                k = 0;
+                if (!maybe_yield(++n)) { ok = false; break; }
+            }
             continue;
         }
         char *e;
@@ -148,10 +160,9 @@ static bool read_ascii(src_t *s, tri_fn fn, void *ctx, bool count_only)
         if (++k == 3) {
             k = 0;
             zup_to_yup(p);
-            ok = fn(ctx, p);
+            ok = fn(ctx, p) && maybe_yield(n + 1);
             n++;
-            maybe_yield(n);
-            if (s->progress && s->nt) *s->progress = (int)(n * 100 / s->nt);
+            report(s->progress, n, s->nt);
         }
     }
     free(r.buf);
@@ -315,7 +326,7 @@ static bool load_stl(v3_mesh_t *m, FILE *f, long size, volatile int *progress)
     volatile int *keep = s.progress;
     s.progress = NULL;                  /* the box pass is quick: one bar */
     if (!for_each_tri(&s, box_fn, &box)) {
-        snprintf(m->err, sizeof m->err, "read error");
+        snprintf(m->err, sizeof m->err, s_cancel ? "cancelled" : "read error");
         return false;
     }
     s.progress = keep;
@@ -339,6 +350,7 @@ static bool load_stl(v3_mesh_t *m, FILE *f, long size, volatile int *progress)
     int good = 0;
     bool ok = false;
     for (int attempt = 0; attempt < 6; attempt++) {
+        s_stage = attempt + 1;
         c.grid = grid;
         for (int a = 0; a < 3; a++) {
             float span = box.hi[a] - box.lo[a];
@@ -348,6 +360,10 @@ static bool load_stl(v3_mesh_t *m, FILE *f, long size, volatile int *progress)
         c.ncl = c.ntri = 0;
         c.overflow = false;
         bool read = for_each_tri(&s, clus_fn, &c);
+        if (s_cancel) {
+            snprintf(m->err, sizeof m->err, "cancelled");
+            break;
+        }
         if (!read && !c.overflow) {
             snprintf(m->err, sizeof m->err, "read error");
             break;
@@ -447,11 +463,22 @@ short_file:
 bool v3_mesh_load(v3_mesh_t *m, const char *path, volatile int *progress)
 {
     memset(m, 0, sizeof *m);
+    s_cancel = false;
+    s_stage = 1;
     FILE *f = fopen(path, "rb");
     if (!f) {
         snprintf(m->err, sizeof m->err, "cannot open");
         return false;
     }
+#if defined(ESP_PLATFORM) && defined(__SNBF)
+    /* Unbuffered, which is what setvbuf(f, NULL, _IONBF, 0) does - but
+     * setvbuf is not in the firmware's table. With newlib's 128-byte buffer
+     * every fread of 6 KB became 50 reads through VFS, FATFS and the SD
+     * driver: a 4 MB STL took seconds a pass. Unbuffered, newlib hands our
+     * buffer straight to read(). Set before the first read, as setvbuf
+     * requires. */
+    f->_flags |= __SNBF;
+#endif
     fseek(f, 0, SEEK_END);
     long size = ftell(f);
     fseek(f, 0, SEEK_SET);

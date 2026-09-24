@@ -22,15 +22,19 @@ typedef struct {
     char      err[64];      /* why it did not load                           */
 } v3_mesh_t;
 
-/* Loads .stl (binary or ASCII) or .m3d. 'progress', if given, goes 0..100
- * as the file is read (it is read from the worker; the UI polls it). */
+/* Loads .stl (binary or ASCII) or .m3d. 'progress', if given, is
+ * stage * 1000 + percent: stage 1 is the first read of the triangles, 2 and
+ * up the passes that reduce a model over the budget (each one reads the
+ * file again). The UI polls it from the other task. */
 bool v3_mesh_load(v3_mesh_t *m, const char *path, volatile int *progress);
 void v3_mesh_free(v3_mesh_t *m);
 
 /* Called every 1024 triangles while loading: the worker gives its core away
- * for a moment, or the task watchdog fires on IDLE0 (a big STL is seconds
- * of work). */
-void v3_mesh_set_yield(void (*fn)(void));
+ * for a moment (or the task watchdog fires on IDLE0: a big STL is seconds
+ * of work), and says whether to go on. false cancels the load at once, with
+ * "cancelled" as the error: an app leaving mid-load must not wait for it,
+ * because its code is unloaded as soon as the worker is given up on. */
+void v3_mesh_set_yield(bool (*fn)(void));
 
 /* M3D, the portal's format (/3d converts STL, OBJ and GLB into it):
  *
