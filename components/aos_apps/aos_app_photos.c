@@ -50,7 +50,7 @@ typedef struct {
     lv_obj_t *prev, *next;
 
     /* View: s = screen px per photo px, (ox, oy) = where the photo's top-left
-     * corner lands. What is on screen eases towards the target, because the
+     * corner lands. What is on screen eases towards the target, because
      * a photo redraws slower than the touch moves. */
     int32_t   img_w, img_h;
     int32_t   vw, vh;           /* the view's size and where it sits on the  */
