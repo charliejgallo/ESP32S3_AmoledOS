@@ -4,6 +4,7 @@
 #include "lx_api.h"
 
 #include "aos_hal.h"
+#include "aos_gesture.h"
 #include "lauxlib.h"
 #include "lvgl.h"
 
@@ -173,6 +174,26 @@ static int l_touch(lua_State *L)
     return 3;
 }
 
+/* aos.fingers(): how many fingers are down, then id, x, y of each, in the
+ * script's pixels. For pads: each finger keeps its id while it stays down
+ * (aos_touch_points), so "the stick's finger" can be told from "the fire
+ * button's". */
+static int l_fingers(lua_State *L)
+{
+    aos_touch_point_t pts[2];
+    int n = aos_touch_points(pts);
+    lua_pushinteger(L, n);
+    int pushed = 1;
+    for (int i = 0; i < 2; i++) {
+        if (!pts[i].down) continue;
+        lua_pushinteger(L, pts[i].id);
+        lua_pushinteger(L, (lua_Integer)(pts[i].x / LX_SCALE));
+        lua_pushinteger(L, (lua_Integer)(pts[i].y / LX_SCALE));
+        pushed += 3;
+    }
+    return pushed;
+}
+
 /* Milliseconds since the script started, not since the watch booted: a script
  * that subtracts two of these gets small numbers, which in 32-bit floats is
  * the difference between having decimals and not having them. */
@@ -249,6 +270,7 @@ static const luaL_Reg lx_funcs[] = {
     {"text",  l_text},
     {"shade", l_shade},
     {"touch", l_touch},
+    {"fingers", l_fingers},
     {"ms",    l_ms},
     {"stats", l_stats},
     {"background", l_background},

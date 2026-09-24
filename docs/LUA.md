@@ -14,13 +14,14 @@ below, measured on the board.
 
 ## What a script is
 
-Four functions, all optional. Anything else in the file is yours.
+Five functions, all optional. Anything else in the file is yours.
 
 ```lua
 function init()             -- once, before the first frame
 function tick(dt)           -- every frame; dt in milliseconds
 function draw()             -- every frame, after tick
 function touch(x, y, ev)    -- ev is "down", "move" or "up"
+function gesture(ev, x, y, a, b, c)   -- since v0.6.0, see "Gestures"
 ```
 
 Values that live between frames go in the chunk, as locals:
@@ -100,6 +101,7 @@ all there.
 | `aos.text(x, y, s, c [, scale])` | 5x7, upper case, digits and signs |
 | `aos.shade(x, y, w, h, f)` | darkens (f<0) or lightens (f>0), in sixteenths |
 | `aos.touch()` | `x, y, down` — where the finger is, now |
+| `aos.fingers()` | `n, id1, x1, y1, id2, x2, y2` — every finger down, each with an id that stays while it does (v0.6.0) |
 | `aos.ms()` | milliseconds since the script started |
 | `aos.beep(hz, ms)` | |
 | `aos.background()` | freezes what is drawn as the background; see below |
@@ -111,6 +113,30 @@ not the script's problem.
 `aos.text` writes with the 5x7 font the games use: ASCII, upper case, digits
 and a few signs. **Nothing a person reads in their own language goes through
 it** — that is a label, and labels are the app's business, not a script's.
+
+## Gestures
+
+Since v0.6.0 the watch reads two fingers (docs/GESTURES.md), and a script
+that defines `gesture()` gets what they mean, already filtered for what the
+touch chip gets wrong:
+
+| `ev` | `x, y` | `a, b, c` |
+|---|---|---|
+| `"tap"`, `"double"`, `"long"` | where | |
+| `"drag"` | the finger | `dx, dy` since the last one |
+| `"release"` | where it lifted | `vx, vy`, speed per second: fling or not |
+| `"pinchstart"` | the point between the fingers | |
+| `"pinch"` | the point between the fingers | `scale` (multiply your zoom by it), `dx, dy` of that point |
+| `"pinchend"` | | |
+
+Everything is in the script's pixels, like `touch()`. A pinch never turns
+into a drag until every finger is up. A script with `gesture()` also turns
+the back swipe off (a pinch is a long drag); the side button still leaves.
+
+`aos.fingers()` is the other way: where each finger is right now, for a
+script that wants two thumbs on two controls rather than a zoom. The ids
+say which is which. `gestos.lua` in `apps/lua/scripts/` does both: a star
+field you pinch and drag, and a ring under each finger.
 
 ## Rules the app enforces, and why
 

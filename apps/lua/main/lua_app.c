@@ -13,6 +13,10 @@
  *     function tick(dt)          every frame, dt in milliseconds
  *     function draw()            every frame, after tick
  *     function touch(x, y, ev)   ev is "down", "move" or "up"
+ *     function gesture(ev, x, y, a, b, c)   since v0.6.0: "tap", "double",
+ *                                "long", "drag" (a,b = dx,dy), "release"
+ *                                (a,b = speed per second), "pinchstart",
+ *                                "pinch" (a = scale, b,c = dx,dy), "pinchend"
  *
  * All four are optional. Everything a script can reach is the 'aos' table
  * (lx_api.c); there is no io, no os and no package, because their sources are
@@ -43,6 +47,7 @@
 #include "aos_i18n.h"
 #include "aos_icon_ops.h"
 #include "aos_ui.h"
+#include "aos_gesture.h"
 
 #include "lua.h"
 #include "lauxlib.h"
@@ -124,6 +129,8 @@ typedef struct {
     int        ref_tick;
     int        ref_draw;
     int        ref_touch;
+    int        ref_gesture;
+    aos_app_t *self;
     lv_timer_t *timer;
     uint32_t   last_frame;
     uint32_t   call_start;      /* for the hook: when this call began      */
@@ -529,6 +536,48 @@ static void touch_cb(lv_event_t *e)
     call_lua(ctx, 3);
 }
 
+/* The recogniser's events (aos_gesture.h), for a script that defines
+ * gesture(). Positions and distances in the script's pixels, like touch();
+ * a pinch's scale is a plain factor, to multiply into the script's zoom. */
+static void gesture_cb(const aos_gesture_event_t *ev, void *user)
+{
+    lua_ctx_t *ctx = (lua_ctx_t *)user;
+    if (ctx->stopped || !ctx->L || ctx->ref_gesture == LUA_NOREF) {
+        return;
+    }
+    const char *name;
+    int n = 3;
+    switch (ev->type) {
+    case AOS_GESTURE_TAP:         name = "tap";        break;
+    case AOS_GESTURE_DOUBLE_TAP:  name = "double";     break;
+    case AOS_GESTURE_LONG_PRESS:  name = "long";       break;
+    case AOS_GESTURE_DRAG:        name = "drag";       n = 5; break;
+    case AOS_GESTURE_DRAG_END:    name = "release";    n = 5; break;
+    case AOS_GESTURE_PINCH_BEGIN: name = "pinchstart"; break;
+    case AOS_GESTURE_PINCH:       name = "pinch";      n = 6; break;
+    case AOS_GESTURE_PINCH_END:   name = "pinchend";   break;
+    default: return;
+    }
+    lv_area_t a;
+    lv_obj_get_coords(ctx->surface, &a);
+    lua_rawgeti(ctx->L, LUA_REGISTRYINDEX, ctx->ref_gesture);
+    lua_pushstring(ctx->L, name);
+    lua_pushinteger(ctx->L, (lua_Integer)((ev->x - a.x1) / LX_SCALE));
+    lua_pushinteger(ctx->L, (lua_Integer)((ev->y - a.y1) / LX_SCALE));
+    if (ev->type == AOS_GESTURE_DRAG) {
+        lua_pushnumber(ctx->L, ev->dx / LX_SCALE);
+        lua_pushnumber(ctx->L, ev->dy / LX_SCALE);
+    } else if (ev->type == AOS_GESTURE_DRAG_END) {
+        lua_pushnumber(ctx->L, ev->vx / LX_SCALE);
+        lua_pushnumber(ctx->L, ev->vy / LX_SCALE);
+    } else if (ev->type == AOS_GESTURE_PINCH) {
+        lua_pushnumber(ctx->L, ev->scale);
+        lua_pushnumber(ctx->L, ev->dx / LX_SCALE);
+        lua_pushnumber(ctx->L, ev->dy / LX_SCALE);
+    }
+    call_lua(ctx, n);
+}
+
 /* aos.background(): the copy is made here, where the buffers live. Allocated
  * the first time it is asked for, so a script that never calls this costs
  * nothing; called again, it re-freezes, which is how a script changes its
@@ -561,7 +610,7 @@ static void unload(lua_ctx_t *ctx)
         lua_close(ctx->L);
         ctx->L = NULL;
     }
-    ctx->ref_tick = ctx->ref_draw = ctx->ref_touch = LUA_NOREF;
+    ctx->ref_tick = ctx->ref_draw = ctx->ref_touch = ctx->ref_gesture = LUA_NOREF;
     ctx->stopped = false;
     /* The background belongs to the script that froze it. Leaving the buffer
      * behind would have the next script's first frames restored from the
@@ -670,6 +719,7 @@ static void run_script(lua_ctx_t *ctx, const char *name)
     lv_obj_add_event_cb(ctx->surface, touch_cb, LV_EVENT_PRESSED, ctx);
     lv_obj_add_event_cb(ctx->surface, touch_cb, LV_EVENT_PRESSING, ctx);
     lv_obj_add_event_cb(ctx->surface, touch_cb, LV_EVENT_RELEASED, ctx);
+    aos_gesture_attach(ctx->surface, 0, gesture_cb, ctx);
 
     ctx->hud = lv_label_create(ctx->root);
     lv_label_set_text(ctx->hud, "");
@@ -722,6 +772,15 @@ static void run_script(lua_ctx_t *ctx, const char *name)
     ctx->ref_tick  = grab(ctx->L, "tick");
     ctx->ref_draw  = grab(ctx->L, "draw");
     ctx->ref_touch = grab(ctx->L, "touch");
+    ctx->ref_gesture = grab(ctx->L, "gesture");
+    /* A script that takes gestures takes every drag: no back swipe cutting
+     * its pinch (the side button still leaves). */
+    if (ctx->self) {
+        if (ctx->ref_gesture != LUA_NOREF)
+            ctx->self->desc.flags |= AOS_APP_FLAG_NO_SWIPE | AOS_APP_FLAG_LONG_DRAG;
+        else
+            ctx->self->desc.flags &= ~(uint32_t)(AOS_APP_FLAG_NO_SWIPE | AOS_APP_FLAG_LONG_DRAG);
+    }
 
     lua_getglobal(ctx->L, "init");
     if (lua_isfunction(ctx->L, -1)) {
@@ -834,14 +893,13 @@ static void build_list(lua_ctx_t *ctx)
 
 static void *lua_create(aos_app_t *self, lv_obj_t *root)
 {
-    (void)self;
-
     lua_ctx_t *ctx = (lua_ctx_t *)lv_malloc_zeroed(sizeof(lua_ctx_t));
     if (!ctx) {
         return NULL;
     }
     ctx->root = root;
-    ctx->ref_tick = ctx->ref_draw = ctx->ref_touch = LUA_NOREF;
+    ctx->self = self;
+    ctx->ref_tick = ctx->ref_draw = ctx->ref_touch = ctx->ref_gesture = LUA_NOREF;
 
     /* malloc and not lv_malloc: these are big, and big means PSRAM, which is
      * where a canvas belongs (APP-GUIDE 6.2). */
