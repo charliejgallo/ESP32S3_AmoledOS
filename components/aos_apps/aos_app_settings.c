@@ -932,6 +932,12 @@ static void raw_cb(lv_event_t *event)
     lv_obj_t *box = lv_obj_create(lv_layer_top());
     s_set.raw_box = box;
     lv_obj_remove_style_all(box);
+    /* A dot pushed against the edge (14-18 px wide, centred on the finger)
+     * sticks out of the box, the box then has content to scroll, and the
+     * sweep drags the whole view sideways. It never altered the numbers -
+     * those are the chip's registers- but it repainted the screen on every
+     * move and moved the dots off the fingers. */
+    lv_obj_remove_flag(box, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_size(box, AOS_SCREEN_W, AOS_SCREEN_H);
     lv_obj_set_pos(box, 0, 0);
     lv_obj_set_style_bg_color(box, AOS_C_BG, 0);
