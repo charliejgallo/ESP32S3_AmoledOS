@@ -711,8 +711,10 @@ typedef struct {
     int         count;
     bool        shuffle;
     bool        yielded;        /* paused because an app took the speaker   */
-    bool        has_cover;      /* an embedded picture (not drawn yet)      */
-    uint32_t    reserved[8];
+    bool        has_cover;      /* an embedded picture                      */
+    uint32_t    cover_offset;   /* where its bytes are in the file, and how */
+    uint32_t    cover_size;     /* many (JPEG or PNG, see cover_mime)       */
+    uint32_t    reserved[6];
 } aos_player_info_t;
 
 bool aos_hal_player_info(aos_player_info_t *out);

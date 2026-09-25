@@ -2256,6 +2256,8 @@ bool aos_hal_player_info(aos_player_info_t *out)
     out->shuffle     = s_player_shuffle;
     out->yielded     = s_yield_refs > 0 && s_player_yielded_pause;
     out->has_cover   = info.cover_offset != 0;
+    out->cover_offset = info.cover_offset;
+    out->cover_size  = info.cover_size;
     return true;
 }
 

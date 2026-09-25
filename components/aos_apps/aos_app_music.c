@@ -17,6 +17,8 @@
 #include "aos_ui.h"
 #include "aos_text_safe.h"
 #include "../aos_hal/aos_audio.h"
+#include "aos_app_music_cover.h"
+#include "src/misc/cache/instance/lv_image_cache.h"   /* lv_image_cache_drop() */
 
 #include <dirent.h>
 #include <stdio.h>
@@ -51,6 +53,8 @@ typedef struct {
     lv_obj_t *progress;
     lv_obj_t *elapsed, *total;
     lv_obj_t *play_label;
+    lv_obj_t *note, *cover;             /* the art square: the note, or the cover */
+    char      cover_for[256];           /* the track the cover was asked for */
     lv_timer_t *timer;
     bool      seeking;                  /* the finger is on the progress bar */
     bool      has_last;                 /* a track to go on from, after a restart */
@@ -281,6 +285,34 @@ static void refresh(lv_timer_t *timer)
 
     set_text(s_music.play_label, in.state == AOS_PLAYER_PLAYING ? LV_SYMBOL_PAUSE : LV_SYMBOL_PLAY);
     snprintf(s_music.shown, sizeof(s_music.shown), "%s", in.path);
+
+    /* the cover: asked for on each new track, drawn when it arrives */
+    if (strcmp(in.path, s_music.cover_for) != 0) {
+        snprintf(s_music.cover_for, sizeof(s_music.cover_for), "%s", in.path);
+        music_cover_request(in.path, in.cover_offset, in.cover_size);
+    }
+    const uint16_t *px;
+    uint16_t *old;
+    if (music_cover_take(&px, &old)) {
+        static lv_image_dsc_t dsc;
+        if (px) {
+            lv_image_cache_drop(&dsc);          /* same descriptor, new pixels */
+            dsc.header.magic  = LV_IMAGE_HEADER_MAGIC;
+            dsc.header.cf     = LV_COLOR_FORMAT_RGB565;
+            dsc.header.w      = COVER_PX;
+            dsc.header.h      = COVER_PX;
+            dsc.header.stride = COVER_PX * 2;
+            dsc.data_size     = COVER_PX * COVER_PX * 2;
+            dsc.data          = (const uint8_t *)px;
+            lv_image_set_src(s_music.cover, &dsc);
+            lv_obj_remove_flag(s_music.cover, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(s_music.note, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(s_music.cover, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(s_music.note, LV_OBJ_FLAG_HIDDEN);
+        }
+        free(old);                              /* off the screen now */
+    }
 }
 
 static void play_path(const char *name)
@@ -568,16 +600,22 @@ static void *create(aos_app_t *self, lv_obj_t *root)
 
     lv_obj_t *art = lv_obj_create(s_music.player_view);
     lv_obj_remove_style_all(art);
-    lv_obj_set_size(art, 112, 112);
+    lv_obj_set_size(art, COVER_PX, COVER_PX);
     lv_obj_set_style_radius(art, 28, 0);
     lv_obj_set_style_bg_color(art, lv_color_hex(0xFF375F), 0);
     lv_obj_set_style_bg_grad_color(art, lv_color_hex(0x7A2FA0), 0);
     lv_obj_set_style_bg_grad_dir(art, LV_GRAD_DIR_VER, 0);
     lv_obj_set_style_bg_opa(art, LV_OPA_COVER, 0);
     lv_obj_align(art, LV_ALIGN_TOP_MID, 0, 16);
-    lv_obj_t *note = aos_label(art, LV_SYMBOL_AUDIO, aos_font_title, AOS_C_TEXT);
-    lv_obj_center(note);
+    lv_obj_set_style_clip_corner(art, true, 0);    /* the cover gets the corners too */
+    s_music.note = aos_label(art, LV_SYMBOL_AUDIO, aos_font_title, AOS_C_TEXT);
+    lv_obj_center(s_music.note);
+    s_music.cover = lv_image_create(art);
+    lv_obj_set_size(s_music.cover, COVER_PX, COVER_PX);
+    lv_obj_center(s_music.cover);
+    lv_obj_add_flag(s_music.cover, LV_OBJ_FLAG_HIDDEN);
     aos_make_decorative(art);
+    s_music.cover_for[0] = '\0';          /* ask again: the image is new */
 
     s_music.count_label = aos_label_boxed(s_music.player_view, "", aos_font_small,
                                           AOS_C_DIM, 80, 20);

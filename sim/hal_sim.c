@@ -1066,6 +1066,8 @@ bool aos_hal_player_info(aos_player_info_t *out)
     out->count       = s_player_index >= 0 ? s_player_list.count : 0;
     out->shuffle     = s_player_shuffle;
     out->has_cover   = s_player_info.cover_offset != 0;
+    out->cover_offset = s_player_info.cover_offset;
+    out->cover_size  = s_player_info.cover_size;
     return true;
 }
 
