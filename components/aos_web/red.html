@@ -67,7 +67,7 @@ const TR = {
     sin_relevamientos: "No scans yet. Open the Scanner app on the watch and tap SEARCH.",
     r_redes: "networks", r_equipos: "devices", r_puertos: "open ports",
     r_con_nombre: "named",
-    desde: "from", cortado: "(stopped by hand)",
+    desde: "from", sin_red: "not connected to any network", cortado: "(stopped by hand)",
     incompleto: "(incomplete: the scan never closed)",
     h_wifi: "WiFi networks around",
     c_red: "Network", c_senal: "Signal", c_canal: "Channel", c_cifrado: "Encryption",
@@ -95,7 +95,7 @@ const TR = {
     sin_relevamientos: "Noch keine Scans. Oeffne die Scanner-App auf der Uhr und tippe SUCHEN.",
     r_redes: "Netze", r_equipos: "Geraete", r_puertos: "offene Ports",
     r_con_nombre: "mit Namen",
-    desde: "von", cortado: "(von Hand gestoppt)",
+    desde: "von", sin_red: "mit keinem Netz verbunden", cortado: "(von Hand gestoppt)",
     incompleto: "(unvollstaendig: der Scan wurde nie abgeschlossen)",
     h_wifi: "WLANs in der Umgebung",
     c_red: "Netz", c_senal: "Signal", c_canal: "Kanal", c_cifrado: "Verschluesselung",
@@ -118,7 +118,7 @@ const ES = {
   sin_relevamientos: "Todavía no hay relevamientos. Abrí la app Escáner en el reloj y tocá BUSCAR.",
   r_redes: "redes", r_equipos: "equipos", r_puertos: "puertos abiertos",
   r_con_nombre: "con nombre",
-  desde: "desde", cortado: "(cortado a mano)",
+  desde: "desde", sin_red: "sin conexión a ninguna red", cortado: "(cortado a mano)",
   incompleto: "(incompleto: el barrido no llegó a cerrar)",
   h_wifi: "Redes wifi alrededor",
   c_red: "Red", c_senal: "Señal", c_canal: "Canal", c_cifrado: "Cifrado",
@@ -243,8 +243,14 @@ async function ver() {
     "</b> " + esc(t("r_puertos")) +
     (noms.length ? " &nbsp; <b>" + Object.keys(nombreDe).length +
                    "</b> " + esc(t("r_con_nombre")) : "") + "<br>" +
-    esc(inicio.fecha || "") + " &middot; " + esc(t("desde")) + " " + esc(inicio.ssid || "?") +
-    " (" + esc(inicio.ip || "?") + "/" + esc(inicio.mascara || "?") + ")" +
+    esc(inicio.fecha || "") + " &middot; " +
+    // Without a network the watch still lists the networks around, and then
+    // there is no "from": saying the configured one with address 0.0.0.0
+    // would be two contradictory things in one line.
+    (inicio.ssid
+      ? esc(t("desde")) + " " + esc(inicio.ssid) +
+        " (" + esc(inicio.ip || "?") + "/" + esc(inicio.mascara || "?") + ")"
+      : esc(t("sin_red"))) +
     (fin ? " &middot; " + (fin.ms / 1000).toFixed(1) + " s" +
            (fin.cortado ? " <span class='naranja'>" + esc(t("cortado")) + "</span>" : "")
          : " <span class='naranja'>" + esc(t("incompleto")) + "</span>");

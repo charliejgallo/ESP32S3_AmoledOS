@@ -3,6 +3,40 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.6.2 — 2026-09-25
+
+**The Scanner lists the networks around without being connected.** With the
+watch not associated to any network, "networks" found 0 instantly. Listing
+what is around is the one thing a scanner can do without a network, so it is
+the one thing that must not need one.
+
+- **Two ways to that zero, both fixed.** With the wifi off (or no credentials)
+  there was no wifi stack to scan with and the phase gave up. With the wifi on
+  but its access point out of reach, the watch retries the connection forever,
+  and the IDF refuses to scan while the station is connecting
+  (`ESP_ERR_WIFI_STATE`). The log only said "did not start", which made the bug
+  look like an empty neighbourhood; it now says why.
+- **The scan borrows the radio** (`aos_wifi_scan_prepare/finish`, internal to
+  the HAL): it brings the stack up just to look, without letting it connect,
+  and takes it down again (some 60 KB of internal RAM, and it was off for a
+  reason); or it pauses the reconnect loop and resumes it. It survives the user
+  turning the wifi on or off in Settings while it runs. The portal's `/wifi`
+  page uses the same thing: it had the same bug in the worst moment, with
+  credentials that do not work.
+- **The first version rebooted the watch**, and the core dump is why the fix
+  looks the way it does: the scan task keeps its stack in PSRAM (RAM audit), and
+  a task like that cannot touch the flash, which borrowing the radio does (the
+  wifi preference and the PHY calibration are NVS). The radio work runs in a
+  short helper task with an internal stack, on core 0 with the IDF's wifi; the
+  long sweep stays in PSRAM. [docs/RAM-AUDIT.md](docs/RAM-AUDIT.md) 6.4 had
+  the rule; it now also says it where the task is created.
+- **The report says "not connected to any network"** instead of the configured
+  network with the address 0.0.0.0.
+
+Verified on the watch: 9 networks in 2.7 s with the wifi off, stack brought up
+and taken down, no panic. The "on but out of reach" path runs the same code and
+logs which way it went; it has not happened on hardware yet.
+
 ## v0.6.1 — 2026-09-25
 
 **MP3 on the watch.** The Music app listed `.mp3` files and could not play

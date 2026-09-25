@@ -270,6 +270,17 @@ when the task that starts a flash operation has its stack in PSRAM
 task, which writes PCM to I2S and nothing else, keeps a PSRAM stack; any task
 that can reach NVS, SPIFFS or OTA stays internal.
 
+It bit a second time, on 2026-09-25, and the lesson is that the rule is about
+what a task *can* reach, which changes when someone edits it. The network
+scanner's task kept its PSRAM stack because it only waited on sockets and wrote
+to the SD card (SDMMC, which does not turn the cache off). Teaching it to scan
+with the wifi off made it read the wifi preference and call
+`esp_wifi_init/start`, which read the PHY calibration from NVS: same assert,
+same reboot. The fix kept the task in PSRAM and moved the flash-touching part to
+a short helper with an internal stack (`radio_job_task` in `aos_scan.c`), and
+the rule is now written at the place where the task is created, which is where
+the next person will be looking.
+
 ### 6.5 X11, measured: what this branch ships
 
 X11 = X10 with the heap allocator back in IRAM. It is what

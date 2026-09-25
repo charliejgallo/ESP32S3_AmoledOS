@@ -30,6 +30,7 @@
  *     scanner.
  */
 #include "aos_hal.h"
+#include "aos_wifi_internal.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -345,41 +346,156 @@ static void icmp_drenar(int sock, FILE *f)
 /* Phases                                                                      */
 /* -------------------------------------------------------------------------- */
 
+/* -------------------------------------------------------------------------- */
+/* Listing the networks around, on a borrowed radio                            */
+/* -------------------------------------------------------------------------- */
+
+/* The radio work runs in its OWN short task, with its stack in internal RAM,
+ * and not in scan_task.
+ *
+ * MEASURED ON THE BOARD (2026-09-25), the hard way: the first version of the
+ * radio borrowing ran inside scan_task and the watch rebooted the moment the
+ * networks were scanned with the wifi off. The core dump said
+ * assert(esp_task_stack_is_sane_cache_disabled()) in
+ * spi_flash_disable_interrupts_caches_and_other_cpu(), under an NVS read. The
+ * reason: scan_task keeps its stack in PSRAM on purpose (see
+ * aos_hal_scan_start), and a task whose stack is in PSRAM CANNOT touch the
+ * flash: a flash operation turns the cache off, and with it PSRAM, stack
+ * included. Borrowing the radio does touch the flash -the wifi preference is
+ * NVS, and esp_wifi_init/start read the PHY calibration from NVS- so it cannot
+ * run there.
+ *
+ * Moving scan_task's stack back inside was the other option, and the worse
+ * one: the long LAN sweep is exactly when internal RAM is tightest. This task
+ * lives only for the few seconds of the network scan. It is pinned to core 0,
+ * where the IDF's wifi task is (CONFIG_ESP_WIFI_TASK_PINNED_TO_CORE_0), on the
+ * radio's side and away from the panel's SPI (docs/internal/
+ * HANDOFF-SPI-WIFI-NUCLEOS.md). */
+#define RADIO_TASK_STACK    6144
+#define RADIO_TASK_WAIT_MS  30000
+
+typedef struct {
+    TaskHandle_t      waiter;
+    wifi_ap_record_t *recs;         /* PSRAM; scan_task frees it */
+    uint16_t          n;
+    esp_err_t         err;
+    bool              prepared, stack_was_off, held;
+    uint32_t          stack_left;   /* the helper's high-water mark, in bytes */
+} radio_job_t;
+
+/* Static and not on scan_task's stack: if the wait ever timed out, the helper
+ * would still be writing here, and a local would be gone by then. */
+static radio_job_t s_radio_job;
+
+static void radio_job_task(void *arg)
+{
+    radio_job_t *j = (radio_job_t *)arg;
+
+    /* MEASURED ON THE BOARD (2026-09-25): with the watch not associated to
+     * any network this phase found "0 networks" instantly. Two ways to get
+     * there, both fixed by borrowing the radio (aos_wifi_internal.h):
+     *   - wifi off or no credentials: there was no stack to scan with, and
+     *     the phase just gave up;
+     *   - wifi on but its access point out of reach: the disconnect handler
+     *     retries forever and the IDF refuses to scan while the station is
+     *     connecting (ESP_ERR_WIFI_STATE).
+     * Listing the networks around is the one thing the scanner can do
+     * WITHOUT a network, so it is the one thing that must not need one. */
+    aos_wifi_scan_ctx_t radio;
+    j->err = ESP_FAIL;
+    if (aos_wifi_scan_prepare(&radio)) {
+        j->prepared      = true;
+        j->stack_was_off = radio.stack_was_off;
+        j->held          = radio.held;
+
+        /* show_hidden: a scanner has to see the hidden ones. They come out
+         * with no name but with a BSSID, channel and signal strength, which
+         * is precisely the interesting part. */
+        wifi_scan_config_t cfg = { .show_hidden = true };
+        /* A connect attempt already under way can take a moment to let go of
+         * the radio after the disconnect: a few tries rather than a silent
+         * zero. */
+        for (int intento = 0; intento < 5 && !s_abort; intento++) {
+            j->err = esp_wifi_scan_start(&cfg, true);
+            if (j->err != ESP_ERR_WIFI_STATE) {
+                break;
+            }
+            vTaskDelay(pdMS_TO_TICKS(200));
+        }
+
+        if (j->err == ESP_OK) {
+            uint16_t hay = 0;
+            esp_wifi_scan_get_ap_num(&hay);
+            if (hay > SCAN_MAX_WIFI) {
+                hay = SCAN_MAX_WIFI;
+            }
+            /* Read BEFORE giving the radio back: if the stack was brought up
+             * for this scan, finish takes it down and the results go with
+             * it. */
+            j->recs = hay ? heap_caps_calloc(hay, sizeof(wifi_ap_record_t),
+                                             MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)
+                          : NULL;
+            if (j->recs) {
+                esp_wifi_scan_get_ap_records(&hay, j->recs);
+                j->n = hay;
+            } else {
+                esp_wifi_clear_ap_list();
+            }
+        }
+        aos_wifi_scan_finish(&radio);
+    }
+
+    j->stack_left = (uint32_t)uxTaskGetStackHighWaterMark(NULL);
+    xTaskNotifyGive(j->waiter);
+    vTaskDelete(NULL);
+}
+
 static void fase_wifi(FILE *f)
 {
     s_phase = AOS_SCAN_PH_WIFI;
     s_done  = 0;
     s_total = 0;
 
-    wifi_mode_t modo;
-    if (esp_wifi_get_mode(&modo) != ESP_OK || modo == WIFI_MODE_NULL) {
-        ESP_LOGW(TAG, "the wifi is not up, there is no network scan");
+    radio_job_t *j = &s_radio_job;
+    memset(j, 0, sizeof(*j));
+    j->waiter = xTaskGetCurrentTaskHandle();
+
+    if (xTaskCreatePinnedToCore(radio_job_task, "aos_radio", RADIO_TASK_STACK,
+                                j, 5, NULL, 0) != pdPASS) {
+        ESP_LOGW(TAG, "no memory for the radio task: no network scan");
+        return;
+    }
+    if (!ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(RADIO_TASK_WAIT_MS))) {
+        /* The helper is stuck somewhere in the driver. Its job is static, so
+         * it can still finish writing there; what is lost is this scan. */
+        ESP_LOGE(TAG, "the radio task did not come back in %d s",
+                 RADIO_TASK_WAIT_MS / 1000);
         return;
     }
 
-    /* show_hidden: a scanner has to see the hidden ones. They come out with no
-     * name but with a BSSID, channel and signal strength, which is precisely
-     * the interesting part. */
-    wifi_scan_config_t cfg = { .show_hidden = true };
-    if (esp_wifi_scan_start(&cfg, true) != ESP_OK) {
-        ESP_LOGW(TAG, "the network scan did not start");
+    if (!j->prepared) {
+        ESP_LOGW(TAG, "could not bring the wifi up to scan");
         return;
     }
-
-    uint16_t hay = 0;
-    esp_wifi_scan_get_ap_num(&hay);
-    if (hay == 0) {
+    if (j->err != ESP_OK) {
+        /* With the reason: "did not start" alone is what made this bug look
+         * like an empty neighbourhood. */
+        ESP_LOGW(TAG, "the network scan did not start: %s", esp_err_to_name(j->err));
         return;
     }
-    if (hay > SCAN_MAX_WIFI) {
-        hay = SCAN_MAX_WIFI;
-    }
+    ESP_LOGI(TAG, "network scan: %u found (stack %s, reconnect %s), "
+                  "radio task stack left %lu of %d B",
+             (unsigned)j->n,
+             j->stack_was_off ? "brought up for it" : "already up",
+             j->held ? "paused" : "untouched",
+             (unsigned long)j->stack_left, RADIO_TASK_STACK);
 
-    wifi_ap_record_t *recs = calloc(hay, sizeof(wifi_ap_record_t));
+    wifi_ap_record_t *recs = j->recs;
+    uint16_t hay = j->n;
+    j->recs = NULL;
     if (!recs) {
         return;
     }
-    esp_wifi_scan_get_ap_records(&hay, recs);
     s_total = hay;
 
     char ssid[100], bssid[20];
@@ -783,7 +899,14 @@ static void scan_task(void *arg)
     char ip_s[20], mask_s[20], ssid[100];
     ip_txt(s_mi_ip, ip_s, sizeof(ip_s));
     ip_txt(s_mi_mask, mask_s, sizeof(mask_s));
-    json_str(ssid, sizeof(ssid), (const uint8_t *)aos_hal_net_ssid(), 32);
+    /* The network it is ASSOCIATED to, not the one it is configured for:
+     * aos_hal_net_ssid() answers the configured one even with the wifi off,
+     * and a report that says "from ComarcA" with the address 0.0.0.0 is
+     * saying two contradictory things. Scanning the networks around works
+     * without being associated (2026-09-25), so this case is real. */
+    json_str(ssid, sizeof(ssid),
+             (const uint8_t *)(aos_hal_net_state() == AOS_NET_CONNECTED
+                               ? aos_hal_net_ssid() : ""), 32);
 
     struct tm t;
     aos_hal_time_now(&t);
@@ -910,6 +1033,15 @@ bool aos_hal_scan_start(uint32_t flags)
      * WiFi up, buffers in flight and sockets open, that is, precisely during a
      * sweep. And latency is all the same to it: it spends its life waiting on
      * network timeouts, so PSRAM's cache tax goes unnoticed.
+     *
+     * THE PRICE, and it is not optional: this task must NEVER reach the flash
+     * -no NVS, no preferences, no esp_wifi_init/start, no SPIFFS, no OTA-.
+     * A flash operation turns the cache off and PSRAM with it, stack
+     * included, and the driver asserts (esp_task_stack_is_sane_cache_disabled,
+     * docs/RAM-AUDIT.md 6.4). It bit on 2026-09-25: borrowing the radio for
+     * the network scan read the wifi preference from here and the watch
+     * rebooted. Anything that needs the flash goes to a short task with an
+     * internal stack, like radio_job_task above.
      *
      * NOTE: a task created with xTaskCreateWithCaps MUST be deleted with
      * vTaskDeleteWithCaps, or the stack is not freed. Those are the two exits

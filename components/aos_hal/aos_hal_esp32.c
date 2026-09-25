@@ -55,6 +55,8 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 
+#include "aos_wifi_internal.h"
+
 #define FIRMWARE_VERSION        "0.1.0-dev"
 #define BOOT_BUTTON_GPIO        GPIO_NUM_0
 #define BUTTON_LONG_MS          800
@@ -263,6 +265,7 @@ static int64_t s_button_down_us;
 
 static aos_net_state_t s_net_state = AOS_NET_OFF;
 static bool     s_link_parked;       /* off the access point, on a fixed channel */
+static volatile bool s_scan_hold;     /* a scan borrowed the radio: do not reconnect */
 static int64_t  s_unpark_at_us;
 static uint32_t s_rejoin_ms;
 static char            s_net_ssid[33];
@@ -3250,12 +3253,17 @@ static void wifi_event_handler(void *arg, esp_event_base_t base,
 {
     (void)arg;
     if (base == WIFI_EVENT && id == WIFI_EVENT_STA_START) {
-        esp_wifi_connect();
-        s_net_state = AOS_NET_CONNECTING;
+        /* A stack brought up only to scan must not go off and connect: a
+         * station that is connecting cannot scan (aos_wifi_internal.h). */
+        if (!s_scan_hold) {
+            esp_wifi_connect();
+            s_net_state = AOS_NET_CONNECTING;
+        }
     } else if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
         s_net_state = AOS_NET_FAILED;
         strcpy(s_net_ip, "0.0.0.0");
-        if (!s_link_parked) {           /* parked on a channel for the link: stay there */
+        /* parked on a channel for the link, or lent to a scan: stay put */
+        if (!s_link_parked && !s_scan_hold) {
             esp_wifi_connect();
         }
     } else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
@@ -3389,6 +3397,93 @@ static void wifi_stack_stop(void)
     s_ap_active   = false;
     strcpy(s_net_ip, "0.0.0.0");
     ESP_LOGI(TAG, "wifi off, memory returned");
+}
+
+/* -------------------------------------------------------------------------- */
+/* Borrowing the radio for a scan (aos_wifi_internal.h explains why)           */
+/* -------------------------------------------------------------------------- */
+
+bool aos_wifi_scan_prepare(aos_wifi_scan_ctx_t *ctx)
+{
+    memset(ctx, 0, sizeof(*ctx));
+    ctx->state_before   = s_net_state;
+    ctx->enabled_before = aos_hal_net_enabled();
+
+    if (!s_wifi_started) {
+        /* Wifi off or no credentials: bring the stack up in plain STA just to
+         * look. The hold goes up BEFORE esp_wifi_start(), because the start
+         * event would otherwise try to join whatever network the driver
+         * remembers, and a station that is connecting cannot scan. */
+        s_scan_hold = true;
+        if (!wifi_stack_start()) {
+            s_scan_hold = false;
+            return false;
+        }
+        ctx->stack_was_off = true;
+        ctx->held = true;
+        esp_wifi_set_mode(WIFI_MODE_STA);
+        esp_wifi_start();
+        vTaskDelay(pdMS_TO_TICKS(50));
+        return true;
+    }
+
+    wifi_mode_t mode;
+    if (esp_wifi_get_mode(&mode) != ESP_OK || mode == WIFI_MODE_NULL) {
+        esp_wifi_set_mode(WIFI_MODE_STA);
+        esp_wifi_start();
+    }
+
+    /* Associated, or already off the access point for the link: the station
+     * is not connecting, so it can scan as it is. Parked on a channel, it
+     * must not be told to reconnect afterwards either. */
+    if (s_net_state == AOS_NET_CONNECTED || s_link_parked) {
+        return true;
+    }
+
+    /* On, with credentials, and retrying against an access point it cannot
+     * reach: stop the retry loop for the length of the scan. */
+    s_scan_hold = true;
+    ctx->held = true;
+    esp_wifi_disconnect();
+    vTaskDelay(pdMS_TO_TICKS(100));
+    return true;
+}
+
+void aos_wifi_scan_finish(const aos_wifi_scan_ctx_t *ctx)
+{
+    if (!ctx) {
+        return;
+    }
+    /* The scan lives in the HAL and outlives the app that started it, so the
+     * user can go to Settings and change the wifi while it runs. Two races,
+     * both handled here rather than left to chance. */
+    if (ctx->stack_was_off) {
+        if (!ctx->enabled_before && aos_hal_net_enabled() && s_wifi_started) {
+            /* Turned ON during the scan: aos_hal_net_enable() already
+             * configured and started the station, but its start event was
+             * swallowed by the hold. Leave the stack up and let it join. */
+            s_scan_hold = false;
+            esp_wifi_connect();
+            s_net_state = AOS_NET_CONNECTING;
+            return;
+        }
+        /* Taken down again: the stack costs some 60 KB of internal memory, and
+         * the user had it off for a reason. The hold comes down AFTER the
+         * stop, so no late event gets to connect. */
+        wifi_stack_stop();
+        s_scan_hold = false;
+        s_net_state = ctx->state_before;
+        return;
+    }
+    if (ctx->held) {
+        s_scan_hold = false;
+        /* Turned OFF during the scan: the driver is gone, and telling it to
+         * connect would only report a state that is not true. */
+        if (s_wifi_started && !s_link_parked) {
+            esp_wifi_connect();
+            s_net_state = AOS_NET_CONNECTING;
+        }
+    }
 }
 
 void aos_hal_net_enable(bool on)
@@ -3987,36 +4082,50 @@ void aos_hal_net_ap_stop(void)
 
 int aos_hal_net_scan(aos_wifi_ap_t *out, int max)
 {
-    if (!out || max <= 0 || !wifi_stack_start()) {
+    if (!out || max <= 0) {
         return -1;
     }
-    /* Scanning needs the STA interface up. If nothing is running it is brought
-     * up in plain STA just to look. */
-    wifi_mode_t mode;
-    if (esp_wifi_get_mode(&mode) != ESP_OK || mode == WIFI_MODE_NULL) {
-        esp_wifi_set_mode(WIFI_MODE_STA);
-        esp_wifi_start();
+    /* The radio is borrowed the same way the scanner app borrows it: this is
+     * the /wifi page of the portal, and it used to fail in the one moment it
+     * matters most -credentials that do not work, a station retrying forever-
+     * because the IDF refuses to scan while connecting. */
+    aos_wifi_scan_ctx_t ctx;
+    if (!aos_wifi_scan_prepare(&ctx)) {
+        return -1;
     }
 
     wifi_scan_config_t cfg = { .show_hidden = false };
-    if (esp_wifi_scan_start(&cfg, true) != ESP_OK) {
+    esp_err_t err = esp_wifi_scan_start(&cfg, true);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "network scan did not start: %s", esp_err_to_name(err));
+        aos_wifi_scan_finish(&ctx);
         return -1;
     }
 
     uint16_t found = 0;
     esp_wifi_scan_get_ap_num(&found);
-    if (found == 0) {
-        return 0;
-    }
     if (found > (uint16_t)max) {
         found = (uint16_t)max;
     }
 
-    wifi_ap_record_t *recs = calloc(found, sizeof(wifi_ap_record_t));
+    /* The records are read BEFORE giving the radio back: if the stack was
+     * brought up for this scan, finish takes it down and the results go with
+     * it. */
+    wifi_ap_record_t *recs = found ? calloc(found, sizeof(wifi_ap_record_t)) : NULL;
+    if (recs) {
+        esp_wifi_scan_get_ap_records(&found, recs);
+    } else {
+        esp_wifi_clear_ap_list();   /* the driver keeps them until read or cleared */
+    }
+    aos_wifi_scan_finish(&ctx);
+
+    if (found == 0) {
+        free(recs);
+        return 0;
+    }
     if (!recs) {
         return -1;
     }
-    esp_wifi_scan_get_ap_records(&found, recs);
 
     int n = 0;
     for (uint16_t i = 0; i < found; i++) {
