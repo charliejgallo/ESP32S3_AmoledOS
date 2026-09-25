@@ -320,7 +320,31 @@ static esp_err_t pmu_handler(httpd_req_t *req)
     httpd_req_get_url_query_str(req, query, sizeof(query));
 
     char note[96] = "";
-    if (httpd_query_key_value(query, "ls", value, sizeof(value)) == ESP_OK) {
+    if (httpd_query_key_value(query, "deep", value, sizeof(value)) == ESP_OK) {
+        /* the answer goes out first: the chip sleeps a moment later */
+        uint32_t secs = (uint32_t)atoi(value);
+        char msg[64];
+        snprintf(msg, sizeof(msg), "{\"deep\":%u}", (unsigned)secs);
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_sendstr(req, msg);
+        vTaskDelay(pdMS_TO_TICKS(300));
+        aos_hal_night_test(secs);
+        return ESP_OK;
+    } else if (httpd_query_key_value(query, "wifitest", value, sizeof(value)) == ESP_OK) {
+        char idle_s[8] = "0";
+        httpd_query_key_value(query, "idle", idle_s, sizeof(idle_s));
+        uint32_t secs = (uint32_t)atoi(value);
+        char msg[64];
+        snprintf(msg, sizeof(msg), "{\"wifitest\":%u,\"idle\":%d}", (unsigned)secs, atoi(idle_s) ? 1 : 0);
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_sendstr(req, msg);
+        vTaskDelay(pdMS_TO_TICKS(300));
+        aos_hal_net_test_absent(secs, atoi(idle_s) != 0);
+        return ESP_OK;
+    } else if (httpd_query_key_value(query, "touchslp", value, sizeof(value)) == ESP_OK) {
+        aos_hal_touch_sleep_enable(atoi(value) != 0);
+        snprintf(note, sizeof(note), "\"touch_sleep\":%d,", atoi(value) ? 1 : 0);
+    } else if (httpd_query_key_value(query, "ls", value, sizeof(value)) == ESP_OK) {
         aos_hal_light_sleep_enable(atoi(value) != 0);
         snprintf(note, sizeof(note), "\"light_sleep_pref\":%d,", atoi(value) ? 1 : 0);
     } else if (httpd_query_key_value(query, "panelslp", value, sizeof(value)) == ESP_OK) {
@@ -517,8 +541,12 @@ static esp_err_t status_handler(httpd_req_t *req)
              (long long)time(NULL),
              calibrated ? "true" : "false", cal_ax, cal_bx, cal_ay, cal_by);
 
+    char power[520];
+    aos_hal_power_json(power, sizeof(power));
+
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send_chunk(req, json, n);
+    httpd_resp_send_chunk(req, power, HTTPD_RESP_USE_STRLEN);
     httpd_resp_send_chunk(req, extra, HTTPD_RESP_USE_STRLEN);
     return httpd_resp_send_chunk(req, NULL, 0);
 }
@@ -2462,14 +2490,16 @@ static esp_err_t ajustes_get_handler(httpd_req_t *req)
     httpd_resp_set_type(req, "application/json");
     snprintf(item, sizeof(item),
              "{\"brillo\":%d,\"volumen\":%d,\"aod\":%d,\"aod_brillo\":%d,"
-             "\"menu\":%d,\"ahorro\":%d,\"cuidar\":%d,\"panel_slp\":%d,\"chip_slp\":%d,",
+             "\"menu\":%d,\"ahorro\":%d,\"cuidar\":%d,\"panel_slp\":%d,\"chip_slp\":%d,"
+             "\"noche\":%d,",
              aos_hal_brightness_get(), aos_hal_volume_get(),
              aos_hal_aod_enabled() ? 1 : 0, aos_hal_aod_brightness_get(),
              (int)aos_ui_launcher_get_style(),
              aos_hal_power_saving_enabled() ? 1 : 0,
              aos_hal_battery_care_enabled() ? 1 : 0,
              aos_hal_panel_sleep_enabled() ? 1 : 0,
-             aos_hal_light_sleep_enabled() ? 1 : 0);
+             aos_hal_light_sleep_enabled() ? 1 : 0,
+             aos_hal_night_sleep_enabled() ? 1 : 0);
     httpd_resp_sendstr_chunk(req, item);
 
     snprintf(item, sizeof(item),
@@ -2608,6 +2638,10 @@ static esp_err_t ajustes_post_handler(httpd_req_t *req)
     }
     if (httpd_query_key_value(body, "chip_slp", v, sizeof(v)) == ESP_OK) {
         aos_hal_light_sleep_enable(atoi(v) != 0);
+        aplicados++;
+    }
+    if (httpd_query_key_value(body, "noche", v, sizeof(v)) == ESP_OK) {
+        aos_hal_night_sleep_enable(atoi(v) != 0);
         aplicados++;
     }
     if (httpd_query_key_value(body, "bt", v, sizeof(v)) == ESP_OK) {

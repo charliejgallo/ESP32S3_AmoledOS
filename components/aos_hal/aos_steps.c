@@ -136,6 +136,16 @@ void aos_steps_tick(void)
     }
 }
 
+/* What the last five minutes added, now: before a deep sleep, a clean
+ * power-off or a restart (OTA included, which used to lose up to five
+ * minutes of steps: 204 -> 178 after the v0.3.14 install). */
+void aos_steps_flush(void)
+{
+    if (s.loaded && (s.today != s.saved_today || s.day != s.saved_day)) {
+        save();
+    }
+}
+
 bool aos_hal_steps_get(aos_steps_info_t *out)
 {
     if (!out) {

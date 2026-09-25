@@ -2795,3 +2795,57 @@ int aos_hal_minute_history(aos_hist_t which, int16_t *out, int max)
     }
     return n;
 }
+
+void aos_hal_net_retry_info(uint32_t *failures, bool *parked, uint32_t *next_s, uint8_t *reason)
+{
+    if (failures) *failures = 0;
+    if (parked)   *parked   = false;
+    if (next_s)   *next_s   = 0;
+    if (reason)   *reason   = 0;
+}
+
+int aos_hal_batt_history_mv(uint16_t *mv, int max)
+{
+    int n = max < AOS_BATT_HIST_LEN ? max : AOS_BATT_HIST_LEN;
+    for (int i = 0; i < n && mv; i++) {
+        mv[i] = 0;
+    }
+    return n;
+}
+
+void aos_hal_main_wait(void)
+{
+    SDL_Delay(s_display_state == AOS_DISPLAY_OFF ? 1000 : 200);
+}
+
+static bool s_sim_touch_sleep;
+void aos_hal_touch_sleep_enable(bool on) { s_sim_touch_sleep = on; aos_hal_pref_set_i32("touch_slp", on); }
+bool aos_hal_touch_sleep_enabled(void) { return s_sim_touch_sleep; }
+void aos_hal_touch_counters(uint32_t *isr, uint32_t *wakes, bool *chip_sleeping)
+{
+    if (isr) *isr = 0;
+    if (wakes) *wakes = 0;
+    if (chip_sleeping) *chip_sleeping = false;
+}
+
+static bool s_sim_night;
+void aos_hal_night_sleep_enable(bool on) { s_sim_night = on; aos_hal_pref_set_i32("night_ds", on); }
+bool aos_hal_night_sleep_enabled(void) { return s_sim_night; }
+void aos_hal_set_night_guard_cb(bool (*cb)(int64_t *wake_by)) { (void)cb; }
+void aos_hal_sleep_hold(const char *who, bool hold) { (void)who; (void)hold; }
+void aos_hal_night_info(uint32_t *nights, uint32_t *chunks, uint32_t *slept_s,
+                        int64_t *last_start, int64_t *last_end, uint8_t *last_wake)
+{
+    if (nights) *nights = 0;
+    if (chunks) *chunks = 0;
+    if (slept_s) *slept_s = 0;
+    if (last_start) *last_start = 0;
+    if (last_end) *last_end = 0;
+    if (last_wake) *last_wake = 0;
+}
+void aos_hal_night_test(uint32_t seconds) { (void)seconds; }
+void aos_stats_flush(void) {}
+
+int aos_hal_power_json(char *out, size_t len) { return snprintf(out, len, ",\"soc\":-1"); }
+
+void aos_hal_net_test_absent(uint32_t seconds, bool idle) { (void)seconds; (void)idle; }

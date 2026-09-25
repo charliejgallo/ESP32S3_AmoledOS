@@ -98,6 +98,8 @@ static void start_cb(lv_event_t *event)
         s_sw.running = true;
     }
     aos_hal_beep(1200, 25);
+    /* running, it would not survive the boot out of a deep sleep */
+    aos_hal_sleep_hold("aos.stopwatch", s_sw.running);
     update_buttons();
 }
 

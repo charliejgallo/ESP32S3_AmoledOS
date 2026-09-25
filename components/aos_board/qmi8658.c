@@ -224,3 +224,13 @@ bool aos_board_imu_gyro_enabled(void)
 {
     return s_gyro_on;
 }
+
+/* Both sensors off (CTRL7 = 0), before a deep sleep: the gyroscope alone is
+ * about 1 mA. aos_imu_start() turns them back on at the next boot. */
+void aos_board_imu_power_down(void)
+{
+    if (s_present) {
+        qmi8658_enable_sensors(&s_imu, 0);
+        ESP_LOGI(TAG, "IMU powered down");
+    }
+}

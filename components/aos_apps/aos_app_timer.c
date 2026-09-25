@@ -220,6 +220,8 @@ static void tick(aos_app_t *self, void *inst)
 {
     (void)self; (void)inst;
     advance();
+    /* a countdown under way would not survive the boot out of a deep sleep */
+    aos_hal_sleep_hold("aos.timer", s_timer.active);
     if (s_timer.beeps_left > 0) {
         aos_hal_beep(2000, 120);
         s_timer.beeps_left--;

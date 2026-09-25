@@ -29,13 +29,16 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <stddef.h>
 #include <sys/stat.h>
 
 static const char *TAG = "aos_stats";
 
 #define BATT_SLOT_S     300             /* five minutes */
 #define SAVE_EVERY_S    1800
-#define FILE_MAGIC      0x31545342u     /* "BST1" */
+#define FILE_MAGIC_V1   0x31545342u     /* "BST1": percent and flags          */
+#define FILE_MAGIC      0x32545342u     /* "BST2": and the voltage, and USB   */
+#define FILE_V1_BYTES   600             /* sizeof the BST1 struct             */
 
 /* --- live values ---------------------------------------------------------- */
 
@@ -62,7 +65,13 @@ typedef struct {
     uint16_t head;                      /* next slot to write */
     uint8_t  pct[AOS_BATT_HIST_LEN];
     uint8_t  flags[AOS_BATT_HIST_LEN];
+    /* Added in BST2, after everything BST1 had, so a BST1 file is the first
+     * 600 bytes of this one. The voltage is what will let the generic
+     * discharge curve of aos_soc.c be replaced by this cell's own. */
+    uint16_t mv[AOS_BATT_HIST_LEN];
 } batt_file_t;
+/* A BST1 file is read into the start of this struct: its layout must not move. */
+_Static_assert(offsetof(batt_file_t, mv) == 594, "battery file layout changed");
 
 AOS_BSS_PSRAM static batt_file_t s_batt;
 static bool     s_batt_loaded;
@@ -88,10 +97,11 @@ static void batt_path(char *out, size_t len)
     }
 }
 
-static void batt_push(uint8_t pct, uint8_t flags)
+static void batt_push(uint8_t pct, uint8_t flags, uint16_t mv)
 {
     s_batt.pct[s_batt.head] = pct;
     s_batt.flags[s_batt.head] = flags;
+    s_batt.mv[s_batt.head] = mv;
     s_batt.head = (uint16_t)((s_batt.head + 1) % AOS_BATT_HIST_LEN);
     s_batt_dirty = true;
 }
@@ -101,6 +111,7 @@ static void batt_load(void)
     s_batt_loaded = true;
     memset(s_batt.pct, AOS_BATT_HIST_NONE, sizeof(s_batt.pct));
     memset(s_batt.flags, 0, sizeof(s_batt.flags));
+    memset(s_batt.mv, 0, sizeof(s_batt.mv));
     s_batt.magic = FILE_MAGIC;
     s_batt.head = 0;
     s_batt.last_epoch = 0;
@@ -113,14 +124,21 @@ static void batt_load(void)
     }
     /* Straight into the PSRAM copy, not through the stack: this runs on the
      * housekeeping task, whose stack is small. A bad file is thrown away. */
-    bool ok = fread(&s_batt, 1, sizeof(s_batt), f) == sizeof(s_batt) &&
-              s_batt.magic == FILE_MAGIC && s_batt.head < AOS_BATT_HIST_LEN;
+    size_t got = fread(&s_batt, 1, sizeof(s_batt), f);
     fclose(f);
-    if (ok) {
+    bool ok = s_batt.head < AOS_BATT_HIST_LEN &&
+              ((got == sizeof(s_batt) && s_batt.magic == FILE_MAGIC) ||
+               (got == FILE_V1_BYTES && s_batt.magic == FILE_MAGIC_V1));
+    if (ok && s_batt.magic == FILE_MAGIC_V1) {
+        memset(s_batt.mv, 0, sizeof(s_batt.mv));    /* BST1 had no voltage */
+        s_batt.magic = FILE_MAGIC;
+        ESP_LOGI(TAG, "battery history read back from %s (v1, no voltage)", path);
+    } else if (ok) {
         ESP_LOGI(TAG, "battery history read back from %s", path);
     } else {
         memset(s_batt.pct, AOS_BATT_HIST_NONE, sizeof(s_batt.pct));
         memset(s_batt.flags, 0, sizeof(s_batt.flags));
+        memset(s_batt.mv, 0, sizeof(s_batt.mv));
         s_batt.magic = FILE_MAGIC;
         s_batt.head = 0;
         s_batt.last_epoch = 0;
@@ -167,14 +185,18 @@ static void batt_tick(void)
         int64_t missed = (slot - s_batt.last_epoch) / BATT_SLOT_S - 1;
         if (missed > AOS_BATT_HIST_LEN) missed = AOS_BATT_HIST_LEN;
         for (int64_t i = 0; i < missed; i++) {
-            batt_push(AOS_BATT_HIST_NONE, 0);
+            batt_push(AOS_BATT_HIST_NONE, 0, 0);
         }
     }
     aos_battery_t b;
     if (aos_hal_battery_read(&b) && b.percent >= 0) {
-        batt_push((uint8_t)b.percent, b.charging ? AOS_BATT_HIST_CHARGING : 0);
+        uint8_t flags = (b.charging ? AOS_BATT_HIST_CHARGING : 0) |
+                        (b.usb_present ? AOS_BATT_HIST_USB : 0);
+        float mv = b.voltage * 1000.0f;
+        batt_push((uint8_t)b.percent, flags,
+                  (uint16_t)(mv > 0.0f && mv < 65535.0f ? mv : 0.0f));
     } else {
-        batt_push(AOS_BATT_HIST_NONE, 0);
+        batt_push(AOS_BATT_HIST_NONE, 0, 0);
     }
     s_batt.last_epoch = slot;
 }
@@ -250,6 +272,11 @@ static void minute_push(void)
     s_min_head = (h + 1) % AOS_MIN_HIST_LEN;
 }
 
+void aos_stats_flush(void)
+{
+    batt_save_on_restart();
+}
+
 void aos_stats_tick(void)
 {
     static int64_t last_us;
@@ -314,6 +341,16 @@ int aos_hal_batt_history(uint8_t *pct, uint8_t *flags, int max)
         int k = (start + i) % AOS_BATT_HIST_LEN;
         if (pct)   pct[i] = s_batt_loaded ? s_batt.pct[k] : AOS_BATT_HIST_NONE;
         if (flags) flags[i] = s_batt_loaded ? s_batt.flags[k] : 0;
+    }
+    return n;
+}
+
+int aos_hal_batt_history_mv(uint16_t *mv, int max)
+{
+    int n = max < AOS_BATT_HIST_LEN ? max : AOS_BATT_HIST_LEN;
+    int start = (s_batt.head + AOS_BATT_HIST_LEN - n) % AOS_BATT_HIST_LEN;
+    for (int i = 0; i < n && mv; i++) {
+        mv[i] = s_batt_loaded ? s_batt.mv[(start + i) % AOS_BATT_HIST_LEN] : 0;
     }
     return n;
 }

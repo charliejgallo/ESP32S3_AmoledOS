@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 121 funciones de libc/libm agregadas a mano.
- * Total: 2847 simbolos.
+ * Total: 2870 simbolos.
  */
 
 #include <stddef.h>
@@ -72,6 +72,7 @@ extern int aos_board_imu_gyro_enable;
 extern int aos_board_imu_gyro_enabled;
 extern int aos_board_imu_orientation;
 extern int aos_board_imu_poll;
+extern int aos_board_imu_power_down;
 extern int aos_board_imu_read;
 extern int aos_board_imu_ring_get;
 extern int aos_board_imu_set_bump_cb;
@@ -139,6 +140,7 @@ extern int aos_hal_audio_foreground;
 extern int aos_hal_audio_is_playing;
 extern int aos_hal_audio_stop;
 extern int aos_hal_batt_history;
+extern int aos_hal_batt_history_mv;
 extern int aos_hal_battery_care_enable;
 extern int aos_hal_battery_care_enabled;
 extern int aos_hal_battery_read;
@@ -225,6 +227,7 @@ extern int aos_hal_link_unpark;
 extern int aos_hal_lock;
 extern int aos_hal_log;
 extern int aos_hal_lvgl_core;
+extern int aos_hal_main_wait;
 extern int aos_hal_mdns_add_netif;
 extern int aos_hal_mdns_remove_netif;
 extern int aos_hal_media_command;
@@ -257,12 +260,18 @@ extern int aos_hal_net_enabled;
 extern int aos_hal_net_forget;
 extern int aos_hal_net_has_credentials;
 extern int aos_hal_net_ip;
+extern int aos_hal_net_retry_info;
 extern int aos_hal_net_rssi;
 extern int aos_hal_net_scan;
 extern int aos_hal_net_set_credentials;
 extern int aos_hal_net_ssid;
 extern int aos_hal_net_state;
 extern int aos_hal_net_sync_time;
+extern int aos_hal_net_test_absent;
+extern int aos_hal_night_info;
+extern int aos_hal_night_sleep_enable;
+extern int aos_hal_night_sleep_enabled;
+extern int aos_hal_night_test;
 extern int aos_hal_notif_action;
 extern int aos_hal_notif_action_failed;
 extern int aos_hal_notif_at;
@@ -330,6 +339,7 @@ extern int aos_hal_pmu_register_read;
 extern int aos_hal_pmu_register_write;
 extern int aos_hal_pmu_ts_voltage;
 extern int aos_hal_power_info;
+extern int aos_hal_power_json;
 extern int aos_hal_power_saving_enable;
 extern int aos_hal_power_saving_enabled;
 extern int aos_hal_pref_erase;
@@ -362,9 +372,11 @@ extern int aos_hal_sd_release;
 extern int aos_hal_sd_usage;
 extern int aos_hal_set_button_cb;
 extern int aos_hal_set_display_state_cb;
+extern int aos_hal_set_night_guard_cb;
 extern int aos_hal_set_power_event_cb;
 extern int aos_hal_shutdown;
 extern int aos_hal_sleep;
+extern int aos_hal_sleep_hold;
 extern int aos_hal_spk_close;
 extern int aos_hal_spk_is_open;
 extern int aos_hal_spk_open;
@@ -379,6 +391,7 @@ extern int aos_hal_time_now;
 extern int aos_hal_time_set;
 extern int aos_hal_timezone_get;
 extern int aos_hal_timezone_set;
+extern int aos_hal_touch_counters;
 extern int aos_hal_touch_frame;
 extern int aos_hal_touch_frames;
 extern int aos_hal_touch_gesture;
@@ -386,6 +399,8 @@ extern int aos_hal_touch_multi;
 extern int aos_hal_touch_reg_read;
 extern int aos_hal_touch_reg_write;
 extern int aos_hal_touch_regs;
+extern int aos_hal_touch_sleep_enable;
+extern int aos_hal_touch_sleep_enabled;
 extern int aos_hal_touch_stats;
 extern int aos_hal_unlock;
 extern int aos_hal_uptime_ms;
@@ -489,9 +504,15 @@ extern int aos_quick_tiles_create;
 extern int aos_quick_tiles_paint;
 extern int aos_rtc_start;
 extern int aos_settings_font;
+extern int aos_soc_from_ocv;
+extern int aos_soc_init;
+extern int aos_soc_percent;
+extern int aos_soc_step;
+extern int aos_stats_flush;
 extern int aos_stats_tick;
 extern int aos_step_detect_feed;
 extern int aos_step_detect_init;
+extern int aos_steps_flush;
 extern int aos_steps_tick;
 extern int aos_text_font_has;
 extern int aos_text_safe;
@@ -585,6 +606,8 @@ extern int aos_watchface_set_aod;
 extern int aos_watchface_suspend;
 extern int aos_watchfaces_register_builtin;
 extern int aos_wifi_qr_text;
+extern int aos_wifi_scan_finish;
+extern int aos_wifi_scan_prepare;
 extern int asinf;
 extern int atan2f;
 extern int atoi;
@@ -2922,6 +2945,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_board_imu_gyro_enabled),
     ESP_ELFSYM_EXPORT(aos_board_imu_orientation),
     ESP_ELFSYM_EXPORT(aos_board_imu_poll),
+    ESP_ELFSYM_EXPORT(aos_board_imu_power_down),
     ESP_ELFSYM_EXPORT(aos_board_imu_read),
     ESP_ELFSYM_EXPORT(aos_board_imu_ring_get),
     ESP_ELFSYM_EXPORT(aos_board_imu_set_bump_cb),
@@ -2989,6 +3013,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_audio_is_playing),
     ESP_ELFSYM_EXPORT(aos_hal_audio_stop),
     ESP_ELFSYM_EXPORT(aos_hal_batt_history),
+    ESP_ELFSYM_EXPORT(aos_hal_batt_history_mv),
     ESP_ELFSYM_EXPORT(aos_hal_battery_care_enable),
     ESP_ELFSYM_EXPORT(aos_hal_battery_care_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_battery_read),
@@ -3075,6 +3100,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_lock),
     ESP_ELFSYM_EXPORT(aos_hal_log),
     ESP_ELFSYM_EXPORT(aos_hal_lvgl_core),
+    ESP_ELFSYM_EXPORT(aos_hal_main_wait),
     ESP_ELFSYM_EXPORT(aos_hal_mdns_add_netif),
     ESP_ELFSYM_EXPORT(aos_hal_mdns_remove_netif),
     ESP_ELFSYM_EXPORT(aos_hal_media_command),
@@ -3107,12 +3133,18 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_net_forget),
     ESP_ELFSYM_EXPORT(aos_hal_net_has_credentials),
     ESP_ELFSYM_EXPORT(aos_hal_net_ip),
+    ESP_ELFSYM_EXPORT(aos_hal_net_retry_info),
     ESP_ELFSYM_EXPORT(aos_hal_net_rssi),
     ESP_ELFSYM_EXPORT(aos_hal_net_scan),
     ESP_ELFSYM_EXPORT(aos_hal_net_set_credentials),
     ESP_ELFSYM_EXPORT(aos_hal_net_ssid),
     ESP_ELFSYM_EXPORT(aos_hal_net_state),
     ESP_ELFSYM_EXPORT(aos_hal_net_sync_time),
+    ESP_ELFSYM_EXPORT(aos_hal_net_test_absent),
+    ESP_ELFSYM_EXPORT(aos_hal_night_info),
+    ESP_ELFSYM_EXPORT(aos_hal_night_sleep_enable),
+    ESP_ELFSYM_EXPORT(aos_hal_night_sleep_enabled),
+    ESP_ELFSYM_EXPORT(aos_hal_night_test),
     ESP_ELFSYM_EXPORT(aos_hal_notif_action),
     ESP_ELFSYM_EXPORT(aos_hal_notif_action_failed),
     ESP_ELFSYM_EXPORT(aos_hal_notif_at),
@@ -3180,6 +3212,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_pmu_register_write),
     ESP_ELFSYM_EXPORT(aos_hal_pmu_ts_voltage),
     ESP_ELFSYM_EXPORT(aos_hal_power_info),
+    ESP_ELFSYM_EXPORT(aos_hal_power_json),
     ESP_ELFSYM_EXPORT(aos_hal_power_saving_enable),
     ESP_ELFSYM_EXPORT(aos_hal_power_saving_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_pref_erase),
@@ -3212,9 +3245,11 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_sd_usage),
     ESP_ELFSYM_EXPORT(aos_hal_set_button_cb),
     ESP_ELFSYM_EXPORT(aos_hal_set_display_state_cb),
+    ESP_ELFSYM_EXPORT(aos_hal_set_night_guard_cb),
     ESP_ELFSYM_EXPORT(aos_hal_set_power_event_cb),
     ESP_ELFSYM_EXPORT(aos_hal_shutdown),
     ESP_ELFSYM_EXPORT(aos_hal_sleep),
+    ESP_ELFSYM_EXPORT(aos_hal_sleep_hold),
     ESP_ELFSYM_EXPORT(aos_hal_spk_close),
     ESP_ELFSYM_EXPORT(aos_hal_spk_is_open),
     ESP_ELFSYM_EXPORT(aos_hal_spk_open),
@@ -3229,6 +3264,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_time_set),
     ESP_ELFSYM_EXPORT(aos_hal_timezone_get),
     ESP_ELFSYM_EXPORT(aos_hal_timezone_set),
+    ESP_ELFSYM_EXPORT(aos_hal_touch_counters),
     ESP_ELFSYM_EXPORT(aos_hal_touch_frame),
     ESP_ELFSYM_EXPORT(aos_hal_touch_frames),
     ESP_ELFSYM_EXPORT(aos_hal_touch_gesture),
@@ -3236,6 +3272,8 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_touch_reg_read),
     ESP_ELFSYM_EXPORT(aos_hal_touch_reg_write),
     ESP_ELFSYM_EXPORT(aos_hal_touch_regs),
+    ESP_ELFSYM_EXPORT(aos_hal_touch_sleep_enable),
+    ESP_ELFSYM_EXPORT(aos_hal_touch_sleep_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_touch_stats),
     ESP_ELFSYM_EXPORT(aos_hal_unlock),
     ESP_ELFSYM_EXPORT(aos_hal_uptime_ms),
@@ -3339,9 +3377,15 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_quick_tiles_paint),
     ESP_ELFSYM_EXPORT(aos_rtc_start),
     ESP_ELFSYM_EXPORT(aos_settings_font),
+    ESP_ELFSYM_EXPORT(aos_soc_from_ocv),
+    ESP_ELFSYM_EXPORT(aos_soc_init),
+    ESP_ELFSYM_EXPORT(aos_soc_percent),
+    ESP_ELFSYM_EXPORT(aos_soc_step),
+    ESP_ELFSYM_EXPORT(aos_stats_flush),
     ESP_ELFSYM_EXPORT(aos_stats_tick),
     ESP_ELFSYM_EXPORT(aos_step_detect_feed),
     ESP_ELFSYM_EXPORT(aos_step_detect_init),
+    ESP_ELFSYM_EXPORT(aos_steps_flush),
     ESP_ELFSYM_EXPORT(aos_steps_tick),
     ESP_ELFSYM_EXPORT(aos_text_font_has),
     ESP_ELFSYM_EXPORT(aos_text_safe),
@@ -3435,6 +3479,8 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_watchface_suspend),
     ESP_ELFSYM_EXPORT(aos_watchfaces_register_builtin),
     ESP_ELFSYM_EXPORT(aos_wifi_qr_text),
+    ESP_ELFSYM_EXPORT(aos_wifi_scan_finish),
+    ESP_ELFSYM_EXPORT(aos_wifi_scan_prepare),
     ESP_ELFSYM_EXPORT(asinf),
     ESP_ELFSYM_EXPORT(atan2f),
     ESP_ELFSYM_EXPORT(atoi),

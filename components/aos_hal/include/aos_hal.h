@@ -243,6 +243,10 @@ void aos_hal_display_set_state(aos_display_state_t state);
  * to its dimmed variant. Runs outside the LVGL task: take aos_hal_lock(). */
 void aos_hal_set_display_state_cb(void (*cb)(aos_display_state_t state));
 
+/* The main loop's pause between ticks: 200 ms with the screen lit, a second
+ * with it off, returning at once when the display changes state. */
+void aos_hal_main_wait(void);
+
 /* Always-on: when off, ACTIVE goes straight to OFF. */
 void aos_hal_aod_enable(bool enable);
 bool aos_hal_aod_enabled(void);
@@ -334,6 +338,13 @@ typedef struct {
     bool     panel_asleep;          /* the AMOLED's driver IC is in sleep-in    */
     bool     power_saving_active;   /* by preference or because the battery is low */
     bool     light_sleep;           /* automatic light sleep is armed right now */
+    /* The state of charge is the firmware's own estimate (aos_soc.c); these
+     * are the pieces it is built from. */
+    int      gauge_pct;             /* the AXP2101's gauge, which reads high   */
+    float    soc_sag_mv;            /* voltage lost with the screen lit        */
+    int      soc_sag_samples;
+    float    capacity_mah;          /* usable, up to the charge target         */
+    int      capacity_samples;      /* 0 = still the default, never measured   */
 } aos_power_info_t;
 
 bool aos_hal_power_info(aos_power_info_t *out);
@@ -362,9 +373,12 @@ bool aos_hal_sys_stats(aos_sys_stats_t *out);
 #define AOS_BATT_HIST_LEN   288         /* 24 h, one sample every 5 minutes */
 #define AOS_BATT_HIST_NONE  0xFF        /* no sample for that slot          */
 #define AOS_BATT_HIST_CHARGING 0x01     /* flags: was charging              */
+#define AOS_BATT_HIST_USB      0x02     /* flags: on the cable (since BST2)  */
 
 /* Oldest first, AOS_BATT_HIST_LEN slots ending now. Returns how many. */
 int  aos_hal_batt_history(uint8_t *pct, uint8_t *flags, int max);
+/* The same slots, the battery voltage in mV; 0 where unknown. */
+int  aos_hal_batt_history_mv(uint16_t *mv, int max);
 
 typedef enum {
     AOS_HIST_CHIP_T = 0,        /* tenths of a degree C */
@@ -419,6 +433,36 @@ bool aos_hal_panel_sleep_enabled(void);
  * wake-ups (tickless idle). A finger, the BOOT button, WiFi and BLE wake it. */
 void aos_hal_light_sleep_enable(bool on);
 bool aos_hal_light_sleep_enabled(void);
+
+/* With the screen not lit, let the touch controller fall into its own
+ * auto-sleep (the v2's CST820). A touch still lights the screen through its
+ * INT line. Counters for checking that from outside: interrupts seen, screens
+ * lit by a touch, and whether the chip is in auto-sleep now. */
+void aos_hal_touch_sleep_enable(bool on);
+bool aos_hal_touch_sleep_enabled(void);
+void aos_hal_touch_counters(uint32_t *isr, uint32_t *wakes, bool *chip_sleeping);
+
+/* Deep sleep during the scheduled do-not-disturb hours (see aos_hal_esp32.c,
+ * "Deep sleep at night"). A preference, off by default: while it sleeps the
+ * phone's notifications and the steps stop, and waking is a full boot. */
+void aos_hal_night_sleep_enable(bool on);
+bool aos_hal_night_sleep_enabled(void);
+/* Who may veto it or bring the wake-up forward (the alarms, from main.c):
+ * return false to stay awake, or lower *wake_by (an epoch) to be up by then. */
+void aos_hal_set_night_guard_cb(bool (*cb)(int64_t *wake_by));
+/* An app with state a boot would lose (a countdown, a stopwatch) holds it
+ * off while it matters. Idempotent; 'who' must be a string literal. */
+void aos_hal_sleep_hold(const char *who, bool hold);
+/* Counters since power-on; last_wake 1 = end of the night, 2 = touch or
+ * BOOT, 3 = USB. */
+void aos_hal_night_info(uint32_t *nights, uint32_t *chunks, uint32_t *slept_s,
+                        int64_t *last_start, int64_t *last_end, uint8_t *last_wake);
+/* The energy fields of /api/status as a JSON fragment (leading comma). */
+int  aos_hal_power_json(char *out, size_t len);
+/* Bench only: the home network gone for N seconds (see aos_hal_esp32.c). */
+void aos_hal_net_test_absent(uint32_t seconds, bool idle);
+/* Bench only: a "night" of N seconds right now. */
+void aos_hal_night_test(uint32_t seconds);
 
 /* Meant to switch the gyroscope off while no app needs it. On the board the
  * accel-only mode broke the accelerometer (see qmi8658.c), so for now the
@@ -1003,6 +1047,11 @@ int         aos_hal_net_rssi(void);         /* dBm */
 const char *aos_hal_net_ip(void);
 void        aos_hal_net_enable(bool on);
 bool        aos_hal_net_enabled(void);   /* preference, survives restarts */
+/* The station's reconnection pacing: failures since boot, whether it has
+ * stopped retrying until the screen or USB (on battery, screen off), the
+ * delay it is waiting now, and the driver's last disconnect reason. */
+void        aos_hal_net_retry_info(uint32_t *failures, bool *parked, uint32_t *next_s,
+                                   uint8_t *reason);
 bool        aos_hal_net_sync_time(void);    /* SNTP, non-blocking */
 
 /* Are there stored credentials? If not, trying to connect is pointless. */
@@ -1476,6 +1525,10 @@ void aos_hal_steps_reset_today(void);
 /* HAL-internal: the board's housekeeping and the simulator's loop call it
  * every few seconds; it folds the raw counter in and watches the date. */
 void aos_steps_tick(void);
+/* HAL-internal: saves the count now (see aos_steps.c). */
+void aos_steps_flush(void);
+/* HAL-internal: writes the battery history to the card now (aos_stats.c). */
+void aos_stats_flush(void);
 
 /* --------------------------------------------------------------------------
  * Link: raw ESP-NOW frames between watches (phase 1 of docs/LINK.md)

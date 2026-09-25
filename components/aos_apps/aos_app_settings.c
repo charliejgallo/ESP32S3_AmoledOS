@@ -189,6 +189,18 @@ static void light_sleep_cb(lv_event_t *event)
     aos_hal_light_sleep_enable(lv_obj_has_state(sw, LV_STATE_CHECKED));
 }
 
+static void night_sleep_cb(lv_event_t *event)
+{
+    bool on = lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED);
+    aos_hal_night_sleep_enable(on);
+    /* It rides on the scheduled do-not-disturb: without it there is no night. */
+    bool dnd = false;
+    aos_hal_notif_dnd_schedule_get(&dnd, NULL, NULL);
+    if (on && !dnd) {
+        aos_ui_toast(_("Programa el no molestar para que funcione"), 2200);
+    }
+}
+
 static void aod_brightness_cb(lv_event_t *event)
 {
     lv_obj_t *slider = lv_event_get_target(event);
@@ -3046,6 +3058,9 @@ static void build_energy(lv_obj_t *p)
     switch_row2(c2, _("Dormir el chip"),
                 _("con la pantalla apagada el procesador duerme entre avisos"),
                 aos_hal_light_sleep_enabled(), light_sleep_cb);
+    switch_row2(c2, _("Reposo profundo de noche"),
+                _("en el horario de no molestar se apaga casi del todo; se despierta al tocarla"),
+                aos_hal_night_sleep_enabled(), night_sleep_cb);
 
     st->charts_at_min = (uint32_t)(aos_hal_uptime_ms() / 60000);
     energy_refresh();

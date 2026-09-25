@@ -323,6 +323,7 @@ static const char blob_en__sistema_lang[] =
     "Menu: lista\tMenu: list\n"
     "Menu: grilla\tMenu: grid\n"
     "Menu: panal\tMenu: honeycomb\n"
+    "Programa el no molestar para que funcione\tSchedule do not disturb for it to work\n"
     "Sincronizando hora...\tSyncing time...\n"
     "Sin conexion\tNo connection\n"
     "No se pudo levantar la red\tCould not start the network\n"
@@ -474,6 +475,8 @@ static const char blob_en__sistema_lang[] =
     "la pantalla en reposo profundo al apagarse; despierta en una decima\tthe display sleeps deeply when off; wakes in a tenth of a second\n"
     "Dormir el chip\tChip sleep\n"
     "con la pantalla apagada el procesador duerme entre avisos\twith the screen off the processor sleeps between events\n"
+    "Reposo profundo de noche\tDeep sleep at night\n"
+    "en el horario de no molestar se apaga casi del todo; se despierta al tocarla\tduring the do-not-disturb hours it switches almost fully off; a touch wakes it\n"
     "Calibrar\tCalibrate\n"
     "Ver crudo\tRaw view\n"
     "Probar gestos\tTry gestures\n"
@@ -2808,6 +2811,7 @@ static const char blob_de__sistema_lang[] =
     "Menu: lista\tMenü: Liste\n"
     "Menu: grilla\tMenü: Raster\n"
     "Menu: panal\tMenü: Wabe\n"
+    "Programa el no molestar para que funcione\tNicht stören planen, damit es wirkt\n"
     "Sincronizando hora...\tZeit wird abgeglichen...\n"
     "Sin conexion\tKeine Verbindung\n"
     "No se pudo levantar la red\tNetzwerk konnte nicht starten\n"
@@ -2959,6 +2963,8 @@ static const char blob_de__sistema_lang[] =
     "la pantalla en reposo profundo al apagarse; despierta en una decima\tder Bildschirm schläft tief, wenn er aus ist; wacht in einer Zehntelsekunde auf\n"
     "Dormir el chip\tChip schlafen\n"
     "con la pantalla apagada el procesador duerme entre avisos\tbei ausgeschaltetem Bildschirm schläft der Prozessor zwischen Ereignissen\n"
+    "Reposo profundo de noche\tTiefschlaf in der Nacht\n"
+    "en el horario de no molestar se apaga casi del todo; se despierta al tocarla\tin den Nicht-stören-Stunden fast ganz aus; eine Berührung weckt sie\n"
     "Calibrar\tKalibrieren\n"
     "Ver crudo\tRohwerte\n"
     "Probar gestos\tGesten testen\n"
@@ -4984,7 +4990,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 610, 36, files_en, 37 },
-    { "de", "Deutsch", 610, 36, files_de, 37 },
+    { "en", "English", 613, 36, files_en, 37 },
+    { "de", "Deutsch", 613, 36, files_de, 37 },
 };
 const int aos_lang_pack_count = 2;
