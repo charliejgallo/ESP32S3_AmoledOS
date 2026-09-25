@@ -244,7 +244,7 @@ void aos_hal_display_set_state(aos_display_state_t state);
 void aos_hal_set_display_state_cb(void (*cb)(aos_display_state_t state));
 
 /* The main loop's pause between ticks: 200 ms with the screen lit, a second
- * with it off, returning at once when the display changes state. */
+ * dimmed or off, returning at once when the display changes state. */
 void aos_hal_main_wait(void);
 
 /* Always-on: when off, ACTIVE goes straight to OFF. */

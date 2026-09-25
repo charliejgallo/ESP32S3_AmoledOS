@@ -341,6 +341,30 @@ static esp_err_t pmu_handler(httpd_req_t *req)
         vTaskDelay(pdMS_TO_TICKS(300));
         aos_hal_net_test_absent(secs, atoi(idle_s) != 0);
         return ESP_OK;
+    } else if (httpd_query_key_value(query, "tasks", value, sizeof(value)) == ESP_OK) {
+        /* each task's run time (microseconds since boot) and core; the
+         * difference between two readings says who keeps the chip awake */
+        UBaseType_t ntask = uxTaskGetNumberOfTasks();
+        TaskStatus_t *ts = heap_caps_calloc(ntask + 8, sizeof(TaskStatus_t), MALLOC_CAP_SPIRAM);
+        char *out = heap_caps_malloc(4096, MALLOC_CAP_SPIRAM);
+        if (!ts || !out) {
+            free(ts);
+            free(out);
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "sin memoria");
+            return ESP_FAIL;
+        }
+        uint32_t total = 0;
+        UBaseType_t got = uxTaskGetSystemState(ts, ntask + 8, &total);
+        int o = snprintf(out, 4096, "total %lu\n", (unsigned long)total);
+        for (UBaseType_t i = 0; i < got && o < 4000; i++) {
+            o += snprintf(out + o, 4096 - o, "%-16s %d %lu\n", ts[i].pcTaskName,
+                          (int)xTaskGetCoreID(ts[i].xHandle), (unsigned long)ts[i].ulRunTimeCounter);
+        }
+        free(ts);
+        httpd_resp_set_type(req, "text/plain");
+        esp_err_t r = httpd_resp_send(req, out, HTTPD_RESP_USE_STRLEN);
+        free(out);
+        return r;
     } else if (httpd_query_key_value(query, "touchslp", value, sizeof(value)) == ESP_OK) {
         aos_hal_touch_sleep_enable(atoi(value) != 0);
         snprintf(note, sizeof(note), "\"touch_sleep\":%d,", atoi(value) ? 1 : 0);

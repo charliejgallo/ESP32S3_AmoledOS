@@ -190,6 +190,23 @@ expander's own interrupt line does not reach the ESP32 (see the PMU above),
 so no IMU event can wake the chip. Steps are counted in software from the
 polled accelerometer: [STEPS.md](STEPS.md).
 
+### The touch controller's reset is EXIO2, and asleep it still pulls INT
+
+`TP_RESET` is EXIO2 of the TCA9554 (the BSP leaves it alone). The CST820 in its
+own auto-sleep does not answer on I2C, but a touch still pulls INT low: that is
+what wakes the watch from light sleep and from deep sleep (GPIO21, measured
+2026-09-25). A controller left asleep must be reset before anything probes it,
+which is why `aos_board_init()` pulses EXIO2 first. See
+[POWER.md](POWER.md) 9.4 and 9.6.
+
+### The panel's memory is wider than the image
+
+The CO5300 drives more columns than the 368 LVGL draws; the v2's image sits 16
+columns in, and the glass shows a few columns past the right edge. Nothing
+writes those. They look black only while the panel keeps power; after its
+rails are cut they show whatever the memory woke up with (a green bar, seen
+2026-09-25). The firmware clears 466 columns at every start.
+
 ### The QMI8658 does not survive accel-only mode
 
 Writing CTRL7 with only the accelerometer enabled (to save the gyro's ~1 mA)

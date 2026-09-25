@@ -534,14 +534,15 @@ void aos_hal_display_set_state(aos_display_state_t state)
     }
 }
 
-/* The main loop's pause: 200 ms with the screen lit, a second with it off,
+/* The main loop's pause: 200 ms with the screen lit, a second otherwise
+ * (dimmed, the face changes once a minute),
  * cut short by any change of the display so the UI follows at once. */
 void aos_hal_main_wait(void)
 {
     if (!s_main_wake) {
         s_main_wake = xSemaphoreCreateBinary();
     }
-    uint32_t ms = s_display_state == AOS_DISPLAY_OFF ? 1000 : 200;
+    uint32_t ms = s_display_state != AOS_DISPLAY_ACTIVE ? 1000 : 200;
     if (s_main_wake) {
         xSemaphoreTake(s_main_wake, pdMS_TO_TICKS(ms));
     } else {
@@ -682,13 +683,48 @@ static void button_poll(void)
 /* Battery and IMU                                                             */
 /* -------------------------------------------------------------------------- */
 
+/* A full PMU read is eleven I2C transactions, and the status bar, several
+ * watchfaces, the statistics and the portal all ask for it, some of them on
+ * every UI tick. Nothing on the battery changes that fast: one real read a
+ * second is shared by all. power_watch() reads fresh and refreshes it. */
+static aos_pmu_state_t s_pmu_cache;
+static int64_t         s_pmu_cache_us;
+static portMUX_TYPE    s_pmu_cache_lock = portMUX_INITIALIZER_UNLOCKED;
+
+static void pmu_cache_store(const aos_pmu_state_t *pmu)
+{
+    portENTER_CRITICAL(&s_pmu_cache_lock);
+    s_pmu_cache = *pmu;
+    s_pmu_cache_us = esp_timer_get_time();
+    portEXIT_CRITICAL(&s_pmu_cache_lock);
+}
+
+static bool pmu_read_cached(aos_pmu_state_t *out)
+{
+    int64_t now = esp_timer_get_time();
+    portENTER_CRITICAL(&s_pmu_cache_lock);
+    bool fresh = s_pmu_cache_us && now - s_pmu_cache_us < 1000000 && s_pmu_cache.valid;
+    if (fresh) {
+        *out = s_pmu_cache;
+    }
+    portEXIT_CRITICAL(&s_pmu_cache_lock);
+    if (fresh) {
+        return true;
+    }
+    if (!aos_board_pmu_read(out) || !out->valid) {
+        return false;
+    }
+    pmu_cache_store(out);
+    return true;
+}
+
 bool aos_hal_battery_read(aos_battery_t *out)
 {
     if (!out) {
         return false;
     }
     aos_pmu_state_t pmu;
-    if (!aos_board_pmu_read(&pmu) || !pmu.valid) {
+    if (!pmu_read_cached(&pmu)) {
         out->percent = -1;
         return false;
     }
@@ -717,7 +753,7 @@ bool aos_hal_power_info(aos_power_info_t *out)
     }
     memset(out, 0, sizeof(*out));
     aos_pmu_state_t pmu;
-    if (!aos_board_pmu_read(&pmu) || !pmu.valid) {
+    if (!pmu_read_cached(&pmu)) {
         return false;
     }
     out->charge_state      = (aos_charge_state_t)pmu.charge_state;
@@ -3317,6 +3353,7 @@ static const uint16_t s_retry_delay_s[] = { 0, 2, 5, 15, 30, 60, 120, 300, 600 }
 #define RETRY_USB_CAP_S     60      /* on the cable nothing is saved by waiting */
 
 static esp_timer_handle_t s_retry_timer;
+static bool               s_retry_pending;   /* the timer is armed              */
 static uint8_t            s_retry_n;         /* failures since the last address */
 static bool               s_retry_parked;    /* waiting for the screen or USB   */
 static uint32_t           s_retry_total;     /* failures since boot             */
@@ -3338,6 +3375,7 @@ static void net_retry_connect(void)
 static void net_retry_cb(void *arg)
 {
     (void)arg;
+    s_retry_pending = false;
     net_retry_connect();
 }
 
@@ -3346,6 +3384,7 @@ static void net_retry_cancel(void)
     if (s_retry_timer) {
         esp_timer_stop(s_retry_timer);
     }
+    s_retry_pending = false;
 }
 
 /* One failure: wait, or park. Called from the disconnect event. */
@@ -3386,7 +3425,8 @@ static void net_retry_schedule(void)
         }
     }
     esp_timer_stop(s_retry_timer);
-    esp_timer_start_once(s_retry_timer, (uint64_t)delay_s * 1000000ULL);
+    s_retry_pending = esp_timer_start_once(s_retry_timer,
+                                           (uint64_t)delay_s * 1000000ULL) == ESP_OK;
     ESP_LOGI(TAG, "wifi: failure %u (reason %u), next try in %lu s", (unsigned)s_retry_n,
              (unsigned)s_retry_reason, (unsigned long)delay_s);
 }
@@ -3406,10 +3446,14 @@ static void net_retry_reset(void)
 static void net_retry_kick(const char *why)
 {
     if (s_net_state == AOS_NET_CONNECTED || s_net_state == AOS_NET_OFF ||
-        s_link_parked || s_scan_hold) {
+        s_net_state == AOS_NET_CONNECTING || s_link_parked || s_scan_hold ||
+        !s_wifi_started || !aos_hal_net_enabled()) {
         return;
     }
-    if (!s_retry_parked && s_retry_next_s < 30) {
+    /* Down and nothing coming soon: parked, a long wait, or no attempt
+     * scheduled at all (which is a state no path should leave it in, and
+     * the one this kick is the way out of). */
+    if (!s_retry_parked && s_retry_pending && s_retry_next_s < 30) {
         return;         /* already trying often enough */
     }
     ESP_LOGI(TAG, "wifi: %s, trying again now", why);
@@ -3731,6 +3775,7 @@ void aos_hal_net_enable(bool on)
     snprintf(s_net_ssid, sizeof(s_net_ssid), "%s", ssid);
 
     /* only here is the stack brought up: there are credentials to use */
+    bool was_started = s_wifi_started;
     if (!wifi_stack_start()) {
         s_net_state = AOS_NET_FAILED;
         return;
@@ -3749,6 +3794,12 @@ void aos_hal_net_enable(bool on)
     esp_wifi_set_config(WIFI_IF_STA, &config);
     esp_wifi_start();
     s_net_state = AOS_NET_CONNECTING;
+    /* With the stack already up there is no STA_START event to connect from:
+     * new credentials over a station that was failing waited for the next
+     * retry, which now can be minutes away. */
+    if (was_started && !s_link_parked && !s_scan_hold) {
+        esp_wifi_connect();
+    }
 }
 
 
@@ -4798,7 +4849,7 @@ static volatile bool     s_touch_swallow;
 /* With the screen not lit the CST820 may go back to its own auto-sleep,
  * which scans far less often. Whether it still pulls INT on a touch in that
  * state is what decides the default (docs/POWER.md, 2026-09-25). */
-static bool              s_touch_sleep_enabled = false;
+static bool              s_touch_sleep_enabled = true;   /* checked on the board */
 static bool              s_touch_chip_sleeping;
 static volatile uint32_t s_touch_isr_count;
 static volatile uint32_t s_touch_wakes;
@@ -4981,7 +5032,13 @@ static esp_err_t touch_read_frame(esp_lcd_touch_handle_t tp)
         uint8_t r[AOS_TOUCH_REGS];
         esp_err_t ret = esp_lcd_panel_io_rx_param(tp->io, 0x00, r, sizeof(r));
         if (ret != ESP_OK) {
-            return ret;
+            /* Never an error to LVGL's port: it ESP_ERROR_CHECKs the read and
+             * a chip that did not answer once aborted the whole watch
+             * (2026-09-25, a boot out of deep sleep). No answer, no finger. */
+            portENTER_CRITICAL(&tp->data.lock);
+            tp->data.points = 0;
+            portEXIT_CRITICAL(&tp->data.lock);
+            return ESP_OK;
         }
         touch_decode_publish(r);
         portENTER_CRITICAL(&tp->data.lock);
@@ -4995,7 +5052,10 @@ static esp_err_t touch_read_frame(esp_lcd_touch_handle_t tp)
     }
     esp_err_t ret = s_touch_orig_read(tp);
     if (ret != ESP_OK) {
-        return ret;
+        portENTER_CRITICAL(&tp->data.lock);
+        tp->data.points = 0;            /* see above: never an error to LVGL */
+        portEXIT_CRITICAL(&tp->data.lock);
+        return ESP_OK;
     }
     int16_t fx[2] = { 0 }, fy[2] = { 0 };
     uint8_t count;
@@ -5471,6 +5531,7 @@ static void power_watch(void)
     if (!aos_board_pmu_read(&pmu) || !pmu.valid) {
         return;
     }
+    pmu_cache_store(&pmu);
     soc_step(&pmu);
     int pct = aos_soc_percent(&s_soc);
     if (pct < 0) {
@@ -5798,7 +5859,10 @@ static void night_boot(void)
     }
 
     s_night.last_end  = now;
-    s_night.last_wake = cause == ESP_SLEEP_WAKEUP_EXT1 ? 2 : usb ? 3 : 1;
+    /* 2 a touch or BOOT; 1 the night ran its course; 3 a chunk cut short
+     * because USB came in */
+    s_night.last_wake = cause == ESP_SLEEP_WAKEUP_EXT1 ? 2
+                      : (cause == ESP_SLEEP_WAKEUP_TIMER && now < s_night.wake_at - 30 && usb) ? 3 : 1;
     s_night.magic     = 0;
     ESP_LOGI(TAG, "night: awake by %s after %lld s asleep (%lu chunks)",
              s_night.last_wake == 2 ? "touch or BOOT" : s_night.last_wake == 3 ? "USB" : "timer",
@@ -5913,9 +5977,12 @@ static void housekeeping_task(void *arg)
          * go. */
         bool aod_ok = s_aod_enabled;
         if (aod_ok) {
-            aos_pmu_state_t pmu;
-            if (aos_board_pmu_read(&pmu) && pmu.valid && !pmu.charging &&
-                pmu.percent >= 0 && pmu.percent < AOD_LOW_BATTERY_PCT) {
+            /* From what power_watch() already keeps, not from the PMU: this
+             * runs ten or twenty-five times a second, and a full PMU read is
+             * eleven I2C transactions. Measured on 2026-09-25 with the screen
+             * off: 145 I2C transactions a second, 110 of them from here. */
+            int pct = aos_soc_percent(&s_soc);
+            if (!s_usb_last && pct >= 0 && pct < AOD_LOW_BATTERY_PCT) {
                 aod_ok = false;
             }
         }
@@ -6315,6 +6382,37 @@ static uint32_t lvgl_tick_ms(void)
     return (uint32_t)(esp_timer_get_time() / 1000);
 }
 
+/* The CO5300's memory is wider than the 368 columns LVGL draws: the v2's
+ * image sits 16 columns in (the BSP's x gap), and the glass shows a few of
+ * the columns past the right edge. Nothing ever writes those. They were
+ * black only because the panel never lost power: after the night's deep
+ * sleep cuts its rails they came back as garbage, a green bar down the
+ * right edge (2026-09-25, photographed). So at every start the whole
+ * addressable width is cleared once, gap at 0, before LVGL takes over.
+ * 466 columns is what the CO5300 drives on its round panels; about 20 ms. */
+#define PANEL_CLEAR_W   466
+#define PANEL_CLEAR_ROWS 8
+
+static void panel_clear_gram(esp_lcd_panel_handle_t panel)
+{
+    size_t bytes = (size_t)PANEL_CLEAR_W * PANEL_CLEAR_ROWS * 2;
+    uint16_t *black = heap_caps_calloc(1, bytes, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+    if (!black) {
+        return;
+    }
+    esp_lcd_panel_set_gap(panel, 0, 0);
+    for (int y = 0; y < BSP_LCD_V_RES; y += PANEL_CLEAR_ROWS) {
+        int y1 = y + PANEL_CLEAR_ROWS > BSP_LCD_V_RES ? BSP_LCD_V_RES : y + PANEL_CLEAR_ROWS;
+        esp_lcd_panel_draw_bitmap(panel, 0, y, PANEL_CLEAR_W, y1, black);
+    }
+    /* back to what the BSP uses: 16 on the v2, set again when its touch is
+     * created; a command waits for the queued transfers, then the buffer
+     * can go */
+    esp_lcd_panel_set_gap(panel, aos_board_variant() == AOS_BOARD_V2_CO5300_CST816 ? 16 : 0, 0);
+    esp_lcd_panel_disp_on_off(panel, true);
+    heap_caps_free(black);
+}
+
 static lv_display_t *display_start(void)
 {
     lvgl_port_cfg_t port_cfg = ESP_LVGL_PORT_INIT_CONFIG();
@@ -6356,6 +6454,7 @@ static lv_display_t *display_start(void)
     }
     s_panel    = panel;
     s_panel_io = io;
+    panel_clear_gram(panel);
 
     /* Light sleep isolates every GPIO (ESP_SLEEP_GPIO_RESET_WORKAROUND):
      * chip select and the QSPI lines float while the chip sleeps, and the

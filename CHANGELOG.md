@@ -3,6 +3,44 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased — power, the second pass
+
+**A watch in a pocket, away from home, was flat in 70 minutes.** Three causes,
+none of them light sleep, all in [docs/POWER.md](docs/POWER.md) section 9.
+
+- **The WiFi retried for ever, at once.** Away from its network the watch
+  scanned every channel back to back and never slept. Now each failure waits
+  longer (0 s to 10 min), and on battery with the screen off it stops after
+  three until the screen or USB comes; lighting the screen tries again at once.
+  With the screen off the station also wakes every 10 beacons instead of 3.
+- **The percentage is the firmware's own.** The AXP2101's gauge read 49 % and
+  65 % with the cell empty. The new estimate (`aos_soc.c`) reads the voltage at
+  rest, learns the sag with the screen lit, counts charge in while charging and
+  measures the cell's capacity on charges that start low; checked against
+  simulated cells in `tools/soc/`. The low-battery warning and the clean
+  power-off use it. The battery history keeps the voltage.
+- **The cell is about 130 mAh**, not the 300 assumed in v0.2.0.
+
+**The chip sleeps far more.** With the screen off, 93.5 % of the time in light
+sleep (81 % before) and 16.5 I2C transactions a second (145 before: a battery
+check on every housekeeping pass, and three reads per IMU sample). The touch
+controller goes into its own auto-sleep and a touch still wakes the screen
+through its INT line; the touch that wakes the screen is swallowed. Light sleep
+now also while dimmed: 91.5 % of the time (none before).
+
+**Deep sleep at night** (Settings, Battery; off by default): in the scheduled
+do-not-disturb hours, on battery, screen off for ten minutes. Woken by a touch,
+BOOT, the end of the hours or two minutes before an alarm; half-hour chunks
+with a quick re-sleep boot in between. Apps with state hold it off with
+`aos_hal_sleep_hold()`; the timer, pomodoro and stopwatch do.
+
+Also: the touch controller is reset (EXIO2) at every start and a failed touch
+read no longer aborts the watch; the panel's whole memory is cleared at start
+(a green bar after its rails were cut); steps are saved before a restart or a
+power-off (an OTA used to lose up to five minutes of them). `/api/status`
+gains the estimate, the WiFi pacing, the touch counters and the nights;
+`/api/pmu` gains bench hooks (`wifitest`, `deep`, `touchslp`, `tasks`).
+
 ## v0.6.2 — 2026-09-25
 
 **The Scanner lists the networks around without being connected.** With the

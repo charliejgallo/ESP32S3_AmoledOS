@@ -2815,7 +2815,7 @@ int aos_hal_batt_history_mv(uint16_t *mv, int max)
 
 void aos_hal_main_wait(void)
 {
-    SDL_Delay(s_display_state == AOS_DISPLAY_OFF ? 1000 : 200);
+    SDL_Delay(s_display_state != AOS_DISPLAY_ACTIVE ? 1000 : 200);
 }
 
 static bool s_sim_touch_sleep;

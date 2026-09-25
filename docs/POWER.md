@@ -1,11 +1,13 @@
 # Power: the AXP2101, and what the firmware does to make the battery last
 
-> **State of this document (2026-09-09).** Everything in sections 5 and 6 runs
-> on the board and was checked there, except two paths that have not yet been
-> through a real discharge: the clean power-off at 3 % (5.2) and the charge
-> cycle counter (5.3). The night-on-battery figure (section 7) is the
-> measurement still missing. Light sleep is armed on battery only; on USB
-> there is nothing to save and the console would die.
+> **State of this document (2026-09-25).** Sections 1 to 8 are the first
+> pass, of 2026-09-09. Section 9 is the review of 2026-09-25, after a watch
+> ran flat in a pocket in 70 minutes: it corrects three things the first pass
+> got wrong (the cell's capacity, what the gauge's percentage is worth, and
+> what woke the chip with the screen off) and adds paced WiFi retries, the
+> firmware's own state of charge, sleep while dimmed and deep sleep at night.
+> Everything in section 9 was checked on the board except the night itself
+> and the capacity learning, which need a real night and a real charge.
 
 Written on 2026-09-09 after reading the AXP2101 datasheet (V1.0, section 6.13),
 the board's schematic, Waveshare's `90_axp2101_pmu` example and their Arduino
@@ -394,6 +396,198 @@ Two things to know when working on the board with light sleep on:
 * **Longer naps.** The BLE connection interval is the phone's to set; the
   housekeeping and touch cadences with the screen off could be stretched
   further at the cost of wrist-raise and touch latency.
+
+## 9. The review of 2026-09-25
+
+### 9.1 What happened
+
+The watch left home at 9, in a pocket, screen off, and was flat by half past
+ten. Charged, taken out again, flat again in 55 minutes. The battery history
+(`sd/data/battery24.bin`, one sample every five minutes) showed both stretches
+losing about 50 % an hour, against 23 to 28 % an hour at home while being used.
+And both times the watch switched off with the percentage at **49 %** and
+**65 %**.
+
+Three things were wrong, and none of them was light sleep.
+
+**The WiFi never stopped looking for home.** The disconnect handler called
+`esp_wifi_connect()` on every disconnect, at once, for ever. At home that is a
+reconnect after a hiccup. Away from home each attempt is a scan of every
+channel with the radio at full power, it fails with reason 201 (no access
+point found), and the next one starts straight away. The radio never rests and
+the chip never sleeps: about 110 mA on average, in a pocket, screen off.
+
+**The percentage was the AXP2101's gauge, and it does not know this cell.** The
+cell was empty both times: the recharge from "2 %" took 55 minutes, the same as
+from zero. The 3.30 V backstop of 5.2 is what switched the watch off, and it
+was right to.
+
+**The cell is about 130 mAh, not 300.** 55 minutes at 150 mA at most, from
+empty to the 4.1 V target. Section 5.1 assumed 300 mAh without checking it,
+and so did its "0.5 C". Battery care's 150 mA is 1 C on this cell; the
+estimator below measures the capacity on every charge that starts low.
+
+### 9.2 Paced reconnection
+
+Each failure waits longer than the one before: 0, 2, 5, 15, 30 s, 1, 2, 5 and
+10 min (60 s at most on USB). On battery with the screen not lit, after three
+failures the station stops altogether until the screen is lit or USB comes in,
+and then it tries once at once and carries on a few rungs down the ladder.
+`/api/status` reports `wifi_fail`, `wifi_parked`, `wifi_next_s` and
+`wifi_reason`.
+
+Measured with `/api/pmu?wifitest=150&idle=1`, which points the station at a
+network that does not exist for 150 s without touching the stored one:
+
+```
+wifi test: the network is gone for 150 s, acting as if on battery, screen off
+wifi: failure 2 (reason 201), next try in 2 s
+wifi: failure 3 (reason 201), next try in 5 s
+wifi: 4 failures (reason 201), on battery with the screen off: not retrying
+   ... 136 s of silence ...
+wifi test: over, back to the stored network
+wifi connected                                  (1.1 s later)
+```
+
+Each failed attempt is about 2.4 s of scanning. The same test with a touch in
+the middle logged `screen lit, trying again now` on the touch.
+
+Two holes found on the way, both closed: the "screen lit" kick did nothing
+when no retry was scheduled, and `aos_hal_net_enable()` with the stack already
+up got no `STA_START` event to connect from, so new credentials over a failing
+station waited for the next retry. The old endless loop had hidden both.
+
+In `WIFI_PS_MAX_MODEM` (screen not lit) the station now wakes every 10 beacons
+(`listen_interval`) instead of every 3.
+
+### 9.3 The firmware's own state of charge
+
+`components/aos_hal/aos_soc.c`, pure C, with a bench in `tools/soc/`:
+
+- **At rest** (screen not lit for 30 s, no audio, the radio not connecting) the
+  voltage is close to the open-circuit voltage, and a generic LiPo curve maps
+  it to charge, with 100 % at the charge target after resting.
+- **With the screen lit** the voltage sags; how much is learned on the watch,
+  comparing the voltage at rest with the voltage 20 s after the screen comes
+  on. The first sample on the board: 39 mV.
+- **Charging**, the current is known in the constant-current phase (it is what
+  the firmware programmed), so charge is counted in; the constant-voltage tail
+  is approached smoothly; "done" is 100 %.
+- **The capacity** is measured on every charge that starts at 40 % or less
+  from a reading at rest: charge counted in over the fraction filled.
+
+On the bench, against simulated cells that deliberately do not match its
+assumptions (capacity, curve and internal resistance all off), it stays within
+6 points in everyday use and reaches 2-3 % when the cell reaches 3 %, where the
+gauge showed 49 %. It is never optimistic; with the radio at full power and
+not flagged it reads low. One charge from low learned 127 mAh for a 130 mAh
+cell. `/api/status` carries `soc`, `gauge_pct`, `sag_mv`, `cap_mah` and their
+sample counts; the battery history now keeps the voltage of every sample and
+whether USB was in (file format BST2, BST1 files still read).
+
+The low-battery warning (10 %) and the clean power-off use this percentage.
+The power-off asks for 2 % **and** less than 3.45 V, so a wrong estimate cannot
+switch off a watch that still has charge; the 3.30 V backstop stays as it was.
+
+### 9.4 What kept the chip awake with the screen off
+
+`CONFIG_PM_PROFILING` and a per-task run-time dump (`/api/pmu?tasks=1`),
+differenced over a minute on battery, screen off, Bluetooth off:
+
+| | v0.6.2 | now |
+|---|---|---|
+| time in light sleep | 81 % | 93.5 % |
+| I2C transactions per second | 145 | 16.5 |
+| time at 240 MHz | 16.5 % | 4.7 % |
+
+What the 145 were:
+
+- **110 a second came from one line**: the housekeeping task's "no always-on
+  with the battery on its last legs" check, from the first pass, did a full
+  PMU read (eleven I2C transactions) on every pass, ten times a second. It now
+  looks at the percentage `power_watch()` already keeps.
+- **30 a second were the IMU**: the Waveshare driver reads the timestamp, the
+  data and the temperature for every sample. The data is now one burst; the
+  temperature is read every five seconds.
+- The touch task read the CST820 ten times a second with nobody touching. With
+  the screen not lit it now waits for INT, lights the screen itself and
+  swallows that first touch (the gesture that woke the screen does not open
+  the launcher, checked by hand). LVGL's touch read is paused.
+- A full PMU read now serves everybody for a second (the status bar and
+  several watchfaces asked on every UI tick), and the main loop ticks once a
+  second with the screen not lit, returning at once when the display changes.
+
+**The CST820 goes into its own auto-sleep with the screen not lit.** The old
+comment said that asleep it stops asserting INT; measured, a single short
+touch still wakes the screen, from light sleep and from deep sleep. It is the
+default (`touch_slp`).
+
+**`gpio_wakeup_enable()` turns the touch pin into a level interrupt**,
+overriding the falling edge the touch driver set: with INT low it fired again
+and again. The ISR now disables itself and the task enables it after reading.
+
+### 9.5 Light sleep while dimmed
+
+Always-on used to hold the chip awake for its five minutes after every
+glance. Now light sleep is armed whenever the screen is not lit: the panel
+keeps its image on its own and its six QSPI pins keep their levels through
+sleep (6b). Measured, dimmed, on battery: **91.5 %** of the time asleep. The
+portal answers in about 180 ms.
+
+### 9.6 Deep sleep at night
+
+A preference, off by default (Settings, Battery; portal, `noche`): during the
+scheduled do-not-disturb hours, on battery, with the screen off for ten
+minutes and nothing going on, the watch goes into deep sleep.
+
+- **What vetoes it**: USB, audio, the link, an image on trial, "calls always"
+  with the phone connected, and any app holding it with
+  `aos_hal_sleep_hold()` (the timer, the pomodoro and the stopwatch while they
+  count: a boot would lose them).
+- **What wakes it**: a touch (GPIO21, the CST820's INT) or BOOT (GPIO0), both
+  through ext1; the end of the window; an alarm (main.c's guard brings the
+  wake-up two minutes before the next enabled alarm). The power key and the
+  IMU cannot: they end on the TCA9554, whose INT does not reach the ESP32.
+- **Chunks**: it sleeps half an hour at a time. The chip's timer runs on an RC
+  oscillator; each chunk ends in a quick boot that reads the PCF85063 again
+  and, if the night goes on, goes straight back to sleep before the panel,
+  the WiFi or the apps (`night_boot()`).
+- **Before sleeping**: counters saved (steps included), panel display-off and
+  sleep-in, its five rails cut, the IMU powered down, the CST820 in
+  auto-sleep.
+- **Waking is a full boot**: WiFi at about 4.8 s, the apps at 5.75 s.
+
+Checked with `/api/pmu?deep=N` (a night of N seconds now, chunks of a third):
+two quick re-sleeps and a full boot at 182 s with panel, IMU, codec and
+microphone working; and a touch wake. `/api/status` keeps `nights`,
+`night_chunks`, `night_slept_s` and `night_last_wake` (1 end, 2 touch or
+BOOT, 3 USB) until the next power-on.
+
+Two things the first touch wake broke, both fixed:
+
+- **A panic on the boot out of deep sleep.** The CST820, left in auto-sleep,
+  did not answer on I2C; LVGL's port reads the touch before our task exists
+  and treats a failed read as fatal (`ESP_ERROR_CHECK` in
+  `lvgl_port_touchpad_read`). Now the touch controller is reset through
+  **EXIO2 (TP_RESET)** at the start of `aos_board_init()`, before the board
+  variant is probed, and a failed touch read is reported to LVGL as "no
+  finger", never as an error.
+- **A green bar down the right edge.** The CO5300's memory is wider than the
+  368 columns LVGL draws (the v2's image sits 16 columns in) and the glass
+  shows a few columns past the right edge. Nothing ever wrote them; they were
+  black only because the panel never lost power. Cutting its rails left
+  garbage there. Every start now clears 466 columns once, before LVGL.
+
+### 9.7 Still to do
+
+- **A real night** with deep sleep on, and a real charge from low to see the
+  capacity learned (`cap_n` goes to 1). Section 7 is the protocol.
+- **The cell's own discharge curve**, from the voltage the history now keeps,
+  to replace the generic one in `aos_soc.c`.
+- **Battery care's current**, once the capacity is known: 150 mA may be 1 C.
+- **No current measured with a meter.** The plan is the Riden RD6012 as a
+  battery on the cell's connector, which also exercises the power-off path in
+  minutes instead of hours.
 
 ## 7. The night on battery: protocol
 

@@ -79,11 +79,36 @@ bool aos_board_imu_read(aos_imu_sample_t *out)
     if (!s_present || !out) {
         return false;
     }
-    qmi8658_data_t data = {0};
-    if (qmi8658_read_sensor_data(&s_imu, &data) != ESP_OK) {
+    /* One burst of the twelve data bytes. The driver's
+     * qmi8658_read_sensor_data() also reads the timestamp and the temperature
+     * every time: three I2C transactions per sample, ten or twenty-five
+     * samples a second, for a timestamp nobody uses and a temperature that
+     * moves by a tenth of a degree a minute. The temperature is read every
+     * five seconds; the scaling below is the driver's. */
+    uint8_t b[12];
+    if (qmi8658_read_register(&s_imu, QMI8658_AX_L, b, sizeof(b)) != ESP_OK ||
+        !s_imu.accel_lsb_div || !s_imu.gyro_lsb_div) {
         out->valid = false;
         return false;
     }
+    static float   s_temp_c;
+    static int64_t s_temp_us;
+    int64_t now_us = esp_timer_get_time();
+    if (!s_temp_us || now_us - s_temp_us > 5000000) {
+        float t;
+        if (qmi8658_read_temp(&s_imu, &t) == ESP_OK) {
+            s_temp_c = t;
+        }
+        s_temp_us = now_us;
+    }
+    qmi8658_data_t data = {0};
+    data.accelX = (int16_t)(b[1] << 8 | b[0]) * 1000.0f / s_imu.accel_lsb_div;
+    data.accelY = (int16_t)(b[3] << 8 | b[2]) * 1000.0f / s_imu.accel_lsb_div;
+    data.accelZ = (int16_t)(b[5] << 8 | b[4]) * 1000.0f / s_imu.accel_lsb_div;
+    data.gyroX  = (float)(int16_t)(b[7] << 8 | b[6]) / s_imu.gyro_lsb_div;
+    data.gyroY  = (float)(int16_t)(b[9] << 8 | b[8]) / s_imu.gyro_lsb_div;
+    data.gyroZ  = (float)(int16_t)(b[11] << 8 | b[10]) / s_imu.gyro_lsb_div;
+    data.temperature = s_temp_c;
     /* The QMI8658's driver returns MILLI-g: (raw * 1000) / accel_lsb_div.
      * aos_hal.h's contract says g, and everything consuming this uses
      * thresholds in g: FLAT_THRESHOLD_G 0.72, the 0.7/0.6 of the orientation

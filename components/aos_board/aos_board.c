@@ -37,6 +37,7 @@ static char                s_power_off_reason[48] = "unknown";
 /* The TCA9554's pins, from the schematic. Only the two the PMU uses are
  * touched here; the display's reset lines are left exactly as found. */
 #define EXIO_LCD_RESET      IO_EXPANDER_PIN_NUM_0   /* LCD_RESET, active low           */
+#define EXIO_TP_RESET       IO_EXPANDER_PIN_NUM_2   /* TP_RESET, active low            */
 #define EXIO_POWER_KEY      IO_EXPANDER_PIN_NUM_4   /* SYS_OUT: high while PWR is held */
 #define EXIO_PMU_IRQ        IO_EXPANDER_PIN_NUM_5   /* AXP_IRQ: active low             */
 
@@ -60,6 +61,25 @@ esp_err_t aos_board_init(void)
         return ESP_ERR_INVALID_STATE;
     }
 
+    /* The expander first: it carries the PMU's IRQ line, the power key's
+     * level and the touch controller's reset. The BSP creates it lazily; the
+     * two inputs are inputs from reset, this only makes it explicit. */
+    s_expander = bsp_io_expander_init();
+    if (s_expander) {
+        esp_io_expander_set_dir(s_expander, EXIO_POWER_KEY | EXIO_PMU_IRQ, IO_EXPANDER_INPUT);
+        /* The touch controller may have been left in its own auto-sleep (the
+         * night's deep sleep does that, 2026-09-25): asleep it does not
+         * answer on I2C, so the variant probe below finds nothing and LVGL's
+         * first reads fail. A reset pulse wakes it into its factory state. */
+        esp_io_expander_set_dir(s_expander, EXIO_TP_RESET, IO_EXPANDER_OUTPUT);
+        esp_io_expander_set_level(s_expander, EXIO_TP_RESET, 0);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        esp_io_expander_set_level(s_expander, EXIO_TP_RESET, 1);
+        vTaskDelay(pdMS_TO_TICKS(60));
+    } else {
+        ESP_LOGW(TAG, "TCA9554 does not answer: no PMU interrupts, no power key");
+    }
+
     detect_variant(bus);
 
     s_pmu_ready = (axp2101_init(&s_pmu, bus) == ESP_OK);
@@ -74,16 +94,6 @@ esp_err_t aos_board_init(void)
         snprintf(s_power_off_reason, sizeof(s_power_off_reason), "%s", axp2101_power_off_source_name(off));
         ESP_LOGI(TAG, "PMU powered on by: %s; last power-off: %s",
                  s_power_on_reason, s_power_off_reason);
-    }
-
-    /* The expander carries the PMU's IRQ line and the power key's level. The
-     * BSP creates it lazily; both pins are inputs from reset, this only
-     * makes it explicit. */
-    s_expander = bsp_io_expander_init();
-    if (s_expander) {
-        esp_io_expander_set_dir(s_expander, EXIO_POWER_KEY | EXIO_PMU_IRQ, IO_EXPANDER_INPUT);
-    } else {
-        ESP_LOGW(TAG, "TCA9554 does not answer: no PMU interrupts, no power key");
     }
 
     aos_rtc_start(bus);
