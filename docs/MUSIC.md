@@ -132,16 +132,16 @@ There is one codec and no mixer. The app in front wins:
   and the music would blip in between.
 - `aos_hal_beep()` stays silent while music plays, as before.
 
-Mixing an app's sound over the music would need resampling (the apps stream at
-16 kHz, music at 44.1) and a mixer in the writer. Possible; not done.
+Unless mixing is on (below, "The second round").
 
 ## Using it
 
 - **Music**: folders first, then tracks, sorted as a person expects (case
   ignored, "2" before "10"). A track shows its title over its artist. The
-  pink row on top is what is playing. Back goes up a folder. Opening the app
+  pink row on top is what is playing (or, with nothing playing, the last
+  track, to resume). Back goes up a folder. Opening the app
   while something plays goes straight to the player, in that folder.
-- **Player**: position of the folder ("4 / 31"), shuffle, title in up to two
+- **Player**: the cover, position of the folder ("4 / 31"), shuffle, title in up to two
   lines, artist, format ("MP3 320 kbps 44 kHz"), a progress bar you can drag
   to seek, previous (the start first if more than 3 s in), play/pause, next,
   volume.
@@ -149,7 +149,8 @@ Mixing an app's sound over the music would need resampling (the apps stream at
   something plays, the phone's otherwise.
 - **`/api/player`** drives it from a computer and shows the pipeline's
   numbers: `?do=play&dir=music/sudbeat3&i=4`, `pause`, `resume`, `next`,
-  `prev`, `seek&ms=`, `shuffle&on=`, `volume&v=`, `stop`. The figures above
+  `prev`, `seek&ms=`, `shuffle&on=`, `volume&v=`, `stop`, `resume_last`,
+  `mix&on=`. The figures above
   came from there.
 
 For apps: `aos_hal_player_play()` plays one file and stops (the Video app's
@@ -158,19 +159,94 @@ sound); `aos_hal_player_play_folder()` plays a file and then its folder.
 `aos_hal_player_status()`, whose struct stays the size it was so already
 compiled apps keep working.
 
+## The second round
+
+After the first version played, the list of what it lacked, done in order.
+
+### Gapless, and the encoder's silence
+
+Two things made a gap between tracks. The player let a track play out before
+it opened the next one (~¼ s), and the MP3's own padding went out as sound:
+an encoder delays the audio (LAME: 576 samples, plus the 529 every layer III
+decoder adds), pads the last frame, and writes both in the LAME tag of the
+Info frame, which itself decodes to one frame of silence.
+
+- `aos_audio.c` reads the LAME tag (and ffmpeg's `Lavc` one, same layout) and
+  drops the Info frame, the delay and the padding. Against ffmpeg on
+  `Contact`: **the same 16,405,200 samples, at lag 0**, 83.2 dB as before;
+  before this it gave 2,736 samples more and started 2,257 late.
+- A continuous tone cut at 4.321 s into two MP3s, decoded apart and joined:
+  **exactly the original length**; the only error at the joint (139 on a
+  2,896 amplitude) is what encoding two files separately does to the edge.
+- The player opens the next file when the last ends and keeps filling the
+  ring behind it; the writer switches title, position and folder index on
+  the exact sample where the new track starts. On the board the ring stays at
+  ~2.1 s through the change (it used to empty). Different sample rates still
+  play out first: the codec has to reopen.
+- The awkward window is the last two seconds of a track, when the decoder is
+  already into the next one. Next, previous and seek act on what is **heard**:
+  the decoder goes back to it first. Measured all three there.
+
+### Remembering where it was
+
+The track (when a new one starts) and the position (every minute, on pause,
+on stop) go to NVS; NVS skips a write whose value did not change, so a paused
+track costs nothing. After a restart nothing plays by itself: the Music app
+opens in that folder with a **Resume** row on top ("Resume 2:06 · Eran
+Aviner & BP"). Measured across a real restart: it went on at 2:06. The first
+version saved "0:00" before the resume's seek landed, overwriting the good
+position; it waits for the seek now.
+
+### The cover
+
+The picture inside the MP3 (ID3 APIC), or a `cover.jpg` / `folder.jpg` /
+`front.jpg` beside the track. An embedded cover that cannot be read
+(progressive JPEG) falls back to the folder's; with neither, the note stays.
+Decoded off the LVGL task by a one-shot task, with esp_new_jpeg scaling as it
+decodes; the result is kept, so the next track of the same folder, or opening
+the app again, costs nothing.
+
+| Cover | Read | Decode |
+| --- | --- | --- |
+| 600 px, 4:2:0, 20 KB | 61 ms | 43 ms |
+| 600 px, 4:4:4, 35 KB | 145 ms | 58 ms |
+| 96 px, 4:4:4 | 14 ms | 7 ms |
+| 1200 px, 598 KB | 1,417 ms | 427 ms |
+| progressive | — | refused → the folder's cover |
+
+- The card reads ~470 KB/s (as VIDEO.md measured), so a big cover is mostly
+  reading, and it happens in the background.
+- **esp_new_jpeg will not scale below 1/8** of the original: a 1200 px cover
+  gives 150 px at the least ("scaled width should be greater than the minimum
+  1/8 scale width"). It decodes to that and nearest-neighbour does the rest.
+- It read 4:4:4 here, which VIDEO.md says it refuses on full-size video
+  frames. The difference was not looked into; a TJPGD fallback was written
+  for it and removed, because nothing ever reached it.
+
+### Mixing an app's sound over the music
+
+**Settings → Sound → Mix music and apps**, off by default (off: the app
+pauses the music, as above). On, an app that opens the streaming speaker
+while music plays does not pause it: its ring is read by the player's writer
+instead of a task of its own, brought from 16 kHz to the music's rate by
+linear interpolation, and added over the music at half volume.
+
+- With Turbo: the music goes on, 0 underruns, and Turbo's ring holds steady
+  at 1,600 samples (the 100 ms it keeps queued): it is drained exactly as fast
+  as the game fills it.
+- Music paused with the game open: the game's sound goes on, over silence.
+- Music stopped with the game open: the game's sound moves to a task of its
+  own (`aos_spk` appears) and goes on from where it was in its ring.
+- Never for the walkie-talkie (the UI tells the HAL which app is in front,
+  `aos_hal_audio_foreground()`), nor while the microphone is open.
+
 ## Not done
 
-- **The cover.** Its offset is found; drawing it means decoding a JPEG of
-  500–1000 px down to the art square (esp_new_jpeg is in the firmware and
-  scales by 1/2, 1/4, 1/8).
-- **Gapless.** A track plays out before the next opens: about a quarter of a
-  second between them. The LAME delay/padding in the Info frame is not
-  trimmed either (51 ms of silence at the start, which ffmpeg removes).
-- **Mixing** app sound over music (above).
-- **Remembering** the track and position across a restart.
 - **The battery cost.** While the player runs the CPU stays at 240 MHz and
   the watch does not light-sleep (as it already did for WAV). Not measured on
-  battery.
+  battery yet: `tools/battery_night.py` is the recorder, an hour with music
+  and an hour without is the protocol.
 - **One OTA of this branch did not take**: the image was rolled back by the
   bootloader, with no core dump saved. The same image, installed again, booted
-  and confirmed, and has run since. Noted in case it comes back.
+  and confirmed, and every OTA of the branch since has taken. Noted in case
+  it comes back.

@@ -28,7 +28,15 @@ the app closed. [docs/MUSIC.md](docs/MUSIC.md) has the measurements.
   open. `aos_hal_player_play()` still plays one file and stops (Video).
 - **The app in front wins the codec**: an app that opens the streaming
   speaker, or the microphone, pauses the music, and it comes back when they
-  let go.
+  let go. Or, with **Settings → Sound → Mix music and apps** on (off by
+  default), a game's sound plays over the music, which drops to half volume:
+  the app's ring is resampled from 16 kHz into the player's own writer. The
+  walkie-talkie and the microphone always pause.
+- **Gapless**: the next track decodes right behind the last and the title
+  changes on the sample; the LAME delay and padding are trimmed (the same
+  samples as ffmpeg, start and length).
+- **Remembers** the last track and where it was across restarts; the Music
+  app offers to resume it.
 - **Mono**: stereo is mixed to (L+R)/2. The ES8311 has one DAC and took the
   left slot only.
 - The volume slider is heard at once (it used to wait for the next track).
@@ -41,8 +49,10 @@ the app closed. [docs/MUSIC.md](docs/MUSIC.md) has the measurements.
 - Folders first, then tracks, in natural order; title over artist; names up
   to 255 bytes (72 before, and the cut name was the path it tried to open).
 - A "now playing" row; opening the app while music plays goes to the player.
-- The player: position in the folder, shuffle, two-line title, format and
-  bitrate, a draggable progress bar.
+- The player: the cover (embedded in the MP3, or cover/folder/front.jpg
+  beside it, decoded in the background at 112 px), position in the folder,
+  shuffle, two-line title, format and bitrate, a draggable progress bar.
+- A "Resume" row with the last track and where it was.
 - The control centre's player row drives the watch's own music when it plays.
 
 **Tools**

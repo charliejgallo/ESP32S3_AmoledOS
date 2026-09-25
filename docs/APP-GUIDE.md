@@ -1198,8 +1198,11 @@ bitmap never exists. Decode once into an `lv_canvas` and show that 1:1
 
 **Opening the streaming speaker or the microphone pauses the user's music.**
 The player hands the codec over and takes it back when you close them, 0.8 s
-later; you do nothing. What you do not get is both: while your app holds the
-speaker there is no music under it (there is one codec and no mixer).
+later; you do nothing. Unless the user turned on Settings → Sound → Mix music
+and apps: then your speaker is mixed over the music (which drops to half
+volume) and `aos_hal_spk_*` behaves the same for you. Either way, do not
+assume you are alone on the speaker, and keep your own music quieter than
+your effects.
 
 **A task that does floating point is pinned to the core it first did it on.**
 Created unpinned or not: the Xtensa port pins it on its first FPU instruction
