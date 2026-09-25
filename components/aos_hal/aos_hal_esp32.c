@@ -1472,6 +1472,7 @@ static void player_park(bool park)
 }
 
 static void player_decoder_prio(void);
+static uint32_t player_boundary(uint32_t n);
 
 static bool player_yielded(void)
 {
@@ -1569,7 +1570,7 @@ static void player_out_task(void *arg)
         if (s_ring_primed && ms_left < s_ring_min_ms) {
             s_ring_min_ms = ms_left;
         }
-        uint32_t n = rate * PLAYER_BLOCK_MS / 1000;
+        uint32_t n = player_boundary(rate * PLAYER_BLOCK_MS / 1000);
         if (n > used) {
             n = used;
         }
@@ -1598,7 +1599,7 @@ static void player_out_task(void *arg)
 static int player_next_index(int index, int step)
 {
     int count = s_player_list.count;
-    if (s_player_index < 0 || count == 0) {
+    if (index < 0 || count == 0) {
         return -1;
     }
     if (s_player_shuffle && count > 1) {
@@ -1625,7 +1626,7 @@ static aos_audio_info_t s_dec_info;
 static char             s_dec_path[256];
 static int16_t         *s_dec_chunk;           /* PLAYER_CHUNK stereo frames, PSRAM */
 static int              s_dec_failures;
-static int              s_dec_step = 1;
+static int              s_dec_index = -1;      /* the decoder's file in the folder (may be ahead) */
 static bool             s_dec_finished;        /* the file ended; its tail is still playing */
 static volatile int     s_dec_core_want;
 static int              s_worker_core = -1;    /* where the app's worker runs, -1 none */
@@ -1659,19 +1660,83 @@ static void player_flush(void)
     player_park(false);
 }
 
-/* Closes the track and points at the one 's_dec_step' away. */
-static int player_advance(void)
+/* Makes 'path' (with its info and folder index) the track that is heard,
+ * starting at ring position 'start'. */
+static void player_publish(const char *path, const aos_audio_info_t *info, int index,
+                           uint32_t start)
+{
+    portENTER_CRITICAL(&s_player_mux);
+    memcpy(s_player_path, path, sizeof(s_player_path));
+    s_player_info = *info;
+    portEXIT_CRITICAL(&s_player_mux);
+    player_title_from(path, info);
+    s_player_index    = index;
+    s_player_rate     = info->sample_rate;
+    s_player_channels = info->channels;
+    s_track_start     = start;
+}
+
+/* The next track, already decoding behind the one being heard; the writer
+ * publishes it when the tail reaches s_next_at (gapless). */
+static char             s_next_path[256];
+static aos_audio_info_t s_next_info;
+static int              s_next_index;
+static uint32_t         s_next_at;
+static volatile bool    s_next_pending;
+
+/* Called by the writer before every block: at the boundary, the next track
+ * becomes the one heard. Returns how many samples may be written before it. */
+static uint32_t player_boundary(uint32_t n)
+{
+    if (!s_next_pending) {
+        return n;
+    }
+    uint32_t left = s_next_at - s_pring_tail;
+    if ((int32_t)left <= 0) {
+        player_publish(s_next_path, &s_next_info, s_next_index, s_next_at);
+        s_next_pending = false;
+        return n;
+    }
+    return n < left ? n : left;         /* the title changes on the sample */
+}
+
+/* How the next file opened becomes the one heard. */
+enum { PUB_NOW, PUB_AT_HEAD, PUB_AFTER_DRAIN };
+static int s_dec_publish = PUB_NOW;
+
+/* Closes the decoder's file and points it at the track 'step' away from
+ * 'from'. */
+static int player_point_at(int from, int step, int publish)
 {
     aos_audio_close(s_dec);
     s_dec = NULL;
-    int next = player_next_index(s_player_index, s_dec_step);
+    int next = player_next_index(from, step);
     if (next < 0) {
         return STEP_DONE;               /* a single file: over */
     }
-    s_player_index = next;
+    s_dec_index = next;
+    s_dec_publish = publish;
     snprintf(s_dec_path, sizeof(s_dec_path), "%s/%s", s_player_list.dir,
              aos_audio_list_name(&s_player_list, next));
     return STEP_AGAIN;
+}
+
+/* A skip or a seek acts on what is HEARD. If the decoder is already into the
+ * next track (the last two seconds of this one are in the ring), it goes
+ * back to the one heard first. */
+static void player_back_to_heard(void)
+{
+    if (!s_next_pending) {
+        return;
+    }
+    s_next_pending = false;             /* the writer is parked: see callers */
+    aos_audio_close(s_dec);
+    s_dec = NULL;
+    portENTER_CRITICAL(&s_player_mux);
+    memcpy(s_dec_path, s_player_path, sizeof(s_dec_path));
+    portEXIT_CRITICAL(&s_player_mux);
+    s_dec_index = s_player_index;
+    s_dec_publish = PUB_NOW;
 }
 
 static int player_step(void)
@@ -1685,39 +1750,62 @@ static int player_step(void)
             if (++s_dec_failures >= (s_player_list.count ? s_player_list.count : 1)) {
                 return STEP_DONE;
             }
-            s_dec_step = 1;
-            return player_advance();
+            return player_point_at(s_dec_index, 1, s_dec_publish);
         }
         s_dec_failures = 0;
         s_dec_finished = false;
-        s_dec_step = 1;
-
-        /* The ring is empty here (first track, a skip, or the last one
-         * played out): what is published now is what is heard from now. */
-        portENTER_CRITICAL(&s_player_mux);
-        memcpy(s_player_path, s_dec_path, sizeof(s_player_path));
-        s_player_info = s_dec_info;
-        portEXIT_CRITICAL(&s_player_mux);
-        player_title_from(s_dec_path, &s_dec_info);
-        s_player_rate     = s_dec_info.sample_rate;
-        s_player_channels = s_dec_info.channels;
-        s_out_rate        = s_dec_info.sample_rate;
-        s_track_start     = s_pring_tail;
         s_dec_frames = 0;
         s_dec_us_total = 0;
         s_cost_frames = 0;
         s_cost_us = 0;
+        if (s_dec_publish == PUB_AT_HEAD && s_dec_info.sample_rate != s_out_rate) {
+            s_dec_publish = PUB_AFTER_DRAIN;    /* another rate: the codec reopens */
+        }
+        if (s_dec_publish == PUB_AT_HEAD) {
+            portENTER_CRITICAL(&s_player_mux);
+            memcpy(s_next_path, s_dec_path, sizeof(s_next_path));
+            s_next_info  = s_dec_info;
+            s_next_index = s_dec_index;
+            s_next_at    = s_pring_head;
+            s_next_pending = true;
+            portEXIT_CRITICAL(&s_player_mux);
+        } else if (s_dec_publish == PUB_NOW) {
+            /* the ring is empty: first track, or after a flush */
+            s_out_rate = s_dec_info.sample_rate;
+            player_publish(s_dec_path, &s_dec_info, s_dec_index, s_pring_tail);
+        }
+    }
+
+    if (s_dec_publish == PUB_AFTER_DRAIN) {
+        if (ring_used() > 0 && !s_player_skip && s_player_seek_ms < 0) {
+            s_expect_empty = true;
+            return STEP_WAIT;
+        }
+        s_dec_publish = PUB_NOW;
+        s_out_rate = s_dec_info.sample_rate;
+        player_publish(s_dec_path, &s_dec_info, s_dec_index, s_pring_tail);
     }
 
     int skip = s_player_skip;
     if (skip) {
         s_player_skip = 0;
-        player_flush();
-        s_dec_step = skip;
-        return player_advance();
+        player_park(true);
+        s_expect_empty = true;
+        s_pring_tail = s_pring_head;
+        s_next_pending = false;
+        player_park(false);
+        return player_point_at(s_player_index, skip, PUB_NOW);
     }
     int32_t seek = s_player_seek_ms;
     if (seek >= 0) {
+        if (s_next_pending) {
+            player_park(true);
+            s_expect_empty = true;
+            s_pring_tail = s_pring_head;
+            player_back_to_heard();
+            player_park(false);
+            return STEP_AGAIN;          /* reopen what is heard; the seek waits */
+        }
         s_player_seek_ms = -1;
         player_flush();
         uint32_t landed = aos_audio_seek(s_dec, (uint32_t)seek);
@@ -1726,14 +1814,11 @@ static int player_step(void)
     }
 
     if (s_dec_finished) {
-        /* Let the writer play the tail out before the next one takes the
-         * titles: the gap between tracks is the next file's open plus the
-         * prefill, around a quarter of a second. */
+        /* a single file: let the writer play the tail out, then stop */
         if (ring_used() > 0) {
             return STEP_WAIT;
         }
-        s_dec_step = 1;
-        return player_advance();
+        return STEP_DONE;
     }
 
     if (s_pring_n - ring_used() < PLAYER_CHUNK) {
@@ -1744,9 +1829,16 @@ static int player_step(void)
     int n = aos_audio_read(s_dec, s_dec_chunk, PLAYER_CHUNK);
     uint32_t us = (uint32_t)(esp_timer_get_time() - t0);
     if (n <= 0) {
-        s_dec_finished = true;
-        s_expect_empty = true;          /* the gap that follows is not an underrun */
-        return STEP_AGAIN;
+        if (s_dec_index < 0) {
+            s_dec_finished = true;
+            s_expect_empty = true;      /* the silence that follows is the end */
+            return STEP_AGAIN;
+        }
+        if (s_next_pending) {
+            return STEP_WAIT;           /* a track shorter than the ring: one at a time */
+        }
+        /* Gapless: the next file starts right behind this one in the ring. */
+        return player_point_at(s_dec_index, 1, PUB_AT_HEAD);
     }
     s_dec_frames += (uint32_t)n;
     s_dec_us_total += us;
@@ -1881,7 +1973,9 @@ static bool player_start(const char *path)
     snprintf(s_dec_path, sizeof(s_dec_path), "%s", path);
     s_dec = NULL;
     s_dec_failures = 0;
-    s_dec_step = 1;
+    s_dec_index = s_player_index;       /* play()/play_folder() set it just before */
+    s_dec_publish = PUB_NOW;
+    s_next_pending = false;
     s_dec_finished = false;
 
     s_pring_head = s_pring_tail = s_track_start = 0;

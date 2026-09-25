@@ -84,6 +84,18 @@ struct aos_audio {
     int16_t *pcm;               /* one decoded frame, MINIMP3_MAX_SAMPLES_PER_FRAME */
     int      pcm_frames, pcm_pos, pcm_channels;
 
+    /* Gapless: what the encoder added. An encoder delays the audio (LAME:
+     * 576 samples, plus the 529 every layer III decoder adds) and pads the
+     * last frame; the LAME tag in the Info frame says how much, and the Info
+     * frame itself decodes to one frame of silence. Without trimming them,
+     * a track that runs into the next one gets a click and ~50 ms of
+     * silence between them, which is what ffmpeg removes and we did not. */
+    uint32_t skip;              /* output frames still to drop at the start */
+    uint64_t out_pos;           /* output frames given, counted after the skip */
+    uint64_t out_end;           /* frames in the track as encoded, 0 = unknown */
+    uint32_t xing_frames;
+    int32_t  enc_delay, enc_padding;   /* -1: no LAME tag */
+
     uint32_t cost_frames;
     uint64_t cost_us;
 };
@@ -370,6 +382,18 @@ static void mp3_xing(aos_audio_t *a, const uint8_t *fr, int len, const mp3dec_fr
         memcpy(a->toc, fr + p, 100);
         a->has_toc = true;
     }
+    if (flags & 4) p += 100;
+    if (flags & 8) p += 4;                      /* quality */
+    /* The LAME tag follows: 9 bytes of encoder name ("LAME3.99r", or "Lavc"
+     * from ffmpeg, same layout), and at +21 the delay and the padding, 12
+     * bits each. */
+    if (p + 24 <= len && (!memcmp(fr + p, "LAME", 4) || !memcmp(fr + p, "Lavc", 4) ||
+                          !memcmp(fr + p, "Lavf", 4))) {
+        const uint8_t *d = fr + p + 21;
+        a->enc_delay   = (d[0] << 4) | (d[1] >> 4);
+        a->enc_padding = ((d[1] & 0x0F) << 8) | d[2];
+    }
+    a->xing_frames = frames;
     uint32_t spf = mpeg1 ? 1152 : 576;
     if (frames && a->sample_rate) {
         a->duration_ms = (uint32_t)((uint64_t)frames * spf * 1000 / a->sample_rate);
@@ -426,6 +450,20 @@ static bool mp3_open(aos_audio_t *a, aos_audio_info_t *info, uint32_t file_size)
     if (!a->duration_ms && a->kbps) {           /* CBR: bytes over bitrate */
         a->duration_ms = (uint32_t)((uint64_t)(a->data_end - a->data_start) * 8 / a->kbps);
     }
+    /* The Info frame decodes to silence; with the LAME tag, the delay goes
+     * too, and the padding at the end. Checked against ffmpeg, which does
+     * the same: sample for sample, the same start and the same length. */
+    uint32_t spf = (fr[1] & 0x08) ? 1152 : 576;
+    if (a->xing_frames) {
+        a->skip = spf;
+        if (a->enc_delay >= 0) {
+            a->skip += (uint32_t)a->enc_delay + 529;
+            uint64_t total = (uint64_t)a->xing_frames * spf;
+            uint32_t cut = (uint32_t)a->enc_delay + (uint32_t)a->enc_padding;
+            a->out_end = total > cut ? total - cut : 0;
+            a->duration_ms = (uint32_t)(a->out_end * 1000 / a->sample_rate);
+        }
+    }
     info->vbr = a->vbr;
     info->kbps = a->kbps;
     info->duration_ms = a->duration_ms;
@@ -437,9 +475,22 @@ static int mp3_read(aos_audio_t *a, int16_t *pcm, int max_frames)
 {
     int done = 0;
     while (done < max_frames) {
+        if (a->pcm_pos < a->pcm_frames && a->skip) {
+            int drop = a->pcm_frames - a->pcm_pos;
+            if ((uint32_t)drop > a->skip) drop = (int)a->skip;
+            a->pcm_pos += drop;
+            a->skip -= (uint32_t)drop;
+            continue;
+        }
+        if (a->out_end && a->out_pos >= a->out_end) {
+            break;                              /* the encoder's padding */
+        }
         if (a->pcm_pos < a->pcm_frames) {
             int n = a->pcm_frames - a->pcm_pos;
             if (n > max_frames - done) n = max_frames - done;
+            if (a->out_end && (uint64_t)n > a->out_end - a->out_pos) {
+                n = (int)(a->out_end - a->out_pos);
+            }
             const int16_t *src = a->pcm + a->pcm_pos * a->pcm_channels;
             int16_t *dst = pcm + done * a->channels;
             if (a->pcm_channels == a->channels) {
@@ -450,6 +501,7 @@ static int mp3_read(aos_audio_t *a, int16_t *pcm, int max_frames)
                 for (int i = 0; i < n; i++) dst[i] = (int16_t)((src[2 * i] + src[2 * i + 1]) / 2);
             }
             a->pcm_pos += n;
+            a->out_pos += (uint64_t)n;
             done += n;
             continue;
         }
@@ -502,6 +554,7 @@ aos_audio_t *aos_audio_open(const char *path, aos_audio_info_t *info)
 
     aos_audio_t *a = big_alloc(sizeof *a);
     if (!a) return NULL;
+    a->enc_delay = a->enc_padding = -1;
     a->file = fopen(path, "rb");
     struct stat st;
     if (!a->file || stat(path, &st) != 0) {
@@ -570,6 +623,8 @@ uint32_t aos_audio_seek(aos_audio_t *a, uint32_t ms)
     a->in_len = a->in_pos = 0;
     a->in_eof = false;
     a->pcm_frames = a->pcm_pos = 0;
+    a->skip = 0;
+    a->out_pos = (uint64_t)ms * a->sample_rate / 1000;
     mp3dec_init(&a->mp3.dec);                   /* it resyncs on its own */
     mp3_refill(a);
     return ms;
