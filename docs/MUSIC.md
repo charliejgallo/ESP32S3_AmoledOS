@@ -69,7 +69,7 @@ on the left only, and with this firmware both should sound.
 | Internal RAM | **0** | **11.3 KB** (idle 146,503 free → 135,195): the two task stacks and nothing else |
 | PSRAM | 0 | 243 KB: the ring (188 KB, sized for 48 kHz), the decoder (45 KB: state, scratch, 16 KB of file) |
 | Static RAM (.bss/.data, internal) | +32 bytes | |
-| Flash | +30 KB (minimp3 and its tables) | |
+| Flash | +30 KB for minimp3 and its tables; 41.6 KB in all with the player, the cover and the app (3,812,224 → 3,853,808 bytes) | |
 | CPU, decoding 320 kbps | | **12–14.5 % of one core** at 240 MHz |
 | Reading the card | | another ~10 % of wall time, waiting on DMA, not CPU |
 

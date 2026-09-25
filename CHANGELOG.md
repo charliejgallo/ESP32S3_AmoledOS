@@ -3,7 +3,7 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased — MP3
+## v0.6.1 — 2026-09-25
 
 **MP3 on the watch.** The Music app listed `.mp3` files and could not play
 them; now it plays MP3 and WAV, browses folders, and the music goes on with
@@ -22,7 +22,8 @@ the app closed. [docs/MUSIC.md](docs/MUSIC.md) has the measurements.
   is not on. Visor 3D, the worst case, renders at 12.7 fps with music
   instead of 14.1; no underruns through app launches, pak loads or uploads.
 - **Costs** 11.3 KB of internal RAM while playing (the two stacks), 0 at
-  rest, 243 KB of PSRAM, 12–14.5 % of one core for 320 kbps, 30 KB of flash.
+  rest, 243 KB of PSRAM, 12–14.5 % of one core for 320 kbps; the image grows
+  42 KB (minimp3 is 30 of them).
 - **The folder is the queue**: `aos_hal_player_play_folder()`, next, previous
   (the start first), seek, shuffle; tracks follow each other with no app
   open. `aos_hal_player_play()` still plays one file and stops (Video).
