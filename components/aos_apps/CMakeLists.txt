@@ -11,5 +11,5 @@ endif()
 idf_component_register(
     SRCS ${APP_SRCS}
     INCLUDE_DIRS "include"
-    REQUIRES aos_hal aos_ui lvgl aos_dynapp
+    REQUIRES aos_hal aos_ui lvgl aos_dynapp espressif__esp_new_jpeg
 )

@@ -150,7 +150,7 @@ LVGL's TJPGD, 8.5 KB of internal RAM while open. Numbers in VIDEO.md.
 | display | `aos_hal_brightness_set()`, `aos_hal_display_state()` |
 | preferences | `aos_hal_pref_get_i32/set_i32/get_str/set_str` |
 | sound | `aos_hal_beep()`, `aos_hal_volume_get/set()` |
-| player | `aos_hal_player_play/pause/resume/stop/status()` |
+| player | `aos_hal_player_play/pause/resume/stop/status()`; `_play_folder/next/prev/seek/set_shuffle/info/stats()` since the MP3 branch ([MUSIC.md](MUSIC.md)) |
 | recording | `aos_hal_rec_start/pause/resume/stop/status/peaks()` |
 | microphone | `aos_hal_mic_open/close/read/available/status()`, `aos_hal_mic_gain_set/get()` |
 | network | `aos_hal_net_state()`, `aos_hal_net_ssid()` |
@@ -1195,6 +1195,24 @@ bitmap never exists. Decode once into an `lv_canvas` and show that 1:1
 (`aos_app_photos.c`).
 
 ### Audio
+
+**Opening the streaming speaker or the microphone pauses the user's music.**
+The player hands the codec over and takes it back when you close them, 0.8 s
+later; you do nothing. Unless the user turned on Settings → Sound → Mix music
+and apps: then your speaker is mixed over the music (which drops to half
+volume) and `aos_hal_spk_*` behaves the same for you. Either way, do not
+assume you are alone on the speaker, and keep your own music quieter than
+your effects.
+
+**A task that does floating point is pinned to the core it first did it on.**
+Created unpinned or not: the Xtensa port pins it on its first FPU instruction
+(`portasm.S`). The player's decoder found out the hard way, sitting on the
+same core as Visor 3D's worker while the other one idled. If the core matters,
+pin the task yourself; `aos_hal_worker_start_on()` already does.
+
+**A task starved of CPU cannot raise its own priority.** If something must
+speed up when it falls behind, a task that keeps running has to do the
+raising (the player's writer does it for the decoder).
 
 **The speaker and the microphone cannot run at once.** Same ES8311 on the same
 I2S channels: while a capture is open - the recorder, or `aos_hal_mic_open()`

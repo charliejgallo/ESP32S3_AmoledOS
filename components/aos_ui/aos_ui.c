@@ -608,6 +608,7 @@ bool aos_ui_open(const char *id)
     }
 
     aos_hal_log("ui", "opening app %s", app->desc.id);
+    aos_hal_audio_foreground(app->desc.id);     /* before create(): it may open the speaker */
 
     bool fullscreen = (app->desc.flags & AOS_APP_FLAG_FULLSCREEN) != 0;
 
@@ -668,6 +669,7 @@ static void close_current(bool to_home)
     }
     aos_app_t *app = s_current;
     s_current = NULL;
+    aos_hal_audio_foreground(NULL);
     aos_i18n_app_unload();
 
     if (app->hide) {

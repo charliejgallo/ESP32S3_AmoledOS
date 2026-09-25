@@ -240,8 +240,12 @@ static const char blob_en__sistema_lang[] =
     "pareja\tpartner\n"
     "cerca\taround\n"
     "Olvidar pareja\tForget partner\n"
+    "Continuar\tResume\n"
     "No se pudo reproducir\tCould not play\n"
+    "En orden\tIn order\n"
+    "Aleatorio\tShuffle\n"
     "No hay musica en\\n%s\\n\\nse aceptan .wav y .mp3\tNo music in\\n%s\\n\\n.wav and .mp3 accepted\n"
+    "Carpeta vacía\tEmpty folder\n"
     "No hay notificaciones\tNo notifications\n"
     "El telefono no esta conectado\tThe phone is not connected\n"
     "Borrar todo\tClear all\n"
@@ -416,6 +420,8 @@ static const char blob_en__sistema_lang[] =
     "ATENUADA, SE APAGA DESPUES DE\tDIMMED, TURNS OFF AFTER\n"
     "Sin \\\"Siempre encendido\\\" la pantalla se apaga en vez de atenuarse. Con la bateria por debajo del 15 % se apaga igual.\tWithout \\\"Always on\\\" the screen turns off instead of dimming. Below 15 % battery it turns off anyway.\n"
     "Sonido de los avisos\tNotification sound\n"
+    "Mezclar música y apps\tMix music and apps\n"
+    "un juego con sonido suena sobre tu música, más baja, en vez de pausarla\ta game's sound plays over your music, turned down, instead of pausing it\n"
     "los avisos quedan en la lista, pero no encienden la pantalla ni suenan\tnotifications stay in the list but don't light the screen or sound\n"
     "Llamadas siempre\tCalls always\n"
     "una llamada entra aunque este No molestar\ta call gets through even with Do not disturb\n"
@@ -2719,8 +2725,12 @@ static const char blob_de__sistema_lang[] =
     "pareja\tPartner\n"
     "cerca\tin der Nähe\n"
     "Olvidar pareja\tPartner vergessen\n"
+    "Continuar\tFortsetzen\n"
     "No se pudo reproducir\tWiedergabe fehlgeschlagen\n"
+    "En orden\tDer Reihe nach\n"
+    "Aleatorio\tZufällig\n"
     "No hay musica en\\n%s\\n\\nse aceptan .wav y .mp3\tKeine Musik in\\n%s\\n\\n.wav und .mp3 möglich\n"
+    "Carpeta vacía\tLeerer Ordner\n"
     "No hay notificaciones\tKeine Mitteilungen\n"
     "El telefono no esta conectado\tDas Telefon ist nicht verbunden\n"
     "Borrar todo\tAlle löschen\n"
@@ -2895,6 +2905,8 @@ static const char blob_de__sistema_lang[] =
     "ATENUADA, SE APAGA DESPUES DE\tGEDIMMT, AUS NACH\n"
     "Sin \\\"Siempre encendido\\\" la pantalla se apaga en vez de atenuarse. Con la bateria por debajo del 15 % se apaga igual.\tOhne \\\"Immer an\\\" geht der Bildschirm aus, statt zu dimmen. Unter 15 % Akku geht er trotzdem aus.\n"
     "Sonido de los avisos\tMitteilungston\n"
+    "Mezclar música y apps\tMusik und Apps mischen\n"
+    "un juego con sonido suena sobre tu música, más baja, en vez de pausarla\tder Ton eines Spiels läuft über deiner Musik, leiser, statt sie anzuhalten\n"
     "los avisos quedan en la lista, pero no encienden la pantalla ni suenan\tMitteilungen bleiben in der Liste, wecken aber weder Bildschirm noch Ton\n"
     "Llamadas siempre\tAnrufe immer\n"
     "una llamada entra aunque este No molestar\tein Anruf kommt auch bei Nicht stören durch\n"
@@ -4972,7 +4984,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 604, 36, files_en, 37 },
-    { "de", "Deutsch", 604, 36, files_de, 37 },
+    { "en", "English", 610, 36, files_en, 37 },
+    { "de", "Deutsch", 610, 36, files_de, 37 },
 };
 const int aos_lang_pack_count = 2;

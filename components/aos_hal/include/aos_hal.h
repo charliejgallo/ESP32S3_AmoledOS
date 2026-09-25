@@ -677,6 +677,82 @@ void aos_hal_player_resume(void);
 void aos_hal_player_stop(void);
 bool aos_hal_player_status(aos_player_status_t *out);
 
+/* 16-bit PCM WAV and MP3 (any bitrate, CBR or VBR, 8 to 48 kHz), played
+ * mono through the one speaker. The decoder keeps two seconds ahead in
+ * PSRAM and runs under LVGL's priority while it can afford to: an app in
+ * front that keeps both cores busy for longer than that is where the music
+ * gives way. An app that opens the streaming speaker (aos_hal_spk_open)
+ * pauses the music until it closes it.
+ *
+ * aos_hal_player_play() plays one file and stops (a video's sound, a
+ * ringtone). aos_hal_player_play_folder() plays 'path' and then the rest of
+ * its folder in name order, round and round, with or without the app that
+ * started it. */
+bool aos_hal_player_play_folder(const char *path);
+void aos_hal_player_next(void);
+void aos_hal_player_prev(void);                 /* the start first if > 3 s in */
+void aos_hal_player_seek(uint32_t ms);
+void aos_hal_player_set_shuffle(bool on);
+
+typedef struct {
+    aos_player_state_t state;
+    char        path[256];
+    char        title[96];      /* the tag, or the file name after " - "    */
+    char        artist[96];     /* the tag, or the file name before " - "   */
+    char        album[64];
+    const char *format;         /* "MP3", "WAV" or ""                       */
+    uint16_t    kbps;
+    bool        vbr;
+    uint32_t    sample_rate;
+    uint8_t     channels;       /* the file's; the speaker gets them mixed  */
+    uint32_t    duration_ms;
+    uint32_t    position_ms;
+    int         index;          /* in the folder, -1 for a single file      */
+    int         count;
+    bool        shuffle;
+    bool        yielded;        /* paused because an app took the speaker   */
+    bool        has_cover;      /* an embedded picture                      */
+    uint32_t    cover_offset;   /* where its bytes are in the file, and how */
+    uint32_t    cover_size;     /* many (JPEG or PNG, see cover_mime)       */
+    uint32_t    reserved[6];
+} aos_player_info_t;
+
+bool aos_hal_player_info(aos_player_info_t *out);
+
+/* The last folder track heard and where it was, remembered across restarts
+ * (saved every minute, on pause, on stop and on each new track). False if
+ * there is none or the file is gone. resume_last() plays it from there. */
+bool aos_hal_player_last(char *path, size_t len, uint32_t *position_ms);
+bool aos_hal_player_resume_last(void);
+
+/* Settings -> Sound: an app that opens the streaming speaker while music
+ * plays is mixed over it (the music at half volume) instead of pausing it.
+ * Off by default. Never for the walkie-talkie, nor while the microphone is
+ * open. */
+bool aos_hal_player_mix(void);
+void aos_hal_player_set_mix(bool on);
+
+/* The UI tells the HAL which app is in front (NULL: none), before create().
+ * For the audio policy only: today, whether it is the walkie-talkie. */
+void aos_hal_audio_foreground(const char *app_id);
+
+/* How the pipeline is doing, for /api/player and the measurements. */
+typedef struct {
+    uint32_t ring_ms;           /* decoded and waiting                      */
+    uint32_t ring_cap_ms;
+    uint32_t ring_min_ms;       /* the lowest it got since play             */
+    uint32_t underruns;         /* times the writer found it empty          */
+    uint32_t load_permille;     /* reading + decoding, per second of audio  */
+    uint32_t decode_permille;   /* decoding alone                           */
+    uint32_t chunk_us_max;      /* the slowest read+decode of 1152 frames   */
+    int      decoder_prio;      /* 2 with room to spare, 5 when behind      */
+    uint32_t stack_free_dec;    /* bytes                                    */
+    uint32_t stack_free_out;
+    uint32_t reserved[6];
+} aos_player_stats_t;
+
+bool aos_hal_player_stats(aos_player_stats_t *out);
+
 /* --------------------------------------------------------------------------
  * Remote control of the phone's music
  *

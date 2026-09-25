@@ -2422,11 +2422,19 @@ static void raise_wake_cb(lv_event_t *event)
     aos_hal_raise_wake_enable(lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED));
 }
 
+static void music_mix_cb(lv_event_t *event)
+{
+    aos_hal_player_set_mix(lv_obj_has_state(lv_event_get_target(event), LV_STATE_CHECKED));
+}
+
 static void build_sound(lv_obj_t *p)
 {
     aos_quick_slider(p, AOS_SG_VOLUME_HIGH, aos_hal_volume_get(), 5, 100, CONTENT_W, 48, volume_cb);
     lv_obj_t *c = card(p);
     switch_row2(c, _("Sonido de los avisos"), NULL, aos_hal_notif_sound(), notif_sound_cb);
+    switch_row2(c, _("Mezclar música y apps"),
+                _("un juego con sonido suena sobre tu música, más baja, en vez de pausarla"),
+                aos_hal_player_mix(), music_mix_cb);
 }
 
 static void build_notif(lv_obj_t *p)

@@ -3169,6 +3169,7 @@ esp_err_t aos_mem_handler(httpd_req_t *req);
 esp_err_t aos_jpegbench_handler(httpd_req_t *req);
 esp_err_t aos_imu_dump_handler(httpd_req_t *req);
 esp_err_t aos_link_handler(httpd_req_t *req);
+esp_err_t aos_player_handler(httpd_req_t *req);     /* aos_player_api.c */
 
 static const httpd_uri_t ROUTES[] = {
         { .uri = "/",            .method = HTTP_GET,  .handler = inicio_page_handler },
@@ -3190,6 +3191,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/jpegbench", .method = HTTP_GET, .handler = aos_jpegbench_handler },
         { .uri = "/api/imu",     .method = HTTP_GET,  .handler = aos_imu_dump_handler },
         { .uri = "/api/link",    .method = HTTP_GET,  .handler = aos_link_handler },
+        { .uri = "/api/player",  .method = HTTP_GET,  .handler = aos_player_handler },
         { .uri = "/api/usb",     .method = HTTP_GET,  .handler = usb_handler },
         { .uri = "/usb",         .method = HTTP_GET,  .handler = usb_page_handler },
         { .uri = "/api/coredump",.method = HTTP_GET,  .handler = coredump_handler },

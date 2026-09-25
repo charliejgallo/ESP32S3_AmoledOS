@@ -3,6 +3,64 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased — MP3
+
+**MP3 on the watch.** The Music app listed `.mp3` files and could not play
+them; now it plays MP3 and WAV, browses folders, and the music goes on with
+the app closed. [docs/MUSIC.md](docs/MUSIC.md) has the measurements.
+
+**The player** (HAL)
+- **MP3 through minimp3** (CC0, vendored, its 16 KB scratch moved off the
+  stack): MPEG-1/2 layer III, CBR and VBR, 8–48 kHz. Checked against ffmpeg on
+  31 real 320 kbps files: 83 dB SNR, durations exact, seek within 6 ms. ID3v2
+  title, artist and album; "Artist - Title" from the file name when there are
+  no tags.
+- **Two tasks and a 2 s ring in PSRAM**: the decoder runs under LVGL's
+  priority while the ring is over half full, and the writer raises it when
+  it is not. **The decoder follows the app**: FPU tasks are pinned to the
+  core they first used the FPU on, so it moves to the core the app's worker
+  is not on. Visor 3D, the worst case, renders at 12.7 fps with music
+  instead of 14.1; no underruns through app launches, pak loads or uploads.
+- **Costs** 11.3 KB of internal RAM while playing (the two stacks), 0 at
+  rest, 243 KB of PSRAM, 12–14.5 % of one core for 320 kbps, 30 KB of flash.
+- **The folder is the queue**: `aos_hal_player_play_folder()`, next, previous
+  (the start first), seek, shuffle; tracks follow each other with no app
+  open. `aos_hal_player_play()` still plays one file and stops (Video).
+- **The app in front wins the codec**: an app that opens the streaming
+  speaker, or the microphone, pauses the music, and it comes back when they
+  let go. Or, with **Settings → Sound → Mix music and apps** on (off by
+  default), a game's sound plays over the music, which drops to half volume:
+  the app's ring is resampled from 16 kHz into the player's own writer. The
+  walkie-talkie and the microphone always pause.
+- **Gapless**: the next track decodes right behind the last and the title
+  changes on the sample; the LAME delay and padding are trimmed (the same
+  samples as ffmpeg, start and length).
+- **Remembers** the last track and where it was across restarts; the Music
+  app offers to resume it.
+- **Mono**: stereo is mixed to (L+R)/2. The ES8311 has one DAC and took the
+  left slot only.
+- The volume slider is heard at once (it used to wait for the next track).
+- `aos_hal_player_info()` and `aos_hal_player_stats()`; the old status struct
+  keeps its size.
+- The card is no longer unmounted under an open track (USB disk mode stops
+  the player first).
+
+**The Music app**
+- Folders first, then tracks, in natural order; title over artist; names up
+  to 255 bytes (72 before, and the cut name was the path it tried to open).
+- A "now playing" row; opening the app while music plays goes to the player.
+- The player: the cover (embedded in the MP3, or cover/folder/front.jpg
+  beside it, decoded in the background at 112 px), position in the folder,
+  shuffle, two-line title, format and bitrate, a draggable progress bar.
+- A "Resume" row with the last track and where it was.
+- The control centre's player row drives the watch's own music when it plays.
+
+**Tools**
+- `/api/player`: play, pause, next, seek, shuffle and volume from a computer,
+  and the pipeline's numbers (ring, underruns, decoder load, stacks, RAM).
+- The simulator reads real tags and lengths through the same `aos_audio.c`;
+  `AOS_SIM_PLAY=<file>` starts it.
+
 ## v0.6.0 — 2026-09-24
 
 **Two fingers.** The v2's touch chip reports a second finger in registers no

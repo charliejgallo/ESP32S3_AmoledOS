@@ -22,6 +22,7 @@
 #include "aos_hal.h"
 #include "aos_i18n.h"
 #include "aos_settings_glyphs.h"
+#include "aos_text_safe.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -37,6 +38,7 @@ static struct {
     lv_obj_t *tiles;
     lv_obj_t *music;                /* the player row, hidden with no music */
     lv_obj_t *player, *play;
+    bool      local;                /* the row drives the watch's own player */
     uint32_t  last_refresh;
     bool      closing;
 } s_cc;
@@ -106,12 +108,23 @@ static void refresh(void)
 
     aos_quick_tiles_paint(s_cc.tiles);
 
-    /* The player only with something to control: the phone connected and a
-     * track, playing or paused. */
+    /* The player only with something to control: the watch's own music
+     * first (it is what the speaker is playing), then the phone connected
+     * with a track, playing or paused. */
+    aos_player_info_t pi;
+    s_cc.local = aos_hal_player_info(&pi) && pi.state != AOS_PLAYER_STOPPED;
     aos_media_info_t mi;
     bool hay = aos_hal_media_link() == AOS_MEDIA_CONNECTED && aos_hal_media_info(&mi) &&
                (mi.playing || (mi.has_metadata && mi.title[0]));
-    if (s_cc.music) {
+    if (s_cc.music && s_cc.local) {
+        /* Here the track: there is no app name to show, and the title is
+         * what tells one of the card's songs from another. */
+        char safe[96];
+        aos_text_safe(safe, sizeof(safe), pi.title[0] ? pi.title : _("Música"));
+        set_text(s_cc.player, safe);
+        set_text(s_cc.play, pi.state == AOS_PLAYER_PLAYING ? AOS_SG_PAUSE : AOS_SG_PLAY);
+        lv_obj_remove_flag(s_cc.music, LV_OBJ_FLAG_HIDDEN);
+    } else if (s_cc.music) {
         if (hay) {
             /* Which app is playing, not the track: a title and an artist do
              * not fit beside three buttons, and cut short they said less
@@ -165,7 +178,22 @@ static void volume_released_cb(lv_event_t *e)
 static void media_cb(lv_event_t *e)
 {
     aos_hal_activity();
-    aos_hal_media_command((aos_media_cmd_t)(intptr_t)lv_event_get_user_data(e));
+    aos_media_cmd_t cmd = (aos_media_cmd_t)(intptr_t)lv_event_get_user_data(e);
+    if (s_cc.local) {
+        aos_player_status_t st;
+        aos_hal_player_status(&st);
+        if (cmd == AOS_MEDIA_PREV) {
+            aos_hal_player_prev();
+        } else if (cmd == AOS_MEDIA_NEXT) {
+            aos_hal_player_next();
+        } else if (st.state == AOS_PLAYER_PLAYING) {
+            aos_hal_player_pause();
+        } else {
+            aos_hal_player_resume();
+        }
+    } else {
+        aos_hal_media_command(cmd);
+    }
     s_cc.last_refresh = 0;                 /* show the new state on the next tick */
 }
 

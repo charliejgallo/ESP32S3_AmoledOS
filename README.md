@@ -119,8 +119,8 @@ as a page of its own. The screen timeouts are settings now, and the menu and
 About pages carry a QR to the portal.
 
 **Control centre.** A swipe down on the watchface pulls down the six quick
-tiles, the brightness and the volume, the phone's player while something plays,
-and a way into Settings; a swipe up puts it away. It opens in under 60 ms.
+tiles, the brightness and the volume, the player while something plays (the
+watch's own music, or the phone's), and a way into Settings; a swipe up puts it away. It opens in under 60 ms.
 
 <img src="docs/img/control-centre.png" width="220">
 
@@ -165,7 +165,7 @@ Twenty-one ship inside the binary. They are the ones the watch cannot be without
 | <img src="docs/img/int-activity.png" width="200"><br>**Actividad** — steps against a goal, the week as bars, and the raw QMI8658 reading. The detector is tuned on recorded, counted walks (wrist and pocket): [docs/STEPS.md](docs/STEPS.md). | <img src="docs/img/int-stopwatch.png" width="200"><br>**Cronómetro** — laps, and it keeps counting with the screen off. | <img src="docs/img/int-timer.png" width="200"><br>**Temporizador** — countdown with presets, and it rings through the speaker. |
 | <img src="docs/img/int-pomodoro.png" width="200"><br>**Pomodoro** — work and break cycles, with the day's tally kept across restarts. | <img src="docs/img/int-worldclock.png" width="200"><br>**Reloj mundial** — several cities at once, each with its own offset. | <img src="docs/img/int-alarm.png" width="200"><br>**Alarmas** — up to six, each on its own days of the week, checked by a service that runs whatever app is open; also editable from the portal. |
 | <img src="docs/img/int-calendar.png" width="200"><br>**Calendario** — the month, drawn with the week starting on Monday. | <img src="docs/img/int-notifs.png" width="200"><br>**Notificaciones** — the iPhone's, over ANCS: history, per-category filter and actions. | <img src="docs/img/int-btremote.png" width="200"><br>**Control BT** — the phone's music over AMS: title, artist, album and transport. |
-| <img src="docs/img/int-music.png" width="200"><br>**Música** — plays WAV from the card through the ES8311 codec. | <img src="docs/img/int-photos.png" width="200"><br>**Fotos** — JPEG, PNG and BMP from the card, decoded and scaled to the screen. | <img src="docs/img/int-flashlight.png" width="200"><br>**Linterna** — the panel at full white, which on an AMOLED is the only way to make light. |
+| <img src="docs/img/int-music.png" width="200"><br>**Música** — MP3 and WAV from the card, folder by folder, and it keeps playing with the app closed ([docs/MUSIC.md](docs/MUSIC.md)). | <img src="docs/img/int-photos.png" width="200"><br>**Fotos** — JPEG, PNG and BMP from the card, decoded and scaled to the screen. | <img src="docs/img/int-flashlight.png" width="200"><br>**Linterna** — the panel at full white, which on an AMOLED is the only way to make light. |
 | <img src="docs/img/int-level.png" width="200"><br>**Nivel** — a spirit level off the accelerometer, with the bubble and the angle in degrees. | <img src="docs/img/int-calc.png" width="200"><br>**Calculadora** — four operations, sized for a thumb rather than for density. | <img src="docs/img/int-convert.png" width="200"><br>**Conversor** — units across several families, with the keypad shared with the calculator. |
 | <img src="docs/img/settings-diagnostics.png" width="200"><br>**Diagnóstico** — memory, the load of each core and three temperatures, with graphs; a page of Settings, next to Battery, which used to be an app of its own. | <img src="docs/img/app-life.png" width="200"><br>**Vida** — Conway's Game of Life and Langton's ant on a 92x92 grid. | <img src="docs/img/settings-en.png" width="200"><br>**Ajustes** — six quick tiles and the brightness up top, then a page per category: display and its timeouts, sound, notifications and do-not-disturb, menu style, time, language, battery, touch, about. |
 | <img src="docs/img/usb-pcremote-keys.png" width="200"><br>**Control PC** — the watch as a keyboard with media keys, a mouse, a gamepad and a MIDI port for the computer on the USB cable, one screen per role. | <img src="docs/img/usb-pato-list.png" width="200"><br>**Pato goma** — runs keyboard-and-mouse scripts on the computer, DuckyScript-style, picked and confirmed on the watch and edited from the portal's `/pato` page. | <img src="docs/img/int-link.png" width="200"><br>**Enlace** — the other watches around, and the one this is paired with. Pairing is bumping the two watches together. See [Two watches](#two-watches). |
@@ -653,7 +653,7 @@ into. The portal serves each one by name.
 | `lua/` | Lua scripts, each one an app in the launcher | `lua-scripts.zip`, or written in the portal's `/lua` |
 | `3d/` | models for Visor 3D: `.stl` and `.m3d` | `apps/visor3d/models/` (v0.6.0: `3d-models.zip`), or the portal's `/3d`, which converts STL, OBJ and GLB |
 | `photos/` | JPEG, PNG and BMP for Fotos | your own |
-| `music/` | WAV, 16-bit PCM, for Música | your own |
+| `music/` | MP3 or 16-bit WAV, in folders if you like, for Música | your own |
 | `videos/` | MJPEG AVI at 368x448 with its WAV beside it | `tools/video_convert.sh` ([VIDEO.md](docs/VIDEO.md)) |
 | `doom/` | a Doom WAD (`DOOM1.WAD`, the shareware one, was the one tested) | yours: none is included ([why](apps/doom/README.md#the-wad)) |
 | `pixel/` | Pixel Art's canvases (`.pix`) and their PNG/GIF exports | the app, or the portal's `/pixel` |
@@ -727,6 +727,7 @@ and UDP in the simulator.
 | [PORTAL.md](docs/PORTAL.md) | the web portal: pages, API, what it costs the board, and the dev server |
 | [STEPS.md](docs/STEPS.md) | the step counter: why it is software, how it was tuned on counted walks |
 | [VIDEO.md](docs/VIDEO.md) | video from the card: the decoder, the background task, the direct blit, and the clock |
+| [MUSIC.md](docs/MUSIC.md) | MP3 and the player: the decoder checked against ffmpeg, the ring, what it costs and what it does to the app in front, gapless, the cover, mixing |
 | [RAM-AUDIT.md](docs/RAM-AUDIT.md) | where the internal RAM went and how the apps' code moved to PSRAM |
 | [ROADMAP.md](docs/ROADMAP.md) | what is planned and has no date: Android phones, and USB host (a pendrive on the watch), waiting for a way to power it |
 | [USB.md](docs/USB.md) | the USB-C port as a device or a host: what the board allows, the catalogue, the test rigs, the measurements and what was found |
@@ -747,6 +748,10 @@ what that looks like in practice:
 * The v2's touch chip **reports a second finger** in registers no driver
   reads, while its finger count never says more than one. Pinch-to-zoom in
   v0.6.0 comes from there ([GESTURES.md](docs/GESTURES.md)).
+* A task that does **floating point is pinned to the core** it first did it
+  on, whatever it was created with. The MP3 decoder landed on the same core
+  as Visor 3D's renderer while the other one idled; it now moves to the core
+  the app is not using ([MUSIC.md](docs/MUSIC.md)).
 * Letting LVGL stretch a canvas costs **129 ms per frame**. Every game upscales
   by hand.
 * Rebuilding a twenty-row list costs **111–124 ms** with the LVGL thread
@@ -775,10 +780,9 @@ fight in Chatarra's phone booth and a match of Neon Snakes.
 USB host mode (a pendrive on the watch) works but is parked: the board cannot
 power a peripheral ([USB.md](docs/USB.md)).
 
-Known gaps: MP3 — the player handles 16-bit PCM WAV only. On the power side,
-the clean power-off at 3 % and the charge-cycle counter are written and
-reviewed but have not yet been through a real discharge, and the night-on-
-battery figure is still to be taken — [POWER.md](docs/POWER.md) section 7 is
+Known gaps: on the power side, the clean power-off at 3 % and the
+charge-cycle counter are written and reviewed but have not yet been through a
+real discharge, and the night-on-battery figure is still to be taken — [POWER.md](docs/POWER.md) section 7 is
 the protocol and `tools/battery_night.py` the recorder.
 
 ## Licence

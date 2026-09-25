@@ -1528,6 +1528,13 @@ int main(void)
         icondump(dump);         /* writes the file and exits */
     }
 
+    /* AOS_SIM_PLAY=sim_fs/music/x/y.mp3 starts the (silent) player with that
+     * file and its folder, for screens that show what is playing. */
+    const char *play = getenv("AOS_SIM_PLAY");
+    if (play) {
+        aos_hal_player_play_folder(play);
+    }
+
     const char *view = getenv("AOS_SIM_VIEW");
     if (view) {
         if (strcmp(view, "launcher") == 0) {

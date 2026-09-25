@@ -6,6 +6,7 @@
  * go into a text file. Good enough to design the UI without the board.
  */
 #include "aos_hal.h"
+#include "aos_audio.h"
 #include "aos_link_internal.h"
 #include "aos_notif_internal.h"
 
@@ -851,24 +852,95 @@ void aos_hal_beep(int freq_hz, int ms)
 }
 
 /* --------------------------------------------------------------------------
- * Simulated player: nothing plays, but time advances as if it were playing,
- * which is what is needed to design the interface.
+ * Simulated player: nothing is heard, but the files are opened with the same
+ * aos_audio.c as the board (so titles, tags and lengths are the real ones)
+ * and time advances as if they played, folder queue included. Enough to
+ * design the interface.
  * -------------------------------------------------------------------------- */
 static aos_player_state_t s_player_state;
-static char     s_player_path[160];
-static char     s_player_title[64];
-static uint32_t s_player_duration;
+static char     s_player_path[256];
+static char     s_player_title[96];
+static char     s_player_artist[96];
+static aos_audio_info_t s_player_info;
 static uint32_t s_player_pos_ms;
 static uint64_t s_player_last_ms;
+static aos_audio_list_t s_player_list;
+static int      s_player_index = -1;
+static bool     s_player_shuffle;
+
+static void player_remember(void);
+
+static bool player_open(const char *path)
+{
+    aos_audio_t *a = aos_audio_open(path, &s_player_info);
+    if (!a) {
+        printf("[hal] cannot play %s\n", path);
+        return false;
+    }
+    aos_audio_close(a);
+    snprintf(s_player_path, sizeof(s_player_path), "%s", path);
+
+    /* same rule as the board: the tags, or "Artist - Title" in the name */
+    const char *slash = strrchr(path, '/');
+    char name[96];
+    snprintf(name, sizeof(name), "%s", slash ? slash + 1 : path);
+    char *dot = strrchr(name, '.');
+    if (dot) {
+        *dot = '\0';
+    }
+    const char *sep = strstr(name, " - ");
+    const char *after = sep ? sep + 3 : name;
+    while (*after == ' ') {
+        after++;
+    }
+    snprintf(s_player_title, sizeof(s_player_title), "%s",
+             s_player_info.title[0] ? s_player_info.title : after);
+    if (s_player_info.artist[0]) {
+        snprintf(s_player_artist, sizeof(s_player_artist), "%s", s_player_info.artist);
+    } else if (sep) {
+        snprintf(s_player_artist, sizeof(s_player_artist), "%.*s", (int)(sep - name), name);
+    } else {
+        s_player_artist[0] = '\0';
+    }
+    if (!s_player_info.duration_ms) {
+        s_player_info.duration_ms = 180000;
+    }
+    s_player_pos_ms = 0;
+    s_player_last_ms = aos_hal_uptime_ms();
+    s_player_state = AOS_PLAYER_PLAYING;
+    printf("[hal] playing %s (%u s)\n", path, (unsigned)(s_player_info.duration_ms / 1000));
+    return true;
+}
+
+static void player_step_to(int step)
+{
+    int count = s_player_list.count;
+    if (s_player_index < 0 || count == 0) {
+        s_player_state = AOS_PLAYER_STOPPED;
+        s_player_pos_ms = 0;
+        return;
+    }
+    if (s_player_shuffle && count > 1) {
+        int r = rand() % (count - 1);
+        s_player_index = r >= s_player_index ? r + 1 : r;
+    } else {
+        s_player_index = ((s_player_index + step) % count + count) % count;
+    }
+    char path[480];
+    snprintf(path, sizeof(path), "%s/%s", s_player_list.dir,
+             aos_audio_list_name(&s_player_list, s_player_index));
+    player_open(path);
+}
 
 static void player_advance(void)
 {
     uint64_t now = aos_hal_uptime_ms();
     if (s_player_state == AOS_PLAYER_PLAYING) {
         s_player_pos_ms += (uint32_t)(now - s_player_last_ms);
-        if (s_player_pos_ms >= s_player_duration * 1000) {
-            s_player_pos_ms = 0;
-            s_player_state = AOS_PLAYER_STOPPED;
+        if (s_player_pos_ms >= s_player_info.duration_ms) {
+            s_player_last_ms = now;
+            player_step_to(1);
+            return;
         }
     }
     s_player_last_ms = now;
@@ -879,32 +951,28 @@ bool aos_hal_player_play(const char *path)
     if (!path) {
         return false;
     }
-    snprintf(s_player_path, sizeof(s_player_path), "%s", path);
+    s_player_index = -1;
+    aos_audio_list_free(&s_player_list);
+    return player_open(path);
+}
 
-    const char *slash = strrchr(path, '/');
-    snprintf(s_player_title, sizeof(s_player_title), "%s", slash ? slash + 1 : path);
-    char *dot = strrchr(s_player_title, '.');
-    if (dot) {
-        *dot = '\0';
+bool aos_hal_player_play_folder(const char *path)
+{
+    const char *slash = path ? strrchr(path, '/') : NULL;
+    if (!slash) {
+        return false;
     }
-
-    /* an invented but stable duration for a given file */
-    uint32_t hash = 0;
-    for (const char *c = path; *c; c++) {
-        hash = hash * 31u + (unsigned char)*c;
-    }
-    s_player_duration = 90 + (hash % 180);
-
-    s_player_pos_ms = 0;
-    s_player_last_ms = aos_hal_uptime_ms();
-    s_player_state = AOS_PLAYER_PLAYING;
-    printf("[hal] playing %s (%u s)\n", path, (unsigned)s_player_duration);
-    return true;
+    char dir[160];
+    snprintf(dir, sizeof(dir), "%.*s", (int)(slash - path), path);
+    aos_audio_list_scan(&s_player_list, dir, 512);
+    s_player_index = aos_audio_list_find(&s_player_list, slash + 1);
+    return player_open(path);
 }
 
 void aos_hal_player_pause(void)
 {
     player_advance();
+    player_remember();
     if (s_player_state == AOS_PLAYER_PLAYING) {
         s_player_state = AOS_PLAYER_PAUSED;
     }
@@ -920,8 +988,41 @@ void aos_hal_player_resume(void)
 
 void aos_hal_player_stop(void)
 {
+    player_advance();
+    player_remember();
     s_player_state = AOS_PLAYER_STOPPED;
     s_player_pos_ms = 0;
+}
+
+void aos_hal_player_next(void)
+{
+    if (s_player_state != AOS_PLAYER_STOPPED) {
+        player_step_to(1);
+    }
+}
+
+void aos_hal_player_prev(void)
+{
+    player_advance();
+    if (s_player_state == AOS_PLAYER_STOPPED) {
+        return;
+    }
+    if (s_player_pos_ms > 3000 || s_player_index < 0) {
+        s_player_pos_ms = 0;
+    } else {
+        player_step_to(-1);
+    }
+}
+
+void aos_hal_player_seek(uint32_t ms)
+{
+    player_advance();
+    s_player_pos_ms = ms < s_player_info.duration_ms ? ms : s_player_info.duration_ms;
+}
+
+void aos_hal_player_set_shuffle(bool on)
+{
+    s_player_shuffle = on;
 }
 
 bool aos_hal_player_status(aos_player_status_t *out)
@@ -932,12 +1033,107 @@ bool aos_hal_player_status(aos_player_status_t *out)
     player_advance();
 
     out->state       = s_player_state;
-    out->duration_s  = s_player_duration;
+    out->duration_s  = s_player_info.duration_ms / 1000;
     out->position_s  = s_player_pos_ms / 1000;
-    out->sample_rate = 44100;
-    out->channels    = 2;
+    out->sample_rate = s_player_info.sample_rate;
+    out->channels    = s_player_info.channels;
     snprintf(out->path, sizeof(out->path), "%s", s_player_path);
     snprintf(out->title, sizeof(out->title), "%s", s_player_title);
+    return true;
+}
+
+bool aos_hal_player_info(aos_player_info_t *out)
+{
+    if (!out) {
+        return false;
+    }
+    player_advance();
+    memset(out, 0, sizeof(*out));
+    out->state       = s_player_state;
+    snprintf(out->path, sizeof(out->path), "%s", s_player_path);
+    snprintf(out->title, sizeof(out->title), "%s", s_player_title);
+    snprintf(out->artist, sizeof(out->artist), "%s", s_player_artist);
+    snprintf(out->album, sizeof(out->album), "%s", s_player_info.album);
+    out->format      = s_player_info.format == AOS_AUDIO_MP3 ? "MP3"
+                     : (s_player_info.format == AOS_AUDIO_WAV ? "WAV" : "");
+    out->kbps        = s_player_info.kbps;
+    out->vbr         = s_player_info.vbr;
+    out->sample_rate = s_player_info.sample_rate;
+    out->channels    = s_player_info.channels;
+    out->duration_ms = s_player_info.duration_ms;
+    out->position_ms = s_player_state != AOS_PLAYER_STOPPED ? s_player_pos_ms : 0;
+    out->index       = s_player_index;
+    out->count       = s_player_index >= 0 ? s_player_list.count : 0;
+    out->shuffle     = s_player_shuffle;
+    out->has_cover   = s_player_info.cover_offset != 0;
+    out->cover_offset = s_player_info.cover_offset;
+    out->cover_size  = s_player_info.cover_size;
+    return true;
+}
+
+/* Remembered in the simulator's prefs file on each track and on pause, which
+ * is enough to design the "go on" row. */
+static void player_remember(void)
+{
+    if (s_player_index >= 0 && s_player_state != AOS_PLAYER_STOPPED) {
+        aos_hal_pref_set_str("mus_path", s_player_path);
+        aos_hal_pref_set_i32("mus_pos", (int32_t)s_player_pos_ms);
+    }
+}
+
+bool aos_hal_player_last(char *path, size_t len, uint32_t *position_ms)
+{
+    int32_t pos = 0;
+    if (!path || len == 0 || !aos_hal_pref_get_str("mus_path", path, len) || !path[0]) {
+        return false;
+    }
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        return false;
+    }
+    fclose(f);
+    aos_hal_pref_get_i32("mus_pos", &pos);
+    if (position_ms) {
+        *position_ms = pos > 0 ? (uint32_t)pos : 0;
+    }
+    return true;
+}
+
+bool aos_hal_player_resume_last(void)
+{
+    char path[256];
+    uint32_t pos = 0;
+    if (!aos_hal_player_last(path, sizeof(path), &pos) || !aos_hal_player_play_folder(path)) {
+        return false;
+    }
+    aos_hal_player_seek(pos);
+    return true;
+}
+
+static bool s_player_mix;
+
+bool aos_hal_player_mix(void)
+{
+    return s_player_mix;
+}
+
+void aos_hal_player_set_mix(bool on)
+{
+    s_player_mix = on;
+    aos_hal_pref_set_i32("mus_mix", on ? 1 : 0);
+}
+
+void aos_hal_audio_foreground(const char *app_id)
+{
+    (void)app_id;
+}
+
+bool aos_hal_player_stats(aos_player_stats_t *out)
+{
+    if (!out) {
+        return false;
+    }
+    memset(out, 0, sizeof(*out));
     return true;
 }
 
