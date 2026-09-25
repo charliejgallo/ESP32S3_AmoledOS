@@ -97,6 +97,7 @@ add_executable(amoledos_sim
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_steps.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_device_name.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_link.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_audio.c
     ${AOS_UI_SRC}
     ${AOS_APPS_SRC}
     ${AOS_FONT_SRC}
@@ -106,6 +107,7 @@ add_executable(amoledos_sim
 target_include_directories(amoledos_sim PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_ui/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_apps/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_fonts/include

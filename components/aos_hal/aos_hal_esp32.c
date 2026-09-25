@@ -8,6 +8,7 @@
 #include "aos_hal.h"
 #include "aos_ble.h"
 #include "aos_board.h"
+#include "aos_audio.h"
 #include "axp2101.h"
 
 #include "bsp/esp-bsp.h"
@@ -34,6 +35,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+#include "freertos/semphr.h"
 #include "driver/i2s_std.h"
 #include "driver/gpio.h"
 #include "esp_lcd_panel_io.h"
@@ -1070,6 +1072,8 @@ bool aos_hal_sd_release(void)
     if (!s_sd_mounted) {
         return false;
     }
+    /* the player reads the card: an open file under an unmount does not end well */
+    aos_hal_player_stop();
     /* esp_vfs_fat_sdcard_unmount() also deinits the SDMMC host and frees the
      * card: whoever takes over starts from a cold host. */
     esp_err_t e = bsp_sdcard_unmount();
@@ -1154,6 +1158,7 @@ typedef struct {
 } tone_note_t;
 
 static QueueHandle_t s_tone_queue;
+static volatile bool s_tone_open;       /* tone_task holds the codec */
 
 /* RAM audit (E1b): with AOS_AUDIT_PSRAM_STACKS the tone task gets its stack
  * in PSRAM: it only writes PCM to I2S and never touches flash. The http,
@@ -1187,9 +1192,10 @@ static void tone_task(void *arg)
         /* If the recorder asked for the codec, release it before anything
          * else. We get here promptly because rec_start pushes an empty note to
          * wake the queue. */
-        if (s_mic_holds_codec && open) {
+        if ((s_mic_holds_codec || aos_hal_audio_is_playing()) && open) {
             esp_codec_dev_close(s_speaker);
             open = false;
+            s_tone_open = false;
             s_speaker_open = false;
             idle_rounds = 0;
         }
@@ -1206,6 +1212,7 @@ static void tone_task(void *arg)
             if (open && ++idle_rounds >= 10) {
                 esp_codec_dev_close(s_speaker);
                 open = false;
+                s_tone_open = false;
                 s_speaker_open = false;
                 idle_rounds = 0;
             }
@@ -1235,6 +1242,7 @@ static void tone_task(void *arg)
             }
             esp_codec_dev_set_out_vol(s_speaker, s_volume);
             open = true;
+            s_tone_open = true;
             s_speaker_open = true;
 
             /* A breath of silence so the amplifier settles before the note;
@@ -1287,12 +1295,865 @@ void aos_hal_beep(int freq_hz, int ms)
 /* --------------------------------------------------------------------------
  * Player
  *
- * A task reads the file and feeds PCM to the codec. For now it understands
- * 16-bit PCM WAV, which is what comes out without decoding. For MP3 a decoder
- * has to be added (esp_audio_codec or libhelix) and hooked into player_task,
- * between the read and the esp_codec_dev_write.
+ * Two tasks and a ring between them.
+ *
+ *   player_task       file -> aos_audio (WAV, MP3) -> mono -> ring
+ *   player_out_task   ring -> codec, 20 ms at a time
+ *
+ * The ring is two seconds of mono PCM in PSRAM, and it is what lets the
+ * decoder give way: while the ring is more than half full it runs at
+ * priority 2, under LVGL (4), the workers (5) and anything else an app
+ * does, and only when it falls under half does it rise to 5, level with the
+ * workers, before the writer runs dry. The WRITER moves it: the decoder
+ * raising itself was the first version, and with Visor 3D spinning a model
+ * both cores stayed busy above 2, the decoder never ran to raise itself and
+ * the ring emptied (3 underruns in 12 s, measured). Opening an app, loading its pak or a
+ * burst of drawing is paid out of the ring; a game that keeps both cores
+ * busy for seconds on end is where the music gives way (the writer counts
+ * those as underruns, visible in /api/player).
+ *
+ * Mono because the board has one speaker behind a mono DAC. Fed a stereo
+ * stream the ES8311 plays one slot, the one REG09's SDP_IN_SEL picks, and
+ * esp_codec_dev leaves it at 0, the left: a track mixed wide lost whatever
+ * was only on the right (from the datasheet and the driver; the ear test is
+ * music/prueba-canales/ on the card). Now it gets (L+R)/2, and I2S moves
+ * half the data.
+ *
+ * The writer owns the codec. It lets go of it when paused, when the
+ * microphone takes it, and when an app opens the streaming speaker
+ * (aos_hal_spk_open), which pauses the music and gets it back on close:
+ * the app in front wins, and the music comes back without being asked.
+ *
+ * After a track, the next one of its folder (aos_hal_player_play_folder),
+ * in name order and round again, or at random with shuffle. This lives here
+ * and not in the Music app so the music goes on with the app closed.
  * -------------------------------------------------------------------------- */
 
+#define PLAYER_RING_S       2           /* seconds of mono PCM in PSRAM */
+#define PLAYER_CHUNK        1152        /* frames per decode: one MPEG-1 frame */
+#define PLAYER_BLOCK_MS     20
+#define PLAYER_PREFILL_MS   200         /* the writer starts (and restarts) with this much */
+#define PLAYER_PRIO_LOW     2
+#define PLAYER_PRIO_HIGH    5
+#define PLAYER_OUT_PRIO     6
+#define PLAYER_MAX_TRACKS   512
+
+static aos_player_state_t s_player_state;
+static volatile bool      s_player_abort;
+static TaskHandle_t       s_player_out_task;
+static portMUX_TYPE       s_player_mux = portMUX_INITIALIZER_UNLOCKED;
+
+/* what is being heard (published by player_task under s_player_mux) */
+static char             s_player_path[256];
+static char             s_player_title[96];
+static char             s_player_artist[96];
+static char             s_player_album[64];
+static aos_audio_info_t s_player_info;
+static uint32_t         s_player_rate = 44100;
+static uint8_t          s_player_channels = 2;
+
+/* the folder */
+static aos_audio_list_t s_player_list;
+static int              s_player_index = -1;     /* -1: a single file */
+static bool             s_player_shuffle;
+
+/* requests to player_task */
+static volatile int32_t s_player_seek_ms = -1;
+static volatile int     s_player_skip;           /* +1 next, -1 previous */
+
+/* the ring: mono samples; head and tail count samples forever */
+static int16_t          *s_pring;
+static uint32_t          s_pring_n;
+static volatile uint32_t s_pring_head, s_pring_tail;
+static volatile uint32_t s_track_start;          /* tail value at 0:00 of the track heard */
+static volatile uint32_t s_out_rate;
+static volatile bool     s_dec_done;             /* nothing more will come */
+static volatile bool     s_out_hold;             /* park the writer, codec open */
+static volatile bool     s_out_parked;
+static portMUX_TYPE      s_out_mux = portMUX_INITIALIZER_UNLOCKED;   /* hold + parked */
+static volatile bool     s_expect_empty;         /* a flush or the end of a track: not an underrun */
+static volatile int      s_yield_refs;           /* the app's speaker, the microphone */
+static volatile int64_t  s_yield_until_us;       /* ...and a moment after they let go */
+static portMUX_TYPE      s_yield_mux = portMUX_INITIALIZER_UNLOCKED;
+static bool              s_player_yielded_pause; /* ...and paused us for it */
+
+/* figures for /api/player */
+static volatile uint32_t s_player_underruns;
+static volatile uint32_t s_dec_frames, s_dec_us_total, s_dec_us_max;
+static volatile uint32_t s_cost_frames;          /* aos_audio_cost(): decoding alone */
+static volatile uint64_t s_cost_us;
+static volatile uint32_t s_ring_min_ms = UINT32_MAX;
+static bool              s_ring_primed;          /* was 3/4 full since the last flush */
+static int               s_dec_prio;
+
+static void player_title_from(const char *path, const aos_audio_info_t *info)
+{
+    const char *slash = strrchr(path, '/');
+    char name[96];
+    snprintf(name, sizeof(name), "%s", slash ? slash + 1 : path);
+    char *dot = strrchr(name, '.');
+    if (dot) {
+        *dot = '\0';
+    }
+
+    /* The tags when there are any; otherwise the file name, which in most
+     * collections is "Artist - Title". */
+    char title[96] = "", artist[96] = "";
+    const char *sep = strstr(name, " - ");
+    const char *after = sep ? sep + 3 : NULL;
+    while (after && *after == ' ') {
+        after++;                        /* "Aman Anand -  Raikou": two spaces */
+    }
+    if (info->title[0]) {
+        snprintf(title, sizeof(title), "%s", info->title);
+    } else if (sep) {
+        snprintf(title, sizeof(title), "%s", after);
+    } else {
+        snprintf(title, sizeof(title), "%s", name);
+    }
+    if (info->artist[0]) {
+        snprintf(artist, sizeof(artist), "%s", info->artist);
+    } else if (sep && !(info->title[0] && strcmp(info->title, name) != 0)) {
+        snprintf(artist, sizeof(artist), "%.*s", (int)(sep - name), name);
+        /* a title tag that is just the file name again: split that too */
+        if (info->title[0]) {
+            snprintf(title, sizeof(title), "%s", after);
+        }
+    }
+    portENTER_CRITICAL(&s_player_mux);
+    memcpy(s_player_title, title, sizeof(title));
+    memcpy(s_player_artist, artist, sizeof(artist));
+    memcpy(s_player_album, info->album, sizeof(s_player_album));
+    portEXIT_CRITICAL(&s_player_mux);
+}
+
+/* Copies at most 'len' bytes of a UTF-8 string without cutting a character
+ * in half (the status's title is 64 bytes; ours, 96). */
+static void utf8_copy(char *dst, size_t len, const char *src)
+{
+    size_t n = strnlen(src, len - 1);
+    if (n == len - 1) {
+        while (n > 0 && ((unsigned char)src[n] & 0xC0) == 0x80) {
+            n--;
+        }
+    }
+    memcpy(dst, src, n);
+    dst[n] = '\0';
+}
+
+static uint32_t ring_used(void)
+{
+    return s_pring_head - s_pring_tail;
+}
+
+/* Parks the writer between two blocks, so the ring can be emptied under it. */
+static bool player_parked(void)
+{
+    portENTER_CRITICAL(&s_out_mux);
+    bool parked = s_out_parked;
+    portEXIT_CRITICAL(&s_out_mux);
+    return parked;
+}
+
+/* Parks the writer between two blocks, so the ring can be emptied under it.
+ * The hold and the writer's "parked" change under one lock: with two plain
+ * flags a skip that came right after another could read a "parked" left over
+ * from the last time while the writer had already decided to write, and the
+ * tail would end up past the head. No time limit: the writer comes back to
+ * the check within a block, or an open of the codec. */
+static void player_park(bool park)
+{
+    portENTER_CRITICAL(&s_out_mux);
+    s_out_hold = park;
+    portEXIT_CRITICAL(&s_out_mux);
+    while (park && s_player_out_task && !player_parked()) {
+        vTaskDelay(pdMS_TO_TICKS(2));
+    }
+}
+
+static void player_decoder_prio(void);
+
+static bool player_yielded(void)
+{
+    return s_yield_refs > 0 || esp_timer_get_time() < s_yield_until_us;
+}
+
+static void player_out_task(void *arg)
+{
+    (void)arg;
+    bool     open = false;
+    uint32_t open_rate = 0;
+    int      open_vol = -1;
+    bool     filling = true;            /* waiting for PLAYER_PREFILL_MS */
+
+    while (!s_player_abort) {
+        bool release = s_player_state == AOS_PLAYER_PAUSED || s_mic_holds_codec ||
+                       player_yielded();
+        portENTER_CRITICAL(&s_out_mux);
+        bool hold = s_out_hold;
+        s_out_parked = release || hold;     /* decided together: see player_park() */
+        portEXIT_CRITICAL(&s_out_mux);
+        if (release || hold) {
+            if (release && open) {
+                esp_codec_dev_close(s_speaker);
+                open = false;
+                s_speaker_open = false;
+            }
+            vTaskDelay(pdMS_TO_TICKS(10));
+            continue;
+        }
+        player_decoder_prio();
+
+        uint32_t used = ring_used();
+        uint32_t rate = s_out_rate ? s_out_rate : 44100;
+        if (used == 0) {
+            if (s_dec_done) {
+                break;
+            }
+            if (!filling && !s_expect_empty) {
+                s_player_underruns++;
+            }
+            filling = true;
+        }
+        if (filling) {
+            if (used < rate * PLAYER_PREFILL_MS / 1000 && !s_dec_done) {
+                vTaskDelay(pdMS_TO_TICKS(10));
+                continue;
+            }
+            filling = false;
+            s_expect_empty = false;
+        }
+
+        if (!open || open_rate != rate) {
+            if (open) {
+                esp_codec_dev_close(s_speaker);
+            }
+            /* a beep while we were paused may have left the tone task holding
+             * the codec (it keeps it five seconds): ask for it back */
+            if (s_tone_open && s_tone_queue) {
+                tone_note_t wake = { 0, 0 };
+                xQueueSend(s_tone_queue, &wake, 0);
+                for (int i = 0; i < 60 && s_tone_open; i++) {
+                    vTaskDelay(pdMS_TO_TICKS(10));
+                }
+            }
+            esp_codec_dev_sample_info_t fs = {
+                .bits_per_sample = 16,
+                .channel         = 1,
+                .sample_rate     = rate,
+            };
+            s_speaker_open = true;          /* before the open: see s_i2s_idle */
+            if (!s_speaker || esp_codec_dev_open(s_speaker, &fs) != ESP_OK) {
+                ESP_LOGE(TAG, "player: the codec did not accept %lu Hz", (unsigned long)rate);
+                s_speaker_open = false;
+                open = false;
+                break;
+            }
+            open = true;
+            open_rate = rate;
+            open_vol = -1;
+        }
+        if (open_vol != s_volume) {         /* the slider is heard at once */
+            open_vol = s_volume;
+            esp_codec_dev_set_out_vol(s_speaker, open_vol);
+        }
+
+        /* the low-water mark, from the moment the ring was full: the
+         * prefill after a start or a seek is not the decoder falling behind */
+        if (used > s_pring_n * 3 / 4) {
+            s_ring_primed = true;
+        } else if (s_expect_empty) {
+            s_ring_primed = false;
+        }
+        uint32_t ms_left = used * 1000 / rate;
+        if (s_ring_primed && ms_left < s_ring_min_ms) {
+            s_ring_min_ms = ms_left;
+        }
+        uint32_t n = rate * PLAYER_BLOCK_MS / 1000;
+        if (n > used) {
+            n = used;
+        }
+        uint32_t at = s_pring_tail % s_pring_n;
+        if (n > s_pring_n - at) {
+            n = s_pring_n - at;             /* up to the wrap; the rest next round */
+        }
+        /* straight from PSRAM: the I2S driver copies into its own DMA buffers */
+        if (esp_codec_dev_write(s_speaker, s_pring + at, (int)(n * sizeof(int16_t))) != ESP_OK) {
+            break;
+        }
+        s_pring_tail += n;
+    }
+
+    if (open) {
+        esp_codec_dev_close(s_speaker);
+    }
+    s_speaker_open = false;
+    s_out_parked = true;
+    s_player_out_task = NULL;
+    vTaskDelete(NULL);
+}
+
+/* Which track follows 'index' in the folder, or -1 at the end of a single
+ * file. With shuffle, any other one. */
+static int player_next_index(int index, int step)
+{
+    int count = s_player_list.count;
+    if (s_player_index < 0 || count == 0) {
+        return -1;
+    }
+    if (s_player_shuffle && count > 1) {
+        int r = (int)(esp_random() % (uint32_t)(count - 1));
+        return r >= index ? r + 1 : r;
+    }
+    return ((index + step) % count + count) % count;
+}
+
+
+/* The decoder's state lives here and not on its stack, so that the task can
+ * move to the other core and its successor pick up where it left off.
+ *
+ * Why it moves: minimp3 decodes in float, and on this chip the first FPU
+ * instruction pins a task to the core it ran it on (portasm.S, "CP
+ * operations are incompatible with unpinned tasks"). Created unpinned, the
+ * decoder landed on whichever core it started on and stayed there: in
+ * Visor 3D that was core 0, the one the viewer's worker spins on, while
+ * core 1 had room. So the decoder follows the app instead: when a worker
+ * starts on one core the decoder moves to the other, and with no worker it
+ * sits on core 0, away from LVGL. */
+static aos_audio_t     *s_dec;
+static aos_audio_info_t s_dec_info;
+static char             s_dec_path[256];
+static int16_t         *s_dec_chunk;           /* PLAYER_CHUNK stereo frames, PSRAM */
+static int              s_dec_failures;
+static int              s_dec_step = 1;
+static bool             s_dec_finished;        /* the file ended; its tail is still playing */
+static volatile int     s_dec_core_want;
+static int              s_worker_core = -1;    /* where the app's worker runs, -1 none */
+static SemaphoreHandle_t s_dec_lock;           /* s_player_task changing hands */
+
+enum { STEP_AGAIN, STEP_WAIT, STEP_DONE };
+
+/* Over half the ring: the decoder out of everyone's way; under: level with
+ * the apps. Called by the writer, which always runs; under s_dec_lock so the
+ * handle is never one that just deleted itself. */
+static void player_decoder_prio(void)
+{
+    int want = ring_used() > s_pring_n / 2 ? PLAYER_PRIO_LOW : PLAYER_PRIO_HIGH;
+    if (want == s_dec_prio || !s_dec_lock) {
+        return;
+    }
+    if (xSemaphoreTake(s_dec_lock, 0) == pdTRUE) {
+        if (s_player_task) {
+            vTaskPrioritySet(s_player_task, (UBaseType_t)want);
+            s_dec_prio = want;
+        }
+        xSemaphoreGive(s_dec_lock);
+    }
+}
+
+static void player_flush(void)
+{
+    player_park(true);
+    s_expect_empty = true;
+    s_pring_tail = s_pring_head;        /* drop what was queued */
+    player_park(false);
+}
+
+/* Closes the track and points at the one 's_dec_step' away. */
+static int player_advance(void)
+{
+    aos_audio_close(s_dec);
+    s_dec = NULL;
+    int next = player_next_index(s_player_index, s_dec_step);
+    if (next < 0) {
+        return STEP_DONE;               /* a single file: over */
+    }
+    s_player_index = next;
+    snprintf(s_dec_path, sizeof(s_dec_path), "%s/%s", s_player_list.dir,
+             aos_audio_list_name(&s_player_list, next));
+    return STEP_AGAIN;
+}
+
+static int player_step(void)
+{
+    if (!s_dec) {
+        s_dec = aos_audio_open(s_dec_path, &s_dec_info);
+        if (!s_dec) {
+            ESP_LOGW(TAG, "player: cannot play %s", s_dec_path);
+            /* a folder with one bad file goes on to the next; a folder of
+             * nothing but bad files, or a single file, stops */
+            if (++s_dec_failures >= (s_player_list.count ? s_player_list.count : 1)) {
+                return STEP_DONE;
+            }
+            s_dec_step = 1;
+            return player_advance();
+        }
+        s_dec_failures = 0;
+        s_dec_finished = false;
+        s_dec_step = 1;
+
+        /* The ring is empty here (first track, a skip, or the last one
+         * played out): what is published now is what is heard from now. */
+        portENTER_CRITICAL(&s_player_mux);
+        memcpy(s_player_path, s_dec_path, sizeof(s_player_path));
+        s_player_info = s_dec_info;
+        portEXIT_CRITICAL(&s_player_mux);
+        player_title_from(s_dec_path, &s_dec_info);
+        s_player_rate     = s_dec_info.sample_rate;
+        s_player_channels = s_dec_info.channels;
+        s_out_rate        = s_dec_info.sample_rate;
+        s_track_start     = s_pring_tail;
+        s_dec_frames = 0;
+        s_dec_us_total = 0;
+        s_cost_frames = 0;
+        s_cost_us = 0;
+    }
+
+    int skip = s_player_skip;
+    if (skip) {
+        s_player_skip = 0;
+        player_flush();
+        s_dec_step = skip;
+        return player_advance();
+    }
+    int32_t seek = s_player_seek_ms;
+    if (seek >= 0) {
+        s_player_seek_ms = -1;
+        player_flush();
+        uint32_t landed = aos_audio_seek(s_dec, (uint32_t)seek);
+        s_track_start = s_pring_tail - (uint32_t)((uint64_t)landed * s_dec_info.sample_rate / 1000);
+        s_dec_finished = false;
+    }
+
+    if (s_dec_finished) {
+        /* Let the writer play the tail out before the next one takes the
+         * titles: the gap between tracks is the next file's open plus the
+         * prefill, around a quarter of a second. */
+        if (ring_used() > 0) {
+            return STEP_WAIT;
+        }
+        s_dec_step = 1;
+        return player_advance();
+    }
+
+    if (s_pring_n - ring_used() < PLAYER_CHUNK) {
+        return STEP_WAIT;
+    }
+
+    int64_t t0 = esp_timer_get_time();
+    int n = aos_audio_read(s_dec, s_dec_chunk, PLAYER_CHUNK);
+    uint32_t us = (uint32_t)(esp_timer_get_time() - t0);
+    if (n <= 0) {
+        s_dec_finished = true;
+        s_expect_empty = true;          /* the gap that follows is not an underrun */
+        return STEP_AGAIN;
+    }
+    s_dec_frames += (uint32_t)n;
+    s_dec_us_total += us;
+    if (us > s_dec_us_max) {
+        s_dec_us_max = us;
+    }
+    uint32_t cf;
+    uint64_t cu;
+    aos_audio_cost(s_dec, &cf, &cu);
+    s_cost_frames = cf;
+    s_cost_us = cu;
+
+    uint32_t head = s_pring_head;
+    const int16_t *c = s_dec_chunk;
+    if (s_dec_info.channels == 2) {
+        for (int i = 0; i < n; i++) {
+            s_pring[(head + (uint32_t)i) % s_pring_n] =
+                (int16_t)(((int32_t)c[2 * i] + c[2 * i + 1]) / 2);
+        }
+    } else {
+        for (int i = 0; i < n; i++) {
+            s_pring[(head + (uint32_t)i) % s_pring_n] = c[i];
+        }
+    }
+    s_pring_head = head + (uint32_t)n;
+    return STEP_AGAIN;
+}
+
+static void player_task(void *arg);
+
+/* A decoder pinned to 'core', made the current one. Under s_dec_lock. */
+static bool player_spawn_decoder(int core)
+{
+    TaskHandle_t t = NULL;
+    /* 6 KB: the FAT path of an open plus minimp3 used 3.3 KB, measured */
+    if (xTaskCreatePinnedToCore(player_task, "aos_player", 6144, (void *)(intptr_t)core,
+                                (UBaseType_t)s_dec_prio, &t, core) != pdPASS) {
+        return false;
+    }
+    s_player_task = t;
+    return true;
+}
+
+static void player_task(void *arg)
+{
+    int core = (int)(intptr_t)arg;
+
+    while (!s_player_abort) {
+        int want = s_dec_core_want;
+        if (want != core) {
+            xSemaphoreTake(s_dec_lock, portMAX_DELAY);
+            bool moved = player_spawn_decoder(want);
+            xSemaphoreGive(s_dec_lock);
+            if (moved) {
+                ESP_LOGI(TAG, "player: decoder moved to core %d", want);
+                vTaskDelete(NULL);      /* the successor carries on */
+                return;
+            }
+            s_dec_core_want = core;     /* no room for a second stack: stay */
+        }
+        int r = player_step();
+        if (r == STEP_DONE) {
+            break;
+        }
+        if (r == STEP_WAIT) {
+            ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(10));
+        }
+    }
+
+    aos_audio_close(s_dec);
+    s_dec = NULL;
+    /* The writer plays out what is left (paused, it waits) and ends on its
+     * own; a stop gets there sooner through s_player_abort. */
+    s_dec_done = true;
+    while (s_player_out_task) {
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+    s_track_start = s_pring_tail;
+    s_player_state = AOS_PLAYER_STOPPED;
+    xSemaphoreTake(s_dec_lock, portMAX_DELAY);
+    s_player_task = NULL;
+    xSemaphoreGive(s_dec_lock);
+    vTaskDelete(NULL);
+}
+
+/* The app's worker started on 'core' (or ended, -1): the decoder goes to the
+ * other core, and with no worker to core 0, away from LVGL. */
+static void player_follow_worker(int core)
+{
+    s_worker_core = core;
+    s_dec_core_want = core == 0 ? 1 : 0;
+}
+
+static bool player_start(const char *path)
+{
+    /* Same reason as in tone_task: opening the speaker while recording tears
+     * down the microphone's input channel. */
+    if (s_mic_holds_codec) {
+        ESP_LOGW(TAG, "no playback while recording");
+        return false;
+    }
+    if (!path || !s_speaker) {
+        return false;
+    }
+
+    if (!s_pring) {
+        /* sized for 48 kHz; at 44.1 it holds a little more than two seconds */
+        s_pring_n = 48000 * PLAYER_RING_S;
+        s_pring = heap_caps_malloc(s_pring_n * sizeof(int16_t), MALLOC_CAP_SPIRAM);
+        if (!s_pring) {
+            ESP_LOGE(TAG, "player: no PSRAM for the ring");
+            return false;
+        }
+    }
+
+    if (!s_dec_chunk) {
+        s_dec_chunk = heap_caps_malloc(PLAYER_CHUNK * 2 * sizeof(int16_t), MALLOC_CAP_SPIRAM);
+    }
+    if (!s_dec_lock) {
+        s_dec_lock = xSemaphoreCreateMutex();
+    }
+    if (!s_dec_chunk || !s_dec_lock) {
+        return false;
+    }
+
+    portENTER_CRITICAL(&s_player_mux);
+    snprintf(s_player_path, sizeof(s_player_path), "%s", path);
+    memset(&s_player_info, 0, sizeof(s_player_info));  /* not the last track's length */
+    portEXIT_CRITICAL(&s_player_mux);
+    aos_audio_info_t none = {0};
+    player_title_from(path, &none);
+    snprintf(s_dec_path, sizeof(s_dec_path), "%s", path);
+    s_dec = NULL;
+    s_dec_failures = 0;
+    s_dec_step = 1;
+    s_dec_finished = false;
+
+    s_pring_head = s_pring_tail = s_track_start = 0;
+    s_player_abort = false;
+    s_player_skip = 0;
+    s_player_seek_ms = -1;
+    s_dec_done = false;
+    s_out_hold = false;
+    s_out_parked = false;
+    s_dec_us_max = 0;
+    s_ring_min_ms = UINT32_MAX;
+    s_ring_primed = false;
+    s_player_underruns = 0;
+    s_player_yielded_pause = false;
+    s_expect_empty = true;
+    s_dec_prio = PLAYER_PRIO_HIGH;          /* what it is created with */
+    s_player_state = AOS_PLAYER_PLAYING;
+
+    /* Internal stacks: the SD's FAT path is not happy with a PSRAM stack
+     * when the music folder falls back to SPIFFS (flash). 6 KB for the
+     * decoder, whose minimp3 state and buffers are all in PSRAM (3.3 KB
+     * used, measured); 4 KB for the writer, because opening the codec goes
+     * deep (2.4 KB used; with 3 KB it had 636 bytes to spare). */
+    if (xTaskCreate(player_out_task, "aos_play_out", 4096, NULL, PLAYER_OUT_PRIO,
+                    &s_player_out_task) != pdPASS) {
+        s_player_state = AOS_PLAYER_STOPPED;
+        return false;
+    }
+    bool started;
+    xSemaphoreTake(s_dec_lock, portMAX_DELAY);
+    s_dec_core_want = s_worker_core == 0 ? 1 : 0;
+    started = player_spawn_decoder(s_dec_core_want);
+    xSemaphoreGive(s_dec_lock);
+    if (!started) {
+        s_player_abort = true;
+        s_player_state = AOS_PLAYER_STOPPED;
+        return false;
+    }
+    return true;
+}
+
+bool aos_hal_player_play(const char *path)
+{
+    aos_hal_player_stop();
+    s_player_index = -1;                /* one file: the video's sound, a ringtone */
+    aos_audio_list_free(&s_player_list);
+    return player_start(path);
+}
+
+bool aos_hal_player_play_folder(const char *path)
+{
+    aos_hal_player_stop();
+    if (!path) {
+        return false;
+    }
+    char dir[160];
+    const char *slash = strrchr(path, '/');
+    if (!slash || (size_t)(slash - path) >= sizeof(dir)) {
+        return false;
+    }
+    snprintf(dir, sizeof(dir), "%.*s", (int)(slash - path), path);
+    aos_audio_list_scan(&s_player_list, dir, PLAYER_MAX_TRACKS);
+    s_player_index = aos_audio_list_find(&s_player_list, slash + 1);
+    if (s_player_index < 0) {
+        aos_audio_list_free(&s_player_list);
+    }
+    return player_start(path);
+}
+
+void aos_hal_player_pause(void)
+{
+    if (s_player_state == AOS_PLAYER_PLAYING) {
+        s_player_state = AOS_PLAYER_PAUSED;
+        s_player_yielded_pause = false;
+    }
+}
+
+void aos_hal_player_resume(void)
+{
+    /* not while an app has the speaker or the microphone has the codec */
+    if (s_player_state == AOS_PLAYER_PAUSED && !s_yield_refs && !s_mic_holds_codec) {
+        s_player_state = AOS_PLAYER_PLAYING;
+    }
+}
+
+void aos_hal_player_stop(void)
+{
+    if (!s_player_task) {
+        s_player_state = AOS_PLAYER_STOPPED;
+        return;
+    }
+    s_player_abort = true;
+    for (int i = 0; i < 100 && (s_player_task || s_player_out_task); i++) {
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+    s_player_state = AOS_PLAYER_STOPPED;
+}
+
+void aos_hal_player_next(void)
+{
+    if (s_player_task) {
+        s_player_skip = 1;
+        if (s_player_state == AOS_PLAYER_PAUSED && !s_yield_refs) {
+            s_player_state = AOS_PLAYER_PLAYING;
+        }
+    }
+}
+
+void aos_hal_player_prev(void)
+{
+    if (!s_player_task) {
+        return;
+    }
+    /* like every player: back to the start first, then the previous one */
+    uint32_t pos_ms = (uint32_t)((uint64_t)(s_pring_tail - s_track_start) * 1000 /
+                                 (s_player_rate ? s_player_rate : 44100));
+    if (pos_ms > 3000 || s_player_index < 0) {
+        s_player_seek_ms = 0;
+    } else {
+        s_player_skip = -1;
+    }
+    if (s_player_state == AOS_PLAYER_PAUSED && !s_yield_refs) {
+        s_player_state = AOS_PLAYER_PLAYING;
+    }
+}
+
+void aos_hal_player_seek(uint32_t ms)
+{
+    if (s_player_task) {
+        s_player_seek_ms = (int32_t)ms;
+    }
+}
+
+void aos_hal_player_set_shuffle(bool on)
+{
+    s_player_shuffle = on;
+}
+
+bool aos_hal_player_status(aos_player_status_t *out)
+{
+    if (!out) {
+        return false;
+    }
+    uint32_t rate = s_player_rate ? s_player_rate : 44100;
+    out->state       = s_player_state;
+    out->duration_s  = s_player_info.duration_ms / 1000;
+    out->position_s  = s_player_task ? (uint32_t)((s_pring_tail - s_track_start) / rate) : 0;
+    out->sample_rate = s_player_rate;
+    out->channels    = s_player_channels;
+    portENTER_CRITICAL(&s_player_mux);
+    memcpy(out->path, s_player_path, sizeof(out->path) - 1);
+    out->path[sizeof(out->path) - 1] = '\0';
+    portEXIT_CRITICAL(&s_player_mux);
+    char title[96];
+    portENTER_CRITICAL(&s_player_mux);
+    memcpy(title, s_player_title, sizeof(title));
+    portEXIT_CRITICAL(&s_player_mux);
+    utf8_copy(out->title, sizeof(out->title), title);
+    return true;
+}
+
+bool aos_hal_player_info(aos_player_info_t *out)
+{
+    if (!out) {
+        return false;
+    }
+    memset(out, 0, sizeof(*out));
+    uint32_t rate = s_player_rate ? s_player_rate : 44100;
+    portENTER_CRITICAL(&s_player_mux);
+    memcpy(out->path, s_player_path, sizeof(out->path));
+    memcpy(out->title, s_player_title, sizeof(out->title));
+    memcpy(out->artist, s_player_artist, sizeof(out->artist));
+    memcpy(out->album, s_player_album, sizeof(out->album));
+    aos_audio_info_t info = s_player_info;
+    portEXIT_CRITICAL(&s_player_mux);
+
+    out->state       = s_player_state;
+    out->format      = info.format == AOS_AUDIO_MP3 ? "MP3" : (info.format == AOS_AUDIO_WAV ? "WAV" : "");
+    out->kbps        = info.kbps;
+    out->vbr         = info.vbr;
+    out->sample_rate = info.sample_rate;
+    out->channels    = info.channels;
+    out->duration_ms = info.duration_ms;
+    out->position_ms = s_player_task
+                     ? (uint32_t)((uint64_t)(s_pring_tail - s_track_start) * 1000 / rate) : 0;
+    out->index       = s_player_index;
+    out->count       = s_player_index >= 0 ? s_player_list.count : 0;
+    out->shuffle     = s_player_shuffle;
+    out->yielded     = s_yield_refs > 0 && s_player_yielded_pause;
+    out->has_cover   = info.cover_offset != 0;
+    return true;
+}
+
+bool aos_hal_player_stats(aos_player_stats_t *out)
+{
+    if (!out) {
+        return false;
+    }
+    memset(out, 0, sizeof(*out));
+    uint32_t rate = s_player_rate ? s_player_rate : 44100;
+    uint32_t frames = s_dec_frames, us = s_dec_us_total;
+    out->ring_ms      = s_player_task ? ring_used() * 1000 / rate : 0;
+    out->ring_cap_ms  = s_pring_n * 1000 / rate;
+    out->ring_min_ms  = s_ring_min_ms == UINT32_MAX ? 0 : s_ring_min_ms;
+    out->underruns    = s_player_underruns;
+    /* decoder time per second of audio, in thousandths of a core */
+    out->load_permille = frames ? (uint32_t)((uint64_t)us * rate / frames / 1000) : 0;
+    uint32_t cf = s_cost_frames;
+    out->decode_permille = cf ? (uint32_t)(s_cost_us * rate / cf / 1000) : 0;
+    out->chunk_us_max = s_dec_us_max;
+    out->decoder_prio = s_player_task ? s_dec_prio : 0;
+    out->stack_free_dec = s_player_task ? (uint32_t)uxTaskGetStackHighWaterMark(s_player_task) : 0;
+    out->stack_free_out = s_player_out_task ? (uint32_t)uxTaskGetStackHighWaterMark(s_player_out_task) : 0;
+    return true;
+}
+
+bool aos_hal_play_file(const char *path)
+{
+    return aos_hal_player_play(path);
+}
+
+void aos_hal_audio_stop(void)
+{
+    aos_hal_player_stop();
+}
+
+bool aos_hal_audio_is_playing(void)
+{
+    return s_player_state == AOS_PLAYER_PLAYING;
+}
+
+/* The streaming speaker or the microphone asks for the codec: pause the music
+ * until they are done. Counted, because the walkie-talkie holds one and then
+ * the other; and the writer keeps off the codec for a moment after the last
+ * one lets go, or the music would blip in the gap between releasing the
+ * microphone and opening the speaker. yield=true returns once the writer has
+ * let go (or gave up waiting). */
+#define PLAYER_YIELD_TAIL_US    (800 * 1000)
+
+static void player_yield_to_app(bool yield)
+{
+    if (yield) {
+        portENTER_CRITICAL(&s_yield_mux);
+        bool first = s_yield_refs++ == 0;
+        portEXIT_CRITICAL(&s_yield_mux);
+        if (!first) {
+            return;
+        }
+        s_player_yielded_pause = s_player_task && s_player_state == AOS_PLAYER_PLAYING;
+        if (s_player_yielded_pause) {
+            s_player_state = AOS_PLAYER_PAUSED;
+        }
+        for (int i = 0; i < 50 && s_speaker_open && s_player_out_task; i++) {
+            vTaskDelay(pdMS_TO_TICKS(5));
+        }
+    } else {
+        portENTER_CRITICAL(&s_yield_mux);
+        bool last = s_yield_refs > 0 && --s_yield_refs == 0;
+        if (last) {
+            s_yield_until_us = esp_timer_get_time() + PLAYER_YIELD_TAIL_US;
+        }
+        portEXIT_CRITICAL(&s_yield_mux);
+        if (last && s_player_yielded_pause && s_player_state == AOS_PLAYER_PAUSED) {
+            s_player_state = AOS_PLAYER_PLAYING;
+        }
+        if (last) {
+            s_player_yielded_pause = false;
+        }
+    }
+}
+
+/* The WAV header the recorder writes (reading WAV lives in aos_audio.c). */
 typedef struct __attribute__((packed)) {
     char     riff[4];
     uint32_t size;
@@ -1312,217 +2173,6 @@ typedef struct __attribute__((packed)) {
     uint16_t block_align;
     uint16_t bits;
 } wav_fmt_t;
-
-static aos_player_state_t s_player_state;
-static char       s_player_path[160];
-static char       s_player_title[64];
-static uint32_t   s_player_duration;
-static uint32_t   s_player_position;
-static uint32_t   s_player_rate = 44100;
-static uint8_t    s_player_channels = 2;
-static volatile bool s_player_abort;
-
-static void player_title_from_path(const char *path)
-{
-    const char *slash = strrchr(path, '/');
-    snprintf(s_player_title, sizeof(s_player_title), "%s", slash ? slash + 1 : path);
-    char *dot = strrchr(s_player_title, '.');
-    if (dot) {
-        *dot = '\0';
-    }
-}
-
-/* Finds the WAV's fmt and data. Returns false if it is not a WAV we know how
- * to play; leaves the file positioned at the start of the audio. */
-static bool wav_open(FILE *file, wav_fmt_t *fmt, uint32_t *data_bytes)
-{
-    wav_riff_t riff;
-    if (fread(&riff, sizeof(riff), 1, file) != 1 ||
-        memcmp(riff.riff, "RIFF", 4) != 0 || memcmp(riff.wave, "WAVE", 4) != 0) {
-        return false;
-    }
-
-    bool have_fmt = false;
-    wav_chunk_t chunk;
-    while (fread(&chunk, sizeof(chunk), 1, file) == 1) {
-        if (memcmp(chunk.id, "fmt ", 4) == 0) {
-            if (fread(fmt, sizeof(*fmt), 1, file) != 1) {
-                return false;
-            }
-            /* the fmt chunk may carry extra fields after the base format */
-            if (chunk.size > sizeof(*fmt)) {
-                fseek(file, (long)(chunk.size - sizeof(*fmt)), SEEK_CUR);
-            }
-            have_fmt = true;
-        } else if (memcmp(chunk.id, "data", 4) == 0) {
-            *data_bytes = chunk.size;
-            return have_fmt && fmt->format == 1 && fmt->bits == 16;
-        } else {
-            fseek(file, (long)chunk.size, SEEK_CUR);
-        }
-    }
-    return false;
-}
-
-static void player_task(void *arg)
-{
-    (void)arg;
-
-    FILE *file = fopen(s_player_path, "rb");
-    if (!file) {
-        ESP_LOGE(TAG, "could not open %s", s_player_path);
-        s_player_state = AOS_PLAYER_STOPPED;
-        s_player_task = NULL;
-        vTaskDelete(NULL);
-        return;
-    }
-
-    wav_fmt_t fmt = {0};
-    uint32_t data_bytes = 0;
-    if (!wav_open(file, &fmt, &data_bytes)) {
-        ESP_LOGW(TAG, "%s is not 16-bit PCM WAV", s_player_path);
-        fclose(file);
-        s_player_state = AOS_PLAYER_STOPPED;
-        s_player_task = NULL;
-        vTaskDelete(NULL);
-        return;
-    }
-
-    s_player_rate     = fmt.sample_rate;
-    s_player_channels = (uint8_t)fmt.channels;
-    s_player_duration = fmt.byte_rate ? data_bytes / fmt.byte_rate : 0;
-
-    esp_codec_dev_sample_info_t info = {
-        .bits_per_sample = 16,
-        .channel         = (uint8_t)fmt.channels,
-        .sample_rate     = fmt.sample_rate,
-    };
-
-    if (!s_speaker || esp_codec_dev_open(s_speaker, &info) != ESP_OK) {
-        ESP_LOGE(TAG, "the codec did not accept %lu Hz", (unsigned long)fmt.sample_rate);
-        fclose(file);
-        s_player_state = AOS_PLAYER_STOPPED;
-        s_player_task = NULL;
-        vTaskDelete(NULL);
-        return;
-    }
-    esp_codec_dev_set_out_vol(s_speaker, s_volume);
-
-    const size_t buffer_size = 4096;
-    uint8_t *buffer = heap_caps_malloc(buffer_size, MALLOC_CAP_DEFAULT);
-    uint32_t played = 0;
-
-    while (buffer && !s_player_abort && played < data_bytes) {
-        if (s_player_state == AOS_PLAYER_PAUSED) {
-            vTaskDelay(pdMS_TO_TICKS(60));
-            continue;
-        }
-        size_t want = data_bytes - played < buffer_size ? data_bytes - played
-                                                        : buffer_size;
-        size_t got = fread(buffer, 1, want, file);
-        if (got == 0) {
-            break;
-        }
-        if (esp_codec_dev_write(s_speaker, buffer, (int)got) != ESP_OK) {
-            break;
-        }
-        played += got;
-        s_player_position = fmt.byte_rate ? played / fmt.byte_rate : 0;
-    }
-
-    free(buffer);
-    esp_codec_dev_close(s_speaker);
-    fclose(file);
-
-    s_player_position = 0;
-    s_player_state = AOS_PLAYER_STOPPED;
-    s_player_task = NULL;
-    vTaskDelete(NULL);
-}
-
-bool aos_hal_player_play(const char *path)
-{
-    /* Same reason as in tone_task: opening the speaker while recording tears
-     * down the microphone's input channel. */
-    if (s_mic_holds_codec) {
-        ESP_LOGW(TAG, "no playback while recording");
-        return false;
-    }
-
-    if (!path || !s_speaker) {
-        return false;
-    }
-    aos_hal_player_stop();
-
-    snprintf(s_player_path, sizeof(s_player_path), "%s", path);
-    player_title_from_path(path);
-    s_player_position = 0;
-    s_player_abort = false;
-    s_player_state = AOS_PLAYER_PLAYING;
-
-    if (xTaskCreate(player_task, "aos_player", 4096, NULL, 5, &s_player_task) != pdPASS) {
-        s_player_state = AOS_PLAYER_STOPPED;
-        return false;
-    }
-    return true;
-}
-
-void aos_hal_player_pause(void)
-{
-    if (s_player_state == AOS_PLAYER_PLAYING) {
-        s_player_state = AOS_PLAYER_PAUSED;
-    }
-}
-
-void aos_hal_player_resume(void)
-{
-    if (s_player_state == AOS_PLAYER_PAUSED) {
-        s_player_state = AOS_PLAYER_PLAYING;
-    }
-}
-
-void aos_hal_player_stop(void)
-{
-    if (!s_player_task) {
-        s_player_state = AOS_PLAYER_STOPPED;
-        return;
-    }
-    s_player_abort = true;
-    for (int i = 0; i < 50 && s_player_task; i++) {
-        vTaskDelay(pdMS_TO_TICKS(20));
-    }
-    s_player_state = AOS_PLAYER_STOPPED;
-}
-
-bool aos_hal_player_status(aos_player_status_t *out)
-{
-    if (!out) {
-        return false;
-    }
-    out->state       = s_player_state;
-    out->duration_s  = s_player_duration;
-    out->position_s  = s_player_position;
-    out->sample_rate = s_player_rate;
-    out->channels    = s_player_channels;
-    snprintf(out->path, sizeof(out->path), "%s", s_player_path);
-    snprintf(out->title, sizeof(out->title), "%s", s_player_title);
-    return true;
-}
-
-bool aos_hal_play_file(const char *path)
-{
-    return aos_hal_player_play(path);
-}
-
-void aos_hal_audio_stop(void)
-{
-    aos_hal_player_stop();
-}
-
-bool aos_hal_audio_is_playing(void)
-{
-    return s_player_state == AOS_PLAYER_PLAYING;
-}
 
 /* --------------------------------------------------------------------------
  * Recorder
@@ -1744,6 +2394,7 @@ static void mic_task(void *arg)
         s_mic_users       = 0;
         s_mic_holds_codec = false;
         s_mic_task        = NULL;
+        player_yield_to_app(false);
         vTaskDelete(NULL);
         return;
     }
@@ -1856,6 +2507,7 @@ static void mic_task(void *arg)
     s_mic_users       = 0;
     s_mic_holds_codec = false;      /* the speaker is available again */
     s_mic_task        = NULL;
+    player_yield_to_app(false);     /* and the music comes back */
     vTaskDelete(NULL);
 }
 
@@ -1870,6 +2522,7 @@ static bool mic_acquire(uint32_t user)
     /* Reserve the codec BEFORE creating the task, and push an empty note so
      * the tone task wakes up and releases the speaker right now rather than at
      * its next queue timeout (half a second). */
+    player_yield_to_app(true);          /* the music pauses while we listen */
     s_mic_holds_codec = true;
     if (s_tone_queue) {
         tone_note_t wake = { 0, 0 };
@@ -1881,6 +2534,7 @@ static bool mic_acquire(uint32_t user)
         if (!s_mic_users) {
             s_mic_holds_codec = false;
         }
+        player_yield_to_app(false);
         return false;
     }
     return true;
@@ -2769,6 +3423,7 @@ static void spk_task(void *arg)
         s_speaker_open = false;
         s_spk_running = false;
         s_spk_task = NULL;
+        player_yield_to_app(false);
         vTaskDelete(NULL);
         return;
     }
@@ -2796,17 +3451,18 @@ static void spk_task(void *arg)
     s_speaker_open = false;
     s_spk_running = false;
     s_spk_task = NULL;
+    player_yield_to_app(false);         /* the music comes back */
     vTaskDelete(NULL);
 }
 
-bool aos_hal_spk_open(uint32_t sample_rate)
+static bool spk_open(uint32_t sample_rate)
 {
-    if (s_spk_task) {
-        return true;
-    }
-    if (!s_speaker || s_player_task) {
+    if (!s_speaker) {
         return false;
     }
+    /* Music playing: the app in front wins. The player pauses, lets go of
+     * the codec and comes back in aos_hal_spk_close(). */
+    player_yield_to_app(true);
     /* The microphone that was just closed lets go of the codec when its task
      * ends, a little after the close; and the tone task may still hold it for
      * a note. Wait for both, bounded: the walkie's release-to-listen is this
@@ -2840,6 +3496,18 @@ bool aos_hal_spk_open(uint32_t sample_rate)
         return false;
     }
     return true;
+}
+
+bool aos_hal_spk_open(uint32_t sample_rate)
+{
+    if (s_spk_task) {
+        return true;
+    }
+    bool ok = spk_open(sample_rate);
+    if (!ok) {
+        player_yield_to_app(false);     /* no speaker after all: the music goes on */
+    }
+    return ok;
 }
 
 int aos_hal_spk_write(const int16_t *pcm, int n)
@@ -4962,6 +5630,7 @@ static void worker_task(void *arg)
 {
     (void)arg;
     s_worker_fn(s_worker_arg);
+    player_follow_worker(-1);           /* the decoder may go back to core 0 */
     s_worker_done = true;
     vTaskDelete(NULL);
 }
@@ -5000,6 +5669,7 @@ bool aos_hal_worker_start_on(const char *name, aos_worker_fn_t fn, void *arg,
         ESP_LOGE(TAG, "worker: no memory for a %lu B stack", (unsigned long)stack_bytes);
         return false;
     }
+    player_follow_worker(core);         /* the music gets out of its way */
     ESP_LOGI(TAG, "worker %s started: %lu B stack, core %d, prio %d",
              name ? name : "aos_worker", (unsigned long)stack_bytes, core, prio);
     return true;

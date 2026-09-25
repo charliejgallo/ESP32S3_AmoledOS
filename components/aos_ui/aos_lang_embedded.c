@@ -241,7 +241,10 @@ static const char blob_en__sistema_lang[] =
     "cerca\taround\n"
     "Olvidar pareja\tForget partner\n"
     "No se pudo reproducir\tCould not play\n"
+    "En orden\tIn order\n"
+    "Aleatorio\tShuffle\n"
     "No hay musica en\\n%s\\n\\nse aceptan .wav y .mp3\tNo music in\\n%s\\n\\n.wav and .mp3 accepted\n"
+    "Carpeta vacía\tEmpty folder\n"
     "No hay notificaciones\tNo notifications\n"
     "El telefono no esta conectado\tThe phone is not connected\n"
     "Borrar todo\tClear all\n"
@@ -2720,7 +2723,10 @@ static const char blob_de__sistema_lang[] =
     "cerca\tin der Nähe\n"
     "Olvidar pareja\tPartner vergessen\n"
     "No se pudo reproducir\tWiedergabe fehlgeschlagen\n"
+    "En orden\tDer Reihe nach\n"
+    "Aleatorio\tZufällig\n"
     "No hay musica en\\n%s\\n\\nse aceptan .wav y .mp3\tKeine Musik in\\n%s\\n\\n.wav und .mp3 möglich\n"
+    "Carpeta vacía\tLeerer Ordner\n"
     "No hay notificaciones\tKeine Mitteilungen\n"
     "El telefono no esta conectado\tDas Telefon ist nicht verbunden\n"
     "Borrar todo\tAlle löschen\n"
@@ -4972,7 +4978,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 604, 36, files_en, 37 },
-    { "de", "Deutsch", 604, 36, files_de, 37 },
+    { "en", "English", 607, 36, files_en, 37 },
+    { "de", "Deutsch", 607, 36, files_de, 37 },
 };
 const int aos_lang_pack_count = 2;
