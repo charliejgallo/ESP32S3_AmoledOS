@@ -420,6 +420,8 @@ static const char blob_en__sistema_lang[] =
     "ATENUADA, SE APAGA DESPUES DE\tDIMMED, TURNS OFF AFTER\n"
     "Sin \\\"Siempre encendido\\\" la pantalla se apaga en vez de atenuarse. Con la bateria por debajo del 15 % se apaga igual.\tWithout \\\"Always on\\\" the screen turns off instead of dimming. Below 15 % battery it turns off anyway.\n"
     "Sonido de los avisos\tNotification sound\n"
+    "Mezclar música y apps\tMix music and apps\n"
+    "un juego con sonido suena sobre tu música, más baja, en vez de pausarla\ta game's sound plays over your music, turned down, instead of pausing it\n"
     "los avisos quedan en la lista, pero no encienden la pantalla ni suenan\tnotifications stay in the list but don't light the screen or sound\n"
     "Llamadas siempre\tCalls always\n"
     "una llamada entra aunque este No molestar\ta call gets through even with Do not disturb\n"
@@ -2903,6 +2905,8 @@ static const char blob_de__sistema_lang[] =
     "ATENUADA, SE APAGA DESPUES DE\tGEDIMMT, AUS NACH\n"
     "Sin \\\"Siempre encendido\\\" la pantalla se apaga en vez de atenuarse. Con la bateria por debajo del 15 % se apaga igual.\tOhne \\\"Immer an\\\" geht der Bildschirm aus, statt zu dimmen. Unter 15 % Akku geht er trotzdem aus.\n"
     "Sonido de los avisos\tMitteilungston\n"
+    "Mezclar música y apps\tMusik und Apps mischen\n"
+    "un juego con sonido suena sobre tu música, más baja, en vez de pausarla\tder Ton eines Spiels läuft über deiner Musik, leiser, statt sie anzuhalten\n"
     "los avisos quedan en la lista, pero no encienden la pantalla ni suenan\tMitteilungen bleiben in der Liste, wecken aber weder Bildschirm noch Ton\n"
     "Llamadas siempre\tAnrufe immer\n"
     "una llamada entra aunque este No molestar\tein Anruf kommt auch bei Nicht stören durch\n"
@@ -4980,7 +4984,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 608, 36, files_en, 37 },
-    { "de", "Deutsch", 608, 36, files_de, 37 },
+    { "en", "English", 610, 36, files_en, 37 },
+    { "de", "Deutsch", 610, 36, files_de, 37 },
 };
 const int aos_lang_pack_count = 2;

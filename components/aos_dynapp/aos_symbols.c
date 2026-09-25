@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 121 funciones de libc/libm agregadas a mano.
- * Total: 2842 simbolos.
+ * Total: 2847 simbolos.
  */
 
 #include <stddef.h>
@@ -135,6 +135,7 @@ extern int aos_hal_aod_brightness_get;
 extern int aos_hal_aod_brightness_set;
 extern int aos_hal_aod_enable;
 extern int aos_hal_aod_enabled;
+extern int aos_hal_audio_foreground;
 extern int aos_hal_audio_is_playing;
 extern int aos_hal_audio_stop;
 extern int aos_hal_batt_history;
@@ -305,6 +306,7 @@ extern int aos_hal_path_sd_root;
 extern int aos_hal_play_file;
 extern int aos_hal_player_info;
 extern int aos_hal_player_last;
+extern int aos_hal_player_mix;
 extern int aos_hal_player_next;
 extern int aos_hal_player_pause;
 extern int aos_hal_player_play;
@@ -313,6 +315,7 @@ extern int aos_hal_player_prev;
 extern int aos_hal_player_resume;
 extern int aos_hal_player_resume_last;
 extern int aos_hal_player_seek;
+extern int aos_hal_player_set_mix;
 extern int aos_hal_player_set_shuffle;
 extern int aos_hal_player_stats;
 extern int aos_hal_player_status;
@@ -2794,6 +2797,8 @@ extern int mkdir;
 extern int mktime;
 extern int mp3dec_decode_frame;
 extern int mp3dec_init;
+extern int music_cover_request;
+extern int music_cover_take;
 extern int opendir;
 extern int powf;
 extern int putchar;
@@ -2980,6 +2985,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_aod_brightness_set),
     ESP_ELFSYM_EXPORT(aos_hal_aod_enable),
     ESP_ELFSYM_EXPORT(aos_hal_aod_enabled),
+    ESP_ELFSYM_EXPORT(aos_hal_audio_foreground),
     ESP_ELFSYM_EXPORT(aos_hal_audio_is_playing),
     ESP_ELFSYM_EXPORT(aos_hal_audio_stop),
     ESP_ELFSYM_EXPORT(aos_hal_batt_history),
@@ -3150,6 +3156,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_play_file),
     ESP_ELFSYM_EXPORT(aos_hal_player_info),
     ESP_ELFSYM_EXPORT(aos_hal_player_last),
+    ESP_ELFSYM_EXPORT(aos_hal_player_mix),
     ESP_ELFSYM_EXPORT(aos_hal_player_next),
     ESP_ELFSYM_EXPORT(aos_hal_player_pause),
     ESP_ELFSYM_EXPORT(aos_hal_player_play),
@@ -3158,6 +3165,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_player_resume),
     ESP_ELFSYM_EXPORT(aos_hal_player_resume_last),
     ESP_ELFSYM_EXPORT(aos_hal_player_seek),
+    ESP_ELFSYM_EXPORT(aos_hal_player_set_mix),
     ESP_ELFSYM_EXPORT(aos_hal_player_set_shuffle),
     ESP_ELFSYM_EXPORT(aos_hal_player_stats),
     ESP_ELFSYM_EXPORT(aos_hal_player_status),
@@ -5639,6 +5647,8 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(mktime),
     ESP_ELFSYM_EXPORT(mp3dec_decode_frame),
     ESP_ELFSYM_EXPORT(mp3dec_init),
+    ESP_ELFSYM_EXPORT(music_cover_request),
+    ESP_ELFSYM_EXPORT(music_cover_take),
     ESP_ELFSYM_EXPORT(opendir),
     ESP_ELFSYM_EXPORT(powf),
     ESP_ELFSYM_EXPORT(putchar),

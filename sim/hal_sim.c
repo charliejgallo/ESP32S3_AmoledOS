@@ -1110,6 +1110,24 @@ bool aos_hal_player_resume_last(void)
     return true;
 }
 
+static bool s_player_mix;
+
+bool aos_hal_player_mix(void)
+{
+    return s_player_mix;
+}
+
+void aos_hal_player_set_mix(bool on)
+{
+    s_player_mix = on;
+    aos_hal_pref_set_i32("mus_mix", on ? 1 : 0);
+}
+
+void aos_hal_audio_foreground(const char *app_id)
+{
+    (void)app_id;
+}
+
 bool aos_hal_player_stats(aos_player_stats_t *out)
 {
     if (!out) {

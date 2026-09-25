@@ -8,6 +8,7 @@
  *   GET /api/player?do=seek&ms=200000
  *   GET /api/player?do=shuffle&on=1
  *   GET /api/player?do=volume&v=40
+ *   GET /api/player?do=mix&on=1                  mix apps' sound over the music
  *
  * Paths are relative to the card's root. The figures are what the MP3 work
  * was measured with (ring, underruns, decoder load, stacks, RAM), and like
@@ -123,6 +124,8 @@ esp_err_t aos_player_handler(httpd_req_t *req)
             aos_hal_player_seek((uint32_t)atol(v));
         } else if (!strcmp(what, "shuffle") && arg("on", v, sizeof(v))) {
             aos_hal_player_set_shuffle(atoi(v) != 0);
+        } else if (!strcmp(what, "mix") && arg("on", v, sizeof(v))) {
+            aos_hal_player_set_mix(atoi(v) != 0);
         } else if (!strcmp(what, "volume") && arg("v", v, sizeof(v))) {
             aos_hal_volume_set(atoi(v));
         } else {
@@ -157,7 +160,7 @@ esp_err_t aos_player_handler(httpd_req_t *req)
              "{\"result\":\"%s\",\"state\":\"%s\",\"path\":\"%s\",\"title\":\"%s\","
              "\"artist\":\"%s\",\"album\":\"%s\",\"format\":\"%s\",\"kbps\":%u,\"vbr\":%s,"
              "\"rate\":%u,\"channels\":%u,\"duration_ms\":%u,\"position_ms\":%u,"
-             "\"index\":%d,\"count\":%d,\"shuffle\":%s,\"yielded\":%s,\"volume\":%d,"
+             "\"index\":%d,\"count\":%d,\"shuffle\":%s,\"yielded\":%s,\"mix\":%s,\"spk_mixed\":%s,\"spk_queued\":%d,\"volume\":%d,"
              "\"ring_ms\":%u,\"ring_cap_ms\":%u,\"ring_min_ms\":%u,\"underruns\":%u,"
              "\"load_permille\":%u,\"decode_permille\":%u,\"chunk_us_max\":%u,"
              "\"decoder_prio\":%d,\"stack_free_dec\":%u,\"stack_free_out\":%u,"
@@ -168,6 +171,8 @@ esp_err_t aos_player_handler(httpd_req_t *req)
              (unsigned)in.sample_rate, in.channels, (unsigned)in.duration_ms,
              (unsigned)in.position_ms, in.index, in.count,
              in.shuffle ? "true" : "false", in.yielded ? "true" : "false",
+             aos_hal_player_mix() ? "true" : "false", aos_hal_spk_is_open() ? "true" : "false",
+             aos_hal_spk_queued(),
              aos_hal_volume_get(),
              (unsigned)st.ring_ms, (unsigned)st.ring_cap_ms, (unsigned)st.ring_min_ms,
              (unsigned)st.underruns, (unsigned)st.load_permille, (unsigned)st.decode_permille,

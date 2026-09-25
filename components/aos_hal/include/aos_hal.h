@@ -725,6 +725,17 @@ bool aos_hal_player_info(aos_player_info_t *out);
 bool aos_hal_player_last(char *path, size_t len, uint32_t *position_ms);
 bool aos_hal_player_resume_last(void);
 
+/* Settings -> Sound: an app that opens the streaming speaker while music
+ * plays is mixed over it (the music at half volume) instead of pausing it.
+ * Off by default. Never for the walkie-talkie, nor while the microphone is
+ * open. */
+bool aos_hal_player_mix(void);
+void aos_hal_player_set_mix(bool on);
+
+/* The UI tells the HAL which app is in front (NULL: none), before create().
+ * For the audio policy only: today, whether it is the walkie-talkie. */
+void aos_hal_audio_foreground(const char *app_id);
+
 /* How the pipeline is doing, for /api/player and the measurements. */
 typedef struct {
     uint32_t ring_ms;           /* decoded and waiting                      */

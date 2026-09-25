@@ -1473,10 +1473,84 @@ static void player_park(bool park)
 
 static void player_decoder_prio(void);
 static uint32_t player_boundary(uint32_t n);
+static bool spk_ring_prepare(uint32_t sample_rate);
+static bool spk_task_start(void);
+static void spk_unmix(void);
 
 static bool player_yielded(void)
 {
     return s_yield_refs > 0 || esp_timer_get_time() < s_yield_until_us;
+}
+
+/* ---- mixing an app's sound over the music ------------------------------------
+ *
+ * With Settings -> Sound -> "Mix music and apps" on, an app that opens the
+ * streaming speaker while music plays does not pause it: its ring is read by
+ * the player's writer instead of a task of its own, brought from the app's
+ * rate (16 kHz, every app here) to the music's by linear interpolation, and
+ * added over the music at half volume (MIX_MUSIC_GAIN) for as long as the
+ * app holds the speaker. The walkie-talkie is never mixed: a voice over music
+ * is not something anyone asked for. Off, the default: the music pauses. */
+#define MIX_MUSIC_GAIN_Q8   128         /* 0.5 */
+
+static volatile bool s_spk_mixed;       /* the app's speaker rides in the writer */
+static uint32_t      s_mix_phase;       /* 16.16, in app samples past s_spk_tail */
+static int           s_mix_pref = -1;   /* the setting, read once */
+static volatile bool s_fg_voice;        /* the app in front is the walkie-talkie */
+
+bool aos_hal_player_mix(void)
+{
+    if (s_mix_pref < 0) {
+        int32_t v = 0;
+        aos_hal_pref_get_i32("mus_mix", &v);
+        s_mix_pref = v != 0;
+    }
+    return s_mix_pref == 1;
+}
+
+void aos_hal_player_set_mix(bool on)
+{
+    s_mix_pref = on ? 1 : 0;
+    aos_hal_pref_set_i32("mus_mix", on ? 1 : 0);
+}
+
+void aos_hal_audio_foreground(const char *app_id)
+{
+    s_fg_voice = app_id && strcmp(app_id, "aos.walkie") == 0;
+}
+
+/* One block of output: 'n' samples of music from the ring (or silence when
+ * 'music' is false), plus the app's stream when mixed. Returns the buffer to
+ * write. */
+static const int16_t *player_mix(int16_t *out, const int16_t *music, uint32_t n, uint32_t rate)
+{
+    uint32_t step = (uint32_t)(((uint64_t)s_spk_rate << 16) / rate);
+    uint32_t head = s_spk_head, tail = s_spk_tail;
+    uint32_t phase = s_mix_phase;
+    for (uint32_t i = 0; i < n; i++) {
+        int32_t m = music ? (music[i] * MIX_MUSIC_GAIN_Q8) >> 8 : 0;
+        uint32_t k = tail + (phase >> 16);
+        int32_t a = 0;
+        if ((int32_t)(head - k) >= 2) {
+            int32_t s0 = s_spk_ring[k % s_spk_ring_n];
+            int32_t s1 = s_spk_ring[(k + 1) % s_spk_ring_n];
+            a = s0 + (((s1 - s0) * (int32_t)(phase & 0xFFFF)) >> 16);
+            phase += step;
+        } else if ((int32_t)(head - k) == 1) {
+            a = s_spk_ring[k % s_spk_ring_n];
+            phase += step;
+        }
+        /* with nothing waiting the phase stays put: the app is late, not done */
+        int32_t v = m + a;
+        out[i] = (int16_t)(v > 32767 ? 32767 : (v < -32768 ? -32768 : v));
+    }
+    uint32_t used = phase >> 16;
+    if (used > head - tail) {
+        used = head - tail;
+    }
+    s_spk_tail = tail + used;
+    s_mix_phase = phase & 0xFFFF;
+    return out;
 }
 
 static void player_out_task(void *arg)
@@ -1486,10 +1560,14 @@ static void player_out_task(void *arg)
     uint32_t open_rate = 0;
     int      open_vol = -1;
     bool     filling = true;            /* waiting for PLAYER_PREFILL_MS */
+    const uint32_t block_max = 48000 * PLAYER_BLOCK_MS / 1000;
+    int16_t *mixbuf = heap_caps_malloc(block_max * sizeof(int16_t), MALLOC_CAP_SPIRAM);
 
     while (!s_player_abort) {
-        bool release = s_player_state == AOS_PLAYER_PAUSED || s_mic_holds_codec ||
-                       player_yielded();
+        bool mixed = s_spk_mixed && mixbuf;
+        bool paused = s_player_state == AOS_PLAYER_PAUSED;
+        /* paused but mixing: the app's sound goes on, over silence */
+        bool release = (paused && !mixed) || s_mic_holds_codec || player_yielded();
         portENTER_CRITICAL(&s_out_mux);
         bool hold = s_out_hold;
         s_out_parked = release || hold;     /* decided together: see player_park() */
@@ -1507,7 +1585,8 @@ static void player_out_task(void *arg)
 
         uint32_t used = ring_used();
         uint32_t rate = s_out_rate ? s_out_rate : 44100;
-        if (used == 0) {
+        bool music = !paused;
+        if (music && used == 0) {
             if (s_dec_done) {
                 break;
             }
@@ -1516,13 +1595,17 @@ static void player_out_task(void *arg)
             }
             filling = true;
         }
-        if (filling) {
+        if (music && filling) {
             if (used < rate * PLAYER_PREFILL_MS / 1000 && !s_dec_done) {
-                vTaskDelay(pdMS_TO_TICKS(10));
-                continue;
+                if (!mixed) {
+                    vTaskDelay(pdMS_TO_TICKS(10));
+                    continue;
+                }
+                music = false;              /* the app's sound does not wait for ours */
+            } else {
+                filling = false;
+                s_expect_empty = false;
             }
-            filling = false;
-            s_expect_empty = false;
         }
 
         if (!open || open_rate != rate) {
@@ -1559,35 +1642,50 @@ static void player_out_task(void *arg)
             esp_codec_dev_set_out_vol(s_speaker, open_vol);
         }
 
-        /* the low-water mark, from the moment the ring was full: the
-         * prefill after a start or a seek is not the decoder falling behind */
-        if (used > s_pring_n * 3 / 4) {
-            s_ring_primed = true;
-        } else if (s_expect_empty) {
-            s_ring_primed = false;
-        }
-        uint32_t ms_left = used * 1000 / rate;
-        if (s_ring_primed && ms_left < s_ring_min_ms) {
-            s_ring_min_ms = ms_left;
-        }
-        uint32_t n = player_boundary(rate * PLAYER_BLOCK_MS / 1000);
-        if (n > used) {
-            n = used;
+        uint32_t n = rate * PLAYER_BLOCK_MS / 1000;
+        if (music) {
+            n = player_boundary(n);
+            if (n > used) {
+                n = used;
+            }
+            /* the low-water mark, from the moment the ring was full: the
+             * prefill after a start or a seek is not the decoder falling
+             * behind */
+            if (used > s_pring_n * 3 / 4) {
+                s_ring_primed = true;
+            } else if (s_expect_empty) {
+                s_ring_primed = false;
+            }
+            uint32_t ms_left = used * 1000 / rate;
+            if (s_ring_primed && ms_left < s_ring_min_ms) {
+                s_ring_min_ms = ms_left;
+            }
         }
         uint32_t at = s_pring_tail % s_pring_n;
-        if (n > s_pring_n - at) {
+        if (music && n > s_pring_n - at) {
             n = s_pring_n - at;             /* up to the wrap; the rest next round */
         }
-        /* straight from PSRAM: the I2S driver copies into its own DMA buffers */
-        if (esp_codec_dev_write(s_speaker, s_pring + at, (int)(n * sizeof(int16_t))) != ESP_OK) {
+        if (n > block_max) {
+            n = block_max;
+        }
+        /* Straight from PSRAM when alone: the I2S driver copies into its own
+         * DMA buffers. Mixed, through mixbuf. */
+        const int16_t *src = s_pring + at;
+        if (mixed) {
+            src = player_mix(mixbuf, music ? s_pring + at : NULL, n, rate);
+        }
+        if (esp_codec_dev_write(s_speaker, (void *)src, (int)(n * sizeof(int16_t))) != ESP_OK) {
             break;
         }
-        s_pring_tail += n;
+        if (music) {
+            s_pring_tail += n;
+        }
     }
 
     if (open) {
         esp_codec_dev_close(s_speaker);
     }
+    free(mixbuf);
     s_speaker_open = false;
     s_out_parked = true;
     s_player_out_task = NULL;
@@ -1916,6 +2014,7 @@ static void player_task(void *arg)
     while (s_player_out_task) {
         vTaskDelay(pdMS_TO_TICKS(10));
     }
+    spk_unmix();                        /* an app's sound that rode with us goes on */
     s_track_start = s_pring_tail;
     s_player_state = AOS_PLAYER_STOPPED;
     xSemaphoreTake(s_dec_lock, portMAX_DELAY);
@@ -3659,6 +3758,12 @@ static bool spk_open(uint32_t sample_rate)
     if (s_mic_holds_codec || s_speaker_open) {
         return false;
     }
+    return spk_ring_prepare(sample_rate) && spk_task_start();
+}
+
+/* The ring, one second at the app's rate, emptied. */
+static bool spk_ring_prepare(uint32_t sample_rate)
+{
     if (!s_spk_ring) {
         s_spk_ring_n = sample_rate ? sample_rate : 16000;
         s_spk_ring = heap_caps_malloc(s_spk_ring_n * sizeof(int16_t), MALLOC_CAP_SPIRAM);
@@ -3676,6 +3781,11 @@ static bool spk_open(uint32_t sample_rate)
     s_spk_rate = sample_rate ? sample_rate : 16000;
     s_spk_head = s_spk_tail = 0;
     s_spk_stop = false;
+    return true;
+}
+
+static bool spk_task_start(void)
+{
     s_spk_running = true;               /* until the task says otherwise */
     if (xTaskCreate(spk_task, "aos_spk", 4096, NULL, 6, &s_spk_task) != pdPASS) {
         s_spk_running = false;
@@ -3684,9 +3794,33 @@ static bool spk_open(uint32_t sample_rate)
     return true;
 }
 
+/* The player is ending with an app's sound riding in its writer: that sound
+ * gets a task of its own, as it would have had without the mix, and goes on
+ * from where it was in its ring. */
+static void spk_unmix(void)
+{
+    if (!s_spk_mixed) {
+        return;
+    }
+    s_spk_mixed = false;
+    spk_task_start();
+}
+
 bool aos_hal_spk_open(uint32_t sample_rate)
 {
-    if (s_spk_task) {
+    if (s_spk_task || s_spk_mixed) {
+        return true;
+    }
+    /* Mixing on and music playing: the app's sound goes into the player's
+     * writer instead of pausing it (see player_mix()). */
+    if (aos_hal_player_mix() && !s_fg_voice && s_player_out_task &&
+        s_player_state == AOS_PLAYER_PLAYING && !s_mic_holds_codec) {
+        if (!spk_ring_prepare(sample_rate)) {
+            return false;
+        }
+        s_mix_phase = 0;
+        s_spk_running = true;
+        s_spk_mixed = true;
         return true;
     }
     bool ok = spk_open(sample_rate);
@@ -3698,7 +3832,7 @@ bool aos_hal_spk_open(uint32_t sample_rate)
 
 int aos_hal_spk_write(const int16_t *pcm, int n)
 {
-    if (!s_spk_task || !pcm || n <= 0) {
+    if (!(s_spk_task || s_spk_mixed) || !pcm || n <= 0) {
         return 0;
     }
     uint32_t used = s_spk_head - s_spk_tail;
@@ -3715,16 +3849,21 @@ int aos_hal_spk_write(const int16_t *pcm, int n)
 
 int aos_hal_spk_queued(void)
 {
-    return s_spk_task ? (int)(s_spk_head - s_spk_tail) : 0;
+    return (s_spk_task || s_spk_mixed) ? (int)(s_spk_head - s_spk_tail) : 0;
 }
 
 bool aos_hal_spk_is_open(void)
 {
-    return s_spk_task && s_spk_running;
+    return (s_spk_task && s_spk_running) || s_spk_mixed;
 }
 
 void aos_hal_spk_close(void)
 {
+    if (s_spk_mixed) {
+        s_spk_mixed = false;            /* the writer stops reading it */
+        s_spk_running = false;
+        return;
+    }
     if (!s_spk_task) {
         return;
     }
