@@ -727,6 +727,7 @@ and UDP in the simulator.
 | [PORTAL.md](docs/PORTAL.md) | the web portal: pages, API, what it costs the board, and the dev server |
 | [STEPS.md](docs/STEPS.md) | the step counter: why it is software, how it was tuned on counted walks |
 | [VIDEO.md](docs/VIDEO.md) | video from the card: the decoder, the background task, the direct blit, and the clock |
+| [MUSIC.md](docs/MUSIC.md) | MP3 and the player: the decoder checked against ffmpeg, the ring, what it costs and what it does to the app in front, gapless, the cover, mixing |
 | [RAM-AUDIT.md](docs/RAM-AUDIT.md) | where the internal RAM went and how the apps' code moved to PSRAM |
 | [ROADMAP.md](docs/ROADMAP.md) | what is planned and has no date: Android phones, and USB host (a pendrive on the watch), waiting for a way to power it |
 | [USB.md](docs/USB.md) | the USB-C port as a device or a host: what the board allows, the catalogue, the test rigs, the measurements and what was found |
@@ -747,6 +748,10 @@ what that looks like in practice:
 * The v2's touch chip **reports a second finger** in registers no driver
   reads, while its finger count never says more than one. Pinch-to-zoom in
   v0.6.0 comes from there ([GESTURES.md](docs/GESTURES.md)).
+* A task that does **floating point is pinned to the core** it first did it
+  on, whatever it was created with. The MP3 decoder landed on the same core
+  as Visor 3D's renderer while the other one idled; it now moves to the core
+  the app is not using ([MUSIC.md](docs/MUSIC.md)).
 * Letting LVGL stretch a canvas costs **129 ms per frame**. Every game upscales
   by hand.
 * Rebuilding a twenty-row list costs **111–124 ms** with the LVGL thread
