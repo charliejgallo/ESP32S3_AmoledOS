@@ -53,6 +53,9 @@ typedef struct {
     lv_obj_t *play_label;
     lv_timer_t *timer;
     bool      seeking;                  /* the finger is on the progress bar */
+    bool      has_last;                 /* a track to go on from, after a restart */
+    char      last_title[96], last_artist[96];
+    uint32_t  last_pos;
     char      shown[256];               /* the path the player view shows */
 } music_t;
 
@@ -128,6 +131,35 @@ static void set_text_safe(lv_obj_t *label, const char *text)
     set_text(label, buf);
 }
 
+/* "Artist - Title.mp3" into its two halves; no " - ", all of it is title. */
+static void split_name(const char *path, char *title, size_t tlen, char *artist, size_t alen)
+{
+    const char *slash = strrchr(path, '/');
+    char name[NAME_LEN];
+    snprintf(name, sizeof(name), "%s", slash ? slash + 1 : path);
+    char *dot = strrchr(name, '.');
+    if (dot) {
+        *dot = '\0';
+    }
+    /* long names are cut to the label's buffer, which is what shows anyway */
+    char *sep = strstr(name, " - ");
+    const char *t = name;
+    artist[0] = '\0';
+    if (sep) {
+        *sep = '\0';
+        t = sep + 3;
+        while (*t == ' ') {
+            t++;
+        }
+        if (snprintf(artist, alen, "%s", name) >= (int)alen) {
+            artist[alen - 1] = '\0';
+        }
+    }
+    if (snprintf(title, tlen, "%s", t) >= (int)tlen) {
+        title[tlen - 1] = '\0';
+    }
+}
+
 static bool at_root(void)
 {
     return strcmp(s_music.cwd, aos_hal_path_music()) == 0;
@@ -155,13 +187,29 @@ static void refresh(lv_timer_t *timer)
     }
     bool active = in.state != AOS_PLAYER_STOPPED;
 
-    /* the list's "now playing" row */
+    /* The list's top row: what is playing, in pink; with nothing playing,
+     * the last track and where it was, to go on from there. */
     if (s_music.now_row) {
         if (active) {
             set_text(s_music.now_icon, in.state == AOS_PLAYER_PLAYING ? LV_SYMBOL_PLAY
                                                                       : LV_SYMBOL_PAUSE);
             set_text_safe(s_music.now_title, in.title);
             set_text_safe(s_music.now_artist, in.artist);
+            lv_obj_set_style_bg_color(s_music.now_row, AOS_C_PINK, 0);
+            lv_obj_set_style_text_color(s_music.now_icon, AOS_C_TEXT, 0);
+            lv_obj_set_style_text_color(s_music.now_artist, AOS_C_TEXT, 0);
+            lv_obj_remove_flag(s_music.now_row, LV_OBJ_FLAG_HIDDEN);
+        } else if (s_music.has_last) {
+            char when[16], sub[140];
+            format_time(when, sizeof(when), s_music.last_pos);
+            snprintf(sub, sizeof(sub), "%s %s%s%s", _("Continuar"), when,
+                     s_music.last_artist[0] ? " \u00b7 " : "", s_music.last_artist);
+            set_text(s_music.now_icon, LV_SYMBOL_PLAY);
+            set_text_safe(s_music.now_title, s_music.last_title);
+            set_text_safe(s_music.now_artist, sub);
+            lv_obj_set_style_bg_color(s_music.now_row, AOS_C_CARD2, 0);
+            lv_obj_set_style_text_color(s_music.now_icon, AOS_C_PINK, 0);
+            lv_obj_set_style_text_color(s_music.now_artist, AOS_C_DIM, 0);
             lv_obj_remove_flag(s_music.now_row, LV_OBJ_FLAG_HIDDEN);
         } else {
             lv_obj_add_flag(s_music.now_row, LV_OBJ_FLAG_HIDDEN);
@@ -261,6 +309,11 @@ static void play_cb(lv_event_t *event)
         if (!aos_hal_player_play_folder(s_music.shown)) {
             aos_ui_toast(_("No se pudo reproducir"), 1600);
         }
+    } else if (s_music.has_last) {
+        s_music.has_last = false;
+        if (!aos_hal_player_resume_last()) {
+            aos_ui_toast(_("No se pudo reproducir"), 1600);
+        }
     }
     refresh(NULL);
 }
@@ -329,6 +382,15 @@ static void open_cb(lv_event_t *event)
 static void now_cb(lv_event_t *event)
 {
     (void)event;
+    aos_player_info_t in;
+    aos_hal_player_info(&in);
+    if (in.state == AOS_PLAYER_STOPPED) {
+        if (!aos_hal_player_resume_last()) {
+            aos_ui_toast(_("No se pudo reproducir"), 1600);
+            return;
+        }
+        s_music.has_last = false;       /* it is playing now: the pink row */
+    }
     show_player(true);
     refresh(NULL);
 }
@@ -462,16 +524,25 @@ static void *create(aos_app_t *self, lv_obj_t *root)
     s_music.shown[0] = '\0';
     snprintf(s_music.cwd, sizeof(s_music.cwd), "%s", aos_hal_path_music());
 
-    /* something playing from under the music folder: open where it is */
+    /* Something playing from under the music folder: open where it is.
+     * Nothing playing but a last track remembered: open in its folder, with
+     * the row to go on from there on top. */
     aos_player_info_t in;
     aos_hal_player_info(&in);
     bool active = in.state != AOS_PLAYER_STOPPED && in.path[0];
+    char last[256];
+    s_music.has_last = !active && aos_hal_player_last(last, sizeof(last), &s_music.last_pos);
+    if (s_music.has_last) {
+        split_name(last, s_music.last_title, sizeof(s_music.last_title),
+                   s_music.last_artist, sizeof(s_music.last_artist));
+    }
+    const char *here = active ? in.path : (s_music.has_last ? last : NULL);
     size_t root_len = strlen(s_music.cwd);
-    if (active && strncmp(in.path, s_music.cwd, root_len) == 0 && in.path[root_len] == '/') {
-        const char *slash = strrchr(in.path, '/');
-        size_t len = (size_t)(slash - in.path);
+    if (here && strncmp(here, s_music.cwd, root_len) == 0 && here[root_len] == '/') {
+        const char *slash = strrchr(here, '/');
+        size_t len = (size_t)(slash - here);
         if (len < sizeof(s_music.cwd)) {
-            memcpy(s_music.cwd, in.path, len);
+            memcpy(s_music.cwd, here, len);
             s_music.cwd[len] = '\0';
         }
     }

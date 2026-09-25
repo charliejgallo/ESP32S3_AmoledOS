@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 121 funciones de libc/libm agregadas a mano.
- * Total: 2840 simbolos.
+ * Total: 2842 simbolos.
  */
 
 #include <stddef.h>
@@ -304,12 +304,14 @@ extern int aos_hal_path_scans;
 extern int aos_hal_path_sd_root;
 extern int aos_hal_play_file;
 extern int aos_hal_player_info;
+extern int aos_hal_player_last;
 extern int aos_hal_player_next;
 extern int aos_hal_player_pause;
 extern int aos_hal_player_play;
 extern int aos_hal_player_play_folder;
 extern int aos_hal_player_prev;
 extern int aos_hal_player_resume;
+extern int aos_hal_player_resume_last;
 extern int aos_hal_player_seek;
 extern int aos_hal_player_set_shuffle;
 extern int aos_hal_player_stats;
@@ -3147,12 +3149,14 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_path_sd_root),
     ESP_ELFSYM_EXPORT(aos_hal_play_file),
     ESP_ELFSYM_EXPORT(aos_hal_player_info),
+    ESP_ELFSYM_EXPORT(aos_hal_player_last),
     ESP_ELFSYM_EXPORT(aos_hal_player_next),
     ESP_ELFSYM_EXPORT(aos_hal_player_pause),
     ESP_ELFSYM_EXPORT(aos_hal_player_play),
     ESP_ELFSYM_EXPORT(aos_hal_player_play_folder),
     ESP_ELFSYM_EXPORT(aos_hal_player_prev),
     ESP_ELFSYM_EXPORT(aos_hal_player_resume),
+    ESP_ELFSYM_EXPORT(aos_hal_player_resume_last),
     ESP_ELFSYM_EXPORT(aos_hal_player_seek),
     ESP_ELFSYM_EXPORT(aos_hal_player_set_shuffle),
     ESP_ELFSYM_EXPORT(aos_hal_player_stats),

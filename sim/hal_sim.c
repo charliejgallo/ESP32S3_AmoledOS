@@ -868,6 +868,8 @@ static aos_audio_list_t s_player_list;
 static int      s_player_index = -1;
 static bool     s_player_shuffle;
 
+static void player_remember(void);
+
 static bool player_open(const char *path)
 {
     aos_audio_t *a = aos_audio_open(path, &s_player_info);
@@ -970,6 +972,7 @@ bool aos_hal_player_play_folder(const char *path)
 void aos_hal_player_pause(void)
 {
     player_advance();
+    player_remember();
     if (s_player_state == AOS_PLAYER_PLAYING) {
         s_player_state = AOS_PLAYER_PAUSED;
     }
@@ -985,6 +988,8 @@ void aos_hal_player_resume(void)
 
 void aos_hal_player_stop(void)
 {
+    player_advance();
+    player_remember();
     s_player_state = AOS_PLAYER_STOPPED;
     s_player_pos_ms = 0;
 }
@@ -1061,6 +1066,45 @@ bool aos_hal_player_info(aos_player_info_t *out)
     out->count       = s_player_index >= 0 ? s_player_list.count : 0;
     out->shuffle     = s_player_shuffle;
     out->has_cover   = s_player_info.cover_offset != 0;
+    return true;
+}
+
+/* Remembered in the simulator's prefs file on each track and on pause, which
+ * is enough to design the "go on" row. */
+static void player_remember(void)
+{
+    if (s_player_index >= 0 && s_player_state != AOS_PLAYER_STOPPED) {
+        aos_hal_pref_set_str("mus_path", s_player_path);
+        aos_hal_pref_set_i32("mus_pos", (int32_t)s_player_pos_ms);
+    }
+}
+
+bool aos_hal_player_last(char *path, size_t len, uint32_t *position_ms)
+{
+    int32_t pos = 0;
+    if (!path || len == 0 || !aos_hal_pref_get_str("mus_path", path, len) || !path[0]) {
+        return false;
+    }
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        return false;
+    }
+    fclose(f);
+    aos_hal_pref_get_i32("mus_pos", &pos);
+    if (position_ms) {
+        *position_ms = pos > 0 ? (uint32_t)pos : 0;
+    }
+    return true;
+}
+
+bool aos_hal_player_resume_last(void)
+{
+    char path[256];
+    uint32_t pos = 0;
+    if (!aos_hal_player_last(path, sizeof(path), &pos) || !aos_hal_player_play_folder(path)) {
+        return false;
+    }
+    aos_hal_player_seek(pos);
     return true;
 }
 

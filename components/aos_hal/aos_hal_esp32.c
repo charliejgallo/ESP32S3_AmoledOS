@@ -2027,6 +2027,13 @@ bool aos_hal_player_play(const char *path)
 
 bool aos_hal_player_play_folder(const char *path)
 {
+    static bool shuffle_loaded;
+    if (!shuffle_loaded) {
+        int32_t v = 0;
+        aos_hal_pref_get_i32("mus_shuf", &v);
+        s_player_shuffle = v != 0;
+        shuffle_loaded = true;
+    }
     aos_hal_player_stop();
     if (!path) {
         return false;
@@ -2043,6 +2050,87 @@ bool aos_hal_player_play_folder(const char *path)
         aos_audio_list_free(&s_player_list);
     }
     return player_start(path);
+}
+
+/* ---- remembering the last track --------------------------------------------
+ *
+ * The folder track heard and where it was, in NVS: the path when a new track
+ * starts, the position every minute, on pause and on stop. After a restart
+ * the Music app offers to go on from there (nothing plays by itself). NVS
+ * skips a write whose value did not change, so a paused track costs nothing;
+ * one i32 a minute while playing is ~1,400 small entries a day spread over
+ * the partition's pages. Single files (a video's sound) are not remembered. */
+#define PLAYER_REMEMBER_MS  60000
+
+static char    s_saved_path[256];
+static int64_t s_saved_at_ms;
+
+static void player_remember(bool force)
+{
+    if (s_player_index < 0 || !s_player_task) {
+        return;
+    }
+    if (s_player_seek_ms >= 0) {
+        return;     /* resume_last's seek not applied yet: 0:00 is not where it is */
+    }
+    char path[256];
+    portENTER_CRITICAL(&s_player_mux);
+    memcpy(path, s_player_path, sizeof(path));
+    portEXIT_CRITICAL(&s_player_mux);
+    int64_t now = (int64_t)aos_hal_uptime_ms();
+    bool new_track = strcmp(path, s_saved_path) != 0;
+    if (new_track) {
+        aos_hal_pref_set_str("mus_path", path);
+        memcpy(s_saved_path, path, sizeof(s_saved_path));
+    }
+    if (new_track || force || now - s_saved_at_ms >= PLAYER_REMEMBER_MS) {
+        uint32_t rate = s_player_rate ? s_player_rate : 44100;
+        uint32_t pos = (uint32_t)((uint64_t)(s_pring_tail - s_track_start) * 1000 / rate);
+        aos_hal_pref_set_i32("mus_pos", (int32_t)pos);
+        s_saved_at_ms = now;
+    }
+}
+
+/* From the housekeeping task, every tick: cheap unless there is something
+ * to write. */
+static void player_remember_tick(void)
+{
+    static aos_player_state_t last;
+    aos_player_state_t st = s_player_state;
+    if (s_player_task && (st == AOS_PLAYER_PLAYING || st != last)) {
+        player_remember(st != last);
+    }
+    last = st;
+}
+
+bool aos_hal_player_last(char *path, size_t len, uint32_t *position_ms)
+{
+    int32_t pos = 0;
+    if (!path || len == 0 || !aos_hal_pref_get_str("mus_path", path, len) || !path[0]) {
+        return false;
+    }
+    struct stat st;
+    if (stat(path, &st) != 0) {
+        return false;                   /* deleted, or the card is out */
+    }
+    aos_hal_pref_get_i32("mus_pos", &pos);
+    if (position_ms) {
+        *position_ms = pos > 0 ? (uint32_t)pos : 0;
+    }
+    return true;
+}
+
+bool aos_hal_player_resume_last(void)
+{
+    char path[256];
+    uint32_t pos = 0;
+    if (!aos_hal_player_last(path, sizeof(path), &pos) || !aos_hal_player_play_folder(path)) {
+        return false;
+    }
+    if (pos > 0) {
+        aos_hal_player_seek(pos);       /* the decoder opens the file, then seeks */
+    }
+    return true;
 }
 
 void aos_hal_player_pause(void)
@@ -2063,6 +2151,7 @@ void aos_hal_player_resume(void)
 
 void aos_hal_player_stop(void)
 {
+    player_remember(true);              /* where it was, before it is gone */
     if (!s_player_task) {
         s_player_state = AOS_PLAYER_STOPPED;
         return;
@@ -2112,6 +2201,7 @@ void aos_hal_player_seek(uint32_t ms)
 void aos_hal_player_set_shuffle(bool on)
 {
     s_player_shuffle = on;
+    aos_hal_pref_set_i32("mus_shuf", on ? 1 : 0);
 }
 
 bool aos_hal_player_status(aos_player_status_t *out)
@@ -4842,6 +4932,7 @@ static void housekeeping_task(void *arg)
         }
         pm_policy_apply();
         aos_stats_tick();           /* Settings' graphs: aos_stats.c */
+        player_remember_tick();     /* the last track, for after a restart */
 
         /* How much stack each of our tasks has to spare, in bytes (in ESP-IDF
          * the high water mark comes in bytes, not words). Useful for deciding

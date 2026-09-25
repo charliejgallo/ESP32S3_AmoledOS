@@ -4,7 +4,7 @@
  *   GET /api/player                              state + pipeline figures
  *   GET /api/player?do=play&dir=music/x&i=3      the 4th track of a folder, and on
  *   GET /api/player?do=play&file=music/x/y.mp3   one file, then the rest of its folder
- *   GET /api/player?do=pause|resume|stop|next|prev
+ *   GET /api/player?do=pause|resume|stop|next|prev|resume_last
  *   GET /api/player?do=seek&ms=200000
  *   GET /api/player?do=shuffle&on=1
  *   GET /api/player?do=volume&v=40
@@ -106,6 +106,9 @@ esp_err_t aos_player_handler(httpd_req_t *req)
                 aos_audio_list_free(&list);
             }
             snprintf(result, sizeof(result), "%s", ok ? "playing" : "play failed");
+        } else if (!strcmp(what, "resume_last")) {
+            snprintf(result, sizeof(result), "%s",
+                     aos_hal_player_resume_last() ? "playing" : "nothing to resume");
         } else if (!strcmp(what, "pause")) {
             aos_hal_player_pause();
         } else if (!strcmp(what, "resume")) {
@@ -141,11 +144,16 @@ esp_err_t aos_player_handler(httpd_req_t *req)
     json_str(artist, sizeof(artist), in.artist);
     json_str(album, sizeof(album), in.album);
 
-    char *out = malloc(2048);
+    char last[256] = "", last_js[400];
+    uint32_t last_pos = 0;
+    aos_hal_player_last(last, sizeof(last), &last_pos);
+    json_str(last_js, sizeof(last_js), last);
+
+    char *out = malloc(2560);
     if (!out) {
         return httpd_resp_send_500(req);
     }
-    snprintf(out, 2048,
+    snprintf(out, 2560,
              "{\"result\":\"%s\",\"state\":\"%s\",\"path\":\"%s\",\"title\":\"%s\","
              "\"artist\":\"%s\",\"album\":\"%s\",\"format\":\"%s\",\"kbps\":%u,\"vbr\":%s,"
              "\"rate\":%u,\"channels\":%u,\"duration_ms\":%u,\"position_ms\":%u,"
@@ -153,7 +161,8 @@ esp_err_t aos_player_handler(httpd_req_t *req)
              "\"ring_ms\":%u,\"ring_cap_ms\":%u,\"ring_min_ms\":%u,\"underruns\":%u,"
              "\"load_permille\":%u,\"decode_permille\":%u,\"chunk_us_max\":%u,"
              "\"decoder_prio\":%d,\"stack_free_dec\":%u,\"stack_free_out\":%u,"
-             "\"internal_free\":%u,\"internal_min\":%u,\"psram_free\":%u}",
+             "\"internal_free\":%u,\"internal_min\":%u,\"psram_free\":%u,"
+             "\"last_path\":\"%s\",\"last_pos_ms\":%u}",
              result, state_name(in.state), path, title, artist, album,
              in.format ? in.format : "", in.kbps, in.vbr ? "true" : "false",
              (unsigned)in.sample_rate, in.channels, (unsigned)in.duration_ms,
@@ -166,7 +175,7 @@ esp_err_t aos_player_handler(httpd_req_t *req)
              (unsigned)st.stack_free_dec, (unsigned)st.stack_free_out,
              (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
              (unsigned)heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL),
-             (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+             (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM), last_js, (unsigned)last_pos);
     httpd_resp_set_type(req, "application/json");
     esp_err_t e = httpd_resp_sendstr(req, out);
     free(out);

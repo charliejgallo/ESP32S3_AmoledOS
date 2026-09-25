@@ -240,6 +240,7 @@ static const char blob_en__sistema_lang[] =
     "pareja\tpartner\n"
     "cerca\taround\n"
     "Olvidar pareja\tForget partner\n"
+    "Continuar\tResume\n"
     "No se pudo reproducir\tCould not play\n"
     "En orden\tIn order\n"
     "Aleatorio\tShuffle\n"
@@ -2722,6 +2723,7 @@ static const char blob_de__sistema_lang[] =
     "pareja\tPartner\n"
     "cerca\tin der Nähe\n"
     "Olvidar pareja\tPartner vergessen\n"
+    "Continuar\tFortsetzen\n"
     "No se pudo reproducir\tWiedergabe fehlgeschlagen\n"
     "En orden\tDer Reihe nach\n"
     "Aleatorio\tZufällig\n"
@@ -4978,7 +4980,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 607, 36, files_en, 37 },
-    { "de", "Deutsch", 607, 36, files_de, 37 },
+    { "en", "English", 608, 36, files_en, 37 },
+    { "de", "Deutsch", 608, 36, files_de, 37 },
 };
 const int aos_lang_pack_count = 2;

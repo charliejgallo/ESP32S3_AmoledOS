@@ -717,6 +717,12 @@ typedef struct {
 
 bool aos_hal_player_info(aos_player_info_t *out);
 
+/* The last folder track heard and where it was, remembered across restarts
+ * (saved every minute, on pause, on stop and on each new track). False if
+ * there is none or the file is gone. resume_last() plays it from there. */
+bool aos_hal_player_last(char *path, size_t len, uint32_t *position_ms);
+bool aos_hal_player_resume_last(void);
+
 /* How the pipeline is doing, for /api/player and the measurements. */
 typedef struct {
     uint32_t ring_ms;           /* decoded and waiting                      */
