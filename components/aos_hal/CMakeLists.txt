@@ -1,12 +1,12 @@
 idf_component_register(
-    SRCS "aos_hal_esp32.c" "aos_audio.c" "aos_lvmem.c" "aos_http.c" "aos_scan.c" "aos_notif.c" "aos_steps.c" "aos_device_name.c" "aos_link.c" "aos_link_esp32.c" "aos_stats.c" "aos_soc.c"
+    SRCS "aos_hal_esp32.c" "aos_audio.c" "aos_lvmem.c" "aos_http.c" "aos_scan.c" "aos_notif.c" "aos_steps.c" "aos_device_name.c" "aos_link.c" "aos_link_esp32.c" "aos_stats.c" "aos_soc.c" "aos_tcp.c" "aos_h264.c"
     INCLUDE_DIRS "include"
     REQUIRES aos_ble aos_board lvgl esp_wifi esp_netif nvs_flash esp_timer espressif__mdns lwip esp_mm
              waveshare__esp32_s3_touch_amoled_1_8 espressif__esp_lcd_touch
              espressif__esp_lvgl_port
     # mbedtls es de aos_http.c: el bundle de certificados y el handshake.
     PRIV_REQUIRES fatfs esp_driver_gpio esp_driver_i2c esp_driver_i2s esp_lcd mbedtls app_update esp_mm
-                  esp_driver_tsens
+                  esp_driver_tsens espressif__esp_h264
 )
 
 # El reloj del QSPI del panel lo fija un macro del BSP, que es un componente

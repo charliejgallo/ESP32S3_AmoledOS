@@ -51,6 +51,8 @@ extern const uint8_t lua_html_end[]      asm("_binary_lua_html_end");
 extern const uint8_t iconos_html_start[] asm("_binary_iconos_html_start");
 extern const uint8_t iconos_html_end[]   asm("_binary_iconos_html_end");
 extern const uint8_t cotiz_html_start[]  asm("_binary_cotiz_html_start");
+extern const uint8_t camaras_html_start[] asm("_binary_camaras_html_start");
+extern const uint8_t camaras_html_end[]   asm("_binary_camaras_html_end");
 extern const uint8_t cotiz_html_end[]    asm("_binary_cotiz_html_end");
 extern const uint8_t sensores_html_start[] asm("_binary_sensores_html_start");
 extern const uint8_t sensores_html_end[]   asm("_binary_sensores_html_end");
@@ -1809,6 +1811,293 @@ static esp_err_t cotiz_set_handler(httpd_req_t *req)
     return httpd_resp_send(req, "{\"ok\":true}", HTTPD_RESP_USE_STRLEN);
 }
 
+/* -------------------------------------------------------------------------- */
+/* Cameras (branch rtsp)                                                       */
+/*                                                                             */
+/* The Cameras app's list: up to eight cameras, each in one NVS string cam0 .. */
+/* cam7 holding four fields separated by 0x1F (the ASCII unit separator,      */
+/* which nothing typed into a form carries):                                   */
+/*                                                                             */
+/*     name \x1F url \x1F user \x1F password                                   */
+/*                                                                             */
+/* plus cam_gen, which goes up on every save so an open app rebuilds its list  */
+/* (the 'cotiz' arrangement). The slots are kept packed: deleting one moves    */
+/* the rest up, so the order on the page is the order on the watch.            */
+/*                                                                             */
+/* THE PASSWORD NEVER GOES BACK TO THE BROWSER, the same rule as remoto's      */
+/* token: the page learns only whether there is one. Saving with the password  */
+/* field untouched keeps the stored one. A URL typed with credentials in it    */
+/* (rtsp://user:pass@host/...) is taken apart here, so the URL that is stored  */
+/* and shown back is clean.                                                    */
+/*                                                                             */
+/* What is validated is what the app relies on: the scheme (rtsp:// or         */
+/* http://, the two it speaks), no control characters (0x1F would split the    */
+/* record), and the lengths of the app's buffers (apps/camaras/main/cam.h).    */
+/* -------------------------------------------------------------------------- */
+
+#define CAM_SLOTS_MAX  8
+#define CAM_KEY_GEN    "cam_gen"
+#define CAM_SEP        '\x1f'
+
+typedef struct {
+    char name[32];
+    char url[200];
+    char user[64];
+    char pass[64];
+} cam_rec_t;
+
+/* Copies and cuts to the field's size: the portal validated the lengths on
+ * the way in, so a cut here only happens to a record written by hand. */
+static void cam_copy(char *dst, size_t cap, const char *src)
+{
+    size_t n = src ? strnlen(src, cap - 1) : 0;
+    memcpy(dst, src ? src : "", n);
+    dst[n] = '\0';
+}
+
+static bool cam_load(int i, cam_rec_t *c)
+{
+    char key[8];
+    char raw[400];
+    snprintf(key, sizeof(key), "cam%d", i);
+    memset(c, 0, sizeof(*c));
+    if (!aos_hal_pref_get_str(key, raw, sizeof(raw)) || !raw[0]) {
+        return false;
+    }
+    char *f[4] = { raw, NULL, NULL, NULL };
+    int k = 1;
+    for (char *p = raw; *p && k < 4; p++) {
+        if (*p == CAM_SEP) {
+            *p = '\0';
+            f[k++] = p + 1;
+        }
+    }
+    cam_copy(c->name, sizeof(c->name), f[0]);
+    cam_copy(c->url,  sizeof(c->url),  f[1]);
+    cam_copy(c->user, sizeof(c->user), f[2]);
+    cam_copy(c->pass, sizeof(c->pass), f[3]);
+    return c->url[0] != '\0';
+}
+
+static bool cam_store(int i, const cam_rec_t *c)
+{
+    char key[8];
+    snprintf(key, sizeof(key), "cam%d", i);
+    if (!c) {
+        return aos_hal_pref_erase(key);
+    }
+    char raw[400];
+    snprintf(raw, sizeof(raw), "%s%c%s%c%s%c%s", c->name, CAM_SEP, c->url, CAM_SEP,
+             c->user, CAM_SEP, c->pass);
+    return aos_hal_pref_set_str(key, raw);
+}
+
+static int cam_count(cam_rec_t *all)
+{
+    int n = 0;
+    for (int i = 0; i < CAM_SLOTS_MAX; i++) {
+        if (cam_load(i, &all[n])) {
+            n++;
+        }
+    }
+    return n;
+}
+
+/* Writes the list back packed from slot 0 and clears the rest. */
+static void cam_save_all(const cam_rec_t *all, int n)
+{
+    for (int i = 0; i < CAM_SLOTS_MAX; i++) {
+        cam_store(i, i < n ? &all[i] : NULL);
+    }
+    int32_t gen = 0;
+    aos_hal_pref_get_i32(CAM_KEY_GEN, &gen);
+    aos_hal_pref_set_i32(CAM_KEY_GEN, gen + 1);
+}
+
+static bool cam_text_ok(const char *s)
+{
+    for (; *s; s++) {
+        if ((unsigned char)*s < 0x20 || *s == 0x7f) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static esp_err_t camaras_page_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    return httpd_resp_send(req, (const char *)camaras_html_start,
+                           camaras_html_end - camaras_html_start - 1);
+}
+
+static esp_err_t camaras_get_handler(httpd_req_t *req)
+{
+    cam_rec_t *all = calloc(CAM_SLOTS_MAX, sizeof(cam_rec_t));
+    char *json = malloc(4096);
+    if (!all || !json) {
+        free(all);
+        free(json);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "sin memoria");
+        return ESP_FAIL;
+    }
+    int n = cam_count(all);
+    int len = snprintf(json, 4096, "{\"max\":%d,\"camaras\":[", CAM_SLOTS_MAX);
+    for (int i = 0; i < n && len < 3800; i++) {
+        char name[80], url[420], user[140];
+        json_escape(name, sizeof(name), all[i].name);
+        json_escape(url, sizeof(url), all[i].url);
+        json_escape(user, sizeof(user), all[i].user);
+        len += snprintf(json + len, 4096 - len,
+                        "%s{\"nombre\":\"%s\",\"url\":\"%s\",\"usuario\":\"%s\",\"clave\":%s}",
+                        i ? "," : "", name, url, user, all[i].pass[0] ? "true" : "false");
+    }
+    len += snprintf(json + len, 4096 - len, "]}");
+    httpd_resp_set_type(req, "application/json");
+    esp_err_t r = httpd_resp_send(req, json, len);
+    /* The passwords were in this buffer's source: wipe before freeing. */
+    memset(all, 0, CAM_SLOTS_MAX * sizeof(cam_rec_t));
+    free(all);
+    free(json);
+    return r;
+}
+
+static esp_err_t camaras_reply(httpd_req_t *req, const char *error)
+{
+    char out[200];
+    if (error) {
+        snprintf(out, sizeof(out), "{\"ok\":false,\"error\":\"%s\"}", error);
+    } else {
+        snprintf(out, sizeof(out), "{\"ok\":true}");
+    }
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_send(req, out, HTTPD_RESP_USE_STRLEN);
+}
+
+static esp_err_t camaras_set_handler(httpd_req_t *req)
+{
+    char body[1400];
+    int want = req->content_len;
+    if (want <= 0 || want >= (int)sizeof(body)) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "cuerpo invalido");
+        return ESP_FAIL;
+    }
+    int got = 0;
+    while (got < want) {
+        int r = httpd_req_recv(req, body + got, want - got);
+        if (r <= 0) {
+            httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "no llego el cuerpo");
+            return ESP_FAIL;
+        }
+        got += r;
+    }
+    body[got] = 0;
+
+    char accion[12] = "", idx[8] = "-1";
+    httpd_query_key_value(body, "accion", accion, sizeof(accion));
+    httpd_query_key_value(body, "i", idx, sizeof(idx));
+    int i = atoi(idx);
+
+    cam_rec_t *all = calloc(CAM_SLOTS_MAX + 1, sizeof(cam_rec_t));
+    if (!all) {
+        return camaras_reply(req, "sin memoria");
+    }
+    int n = cam_count(all);
+    const char *error = NULL;
+
+    if (strcmp(accion, "borrar") == 0) {
+        if (i < 0 || i >= n) {
+            error = "no existe esa camara";
+        } else {
+            memmove(&all[i], &all[i + 1], (size_t)(n - i - 1) * sizeof(cam_rec_t));
+            cam_save_all(all, n - 1);
+        }
+    } else if (strcmp(accion, "subir") == 0) {
+        if (i <= 0 || i >= n) {
+            error = "no se puede subir";
+        } else {
+            cam_rec_t tmp = all[i - 1];
+            all[i - 1] = all[i];
+            all[i] = tmp;
+            cam_save_all(all, n);
+        }
+    } else if (strcmp(accion, "guardar") == 0) {
+        cam_rec_t c;
+        memset(&c, 0, sizeof(c));
+        char url[600], pass[200], user[200], name[120], cambia[4] = "0";
+        name[0] = url[0] = user[0] = pass[0] = '\0';
+        httpd_query_key_value(body, "nombre", name, sizeof(name));
+        httpd_query_key_value(body, "url", url, sizeof(url));
+        httpd_query_key_value(body, "usuario", user, sizeof(user));
+        httpd_query_key_value(body, "clave", pass, sizeof(pass));
+        httpd_query_key_value(body, "clave_cambia", cambia, sizeof(cambia));
+        url_decode(name);
+        url_decode(url);
+        url_decode(user);
+        url_decode(pass);
+        bool new_pass = cambia[0] == '1';
+
+        /* rtsp://user:pass@host/... -> the credentials go to their fields. */
+        char *scheme_end = strstr(url, "://");
+        if (scheme_end) {
+            char *host = scheme_end + 3;
+            char *slash = strchr(host, '/');
+            char *at = strrchr(host, '@');
+            if (at && (!slash || at < slash)) {
+                *at = '\0';
+                char *colon = strchr(host, ':');
+                if (colon) {
+                    *colon = '\0';
+                    snprintf(pass, sizeof(pass), "%s", colon + 1);
+                    url_decode(pass);
+                    new_pass = true;
+                }
+                snprintf(user, sizeof(user), "%s", host);
+                url_decode(user);
+                memmove(host, at + 1, strlen(at + 1) + 1);
+            }
+        }
+
+        if (!name[0] || strlen(name) >= sizeof(c.name) || !cam_text_ok(name)) {
+            error = "el nombre tiene que tener entre 1 y 31 caracteres";
+        } else if (strncmp(url, "rtsp://", 7) != 0 && strncmp(url, "http://", 7) != 0) {
+            error = "la direccion tiene que empezar con rtsp:// o http://";
+        } else if (strlen(url) >= sizeof(c.url) || !cam_text_ok(url) || strchr(url, ' ') ||
+                   strlen(url) < 8) {
+            error = "la direccion no es valida";
+        } else if (strlen(user) >= sizeof(c.user) || !cam_text_ok(user) ||
+                   strlen(pass) >= sizeof(c.pass) || !cam_text_ok(pass)) {
+            error = "el usuario o la contrasena son demasiado largos";
+        } else if (i >= n || (i < 0 && n >= CAM_SLOTS_MAX)) {
+            error = i < 0 ? "ya hay 8 camaras" : "no existe esa camara";
+        } else {
+            cam_copy(c.name, sizeof(c.name), name);
+            cam_copy(c.url, sizeof(c.url), url);
+            cam_copy(c.user, sizeof(c.user), user);
+            if (new_pass) {
+                cam_copy(c.pass, sizeof(c.pass), pass);
+            } else if (i >= 0) {
+                cam_copy(c.pass, sizeof(c.pass), all[i].pass);
+            }
+            if (i < 0) {
+                all[n++] = c;
+            } else {
+                all[i] = c;
+            }
+            cam_save_all(all, n);
+            ESP_LOGI(TAG, "camaras: %s -> %s", c.name, c.url);
+        }
+        memset(pass, 0, sizeof(pass));
+        memset(&c, 0, sizeof(c));
+    } else {
+        error = "accion desconocida";
+    }
+    memset(body, 0, sizeof(body));
+    memset(all, 0, (CAM_SLOTS_MAX + 1) * sizeof(cam_rec_t));
+    free(all);
+    return camaras_reply(req, error);
+}
+
 static esp_err_t remoto_page_handler(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "text/html; charset=utf-8");
@@ -3225,6 +3514,7 @@ static esp_err_t alarmas_post_handler(httpd_req_t *req)
 /* aos_mem.c: the RAM audit endpoint (branch ram-audit). */
 esp_err_t aos_mem_handler(httpd_req_t *req);
 esp_err_t aos_jpegbench_handler(httpd_req_t *req);
+esp_err_t aos_h264bench_handler(httpd_req_t *req);
 esp_err_t aos_imu_dump_handler(httpd_req_t *req);
 esp_err_t aos_link_handler(httpd_req_t *req);
 esp_err_t aos_player_handler(httpd_req_t *req);     /* aos_player_api.c */
@@ -3247,6 +3537,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/pmu",     .method = HTTP_GET,  .handler = pmu_handler },
         { .uri = "/api/mem",     .method = HTTP_GET,  .handler = aos_mem_handler },
         { .uri = "/api/jpegbench", .method = HTTP_GET, .handler = aos_jpegbench_handler },
+        { .uri = "/api/h264bench", .method = HTTP_GET, .handler = aos_h264bench_handler },
         { .uri = "/api/imu",     .method = HTTP_GET,  .handler = aos_imu_dump_handler },
         { .uri = "/api/link",    .method = HTTP_GET,  .handler = aos_link_handler },
         { .uri = "/api/player",  .method = HTTP_GET,  .handler = aos_player_handler },
@@ -3292,6 +3583,9 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/cotiz",       .method = HTTP_GET,  .handler = cotiz_page_handler },
         { .uri = "/api/cotiz",   .method = HTTP_GET,  .handler = cotiz_get_handler },
         { .uri = "/api/cotiz",   .method = HTTP_POST, .handler = cotiz_set_handler },
+        { .uri = "/camaras",     .method = HTTP_GET,  .handler = camaras_page_handler },
+        { .uri = "/api/camaras", .method = HTTP_GET,  .handler = camaras_get_handler },
+        { .uri = "/api/camaras", .method = HTTP_POST, .handler = camaras_set_handler },
         { .uri = "/remoto",              .method = HTTP_GET,  .handler = remoto_page_handler },
         { .uri = "/api/remoto/config",   .method = HTTP_GET,  .handler = remoto_config_get },
         { .uri = "/api/remoto/config",   .method = HTTP_POST, .handler = remoto_config_post },

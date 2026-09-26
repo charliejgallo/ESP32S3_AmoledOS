@@ -2186,6 +2186,7 @@ bool aos_hal_scan_status(aos_scan_status_t *out)
 }
 
 aos_net_state_t aos_hal_net_state(void) { return AOS_NET_CONNECTED; }
+void aos_hal_net_low_latency(bool on) { (void)on; }   /* the desktop has no power save */
 const char *aos_hal_net_ssid(void)      { return "simulator"; }
 int         aos_hal_net_rssi(void)      { return -54; }
 const char *aos_hal_net_ip(void)        { return "127.0.0.1"; }

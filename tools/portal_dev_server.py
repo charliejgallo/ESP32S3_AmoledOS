@@ -36,6 +36,7 @@ WIFI_PAGE   = os.path.join(ROOT, "components", "aos_web", "wifi.html")
 AP_PAGE     = os.path.join(ROOT, "components", "aos_web", "ap.html")
 CLIMA_PAGE  = os.path.join(ROOT, "components", "aos_web", "clima.html")
 COTIZ_PAGE  = os.path.join(ROOT, "components", "aos_web", "cotiz.html")
+CAMARAS_PAGE = os.path.join(ROOT, "components", "aos_web", "camaras.html")
 PIXEL_PAGE  = os.path.join(ROOT, "components", "aos_web", "pixel.html")
 SENSO_PAGE  = os.path.join(ROOT, "components", "aos_web", "sensores.html")
 LUA_PAGE    = os.path.join(ROOT, "components", "aos_web", "lua.html")
@@ -82,6 +83,83 @@ def prefs_escribir(base, cambios):
     with open(prefs_path(base), "w") as f:
         for k, v in datos.items():
             f.write(f"{k}={v}\n")
+
+
+# ---- Cameras (branch rtsp): the same records the firmware keeps ------------
+# cam0..cam7 = name \x1f url \x1f user \x1f password, packed from 0, and
+# cam_gen goes up on every save. The password never goes back to the page.
+CAM_SEP = "\x1f"
+CAM_MAX = 8
+
+
+def camaras_leer(base):
+    datos = prefs_leer(base)
+    lista = []
+    for i in range(CAM_MAX):
+        raw = datos.get(f"cam{i}", "")
+        if not raw:
+            continue
+        f = (raw.split(CAM_SEP) + ["", "", "", ""])[:4]
+        if f[1]:
+            lista.append({"nombre": f[0], "url": f[1], "usuario": f[2], "clave": f[3]})
+    return lista
+
+
+def camaras_escribir(base, lista):
+    cambios = {}
+    for i in range(CAM_MAX):
+        if i < len(lista):
+            c = lista[i]
+            cambios[f"cam{i}"] = CAM_SEP.join([c["nombre"], c["url"], c["usuario"], c["clave"]])
+        else:
+            cambios[f"cam{i}"] = ""
+    cambios["cam_gen"] = str(int(prefs_leer(base).get("cam_gen", "0") or 0) + 1)
+    prefs_escribir(base, cambios)
+
+
+def camaras_post(base, campos):
+    """POST /api/camaras with the firmware's rules. Returns the error or None."""
+    g = lambda k, d="": (campos.get(k) or [d])[0]
+    lista = camaras_leer(base)
+    accion, i = g("accion"), int(g("i", "-1"))
+    if accion == "borrar":
+        if not 0 <= i < len(lista):
+            return "no existe esa camara"
+        del lista[i]
+    elif accion == "subir":
+        if not 0 < i < len(lista):
+            return "no se puede subir"
+        lista[i - 1], lista[i] = lista[i], lista[i - 1]
+    elif accion == "guardar":
+        nombre, url, usuario, clave = g("nombre"), g("url"), g("usuario"), g("clave")
+        nueva = g("clave_cambia", "0") == "1"
+        if "://" in url:
+            esquema, resto = url.split("://", 1)
+            host, barra, camino = resto.partition("/")
+            if "@" in host:
+                cred, host = host.rsplit("@", 1)
+                usuario, _, c = cred.partition(":")
+                if c:
+                    clave, nueva = c, True
+                url = esquema + "://" + host + barra + camino
+        if not nombre or len(nombre.encode()) > 31:
+            return "el nombre tiene que tener entre 1 y 31 caracteres"
+        if not url.startswith(("rtsp://", "http://")):
+            return "la direccion tiene que empezar con rtsp:// o http://"
+        if len(url) > 199 or " " in url:
+            return "la direccion no es valida"
+        if i >= len(lista) or (i < 0 and len(lista) >= CAM_MAX):
+            return "ya hay 8 camaras" if i < 0 else "no existe esa camara"
+        c = {"nombre": nombre, "url": url, "usuario": usuario,
+             "clave": clave if nueva else (lista[i]["clave"] if i >= 0 else "")}
+        if i < 0:
+            lista.append(c)
+        else:
+            lista[i] = c
+    else:
+        return "accion desconocida"
+    camaras_escribir(base, lista)
+    return None
 
 
 def ap_clave_nueva():
@@ -297,6 +375,10 @@ class Handler(BaseHTTPRequestHandler):
             with open(COTIZ_PAGE, "rb") as page:
                 self._send(200, page.read(), "text/html; charset=utf-8")
 
+        elif url.path == "/camaras":
+            with open(CAMARAS_PAGE, "rb") as page:
+                self._send(200, page.read(), "text/html; charset=utf-8")
+
         elif url.path == "/pixel":
             with open(PIXEL_PAGE, "rb") as page:
                 self._send(200, page.read(), "text/html; charset=utf-8")
@@ -349,6 +431,10 @@ class Handler(BaseHTTPRequestHandler):
         elif url.path == "/api/cotiz":
             self._send(200, json.dumps(
                 {"lista": prefs_leer(self.base).get("cz_list", "")}))
+
+        elif url.path == "/api/camaras":
+            lista = [{**c, "clave": bool(c["clave"])} for c in camaras_leer(self.base)]
+            self._send(200, json.dumps({"max": CAM_MAX, "camaras": lista}))
 
         elif url.path == "/api/sensoresconf":
             self._send(200, json.dumps(
@@ -555,6 +641,13 @@ class Handler(BaseHTTPRequestHandler):
             if self._remoto_post(url.path, cuerpo) is not None:
                 return
             return self._send(404, '{"error":"no existe"}')
+
+        if url.path == "/api/camaras":
+            largo = int(self.headers.get("Content-Length") or 0)
+            error = camaras_post(self.base, parse_qs(self.rfile.read(largo).decode(),
+                                                     keep_blank_values=True))
+            return self._send(200, json.dumps({"ok": True} if error is None
+                                              else {"ok": False, "error": error}))
 
         if url.path in ("/api/clima", "/api/cotiz", "/api/sensoresconf"):
             largo = int(self.headers.get("Content-Length") or 0)

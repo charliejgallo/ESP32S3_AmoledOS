@@ -6,6 +6,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SDL2 REQUIRED sdl2)
+# The camera viewer's decoders (branch rtsp): H.264 and JPEG through
+# libavcodec, behind the same interfaces the board has (sim/sim_codec.c).
+#   brew install ffmpeg
+pkg_check_modules(AVCODEC REQUIRED libavcodec libavutil libswscale)
 
 # mbedtls para el https:// de aos_http.c. Es la MISMA biblioteca que usa la
 # placa (el IDF trae 3.6.7, Homebrew 3.4.1) y por eso el cliente sigue siendo
@@ -92,7 +96,9 @@ endif()
 add_executable(amoledos_sim
     main.c
     hal_sim.c
+    sim_codec.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_http.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_tcp.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_notif.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_steps.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_device_name.c
@@ -113,12 +119,21 @@ target_include_directories(amoledos_sim PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_fonts/include
     ${SDL2_INCLUDE_DIRS}
     ${MBEDTLS_INCLUDE_DIR}
+    ${AVCODEC_INCLUDE_DIRS}
 )
+# esp_new_jpeg's headers only: sim_codec.c implements them on libavcodec. They
+# come with the firmware's managed components (git-ignored), so a clone that
+# never configured the firmware builds the simulator without the JPEG half;
+# the code checks with __has_include.
+set(AOS_ESP_JPEG_INC ${CMAKE_CURRENT_SOURCE_DIR}/../managed_components/espressif__esp_new_jpeg/include)
+if(EXISTS ${AOS_ESP_JPEG_INC}/esp_jpeg_dec.h)
+    target_include_directories(amoledos_sim PRIVATE ${AOS_ESP_JPEG_INC})
+endif()
 
 target_compile_options(amoledos_sim PRIVATE -Wall -Wextra -Wno-unused-parameter)
 target_compile_definitions(amoledos_sim PRIVATE AOS_SIM_BUILTIN AOS_SIM)
 target_link_libraries(amoledos_sim PRIVATE lvgl ${SDL2_LIBRARIES} m
     $<$<BOOL:${AOS_LUA_SRC}>:aos_lua>
     $<$<BOOL:${AOS_DOOM_SRC}>:aos_doom>
-    ${MBEDTLS_LIB} ${MBEDX509_LIB} ${MBEDCRYPTO_LIB})
-target_link_directories(amoledos_sim PRIVATE ${SDL2_LIBRARY_DIRS})
+    ${MBEDTLS_LIB} ${MBEDX509_LIB} ${MBEDCRYPTO_LIB} ${AVCODEC_LIBRARIES})
+target_link_directories(amoledos_sim PRIVATE ${SDL2_LIBRARY_DIRS} ${AVCODEC_LIBRARY_DIRS})

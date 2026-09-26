@@ -474,7 +474,8 @@ of that kind:
   into masks once, in `create()`, and bake them into sprites.
 - **Put the worker on core 0** with `aos_hal_worker_start_on()`. LVGL is
   pinned to core 1, and a worker there at a higher priority runs the render
-  and the blit in series.
+  and the blit in series. If it keeps core 0 busy nearly all the time, give
+  it priority 3, not 5 (see "A worker on core 0 above LVGL" in section 14).
 - **The CPU is the wall, not the PSRAM.** Drawing in bands of 64 rows of
   internal RAM and copying each out once did not change the frame time by
   itself. What did was doing less per pixel and per frame: blending inline
@@ -718,10 +719,11 @@ them.
 
 ## 9. Data from the internet
 
-A dynamic app **cannot do networking on its own**: no sockets in the symbol
-table, no tasks, and a request from a callback would freeze the screen for
-the seconds it takes. The HAL does it in a task of its own; the app asks from
-its `tick`:
+For requests, a dynamic app **does not do the networking itself**: a request
+from a callback would freeze the screen for the seconds it takes. The HAL
+does it in a task of its own; the app asks from its `tick`. (For a
+connection that stays open, like a camera's, there is a TCP stream for the
+app's worker since v0.7.0: APP-API.md, "Sockets, MD5 and H.264".)
 
 ```c
 /* on open, or when the user taps refresh */
@@ -1299,6 +1301,17 @@ panel opens over the frame.
 LVGL was pinned there): `aos_hal_worker_start()` puts the worker on core 1 at
 priority 5, above LVGL's 4, and LVGL does not get the CPU to push a frame
 until the worker sleeps. Use `aos_hal_worker_start_on(..., 0, 5)` (v0.4.10).
+
+**A worker on core 0 above LVGL freezes the UI when it never rests.**
+`app_main` runs on core 0 at priority 1 and takes the LVGL lock every tick.
+A worker at 5 busy 90-100 % of the time (the Cameras app decoding H.264,
+and all the more while it skipped to a keyframe) starves it while it holds
+the lock; LVGL on core 1 then waits for the lock with its own core idle. The
+symptoms are all at once: the picture freezes for one to three seconds, the
+heartbeat line comes late, the portal times out. `/api/pmu?tasks=1` gives it
+away: core 1 mostly idle during the freezes. Priority 3 fixed it (inheritance
+lifts the lock's holder to LVGL's 4, above the worker), plus a 1 ms sleep
+every 50 ms so core 0's idle task runs.
 
 **Some patterns become library calls the firmware does not export**, and the
 `.so` then does not load: a 32-bit byte swap written as shifts and masks

@@ -34,6 +34,11 @@ dependencies:
   espressif/esp_new_jpeg:
     version: "^1.0.2"
     public: true
+  # H.264 decoder (branch rtsp): software, constrained baseline only, the S3
+  # has no video block. Prebuilt like esp_new_jpeg, so it lives here too.
+  espressif/esp_h264:
+    version: "^1.4.1"
+    public: true
   # USB (branch usb, see docs/USB.md). Device side: TinyUSB through Espressif's
   # wrapper. Host side: the class drivers from esp-usb.
   espressif/esp_tinyusb:

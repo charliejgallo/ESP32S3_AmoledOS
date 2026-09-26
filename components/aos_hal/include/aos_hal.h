@@ -1042,6 +1042,16 @@ typedef enum {
 } aos_net_state_t;
 
 aos_net_state_t aos_hal_net_state(void);
+
+/* WiFi without power save, for as long as an app streams (branch rtsp).
+ * With the screen on the HAL keeps the radio in WIFI_PS_MIN_MODEM, which
+ * wakes it at each beacon: 180-315 ms of round trip to the watch, measured,
+ * and a TCP stream through a 16 KB window then crawls. The Cameras app
+ * holds this while a camera is open. It costs the radio's idle current, so
+ * release it: the app's stop path, and the HAL clears it when the app's
+ * worker stops. Refused quietly while Bluetooth is up (coexistence needs
+ * modem sleep). */
+void aos_hal_net_low_latency(bool on);
 const char *aos_hal_net_ssid(void);
 int         aos_hal_net_rssi(void);         /* dBm */
 const char *aos_hal_net_ip(void);
@@ -1442,7 +1452,10 @@ void aos_hal_unlock(void);
  *     filesystem, which may reach the flash driver; see AOS_XTASKCREATE).
  *     8 KB is enough for the video decoder; do not ask for more than needed.
  *   - It is pinned to the second core, at the player's priority, one above
- *     LVGL's. Below LVGL's it read the card four times slower (the measure
+ *     LVGL's. (aos_hal_worker_start_on() chooses. On core 0, a worker busy
+ *     nearly all the time must stay below LVGL's 4: app_main runs there at
+ *     1 holding the LVGL lock, and starving it froze the Cameras app's UI
+ *     for seconds, APP-GUIDE section 14.) Below LVGL's it read the card four times slower (the measure
  *     is next to AOS_WORKER_PRIO); LVGL floats between the cores and keeps
  *     the first one while the worker is busy, so the UI does not feel it.
  * -------------------------------------------------------------------------- */
@@ -1500,6 +1513,87 @@ void aos_hal_worker_sleep(uint32_t ms);
  * app draws through LVGL instead.
  * -------------------------------------------------------------------------- */
 bool aos_hal_display_blit(int x, int y, int w, int h, const void *rgb565_be);
+
+/* --------------------------------------------------------------------------
+ * TCP stream (aos_tcp.c, both HALs; branch rtsp)
+ *
+ * A plain socket for an app's WORKER: the camera viewer keeps one RTSP
+ * connection open for as long as it runs, which aos_hal_http_* (one request,
+ * one body) cannot do. Every call has a timeout so a worker can keep polling
+ * aos_hal_worker_should_stop(); none of them may be called from LVGL's task.
+ * No TLS. Four handles in the whole system: close what you open, also when
+ * the worker is told to stop.
+ *
+ *   connect  handle > 0, or one of AOS_TCP_ERR_*. host is a name or an IP.
+ *   send     sends everything or fails: len, or AOS_TCP_ERR_*.
+ *   recv     waits up to timeout_ms for data: bytes read (> 0), 0 if nothing
+ *            came in time, AOS_TCP_ERR_CLOSED when the peer closed or reset.
+ * -------------------------------------------------------------------------- */
+#define AOS_TCP_ERR_ARG      (-1)
+#define AOS_TCP_ERR_SLOTS    (-2)
+#define AOS_TCP_ERR_DNS      (-3)
+#define AOS_TCP_ERR_CONNECT  (-4)
+#define AOS_TCP_ERR_TIMEOUT  (-5)
+#define AOS_TCP_ERR_CLOSED   (-6)
+
+int  aos_hal_tcp_connect(const char *host, int port, int timeout_ms);
+int  aos_hal_tcp_send(int handle, const void *data, int len, int timeout_ms);
+int  aos_hal_tcp_recv(int handle, void *buf, int max, int timeout_ms);
+void aos_hal_tcp_close(int handle);
+
+/* MD5 of a buffer as 32 lower-case hex digits: RTSP's Digest authentication. */
+void aos_hal_md5_hex(const void *data, size_t len, char out[33]);
+
+/* --------------------------------------------------------------------------
+ * H.264 decoder (branch rtsp)
+ *
+ * The board has no video block: this is Espressif's software decoder
+ * (esp_h264 = tinyh264), which speaks CONSTRAINED BASELINE only - CAVLC, no
+ * B-frames. A Main or High stream with CABAC does not decode at all (every
+ * slice is an error, not a slow picture). Measured on this board, one task,
+ * decoder in IRAM (docs/CAMERAS.md): 704x576 at 17 fps (P 54 ms, I 218 ms),
+ * 640x480 at 24, 640x360 at 30, 1280x720 at 8.6 with a 105 KB internal RAM
+ * peak. The picture buffers (~1.5 MB at 704x576) go to PSRAM. In the Cameras
+ * app, with the network and the panel running, the same stream costs
+ * P 70 ms and I 225 ms: the two cores share 16 KB of instruction cache and
+ * 32 KB of data cache.
+ *
+ * In the simulator it is libavcodec, which decodes anything; the board's
+ * limits are the board's.
+ *
+ * decode() takes ONE NAL unit WITH its Annex-B start code (00 00 01 or
+ * 00 00 00 01), in stream order, parameter sets included. It returns 1 and
+ * fills *pic when a picture came out, 0 when the NAL was taken with nothing
+ * to show yet (SPS, PPS, a slice of a picture not finished), or < 0 when the
+ * NAL was refused. After an error, feed on: the decoder resynchronises at the
+ * next keyframe.
+ *
+ * How long a picture's planes stay put: they are the decoder's own buffers.
+ * A picture is the reference of the next one, so decoding the next P frame
+ * does not write them; decoding the one after that, or an IDR, may. The
+ * Cameras app converts picture N on the other core while N+1 decodes, and
+ * holds the decoder before N+2 or an IDR until it is done
+ * (apps/camaras/main/cam_view.h).
+ *
+ * Call it from a worker, never from LVGL's task: a keyframe is a fifth of a
+ * second.
+ * -------------------------------------------------------------------------- */
+typedef struct aos_h264 aos_h264_t;
+
+/* decode() < 0: -1 the NAL was refused; AOS_H264_ERR_MEM the picture buffers
+ * for this size do not fit (a 1920x1080 stream on this board). */
+#define AOS_H264_ERR_MEM (-2)
+
+typedef struct {
+    const uint8_t *y, *u, *v;       /* I420 planes */
+    int width, height;              /* luma, in pixels (tinyh264 does not apply the
+                                       SPS crop: 640x360 comes out 640x368) */
+    int stride_y, stride_uv;        /* bytes per row of each plane */
+} aos_h264_pic_t;
+
+aos_h264_t *aos_hal_h264_open(void);
+int         aos_hal_h264_decode(aos_h264_t *dec, const uint8_t *nal, int len, aos_h264_pic_t *pic);
+void        aos_hal_h264_close(aos_h264_t *dec);
 
 /* --------------------------------------------------------------------------
  * Steps: today, the last seven days, the goal (aos_steps.c, both HALs)
