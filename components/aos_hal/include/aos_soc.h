@@ -79,6 +79,7 @@ typedef struct {
     float   sess_start_soc;
     float   sess_mah;
     bool    sess_saw_cc;
+    int64_t unplugged_us;   /* when USB went out after charging; 0 = long ago */
 } aos_soc_t;
 
 #define AOS_SOC_DEFAULT_SAG_MV      80.0f

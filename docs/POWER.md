@@ -578,7 +578,39 @@ Two things the first touch wake broke, both fixed:
   black only because the panel never lost power. Cutting its rails left
   garbage there. Every start now clears 466 columns once, before LVGL.
 
-### 9.7 Still to do
+### 9.7 The first night on battery (2026-09-25 to 26)
+
+Unplugged at 19:55, left alone until 00:10: 4 h 15 min, screen off, WiFi
+connected, Bluetooth off, deep sleep not enabled.
+
+| | |
+|---|---|
+| the firmware's estimate | 98 % to 12 % (about 20 % an hour) |
+| the voltage | 4.03 V to 3.69 V |
+| the AXP2101's gauge at the end | 34 % |
+| time the processor slept, over the whole night | about 92 % |
+
+Less than half the 50 % an hour of the pocket, but still about five hours of
+standby from full. With the processor asleep 92 % of the time, what is left is
+on the board; the first suspect is the panel, which with the screen "off" is
+still on at brightness 0 (its sleep-in is off because of the flash, 5.4).
+
+**The charge afterwards contradicts the estimate, and says the generic curve
+is too pessimistic at the low end, or the cell is smaller than 130 mAh.**
+From the "10 %" the night ended at, 19 minutes of constant current (about
+47 mAh) brought the voltage to 4.08 V, the edge of constant voltage. A full
+charge from empty had needed about 35 minutes of constant current. Only a
+complete charge, not interrupted, measures the capacity; the history now
+holds the voltage of every sample, which is what the cell's own curve will be
+fitted from.
+
+**A defect of the estimator, fixed.** Unplugged at a counted 48 %, the next
+reading at rest put it at 85 % and the estimate jumped by ten points: after a
+charge the voltage sits above its rest value and relaxes for tens of minutes.
+For 30 minutes after a charge, rest readings may now only bring the estimate
+down (checked on the bench, "half a charge, then left alone").
+
+### 9.8 Still to do
 
 - **A real night** with deep sleep on, and a real charge from low to see the
   capacity learned (`cap_n` goes to 1). Section 7 is the protocol.

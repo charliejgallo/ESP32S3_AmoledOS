@@ -140,6 +140,14 @@ static double music(double t, bool *lit, bool *usb)
     (void)t; *lit = false; *usb = false; return 45;
 }
 
+/* Half a charge, then off the cable and left alone. The simulated cell has
+ * no relaxation, so this checks the other half: that the estimate counted
+ * during the charge is kept, and that the rest readings take over later. */
+static double half_charge(double t, bool *lit, bool *usb)
+{
+    *lit = false; *usb = t > 600 && t < 600 + 1200; return 9;
+}
+
 int main(void)
 {
     cell_t typical = { .cap_mah = 130, .r_ohm = 0.9, .ocv_bias_mv = 0 };
@@ -154,6 +162,7 @@ int main(void)
     run("pocket, paced (9 mA)", typical, 100, 20, pocket_fixed, 0, false);
     run("daily use", typical, 100, 12, daily_use, 0, false);
     run("charge from low, learns capacity", typical, 12, 4, charge_from_low, 0, false);
+    run("half a charge, then left alone", typical, 15, 3, half_charge, 0, false);
     printf("\n-- a worse cell (110 mAh, 1.3 ohm, curve 25 mV low) --\n");
     run("pocket, radio flat out", skewed, 100, 3, pocket_away, 0, false);
     run("pocket, radio flat out, flagged", skewed, 100, 3, pocket_away_flagged, 0, false);

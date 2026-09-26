@@ -30,6 +30,11 @@ static const struct { int mv; float pct; } s_ocv[] = {
 #define FOLLOW              0.25f
 /* The constant-voltage tail is approached with this time constant. */
 #define CV_TAU_S            600.0f
+/* After a charge the cell's voltage sits above its rest value and relaxes
+ * for tens of minutes. Measured on 2026-09-26: unplugged at a counted 48 %,
+ * the first reading "at rest" said 85 % and the estimate jumped by ten. For
+ * this long after a charge, rest readings may only bring it down. */
+#define RELAX_AFTER_CHARGE_US (30LL * 60 * 1000000)
 
 static float raw_pct(int mv)
 {
@@ -166,6 +171,7 @@ bool aos_soc_step(aos_soc_t *st, const aos_soc_input_t *in)
         st->sess_saw_cc = false;
     } else if (!in->usb && st->was_usb) {
         st->sess_on = false;        /* unplugged before the end: no measure */
+        st->unplugged_us = in->now_us;
     }
     st->was_usb = in->usb;
 
@@ -216,9 +222,16 @@ bool aos_soc_step(aos_soc_t *st, const aos_soc_input_t *in)
     }
 
     /* --- on battery ----------------------------------------------------------- */
-    if (quiet) {
+    bool relaxing = st->unplugged_us &&
+                    in->now_us - st->unplugged_us < RELAX_AFTER_CHARGE_US;
+    if (quiet && !relaxing) {
         float at_rest = aos_soc_from_ocv(in->vbat_mv + QUIET_SAG_MV, in->target_mv);
         st->soc += FOLLOW * (at_rest - st->soc);
+    } else if (quiet) {
+        float at_rest = aos_soc_from_ocv(in->vbat_mv + QUIET_SAG_MV, in->target_mv);
+        if (at_rest < st->soc) {
+            st->soc += FOLLOW * (at_rest - st->soc);
+        }
     } else {
         int comp = (int)st->sag_mv;
         if (!in->screen_lit && !in->audio && !in->busy) {
