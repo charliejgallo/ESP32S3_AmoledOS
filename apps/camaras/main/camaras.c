@@ -175,6 +175,7 @@ static void stop(app_t *a)
     }
     a->viewing = false;
     aos_hal_worker_stop();              /* joins: nothing below runs under it */
+    aos_hal_net_low_latency(false);
     cam_view_release(a->v);
     free_strips(a);
     lv_obj_add_flag(a->view_obj, LV_OBJ_FLAG_HIDDEN);
@@ -236,6 +237,10 @@ static void open_camera(app_t *a, int index)
         set_message(a, _("No hay lugar para la tarea de video"));
         return;
     }
+    /* WiFi power save off while the camera is open: in MIN_MODEM the round
+     * trip to the watch was 180-315 ms, and that, not the decoder, capped a
+     * go2rtc MJPEG stream at 5-9 fps. */
+    aos_hal_net_low_latency(true);
     aos_hal_log("camaras", "open %s (%s)", v->cam.name, v->url.rtsp ? "rtsp" : "http");
 }
 

@@ -1042,6 +1042,16 @@ typedef enum {
 } aos_net_state_t;
 
 aos_net_state_t aos_hal_net_state(void);
+
+/* WiFi without power save, for as long as an app streams (branch rtsp).
+ * With the screen on the HAL keeps the radio in WIFI_PS_MIN_MODEM, which
+ * wakes it at each beacon: 180-315 ms of round trip to the watch, measured,
+ * and a TCP stream through a 16 KB window then crawls. The Cameras app
+ * holds this while a camera is open. It costs the radio's idle current, so
+ * release it: the app's stop path, and the HAL clears it when the app's
+ * worker stops. Refused quietly while Bluetooth is up (coexistence needs
+ * modem sleep). */
+void aos_hal_net_low_latency(bool on);
 const char *aos_hal_net_ssid(void);
 int         aos_hal_net_rssi(void);         /* dBm */
 const char *aos_hal_net_ip(void);

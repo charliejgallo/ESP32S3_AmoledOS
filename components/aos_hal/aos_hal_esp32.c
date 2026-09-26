@@ -246,6 +246,7 @@ static bool                 s_light_sleep_on;           /* what esp_pm has now *
 static esp_pm_lock_handle_t s_pm_max_lock;
 static bool                 s_pm_max_held;
 static int                  s_wifi_ps = -1;
+static bool                 s_net_low_latency;      /* aos_hal_net_low_latency() */
 static void               (*s_power_cb)(aos_power_event_t event, int percent);
 static int                  s_gyro_users;
 
@@ -5359,12 +5360,26 @@ static void pm_policy_apply(void)
     }
 
     if (s_net_state != AOS_NET_OFF) {
-        int ps = (saving && s_display_state != AOS_DISPLAY_ACTIVE) ? WIFI_PS_MAX_MODEM
-                                                                 : WIFI_PS_MIN_MODEM;
+        int ps = s_net_low_latency ? WIFI_PS_NONE
+               : (saving && s_display_state != AOS_DISPLAY_ACTIVE) ? WIFI_PS_MAX_MODEM
+                                                                   : WIFI_PS_MIN_MODEM;
         if (ps != s_wifi_ps && esp_wifi_set_ps((wifi_ps_type_t)ps) == ESP_OK) {
             s_wifi_ps = ps;
         }
     }
+}
+
+void aos_hal_net_low_latency(bool on)
+{
+    if (on && aos_hal_bt_state() != AOS_BT_OFF) {
+        on = false;             /* coexistence wants modem sleep */
+    }
+    if (on == s_net_low_latency) {
+        return;
+    }
+    s_net_low_latency = on;
+    ESP_LOGI(TAG, "wifi power save %s (low latency %s)", on ? "off" : "back on", on ? "held" : "released");
+    pm_policy_apply();
 }
 
 static int cpu_mhz_now(void)
@@ -6960,6 +6975,8 @@ void aos_hal_worker_stop(void)
         ESP_LOGI(TAG, "worker stopped after %d ms", waited);
     }
     s_worker_task = NULL;
+    /* An app that streamed and forgot: the radio goes back to power save. */
+    aos_hal_net_low_latency(false);
 }
 
 bool aos_hal_worker_running(void)

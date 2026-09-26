@@ -327,6 +327,27 @@ static void dump_frame(cam_view_t *v, int len, const cam_jslot_t *s)
     dumps++;
 }
 
+/* The first few JPEGs the view refuses go to the log with the stage and the
+ * decoder's code, and to the card next to the dumps: a refused frame is
+ * otherwise just a counter. */
+static void jpeg_refused(cam_view_t *v, int len, int stage, int rc)
+{
+    static int n;
+    v->errors++;
+    if (n >= 3) {
+        return;
+    }
+    aos_hal_log("camaras", "jpeg refused: stage %d rc %d, %d bytes", stage, rc, len);
+    const char *root = aos_hal_path_sd_root();
+    if (root) {
+        char path[160];
+        snprintf(path, sizeof(path), "%s/videos/jerr%d.jpg", root, n);
+        FILE *f = fopen(path, "wb");
+        if (f) { fwrite(v->jpeg_in, 1, (size_t)len, f); fclose(f); }
+    }
+    n++;
+}
+
 static cam_jslot_t *jslot_free(cam_view_t *v)
 {
     for (int i = 0; i < CAM_JSLOTS; i++) {
@@ -358,7 +379,7 @@ void cam_view_flush(cam_view_t *v)
 
     int src_w, src_h;
     if (!jpeg_size(v->jpeg_in, len, &src_w, &src_h) || src_w > 2048 || src_h > 2048) {
-        v->errors++;
+        jpeg_refused(v, len, 1, 0);
         s->state = CAM_SLOT_FREE;
         return;
     }
@@ -367,8 +388,9 @@ void cam_view_flush(cam_view_t *v)
         cam_view_state(v, CAM_ST_ERROR, _("El decodificador JPEG no abrió"));
         return;
     }
-    if (jpeg_dec_parse_header(v->jpeg, &io, &info) != JPEG_ERR_OK) {
-        v->errors++;
+    jpeg_error_t jr = jpeg_dec_parse_header(v->jpeg, &io, &info);
+    if (jr != JPEG_ERR_OK) {
+        jpeg_refused(v, len, 2, jr);
         s->state = CAM_SLOT_FREE;
         return;
     }
@@ -380,7 +402,7 @@ void cam_view_flush(cam_view_t *v)
         /* The decoder would write a picture of another shape than the one the
          * UI will read: a frame of stripes. Never show it. */
         s->state = CAM_SLOT_FREE;
-        v->errors++;
+        jpeg_refused(v, len, 3, out_len);
         return;
     }
     if (!s->px || s->cap < (size_t)out_len) {
@@ -396,8 +418,9 @@ void cam_view_flush(cam_view_t *v)
         }
     }
     io.outbuf = (uint8_t *)s->px;
-    if (jpeg_dec_process(v->jpeg, &io) != JPEG_ERR_OK) {
-        v->errors++;
+    jr = jpeg_dec_process(v->jpeg, &io);
+    if (jr != JPEG_ERR_OK) {
+        jpeg_refused(v, len, 4, jr);
         s->state = CAM_SLOT_FREE;
         return;
     }

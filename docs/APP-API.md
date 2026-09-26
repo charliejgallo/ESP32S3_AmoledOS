@@ -235,6 +235,11 @@ Every call has a timeout so the worker keeps polling `should_stop()`. Four
 handles in the whole system, no TLS. `aos_hal_md5_hex()` is there for HTTP
 and RTSP Digest authentication.
 
+A stream also wants `aos_hal_net_low_latency(true)` while it runs. With the
+screen on, WiFi sits in modem sleep and a round trip takes 180-315 ms; that,
+not the decoder, capped an MJPEG stream at 5-9 fps. Release it when the stream
+closes; the HAL also releases it when the worker stops.
+
 `aos_hal_h264_open/decode/close` is Espressif's software decoder (tinyh264):
 **constrained baseline only**, one NAL unit with its start code per call, I420
 planes out. 704x576 decodes at 14 fps in a live app (P 70-80 ms, I 225 ms),

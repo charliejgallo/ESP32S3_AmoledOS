@@ -235,3 +235,44 @@ cache and PSRAM.
 The two cameras used here were reconfigured for these tests (stream 102 of
 the doorbell to 12 fps with GOP 12; the outdoor camera's stream 102 to MJPEG
 640x480 @ 12). Their original settings were kept to be restored.
+
+## Step 3: a big camera through a transcoder
+
+The case the watch cannot decode: `rtsp://<go2rtc>:8554/<camera>`
+from go2rtc, **H.265 Main, 2560x1440, 20 fps**. Transcoded to MJPEG 640x360
+at 12 fps, served over HTTP, the watch shows it at **12 fps, 45 ms a frame to
+decode, 0 errors**.
+
+The test ran with the Mac as the transcoder, since go2rtc's HTTP API (port
+1984) was not reachable from the LAN. The watch only sees the HTTP stream, so
+the stand-in behaves like go2rtc:
+
+```bash
+ffmpeg -rtsp_transport tcp -i rtsp://<ha>:8554/<stream> -an \
+  -vf "fps=12,scale=640:360" -c:v mjpeg -q:v 7 -pix_fmt yuvj420p \
+  -f mpjpeg -listen 1 http://0.0.0.0:8090/cam.mjpeg
+```
+
+With go2rtc itself, a stream sized for the watch keeps the transcoding on the
+server and the JPEGs small (`go2rtc.yaml`):
+
+```yaml
+streams:
+  <camera>_watch: ffmpeg:<camera>#video=mjpeg#width=640#height=360#raw=-r 12 -q:v 7
+```
+
+and the watch opens `http://<go2rtc>:1984/api/stream.mjpeg?src=<camera>_watch`.
+go2rtc's API is unauthenticated unless `api: username/password` is set; the
+app sends HTTP Basic when the camera has a user.
+
+Two things found on the way, both fixed:
+
+| Found | Fix |
+|---|---|
+| ffmpeg's HTTP server answers `Transfer-Encoding: chunked` even to an HTTP/1.0 request. Its chunk lines (`\r\n629\r\n`) landed inside JPEGs, which failed to decode near the bottom (`rc -5`). | `cam_http.c` undoes chunked transfer as the bytes arrive. |
+| With the screen on, the HAL keeps WiFi in `WIFI_PS_MIN_MODEM`: 180-315 ms of ping to the watch. Through a 16 KB TCP window that capped the stream at 5-9 fps, with the decoder idle half the time. | `aos_hal_net_low_latency(true)` turns power save off while a camera is open (ping 5-40 ms, 12 fps). The app releases it on close, and the HAL releases it when an app's worker stops. It is refused while Bluetooth is up. |
+
+With power save off, the outdoor camera's MJPEG (45 KB frames) went from
+9-11 fps to a steady 10-11, with the decoder (57 ms) as the limit. The
+doorbell did not change: it is limited by the CPU.
+

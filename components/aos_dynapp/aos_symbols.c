@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 121 funciones de libc/libm agregadas a mano.
- * Total: 2879 simbolos.
+ * Total: 2880 simbolos.
  */
 
 #include <stddef.h>
@@ -264,6 +264,7 @@ extern int aos_hal_net_enabled;
 extern int aos_hal_net_forget;
 extern int aos_hal_net_has_credentials;
 extern int aos_hal_net_ip;
+extern int aos_hal_net_low_latency;
 extern int aos_hal_net_retry_info;
 extern int aos_hal_net_rssi;
 extern int aos_hal_net_scan;
@@ -3146,6 +3147,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_net_forget),
     ESP_ELFSYM_EXPORT(aos_hal_net_has_credentials),
     ESP_ELFSYM_EXPORT(aos_hal_net_ip),
+    ESP_ELFSYM_EXPORT(aos_hal_net_low_latency),
     ESP_ELFSYM_EXPORT(aos_hal_net_retry_info),
     ESP_ELFSYM_EXPORT(aos_hal_net_rssi),
     ESP_ELFSYM_EXPORT(aos_hal_net_scan),
