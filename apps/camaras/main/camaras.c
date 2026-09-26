@@ -398,6 +398,9 @@ static void frame_cb(lv_timer_t *timer)
         if (v->undecodable) {
             set_message(a, _("Este video no se puede ver en el reloj.\n"
                              "Pasá la cámara a H.264 Baseline\no a MJPEG."));
+        } else if (v->state == CAM_ST_UNSUPPORTED) {
+            set_message(a, v->detail);
+            lv_label_set_text(a->status_label, "");
         } else if (v->state == CAM_ST_ERROR) {
             char msg[200];
             snprintf(msg, sizeof(msg), "%s\n\n%s", v->detail, _("Reintentando…"));

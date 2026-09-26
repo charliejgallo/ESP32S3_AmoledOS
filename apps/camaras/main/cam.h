@@ -74,6 +74,7 @@ typedef enum {
     CAM_ST_WAITING,                 /* connected, no picture yet */
     CAM_ST_LIVE,
     CAM_ST_ERROR,                   /* detail says why; the worker retries */
+    CAM_ST_UNSUPPORTED,             /* detail says why; retrying will not help */
 } cam_state_t;
 
 void cam_view_state(cam_view_t *v, cam_state_t st, const char *detail);

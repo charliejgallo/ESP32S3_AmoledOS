@@ -55,6 +55,7 @@ typedef struct {
 
     /* the SDP's video track */
     cam_codec_t      codec;
+    bool             h265;
     int              pt;
     int              clock;
     char             control[CAM_URL_LEN + 112];
@@ -374,15 +375,17 @@ static bool parse_sdp(rtsp_t *r, const char *sdp)
                     r->clock = atoi(enc + 5);
                 } else {
                     r->codec = CAM_CODEC_NONE;      /* H265, MP4V...: not for this watch */
+                    r->h265 = ci_ncmp(enc, "H265/", 5) == 0;
                 }
             }
         } else if (in_video && strncmp(line, "a=control:", 10) == 0) {
             cp_str(ctl, sizeof(ctl), line + 10);
         } else if (in_video && strncmp(line, "a=fmtp:", 7) == 0) {
             char sets[256];
-            if (param(line, "sprop-parameter-sets", sets, sizeof(sets)) ||
-                (strstr(line, "sprop-parameter-sets=") &&
-                 sscanf(strstr(line, "sprop-parameter-sets=") + 21, "%255[^; \t]", sets) == 1)) {
+            /* Not param(): it stops at the comma, and the comma is what
+             * separates the SPS from the PPS here. */
+            const char *sp = strstr(line, "sprop-parameter-sets=");
+            if (sp && sscanf(sp + 21, "%255[^; \t\r\n]", sets) == 1) {
                 char *comma = strchr(sets, ',');
                 if (comma) {
                     *comma = '\0';
@@ -494,6 +497,10 @@ bool cam_rtsp_run(cam_view_t *view, const cam_t *cam, const cam_url_t *url,
         snprintf(r->base, sizeof(r->base), "%s", cb);
     }
     if (!parse_sdp(r, body)) {
+        if (r->h265) {
+            cam_view_state(view, CAM_ST_UNSUPPORTED,
+                           _("El reloj no decodifica H.265.\nSólo H.264 Baseline y MJPEG."));
+        }
         why_set(why, why_len, _("El video no es H.264 ni MJPEG"));
         goto out;
     }

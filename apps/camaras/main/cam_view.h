@@ -41,6 +41,7 @@
 
 #include "cam.h"
 #include "cam_conv.h"
+#include "cam_sps.h"
 
 #include "aos_hal.h"
 
@@ -116,6 +117,8 @@ struct cam_view {
     bool         skipping;
     uint32_t     bad_run;           /* consecutive refused slices */
     bool         ever_picture;
+    cam_sps_t    sps;               /* the stream's, once seen */
+    bool         have_sps;
 };
 
 void cam_view_worker(void *arg);

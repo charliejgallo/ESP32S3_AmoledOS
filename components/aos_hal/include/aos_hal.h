@@ -1580,6 +1580,10 @@ void aos_hal_md5_hex(const void *data, size_t len, char out[33]);
  * -------------------------------------------------------------------------- */
 typedef struct aos_h264 aos_h264_t;
 
+/* decode() < 0: -1 the NAL was refused; AOS_H264_ERR_MEM the picture buffers
+ * for this size do not fit (a 1920x1080 stream on this board). */
+#define AOS_H264_ERR_MEM (-2)
+
 typedef struct {
     const uint8_t *y, *u, *v;       /* I420 planes */
     int width, height;              /* luma, in pixels (tinyh264 does not apply the

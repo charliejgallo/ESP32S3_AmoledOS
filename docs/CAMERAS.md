@@ -276,3 +276,67 @@ With power save off, the outdoor camera's MJPEG (45 KB frames) went from
 9-11 fps to a steady 10-11, with the decoder (57 ms) as the limit. The
 doorbell did not change: it is limited by the CPU.
 
+
+## Step 4: how far it goes, feed by feed
+
+Direct feeds only, no transcoder. The outdoor camera's stream 102 was swept
+through the modes it offers, and the two main streams (101) were opened as
+they come. Each row is 45 s of the app on the watch: WiFi power save off,
+fit mode, the camera at GOP = fps. "Decoder alone" is `/api/h264bench` on
+a clip of the same stream, recorded with `-c copy`.
+
+**H.264 constrained baseline**
+
+| Feed | On the panel | Decode in the app (P / I) | Lag | Skips to a keyframe | Decoder alone | Internal RAM free |
+|---|---|---|---|---|---|---|
+| 640x360 @ 12 | **11.6 fps** | 57 / 147 ms | 0.08 s | 0 | 21 fps | 68 K |
+| 640x360 @ 20 | **20.5 fps** | 33 / 152 ms | 0.08 s | 0 | 30 fps | 68 K |
+| 640x480 @ 12 | **11.6 fps** | 44 / 194 ms | 0.04 s | 0 | 21 fps | 68 K |
+| 640x480 @ 20 | 14.2 fps | 58 / 194 ms | 0.4 s | 20 in 45 s | 23 fps | 68 K |
+| 704x576 @ 12 (doorbell) | ~10 fps | 70-86 / 225 ms | 0.2-0.7 s | every 7-10 s | 17 fps | 63 K |
+| 1280x720 @ 4 | **4.2 fps** | 165 ms | 0.07 s | 1 in 45 s | 6.6 fps | 50 K |
+| 1280x720 @ 6 | 3.3 fps | 246 / 495 ms | 0.55 s | 36 in 45 s | 5.3 fps | 50 K |
+| 1280x720 @ 12 | 3.3 fps | 156 / 513 ms | 0.48 s | 44 in 45 s | 6.8 fps | 50 K |
+| 1920x1080 @ 25 (doorbell main) | **~0.5-1 fps**, keyframes only | I 1180 ms | — | constant | 2.5 fps (P 375, I 1165 ms) | 62 K |
+
+The decoder of 1920x1080 takes **6.3 MB of the 7.7 MB of PSRAM** free: it
+fits, but nothing bigger will. A 1080p camera set to 2 fps would show about
+2; at 25 it shows only the keyframes.
+
+**MJPEG (RTP/JPEG from the camera)**
+
+| Feed | On the panel | Decode (per frame) | Lag | Internal RAM free |
+|---|---|---|---|---|
+| 640x360 @ 12 | **11.8 fps** | 41 ms | 0.02 s | 115 K |
+| 640x360 @ 20 | 14.5 fps | 43 ms | 0.6 s | 115 K |
+| 640x480 @ 12 | 10-11 fps | 57 ms | 0.3-1.5 s | 115 K |
+| 640x480 @ 20 | 10.5 fps | 55 ms | 0.7 s | 115 K |
+| 1280x720 @ 12 | 3.6 fps | 158 ms | 0.13 s | 115 K |
+| 1280x720 @ 6 | 3.2 fps | 156 ms | 0.9 s | 115 K |
+
+MJPEG drops frames without penalty, because each one stands alone. When
+the watch is short, it shows fewer frames, not older ones. Its cost is on
+the air: 3-4 Mbps where H.264 at the same size is 0.4-0.5.
+
+**Not for this watch** (the app says so on screen and does not retry):
+
+| Feed | Message |
+|---|---|
+| H.264 Main or High profile (CABAC) | "H.264 Main: the watch only decodes the Baseline profile." |
+| H.265, any size (outdoor main stream, 2560x1440) | "The watch cannot decode H.265. Only H.264 Baseline and MJPEG." |
+| H.264 too big for the PSRAM | "WxH does not fit in the watch's memory." |
+
+### In one line per size
+
+- **640x360 and 640x480, H.264 Baseline: the sweet spot.** 12 fps without
+  a single skip, 20 fps at 640x360, under 0.1 s of lag, 0.4-0.5 Mbps.
+- **704x576: ~10 fps**, with a short freeze every few seconds.
+- **1280x720: ~4 fps, and only with the camera set to 4 fps.** Above
+  that it spends its time skipping to keyframes.
+- **1920x1080: keyframes only** (about one a second) at the camera's usual
+  rates. It fits in memory, but only just.
+- **H.265 and Main/High profile: no**, at any size. The way to them is a
+  transcoder (step 3).
+
+These are the numbers we stand behind. Somebody who points the watch at a
+1080p stream has been told what to expect.

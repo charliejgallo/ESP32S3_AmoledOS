@@ -103,9 +103,10 @@ int aos_hal_h264_decode(aos_h264_t *dec, const uint8_t *nal, int len, aos_h264_p
             pic->u = out + dec->width * dec->height;
             pic->v = pic->u + (dec->width / 2) * (dec->height / 2);
             return 1;
+        case H264BSD_MEMALLOC_ERROR:
+            return AOS_H264_ERR_MEM;
         case H264BSD_ERROR:
         case H264BSD_PARAM_SET_ERROR:
-        case H264BSD_MEMALLOC_ERROR:
             return -1;
         default:
             break;

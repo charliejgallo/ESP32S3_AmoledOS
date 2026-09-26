@@ -50,6 +50,12 @@
 
 void cam_view_state(cam_view_t *v, cam_state_t st, const char *detail)
 {
+    /* "Not for this watch" is final for the session: the SPS that says so
+     * comes with the SDP, before PLAY, and the RTSP client's "waiting" that
+     * follows it hid the message (H.264 Main, 2026-09-26). */
+    if (v->state == CAM_ST_UNSUPPORTED && st != CAM_ST_UNSUPPORTED) {
+        return;
+    }
     if (detail) {
         snprintf(v->detail, sizeof(v->detail), "%s", detail);
         __sync_synchronize();
@@ -170,6 +176,26 @@ void cam_view_nal(cam_view_t *v, const uint8_t *nal, int len, int64_t pts_ms)
     int type = nal[sc] & 0x1F;
     bool slice = type == 1 || type == 5;
 
+    if (v->state == CAM_ST_UNSUPPORTED) {
+        return;                     /* said once; decoding would only fail again */
+    }
+    if (type == 7 && !v->have_sps && cam_sps_parse(nal + sc, len - sc, &v->sps)) {
+        v->have_sps = true;
+        aos_hal_log("camaras", "sps: profile %d level %d refs %d, %dx%d (coded %dx%d)",
+                    v->sps.profile_idc, v->sps.level_idc, v->sps.ref_frames,
+                    v->sps.width, v->sps.height, v->sps.coded_w, v->sps.coded_h);
+        v->src_w = v->sps.width;
+        v->src_h = v->sps.height;
+        if (!cam_sps_baseline(&v->sps)) {
+            char msg[112];
+            const char *name = v->sps.profile_idc == 77 ? "Main" :
+                               v->sps.profile_idc == 100 ? "High" : "?";
+            snprintf(msg, sizeof(msg), _("H.264 %s: el reloj sólo\ndecodifica el perfil Baseline."), name);
+            cam_view_state(v, CAM_ST_UNSUPPORTED, msg);
+            return;
+        }
+    }
+
     if (slice && pts_ms >= 0) {
         int32_t lag = lateness(v, pts_ms);
         if (type == 5) {
@@ -202,6 +228,15 @@ void cam_view_nal(cam_view_t *v, const uint8_t *nal, int len, int64_t pts_ms)
     uint32_t dec_ms = (uint32_t)(aos_hal_uptime_ms() - t0);
     /* busy_seq stays set until a picture is published: a picture cut into
      * several slices is being written into a buffer between calls too. */
+    if (r == AOS_H264_ERR_MEM) {
+        char msg[112];
+        snprintf(msg, sizeof(msg), _("%dx%d no entra en\nla memoria del reloj."),
+                 v->have_sps ? v->sps.width : 0, v->have_sps ? v->sps.height : 0);
+        aos_hal_log("camaras", "decoder out of memory at %dx%d",
+                    v->have_sps ? v->sps.coded_w : 0, v->have_sps ? v->sps.coded_h : 0);
+        cam_view_state(v, CAM_ST_UNSUPPORTED, msg);
+        return;
+    }
     if (r < 0) {
         v->errors++;
         if (slice && !v->ever_picture && ++v->bad_run == BAD_RUN_LIMIT) {
@@ -217,6 +252,12 @@ void cam_view_nal(cam_view_t *v, const uint8_t *nal, int len, int64_t pts_ms)
         return;
     }
     v->bad_run = 0;
+    /* tinyh264 ignores the SPS cropping: 640x360 comes out 640x368, the last
+     * eight rows padding. The picture handed over is the cropped one. */
+    if (v->have_sps && v->sps.width <= pic.width && v->sps.height <= pic.height) {
+        pic.width = v->sps.width;
+        pic.height = v->sps.height;
+    }
     uint32_t s = v->pend_seq + 1;
     v->pend[s & 1] = pic;
     v->pend_dec_ms = dec_ms;
@@ -544,12 +585,21 @@ void cam_view_worker(void *arg)
         v->bad_run = 0;
         v->ever_picture = false;
         v->jpeg_in_len = 0;
+        v->have_sps = false;
         bool ok = v->url.rtsp ? cam_rtsp_run(v, &v->cam, &v->url, why, sizeof(why))
                               : cam_http_run(v, &v->cam, &v->url, why, sizeof(why));
         /* A decoder keeps the previous session's references; the next one
          * starts at a keyframe anyway. */
         close_decoders(v);
         if (ok || aos_hal_worker_should_stop()) {
+            break;
+        }
+        if (v->state == CAM_ST_UNSUPPORTED) {
+            /* Retrying shows the same stream again: wait to be told to stop. */
+            aos_hal_log("camaras", "%s: %s", v->cam.name, v->detail);
+            while (!aos_hal_worker_should_stop()) {
+                aos_hal_worker_sleep(100);
+            }
             break;
         }
         aos_hal_log("camaras", "%s: %s", v->cam.name, why);
