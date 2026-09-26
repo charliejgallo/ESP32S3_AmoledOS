@@ -3,6 +3,54 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.7.0 — 2026-09-26
+
+**Cameras: the house's IP cameras on the watch.** A new app, `Cámaras`, plays
+RTSP straight from the camera and MJPEG over HTTP from a transcoder such as
+go2rtc. Everything is measured in [docs/CAMERAS.md](docs/CAMERAS.md).
+
+- **What plays:** H.264 **constrained baseline**, decoded on the board with
+  Espressif's software decoder (tinyh264); MJPEG over RTP (RFC 2435); and MJPEG
+  over HTTP (`multipart/x-mixed-replace`, chunked or not). Digest and Basic
+  authentication, interleaved RTP over one TCP connection, keep-alives, and a
+  reconnection every 3 s if the camera drops.
+- **What it reaches, measured on direct feeds:** 640x360 H.264 at 20 fps and
+  640x480 at 12 without a skip; 704x576 about 10 fps; 1280x720 about 4 fps,
+  with the camera set to 4; 1920x1080 keyframes only (the decoder alone does
+  2.5 fps and takes 6.3 MB of PSRAM). MJPEG: 640x360 12 fps, 640x480 10-11,
+  1280x720 3.5. H.265 and H.264 Main/High are refused with a message that says
+  why.
+- **The portal's `/camaras` page** keeps up to eight cameras (name, `rtsp://` or
+  `http://` address, user, password). The password never goes back to the
+  browser. An address pasted with the credentials in it is taken apart on
+  save.
+- **On the watch:** tap a camera to open it. Tap the picture to switch
+  between the whole picture (with the name and the numbers) and the whole
+  screen.
+
+**For apps** (APP-API.md, "Sockets, MD5 and H.264"):
+
+- `aos_hal_tcp_*`, a TCP stream with timeouts for a worker, and
+  `aos_hal_md5_hex()`.
+- `aos_hal_h264_open/decode/close`, with `AOS_H264_ERR_MEM` when a size does
+  not fit.
+- `aos_hal_net_low_latency()`, which turns WiFi power save off while an app
+  streams. In modem sleep the watch answered ping in 180-315 ms, which capped a
+  stream at 5-9 fps. With power save off it is 12.
+
+In the simulator the decoders are libavcodec (`brew install ffmpeg`), so the
+Cameras app plays real cameras on the desktop.
+
+**Fixed and learned on the way:**
+
+- **The TCP receive window is 16 KB**, up from lwIP's 5.7 KB, at no cost in
+  internal RAM at rest. An MJPEG camera went from 2.2 to 3.2-3.8 Mbps.
+- **A worker on core 0 above LVGL's priority froze the UI for seconds.** It
+  starved `app_main`, which holds the LVGL lock. APP-GUIDE section 14 has the
+  rule: below priority 4 if the worker is busy nearly all the time.
+- **`/api/h264bench`** measures the H.264 decoder on a clip from the card, the
+  way `/api/jpegbench` does for JPEG.
+
 ## v0.6.3 — 2026-09-26
 
 **A watch in a pocket, away from home, was flat in 70 minutes.** Three causes,
