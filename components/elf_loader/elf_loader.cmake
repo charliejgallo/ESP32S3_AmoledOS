@@ -129,6 +129,24 @@ macro(project_so project_name)
                              -fdata-sections
                              -DCONFIG_ELF_DYNAMIC_LOAD_SHARED_OBJECT)
 
+        # Sin rutas locales dentro del .so: el paso de abajo le pasa al
+        # compilador cada .c con su ruta ABSOLUTA, y __FILE__ -el de los
+        # assert() y los I_Error() de doomgeneric- se la llevaba entera al
+        # .rodata. doom.so salio publicado asi en apps.zip desde v0.5.6 con
+        # /Users/<usuario>/Dropbox/... adentro. Con el mapa, __FILE__ queda
+        # relativo al repo ("apps/doom/main/doomgeneric/w_wad.c") y el de los
+        # headers de ESP-IDF, como "esp-idf/...".
+        #
+        # Va aca y no en el CMakeLists de la app porque este paso arma su
+        # linea de comandos a mano: las opciones de CMake por archivo o por
+        # componente no le llegan (ver apps/turbo/main/tb_gfx.c).
+        # ABSOLUTE y no REALPATH: tiene que calzar letra por letra con la ruta
+        # que ve el compilador, que es la de CMAKE_SOURCE_DIR sin resolver.
+        get_filename_component(_aos_repo "${ELF_LOADER_CMAKE_DIR}/../.." ABSOLUTE)
+        idf_build_get_property(_aos_idf_path IDF_PATH)
+        list(APPEND so_compile_flags -ffile-prefix-map=${_aos_repo}/=
+                                     -ffile-prefix-map=${_aos_idf_path}/=esp-idf/)
+
         # Link flags for producing a shared object from the collected .o files.
         # This setup favors size reduction (gc-sections, hidden visibility) and
         # passes strip flags to the linker to remove unneeded content.

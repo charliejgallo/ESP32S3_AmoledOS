@@ -122,6 +122,18 @@ for app in ${(z)apps}; do
         continue
     fi
 
+    # The .so goes out in the release's apps.zip: no path of this machine may
+    # ride inside it. elf_loader.cmake maps them away with -ffile-prefix-map;
+    # this catches whatever gets past the map (doom.so shipped /Users/... in
+    # its __FILE__ strings from v0.5.6 to v0.7.0).
+    rutas=$(strings -n 6 $so | grep -F -e "$ROOT" -e "$HOME" -e "$IDF_PATH" | head -3)
+    if [ -n "$rutas" ]; then
+        echo "  FAIL: the .so carries local paths:"
+        echo "$rutas" | sed 's/^/        /'
+        problemas=$((problemas + 1))
+        continue
+    fi
+
     printf "  ok  %s  %s  ABI %s  %s symbols\n" \
         $(basename $so) $(du -h $so | cut -f1) $abi $($NM -D -u $so | wc -l | tr -d ' ')
 done
