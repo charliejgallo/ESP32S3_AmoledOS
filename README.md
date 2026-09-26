@@ -67,14 +67,24 @@ It is iPhone only: ANCS is published by iOS and Android has no standard
 equivalent. Android phones are planned, starting with music controls over
 BLE HID: see [docs/ROADMAP.md](docs/ROADMAP.md).
 
-**Battery.** The AXP2101 is programmed rather than left at its factory
-values: the cell charges at 0.5 C to 4.1 V with a proper termination current
-("battery care", a switch), the watch powers itself off cleanly at 3 % instead
-of running the cell down to the PMU's 2.6 V cut, and the power key works: a
-click is the screen switch. With the screen off the CPU drops to 80 MHz, WiFi
-goes to its deepest modem sleep and, on battery, the chip light-sleeps between
-wake-ups — 58 % of the time, measured. Seven of the PMU's regulators feed
-nothing on this board and are off. Settings' Battery page shows the charge,
+**Battery.** The cell is a 302530 of 200 mAh, and the AXP2101 is programmed
+rather than left at its factory values: "battery care" (a switch) charges it at
+100 mA to 4.1 V with a proper termination current, and without it at 200 mA
+instead of the chip's 300. The percentage is the firmware's own, not the PMU's
+gauge: the voltage at rest, the sag learned with the screen lit, the charge
+counted in while charging and the capacity measured on charges that start low.
+It is a percentage of the cell full at 4.2 V, so with battery care a finished
+charge reads about 87 %, as a phone with a charge limit does. The watch powers
+itself off cleanly instead of running the cell down to the PMU's 2.6 V cut, and
+the power key works: a click is the screen switch. With the screen off or
+dimmed the CPU drops to 80 MHz, WiFi goes to its deepest modem sleep and, on
+battery, the chip light-sleeps between wake-ups: 93.5 % of the time with the
+screen off, measured. The touch controller sleeps too and still wakes the
+screen. Away from its network the WiFi backs off and then waits for the screen
+instead of scanning without end. At night, in the do-not-disturb hours, the
+watch can go into deep sleep (a switch, off by default), woken by a touch, the
+end of the hours or an alarm. Seven of the PMU's regulators feed nothing on
+this board and are off. Settings' Battery page shows the charge,
 the charger's stage, the last 24 hours as a graph (kept on the card, so a
 restart does not wipe it), drain in %/h with hours left, time on battery and
 charge cycles; Diagnostics adds the board and PMU temperatures and why the PMU
@@ -780,10 +790,12 @@ fight in Chatarra's phone booth and a match of Neon Snakes.
 USB host mode (a pendrive on the watch) works but is parked: the board cannot
 power a peripheral ([USB.md](docs/USB.md)).
 
-Known gaps: on the power side, the clean power-off at 3 % and the
-charge-cycle counter are written and reviewed but have not yet been through a
-real discharge, and the night-on-battery figure is still to be taken — [POWER.md](docs/POWER.md) section 7 is
-the protocol and `tools/battery_night.py` the recorder.
+Known gaps: on the power side, the percentage still maps the voltage with a
+generic LiPo curve, which reads low near empty; the battery history now keeps
+the voltage so that this cell's own curve can replace it. Deep sleep at night
+has been through wake-ups of minutes on the board but not yet a whole night,
+and the charge-cycle counter has not been checked against a real count.
+[POWER.md](docs/POWER.md) section 9 has what was measured and how.
 
 ## Licence
 

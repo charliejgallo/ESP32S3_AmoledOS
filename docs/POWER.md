@@ -501,7 +501,7 @@ switch off a watch that still has charge; the 3.30 V backstop stays as it was.
 `CONFIG_PM_PROFILING` and a per-task run-time dump (`/api/pmu?tasks=1`),
 differenced over a minute on battery, screen off, Bluetooth off:
 
-| | v0.6.2 | now |
+| | v0.6.2 | v0.6.3 |
 |---|---|---|
 | time in light sleep | 81 % | 93.5 % |
 | I2C transactions per second | 145 | 16.5 |

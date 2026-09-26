@@ -3,7 +3,7 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased — power, the second pass
+## v0.6.3 — 2026-09-26
 
 **A watch in a pocket, away from home, was flat in 70 minutes.** Three causes,
 none of them light sleep, all in [docs/POWER.md](docs/POWER.md) section 9.
