@@ -33,8 +33,9 @@ How the clips were made:
   profile, which is the point of that row.
 - **The other resolutions are x264 re-encodes of the outdoor clip in
   constrained baseline**, at the bitrate the camera would use. `tim576x`, the
-  x264 re-encode of the doorbell, decodes within 5 % of the doorbell's own
-  stream, so a re-encode is a fair stand-in for a camera set to that mode.
+  x264 re-encode of the doorbell, decodes ~10 % faster than the doorbell's own
+  stream (51.6 vs 57.5 ms a frame), so a re-encode is a slightly optimistic
+  stand-in for a camera set to that mode.
 
 ### The cameras
 
