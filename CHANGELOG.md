@@ -3,7 +3,7 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.8.0 — 2026-09-26
 
 **Radio: internet stations on the watch.** A new app, `Radio`, and a portal
 page, `/radio`. Everything is measured in [docs/RADIO.md](docs/RADIO.md).
@@ -41,6 +41,10 @@ page, `/radio`. Everything is measured in [docs/RADIO.md](docs/RADIO.md).
   The Music app no longer takes a station for a track of the card.
 - The simulator plays stations for real (SDL), and `tools/radio_bench/` runs
   the stream code alone against a URL on the Mac.
+- **`doom.so` without local paths.** Since v0.5.6 it carried the build
+  machine's paths through `__FILE__`; the `.so` compile now maps them away,
+  and `build_apps.sh` refuses an app that leaks them. This `apps.zip` has the
+  rebuilt `doom.so` (the same game, byte for byte otherwise).
 
 ## v0.7.0 — 2026-09-26
 
