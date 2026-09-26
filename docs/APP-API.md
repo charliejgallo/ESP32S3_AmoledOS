@@ -200,6 +200,15 @@ worker and pushes the frames from an LVGL timer gets the two in series.
 Turbo runs its worker on core 0 and went from 16 to 19 fps on that alone.
 Same rules: no LVGL, no SPI.
 
+**On core 0, stay below LVGL's priority (4) if the worker is busy most of
+the time.** `app_main`'s loop runs on core 0 at priority 1 and takes the LVGL
+lock for `aos_ui_tick()`. A worker at 5 that keeps core 0 at 90-100 % starves
+it *with the lock held*, and LVGL, idle on core 1, waits for it: the Cameras
+app froze for up to 2.7 s at a time until its worker went to priority 3
+(v0.7.0). Priority inheritance lifts the lock's holder to 4, which only helps
+when the worker is below that. Turbo, which sleeps after every frame, never
+showed it.
+
 Three more, learnt with Visor 3D (v0.6.0), each written up in
 [APP-GUIDE.md](APP-GUIDE.md): a worker that always has work must still
 `aos_hal_worker_sleep(1)` now and then (after each frame), or the idle
@@ -208,6 +217,30 @@ the `.so` is unloaded under a worker that did not return, so long jobs
 check `should_stop()` and bail out; and a worker that reads the card wants
 16 KB of stack and `setvbuf()` on its files (unbuffered, every `fread` is a
 card access).
+
+## Sockets, MD5 and H.264 (v0.7.0)
+
+For work that `aos_hal_http_*` (one request, one body) cannot do, such as a
+connection that stays open, the firmware lends a plain TCP stream to the
+**worker** (never to LVGL's task):
+
+```c
+int s = aos_hal_tcp_connect("192.168.1.50", 554, 5000);   /* > 0, or AOS_TCP_ERR_* */
+aos_hal_tcp_send(s, req, len, 5000);                       /* all or an error      */
+int n = aos_hal_tcp_recv(s, buf, sizeof buf, 200);         /* > 0, 0 = timeout, < 0 closed */
+aos_hal_tcp_close(s);
+```
+
+Every call has a timeout so the worker keeps polling `should_stop()`. Four
+handles in the whole system, no TLS. `aos_hal_md5_hex()` is there for HTTP
+and RTSP Digest authentication.
+
+`aos_hal_h264_open/decode/close` is Espressif's software decoder (tinyh264):
+**constrained baseline only**, one NAL unit with its start code per call, I420
+planes out. 704x576 decodes at 14 fps in a live app (P 70-80 ms, I 225 ms),
+and a Main/High (CABAC) stream does not decode at all. A picture's planes stay
+put while the next P frame decodes, not after. [CAMERAS.md](CAMERAS.md) has
+the numbers and the Cameras app is the worked example.
 
 ## Flags
 

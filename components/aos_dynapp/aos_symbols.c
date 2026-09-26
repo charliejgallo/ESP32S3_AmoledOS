@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 121 funciones de libc/libm agregadas a mano.
- * Total: 2871 simbolos.
+ * Total: 2879 simbolos.
  */
 
 #include <stddef.h>
@@ -175,6 +175,9 @@ extern int aos_hal_ftm_responder;
 extern int aos_hal_ftm_responder_info;
 extern int aos_hal_ftm_result;
 extern int aos_hal_ftm_supported;
+extern int aos_hal_h264_close;
+extern int aos_hal_h264_decode;
+extern int aos_hal_h264_open;
 extern int aos_hal_heap_info;
 extern int aos_hal_http_body;
 extern int aos_hal_http_get;
@@ -228,6 +231,7 @@ extern int aos_hal_lock;
 extern int aos_hal_log;
 extern int aos_hal_lvgl_core;
 extern int aos_hal_main_wait;
+extern int aos_hal_md5_hex;
 extern int aos_hal_mdns_add_netif;
 extern int aos_hal_mdns_remove_netif;
 extern int aos_hal_media_command;
@@ -386,6 +390,10 @@ extern int aos_hal_steps_get;
 extern int aos_hal_steps_reset_today;
 extern int aos_hal_steps_set_goal;
 extern int aos_hal_sys_stats;
+extern int aos_hal_tcp_close;
+extern int aos_hal_tcp_connect;
+extern int aos_hal_tcp_recv;
+extern int aos_hal_tcp_send;
 extern int aos_hal_time_is_valid;
 extern int aos_hal_time_now;
 extern int aos_hal_time_set;
@@ -3049,6 +3057,9 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_ftm_responder_info),
     ESP_ELFSYM_EXPORT(aos_hal_ftm_result),
     ESP_ELFSYM_EXPORT(aos_hal_ftm_supported),
+    ESP_ELFSYM_EXPORT(aos_hal_h264_close),
+    ESP_ELFSYM_EXPORT(aos_hal_h264_decode),
+    ESP_ELFSYM_EXPORT(aos_hal_h264_open),
     ESP_ELFSYM_EXPORT(aos_hal_heap_info),
     ESP_ELFSYM_EXPORT(aos_hal_http_body),
     ESP_ELFSYM_EXPORT(aos_hal_http_get),
@@ -3102,6 +3113,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_log),
     ESP_ELFSYM_EXPORT(aos_hal_lvgl_core),
     ESP_ELFSYM_EXPORT(aos_hal_main_wait),
+    ESP_ELFSYM_EXPORT(aos_hal_md5_hex),
     ESP_ELFSYM_EXPORT(aos_hal_mdns_add_netif),
     ESP_ELFSYM_EXPORT(aos_hal_mdns_remove_netif),
     ESP_ELFSYM_EXPORT(aos_hal_media_command),
@@ -3260,6 +3272,10 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_steps_reset_today),
     ESP_ELFSYM_EXPORT(aos_hal_steps_set_goal),
     ESP_ELFSYM_EXPORT(aos_hal_sys_stats),
+    ESP_ELFSYM_EXPORT(aos_hal_tcp_close),
+    ESP_ELFSYM_EXPORT(aos_hal_tcp_connect),
+    ESP_ELFSYM_EXPORT(aos_hal_tcp_recv),
+    ESP_ELFSYM_EXPORT(aos_hal_tcp_send),
     ESP_ELFSYM_EXPORT(aos_hal_time_is_valid),
     ESP_ELFSYM_EXPORT(aos_hal_time_now),
     ESP_ELFSYM_EXPORT(aos_hal_time_set),

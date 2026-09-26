@@ -596,6 +596,7 @@ static const char blob_en__sistema_lang[] =
     "Blackjack\tBlackjack\n"
     "Burbujas\tBubbles\n"
     "Buscaminas\tMinesweeper\n"
+    "Cámaras\tCameras\n"
     "Chatarra\tChatarra\n"
     "Claude Jump\tClaude Jump\n"
     "Claudito\tClaudito\n"
@@ -627,6 +628,43 @@ static const char blob_en__sistema_lang[] =
     "Video\tVideo\n"
     "Visor 3D\t3D Viewer\n"
     "Walkie\tWalkie\n"
+    ;
+
+static const char blob_en_aos_camaras_lang[] =
+    "Sin memoria\tOut of memory\n"
+    "No se encuentra el servidor\tServer not found\n"
+    "El servidor no responde\tThe server does not respond\n"
+    "El servidor cortó la conexión\tThe server closed the connection\n"
+    "El servidor no contestó\tThe server did not answer\n"
+    "Usuario o contraseña incorrectos\tWrong user or password\n"
+    "El servidor pide usuario y contraseña\tThe server wants a user and password\n"
+    "El servidor contestó %d\tThe server answered %d\n"
+    "El servidor dejó de mandar video\tThe server stopped sending video\n"
+    "No se encuentra la cámara\tCamera not found\n"
+    "La cámara no responde\tThe camera does not respond\n"
+    "La cámara pide usuario y contraseña\tThe camera wants a user and password\n"
+    "La cámara no contestó\tThe camera did not answer\n"
+    "La cámara contestó %d\tThe camera answered %d\n"
+    "El video no es H.264 ni MJPEG\tThe video is neither H.264 nor MJPEG\n"
+    "La cámara rechazó el pedido (SETUP %d)\tThe camera refused the request (SETUP %d)\n"
+    "La cámara no abrió la sesión\tThe camera did not open the session\n"
+    "La cámara rechazó el pedido (PLAY %d)\tThe camera refused the request (PLAY %d)\n"
+    "La cámara cortó la conexión\tThe camera closed the connection\n"
+    "La cámara dejó de mandar video\tThe camera stopped sending video\n"
+    "El decodificador H.264 no abrió\tThe H.264 decoder did not open\n"
+    "El decodificador JPEG no abrió\tThe JPEG decoder did not open\n"
+    "La dirección de esta cámara\\nno es rtsp:// ni http://\tThis camera's address\\nis neither rtsp:// nor http://\n"
+    "Sin WiFi\tNo WiFi\n"
+    "Sin memoria para la imagen\tNo memory for the picture\n"
+    "Conectando…\tConnecting…\n"
+    "No hay lugar para la tarea de video\tNo room for the video task\n"
+    "Abriendo el video…\tOpening the video…\n"
+    "Esperando la imagen…\tWaiting for the picture…\n"
+    "Este video no se puede ver en el reloj.\\nPasá la cámara a H.264 Baseline\\no a MJPEG.\tThe watch cannot show this video.\\nSet the camera to H.264 Baseline\\nor MJPEG.\n"
+    "Reintentando…\tRetrying…\n"
+    "Cámaras\tCameras\n"
+    "Agregá cámaras desde\\nel portal del reloj:\\n\\nhttp://%s/camaras\tAdd cameras from\\nthe watch's portal:\\n\\nhttp://%s/camaras\n"
+    "dirección inválida\tinvalid address\n"
     ;
 
 static const char blob_en_aos_clima_lang[] =
@@ -2463,6 +2501,7 @@ static const char blob_en_demo_visor3d_lang[] =
 
 static const aos_lang_file_t files_en[] = {
     { "_sistema.lang", blob_en__sistema_lang },
+    { "aos.camaras.lang", blob_en_aos_camaras_lang },
     { "aos.clima.lang", blob_en_aos_clima_lang },
     { "aos.cotiz.lang", blob_en_aos_cotiz_lang },
     { "aos.dice.lang", blob_en_aos_dice_lang },
@@ -3084,6 +3123,7 @@ static const char blob_de__sistema_lang[] =
     "Blackjack\tBlackjack\n"
     "Burbujas\tBlasen\n"
     "Buscaminas\tMinesweeper\n"
+    "Cámaras\tKameras\n"
     "Chatarra\tChatarra\n"
     "Claude Jump\tClaude Jump\n"
     "Claudito\tClaudito\n"
@@ -3115,6 +3155,43 @@ static const char blob_de__sistema_lang[] =
     "Video\tVideo\n"
     "Visor 3D\t3D-Viewer\n"
     "Walkie\tWalkie\n"
+    ;
+
+static const char blob_de_aos_camaras_lang[] =
+    "Sin memoria\tKein Speicher\n"
+    "No se encuentra el servidor\tServer nicht gefunden\n"
+    "El servidor no responde\tDer Server antwortet nicht\n"
+    "El servidor cortó la conexión\tDer Server hat die Verbindung getrennt\n"
+    "El servidor no contestó\tDer Server hat nicht geantwortet\n"
+    "Usuario o contraseña incorrectos\tFalscher Benutzer oder falsches Passwort\n"
+    "El servidor pide usuario y contraseña\tDer Server verlangt Benutzer und Passwort\n"
+    "El servidor contestó %d\tDer Server antwortete %d\n"
+    "El servidor dejó de mandar video\tDer Server sendet kein Video mehr\n"
+    "No se encuentra la cámara\tKamera nicht gefunden\n"
+    "La cámara no responde\tDie Kamera antwortet nicht\n"
+    "La cámara pide usuario y contraseña\tDie Kamera verlangt Benutzer und Passwort\n"
+    "La cámara no contestó\tDie Kamera hat nicht geantwortet\n"
+    "La cámara contestó %d\tDie Kamera antwortete %d\n"
+    "El video no es H.264 ni MJPEG\tDas Video ist weder H.264 noch MJPEG\n"
+    "La cámara rechazó el pedido (SETUP %d)\tDie Kamera lehnte ab (SETUP %d)\n"
+    "La cámara no abrió la sesión\tDie Kamera hat keine Sitzung geöffnet\n"
+    "La cámara rechazó el pedido (PLAY %d)\tDie Kamera lehnte ab (PLAY %d)\n"
+    "La cámara cortó la conexión\tDie Kamera hat die Verbindung getrennt\n"
+    "La cámara dejó de mandar video\tDie Kamera sendet kein Video mehr\n"
+    "El decodificador H.264 no abrió\tDer H.264-Decoder ließ sich nicht öffnen\n"
+    "El decodificador JPEG no abrió\tDer JPEG-Decoder ließ sich nicht öffnen\n"
+    "La dirección de esta cámara\\nno es rtsp:// ni http://\tDie Adresse dieser Kamera\\nist weder rtsp:// noch http://\n"
+    "Sin WiFi\tKein WLAN\n"
+    "Sin memoria para la imagen\tKein Speicher für das Bild\n"
+    "Conectando…\tVerbinde…\n"
+    "No hay lugar para la tarea de video\tKein Platz für die Videoaufgabe\n"
+    "Abriendo el video…\tÖffne das Video…\n"
+    "Esperando la imagen…\tWarte auf das Bild…\n"
+    "Este video no se puede ver en el reloj.\\nPasá la cámara a H.264 Baseline\\no a MJPEG.\tDie Uhr kann dieses Video\\nnicht zeigen. Stell die Kamera\\nauf H.264 Baseline oder MJPEG.\n"
+    "Reintentando…\tNeuer Versuch…\n"
+    "Cámaras\tKameras\n"
+    "Agregá cámaras desde\\nel portal del reloj:\\n\\nhttp://%s/camaras\tKameras im Portal\\nder Uhr hinzufügen:\\n\\nhttp://%s/camaras\n"
+    "dirección inválida\tungültige Adresse\n"
     ;
 
 static const char blob_de_aos_clima_lang[] =
@@ -4951,6 +5028,7 @@ static const char blob_de_demo_visor3d_lang[] =
 
 static const aos_lang_file_t files_de[] = {
     { "_sistema.lang", blob_de__sistema_lang },
+    { "aos.camaras.lang", blob_de_aos_camaras_lang },
     { "aos.clima.lang", blob_de_aos_clima_lang },
     { "aos.cotiz.lang", blob_de_aos_cotiz_lang },
     { "aos.dice.lang", blob_de_aos_dice_lang },
@@ -4990,7 +5068,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 613, 36, files_en, 37 },
-    { "de", "Deutsch", 613, 36, files_de, 37 },
+    { "en", "English", 614, 37, files_en, 38 },
+    { "de", "Deutsch", 614, 37, files_de, 38 },
 };
 const int aos_lang_pack_count = 2;

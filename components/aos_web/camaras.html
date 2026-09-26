@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Cámaras</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  ul.lista li { flex-wrap: wrap; gap: 6px 10px; }
+  ul.lista li .nombre { font-weight: 600; }
+  ul.lista li .url { color: var(--dim); font-size: 13px; word-break: break-all; flex: 1 1 100%; }
+  ul.lista li .acc { margin-left: auto; display: flex; gap: 6px; }
+  ul.lista li .acc button { padding: 4px 10px; font-size: 13px; }
+  .tag { font-size: 11.5px; padding: 1px 7px; border-radius: 9px; background: var(--card2); color: var(--dim); }
+  form.cam { display: grid; gap: 10px; margin-top: 10px; }
+  form.cam label { font-size: 13.5px; color: var(--dim); display: grid; gap: 4px; }
+  .fila { display: flex; gap: 10px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+  .fila #estado { font-size: 13.5px; color: var(--dim); }
+  .fila #estado.bien { color: var(--green); }
+  .fila #estado.mal  { color: var(--red); }
+  code { font-size: 12.5px; background: var(--card2); padding: 1px 5px; border-radius: 4px; word-break: break-all; }
+  .vacio { color: var(--dim); font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Cámaras</h1></div>
+  <p class="sub" data-t="bajada">Las cámaras que se ven en la app Cámaras del
+     reloj. Se guardan en la placa y la lista del reloj se actualiza sola.</p>
+
+  <nav class="paginas"></nav>
+
+  <h2 data-t="h_lista">En el reloj</h2>
+  <ul class="lista" id="lista"></ul>
+  <p class="vacio" id="vacio" data-t="vacio" hidden>Todavía no hay cámaras.</p>
+
+  <h2 id="h_form" data-t="h_nueva">Agregar una cámara</h2>
+  <form class="cam" id="form" autocomplete="off">
+    <label><span data-t="l_nombre">Nombre</span>
+      <input id="nombre" type="text" maxlength="31" required data-t-ph="ph_nombre" placeholder="Timbre"></label>
+    <label><span data-t="l_url">Dirección</span>
+      <input id="url" type="text" maxlength="199" required placeholder="rtsp://192.168.1.50/Streaming/Channels/102"></label>
+    <label><span data-t="l_usuario">Usuario</span>
+      <input id="usuario" type="text" maxlength="63" autocomplete="off"></label>
+    <label><span data-t="l_clave">Contraseña</span>
+      <input id="clave" type="password" maxlength="63" autocomplete="new-password"></label>
+    <div class="fila">
+      <button id="guardar" type="submit" data-t="btn_guardar">Guardar</button>
+      <button class="sec" id="cancelar" type="button" data-t="btn_cancelar" hidden>Cancelar</button>
+      <span id="estado"></span>
+    </div>
+  </form>
+
+  <div class="aviso">
+    <b data-t="a_titulo">Qué puede mostrar el reloj</b><br><br>
+    <span data-t="a_rtsp">Directo de la cámara, con rtsp://: H.264 en perfil
+      Baseline de hasta 704×576 a 12 cuadros por segundo, o MJPEG. Los perfiles
+      Main y High, H.265 y las resoluciones grandes no se pueden decodificar en
+      el reloj.</span>
+    <br><br>
+    <span data-t="a_hik">En una Hikvision, el segundo stream:</span>
+    <code>rtsp://IP/Streaming/Channels/102</code>
+    <br><br>
+    <span data-t="a_http">Para todo lo demás, un transcodificador que lo
+      entregue como MJPEG por http://. Con go2rtc (el que ya trae Home
+      Assistant):</span>
+    <code>http://IP:1984/api/stream.mjpeg?src=NOMBRE</code>
+    <br><br>
+    <span data-t="a_clave">La contraseña se guarda en la placa y nunca vuelve
+      a esta página. Si pegás una dirección con usuario y contraseña adentro,
+      se separan solos.</span>
+  </div>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "Cameras",
+    bajada: "The cameras the watch's Cameras app shows. They are saved on the " +
+            "board and the watch's list updates on its own.",
+    h_lista: "On the watch", vacio: "No cameras yet.",
+    h_nueva: "Add a camera", h_editar: "Edit camera",
+    l_nombre: "Name", l_url: "Address", l_usuario: "User", l_clave: "Password",
+    ph_nombre: "Doorbell",
+    btn_guardar: "Save", btn_cancelar: "Cancel",
+    a_titulo: "What the watch can show",
+    a_rtsp: "Straight from the camera, with rtsp://: H.264 in Baseline profile up " +
+            "to 704×576 at 12 frames a second, or MJPEG. Main and High profile, " +
+            "H.265 and large resolutions cannot be decoded on the watch.",
+    a_hik: "On a Hikvision, the second stream:",
+    a_http: "For everything else, a transcoder that serves it as MJPEG over " +
+            "http://. With go2rtc (the one Home Assistant already runs):",
+    a_clave: "The password is kept on the board and never comes back to this " +
+             "page. Paste an address with a user and password in it and they " +
+             "are split out on their own.",
+    editar: "Edit", subir: "Up", borrar: "Delete",
+    con_clave: "password", sin_cambios: "(unchanged)",
+    confirmar: "Delete this camera?",
+    guardando: "saving...", guardado: "saved", err_placa: "could not reach the board"
+  },
+  de: {
+    titulo: "Kameras",
+    bajada: "Die Kameras, die die Kamera-App der Uhr zeigt. Sie werden auf der " +
+            "Platine gespeichert, und die Liste der Uhr aktualisiert sich selbst.",
+    h_lista: "Auf der Uhr", vacio: "Noch keine Kameras.",
+    h_nueva: "Kamera hinzufuegen", h_editar: "Kamera bearbeiten",
+    l_nombre: "Name", l_url: "Adresse", l_usuario: "Benutzer", l_clave: "Passwort",
+    ph_nombre: "Tuerklingel",
+    btn_guardar: "Speichern", btn_cancelar: "Abbrechen",
+    a_titulo: "Was die Uhr zeigen kann",
+    a_rtsp: "Direkt von der Kamera, mit rtsp://: H.264 im Baseline-Profil bis " +
+            "704×576 mit 12 Bildern pro Sekunde, oder MJPEG. Main- und " +
+            "High-Profil, H.265 und grosse Aufloesungen kann die Uhr nicht " +
+            "dekodieren.",
+    a_hik: "Bei einer Hikvision der zweite Stream:",
+    a_http: "Fuer alles andere ein Transcoder, der es als MJPEG ueber http:// " +
+            "liefert. Mit go2rtc (das Home Assistant schon mitbringt):",
+    a_clave: "Das Passwort bleibt auf der Platine und kommt nie auf diese Seite " +
+             "zurueck. Eine Adresse mit Benutzer und Passwort darin wird von " +
+             "selbst aufgeteilt.",
+    editar: "Bearbeiten", subir: "Hoch", borrar: "Loeschen",
+    con_clave: "Passwort", sin_cambios: "(unveraendert)",
+    confirmar: "Diese Kamera loeschen?",
+    guardando: "wird gespeichert...", guardado: "gespeichert",
+    err_placa: "keine Verbindung zur Platine"
+  }
+};
+
+const ES = {
+  editar: "Editar", subir: "Subir", borrar: "Borrar",
+  con_clave: "contraseña", sin_cambios: "(sin cambios)",
+  confirmar: "¿Borrar esta cámara?", h_editar: "Editar la cámara", h_nueva: "Agregar una cámara",
+  guardando: "guardando...", guardado: "guardado", err_placa: "no se pudo hablar con la placa"
+};
+
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? (ES[k] !== undefined ? ES[k] : k) : v; }
+
+let camaras = [];
+let editando = -1;        /* index being edited, -1 = a new one */
+let claveTocada = false;
+
+function pintar() {
+  const ul = $("lista");
+  ul.innerHTML = "";
+  $("vacio").hidden = camaras.length > 0;
+  camaras.forEach((c, i) => {
+    const li = document.createElement("li");
+    li.innerHTML = '<span class="nombre"></span><span class="tag tipo"></span>' +
+                   '<span class="tag clave" hidden></span>' +
+                   '<span class="acc"><button class="sec ed"></button>' +
+                   '<button class="sec up"></button><button class="sec del"></button></span>' +
+                   '<span class="url"></span>';
+    li.querySelector(".nombre").textContent = c.nombre;
+    li.querySelector(".tipo").textContent = c.url.startsWith("rtsp://") ? "RTSP" : "MJPEG";
+    const cl = li.querySelector(".clave");
+    cl.hidden = !c.clave;
+    cl.textContent = t("con_clave");
+    li.querySelector(".url").textContent = (c.usuario ? c.usuario + " @ " : "") + c.url;
+    const ed = li.querySelector(".ed"), up = li.querySelector(".up"), del = li.querySelector(".del");
+    ed.textContent = t("editar");
+    up.textContent = t("subir");
+    del.textContent = t("borrar");
+    up.disabled = i === 0;
+    ed.onclick = () => editar(i);
+    up.onclick = () => enviar({ accion: "subir", i });
+    del.onclick = () => { if (confirm(t("confirmar"))) enviar({ accion: "borrar", i }); };
+    ul.appendChild(li);
+  });
+}
+
+function limpiarForm() {
+  editando = -1;
+  claveTocada = false;
+  $("form").reset();
+  $("clave").placeholder = "";
+  $("h_form").textContent = t("h_nueva");
+  $("cancelar").hidden = true;
+}
+
+function editar(i) {
+  const c = camaras[i];
+  editando = i;
+  claveTocada = false;
+  $("nombre").value = c.nombre;
+  $("url").value = c.url;
+  $("usuario").value = c.usuario;
+  $("clave").value = "";
+  $("clave").placeholder = c.clave ? t("sin_cambios") : "";
+  $("h_form").textContent = t("h_editar");
+  $("cancelar").hidden = false;
+  $("nombre").focus();
+}
+
+async function cargar() {
+  try {
+    const r = await fetch("/api/camaras");
+    const j = await r.json();
+    camaras = j.camaras || [];
+  } catch (e) { camaras = []; }
+  pintar();
+}
+
+async function enviar(campos) {
+  const est = $("estado");
+  est.textContent = t("guardando");
+  est.className = "";
+  const body = Object.entries(campos)
+    .map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v)).join("&");
+  try {
+    const r = await fetch("/api/camaras", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body
+    });
+    const j = r.ok ? await r.json() : { ok: false, error: "HTTP " + r.status };
+    if (j.ok) {
+      est.textContent = t("guardado");
+      est.className = "bien";
+      await cargar();
+      return true;
+    }
+    est.textContent = j.error || "error";
+    est.className = "mal";
+  } catch (e) {
+    est.textContent = t("err_placa");
+    est.className = "mal";
+  }
+  return false;
+}
+
+$("clave").oninput = () => { claveTocada = true; };
+$("cancelar").onclick = limpiarForm;
+$("form").onsubmit = async (ev) => {
+  ev.preventDefault();
+  $("guardar").disabled = true;
+  const ok = await enviar({
+    accion: "guardar",
+    i: editando,
+    nombre: $("nombre").value.trim(),
+    url: $("url").value.trim(),
+    usuario: $("usuario").value.trim(),
+    clave: claveTocada ? $("clave").value : "",
+    clave_cambia: (claveTocada || editando < 0) ? 1 : 0
+  });
+  $("guardar").disabled = false;
+  if (ok) limpiarForm();
+};
+
+aos.init(TR).then(cargar);
+</script>
+</body>
+</html>

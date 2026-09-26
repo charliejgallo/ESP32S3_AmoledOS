@@ -147,3 +147,91 @@ itself; `esp_h264`'s own wrapper gates it behind `CONFIG_ESP_H264_DUAL_TASK`.
 - **A paced run that falls behind never sleeps**, so the idle task starves and
   the task watchdog resets the board. The worker yields one tick per picture,
   always.
+
+## Step 2: the app
+
+`apps/camaras/` (`aos.camaras`, "Cámaras"). The portal's `/camaras` page
+keeps up to eight cameras in NVS: a name, a URL (`rtsp://` or `http://`), a
+user and a password. The password never goes back to the browser, and a URL
+pasted with credentials in it is taken apart on save. The watch lists them;
+tapping one opens it. Tapping the picture switches between **fit** (the
+whole picture, name and numbers in the bands) and **fill** (the whole
+screen, cropped at the sides). Back closes the connection.
+
+What each piece does:
+
+| File | Job |
+|---|---|
+| `cam_rtsp.c` | RTSP over one TCP connection: DESCRIBE with Digest (or Basic), SDP, SETUP with `interleaved=0-1`, PLAY, `GET_PARAMETER` keep-alive, TEARDOWN |
+| `cam_depay.c` | RTP back into H.264 NAL units (single, STAP-A, FU-A) and JPEG files (RFC 2435, headers rebuilt from the RFC's tables) |
+| `cam_http.c` | MJPEG over HTTP (go2rtc), frames found by their SOI/EOI markers |
+| `cam_view.c` | decode, lag policy, the hand-over between cores, the strip renderer |
+| `cam_conv.c` | I420 and RGB565 to the panel, nearest neighbour, table-driven |
+
+The firmware lends what an app could not have: `aos_hal_tcp_*` and
+`aos_hal_md5_hex()` (`aos_tcp.c`, the same file on board and simulator) and
+`aos_hal_h264_*` (`aos_h264.c`; in the simulator `sim/sim_codec.c` does it
+with libavcodec, and fakes `esp_new_jpeg` too). The simulator therefore
+plays the real cameras, and the RTSP client and both depacketisers worked
+there against the doorbell and the outdoor camera before a byte went to the
+watch.
+
+### How the work is split
+
+On the board neither core alone keeps up, so:
+
+- **Core 0, the worker (priority 3):** socket, RTP, decoding.
+- **Core 1, LVGL's timer:** converting the newest picture into two 10-row
+  strips of internal RAM and pushing each to the panel while the next one
+  is converted.
+
+For H.264 the worker hands over the decoder's own picture, not a copy. That
+is safe because picture N is the reference of N+1, so decoding N+1 does not
+touch it. A small lock-free handshake (`cam_view.h`) holds the decoder back
+before N+2 or an IDR while the UI still converts N. For JPEG the rule is
+"newest wins": the session hands over every frame, and only the last one
+complete when the socket has been drained gets decoded.
+
+### Measured on the watch (2026-09-26)
+
+| | Doorbell, H.264 704x576 @ 12 | Outdoor, MJPEG 640x480 @ 12 (~45 KB/frame) |
+|---|---|---|
+| Decode | P 70-86 ms, I 220-230 ms | 55-60 ms |
+| Convert + push (fit / fill) | 46 / 65 ms | 45 ms |
+| On the panel | **~10 fps**, and every 7-10 s a skip to the next keyframe (up to 1 s frozen) | **9-11 fps** |
+| Lag | 0.2-0.7 s | 0.3-1.5 s (the camera sends more than the watch drinks) |
+| Free internal RAM while streaming | ~63 K (160 K at rest) | ~115 K |
+
+The doorbell needs ~1.1 s of decoding per second at 12 fps. That is 10 %
+more than the watch has, so the lag grows through every GOP and the view
+skips to a keyframe when it passes 700 ms. Fit mode costs the decoder less
+than fill, because the conversion on the other core competes with it for
+cache and PSRAM.
+
+### What was tried, and why it is not there
+
+| Tried | Result |
+|---|---|
+| Decode and convert in the worker | 107 ms a picture, 9 fps and constant skips. Hence the split. |
+| Worker on core 1 (the default) | 140 ms a picture: LVGL and the conversion share the core. |
+| Worker on core 0 at priority 5 | Freezes of 1-3 s: it starved `app_main`, which holds the LVGL lock (APP-GUIDE section 14). Priority 3 fixed it. |
+| tinyh264's second task (prio 5, 3, before and after that fix) | Keyframes 225 -> 165 ms, but P frames 65-106 ms and the conversion slower: always worse on the panel. Single task stays. |
+| Letting `esp_new_jpeg` scale to the panel's size | 150 ms a frame instead of 57 at the picture's own size, and a bug: a scaled handle reports the *scaled* size, which flipped the decoder between scaled and not every other frame and painted stripes ("noise between frames"). Now the size comes from the JPEG's SOF and the UI scales while copying. |
+| Lag threshold 350 ms instead of 700 | A keyframe alone reaches ~300 ms, so it skipped every GOP: 2 fps. |
+| TCP window 5.7 KB (lwIP default) | The outdoor camera arrived at 2.2 Mbps of its 4.2: at 16 KB, 3.2-3.8 Mbps and 5.9 -> 7.7 fps before the JPEG fix, 10 after. No internal RAM cost at rest (the segments live in PSRAM). In `sdkconfig.defaults`. |
+| Bigger caches (the S3's are 16 KB instruction, 32 KB data, shared by both cores) | Not tried: it would take 48 KB of the internal RAM the watch does not have. This is why P frames cost 54 ms on the bench and 70-86 in the app. |
+
+### What to set a camera to
+
+- **H.264: Baseline, at most 704x576, 12 fps, GOP = fps.** 640x480 is
+  lighter still (24 fps of decoder on the bench) and should hold 12 without
+  skips.
+- **MJPEG, 640x480** decodes in ~57 ms and needs no keyframes. It is the
+  easiest stream for the watch, at 3-4 Mbps of WiFi. A lower quality would
+  cut both the decode time and the lag.
+- Anything bigger, Main/High profile or H.265: through go2rtc as MJPEG
+  (`http://<host>:1984/api/stream.mjpeg?src=<name>`).
+
+The two cameras used here were reconfigured for these tests (stream 102 of
+the doorbell to 12 fps with GOP 12; the outdoor camera's stream 102 to MJPEG
+640x480 @ 12). Their original settings were kept to be restored.
