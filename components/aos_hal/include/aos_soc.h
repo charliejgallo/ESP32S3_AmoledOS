@@ -61,7 +61,7 @@ typedef struct {
     bool    valid;
     /* learned, persisted by the caller */
     float   sag_mv;         /* voltage lost with the screen lit           */
-    float   cap_mah;        /* usable capacity up to the charge target    */
+    float   cap_mah;        /* the cell's capacity, full at 4.2 V        */
     int     sag_samples;
     int     cap_samples;
     /* internal */
@@ -83,16 +83,22 @@ typedef struct {
 } aos_soc_t;
 
 #define AOS_SOC_DEFAULT_SAG_MV      80.0f
-#define AOS_SOC_DEFAULT_CAP_MAH     130.0f
+/* The cell's label: 302530, 200 mAh at 4.2 V. Measured on every charge that
+ * starts low; this is only where it starts. */
+#define AOS_SOC_DEFAULT_CAP_MAH     200.0f
 
 /* Fresh state. sag_mv / cap_mah <= 0 mean "the defaults above". */
 void  aos_soc_init(aos_soc_t *st, float sag_mv, float cap_mah);
 
 /* The open-circuit voltage of a lithium polymer cell mapped to its charge,
- * with 100 % at a cell charged to target_mv and left to rest. A generic
- * curve until this cell's own has been recorded (the battery history keeps
- * the voltage for that). */
-float aos_soc_from_ocv(int ocv_mv, int target_mv);
+ * in percent of the cell full at 4.20 V. A generic curve until this cell's
+ * own has been recorded (the battery history keeps the voltage for that). */
+float aos_soc_from_ocv(int ocv_mv);
+
+/* What a finished charge to target_mv reads: 100 at 4.2 V, about 87 at
+ * battery care's 4.1 V. Charged to less, the cell is not full, and the
+ * percentage does not pretend it is. */
+float aos_soc_ceiling(int target_mv);
 
 /* One step, every few seconds. Returns true when a learned value changed and
  * should be persisted. */

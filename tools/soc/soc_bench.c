@@ -18,7 +18,7 @@
 #include <string.h>
 
 typedef struct {
-    double cap_mah;     /* true capacity from 0 % to the charge target */
+    double cap_mah;     /* true capacity, full at 4.2 V */
     double soc;         /* true, 0..100 */
     double r_ohm;
     double ocv_bias_mv; /* the real curve sits this far from the generic one */
@@ -31,7 +31,7 @@ static double cell_ocv(const cell_t *c, int target_mv)
     int lo = 3000, hi = 4300;
     while (hi - lo > 1) {
         int mid = (lo + hi) / 2;
-        if (aos_soc_from_ocv(mid, target_mv) < c->soc) lo = mid; else hi = mid;
+        if (aos_soc_from_ocv(mid) < c->soc) lo = mid; else hi = mid;
     }
     double bend = 15.0 * sin(c->soc / 100.0 * 3.14159);   /* up to 15 mV */
     return hi + c->ocv_bias_mv + bend;
@@ -42,7 +42,7 @@ typedef struct {
     double      sim_h;
 } scen_t;
 
-static int      s_target = 4100, s_icc = 150, s_ipre = 50, s_iterm = 25;
+static int      s_target = 4100, s_icc = 100, s_ipre = 50, s_iterm = 25;
 
 /* one run: returns worst |estimate - truth| and fills the final numbers */
 typedef double (*load_fn)(double t_s, bool *lit, bool *usb);
@@ -65,14 +65,14 @@ static double run(const char *name, cell_t cell, double start_soc, double hours,
         int vbat;
         if (usb) {
             double v_ocv = cell_ocv(&cell, s_target);
-            if (cell.soc >= 99.9) { chg = AOS_SOC_CHG_DONE; i_batt = 0; }
+            if (chg == AOS_SOC_CHG_DONE) { i_batt = 0; }
             else if (v_ocv + s_icc / 1000.0 * cell.r_ohm * 1000 < s_target) {
                 chg = cell.soc < 2 ? AOS_SOC_CHG_PRECHARGE : AOS_SOC_CHG_CC;
                 i_batt = -(chg == AOS_SOC_CHG_CC ? s_icc : s_ipre);
             } else {
                 chg = AOS_SOC_CHG_CV;
                 double i = (s_target - v_ocv) / (cell.r_ohm * 1000.0) * 1000.0;
-                if (i < s_iterm) { chg = AOS_SOC_CHG_DONE; i = 0; cell.soc = 100; }
+                if (i < s_iterm) { chg = AOS_SOC_CHG_DONE; i = 0; }
                 i_batt = -i;
             }
         } else {
@@ -83,7 +83,7 @@ static double run(const char *name, cell_t cell, double start_soc, double hours,
         if (cell.soc > 100) cell.soc = 100;
         if (cell.soc < 0) cell.soc = 0;
         vbat = (int)lrint(cell_ocv(&cell, s_target) - i_batt / 1000.0 * cell.r_ohm * 1000.0);
-        if (chg == AOS_SOC_CHG_DONE) vbat = s_target;
+        if (chg == AOS_SOC_CHG_DONE) vbat = (int)lrint(cell_ocv(&cell, s_target));
 
         aos_soc_input_t in = {
             .now_us = (int64_t)(t * 1e6), .vbat_mv = vbat, .usb = usb, .chg_state = chg,
@@ -150,27 +150,27 @@ static double half_charge(double t, bool *lit, bool *usb)
 
 int main(void)
 {
-    cell_t typical = { .cap_mah = 130, .r_ohm = 0.9, .ocv_bias_mv = 0 };
-    cell_t skewed  = { .cap_mah = 110, .r_ohm = 1.3, .ocv_bias_mv = -25 };
+    cell_t typical = { .cap_mah = 200, .r_ohm = 0.9, .ocv_bias_mv = 0 };
+    cell_t skewed  = { .cap_mah = 170, .r_ohm = 1.3, .ocv_bias_mv = -25 };
     cell_t big     = { .cap_mah = 280, .r_ohm = 0.5, .ocv_bias_mv = 15 };
 
     printf("battery care: charge to %d mV at %d mA\n\n", s_target, s_icc);
-    printf("-- the typical cell (130 mAh, 0.9 ohm) --\n");
-    run("pocket, radio flat out (110 mA)", typical, 100, 3, pocket_away, 0, false);
-    run("pocket, radio flat out, flagged", typical, 100, 3, pocket_away_flagged, 0, false);
+    printf("-- the label's cell (200 mAh, 0.9 ohm) --\n");
+    run("pocket, radio flat out (110 mA)", typical, 87, 3, pocket_away, 0, false);
+    run("pocket, radio flat out, flagged", typical, 87, 3, pocket_away_flagged, 0, false);
     s_busy_flag = false;
-    run("pocket, paced (9 mA)", typical, 100, 20, pocket_fixed, 0, false);
-    run("daily use", typical, 100, 12, daily_use, 0, false);
+    run("pocket, paced (9 mA)", typical, 87, 20, pocket_fixed, 0, false);
+    run("daily use", typical, 87, 12, daily_use, 0, false);
     run("charge from low, learns capacity", typical, 12, 4, charge_from_low, 0, false);
     run("half a charge, then left alone", typical, 15, 3, half_charge, 0, false);
-    printf("\n-- a worse cell (110 mAh, 1.3 ohm, curve 25 mV low) --\n");
-    run("pocket, radio flat out", skewed, 100, 3, pocket_away, 0, false);
-    run("pocket, radio flat out, flagged", skewed, 100, 3, pocket_away_flagged, 0, false);
+    printf("\n-- a worse cell (170 mAh, 1.3 ohm, curve 25 mV low) --\n");
+    run("pocket, radio flat out", skewed, 87, 3, pocket_away, 0, false);
+    run("pocket, radio flat out, flagged", skewed, 87, 3, pocket_away_flagged, 0, false);
     s_busy_flag = false;
-    run("daily use", skewed, 100, 12, daily_use, 0, false);
+    run("daily use", skewed, 87, 12, daily_use, 0, false);
     run("charge from low, learns capacity", skewed, 12, 4, charge_from_low, 0, false);
     printf("\n-- a bigger cell (280 mAh) the default does not know --\n");
-    run("daily use, capacity unknown", big, 100, 20, daily_use, 0, false);
+    run("daily use, capacity unknown", big, 87, 20, daily_use, 0, false);
     run("charge from low, learns capacity", big, 12, 5, charge_from_low, 0, false);
 
     (void)music;

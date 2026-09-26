@@ -3050,7 +3050,7 @@ static void build_energy(lv_obj_t *p)
                 _("CPU a 80 MHz y wifi dormida con la pantalla apagada. Se prende sola bajo el 20 %"),
                 aos_hal_power_saving_enabled(), power_saving_cb);
     switch_row2(c2, _("Cuidar la bateria"),
-                _("carga hasta 4,1 V y a media corriente: rinde menos por carga y dura mas anos"),
+                _("carga hasta 4,1 V y a media corriente: llega a un 87 % y la celda dura mas anos"),
                 aos_hal_battery_care_enabled(), battery_care_cb);
     switch_row2(c2, _("Apagar el panel a fondo"),
                 _("la pantalla en reposo profundo al apagarse; despierta en una decima"),

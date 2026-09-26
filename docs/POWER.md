@@ -417,15 +417,20 @@ channel with the radio at full power, it fails with reason 201 (no access
 point found), and the next one starts straight away. The radio never rests and
 the chip never sleeps: about 110 mA on average, in a pocket, screen off.
 
-**The percentage was the AXP2101's gauge, and it does not know this cell.** The
-cell was empty both times: the recharge from "2 %" took 55 minutes, the same as
-from zero. The 3.30 V backstop of 5.2 is what switched the watch off, and it
-was right to.
+**The watch switched itself off with charge left.** It was the 3.30 V backstop
+of 5.2, and with the radio flat out this small cell's voltage sags far below
+its rest value. The cell's label, read on 2026-09-26 with the watch opened, is
+**302530, 200 mAh, 4.2 V**; the recharge afterwards took 55 minutes at 150 mA
+at most, so no more than about 137 mAh went back in, and a fifth to a third of
+the charge was still there when the backstop cut. (The first version of this
+section said the cell was empty and about 130 mAh; the label says otherwise.)
+The backstop now waits for 3.20 V while the screen is lit, audio plays or the
+radio is busy, and keeps 3.30 V at rest.
 
-**The cell is about 130 mAh, not 300.** 55 minutes at 150 mA at most, from
-empty to the 4.1 V target. Section 5.1 assumed 300 mAh without checking it,
-and so did its "0.5 C". Battery care's 150 mA is 1 C on this cell; the
-estimator below measures the capacity on every charge that starts low.
+**The AXP2101's gauge does not know this cell either**, and section 5.1's
+charge programme did not: its "0.5 C" was 150 mA for an assumed 300 mAh, which
+is 0.75 C on 200 mAh, and without battery care the chip's 300 mA is 1.5 C.
+Battery care now charges at 100 mA (0.5 C) and without it at 200 mA (1 C).
 
 ### 9.2 Paced reconnection
 
@@ -466,7 +471,9 @@ In `WIFI_PS_MAX_MODEM` (screen not lit) the station now wakes every 10 beacons
 
 - **At rest** (screen not lit for 30 s, no audio, the radio not connecting) the
   voltage is close to the open-circuit voltage, and a generic LiPo curve maps
-  it to charge, with 100 % at the charge target after resting.
+  it to charge. **The percentage is of the cell full at 4.2 V**: with battery
+  care's 4.1 V the cell is never full, and a finished charge reads about 87 %,
+  the way a phone with a charge limit shows the limit and not 100 %.
 - **With the screen lit** the voltage sags; how much is learned on the watch,
   comparing the voltage at rest with the voltage 20 s after the screen comes
   on. The first sample on the board: 39 mV.
@@ -478,10 +485,10 @@ In `WIFI_PS_MAX_MODEM` (screen not lit) the station now wakes every 10 beacons
 
 On the bench, against simulated cells that deliberately do not match its
 assumptions (capacity, curve and internal resistance all off), it stays within
-6 points in everyday use and reaches 2-3 % when the cell reaches 3 %, where the
-gauge showed 49 %. It is never optimistic; with the radio at full power and
-not flagged it reads low. One charge from low learned 127 mAh for a 130 mAh
-cell. `/api/status` carries `soc`, `gauge_pct`, `sag_mv`, `cap_mah` and their
+6 points in everyday use and reaches 2-3 % when the cell reaches 3 %. It is
+never optimistic; with the radio at full power and not flagged it reads low.
+One charge from low learned 194 mAh for a 200 mAh cell. It starts from the
+label's 200 mAh and a stored capacity counts only once a charge measured it. `/api/status` carries `soc`, `gauge_pct`, `sag_mv`, `cap_mah` and their
 sample counts; the battery history now keeps the voltage of every sample and
 whether USB was in (file format BST2, BST1 files still read).
 
@@ -596,7 +603,7 @@ on the board; the first suspect is the panel, which with the screen "off" is
 still on at brightness 0 (its sleep-in is off because of the flash, 5.4).
 
 **The charge afterwards contradicts the estimate, and says the generic curve
-is too pessimistic at the low end, or the cell is smaller than 130 mAh.**
+is too pessimistic at the low end** (the cell turned out to be 200 mAh).
 From the "10 %" the night ended at, 19 minutes of constant current (about
 47 mAh) brought the voltage to 4.08 V, the edge of constant voltage. A full
 charge from empty had needed about 35 minutes of constant current. Only a
@@ -616,7 +623,6 @@ down (checked on the bench, "half a charge, then left alone").
   capacity learned (`cap_n` goes to 1). Section 7 is the protocol.
 - **The cell's own discharge curve**, from the voltage the history now keeps,
   to replace the generic one in `aos_soc.c`.
-- **Battery care's current**, once the capacity is known: 150 mA may be 1 C.
 - **No current measured with a meter.** The plan is the Riden RD6012 as a
   battery on the cell's connector, which also exercises the power-off path in
   minutes instead of hours.

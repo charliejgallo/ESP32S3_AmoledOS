@@ -19,7 +19,7 @@ static const struct { int mv; float pct; } s_ocv[] = {
 #define OCV_N   (sizeof(s_ocv) / sizeof(s_ocv[0]))
 
 /* A cell charged to the target and left to rest settles this far below it. */
-#define REST_DROP_MV        20
+#define REST_DROP_MV        10
 /* At rest the watch still draws a few mA: a few mV of sag. */
 #define QUIET_SAG_MV        5
 #define QUIET_AFTER_US      (30LL * 1000000)
@@ -53,19 +53,22 @@ static float raw_pct(int mv)
     return 100.0f;
 }
 
-float aos_soc_from_ocv(int ocv_mv, int target_mv)
+/* The percentage is of the cell full at 4.20 V, what its label rates it at
+ * (302530, 200 mAh, 4.2 V). Charged to a lower target it is never full, and
+ * it says so: with battery care's 4.10 V a finished charge reads about 87 %,
+ * the way a phone with a charge limit shows the limit and not 100 %. */
+float aos_soc_from_ocv(int ocv_mv)
 {
-    if (target_mv < 3900 || target_mv > 4400) {
-        target_mv = 4200;
+    return raw_pct(ocv_mv);
+}
+
+float aos_soc_ceiling(int target_mv)
+{
+    if (target_mv < 3900 || target_mv >= 4200) {
+        return 100.0f;              /* charged to what the label allows: full */
     }
-    float full = raw_pct(target_mv - REST_DROP_MV);
-    if (full < 10.0f) {
-        full = 100.0f;
-    }
-    float pct = raw_pct(ocv_mv) * 100.0f / full;
-    if (pct < 0.0f)   pct = 0.0f;
-    if (pct > 100.0f) pct = 100.0f;
-    return pct;
+    float c = raw_pct(target_mv - REST_DROP_MV);
+    return c < 10.0f ? 100.0f : c;
 }
 
 void aos_soc_init(aos_soc_t *st, float sag_mv, float cap_mah)
@@ -145,16 +148,17 @@ bool aos_soc_step(aos_soc_t *st, const aos_soc_input_t *in)
     }
 
     /* --- first estimate --------------------------------------------------- */
+    float ceiling = aos_soc_ceiling(in->target_mv);
     if (!st->valid) {
         if (in->usb && in->chg_state == AOS_SOC_CHG_DONE) {
-            st->soc = 100.0f;
+            st->soc = ceiling;
         } else if (in->usb) {
             /* charging lifts the voltage above the OCV; a rough guess that
              * the counting below refines */
-            st->soc = aos_soc_from_ocv(in->vbat_mv - 60, in->target_mv);
+            st->soc = aos_soc_from_ocv(in->vbat_mv - 60);
         } else {
             int comp = in->screen_lit || in->audio || in->busy ? (int)st->sag_mv : QUIET_SAG_MV;
-            st->soc = aos_soc_from_ocv(in->vbat_mv + comp, in->target_mv);
+            st->soc = aos_soc_from_ocv(in->vbat_mv + comp);
         }
         st->valid = true;
         st->was_usb = in->usb;
@@ -184,23 +188,23 @@ bool aos_soc_step(aos_soc_t *st, const aos_soc_input_t *in)
             float ma = in->chg_state == AOS_SOC_CHG_CC ? (float)in->icc_ma : (float)in->ipre_ma;
             float mah = ma * dt_s / 3600.0f;
             st->soc += mah / cap * 100.0f;
-            if (st->soc > 99.0f) st->soc = 99.0f;
+            if (st->soc > ceiling - 1.0f) st->soc = ceiling - 1.0f;
             st->sess_mah += mah;
             st->sess_saw_cc = true;
             break;
         }
         case AOS_SOC_CHG_CV:
             if (dt_s > 0.0f) {
-                st->soc += (99.5f - st->soc) * (1.0f - expf(-dt_s / CV_TAU_S));
+                st->soc += (ceiling - 0.5f - st->soc) * (1.0f - expf(-dt_s / CV_TAU_S));
             }
             st->sess_mah += cv_mean_ma(in->icc_ma, in->iterm_ma) * dt_s / 3600.0f;
             break;
         case AOS_SOC_CHG_DONE:
             if (st->sess_on && st->sess_trusted && st->sess_saw_cc &&
                 st->sess_start_soc <= 40.0f && st->sess_mah > 10.0f) {
-                float filled = (100.0f - st->sess_start_soc) / 100.0f;
+                float filled = (ceiling - st->sess_start_soc) / 100.0f;
                 float measured = st->sess_mah / filled;
-                if (measured > 40.0f && measured < 600.0f) {
+                if (measured > 60.0f && measured < 800.0f) {
                     st->cap_mah = st->cap_samples ? 0.5f * st->cap_mah + 0.5f * measured
                                                   : measured;
                     st->cap_samples++;
@@ -208,12 +212,12 @@ bool aos_soc_step(aos_soc_t *st, const aos_soc_input_t *in)
                 }
             }
             st->sess_on = false;
-            st->soc = 100.0f;
+            st->soc = ceiling;
             break;
         default:
             /* plugged and not charging: full if it is at the target */
             if (in->vbat_mv >= in->target_mv - 50) {
-                st->soc = 100.0f;
+                st->soc = ceiling;
             }
             break;
         }
@@ -225,10 +229,10 @@ bool aos_soc_step(aos_soc_t *st, const aos_soc_input_t *in)
     bool relaxing = st->unplugged_us &&
                     in->now_us - st->unplugged_us < RELAX_AFTER_CHARGE_US;
     if (quiet && !relaxing) {
-        float at_rest = aos_soc_from_ocv(in->vbat_mv + QUIET_SAG_MV, in->target_mv);
+        float at_rest = aos_soc_from_ocv(in->vbat_mv + QUIET_SAG_MV);
         st->soc += FOLLOW * (at_rest - st->soc);
     } else if (quiet) {
-        float at_rest = aos_soc_from_ocv(in->vbat_mv + QUIET_SAG_MV, in->target_mv);
+        float at_rest = aos_soc_from_ocv(in->vbat_mv + QUIET_SAG_MV);
         if (at_rest < st->soc) {
             st->soc += FOLLOW * (at_rest - st->soc);
         }
@@ -237,7 +241,7 @@ bool aos_soc_step(aos_soc_t *st, const aos_soc_input_t *in)
         if (!in->screen_lit && !in->audio && !in->busy) {
             comp = QUIET_SAG_MV + comp / 2;     /* just switched off: easing */
         }
-        float loaded = aos_soc_from_ocv(in->vbat_mv + comp, in->target_mv);
+        float loaded = aos_soc_from_ocv(in->vbat_mv + comp);
         if (loaded < st->soc) {
             st->soc += FOLLOW * (loaded - st->soc);   /* under load it only goes down */
         }

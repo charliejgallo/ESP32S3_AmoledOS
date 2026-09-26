@@ -79,8 +79,11 @@
 /* The cell was assumed to be 300 mAh in v0.2.0 without checking. A full charge
  * on 2026-09-25 put it at about 130 mAh usable; the estimator (aos_soc.c)
  * starts from that and measures it on every charge that starts low. */
-#define AOS_CHARGE_MA_CARE          150     /* 0.5 C                              */
-#define AOS_CHARGE_MA_FULL          300     /* the chip's own default, 1 C        */
+/* The cell's label (opened on 2026-09-26): 302530, 200 mAh, 4.2 V. Battery
+ * care charges at 0.5 C; without it 1 C, not the chip's own 300 mA, which
+ * is 1.5 C for this cell. */
+#define AOS_CHARGE_MA_CARE          100     /* 0.5 C                              */
+#define AOS_CHARGE_MA_FULL          200     /* 1 C                                */
 #define AOS_CHARGE_MV_CARE          4100    /* ~10% less capacity, ~2x the cycles */
 #define AOS_CHARGE_MV_FULL          4200
 #define AOS_PRECHARGE_MA            50
@@ -88,7 +91,12 @@
 #define AOS_LOW_BATTERY_WARN_PCT    10      /* the PMU raises an IRQ here         */
 #define AOS_LOW_BATTERY_OFF_PCT     3       /* and here; we power off cleanly     */
 #define AOS_POWEROFF_MV             2900    /* VOFF: the PMU's own cut, was 2.6 V */
-#define AOS_CRITICAL_VBAT           3.30f   /* software backstop, sustained 15 s  */
+#define AOS_CRITICAL_VBAT           3.30f   /* software backstop, at rest         */
+/* Under load the voltage of this small cell sags far: with the radio flat out
+ * the 3.30 V backstop switched the watch off twice on 2026-09-25 with a fifth
+ * of the charge still in it. With the screen lit, audio or the radio busy,
+ * the backstop waits for 3.20 V; the PMU's own cut is 2.9 V. */
+#define AOS_CRITICAL_VBAT_LOADED    3.20f
 #define AOS_CRITICAL_SOC_VBAT       3.45f   /* our 2 % only counts below this     */
 #define AOS_SOC_EMPTY_PCT           2       /* our own percent, see aos_soc.c     */
 #define AOS_LOW_BATTERY_SAVING_PCT  20      /* power saving switches itself on    */
@@ -5560,8 +5568,11 @@ static void power_watch(void)
      * cannot switch off a watch that still has charge; the voltage alone
      * (3.30 V, loaded) is what caught both flat batteries of 2026-09-25. */
     bool soc_empty = pct >= 0 && pct <= AOS_SOC_EMPTY_PCT && pmu.vbat < AOS_CRITICAL_SOC_VBAT;
+    bool loaded = s_display_state == AOS_DISPLAY_ACTIVE || s_player_task || s_mic_task ||
+                  s_speaker_open || s_net_state == AOS_NET_CONNECTING || aos_hal_link_running();
+    float floor_v = loaded ? AOS_CRITICAL_VBAT_LOADED : AOS_CRITICAL_VBAT;
     if (on_battery && esp_timer_get_time() > 30 * 1000000LL &&
-        (soc_empty || pmu.vbat < AOS_CRITICAL_VBAT)) {
+        (soc_empty || pmu.vbat < floor_v)) {
         if (++s_critical_strikes >= 3) {
             power_critical(pct);
         }
@@ -6639,6 +6650,11 @@ bool aos_hal_init(void)
             aos_hal_pref_get_i32("soc_sag", &sag);
             aos_hal_pref_get_i32("bat_cap", &cap);
             aos_hal_pref_get_i32("soc_n", &cnt);
+            /* the stored capacity only if a charge measured it: the sag's
+             * first sample also wrote the default of the day (130 mAh) */
+            if (((cnt >> 16) & 0x7FFF) == 0) {
+                cap = 0;
+            }
             aos_soc_init(&s_soc, sag / 10.0f, cap / 10.0f);
             s_soc.sag_samples = cnt & 0xFFFF;
             s_soc.cap_samples = (cnt >> 16) & 0x7FFF;

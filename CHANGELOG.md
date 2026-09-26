@@ -18,8 +18,16 @@ none of them light sleep, all in [docs/POWER.md](docs/POWER.md) section 9.
   rest, learns the sag with the screen lit, counts charge in while charging and
   measures the cell's capacity on charges that start low; checked against
   simulated cells in `tools/soc/`. The low-battery warning and the clean
-  power-off use it. The battery history keeps the voltage.
-- **The cell is about 130 mAh**, not the 300 assumed in v0.2.0.
+  power-off use it. The battery history keeps the voltage. After a charge it
+  waits half an hour for the cell to relax before trusting its voltage.
+- **The cell is 200 mAh** (302530, read off its label), not the 300 assumed
+  in v0.2.0. Battery care charges at 100 mA (0.5 C), and without it at 200 mA
+  (1 C) instead of the chip's 300 mA (1.5 C). **The percentage is of the cell
+  full at 4.2 V**: charged to battery care's 4.1 V it is never full, and a
+  finished charge reads about 87 %, as a phone with a charge limit does.
+- **The low-voltage backstop cut with charge left.** Under the radio's load it
+  switched the watch off twice with a fifth of the charge in the cell; loaded,
+  it now waits for 3.20 V (3.30 V at rest).
 
 **The chip sleeps far more.** With the screen off, 93.5 % of the time in light
 sleep (81 % before) and 16.5 I2C transactions a second (145 before: a battery
