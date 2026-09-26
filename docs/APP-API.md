@@ -233,6 +233,19 @@ carries the flag **only while it is actually recording** for exactly that
 reason — it was holding 38 KB of executable RAM permanently, after which the
 large apps no longer fitted.
 
+**Deep sleep at night** (a Settings option, off by default) ends in a full
+boot, and a full boot loses whatever an app keeps in RAM. An app with state
+that must not be cut off - a countdown, a stopwatch, a transfer - holds it off
+while it matters, from its tick or its event handlers:
+
+```c
+aos_hal_sleep_hold("my.app", counting);   /* idempotent; a string literal */
+```
+
+The built-in timer, pomodoro and stopwatch do exactly that. Nothing is needed
+for light sleep: it never loses anything, and it is not armed with the screen
+lit. See [POWER.md](POWER.md) 9.6.
+
 ## Gestures and two fingers
 
 The v2's touch chip reports two fingers (see [GESTURES.md](GESTURES.md)).

@@ -495,6 +495,8 @@ static void tick(aos_app_t *self, void *inst)
 {
     (void)self; (void)inst;
     advance();
+    /* a cycle under way would not survive the boot out of a deep sleep */
+    aos_hal_sleep_hold("aos.pomodoro", s_pomo.active);
     if (s_pomo.beeps_left > 0) {
         aos_hal_beep(s_pomo.beep_freq, 130);
         s_pomo.beeps_left--;

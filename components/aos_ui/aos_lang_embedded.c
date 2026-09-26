@@ -323,6 +323,7 @@ static const char blob_en__sistema_lang[] =
     "Menu: lista\tMenu: list\n"
     "Menu: grilla\tMenu: grid\n"
     "Menu: panal\tMenu: honeycomb\n"
+    "Programa el no molestar para que funcione\tSchedule do not disturb for it to work\n"
     "Sincronizando hora...\tSyncing time...\n"
     "Sin conexion\tNo connection\n"
     "No se pudo levantar la red\tCould not start the network\n"
@@ -469,11 +470,13 @@ static const char blob_en__sistema_lang[] =
     "AHORRO\tSAVING\n"
     "CPU a 80 MHz y wifi dormida con la pantalla apagada. Se prende sola bajo el 20 %\tCPU at 80 MHz and Wi-Fi asleep with the screen off. Turns itself on below 20 %\n"
     "Cuidar la bateria\tBattery care\n"
-    "carga hasta 4,1 V y a media corriente: rinde menos por carga y dura mas anos\tcharges to 4.1 V at half current: a little less per charge, many more years\n"
+    "carga hasta 4,1 V y a media corriente: llega a un 87 % y la celda dura mas anos\tcharges to 4.1 V at half current: it stops near 87 % and the cell lasts years longer\n"
     "Apagar el panel a fondo\tDeep panel sleep\n"
     "la pantalla en reposo profundo al apagarse; despierta en una decima\tthe display sleeps deeply when off; wakes in a tenth of a second\n"
     "Dormir el chip\tChip sleep\n"
     "con la pantalla apagada el procesador duerme entre avisos\twith the screen off the processor sleeps between events\n"
+    "Reposo profundo de noche\tDeep sleep at night\n"
+    "en el horario de no molestar se apaga casi del todo; se despierta al tocarla\tduring the do-not-disturb hours it switches almost fully off; a touch wakes it\n"
     "Calibrar\tCalibrate\n"
     "Ver crudo\tRaw view\n"
     "Probar gestos\tTry gestures\n"
@@ -2808,6 +2811,7 @@ static const char blob_de__sistema_lang[] =
     "Menu: lista\tMenü: Liste\n"
     "Menu: grilla\tMenü: Raster\n"
     "Menu: panal\tMenü: Wabe\n"
+    "Programa el no molestar para que funcione\tNicht stören planen, damit es wirkt\n"
     "Sincronizando hora...\tZeit wird abgeglichen...\n"
     "Sin conexion\tKeine Verbindung\n"
     "No se pudo levantar la red\tNetzwerk konnte nicht starten\n"
@@ -2954,11 +2958,13 @@ static const char blob_de__sistema_lang[] =
     "AHORRO\tENERGIESPAREN\n"
     "CPU a 80 MHz y wifi dormida con la pantalla apagada. Se prende sola bajo el 20 %\tCPU auf 80 MHz und WLAN schlafend bei ausgeschaltetem Bildschirm. Schaltet sich unter 20 % selbst ein\n"
     "Cuidar la bateria\tAkku schonen\n"
-    "carga hasta 4,1 V y a media corriente: rinde menos por carga y dura mas anos\tlädt bis 4,1 V mit halbem Strom: etwas weniger pro Ladung, viel mehr Jahre\n"
+    "carga hasta 4,1 V y a media corriente: llega a un 87 % y la celda dura mas anos\tlädt bis 4,1 V mit halbem Strom: endet bei etwa 87 % und die Zelle hält Jahre länger\n"
     "Apagar el panel a fondo\tDisplay tief schlafen\n"
     "la pantalla en reposo profundo al apagarse; despierta en una decima\tder Bildschirm schläft tief, wenn er aus ist; wacht in einer Zehntelsekunde auf\n"
     "Dormir el chip\tChip schlafen\n"
     "con la pantalla apagada el procesador duerme entre avisos\tbei ausgeschaltetem Bildschirm schläft der Prozessor zwischen Ereignissen\n"
+    "Reposo profundo de noche\tTiefschlaf in der Nacht\n"
+    "en el horario de no molestar se apaga casi del todo; se despierta al tocarla\tin den Nicht-stören-Stunden fast ganz aus; eine Berührung weckt sie\n"
     "Calibrar\tKalibrieren\n"
     "Ver crudo\tRohwerte\n"
     "Probar gestos\tGesten testen\n"
@@ -4984,7 +4990,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 610, 36, files_en, 37 },
-    { "de", "Deutsch", 610, 36, files_de, 37 },
+    { "en", "English", 613, 36, files_en, 37 },
+    { "de", "Deutsch", 613, 36, files_de, 37 },
 };
 const int aos_lang_pack_count = 2;

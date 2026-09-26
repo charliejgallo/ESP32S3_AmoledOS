@@ -146,6 +146,7 @@ bool     aos_board_imu_wrist_raised(void);  /* wrist-raise gesture */
  * note in qmi8658.c), so today this only records the request. */
 void     aos_board_imu_gyro_enable(bool on);
 bool     aos_board_imu_gyro_enabled(void);
+void     aos_board_imu_power_down(void);    /* before a deep sleep */
 
 #ifdef __cplusplus
 }

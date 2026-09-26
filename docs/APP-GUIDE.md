@@ -962,6 +962,22 @@ fits, not whether it is well placed.
 
 All measured, and each is written up next to the code that deals with it.
 
+### Power
+
+**An app with state a boot would lose holds off the night's deep sleep.**
+With "deep sleep at night" on, a watch with the screen off for ten minutes in
+the do-not-disturb hours goes into deep sleep, and waking is a full boot. A
+countdown, a stopwatch or a transfer in progress calls
+`aos_hal_sleep_hold("my.app", true)` while it matters and `false` after; it is
+idempotent, so calling it from the tick with the current state is the simplest
+way (the built-in timer does that). Light sleep needs nothing.
+
+**Do not poll the battery on every tick.** `aos_hal_battery_read()` is served
+from a one-second cache, but each real read is eleven I2C transactions; a
+reading a second is plenty for anything on screen. With the screen off, polling
+anything wakes the chip out of light sleep (POWER.md 9.4 measured what that
+cost).
+
 ### The build
 
 **Your app's LVGL configuration must match the firmware's.** The app compiles

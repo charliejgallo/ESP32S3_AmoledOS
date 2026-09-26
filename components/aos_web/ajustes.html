@@ -107,7 +107,7 @@
   </div>
   <div class="ajuste">
     <div class="texto"><b data-t="cuidar">Cuidar la batería</b>
-      <span data-t="cuidar_pie">Carga a 150 mA hasta 4,1 V en vez de 300 mA hasta 4,2 V. Dura menos por carga, dura más la celda.</span></div>
+      <span data-t="cuidar_pie">Carga a 100 mA hasta 4,1 V en vez de 200 mA hasta 4,2 V. La celda nunca se llena: una carga completa marca cerca de 87 %. Dura menos por carga, dura más la celda.</span></div>
     <label class="interruptor"><input type="checkbox" id="cuidar"><i></i></label>
   </div>
   <div class="ajuste">
@@ -119,6 +119,11 @@
     <div class="texto"><b data-t="chip_slp">Dormir el chip apagado</b>
       <span data-t="chip_slp_pie">Light sleep a batería con la pantalla apagada. La consola USB se cae; el portal sigue.</span></div>
     <label class="interruptor"><input type="checkbox" id="chip_slp"><i></i></label>
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="noche">Reposo profundo de noche</b>
+      <span data-t="noche_pie">En el horario de no molestar, a batería y con la pantalla apagada diez minutos, el reloj entra en deep sleep. Se despierta tocando la pantalla, con BOOT, al final del horario o antes de una alarma. Mientras duerme no llegan notificaciones ni cuenta pasos.</span></div>
+    <label class="interruptor"><input type="checkbox" id="noche"><i></i></label>
   </div>
 
   <h2 data-t="h_hora">Hora</h2>
@@ -225,9 +230,10 @@ const TR = {
     h_sonido: "Sound", volumen: "Volume", probar: "Test the speaker", b_beep: "Beep",
     h_energia: "Power",
     ahorro: "Power saving", ahorro_pie: "Lowers the CPU and puts the wifi in modem-sleep with the screen off.",
-    cuidar: "Battery care", cuidar_pie: "Charges at 150 mA up to 4.1 V instead of 300 mA up to 4.2 V. Less per charge, longer cell life.",
+    cuidar: "Battery care", cuidar_pie: "Charges at 100 mA up to 4.1 V instead of 200 mA up to 4.2 V. The cell is never full: a finished charge reads about 87 %. Less per charge, longer cell life.",
     panel_slp: "Sleep the panel when off", panel_slp_pie: "Sends the AMOLED to sleep-in. It flickers on wake on some boards; that is why it ships off.",
     chip_slp: "Sleep the chip when off", chip_slp_pie: "Light sleep on battery with the screen off. The USB console drops; the portal stays.",
+    noche: "Deep sleep at night", noche_pie: "During the do-not-disturb hours, on battery and with the screen off for ten minutes, the watch goes into deep sleep. It wakes with a touch, with BOOT, at the end of the hours or before an alarm. While it sleeps no notifications arrive and no steps are counted.",
     h_hora: "Time", tz: "Time zone", tz_libre: "Zone in POSIX format",
     tz_libre_pie: "For example CET-1CEST,M3.5.0,M10.5.0/3. The sign is the opposite of what you expect.",
     b_aplicar: "Apply",
@@ -272,9 +278,10 @@ const TR = {
     h_sonido: "Ton", volumen: "Lautstaerke", probar: "Lautsprecher testen", b_beep: "Piep",
     h_energia: "Energie",
     ahorro: "Energiesparen", ahorro_pie: "Senkt die CPU und setzt das WLAN bei ausgeschaltetem Bildschirm in Modem-Sleep.",
-    cuidar: "Akku schonen", cuidar_pie: "Laedt mit 150 mA bis 4,1 V statt 300 mA bis 4,2 V. Weniger pro Ladung, laengeres Zellenleben.",
+    cuidar: "Akku schonen", cuidar_pie: "Laedt mit 100 mA bis 4,1 V statt 200 mA bis 4,2 V. Die Zelle wird nie voll: eine fertige Ladung zeigt etwa 87 %. Weniger pro Ladung, laengeres Zellenleben.",
     panel_slp: "Panel im Aus schlafen lassen", panel_slp_pie: "Schickt das AMOLED in Sleep-in. Flackert auf manchen Platinen beim Wecken; deshalb standardmaessig aus.",
     chip_slp: "Chip im Aus schlafen lassen", chip_slp_pie: "Light Sleep auf Akku bei ausgeschaltetem Bildschirm. Die USB-Konsole faellt weg; das Portal bleibt.",
+    noche: "Tiefschlaf in der Nacht", noche_pie: "In den Nicht-stoeren-Stunden, auf Akku und nach zehn Minuten mit ausgeschaltetem Bildschirm geht die Uhr in den Deep Sleep. Sie wacht bei Beruehrung, mit BOOT, am Ende der Stunden oder vor einem Wecker auf. Waehrend sie schlaeft, kommen keine Mitteilungen an und es werden keine Schritte gezaehlt.",
     h_hora: "Zeit", tz: "Zeitzone", tz_libre: "Zone im POSIX-Format",
     tz_libre_pie: "Zum Beispiel CET-1CEST,M3.5.0,M10.5.0/3. Das Vorzeichen ist umgekehrt als erwartet.",
     b_aplicar: "Anwenden",
@@ -364,7 +371,7 @@ function pintar(s) {
   pintarDeslizador("brillo", s.brillo);
   pintarDeslizador("aod_brillo", s.aod_brillo);
   pintarDeslizador("volumen", s.volumen);
-  for (const k of ["aod", "ahorro", "cuidar", "panel_slp", "chip_slp", "wifi", "bt", "notif_sonido", "llamadas"]) {
+  for (const k of ["aod", "ahorro", "cuidar", "panel_slp", "chip_slp", "noche", "wifi", "bt", "notif_sonido", "llamadas"]) {
     $(k).checked = !!s[k];
   }
   /* "No molestar" es el interruptor de notificaciones al reves, como en el
@@ -509,7 +516,7 @@ $("archivo-resp").onchange = async e => {
 };
 $("pant_activa").onchange = e => guardar({ pant_activa: e.target.value });
 $("aod_dura").onchange = e => guardar({ aod_dura: e.target.value });
-for (const k of ["aod", "ahorro", "cuidar", "panel_slp", "chip_slp", "bt", "notif_sonido", "llamadas"]) {
+for (const k of ["aod", "ahorro", "cuidar", "panel_slp", "chip_slp", "noche", "bt", "notif_sonido", "llamadas"]) {
   $(k).onchange = e => {
     if (k === "aod") $("fila-aod-brillo").style.opacity = e.target.checked ? 1 : .5;
     guardar({ [k]: e.target.checked ? 1 : 0 });

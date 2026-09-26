@@ -3,6 +3,52 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.6.3 — 2026-09-26
+
+**A watch in a pocket, away from home, was flat in 70 minutes.** Three causes,
+none of them light sleep, all in [docs/POWER.md](docs/POWER.md) section 9.
+
+- **The WiFi retried for ever, at once.** Away from its network the watch
+  scanned every channel back to back and never slept. Now each failure waits
+  longer (0 s to 10 min), and on battery with the screen off it stops after
+  three until the screen or USB comes; lighting the screen tries again at once.
+  With the screen off the station also wakes every 10 beacons instead of 3.
+- **The percentage is the firmware's own.** The AXP2101's gauge read 49 % and
+  65 % with the cell empty. The new estimate (`aos_soc.c`) reads the voltage at
+  rest, learns the sag with the screen lit, counts charge in while charging and
+  measures the cell's capacity on charges that start low; checked against
+  simulated cells in `tools/soc/`. The low-battery warning and the clean
+  power-off use it. The battery history keeps the voltage. After a charge it
+  waits half an hour for the cell to relax before trusting its voltage.
+- **The cell is 200 mAh** (302530, read off its label), not the 300 assumed
+  in v0.2.0. Battery care charges at 100 mA (0.5 C), and without it at 200 mA
+  (1 C) instead of the chip's 300 mA (1.5 C). **The percentage is of the cell
+  full at 4.2 V**: charged to battery care's 4.1 V it is never full, and a
+  finished charge reads about 87 %, as a phone with a charge limit does.
+- **The low-voltage backstop cut with charge left.** Under the radio's load it
+  switched the watch off twice with a fifth of the charge in the cell; loaded,
+  it now waits for 3.20 V (3.30 V at rest).
+
+**The chip sleeps far more.** With the screen off, 93.5 % of the time in light
+sleep (81 % before) and 16.5 I2C transactions a second (145 before: a battery
+check on every housekeeping pass, and three reads per IMU sample). The touch
+controller goes into its own auto-sleep and a touch still wakes the screen
+through its INT line; the touch that wakes the screen is swallowed. Light sleep
+now also while dimmed: 91.5 % of the time (none before).
+
+**Deep sleep at night** (Settings, Battery; off by default): in the scheduled
+do-not-disturb hours, on battery, screen off for ten minutes. Woken by a touch,
+BOOT, the end of the hours or two minutes before an alarm; half-hour chunks
+with a quick re-sleep boot in between. Apps with state hold it off with
+`aos_hal_sleep_hold()`; the timer, pomodoro and stopwatch do.
+
+Also: the touch controller is reset (EXIO2) at every start and a failed touch
+read no longer aborts the watch; the panel's whole memory is cleared at start
+(a green bar after its rails were cut); steps are saved before a restart or a
+power-off (an OTA used to lose up to five minutes of them). `/api/status`
+gains the estimate, the WiFi pacing, the touch counters and the nights;
+`/api/pmu` gains bench hooks (`wifitest`, `deep`, `touchslp`, `tasks`).
+
 ## v0.6.2 — 2026-09-25
 
 **The Scanner lists the networks around without being connected.** With the

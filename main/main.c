@@ -11,6 +11,7 @@
 #include "esp_log.h"
 #include "esp_heap_caps.h"
 #include "esp_system.h"
+#include <time.h>
 
 #include "aos_hal.h"
 #include "aos_ui.h"
@@ -56,6 +57,45 @@ static void power_cb(aos_power_event_t event, int percent)
         aos_ui_toast(msg, event == AOS_POWER_CRITICAL ? 3000 : 1800);
         aos_hal_unlock();
     }
+}
+
+/* The night's deep sleep asks here before it goes (aos_hal_esp32.c, "Deep
+ * sleep at night"): the alarms live in aos_apps, which the HAL cannot see.
+ * The next enabled alarm in the coming two days brings the wake-up forward;
+ * the HAL wakes two minutes ahead of it, with a full boot. */
+static bool night_guard(int64_t *wake_by)
+{
+    time_t now = time(NULL);
+    struct tm today;
+    localtime_r(&now, &today);
+    int64_t next = 0;
+    for (int i = 0; i < AOS_ALARM_MAX; i++) {
+        int minute = -1, days = 0;
+        bool enabled = false;
+        aos_alarm_get(i, &minute, &enabled, &days);
+        if (!enabled || minute < 0) {
+            continue;
+        }
+        for (int d = 0; d < 3; d++) {
+            struct tm t = today;
+            t.tm_mday += d;
+            t.tm_hour = minute / 60;
+            t.tm_min  = minute % 60;
+            t.tm_sec  = 0;
+            t.tm_isdst = -1;
+            time_t at = mktime(&t);         /* normalises the day and the weekday */
+            if (at > now && (days & (1 << t.tm_wday))) {
+                if (!next || at < next) {
+                    next = at;
+                }
+                break;
+            }
+        }
+    }
+    if (next && next < *wake_by) {
+        *wake_by = next;
+    }
+    return true;
 }
 
 static void button_cb(aos_button_t button, aos_button_action_t action)
@@ -180,6 +220,7 @@ void app_main(void)
 
     aos_hal_set_button_cb(button_cb);
     aos_hal_set_power_event_cb(power_cb);
+    aos_hal_set_night_guard_cb(night_guard);
 
     if (aos_hal_lock(portMAX_DELAY)) {
         aos_ui_init();
@@ -225,9 +266,11 @@ void app_main(void)
     }
 
     while (1) {
-        vTaskDelay(pdMS_TO_TICKS(200));
+        /* 200 ms with the screen lit, a second with it off (each pass is a
+         * wake-up of the chip), and at once when the display changes. */
+        aos_hal_main_wait();
 
-        if (trial && ticks >= 150) {        /* 150 * 200 ms = 30 s */
+        if (trial && aos_hal_uptime_ms() >= 30000) {
             aos_hal_ota_mark_valid();
             trial = false;
         }
@@ -266,7 +309,10 @@ void app_main(void)
         /* Diagnostic heartbeat. If the screen stops responding, this line says
          * whether the system is still alive, what state the display is in and
          * whether the touch panel is still reading and detecting fingers. */
-        if (++ticks % 15 == 0) {
+        static uint32_t last_beat_ms;
+        ++ticks;
+        if (aos_hal_uptime_ms() - last_beat_ms >= 3000) {
+            last_beat_ms = (uint32_t)aos_hal_uptime_ms();
             uint32_t reads = 0, presses = 0;
             aos_ui_touch_stats(&reads, &presses);
             aos_display_state_t st = aos_hal_display_state();
