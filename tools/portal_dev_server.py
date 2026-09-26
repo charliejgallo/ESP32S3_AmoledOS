@@ -37,6 +37,7 @@ AP_PAGE     = os.path.join(ROOT, "components", "aos_web", "ap.html")
 CLIMA_PAGE  = os.path.join(ROOT, "components", "aos_web", "clima.html")
 COTIZ_PAGE  = os.path.join(ROOT, "components", "aos_web", "cotiz.html")
 CAMARAS_PAGE = os.path.join(ROOT, "components", "aos_web", "camaras.html")
+RADIO_PAGE  = os.path.join(ROOT, "components", "aos_web", "radio.html")
 PIXEL_PAGE  = os.path.join(ROOT, "components", "aos_web", "pixel.html")
 SENSO_PAGE  = os.path.join(ROOT, "components", "aos_web", "sensores.html")
 LUA_PAGE    = os.path.join(ROOT, "components", "aos_web", "lua.html")
@@ -49,7 +50,7 @@ JS_FILE     = os.path.join(ROOT, "components", "aos_web", "aos.js")
 AP_SSID_AUTO = "AmoledOS-5IM"
 AP_PASS_FABRICA = "amoledos"
 AP_ALFABETO = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-DIRS = ("apps", "photos", "music", "recordings", "redes", "pixel", "lua")
+DIRS = ("apps", "photos", "music", "recordings", "redes", "pixel", "lua", "radio")
 
 CONTENT_TYPES = {
     ".wav": "audio/wav", ".mp3": "audio/mpeg",
@@ -90,6 +91,78 @@ def prefs_escribir(base, cambios):
 # cam_gen goes up on every save. The password never goes back to the page.
 CAM_SEP = "\x1f"
 CAM_MAX = 8
+
+
+# ---- Radio (branch radio): rad0..rad8 = name \x1f url, rad_gen, rad_art --------
+# The same keys as components/aos_web/aos_radio_api.c, so the Radio app in
+# the simulator rebuilds its keys when the page saves. Play, pause and the
+# rest only answer ok here: the player is the simulator's, another process.
+RADIO_KEYS = 9
+
+
+def radio_get(base):
+    d = prefs_leer(base)
+    keys = []
+    for i in range(RADIO_KEYS):
+        raw = d.get("rad%d" % i, "")
+        name, _, url = raw.partition(CAM_SEP)
+        logo = os.path.isfile(os.path.join(base, "radio", "logo%d.jpg" % i))
+        keys.append({"name": name if url else "", "url": url, "logo": bool(url and logo)})
+    return {"keys": keys, "gen": int(d.get("rad_gen", "0") or 0),
+            "art": d.get("rad_art", "1") != "0", "last": int(d.get("rad_last", "0") or 0),
+            "volume": 60, "device": "sim",
+            "player": {"state": "stopped", "live": False, "title": "", "artist": ""},
+            "radio": {"state": "off", "index": -1, "station": "", "url": "", "title": "",
+                      "host": "", "icy_name": "", "icy_genre": "", "icy_url": "", "error": "",
+                      "tls": False, "kbps": 0, "rate": 0, "channels": 0, "buffer_ms": 0,
+                      "bytes": 0, "reconnects": 0, "listening_s": 0}}
+
+
+def radio_post(base, campos):
+    f = lambda k, v="": (campos.get(k) or [v])[0]
+    que = f("do")
+    d = prefs_leer(base)
+    gen = str(int(d.get("rad_gen", "0") or 0) + 1)
+    k = int(f("k", "-1") or -1)
+    if que in ("set", "test"):
+        name, url = f("name").strip(), f("url").strip()
+        if not name or len(name.encode()) >= 48:
+            return "el nombre tiene que tener entre 1 y 47 bytes"
+        if not (url.startswith("http://") or url.startswith("https://")):
+            return "la direccion tiene que empezar con http:// o https://"
+        if que == "test":
+            return None
+        if not 0 <= k < RADIO_KEYS:
+            return "no existe esa tecla"
+        prefs_escribir(base, {"rad%d" % k: name + CAM_SEP + url, "rad_gen": gen})
+    elif que == "clear":
+        if not 0 <= k < RADIO_KEYS:
+            return "no existe esa tecla"
+        try:
+            os.remove(os.path.join(base, "radio", "logo%d.jpg" % k))
+        except OSError:
+            pass
+        prefs_escribir(base, {"rad%d" % k: "", "rad_gen": gen})
+    elif que == "swap":
+        a, b = int(f("a", "-1")), int(f("b", "-1"))
+        if not (0 <= a < RADIO_KEYS and 0 <= b < RADIO_KEYS) or a == b:
+            return "teclas invalidas"
+        la, lb = [os.path.join(base, "radio", "logo%d.jpg" % i) for i in (a, b)]
+        tmp = la + ".tmp"
+        for x, y in ((la, tmp), (lb, la), (tmp, lb)):
+            try:
+                os.replace(x, y)
+            except OSError:
+                pass
+        prefs_escribir(base, {"rad%d" % a: d.get("rad%d" % b, ""),
+                              "rad%d" % b: d.get("rad%d" % a, ""), "rad_gen": gen})
+    elif que == "art":
+        prefs_escribir(base, {"rad_art": "1" if f("on", "1") == "1" else "0"})
+    elif que == "play":
+        prefs_escribir(base, {"rad_last": str(k)})
+    elif que not in ("pause", "resume", "stop", "next", "prev", "vol"):
+        return "accion desconocida"
+    return None
 
 
 def camaras_leer(base):
@@ -379,6 +452,13 @@ class Handler(BaseHTTPRequestHandler):
             with open(CAMARAS_PAGE, "rb") as page:
                 self._send(200, page.read(), "text/html; charset=utf-8")
 
+        elif url.path == "/radio":
+            with open(RADIO_PAGE, "rb") as page:
+                self._send(200, page.read(), "text/html; charset=utf-8")
+
+        elif url.path == "/api/radio":
+            self._send(200, json.dumps(radio_get(self.base)))
+
         elif url.path == "/pixel":
             with open(PIXEL_PAGE, "rb") as page:
                 self._send(200, page.read(), "text/html; charset=utf-8")
@@ -641,6 +721,13 @@ class Handler(BaseHTTPRequestHandler):
             if self._remoto_post(url.path, cuerpo) is not None:
                 return
             return self._send(404, '{"error":"no existe"}')
+
+        if url.path == "/api/radio":
+            largo = int(self.headers.get("Content-Length") or 0)
+            error = radio_post(self.base, parse_qs(self.rfile.read(largo).decode(),
+                                                   keep_blank_values=True))
+            return self._send(200, json.dumps({"ok": True} if error is None
+                                              else {"ok": False, "error": error}))
 
         if url.path == "/api/camaras":
             largo = int(self.headers.get("Content-Length") or 0)

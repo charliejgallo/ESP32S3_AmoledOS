@@ -9,6 +9,8 @@
 #include "aos_ble.h"
 #include "aos_board.h"
 #include "aos_audio.h"
+#include "aos_radio.h"
+#include "aos_http_stream.h"
 #include "axp2101.h"
 #include "aos_soc.h"
 
@@ -247,6 +249,12 @@ static esp_pm_lock_handle_t s_pm_max_lock;
 static bool                 s_pm_max_held;
 static int                  s_wifi_ps = -1;
 static bool                 s_net_low_latency;      /* aos_hal_net_low_latency() */
+/* The radio's say in the WiFi's power save (branch radio): 0 none; 1 while a
+ * station plays, never the deepest modem sleep (with the screen off it is
+ * the one the watch picks, and its long listen interval starves a stream);
+ * 2 while one connects, none at all, because a TLS handshake is a dozen
+ * round trips and modem sleep makes each one 200-300 ms. */
+static volatile int         s_radio_ps;
 static void               (*s_power_cb)(aos_power_event_t event, int percent);
 static int                  s_gyro_users;
 
@@ -1931,8 +1939,249 @@ static void player_back_to_heard(void)
     s_dec_publish = PUB_NOW;
 }
 
+/* ---- internet radio ---------------------------------------------------------
+ *
+ * A station is one more source for the same decoder, ring and writer:
+ * s_dec_path holds its URL, aos_radio.c keeps the connection and
+ * aos_audio_open_src() decodes out of its ring. What is different from a
+ * file, all of it in radio_step():
+ *
+ *  - Opening waits for the ring to hold a second and a half WITHOUT blocking
+ *    the task: a stop or a skip during a ten-second TLS handshake is heard
+ *    at once, and the reader is left to give up on its own.
+ *  - A dry ring is a wait, not the end of the track; the end is the reader
+ *    giving up (aos_audio_ended()).
+ *  - Next and previous move along the list of stations the app gave.
+ *  - The title follows the stream's StreamTitle, and it is published when
+ *    its audio reaches the speaker: the metadata arrives with the bytes, and
+ *    those are heard two rings later (up to ~14 s at 128 kbps).
+ *  - A pause longer than the rings can hold resumes live: the listener
+ *    expects the radio, not a recording of what it said a while ago.
+ * -------------------------------------------------------------------------- */
+#define RADIO_LIVE_AFTER_MS 20000
+
+static bool                 s_radio_mode;
+static aos_radio_station_t *s_radio_list;           /* AOS_RADIO_MAX_STATIONS, PSRAM */
+static int                  s_radio_count;
+static volatile int         s_radio_index;
+static int64_t              s_radio_started_ms;
+static bool                 s_radio_open;           /* aos_radio_start() done for s_dec_path */
+static uint32_t             s_radio_seen_gen;       /* the last title the decoder met */
+static char                 s_radio_pend_title[128];
+static uint32_t             s_radio_pend_at;        /* ring sample where it is heard */
+static volatile bool        s_radio_pend;
+static char                 s_radio_heard[128];     /* under s_player_mux */
+static volatile uint32_t    s_radio_heard_gen;
+static int64_t              s_radio_paused_ms;
+
+/* The heard title, split into artist and title the way stations write it:
+ * "Artist - Title". */
+static void radio_set_heard(const char *full)
+{
+    char title[96], artist[96] = "";
+    const char *sep = strstr(full, " - ");
+    if (sep) {
+        snprintf(artist, sizeof(artist), "%.*s", (int)(sep - full), full);
+        snprintf(title, sizeof(title), "%s", sep + 3);
+    } else {
+        snprintf(title, sizeof(title), "%s", full);
+    }
+    portENTER_CRITICAL(&s_player_mux);
+    memcpy(s_player_title, title, sizeof(title));
+    memcpy(s_player_artist, artist, sizeof(artist));
+    memcpy(s_radio_heard, full, sizeof(s_radio_heard));
+    s_radio_heard_gen++;
+    portEXIT_CRITICAL(&s_player_mux);
+}
+
+/* The station that is now the one heard: its name as the album, no title
+ * yet, the format unknown until the first frame. */
+static void radio_publish_station(void)
+{
+    int i = s_radio_index;
+    if (!s_radio_list || i < 0 || i >= s_radio_count) {
+        return;
+    }
+    aos_audio_info_t none = {0};
+    s_radio_pend = false;
+    s_radio_seen_gen = 0;
+    portENTER_CRITICAL(&s_player_mux);
+    memcpy(s_player_path, s_radio_list[i].url, sizeof(s_radio_list[i].url));
+    s_player_info = none;
+    memcpy(s_player_album, s_radio_list[i].name, sizeof(s_radio_list[i].name));
+    s_player_album[sizeof(s_player_album) - 1] = '\0';
+    portEXIT_CRITICAL(&s_player_mux);
+    radio_set_heard("");
+    s_player_index = i;
+}
+
+/* The next station with an address, 'step' away. */
+static int radio_next_index(int from, int step)
+{
+    for (int k = 1; k <= s_radio_count; k++) {
+        int i = ((from + step * k) % s_radio_count + s_radio_count) % s_radio_count;
+        if (s_radio_list[i].url[0]) {
+            return i;
+        }
+    }
+    return from;
+}
+
+/* Drops what is queued and the connection; with 'step', moves along the
+ * list. The decoder opens the station again on its next step. */
+static void radio_restart(int step)
+{
+    player_park(true);
+    s_expect_empty = true;
+    s_pring_tail = s_pring_head;
+    player_park(false);
+    aos_audio_close(s_dec);
+    s_dec = NULL;
+    aos_radio_stop();
+    s_radio_open = false;
+    if (step) {
+        s_radio_index = radio_next_index(s_radio_index, step);
+    }
+    snprintf(s_dec_path, sizeof(s_dec_path), "%s", s_radio_list[s_radio_index].url);
+    radio_publish_station();
+    s_radio_started_ms = (int64_t)aos_hal_uptime_ms();
+}
+
+static void ring_put_chunk(int n);
+
+static void radio_ps(int want)
+{
+    if (want != s_radio_ps) {
+        s_radio_ps = want;
+        pm_policy_apply();
+    }
+}
+
+static int radio_step(void)
+{
+    /* the title whose audio has reached the speaker */
+    if (s_radio_pend && (int32_t)(s_pring_tail - s_radio_pend_at) >= 0) {
+        s_radio_pend = false;
+        radio_set_heard(s_radio_pend_title);
+    }
+
+    int64_t now = (int64_t)aos_hal_uptime_ms();
+    if (s_player_state == AOS_PLAYER_PAUSED) {
+        if (!s_radio_paused_ms) {
+            s_radio_paused_ms = now;
+        }
+    } else if (s_radio_paused_ms) {
+        bool stale = now - s_radio_paused_ms > RADIO_LIVE_AFTER_MS;
+        s_radio_paused_ms = 0;
+        if (stale) {
+            radio_restart(0);
+            return STEP_AGAIN;
+        }
+    }
+
+    int skip = s_player_skip;
+    if (skip) {
+        s_player_skip = 0;
+        radio_restart(skip);
+        return STEP_AGAIN;
+    }
+    s_player_seek_ms = -1;              /* nothing to seek in a live stream */
+
+    if (!s_dec) {
+        radio_ps(2);
+        if (!s_radio_open) {
+            if (!aos_radio_start(s_dec_path)) {
+                return STEP_DONE;
+            }
+            s_radio_open = true;
+        }
+        int ready = aos_radio_ready();
+        if (ready == 0) {
+            s_expect_empty = true;      /* connecting is not an underrun */
+            return STEP_WAIT;
+        }
+        if (ready < 0) {
+            return STEP_DONE;           /* the reason stays in the radio's status */
+        }
+        s_dec = aos_audio_open_src(aos_radio_read, NULL, &s_dec_info);
+        if (!s_dec) {
+            ESP_LOGW(TAG, "radio: no MP3 frames in %s", s_dec_path);
+            return STEP_DONE;
+        }
+        s_dec_frames = 0;
+        s_dec_us_total = 0;
+        s_cost_frames = 0;
+        s_cost_us = 0;
+        s_out_rate = s_dec_info.sample_rate;
+        portENTER_CRITICAL(&s_player_mux);
+        s_player_info = s_dec_info;
+        portEXIT_CRITICAL(&s_player_mux);
+        s_player_rate = s_dec_info.sample_rate;
+        s_player_channels = s_dec_info.channels;
+        s_track_start = s_pring_tail;
+        radio_ps(1);
+        ESP_LOGI(TAG, "radio: %s, %lu Hz, %u kbps", s_dec_path,
+                 (unsigned long)s_dec_info.sample_rate, (unsigned)s_dec_info.kbps);
+    }
+
+    if (s_pring_n - ring_used() < PLAYER_CHUNK) {
+        return STEP_WAIT;
+    }
+    int64_t t0 = esp_timer_get_time();
+    int n = aos_audio_read(s_dec, s_dec_chunk, PLAYER_CHUNK);
+    uint32_t us = (uint32_t)(esp_timer_get_time() - t0);
+    if (n <= 0) {
+        return aos_audio_ended(s_dec) ? STEP_DONE : STEP_WAIT;
+    }
+    s_dec_frames += (uint32_t)n;
+    s_dec_us_total += us;
+    if (us > s_dec_us_max) {
+        s_dec_us_max = us;
+    }
+    uint32_t cf;
+    uint64_t cu;
+    aos_audio_cost(s_dec, &cf, &cu);
+    s_cost_frames = cf;
+    s_cost_us = cu;
+    ring_put_chunk(n);
+
+    char title[128];
+    uint32_t gen = aos_radio_title_at_read(title, sizeof(title));
+    if (gen != s_radio_seen_gen) {
+        s_radio_seen_gen = gen;
+        if (s_radio_pend) {
+            radio_set_heard(s_radio_pend_title);    /* two in a row: the older one is late */
+        }
+        memcpy(s_radio_pend_title, title, sizeof(title));
+        s_radio_pend_at = s_pring_head;
+        s_radio_pend = true;
+    }
+    return STEP_AGAIN;
+}
+
+/* The decoded chunk, mixed to mono, into the ring. */
+static void ring_put_chunk(int n)
+{
+    uint32_t head = s_pring_head;
+    const int16_t *c = s_dec_chunk;
+    if (s_dec_info.channels == 2) {
+        for (int i = 0; i < n; i++) {
+            s_pring[(head + (uint32_t)i) % s_pring_n] =
+                (int16_t)(((int32_t)c[2 * i] + c[2 * i + 1]) / 2);
+        }
+    } else {
+        for (int i = 0; i < n; i++) {
+            s_pring[(head + (uint32_t)i) % s_pring_n] = c[i];
+        }
+    }
+    s_pring_head = head + (uint32_t)n;
+}
+
 static int player_step(void)
 {
+    if (s_radio_mode) {
+        return radio_step();
+    }
     if (!s_dec) {
         s_dec = aos_audio_open(s_dec_path, &s_dec_info);
         if (!s_dec) {
@@ -2042,20 +2291,7 @@ static int player_step(void)
     aos_audio_cost(s_dec, &cf, &cu);
     s_cost_frames = cf;
     s_cost_us = cu;
-
-    uint32_t head = s_pring_head;
-    const int16_t *c = s_dec_chunk;
-    if (s_dec_info.channels == 2) {
-        for (int i = 0; i < n; i++) {
-            s_pring[(head + (uint32_t)i) % s_pring_n] =
-                (int16_t)(((int32_t)c[2 * i] + c[2 * i + 1]) / 2);
-        }
-    } else {
-        for (int i = 0; i < n; i++) {
-            s_pring[(head + (uint32_t)i) % s_pring_n] = c[i];
-        }
-    }
-    s_pring_head = head + (uint32_t)n;
+    ring_put_chunk(n);
     return STEP_AGAIN;
 }
 
@@ -2102,6 +2338,11 @@ static void player_task(void *arg)
 
     aos_audio_close(s_dec);
     s_dec = NULL;
+    if (s_radio_open) {
+        aos_radio_stop();
+        s_radio_open = false;
+    }
+    radio_ps(0);
     /* The writer plays out what is left (paused, it waits) and ends on its
      * own; a stop gets there sooner through s_player_abort. */
     s_dec_done = true;
@@ -2213,6 +2454,7 @@ static bool player_start(const char *path)
 bool aos_hal_player_play(const char *path)
 {
     aos_hal_player_stop();
+    s_radio_mode = false;
     s_player_index = -1;                /* one file: the video's sound, a ringtone */
     aos_audio_list_free(&s_player_list);
     return player_start(path);
@@ -2228,6 +2470,7 @@ bool aos_hal_player_play_folder(const char *path)
         shuffle_loaded = true;
     }
     aos_hal_player_stop();
+    s_radio_mode = false;
     if (!path) {
         return false;
     }
@@ -2260,7 +2503,7 @@ static int64_t s_saved_at_ms;
 
 static void player_remember(bool force)
 {
-    if (s_player_index < 0 || !s_player_task) {
+    if (s_player_index < 0 || !s_player_task || s_radio_mode) {
         return;
     }
     if (s_player_seek_ms >= 0) {
@@ -2356,8 +2599,22 @@ void aos_hal_player_stop(void)
     s_player_state = AOS_PLAYER_STOPPED;
 }
 
+static bool radio_step_stopped(int step)
+{
+    if (!s_radio_mode || s_player_task || !s_radio_list || s_radio_count <= 0) {
+        return false;
+    }
+    /* A station that failed or was stopped: next and previous start the
+     * neighbour straight away. */
+    aos_hal_radio_play(s_radio_list, s_radio_count, radio_next_index(s_radio_index, step));
+    return true;
+}
+
 void aos_hal_player_next(void)
 {
+    if (radio_step_stopped(1)) {
+        return;
+    }
     if (s_player_task) {
         s_player_skip = 1;
         if (s_player_state == AOS_PLAYER_PAUSED && !s_yield_refs) {
@@ -2368,13 +2625,13 @@ void aos_hal_player_next(void)
 
 void aos_hal_player_prev(void)
 {
-    if (!s_player_task) {
+    if (radio_step_stopped(-1) || !s_player_task) {
         return;
     }
     /* like every player: back to the start first, then the previous one */
     uint32_t pos_ms = (uint32_t)((uint64_t)(s_pring_tail - s_track_start) * 1000 /
                                  (s_player_rate ? s_player_rate : 44100));
-    if (pos_ms > 3000 || s_player_index < 0) {
+    if (!s_radio_mode && (pos_ms > 3000 || s_player_index < 0)) {
         s_player_seek_ms = 0;
     } else {
         s_player_skip = -1;
@@ -2451,6 +2708,102 @@ bool aos_hal_player_info(aos_player_info_t *out)
     out->has_cover   = info.cover_offset != 0;
     out->cover_offset = info.cover_offset;
     out->cover_size  = info.cover_size;
+    if (s_radio_mode) {
+        out->live        = true;
+        out->duration_ms = 0;
+        out->index       = s_radio_index;
+        out->count       = s_radio_count;
+        out->shuffle     = false;
+        out->has_cover   = false;
+    }
+    return true;
+}
+
+bool aos_hal_radio_play(const aos_radio_station_t *list, int count, int index)
+{
+    if (!list || count <= 0 || index < 0 || index >= count || !list[index].url[0]) {
+        return false;
+    }
+    if (count > AOS_RADIO_MAX_STATIONS) {
+        count = AOS_RADIO_MAX_STATIONS;
+        if (index >= count) {
+            return false;
+        }
+    }
+    if (!s_radio_list) {
+        s_radio_list = heap_caps_calloc(AOS_RADIO_MAX_STATIONS, sizeof(aos_radio_station_t),
+                                        MALLOC_CAP_SPIRAM);
+        if (!s_radio_list) {
+            return false;
+        }
+    }
+    aos_http_stream_init();             /* aos_http.c's lock, from this side */
+    aos_hal_player_stop();
+    if (list != s_radio_list) {
+        memcpy(s_radio_list, list, (size_t)count * sizeof(aos_radio_station_t));
+    }
+    for (int i = 0; i < count; i++) {
+        s_radio_list[i].name[sizeof(s_radio_list[i].name) - 1] = '\0';
+        s_radio_list[i].url[sizeof(s_radio_list[i].url) - 1] = '\0';
+    }
+    s_radio_count = count;
+    s_radio_index = index;
+    aos_audio_list_free(&s_player_list);
+    s_player_index = index;
+    s_radio_mode = true;
+    s_radio_open = false;
+    s_radio_paused_ms = 0;
+    s_radio_started_ms = (int64_t)aos_hal_uptime_ms();
+    char url[256];
+    memcpy(url, s_radio_list[index].url, sizeof(url));
+    if (!player_start(url)) {
+        return false;
+    }
+    radio_publish_station();
+    return true;
+}
+
+bool aos_hal_radio_active(void)
+{
+    return s_radio_mode && s_player_task != NULL;
+}
+
+bool aos_hal_radio_status(aos_radio_status_t *out)
+{
+    if (!out) {
+        return false;
+    }
+    memset(out, 0, sizeof(*out));
+    out->index = -1;
+    if (!s_radio_mode || !s_radio_list) {
+        return true;
+    }
+    aos_radio_fill_status(out);
+    if (!s_player_task && out->state != AOS_RADIO_FAILED) {
+        out->state = AOS_RADIO_OFF;
+    }
+    int i = s_radio_index;
+    out->index = i;
+    out->count = s_radio_count;
+    if (i >= 0 && i < s_radio_count) {
+        memcpy(out->station, s_radio_list[i].name, sizeof(out->station));
+        memcpy(out->url, s_radio_list[i].url, sizeof(out->url));
+    }
+    portENTER_CRITICAL(&s_player_mux);
+    memcpy(out->title, s_radio_heard, sizeof(out->title));
+    aos_audio_info_t info = s_player_info;
+    portEXIT_CRITICAL(&s_player_mux);
+    out->title_gen   = s_radio_heard_gen;
+    out->sample_rate = info.sample_rate;
+    out->channels    = info.channels;
+    if (!out->kbps) {
+        out->kbps = info.kbps;
+    }
+    uint32_t rate = s_player_rate ? s_player_rate : 44100;
+    if (s_player_task) {
+        out->buffer_ms += ring_used() * 1000 / rate;
+        out->listening_s = (uint32_t)(((int64_t)aos_hal_uptime_ms() - s_radio_started_ms) / 1000);
+    }
     return true;
 }
 
@@ -5360,9 +5713,11 @@ static void pm_policy_apply(void)
     }
 
     if (s_net_state != AOS_NET_OFF) {
-        int ps = s_net_low_latency ? WIFI_PS_NONE
-               : (saving && s_display_state != AOS_DISPLAY_ACTIVE) ? WIFI_PS_MAX_MODEM
-                                                                   : WIFI_PS_MIN_MODEM;
+        bool fast = s_net_low_latency ||
+                    (s_radio_ps == 2 && aos_hal_bt_state() == AOS_BT_OFF);
+        int ps = fast ? WIFI_PS_NONE
+               : (saving && s_display_state != AOS_DISPLAY_ACTIVE && !s_radio_ps) ? WIFI_PS_MAX_MODEM
+                                                                                 : WIFI_PS_MIN_MODEM;
         if (ps != s_wifi_ps && esp_wifi_set_ps((wifi_ps_type_t)ps) == ESP_OK) {
             s_wifi_ps = ps;
         }

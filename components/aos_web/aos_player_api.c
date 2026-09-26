@@ -23,6 +23,7 @@
 
 #include "aos_hal.h"
 #include "../aos_hal/aos_audio.h"
+#include "../aos_hal/aos_radio.h"
 
 static char s_query[512];
 
@@ -160,7 +161,7 @@ esp_err_t aos_player_handler(httpd_req_t *req)
              "{\"result\":\"%s\",\"state\":\"%s\",\"path\":\"%s\",\"title\":\"%s\","
              "\"artist\":\"%s\",\"album\":\"%s\",\"format\":\"%s\",\"kbps\":%u,\"vbr\":%s,"
              "\"rate\":%u,\"channels\":%u,\"duration_ms\":%u,\"position_ms\":%u,"
-             "\"index\":%d,\"count\":%d,\"shuffle\":%s,\"yielded\":%s,\"mix\":%s,\"spk_mixed\":%s,\"spk_queued\":%d,\"volume\":%d,"
+             "\"index\":%d,\"count\":%d,\"live\":%s,\"stack_free_radio\":%u,\"shuffle\":%s,\"yielded\":%s,\"mix\":%s,\"spk_mixed\":%s,\"spk_queued\":%d,\"volume\":%d,"
              "\"ring_ms\":%u,\"ring_cap_ms\":%u,\"ring_min_ms\":%u,\"underruns\":%u,"
              "\"load_permille\":%u,\"decode_permille\":%u,\"chunk_us_max\":%u,"
              "\"decoder_prio\":%d,\"stack_free_dec\":%u,\"stack_free_out\":%u,"
@@ -170,6 +171,7 @@ esp_err_t aos_player_handler(httpd_req_t *req)
              in.format ? in.format : "", in.kbps, in.vbr ? "true" : "false",
              (unsigned)in.sample_rate, in.channels, (unsigned)in.duration_ms,
              (unsigned)in.position_ms, in.index, in.count,
+             in.live ? "true" : "false", (unsigned)aos_radio_stack_free(),
              in.shuffle ? "true" : "false", in.yielded ? "true" : "false",
              aos_hal_player_mix() ? "true" : "false", aos_hal_spk_is_open() ? "true" : "false",
              aos_hal_spk_queued(),

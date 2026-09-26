@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Radio</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  .ahora { display: grid; grid-template-columns: 64px 1fr; gap: 14px; align-items: center; }
+  .ahora img, .ahora .sinlogo { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; background: var(--card2); }
+  .ahora .est { font-weight: 600; font-size: 17px; }
+  .ahora .tema { font-size: 14.5px; }
+  .ahora .det { color: var(--dim); font-size: 13px; }
+  .mandos { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+  .mandos button { min-width: 44px; }
+  .mandos input[type=range] { flex: 1; min-width: 120px; }
+  .teclas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .tecla { background: var(--card); border-radius: 12px; padding: 10px; display: grid;
+           grid-template-columns: 44px 1fr; gap: 4px 10px; align-items: center; min-height: 66px;
+           border: 2px solid transparent; }
+  .tecla.sobre { border-color: var(--accent); }
+  .tecla.suena { border-color: #FFB547; }
+  .tecla .num { width: 44px; height: 44px; border-radius: 8px; background: var(--card2);
+                display: grid; place-items: center; font-weight: 700; color: var(--dim); overflow: hidden; }
+  .tecla .num img { width: 44px; height: 44px; object-fit: cover; }
+  .tecla .nom { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tecla .acc { grid-column: 1 / -1; display: flex; gap: 6px; }
+  .tecla .acc button { padding: 3px 9px; font-size: 12.5px; }
+  .tecla.libre .nom { color: var(--dim); font-weight: 400; }
+  @media (max-width: 560px) { .teclas { grid-template-columns: repeat(2, 1fr); } }
+  ul.lista li { flex-wrap: wrap; gap: 4px 10px; }
+  ul.lista li .logo { width: 32px; height: 32px; border-radius: 6px; object-fit: cover; background: var(--card2); flex: none; display: inline-block; }
+  ul.lista li .nombre { font-weight: 600; }
+  ul.lista li .info { color: var(--dim); font-size: 12.5px; flex: 1 1 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  ul.lista li .acc { margin-left: auto; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  ul.lista li .acc button, ul.lista li .acc select { padding: 3px 9px; font-size: 12.5px; width: auto; min-width: 0; }
+  ul.lista li .acc { flex-wrap: nowrap; }
+  ul.lista li[draggable=true] { cursor: grab; }
+  .tag { font-size: 11px; padding: 1px 7px; border-radius: 9px; background: var(--card2); color: var(--dim); }
+  .tag.no { background: #5a1f1f; color: #ffb4a8; }
+  .buscar { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; align-items: end; }
+  .buscar label, form.mano label { font-size: 13px; color: var(--dim); display: grid; gap: 4px; }
+  @media (max-width: 560px) { .buscar { grid-template-columns: 1fr 1fr; } }
+  form.mano { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px; align-items: end; }
+  @media (max-width: 560px) { form.mano { grid-template-columns: 1fr; } }
+  .chica { font-size: 13px; color: var(--dim); }
+  #estado.bien { color: var(--green); }
+  #estado.mal { color: var(--red); }
+  .vacio { color: var(--dim); font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Radio</h1></div>
+  <p class="sub" data-t="bajada">Las radios por internet de la app Radio del reloj.
+     Buscá estaciones, guardalas en tu lista y elegí cuáles van en las nueve teclas.</p>
+
+  <nav class="paginas"></nav>
+
+  <h2 data-t="h_ahora">En el reloj ahora</h2>
+  <div class="tarjeta">
+    <div class="ahora">
+      <div class="sinlogo" id="a_logo"></div>
+      <div>
+        <div class="est" id="a_est">-</div>
+        <div class="tema" id="a_tema"></div>
+        <div class="det" id="a_det"></div>
+      </div>
+    </div>
+    <div class="mandos">
+      <button class="sec" id="b_prev" title="prev">&#9198;</button>
+      <button id="b_play" title="play">&#9199;</button>
+      <button class="sec" id="b_next" title="next">&#9197;</button>
+      <button class="sec" id="b_stop" title="stop">&#9209;</button>
+      <span class="chica" data-t="l_vol">Volumen</span>
+      <input type="range" id="vol" min="0" max="100">
+    </div>
+  </div>
+
+  <h2 data-t="h_teclas">Las teclas del reloj</h2>
+  <p class="chica" data-t="teclas_ayuda">Arrastrá una radio de tu lista a una tecla, o
+     arrastrá una tecla sobre otra para cambiarlas de lugar.</p>
+  <div class="teclas" id="teclas"></div>
+
+  <h2 data-t="h_lista">Mi lista</h2>
+  <ul class="lista" id="lista"></ul>
+  <p class="vacio" id="vacio" data-t="vacio" hidden>La lista está vacía: buscá radios abajo.</p>
+  <div class="fila">
+    <span id="estado" class="chica"></span>
+  </div>
+
+  <h2 data-t="h_buscar">Buscar radios</h2>
+  <p class="chica" data-t="buscar_ayuda">En el directorio abierto de radio-browser.info,
+     con más de 50.000 estaciones de todo el mundo.</p>
+  <form class="buscar" id="f_buscar">
+    <label><span data-t="l_nombre">Nombre</span><input id="q_nombre" type="text" data-t-ph="ph_q" placeholder="rock, jazz, 95.1..."></label>
+    <label><span data-t="l_pais">País</span>
+      <select id="q_pais">
+        <option value="" data-t="todos">Todos</option>
+        <option value="AR" selected>Argentina</option>
+        <option value="UY">Uruguay</option><option value="CL">Chile</option>
+        <option value="BR">Brasil</option><option value="MX">México</option>
+        <option value="ES">España</option><option value="US">USA</option>
+        <option value="GB">UK</option><option value="FR">France</option>
+        <option value="DE">Deutschland</option><option value="IT">Italia</option>
+        <option value="CH">Schweiz</option>
+      </select></label>
+    <label><span data-t="l_genero">Género</span><input id="q_tag" type="text" placeholder="jazz"></label>
+    <button type="submit" data-t="btn_buscar">Buscar</button>
+    <label style="grid-column: 1 / -1; display: flex; gap: 8px; align-items: center;">
+      <input id="q_mp3" type="checkbox" checked> <span data-t="solo_mp3">Sólo las que suenan en el reloj (MP3)</span></label>
+  </form>
+  <ul class="lista" id="res"></ul>
+
+  <h2 data-t="h_mano">Agregar a mano</h2>
+  <form class="mano" id="f_mano" autocomplete="off">
+    <label><span data-t="l_nombre">Nombre</span><input id="m_nombre" type="text" maxlength="47" required></label>
+    <label><span data-t="l_url">Dirección del stream</span><input id="m_url" type="text" maxlength="255" required placeholder="https://.../stream.mp3"></label>
+    <button type="submit" data-t="btn_agregar">Agregar</button>
+  </form>
+
+  <h2 data-t="h_ajustes">Ajustes</h2>
+  <div class="ajuste">
+    <div><b data-t="art_t">Tapas de los discos</b><br>
+      <span class="chica" data-t="art_d">Busca la tapa del tema que suena en iTunes. Lo único que
+        sale del reloj es "artista tema".</span></div>
+    <label class="interruptor"><input type="checkbox" id="art"><span></span></label>
+  </div>
+
+  <div class="aviso">
+    <b data-t="a_titulo">Qué suena en el reloj</b><br><br>
+    <span data-t="a_mp3">Streams MP3 por http:// o https:// (Icecast, Shoutcast y los de las
+      radios grandes), con redirecciones y listas .pls o .m3u. Los streams AAC, Ogg y HLS
+      (.m3u8) no se pueden decodificar en el reloj: el buscador los marca.</span>
+    <br><br>
+    <span data-t="a_bg">La radio sigue sonando con la app cerrada. El centro de control y los
+      botones de esta página la manejan igual.</span>
+    <br><br>
+    <span data-t="a_logo">Los logos se preparan en este navegador y se guardan en la tarjeta del
+      reloj. Si el sitio de la radio no deja leer su logo, se pide a wsrv.nl, un proxy de
+      imágenes público.</span>
+  </div>
+</div>
+
+<audio id="oir" preload="none"></audio>
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "Radio",
+    bajada: "The internet radios of the watch's Radio app. Search for stations, keep them in " +
+            "your list and choose which go on the nine keys.",
+    h_ahora: "On the watch now", l_vol: "Volume",
+    h_teclas: "The watch's keys",
+    teclas_ayuda: "Drag a radio from your list onto a key, or drag a key onto another to swap them.",
+    h_lista: "My list", vacio: "The list is empty: search for radios below.",
+    h_buscar: "Find radios",
+    buscar_ayuda: "In radio-browser.info's open directory, over 50,000 stations from all over the world.",
+    l_nombre: "Name", l_pais: "Country", todos: "All", l_genero: "Genre", ph_q: "rock, jazz, 95.1...",
+    btn_buscar: "Search", solo_mp3: "Only the ones the watch can play (MP3)",
+    h_mano: "Add by hand", l_url: "Stream address", btn_agregar: "Add",
+    h_ajustes: "Settings", art_t: "Album covers",
+    art_d: "Looks up the cover of the song on air in iTunes. All that leaves the watch is \"artist song\".",
+    a_titulo: "What plays on the watch",
+    a_mp3: "MP3 streams over http:// or https:// (Icecast, Shoutcast and the big stations' own), " +
+           "with redirects and .pls or .m3u playlists. AAC, Ogg and HLS (.m3u8) streams cannot be " +
+           "decoded on the watch: the search marks them.",
+    a_bg: "The radio keeps playing with the app closed. The control centre and the buttons on this " +
+          "page drive it just the same.",
+    a_logo: "Logos are prepared in this browser and saved on the watch's card. If the station's site " +
+            "does not let its logo be read, it is asked of wsrv.nl, a public image proxy.",
+    libre: "empty", poner: "Play", quitar: "Clear", a_tecla: "Key...", oir: "Listen here",
+    probar: "Try on the watch", sacar: "Remove", agregar: "Add", agregada: "in your list",
+    no_suena: "does not play on the watch", buscando: "searching...", sin_res: "Nothing found.",
+    err_busq: "radio-browser.info did not answer", guardando: "saving...", guardado: "saved",
+    err_placa: "could not reach the board", logo: "preparing the logo...",
+    confirmar: "Remove this radio from your list?", parado: "stopped", pausa: "paused",
+    conectando: "connecting", cargando: "buffering", en_vivo: "live", reintento: "reconnecting",
+    fallo: "failed", musica: "the card's music is playing", nada: "nothing is playing",
+    arrastrar: "drag onto a key"
+  },
+  de: {
+    titulo: "Radio",
+    bajada: "Die Internetradios der Radio-App der Uhr. Sender suchen, in der eigenen Liste " +
+            "behalten und auswaehlen, welche auf die neun Tasten kommen.",
+    h_ahora: "Jetzt auf der Uhr", l_vol: "Lautstaerke",
+    h_teclas: "Die Tasten der Uhr",
+    teclas_ayuda: "Ein Radio aus der Liste auf eine Taste ziehen, oder eine Taste auf eine andere, um sie zu tauschen.",
+    h_lista: "Meine Liste", vacio: "Die Liste ist leer: unten nach Radios suchen.",
+    h_buscar: "Radios suchen",
+    buscar_ayuda: "Im offenen Verzeichnis radio-browser.info, mit ueber 50.000 Sendern aus aller Welt.",
+    l_nombre: "Name", l_pais: "Land", todos: "Alle", l_genero: "Genre", ph_q: "Rock, Jazz, 95.1...",
+    btn_buscar: "Suchen", solo_mp3: "Nur die, die die Uhr abspielen kann (MP3)",
+    h_mano: "Von Hand hinzufuegen", l_url: "Stream-Adresse", btn_agregar: "Hinzufuegen",
+    h_ajustes: "Einstellungen", art_t: "Albumcover",
+    art_d: "Sucht das Cover des laufenden Titels bei iTunes. Die Uhr verlaesst nur \"Kuenstler Titel\".",
+    a_titulo: "Was auf der Uhr laeuft",
+    a_mp3: "MP3-Streams ueber http:// oder https:// (Icecast, Shoutcast und die der grossen Sender), " +
+           "mit Weiterleitungen und .pls- oder .m3u-Listen. AAC-, Ogg- und HLS-Streams (.m3u8) kann " +
+           "die Uhr nicht dekodieren: die Suche markiert sie.",
+    a_bg: "Das Radio spielt weiter, wenn die App geschlossen ist. Das Kontrollzentrum und die Knoepfe " +
+          "dieser Seite steuern es genauso.",
+    a_logo: "Die Logos werden in diesem Browser vorbereitet und auf der Karte der Uhr gespeichert. " +
+            "Laesst die Seite des Senders ihr Logo nicht lesen, wird wsrv.nl gefragt, ein " +
+            "oeffentlicher Bild-Proxy.",
+    libre: "frei", poner: "Spielen", quitar: "Leeren", a_tecla: "Taste...", oir: "Hier hoeren",
+    probar: "Auf der Uhr testen", sacar: "Entfernen", agregar: "Hinzufuegen", agregada: "in deiner Liste",
+    no_suena: "spielt nicht auf der Uhr", buscando: "suche...", sin_res: "Nichts gefunden.",
+    err_busq: "radio-browser.info antwortet nicht", guardando: "wird gespeichert...", guardado: "gespeichert",
+    err_placa: "keine Verbindung zur Platine", logo: "Logo wird vorbereitet...",
+    confirmar: "Dieses Radio aus der Liste entfernen?", parado: "gestoppt", pausa: "Pause",
+    conectando: "verbinde", cargando: "puffert", en_vivo: "live", reintento: "verbinde neu",
+    fallo: "fehlgeschlagen", musica: "die Musik der Karte laeuft", nada: "nichts laeuft",
+    arrastrar: "auf eine Taste ziehen"
+  }
+};
+
+const ES = {
+  libre: "libre", poner: "Poner", quitar: "Vaciar", a_tecla: "Tecla...", oir: "Escuchar acá",
+  probar: "Probar en el reloj", sacar: "Quitar", agregar: "Agregar", agregada: "en tu lista",
+  no_suena: "no suena en el reloj", buscando: "buscando...", sin_res: "No se encontró nada.",
+  err_busq: "radio-browser.info no contestó", guardando: "guardando...", guardado: "guardado",
+  err_placa: "no se pudo hablar con la placa", logo: "preparando el logo...",
+  confirmar: "¿Quitar esta radio de tu lista?", parado: "detenida", pausa: "en pausa",
+  conectando: "conectando", cargando: "cargando", en_vivo: "en vivo", reintento: "reconectando",
+  fallo: "falló", musica: "suena la música de la tarjeta", nada: "no suena nada",
+  arrastrar: "arrastrala a una tecla"
+};
+
+/* The list the page starts with, before anything is saved: MP3 stations
+ * checked against the watch's own stream code on 2026-09-26. */
+const DEFAULTS = [
+  { name: "Metro 95.1", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/METRO.mp3", favicon: "https://cdn-profiles.tunein.com/s25987/images/logog.jpg", cc: "AR", tags: "95.1, 95.1 fm, argentina, buenos aires", codec: "MP3", kbps: 96 },
+  { name: "Aspen 102.3", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/ASPEN.mp3", favicon: "https://fmaspen.com/wp-content/themes/aspen/images/logoaspen.png", cc: "AR", tags: "", codec: "MP3", kbps: 96 },
+  { name: "La 100", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/FM999_56.mp3", favicon: "http://cdn-profiles.tunein.com/s6984/images/logod.jpg", cc: "AR", tags: "99.9 fm, argentina, buenos aires", codec: "MP3", kbps: 96 },
+  { name: "Rock & Pop 95.9", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/ROCKANDPOP.mp3", favicon: "https://fmrockandpop.com/images/ryp/logo_2022.webp", cc: "AR", tags: "classic hits, hits, music, pop", codec: "MP3", kbps: 96 },
+  { name: "Radio Rivadavia", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/RIVADAVIA.mp3", favicon: "https://rivadavia.com.ar/apple-touch-icon.png", cc: "AR", tags: "", codec: "MP3", kbps: 96 },
+  { name: "Radio Disney Argentina", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/DISNEY_ARG_BA.mp3", favicon: "https://ar.radiodisney.com/favicon.ico", cc: "AR", tags: "", codec: "MP3", kbps: 128 },
+  { name: "FM Blackie 89.1", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/BLACKIE_89_1.mp3", favicon: "https://fmblackie.com.ar/wp-content/themes/blackie/images/logo.png", cc: "AR", tags: "jazz, music", codec: "MP3", kbps: 96 },
+  { name: "Nacional Rock 93.7", url: "https://sa.mp3.icecast.magma.edge-access.net/sc_rad39", favicon: "", cc: "AR", tags: "", codec: "MP3", kbps: 192 },
+  { name: "Nacional Folklórica 98.7", url: "https://sa.mp3.icecast.magma.edge-access.net/sc_rad38", favicon: "https://www.radionacional.com.ar/reproductor/images/Logo_Folklorica.png", cc: "AR", tags: "folklore", codec: "MP3", kbps: 160 },
+  { name: "Nacional Clásica 96.7", url: "https://sa.mp3.icecast.magma.edge-access.net/sc_rad37", favicon: "https://radioarg.net/storage/radios/7853/73050/conversions/SBpKi6a8TTFvVnHfz7P89UvhnfltzR-metabmFjaW9uYWwtY2xhc2ljYS5qcGc=--lg.webp", cc: "AR", tags: "", codec: "MP3", kbps: 192 },
+  { name: "Radio Nacional AM 870", url: "https://sa.mp3.icecast.magma.edge-access.net/sc_rad1", favicon: "https://upload.wikimedia.org/wikipedia/commons/0/00/Nacional_AM_870_2016.png", cc: "AR", tags: "argentina, buenos aires", codec: "MP3", kbps: 56 },
+  { name: "La Popu", url: "https://liveradio.mediainbox.net/popular.mp3", favicon: "https://www.lapopu.com.ar/img/favicon.png", cc: "AR", tags: "cuarteto, local news, music", codec: "MP3", kbps: 96 },
+  { name: "La Nación +Música", url: "https://stream.radio.co/s2ed3bec0a/listen", favicon: "https://masmusica.lanacion.com.ar/assets/img/favicon.png", cc: "AR", tags: "adult contemporary, old hits", codec: "MP3", kbps: 128 },
+  { name: "SomaFM Groove Salad", url: "https://ice1.somafm.com/groovesalad-128-mp3", favicon: "https://somafm.com/img3/groovesalad-400.jpg", cc: "US", tags: "ambient, chillout, downtempo, groove", codec: "MP3", kbps: 128 },
+  { name: "SomaFM Drone Zone", url: "https://ice1.somafm.com/dronezone-128-mp3", favicon: "https://somafm.com/img3/dronezone-400.jpg", cc: "US", tags: "ambient, atmospheric, chillout, drone", codec: "MP3", kbps: 128 },
+  { name: "SomaFM Secret Agent", url: "https://ice1.somafm.com/secretagent-128-mp3", favicon: "https://somafm.com/img3/secretagent-400.jpg", cc: "US", tags: "ambient, downtempo, jazz, lounge", codec: "MP3", kbps: 128 },
+  { name: "Radio Paradise", url: "http://stream.radioparadise.com/mp3-128", favicon: "https://radioparadise.com/apple-touch-icon.png", cc: "US", tags: "california, eclectic, free, internet", codec: "MP3", kbps: 128 },
+  { name: "FIP", url: "https://icecast.radiofrance.fr/fip-midfi.mp3", favicon: "https://www.fip.fr/dist/favicons/logo-120.png", cc: "FR", tags: "fip", codec: "MP3", kbps: 128 },
+  { name: "FIP Jazz", url: "https://icecast.radiofrance.fr/fipjazz-midfi.mp3", favicon: "https://www.fip.fr/dist/favicons/logo-120.png", cc: "FR", tags: "jazz, music, music only", codec: "MP3", kbps: 128 },
+  { name: "KEXP Seattle", url: "https://kexp-mp3-128.streamguys1.com/kexp128.mp3", favicon: "https://www.kexp.org/static/assets/img/logo-black.svg", cc: "US", tags: "alternative, eclectic, electronic, folk", codec: "MP3", kbps: 128 },
+  { name: "Radio Swiss Jazz", url: "http://stream.srg-ssr.ch/m/rsj/mp3_128", favicon: "http://www.radioswissjazz.ch/favicon.ico", cc: "CH", tags: "jazz, public radio, srg ssr", codec: "MP3", kbps: 128 },
+  { name: "Radio Swiss Classic", url: "http://stream.srg-ssr.ch/m/rsc_de/mp3_128", favicon: "https://www.radioswissclassic.ch/favicon.ico", cc: "CH", tags: "classical, public radio, srg ssr", codec: "MP3", kbps: 128 },
+  { name: "Radio Swiss Pop", url: "http://stream.srg-ssr.ch/m/rsp/mp3_128", favicon: "http://www.radioswisspop.ch/favicon.ico", cc: "CH", tags: "pop, public radio, srg ssr", codec: "MP3", kbps: 128 },
+  { name: "WFMU", url: "https://stream0.wfmu.org/freeform-128k", favicon: "https://wfmu.org/images/wfmu_logo_94.gif", cc: "US", tags: "east orange, freeform, jersey city", codec: "MP3", kbps: 128 },
+  { name: "Deutschlandfunk", url: "https://st01.sslstream.dlf.de/dlf/01/128/mp3/stream.mp3", favicon: "https://www.deutschlandfunk.de/static/img/deutschlandfunk/icons/apple-touch-icon-128x128.png", cc: "DE", tags: "culture, news, public service, information", codec: "MP3", kbps: 128 }
+];
+
+const $ = aos.$;
+function t(k) { const v = aos.t(k); return v === k ? (ES[k] !== undefined ? ES[k] : k) : v; }
+
+let estado = null;        /* /api/radio */
+let lista = [];           /* the library */
+let logoGen = Date.now();
+
+/* ---- the board ------------------------------------------------------------ */
+
+async function post(campos) {
+  const body = Object.entries(campos)
+    .map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v)).join("&");
+  const r = await fetch("/api/radio", {
+    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body
+  });
+  const j = r.ok ? await r.json() : { ok: false, error: "HTTP " + r.status };
+  if (!j.ok) throw new Error(j.error || "error");
+  return j;
+}
+
+function avisar(texto, clase) {
+  const e = $("estado");
+  e.textContent = texto || "";
+  e.className = "chica " + (clase || "");
+}
+
+async function refrescar() {
+  try {
+    const r = await fetch("/api/radio");
+    if (!r.ok) throw new Error(r.status);
+    estado = await r.json();
+  } catch (e) { return; }
+  pintarAhora();
+  pintarTeclas();
+  $("art").checked = !!estado.art;
+}
+
+function logoUrl(k) {
+  return "/api/download?dir=radio&name=logo" + k + ".jpg&t=" + logoGen;
+}
+
+function pintarAhora() {
+  const s = estado, rd = s.radio, pl = s.player;
+  const vivo = pl.live && pl.state !== "stopped";
+  $("a_est").textContent = vivo ? (rd.station || "-") : (pl.state === "playing" ? t("musica") : t("nada"));
+  $("a_tema").textContent = vivo ? (rd.title || rd.icy_name || "") : "";
+  let det = "";
+  if (vivo) {
+    const est = { connecting: t("conectando"), buffering: t("cargando"), playing: t("en_vivo"),
+                  retrying: t("reintento"), failed: t("fallo"), off: t("parado") }[rd.state] || rd.state;
+    det = (pl.state === "paused" ? t("pausa") : est);
+    if (rd.kbps) det += " · MP3 " + rd.kbps + " kbps";
+    if (rd.host) det += " · " + rd.host;
+    if (rd.state === "playing") det += " · buffer " + (rd.buffer_ms / 1000).toFixed(1) + " s";
+    if (rd.error && (rd.state === "failed" || rd.state === "retrying")) det += " · " + rd.error;
+  } else if (rd.state === "failed" && rd.error) {
+    det = t("fallo") + ": " + rd.error;
+  }
+  $("a_det").textContent = det;
+  const k = vivo ? teclaQueSuena() : -1;
+  const box = $("a_logo");
+  if (k >= 0 && s.keys[k].logo) {
+    if (box.tagName !== "IMG" || box.dataset.k != k + "/" + logoGen) {
+      const img = document.createElement("img");
+      img.id = "a_logo"; img.src = logoUrl(k); img.dataset.k = k + "/" + logoGen;
+      box.replaceWith(img);
+    }
+  } else if (box.tagName === "IMG") {
+    const d = document.createElement("div"); d.id = "a_logo"; d.className = "sinlogo";
+    box.replaceWith(d);
+  }
+  $("b_play").innerHTML = pl.live && pl.state === "playing" ? "&#9208;" : "&#9654;";
+  if (document.activeElement !== $("vol")) $("vol").value = s.volume;
+}
+
+function teclaQueSuena() {
+  const rd = estado.radio;
+  if (rd.index >= 0 && rd.index < 9 && estado.keys[rd.index].url === rd.url) return rd.index;
+  return estado.keys.findIndex(k => k.url && k.url === rd.url);
+}
+
+/* ---- the keys --------------------------------------------------------------- */
+
+function pintarTeclas() {
+  const cont = $("teclas");
+  const suena = estado.player.live && estado.player.state !== "stopped" ? teclaQueSuena() : -1;
+  const firma = JSON.stringify(estado.keys) + suena + logoGen;
+  if (cont.dataset.firma === firma) return;
+  cont.dataset.firma = firma;
+  cont.innerHTML = "";
+  estado.keys.forEach((k, i) => {
+    const d = document.createElement("div");
+    d.className = "tecla" + (k.url ? "" : " libre") + (i === suena ? " suena" : "");
+    d.innerHTML = '<div class="num"></div><div class="nom"></div><div class="acc"></div>';
+    const num = d.querySelector(".num");
+    if (k.url && k.logo) {
+      const img = document.createElement("img");
+      img.src = logoUrl(i);
+      img.onerror = () => { num.textContent = i + 1; };
+      num.appendChild(img);
+    } else {
+      num.textContent = i + 1;
+    }
+    d.querySelector(".nom").textContent = k.url ? (i + 1) + ". " + k.name : (i + 1) + ". " + t("libre");
+    const acc = d.querySelector(".acc");
+    if (k.url) {
+      const p = document.createElement("button");
+      p.textContent = "▶ " + t("poner");
+      p.onclick = () => post({ do: "play", k: i }).then(refrescar).catch(e => avisar(e.message, "mal"));
+      const q = document.createElement("button");
+      q.className = "sec";
+      q.textContent = t("quitar");
+      q.onclick = () => post({ do: "clear", k: i }).then(() => { logoGen = Date.now(); refrescar(); })
+                          .catch(e => avisar(e.message, "mal"));
+      acc.append(p, q);
+      d.draggable = true;
+      d.ondragstart = ev => ev.dataTransfer.setData("text/aos-key", String(i));
+    }
+    d.ondragover = ev => { ev.preventDefault(); d.classList.add("sobre"); };
+    d.ondragleave = () => d.classList.remove("sobre");
+    d.ondrop = ev => {
+      ev.preventDefault();
+      d.classList.remove("sobre");
+      const desde = ev.dataTransfer.getData("text/aos-key");
+      const radio = ev.dataTransfer.getData("text/aos-lib");
+      if (desde !== "" && +desde !== i) {
+        post({ do: "swap", a: +desde, b: i }).then(() => { logoGen = Date.now(); refrescar(); })
+          .catch(e => avisar(e.message, "mal"));
+      } else if (radio !== "") {
+        asignar(lista[+radio], i);
+      }
+    };
+    cont.appendChild(d);
+  });
+}
+
+/* A station on key k: the key first, then its logo, drawn here. */
+async function asignar(st, k) {
+  if (!st) return;
+  avisar(t("guardando"));
+  try {
+    await post({ do: "set", k, name: st.name.slice(0, 47), url: st.url });
+    avisar(t("logo"));
+    const blob = st.favicon ? await hacerLogo(st.favicon) : null;
+    if (blob) {
+      const r = await fetch("/api/upload?dir=radio&name=logo" + k + ".jpg", { method: "POST", body: blob });
+      if (!r.ok) throw new Error(await r.text());
+    } else {
+      await fetch("/api/delete?dir=radio&name=logo" + k + ".jpg", { method: "POST" }).catch(() => {});
+    }
+    logoGen = Date.now();
+    await post({ do: "set", k, name: st.name.slice(0, 47), url: st.url });   /* the app re-reads the logo */
+    avisar(t("guardado"), "bien");
+  } catch (e) {
+    avisar(e.message || t("err_placa"), "mal");
+  }
+  refrescar();
+}
+
+/* A 160 px JPEG of the logo, on black, whole: what the watch shows in its dial. */
+function cargarImg(src) {
+  return new Promise((ok, mal) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => ok(img);
+    img.onerror = mal;
+    img.src = src;
+    setTimeout(mal, 8000);
+  });
+}
+
+async function hacerLogo(url) {
+  const intentos = [url, "https://wsrv.nl/?url=" + encodeURIComponent(url) + "&w=320&h=320&fit=inside&output=png"];
+  for (const u of intentos) {
+    try {
+      const img = await cargarImg(u);
+      const c = document.createElement("canvas");
+      c.width = c.height = 160;
+      const g = c.getContext("2d");
+      g.fillStyle = "#000"; g.fillRect(0, 0, 160, 160);
+      const esc = Math.min(144 / img.naturalWidth, 144 / img.naturalHeight);
+      const w = img.naturalWidth * esc, h = img.naturalHeight * esc;
+      g.imageSmoothingQuality = "high";
+      g.drawImage(img, (160 - w) / 2, (160 - h) / 2, w, h);
+      const blob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.88));   /* throws if tainted */
+      if (blob) return blob;
+    } catch (e) { /* the next one */ }
+  }
+  return null;
+}
+
+/* ---- the library -------------------------------------------------------------- */
+
+async function cargarLista() {
+  try {
+    const r = await fetch("/api/download?dir=radio&name=library.json&t=" + Date.now());
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    lista = Array.isArray(j.stations) ? j.stations : [];
+  } catch (e) {
+    lista = DEFAULTS.slice();
+  }
+  pintarLista();
+}
+
+async function guardarLista() {
+  const body = JSON.stringify({ v: 1, stations: lista });
+  try {
+    const r = await fetch("/api/upload?dir=radio&name=library.json", { method: "POST", body });
+    if (!r.ok) throw new Error(await r.text());
+  } catch (e) {
+    avisar(t("err_placa"), "mal");
+  }
+}
+
+function pais(cc) { return cc ? cc.toUpperCase() : ""; }
+
+function filaRadio(st, opciones) {
+  const li = document.createElement("li");
+  li.innerHTML = '<img class="logo" alt=""><span class="nombre"></span><span class="tag cod"></span>' +
+                 '<span class="acc"></span><span class="info"></span>';
+  const img = li.querySelector(".logo");
+  const sinLogo = () => { const d = document.createElement("span"); d.className = "logo"; img.replaceWith(d); };
+  if (st.favicon) { img.onerror = sinLogo; img.src = st.favicon; } else { sinLogo(); }
+  li.querySelector(".nombre").textContent = st.name;
+  const mp3 = (st.codec || "MP3").toUpperCase() === "MP3";
+  const cod = li.querySelector(".cod");
+  cod.textContent = (st.codec || "MP3") + (st.kbps ? " " + st.kbps : "");
+  if (!mp3) { cod.classList.add("no"); cod.title = t("no_suena"); }
+  li.querySelector(".info").textContent = [pais(st.cc), st.tags || "", st.url].filter(Boolean).join(" · ");
+  const acc = li.querySelector(".acc");
+  const oir = document.createElement("button");
+  oir.className = "sec"; oir.textContent = "🎧"; oir.title = t("oir");
+  oir.onclick = () => escuchar(st.url, oir);
+  acc.appendChild(oir);
+  if (mp3) {
+    const probar = document.createElement("button");
+    probar.className = "sec"; probar.textContent = "⌚"; probar.title = t("probar");
+    probar.onclick = () => post({ do: "test", name: st.name.slice(0, 47), url: st.url })
+                            .then(refrescar).catch(e => avisar(e.message, "mal"));
+    acc.appendChild(probar);
+  }
+  opciones(acc, li);
+  return li;
+}
+
+function pintarLista() {
+  const ul = $("lista");
+  ul.innerHTML = "";
+  $("vacio").hidden = lista.length > 0;
+  lista.forEach((st, i) => {
+    ul.appendChild(filaRadio(st, (acc, li) => {
+      const sel = document.createElement("select");
+      sel.innerHTML = '<option value="">' + aos.esc(t("a_tecla")) + "</option>" +
+                      [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => '<option value="' + (n - 1) + '">' + n + "</option>").join("");
+      sel.onchange = () => { if (sel.value !== "") asignar(st, +sel.value); sel.value = ""; };
+      const q = document.createElement("button");
+      q.className = "sec"; q.textContent = t("sacar");
+      q.onclick = () => { if (confirm(t("confirmar"))) { lista.splice(i, 1); pintarLista(); guardarLista(); } };
+      acc.append(sel, q);
+      li.draggable = true;
+      li.title = t("arrastrar");
+      li.ondragstart = ev => ev.dataTransfer.setData("text/aos-lib", String(i));
+    }));
+  });
+}
+
+/* ---- listening in the browser ------------------------------------------------------ */
+
+let oyendo = null;
+function escuchar(url, boton) {
+  const a = $("oir");
+  if (oyendo === boton) {
+    a.pause(); a.removeAttribute("src"); oyendo.textContent = "🎧"; oyendo = null;
+    return;
+  }
+  if (oyendo) oyendo.textContent = "🎧";
+  a.src = url;
+  a.play().catch(() => {});
+  boton.textContent = "⏹";
+  oyendo = boton;
+}
+
+/* ---- the search -------------------------------------------------------------------- */
+
+const SERVERS = ["de1", "de2", "fi1", "at1"];
+
+async function buscar(ev) {
+  ev.preventDefault();
+  const ul = $("res");
+  ul.innerHTML = '<li class="chica">' + aos.esc(t("buscando")) + "</li>";
+  const p = new URLSearchParams({ order: "clickcount", reverse: "true", limit: "40", hidebroken: "true" });
+  if ($("q_nombre").value.trim()) p.set("name", $("q_nombre").value.trim());
+  if ($("q_pais").value) p.set("countrycode", $("q_pais").value);
+  if ($("q_tag").value.trim()) p.set("tag", $("q_tag").value.trim().toLowerCase());
+  if ($("q_mp3").checked) p.set("codec", "MP3");
+  let res = null;
+  for (const s of SERVERS) {
+    try {
+      const r = await fetch("https://" + s + ".api.radio-browser.info/json/stations/search?" + p);
+      if (r.ok) { res = await r.json(); break; }
+    } catch (e) { /* the next mirror */ }
+  }
+  ul.innerHTML = "";
+  if (!res) { ul.innerHTML = '<li class="chica">' + aos.esc(t("err_busq")) + "</li>"; return; }
+  if (!res.length) { ul.innerHTML = '<li class="chica">' + aos.esc(t("sin_res")) + "</li>"; return; }
+  const vistos = new Set();
+  res.forEach(s => {
+    const url = s.url_resolved || s.url;
+    if (!url || vistos.has(url)) return;
+    vistos.add(url);
+    const st = { name: s.name.trim().slice(0, 47), url, favicon: s.favicon || "", cc: s.countrycode || "",
+                 tags: (s.tags || "").split(",").slice(0, 4).join(", "), codec: s.codec || "MP3",
+                 kbps: s.bitrate || 0 };
+    ul.appendChild(filaRadio(st, acc => {
+      const b = document.createElement("button");
+      const ya = () => lista.some(x => x.url === st.url);
+      b.textContent = ya() ? "✓ " + t("agregada") : "+ " + t("agregar");
+      b.disabled = ya();
+      b.onclick = () => {
+        lista.push(st); pintarLista(); guardarLista();
+        b.textContent = "✓ " + t("agregada"); b.disabled = true;
+      };
+      acc.appendChild(b);
+    }));
+  });
+}
+
+/* ---- wiring ----------------------------------------------------------------------- */
+
+$("f_buscar").onsubmit = buscar;
+$("f_mano").onsubmit = ev => {
+  ev.preventDefault();
+  const url = $("m_url").value.trim(), name = $("m_nombre").value.trim();
+  if (!/^https?:\/\//.test(url)) { avisar("http:// / https://", "mal"); return; }
+  lista.push({ name: name.slice(0, 47), url, favicon: "", cc: "", tags: "", codec: "MP3" });
+  pintarLista(); guardarLista();
+  $("f_mano").reset();
+};
+$("b_play").onclick = () => {
+  const pl = estado && estado.player;
+  const hacer = pl && pl.live && pl.state === "playing" ? { do: "pause" }
+              : pl && pl.live && pl.state === "paused" ? { do: "resume" }
+              : { do: "play", k: estado ? estado.last : 0 };
+  post(hacer).then(refrescar).catch(e => avisar(e.message, "mal"));
+};
+$("b_prev").onclick = () => post({ do: "prev" }).then(refrescar).catch(() => {});
+$("b_next").onclick = () => post({ do: "next" }).then(refrescar).catch(() => {});
+$("b_stop").onclick = () => post({ do: "stop" }).then(refrescar).catch(() => {});
+$("vol").onchange = () => post({ do: "vol", v: $("vol").value }).catch(() => {});
+$("art").onchange = () => post({ do: "art", on: $("art").checked ? 1 : 0 }).catch(() => {});
+
+aos.init(TR).then(() => {
+  refrescar();
+  cargarLista();
+  setInterval(refrescar, 3000);
+});
+</script>
+</body>
+</html>

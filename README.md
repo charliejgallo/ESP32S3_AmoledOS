@@ -390,6 +390,12 @@ a touchpad, Doom walks and shoots with two fingers, and Lua scripts get a
 | <img src="docs/img/app-flappy.png" width="200"><br>**Flappy** — one button, one bird, the usual pipes. | <img src="docs/img/app-simon.png" width="200"><br>**Simon** — the colour-and-sound memory game, each pad with its own tone. | <img src="docs/img/app-dice.png" width="200"><br>**Dados** — dice of any number of sides, rolled by shaking the watch. |
 | <img src="docs/img/app-pixel.png" width="200"><br>**Pixel Art** — 8x8 and 16x16 drawings with a 32-colour palette, frames that become a looping GIF, exported to the card as PNG and GIF. <img src="docs/img/pixel-kitten.gif" width="96"><br>The kitten is one of the samples it seeds on first run, and this GIF is the watch's own export. Since v0.4.2 a drawing can be sent to the other watch over the link. | <img src="docs/img/app-pixel-gallery.png" width="200"><br>Its gallery of eight canvases. The same files open in the portal's `/pixel` page, where they are drawn with a mouse and saved back; the watch reloads them on its own. | <img src="docs/img/app-hello.png" width="200"><br>**hello_app** — the 30-line template. It is what you copy to start one of your own; see [docs/APP-API.md](docs/APP-API.md). |
 
+#### Radio
+
+| | | |
+|---|---|---|
+| <img src="docs/img/app-radio.png" width="200"><br>**Radio** — internet stations on a front panel from the sixties: nine keys, a lit dial with the station, the song and its cover, and a needle over the scale. It plays through the firmware's player, so it goes on with the app closed and the control centre drives it. | <img src="docs/img/app-radio-info.png" width="200"><br>Tap the dial for everything the stream says of itself. The cover is looked up on iTunes by the song's title, and only taken when the artist matches; the title changes when its song is heard, not when it is downloaded ten seconds before. | <img src="docs/img/app-radio-idle.png" width="200"><br>The keys are filled in the portal's `/radio` page, from a list kept on the card and a search in radio-browser.info; the logos are drawn in the browser. MP3 over http or https; [docs/RADIO.md](docs/RADIO.md) has the measurements. |
+
 ### Written in Lua, on the watch
 
 One of those `.so` files is a **Lua 5.4 interpreter**, and with it a script is
@@ -738,6 +744,7 @@ and UDP in the simulator.
 | [STEPS.md](docs/STEPS.md) | the step counter: why it is software, how it was tuned on counted walks |
 | [VIDEO.md](docs/VIDEO.md) | video from the card: the decoder, the background task, the direct blit, and the clock |
 | [CAMERAS.md](docs/CAMERAS.md) | live IP cameras: what the H.264 and JPEG decoders do on this board, measured, and how the Cameras app splits the work across the cores |
+| [RADIO.md](docs/RADIO.md) | internet radio: what a station URL turns out to be, titles shown when they are heard, what it costs, time to sound and why the WiFi's power save mattered, the covers |
 | [MUSIC.md](docs/MUSIC.md) | MP3 and the player: the decoder checked against ffmpeg, the ring, what it costs and what it does to the app in front, gapless, the cover, mixing |
 | [RAM-AUDIT.md](docs/RAM-AUDIT.md) | where the internal RAM went and how the apps' code moved to PSRAM |
 | [ROADMAP.md](docs/ROADMAP.md) | what is planned and has no date: Android phones, and USB host (a pendrive on the watch), waiting for a way to power it |

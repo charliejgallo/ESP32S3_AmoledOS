@@ -53,6 +53,15 @@ uint32_t aos_audio_seek(aos_audio_t *a, uint32_t ms);
 
 void aos_audio_close(aos_audio_t *a);
 
+/* MP3 from something that is not a file: an internet radio (aos_radio.c).
+ * 'fn' gives up to 'max' bytes: >0 bytes, 0 none right now, -1 no more ever.
+ * No tags, no length, no seeking. aos_audio_read() on it returns 0 both when
+ * the source is momentarily dry and when it has ended: aos_audio_ended()
+ * tells them apart. */
+typedef int (*aos_audio_src_fn)(void *ctx, void *buf, int max);
+aos_audio_t *aos_audio_open_src(aos_audio_src_fn fn, void *ctx, aos_audio_info_t *info);
+bool aos_audio_ended(const aos_audio_t *a);
+
 /* True for the extensions the player takes (.wav, .mp3). */
 bool aos_audio_is_playable(const char *name);
 

@@ -3,6 +3,45 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+**Radio: internet stations on the watch.** A new app, `Radio`, and a portal
+page, `/radio`. Everything is measured in [docs/RADIO.md](docs/RADIO.md).
+
+- **The sound is the firmware's.** A station is one more source for the MP3
+  player: the same decoder, ring and writer, so it keeps playing with the app
+  closed, the control centre drives it (it shows the song, or the station
+  between songs) and an app that opens the speaker pauses it.
+  `aos_hal_radio_play(list, n, i)` takes the app's keys, and next/previous
+  walk them from anywhere.
+- **What plays:** MP3 over `http://` and `https://` - Icecast, Shoutcast and
+  the big stations' CDNs - following redirects (relative ones too) and
+  `.pls`/`.m3u` playlists, with the ICY titles taken out of the stream and
+  shown when their song is heard. AAC, Ogg and HLS are refused with the
+  reason. A dropped connection is retried on its own; a pause of more than
+  20 s resumes live.
+- **The app:** a front panel from the sixties. A lit dial with the station,
+  the song, its artist, the stream's format and the cover; a needle that
+  travels over a numbered scale to the key on air; mute, previous,
+  play/pause, next, the stream's data; volume; nine keys with LEDs. The cover
+  is the song's, looked up on iTunes by its title (only taken when the artist
+  matches; can be turned off), else the station's logo.
+- **The page:** what plays with its controls, the nine keys (drop a station
+  on one, drag to swap), a list of stations kept on the card (25 checked ones
+  to start with), a search in radio-browser.info that marks what the watch
+  cannot play, an address by hand. Logos are drawn in the browser.
+- **Measured:** 1.2-1.3 s to sound over http, 3-4 s over https with a
+  redirect; four minutes with the screen off, 0 underruns; 17.9 KB of
+  internal RAM while playing and none at rest; 11-12 % of one core.
+- **WiFi:** power save goes off while a station connects (a TLS handshake in
+  modem sleep took 6-10 s), and while one plays the watch never drops to the
+  deepest modem sleep with the screen off.
+- `aos_audio_open_src()`: MP3 from a function instead of a file.
+  `/api/player` says whether it is a station (`live`) and the reader's stack.
+  The Music app no longer takes a station for a track of the card.
+- The simulator plays stations for real (SDL), and `tools/radio_bench/` runs
+  the stream code alone against a URL on the Mac.
+
 ## v0.7.0 — 2026-09-26
 
 **Cameras: the house's IP cameras on the watch.** A new app, `Cámaras`, plays

@@ -924,3 +924,89 @@ void aos_hal_http_release(int id)
     }
     UNLOCK(s_lock);
 }
+
+/* ==========================================================================
+ * A connection that stays open (branch radio).
+ *
+ * The same transport - plain or TLS, the same trust store, the same session
+ * cache - for something that is not one request and one body: an internet
+ * radio sends audio for as long as it is listened to. aos_radio.c speaks the
+ * HTTP and the ICY on top; all this does is lend it conn_t.
+ *
+ * The one difference with http_work()'s sockets is the receive timeout. There
+ * it is HTTP_TIMEOUT_S, here one second, so the reader can notice it was
+ * asked to stop; a timeout comes back as "nothing yet" (-2), not as an error.
+ * The conn_t lives in PSRAM: an mbedtls context is ~1.5 KB, and its record
+ * buffers are there already (EXTERNAL_MEM_ALLOC).
+ * ========================================================================== */
+#include "aos_http_stream.h"
+
+struct aos_http_stream {
+    conn_t c;
+};
+
+void aos_http_stream_init(void)
+{
+    if (!s_ready) {
+        LOCK_INIT(s_lock);
+        s_ready = true;
+    }
+}
+
+int aos_http_stream_open(aos_http_stream_t **out, const char *host, int port, bool tls)
+{
+    *out = NULL;
+    aos_http_stream_init();
+#ifdef AOS_SIM
+    aos_http_stream_t *s = calloc(1, sizeof(*s));
+#else
+    aos_http_stream_t *s = heap_caps_calloc(1, sizeof(*s), MALLOC_CAP_SPIRAM);
+#endif
+    if (!s) {
+        return AOS_HTTP_ERR_MEM;
+    }
+    int rc = conn_open(&s->c, host, port, tls);
+    if (rc != 0) {
+        free(s);
+        return rc;
+    }
+    struct timeval tv = { .tv_sec = 1, .tv_usec = 0 };
+    setsockopt(s->c.fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    *out = s;
+    return 0;
+}
+
+bool aos_http_stream_send(aos_http_stream_t *s, const char *buf, int len)
+{
+    return s && conn_send(&s->c, buf, len);
+}
+
+int aos_http_stream_recv(aos_http_stream_t *s, void *buf, int max)
+{
+    if (!s) {
+        return -1;
+    }
+    if (!s->c.tls) {
+        int n = recv(s->c.fd, buf, max, 0);
+        if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            return -2;
+        }
+        return n;
+    }
+    int r = mbedtls_ssl_read(&s->c.ssl, (unsigned char *)buf, max);
+    if (r == MBEDTLS_ERR_SSL_WANT_READ || r == MBEDTLS_ERR_SSL_WANT_WRITE) {
+        return -2;
+    }
+    if (r == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
+        return 0;
+    }
+    return r;
+}
+
+void aos_http_stream_close(aos_http_stream_t *s)
+{
+    if (s) {
+        conn_close(&s->c);
+        free(s);
+    }
+}

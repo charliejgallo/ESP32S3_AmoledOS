@@ -247,6 +247,26 @@ and a Main/High (CABAC) stream does not decode at all. A picture's planes stay
 put while the next P frame decodes, not after. [CAMERAS.md](CAMERAS.md) has
 the numbers and the Cameras app is the worked example.
 
+## Internet radio (branch radio)
+
+A station is played by the firmware's player, not by the app, so it goes on
+with the app closed and the control centre drives it:
+
+```c
+aos_radio_station_t keys[9] = { { "Radio Paradise", "http://stream.radioparadise.com/mp3-128" }, ... };
+aos_hal_radio_play(keys, 9, 0);         /* next / prev walk the list, empty ones skipped */
+
+aos_player_info_t pi;                   /* what is heard: live = true, album = the station,  */
+aos_hal_player_info(&pi);               /* title / artist from StreamTitle, duration 0       */
+aos_radio_status_t rs;                  /* how the stream is doing: state, host, icy-*,      */
+aos_hal_radio_status(&rs);              /* buffer, reconnects, error; title_gen on each song */
+```
+
+MP3 over `http://` or `https://`, with redirects and `.pls`/`.m3u`; AAC, Ogg
+and HLS are refused with the reason in `rs.error`. Pause, resume, stop, next
+and previous are the player's (`aos_hal_player_*`). The Radio app
+(`apps/radio`) is the worked example; [RADIO.md](RADIO.md) has the numbers.
+
 ## Flags
 
 | Flag | Effect |

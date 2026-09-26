@@ -151,6 +151,7 @@ LVGL's TJPGD, 8.5 KB of internal RAM while open. Numbers in VIDEO.md.
 | preferences | `aos_hal_pref_get_i32/set_i32/get_str/set_str` |
 | sound | `aos_hal_beep()`, `aos_hal_volume_get/set()` |
 | player | `aos_hal_player_play/pause/resume/stop/status()`; `_play_folder/next/prev/seek/set_shuffle/info/stats()` since the MP3 branch ([MUSIC.md](MUSIC.md)) |
+| internet radio | `aos_hal_radio_play(list, n, i)`, `aos_hal_radio_status()`, `aos_hal_radio_active()`: a station through the same player, with next/prev along your list ([RADIO.md](RADIO.md)) |
 | recording | `aos_hal_rec_start/pause/resume/stop/status/peaks()` |
 | microphone | `aos_hal_mic_open/close/read/available/status()`, `aos_hal_mic_gain_set/get()` |
 | network | `aos_hal_net_state()`, `aos_hal_net_ssid()` |
@@ -746,9 +747,13 @@ Rules with no exceptions:
 - **`release()` always**, also in `destroy()` with a request in flight (the HAL
   task finishes and cleans up; the body is invalid from that instant).
 - **The body is valid until `release()`.** Copy it if you need to keep it.
-- **`http://` only.** No TLS, on purpose: mbedTLS competes for exactly the
-  internal RAM that is scarce. A proxy on a home server is the recommended
-  way to reach services that only speak HTTPS.
+- **`https://` works, and costs a handshake.** The HAL's client speaks TLS
+  (with the IDF's certificate bundle, and a session cache so a second
+  request to the same host is 0.6 s instead of 1.6-1.8). It needs the clock
+  set: without it the request fails with `AOS_HTTP_ERR_SIN_HORA`. With the
+  screen on the WiFi is in modem sleep and every round trip is 200-300 ms,
+  so a cold handshake can take several seconds; see "Numbers, time and the
+  HAL" below.
 - **Three slots in the whole system.** Do not leave requests unreleased.
 - Check `aos_hal_net_state() == AOS_NET_CONNECTED` before asking.
 
@@ -1268,6 +1273,14 @@ to a buffer of your own (`setenv` may move the pointer), set the city's zone,
 `tzset()` re-parses the DST rule. There is no zone database on the board,
 only newlib's POSIX parser: rules are written out (`"CET-1CEST,M3.5.0,M10.5.0/3"`),
 not IANA names (`aos_app_worldclock.c`).
+
+**A TLS handshake in modem sleep takes seconds.** With the screen on the
+WiFi naps between beacons and a round trip is 200-300 ms instead of 10; a
+handshake is a dozen of them. The Radio app's stations took 6-10 s to sound
+over https (a redirect and two handshakes) and 3-4 s once the HAL turned
+power save off while a station connects (RADIO.md, "Time to sound"). A
+connection that stays open wants `aos_hal_net_low_latency(true)` while it
+runs; for one request, show something while it goes.
 
 **Read the clock after draining the queue.** A link tick that took `now` at
 its start, then handled the frames that had arrived (which set `last_seen =

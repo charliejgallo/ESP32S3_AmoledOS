@@ -120,7 +120,9 @@ static void refresh(void)
         /* Here the track: there is no app name to show, and the title is
          * what tells one of the card's songs from another. */
         char safe[96];
-        aos_text_safe(safe, sizeof(safe), pi.title[0] ? pi.title : _("Música"));
+        /* a station between songs says its own name */
+        aos_text_safe(safe, sizeof(safe), pi.title[0] ? pi.title
+                                          : (pi.live && pi.album[0]) ? pi.album : _("Música"));
         set_text(s_cc.player, safe);
         set_text(s_cc.play, pi.state == AOS_PLAYER_PLAYING ? AOS_SG_PAUSE : AOS_SG_PLAY);
         lv_obj_remove_flag(s_cc.music, LV_OBJ_FLAG_HIDDEN);

@@ -758,7 +758,9 @@ typedef struct {
     bool        has_cover;      /* an embedded picture                      */
     uint32_t    cover_offset;   /* where its bytes are in the file, and how */
     uint32_t    cover_size;     /* many (JPEG or PNG, see cover_mime)       */
-    uint32_t    reserved[6];
+    bool        live;           /* an internet radio (aos_hal_radio_play)   */
+    uint8_t     pad_[3];
+    uint32_t    reserved[5];
 } aos_player_info_t;
 
 bool aos_hal_player_info(aos_player_info_t *out);
@@ -796,6 +798,73 @@ typedef struct {
 } aos_player_stats_t;
 
 bool aos_hal_player_stats(aos_player_stats_t *out);
+
+/* --------------------------------------------------------------------------
+ * Internet radio (branch radio)
+ *
+ * A station is played BY THE PLAYER, the same decoder, ring and writer as a
+ * file: it goes on with the app closed, the control centre and /api/player
+ * drive it, an app that opens the speaker pauses it. MP3 streams over
+ * http:// or https:// (Icecast, Shoutcast, most station CDNs), redirects and
+ * .pls / .m3u playlists followed; AAC and Ogg are refused with a reason.
+ *
+ * aos_hal_radio_play() takes the whole list of stations and the one to play:
+ * aos_hal_player_next() / _prev() then move along it, from the app or from
+ * anywhere else. While a station plays, aos_hal_player_info() says so:
+ * 'live' is true, 'album' is the station's name, 'title' and 'artist' come
+ * from the stream's StreamTitle ("Artist - Title"), 'index' / 'count' are
+ * the station's place in the list and 'duration_ms' is 0.
+ *
+ * Pausing keeps the connection while the buffer holds (about ten seconds at
+ * 128 kbps); a pause longer than that resumes live, not where it was.
+ * -------------------------------------------------------------------------- */
+
+#define AOS_RADIO_MAX_STATIONS 16
+
+typedef struct {
+    char name[48];
+    char url[256];
+} aos_radio_station_t;
+
+bool aos_hal_radio_play(const aos_radio_station_t *list, int count, int index);
+bool aos_hal_radio_active(void);        /* a station is the player's source */
+
+typedef enum {
+    AOS_RADIO_OFF = 0,
+    AOS_RADIO_CONNECTING,       /* resolving, connecting, TLS, headers      */
+    AOS_RADIO_BUFFERING,        /* connected, filling before sound          */
+    AOS_RADIO_PLAYING,
+    AOS_RADIO_RETRYING,         /* the connection dropped: trying again     */
+    AOS_RADIO_FAILED,           /* given up; see 'error'                    */
+} aos_radio_state_t;
+
+typedef struct {
+    aos_radio_state_t state;
+    int      index;             /* in the list given to aos_hal_radio_play  */
+    int      count;
+    char     station[48];       /* the list's name for it                   */
+    char     url[256];          /* the list's URL                           */
+    char     host[64];          /* where the audio really comes from        */
+    bool     tls;
+    char     icy_name[64];      /* what the station says of itself          */
+    char     icy_genre[48];
+    char     icy_url[96];
+    char     icy_desc[96];
+    char     content_type[32];
+    char     title[128];        /* StreamTitle as heard, UTF-8              */
+    uint32_t title_gen;         /* +1 each time the heard title changes     */
+    uint16_t kbps;              /* icy-br, else the first frame's           */
+    uint32_t sample_rate;
+    uint8_t  channels;
+    uint32_t buffer_ms;         /* bytes received and not yet decoded       */
+    uint32_t bytes;             /* audio bytes received since play          */
+    uint32_t reconnects;
+    uint32_t listening_s;       /* since play, pauses included              */
+    char     error[64];         /* why FAILED or RETRYING, in English       */
+    uint32_t reserved[8];
+} aos_radio_status_t;
+
+bool aos_hal_radio_status(aos_radio_status_t *out);
 
 /* --------------------------------------------------------------------------
  * Remote control of the phone's music
