@@ -109,7 +109,8 @@ There is also a pseudolocalisation pack for stress-testing layouts.
 recordings to the card from any browser — and for configuring the things that
 are miserable to type on a 368 px screen: WiFi, the Home Assistant address and
 token, the weather location, which exchange rates to watch, which sensors to
-plot, and the whole remote-control profile. It also carries every switch of the
+plot, the cameras, the radio stations on the Radio app's nine keys (searched in
+radio-browser.info from the page itself), and the whole remote-control profile. It also carries every switch of the
 Settings app, a live view of the screen with the controls to drive it from the
 browser, and the log tailed over wifi. Two of its pages are editors rather than
 forms: `/pixel` for the drawings and `/lua` for the scripts, both writing the
@@ -677,6 +678,7 @@ into. The portal serves each one by name.
 | `icons/` | icon files (`<app.id>.aic`) that replace an app's icon | the portal's `/iconos` ([ICONS.md](docs/ICONS.md)) |
 | `recordings/` | what Grabadora records (WAV, 16 kHz mono) | the watch |
 | `redes/` | the network scanner's surveys | the watch |
+| `radio/` | the Radio app's list of stations (`library.json`) and the logo of each key (`logoN.jpg`) | the portal's `/radio` |
 | `menu.txt` | the launcher's order and folders | the portal's `/menu` ([MENU.md](docs/MENU.md)) |
 
 ## Quick start
@@ -794,7 +796,8 @@ device modes (keyboard, mouse, gamepad, MIDI, network, disk) have all been
 exercised on the board — most of the measurements quoted throughout the source
 were taken there. The link between two watches has been played with on two
 boards: Pong, Truco, a drawing sent, the radar, the walkie through a door, a
-fight in Chatarra's phone booth and a match of Neon Snakes.
+fight in Chatarra's phone booth and a match of Neon Snakes. Internet radio has
+played on both watches, over http and https, with the screen off.
 USB host mode (a pendrive on the watch) works but is parked: the board cannot
 power a peripheral ([USB.md](docs/USB.md)).
 

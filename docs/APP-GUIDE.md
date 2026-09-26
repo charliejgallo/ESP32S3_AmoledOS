@@ -1176,6 +1176,12 @@ every row on every scroll event - 54 invalidations for 27 apps, so every scroll
 frame was a full screen. Read the style before writing and count what you
 invalidate.
 
+**A `LV_LABEL_LONG_MODE_DOTS` label with no height wraps instead of cutting.**
+The dots only appear when the text overflows a box of fixed size; with the
+height left to the content, a long station name on a preset key became two
+lines that spilled out of it. Give it one line:
+`lv_obj_set_height(label, lv_font_get_line_height(font))`.
+
 **Scaling a label off-centres it**: `transform_scale` scales from the top-left
 corner; set both pivots to `lv_pct(50)`. **`lv_obj_align_to()` is not
 recomputed** when the text changes length; use a fixed box with the text
@@ -1236,6 +1242,13 @@ pin the task yourself; `aos_hal_worker_start_on()` already does.
 **A task starved of CPU cannot raise its own priority.** If something must
 speed up when it falls behind, a task that keeps running has to do the
 raising (the player's writer does it for the decoder).
+
+**Sound that must outlive the app belongs to the player, not to the app.**
+A `.so` is unloaded when its app closes, and its worker with it. The Radio
+app plays nothing itself: it hands its stations to `aos_hal_radio_play()` and
+reads back `aos_hal_player_info()` and `aos_hal_radio_status()`, so the
+station goes on in the launcher and the control centre drives it. If what you
+play is a file, `aos_hal_player_play_folder()` does the same.
 
 **The speaker and the microphone cannot run at once.** Same ES8311 on the same
 I2S channels: while a capture is open - the recorder, or `aos_hal_mic_open()`
