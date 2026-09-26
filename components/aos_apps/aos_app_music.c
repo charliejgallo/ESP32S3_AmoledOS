@@ -189,7 +189,9 @@ static void refresh(lv_timer_t *timer)
     if (!aos_hal_player_info(&in)) {
         return;
     }
-    bool active = in.state != AOS_PLAYER_STOPPED;
+    /* A station is the Radio app's: here it is as if nothing played, and
+     * playing a track takes the speaker back from it. */
+    bool active = in.state != AOS_PLAYER_STOPPED && !in.live;
 
     /* The list's top row: what is playing, in pink; with nothing playing,
      * the last track and where it was, to go on from there. */
@@ -220,7 +222,7 @@ static void refresh(lv_timer_t *timer)
         }
     }
 
-    if (!active && !in.path[0]) {
+    if (!active && (!in.path[0] || in.live)) {
         return;
     }
     char safe[200];
@@ -561,7 +563,7 @@ static void *create(aos_app_t *self, lv_obj_t *root)
      * the row to go on from there on top. */
     aos_player_info_t in;
     aos_hal_player_info(&in);
-    bool active = in.state != AOS_PLAYER_STOPPED && in.path[0];
+    bool active = in.state != AOS_PLAYER_STOPPED && in.path[0] && !in.live;
     char last[256];
     s_music.has_last = !active && aos_hal_player_last(last, sizeof(last), &s_music.last_pos);
     if (s_music.has_last) {

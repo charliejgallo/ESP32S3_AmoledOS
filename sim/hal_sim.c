@@ -7,6 +7,10 @@
  */
 #include "aos_hal.h"
 #include "aos_audio.h"
+#include "aos_radio.h"
+#include "aos_http_stream.h"
+#include <pthread.h>
+#include <unistd.h>
 #include "aos_link_internal.h"
 #include "aos_notif_internal.h"
 
@@ -870,6 +874,290 @@ static bool     s_player_shuffle;
 
 static void player_remember(void);
 
+/* --------------------------------------------------------------------------
+ * Simulated radio: unlike the files, this one is REAL. The same aos_radio.c
+ * connects, follows the redirects and takes the ICY titles out, the same
+ * aos_audio.c decodes, and SDL plays it at the station's rate, mono like the
+ * watch (AOS_SIM_RADIO_MUTE=1 decodes without sound). What is not the board's
+ * is the ring: SDL's queue, kept half a second deep, so a title is shown
+ * when it is decoded rather than when it is heard.
+ * -------------------------------------------------------------------------- */
+static bool                 s_rmode;
+static aos_radio_station_t  s_rlist[AOS_RADIO_MAX_STATIONS];
+static int                  s_rcount;
+static volatile int         s_rindex;
+static pthread_t            s_rthread;
+static bool                 s_rthread_on;
+static volatile bool        s_rstop;
+static volatile int         s_rskip;
+static volatile aos_player_state_t s_rstate;
+static pthread_mutex_t      s_rmux = PTHREAD_MUTEX_INITIALIZER;
+static char                 s_rtitle[96], s_rartist[96], s_rheard[128];
+static uint32_t             s_rheard_gen;
+static aos_audio_info_t     s_rinfo;
+static uint64_t             s_rstarted_ms;
+static uint32_t             s_rpcm_ms;          /* queued in SDL */
+
+static void radio_set_heard(const char *full)
+{
+    pthread_mutex_lock(&s_rmux);
+    const char *sep = strstr(full, " - ");
+    if (sep) {
+        snprintf(s_rartist, sizeof(s_rartist), "%.*s", (int)(sep - full), full);
+        snprintf(s_rtitle, sizeof(s_rtitle), "%s", sep + 3);
+    } else {
+        s_rartist[0] = '\0';
+        snprintf(s_rtitle, sizeof(s_rtitle), "%s", full);
+    }
+    snprintf(s_rheard, sizeof(s_rheard), "%s", full);
+    s_rheard_gen++;
+    pthread_mutex_unlock(&s_rmux);
+}
+
+static int radio_next_index(int from, int step)
+{
+    for (int k = 1; k <= s_rcount; k++) {
+        int i = ((from + step * k) % s_rcount + s_rcount) % s_rcount;
+        if (s_rlist[i].url[0]) {
+            return i;
+        }
+    }
+    return from;
+}
+
+static void *radio_thread(void *arg)
+{
+    (void)arg;
+    bool mute = getenv("AOS_SIM_RADIO_MUTE") && getenv("AOS_SIM_RADIO_MUTE")[0] == '1';
+    int16_t *pcm = malloc(1152 * 2 * sizeof(int16_t));
+    int16_t *mono = malloc(1152 * sizeof(int16_t));
+    bool restart = true;
+    aos_audio_t *dec = NULL;
+    SDL_AudioDeviceID dev = 0;
+    uint32_t dev_rate = 0, seen_gen = 0;
+    uint64_t paused_at = 0;
+
+    while (!s_rstop) {
+        if (s_rskip) {
+            s_rindex = radio_next_index(s_rindex, s_rskip);
+            s_rskip = 0;
+            restart = true;
+        }
+        if (s_rstate == AOS_PLAYER_PAUSED) {
+            if (!paused_at) {
+                paused_at = aos_hal_uptime_ms();
+                if (dev) SDL_PauseAudioDevice(dev, 1);
+            }
+            usleep(20000);
+            continue;
+        }
+        if (paused_at) {
+            if (aos_hal_uptime_ms() - paused_at > 20000) {
+                restart = true;                 /* back to live, as the board */
+            }
+            paused_at = 0;
+            if (dev) SDL_PauseAudioDevice(dev, 0);
+        }
+        if (restart) {
+            restart = false;
+            aos_audio_close(dec);
+            dec = NULL;
+            if (dev) SDL_ClearQueuedAudio(dev);
+            pthread_mutex_lock(&s_rmux);
+            memset(&s_rinfo, 0, sizeof(s_rinfo));
+            pthread_mutex_unlock(&s_rmux);
+            radio_set_heard("");
+            seen_gen = 0;
+            s_rstarted_ms = aos_hal_uptime_ms();
+            printf("[hal] radio: %s <%s>\n", s_rlist[s_rindex].name, s_rlist[s_rindex].url);
+            if (!aos_radio_start(s_rlist[s_rindex].url)) {
+                break;
+            }
+        }
+        if (!dec) {
+            int ready = aos_radio_ready();
+            if (ready == 0) {
+                usleep(50000);
+                continue;
+            }
+            if (ready < 0) {
+                aos_radio_status_t st;
+                memset(&st, 0, sizeof(st));
+                aos_radio_fill_status(&st);
+                printf("[hal] radio: gave up: %s\n", st.error);
+                break;
+            }
+            aos_audio_info_t info;
+            dec = aos_audio_open_src(aos_radio_read, NULL, &info);
+            if (!dec) {
+                printf("[hal] radio: no MP3 frames\n");
+                break;
+            }
+            pthread_mutex_lock(&s_rmux);
+            s_rinfo = info;
+            pthread_mutex_unlock(&s_rmux);
+            printf("[hal] radio: MP3 %u kbps %u Hz %u ch\n", (unsigned)info.kbps,
+                   (unsigned)info.sample_rate, (unsigned)info.channels);
+            if (!mute && (dev == 0 || dev_rate != info.sample_rate)) {
+                if (dev) SDL_CloseAudioDevice(dev);
+                SDL_AudioSpec want = {0};
+                want.freq = (int)info.sample_rate;
+                want.format = AUDIO_S16SYS;
+                want.channels = 1;
+                want.samples = 2048;
+                dev = SDL_OpenAudioDevice(NULL, 0, &want, NULL, 0);
+                dev_rate = info.sample_rate;
+                if (dev) SDL_PauseAudioDevice(dev, 0);
+            }
+        }
+        uint32_t rate = s_rinfo.sample_rate ? s_rinfo.sample_rate : 44100;
+        uint32_t queued = dev ? SDL_GetQueuedAudioSize(dev) / 2 : 0;
+        s_rpcm_ms = queued * 1000 / rate;
+        if (queued > rate / 2) {
+            usleep(20000);
+            continue;
+        }
+        int n = aos_audio_read(dec, pcm, 1152);
+        if (n <= 0) {
+            if (aos_audio_ended(dec)) {
+                printf("[hal] radio: the stream ended\n");
+                break;
+            }
+            usleep(20000);
+            continue;
+        }
+        int ch = s_rinfo.channels ? s_rinfo.channels : 2;
+        for (int i = 0; i < n; i++) {
+            mono[i] = ch == 2 ? (int16_t)(((int32_t)pcm[2 * i] + pcm[2 * i + 1]) / 2) : pcm[i];
+        }
+        if (dev) {
+            SDL_QueueAudio(dev, mono, (Uint32)n * 2);
+        } else if (mute) {
+            usleep((useconds_t)((uint64_t)n * 1000000 / rate));   /* keep real time */
+        }
+        char title[128];
+        uint32_t gen = aos_radio_title_at_read(title, sizeof(title));
+        if (gen != seen_gen) {
+            seen_gen = gen;
+            printf("[hal] radio: title \"%s\"\n", title);
+            radio_set_heard(title);
+        }
+    }
+    aos_audio_close(dec);
+    if (dev) SDL_CloseAudioDevice(dev);
+    aos_radio_stop();
+    free(pcm);
+    free(mono);
+    s_rstate = AOS_PLAYER_STOPPED;
+    return NULL;
+}
+
+static void radio_stop_thread(void)
+{
+    if (s_rthread_on) {
+        s_rstop = true;
+        pthread_join(s_rthread, NULL);
+        s_rthread_on = false;
+    }
+    s_rstate = AOS_PLAYER_STOPPED;
+}
+
+bool aos_hal_radio_play(const aos_radio_station_t *list, int count, int index)
+{
+    if (!list || count <= 0 || index < 0 || index >= count || !list[index].url[0]) {
+        return false;
+    }
+    if (count > AOS_RADIO_MAX_STATIONS) {
+        count = AOS_RADIO_MAX_STATIONS;
+        if (index >= count) {
+            return false;
+        }
+    }
+    aos_http_stream_init();
+    radio_stop_thread();
+    s_player_state = AOS_PLAYER_STOPPED;
+    if (list != s_rlist) {
+        memcpy(s_rlist, list, (size_t)count * sizeof(aos_radio_station_t));
+    }
+    for (int i = 0; i < count; i++) {
+        s_rlist[i].name[sizeof(s_rlist[i].name) - 1] = '\0';
+        s_rlist[i].url[sizeof(s_rlist[i].url) - 1] = '\0';
+    }
+    s_rcount = count;
+    s_rindex = index;
+    s_rmode = true;
+    s_rstop = false;
+    s_rskip = 0;
+    s_rstate = AOS_PLAYER_PLAYING;
+    if (pthread_create(&s_rthread, NULL, radio_thread, NULL) != 0) {
+        s_rstate = AOS_PLAYER_STOPPED;
+        return false;
+    }
+    s_rthread_on = true;
+    return true;
+}
+
+bool aos_hal_radio_active(void)
+{
+    return s_rmode && s_rstate != AOS_PLAYER_STOPPED;
+}
+
+bool aos_hal_radio_status(aos_radio_status_t *out)
+{
+    if (!out) {
+        return false;
+    }
+    memset(out, 0, sizeof(*out));
+    out->index = -1;
+    if (!s_rmode) {
+        return true;
+    }
+    aos_radio_fill_status(out);
+    if (s_rstate == AOS_PLAYER_STOPPED && out->state != AOS_RADIO_FAILED) {
+        out->state = AOS_RADIO_OFF;
+    }
+    out->index = s_rindex;
+    out->count = s_rcount;
+    memcpy(out->station, s_rlist[s_rindex].name, sizeof(out->station));
+    memcpy(out->url, s_rlist[s_rindex].url, sizeof(out->url));
+    pthread_mutex_lock(&s_rmux);
+    memcpy(out->title, s_rheard, sizeof(out->title));
+    out->title_gen   = s_rheard_gen;
+    out->sample_rate = s_rinfo.sample_rate;
+    out->channels    = s_rinfo.channels;
+    if (!out->kbps) {
+        out->kbps = s_rinfo.kbps;
+    }
+    pthread_mutex_unlock(&s_rmux);
+    if (s_rstate != AOS_PLAYER_STOPPED) {
+        out->buffer_ms += s_rpcm_ms;
+        out->listening_s = (uint32_t)((aos_hal_uptime_ms() - s_rstarted_ms) / 1000);
+    }
+    return true;
+}
+
+static bool radio_info(aos_player_info_t *out)
+{
+    memset(out, 0, sizeof(*out));
+    out->state = s_rstate;
+    pthread_mutex_lock(&s_rmux);
+    snprintf(out->path, sizeof(out->path), "%s", s_rlist[s_rindex].url);
+    snprintf(out->title, sizeof(out->title), "%s", s_rtitle);
+    snprintf(out->artist, sizeof(out->artist), "%s", s_rartist);
+    snprintf(out->album, sizeof(out->album), "%s", s_rlist[s_rindex].name);
+    out->format      = s_rinfo.format == AOS_AUDIO_MP3 ? "MP3" : "";
+    out->kbps        = s_rinfo.kbps;
+    out->sample_rate = s_rinfo.sample_rate;
+    out->channels    = s_rinfo.channels;
+    pthread_mutex_unlock(&s_rmux);
+    out->position_ms = s_rstate != AOS_PLAYER_STOPPED
+                     ? (uint32_t)(aos_hal_uptime_ms() - s_rstarted_ms) : 0;
+    out->index = s_rindex;
+    out->count = s_rcount;
+    out->live  = true;
+    return true;
+}
+
 static bool player_open(const char *path)
 {
     aos_audio_t *a = aos_audio_open(path, &s_player_info);
@@ -951,6 +1239,8 @@ bool aos_hal_player_play(const char *path)
     if (!path) {
         return false;
     }
+    radio_stop_thread();
+    s_rmode = false;
     s_player_index = -1;
     aos_audio_list_free(&s_player_list);
     return player_open(path);
@@ -964,6 +1254,8 @@ bool aos_hal_player_play_folder(const char *path)
     }
     char dir[160];
     snprintf(dir, sizeof(dir), "%.*s", (int)(slash - path), path);
+    radio_stop_thread();
+    s_rmode = false;
     aos_audio_list_scan(&s_player_list, dir, 512);
     s_player_index = aos_audio_list_find(&s_player_list, slash + 1);
     return player_open(path);
@@ -971,6 +1263,10 @@ bool aos_hal_player_play_folder(const char *path)
 
 void aos_hal_player_pause(void)
 {
+    if (s_rmode) {
+        if (s_rstate == AOS_PLAYER_PLAYING) s_rstate = AOS_PLAYER_PAUSED;
+        return;
+    }
     player_advance();
     player_remember();
     if (s_player_state == AOS_PLAYER_PLAYING) {
@@ -980,6 +1276,10 @@ void aos_hal_player_pause(void)
 
 void aos_hal_player_resume(void)
 {
+    if (s_rmode) {
+        if (s_rstate == AOS_PLAYER_PAUSED) s_rstate = AOS_PLAYER_PLAYING;
+        return;
+    }
     s_player_last_ms = aos_hal_uptime_ms();
     if (s_player_state == AOS_PLAYER_PAUSED) {
         s_player_state = AOS_PLAYER_PLAYING;
@@ -988,6 +1288,10 @@ void aos_hal_player_resume(void)
 
 void aos_hal_player_stop(void)
 {
+    if (s_rmode) {
+        radio_stop_thread();
+        return;
+    }
     player_advance();
     player_remember();
     s_player_state = AOS_PLAYER_STOPPED;
@@ -996,6 +1300,15 @@ void aos_hal_player_stop(void)
 
 void aos_hal_player_next(void)
 {
+    if (s_rmode) {
+        if (s_rstate == AOS_PLAYER_STOPPED) {
+            aos_hal_radio_play(s_rlist, s_rcount, radio_next_index(s_rindex, 1));
+        } else {
+            s_rskip = 1;
+            s_rstate = AOS_PLAYER_PLAYING;
+        }
+        return;
+    }
     if (s_player_state != AOS_PLAYER_STOPPED) {
         player_step_to(1);
     }
@@ -1003,6 +1316,15 @@ void aos_hal_player_next(void)
 
 void aos_hal_player_prev(void)
 {
+    if (s_rmode) {
+        if (s_rstate == AOS_PLAYER_STOPPED) {
+            aos_hal_radio_play(s_rlist, s_rcount, radio_next_index(s_rindex, -1));
+        } else {
+            s_rskip = -1;
+            s_rstate = AOS_PLAYER_PLAYING;
+        }
+        return;
+    }
     player_advance();
     if (s_player_state == AOS_PLAYER_STOPPED) {
         return;
@@ -1030,6 +1352,18 @@ bool aos_hal_player_status(aos_player_status_t *out)
     if (!out) {
         return false;
     }
+    if (s_rmode) {
+        aos_player_info_t in;
+        radio_info(&in);
+        memset(out, 0, sizeof(*out));
+        out->state = in.state;
+        out->position_s = in.position_ms / 1000;
+        out->sample_rate = in.sample_rate;
+        out->channels = in.channels;
+        snprintf(out->path, sizeof(out->path), "%s", in.path);
+        snprintf(out->title, sizeof(out->title), "%s", in.title[0] ? in.title : in.album);
+        return true;
+    }
     player_advance();
 
     out->state       = s_player_state;
@@ -1046,6 +1380,9 @@ bool aos_hal_player_info(aos_player_info_t *out)
 {
     if (!out) {
         return false;
+    }
+    if (s_rmode) {
+        return radio_info(out);
     }
     player_advance();
     memset(out, 0, sizeof(*out));

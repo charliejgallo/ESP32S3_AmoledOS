@@ -60,6 +60,8 @@ typedef struct {
 
 struct aos_audio {
     FILE    *file;
+    aos_audio_src_fn src;       /* instead of the file: a stream */
+    void    *src_ctx;
     aos_audio_format_t format;
     uint8_t  channels;
     uint32_t sample_rate;
@@ -339,7 +341,8 @@ static int wav_read(aos_audio_t *a, int16_t *pcm, int max_frames)
 
 /* ---- MP3 ---------------------------------------------------------------- */
 
-static void mp3_refill(aos_audio_t *a)
+/* Returns how many bytes it added. */
+static int mp3_refill(aos_audio_t *a)
 {
     int keep = a->in_len - a->in_pos;
     if (keep > 0 && a->in_pos > 0) {
@@ -347,16 +350,27 @@ static void mp3_refill(aos_audio_t *a)
     }
     a->in_len = keep;
     a->in_pos = 0;
+    if (a->src) {
+        int got = a->in_eof ? -1 : a->src(a->src_ctx, a->in + a->in_len, IN_SIZE - a->in_len);
+        if (got < 0) {
+            a->in_eof = true;
+            return 0;
+        }
+        a->in_len += got;
+        a->file_pos += (uint32_t)got;
+        return got;
+    }
     uint32_t want = (uint32_t)(IN_SIZE - a->in_len);
     if (want > a->data_end - a->file_pos) want = a->data_end - a->file_pos;
     if (want == 0) {
         a->in_eof = true;
-        return;
+        return 0;
     }
     size_t got = fread(a->in + a->in_len, 1, want, a->file);
     a->in_len += (int)got;
     a->file_pos += (uint32_t)got;
     if (got < want) a->in_eof = true;
+    return (int)got;
 }
 
 /* The Xing/Info header of the first frame: frame count (so the length of a
@@ -530,8 +544,8 @@ static int mp3_read(aos_audio_t *a, int16_t *pcm, int max_frames)
             a->in_pos = a->in_len;              /* a torn last frame */
         } else if (a->in_pos == 0 && a->in_len == IN_SIZE) {
             a->in_pos = a->in_len;              /* 16 KB of nothing */
-        } else {
-            mp3_refill(a);
+        } else if (mp3_refill(a) == 0 && a->src) {
+            break;                              /* a stream, dry for now: a torn frame waits */
         }
     }
     return done;
@@ -582,6 +596,71 @@ aos_audio_t *aos_audio_open(const char *path, aos_audio_info_t *info)
     return a;
 }
 
+aos_audio_t *aos_audio_open_src(aos_audio_src_fn fn, void *ctx, aos_audio_info_t *info)
+{
+    aos_audio_info_t scratch_info;
+    if (!info) info = &scratch_info;
+    memset(info, 0, sizeof *info);
+    if (!fn) return NULL;
+
+    aos_audio_t *a = big_alloc(sizeof *a);
+    if (!a) return NULL;
+    a->enc_delay = a->enc_padding = -1;
+    a->src = fn;
+    a->src_ctx = ctx;
+    a->format = AOS_AUDIO_MP3;
+    a->data_end = UINT32_MAX;
+    a->in  = big_alloc(IN_SIZE);
+    a->pcm = big_alloc(MINIMP3_MAX_SAMPLES_PER_FRAME * sizeof(int16_t));
+    a->mp3.scratch = big_alloc(sizeof(mp3dec_scratch_t));
+    if (!a->in || !a->pcm || !a->mp3.scratch) {
+        aos_audio_close(a);
+        return NULL;
+    }
+    mp3dec_init(&a->mp3.dec);
+    mp3_refill(a);
+
+    /* The first frame, as for a file. The caller waited for a buffer's worth
+     * before opening, so 16 KB are in hand; minimp3 wants several frames in
+     * a row before it believes a sync word, and a stream joined halfway
+     * starts in the middle of one. */
+    mp3dec_frame_info_t fi;
+    memset(&fi, 0, sizeof fi);
+    for (int tries = 0; tries < 64; tries++) {
+        memset(&fi, 0, sizeof fi);
+        int samples = mp3dec_decode_frame(&a->mp3.dec, a->in + a->in_pos,
+                                          a->in_len - a->in_pos, NULL, &fi);
+        if (samples > 0) break;
+        if (fi.frame_bytes > 0) {
+            a->in_pos += fi.frame_bytes;
+        } else if (a->in_eof) {
+            break;
+        } else if (a->in_pos == 0 && a->in_len == IN_SIZE) {
+            a->in_pos = a->in_len;              /* 16 KB and no frame: not MP3 */
+            break;
+        }
+        mp3_refill(a);
+    }
+    if (fi.hz <= 0 || fi.channels <= 0) {
+        aos_audio_close(a);
+        return NULL;
+    }
+    a->sample_rate = (uint32_t)fi.hz;
+    a->channels = (uint8_t)fi.channels;
+    a->kbps = (uint16_t)fi.bitrate_kbps;
+    info->format = AOS_AUDIO_MP3;
+    info->sample_rate = a->sample_rate;
+    info->channels = a->channels;
+    info->kbps = a->kbps;
+    mp3dec_init(&a->mp3.dec);
+    return a;
+}
+
+bool aos_audio_ended(const aos_audio_t *a)
+{
+    return !a || !a->src || (a->in_eof && a->in_pos >= a->in_len && a->pcm_pos >= a->pcm_frames);
+}
+
 int aos_audio_read(aos_audio_t *a, int16_t *pcm, int max_frames)
 {
     if (!a || !pcm || max_frames <= 0) return -1;
@@ -591,7 +670,7 @@ int aos_audio_read(aos_audio_t *a, int16_t *pcm, int max_frames)
 
 uint32_t aos_audio_seek(aos_audio_t *a, uint32_t ms)
 {
-    if (!a) return 0;
+    if (!a || a->src) return 0;
     if (a->format == AOS_AUDIO_WAV) {
         uint64_t off = (uint64_t)ms * a->byte_rate / 1000;
         off -= off % a->block_align;

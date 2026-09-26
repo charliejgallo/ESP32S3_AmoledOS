@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 121 funciones de libc/libm agregadas a mano.
- * Total: 2880 simbolos.
+ * Total: 2898 simbolos.
  */
 
 #include <stddef.h>
@@ -59,6 +59,7 @@ extern int aos_app_worldclock_get;
 extern int aos_apps_register_builtin;
 extern int aos_audio_close;
 extern int aos_audio_cost;
+extern int aos_audio_ended;
 extern int aos_audio_is_playable;
 extern int aos_audio_list_find;
 extern int aos_audio_list_free;
@@ -66,6 +67,7 @@ extern int aos_audio_list_name;
 extern int aos_audio_list_scan;
 extern int aos_audio_name_cmp;
 extern int aos_audio_open;
+extern int aos_audio_open_src;
 extern int aos_audio_read;
 extern int aos_audio_seek;
 extern int aos_board_imu_gyro_enable;
@@ -354,6 +356,9 @@ extern int aos_hal_pref_get_str;
 extern int aos_hal_pref_set_i32;
 extern int aos_hal_pref_set_str;
 extern int aos_hal_probe_devices;
+extern int aos_hal_radio_active;
+extern int aos_hal_radio_play;
+extern int aos_hal_radio_status;
 extern int aos_hal_raise_wake_enable;
 extern int aos_hal_raise_wake_enabled;
 extern int aos_hal_reboot;
@@ -437,6 +442,11 @@ extern int aos_hal_worker_start_on;
 extern int aos_hal_worker_stop;
 extern int aos_hand_create;
 extern int aos_hand_set_angle;
+extern int aos_http_stream_close;
+extern int aos_http_stream_init;
+extern int aos_http_stream_open;
+extern int aos_http_stream_recv;
+extern int aos_http_stream_send;
 extern int aos_i18n_app_count;
 extern int aos_i18n_app_load;
 extern int aos_i18n_app_unload;
@@ -511,6 +521,14 @@ extern int aos_quick_set_wifi;
 extern int aos_quick_slider;
 extern int aos_quick_tiles_create;
 extern int aos_quick_tiles_paint;
+extern int aos_radio_buffered;
+extern int aos_radio_fill_status;
+extern int aos_radio_read;
+extern int aos_radio_ready;
+extern int aos_radio_stack_free;
+extern int aos_radio_start;
+extern int aos_radio_stop;
+extern int aos_radio_title_at_read;
 extern int aos_rtc_start;
 extern int aos_settings_font;
 extern int aos_soc_ceiling;
@@ -2942,6 +2960,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_apps_register_builtin),
     ESP_ELFSYM_EXPORT(aos_audio_close),
     ESP_ELFSYM_EXPORT(aos_audio_cost),
+    ESP_ELFSYM_EXPORT(aos_audio_ended),
     ESP_ELFSYM_EXPORT(aos_audio_is_playable),
     ESP_ELFSYM_EXPORT(aos_audio_list_find),
     ESP_ELFSYM_EXPORT(aos_audio_list_free),
@@ -2949,6 +2968,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_audio_list_scan),
     ESP_ELFSYM_EXPORT(aos_audio_name_cmp),
     ESP_ELFSYM_EXPORT(aos_audio_open),
+    ESP_ELFSYM_EXPORT(aos_audio_open_src),
     ESP_ELFSYM_EXPORT(aos_audio_read),
     ESP_ELFSYM_EXPORT(aos_audio_seek),
     ESP_ELFSYM_EXPORT(aos_board_imu_gyro_enable),
@@ -3237,6 +3257,9 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_pref_set_i32),
     ESP_ELFSYM_EXPORT(aos_hal_pref_set_str),
     ESP_ELFSYM_EXPORT(aos_hal_probe_devices),
+    ESP_ELFSYM_EXPORT(aos_hal_radio_active),
+    ESP_ELFSYM_EXPORT(aos_hal_radio_play),
+    ESP_ELFSYM_EXPORT(aos_hal_radio_status),
     ESP_ELFSYM_EXPORT(aos_hal_raise_wake_enable),
     ESP_ELFSYM_EXPORT(aos_hal_raise_wake_enabled),
     ESP_ELFSYM_EXPORT(aos_hal_reboot),
@@ -3320,6 +3343,11 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_hal_worker_stop),
     ESP_ELFSYM_EXPORT(aos_hand_create),
     ESP_ELFSYM_EXPORT(aos_hand_set_angle),
+    ESP_ELFSYM_EXPORT(aos_http_stream_close),
+    ESP_ELFSYM_EXPORT(aos_http_stream_init),
+    ESP_ELFSYM_EXPORT(aos_http_stream_open),
+    ESP_ELFSYM_EXPORT(aos_http_stream_recv),
+    ESP_ELFSYM_EXPORT(aos_http_stream_send),
     ESP_ELFSYM_EXPORT(aos_i18n_app_count),
     ESP_ELFSYM_EXPORT(aos_i18n_app_load),
     ESP_ELFSYM_EXPORT(aos_i18n_app_unload),
@@ -3394,6 +3422,14 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_quick_slider),
     ESP_ELFSYM_EXPORT(aos_quick_tiles_create),
     ESP_ELFSYM_EXPORT(aos_quick_tiles_paint),
+    ESP_ELFSYM_EXPORT(aos_radio_buffered),
+    ESP_ELFSYM_EXPORT(aos_radio_fill_status),
+    ESP_ELFSYM_EXPORT(aos_radio_read),
+    ESP_ELFSYM_EXPORT(aos_radio_ready),
+    ESP_ELFSYM_EXPORT(aos_radio_stack_free),
+    ESP_ELFSYM_EXPORT(aos_radio_start),
+    ESP_ELFSYM_EXPORT(aos_radio_stop),
+    ESP_ELFSYM_EXPORT(aos_radio_title_at_read),
     ESP_ELFSYM_EXPORT(aos_rtc_start),
     ESP_ELFSYM_EXPORT(aos_settings_font),
     ESP_ELFSYM_EXPORT(aos_soc_ceiling),

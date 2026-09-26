@@ -149,6 +149,16 @@ static const char *resolve_dir(const char *dir)
             }
         }
         snprintf(path, sizeof(path), "%s/%s", aos_hal_path_lang(), code);
+    } else if (strcmp(dir, "radio") == 0) {
+        /* The Radio app's card folder (branch radio): the /radio page's
+         * list of stations (library.json) and the logo of each key
+         * (logoN.jpg). The generic handlers carry both; the firmware reads
+         * neither - the keys themselves are in NVS (aos_radio_api.c). */
+        const char *root = aos_hal_path_sd_root();
+        if (!root) {
+            return NULL;
+        }
+        snprintf(path, sizeof(path), "%s/radio", root);
     } else if (strcmp(dir, "pixel") == 0) {
         /* The Pixel Art app's documents (.pix) and its exports (.png, .gif),
          * on the card only: without one the app falls back to SPIFFS and
@@ -656,6 +666,10 @@ static esp_err_t upload_handler(httpd_req_t *req)
     /* Same for /pixel: the first canvas drawn in the browser, before the app
      * was ever opened on the watch, finds no folder. */
     if (strstr(dir_path, "/pixel") != NULL) {
+        mkdir(dir_path, 0777);
+    }
+    /* Same for /radio: the first logo or list saved by the page. */
+    if (strstr(dir_path, "/radio") != NULL) {
         mkdir(dir_path, 0777);
     }
     /* Same for /pato: the first script saved from the browser finds no folder
@@ -3518,6 +3532,9 @@ esp_err_t aos_h264bench_handler(httpd_req_t *req);
 esp_err_t aos_imu_dump_handler(httpd_req_t *req);
 esp_err_t aos_link_handler(httpd_req_t *req);
 esp_err_t aos_player_handler(httpd_req_t *req);     /* aos_player_api.c */
+esp_err_t aos_radio_page_handler(httpd_req_t *req); /* aos_radio_api.c */
+esp_err_t aos_radio_get_handler(httpd_req_t *req);
+esp_err_t aos_radio_set_handler(httpd_req_t *req);
 
 static const httpd_uri_t ROUTES[] = {
         { .uri = "/",            .method = HTTP_GET,  .handler = inicio_page_handler },
@@ -3586,6 +3603,9 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/camaras",     .method = HTTP_GET,  .handler = camaras_page_handler },
         { .uri = "/api/camaras", .method = HTTP_GET,  .handler = camaras_get_handler },
         { .uri = "/api/camaras", .method = HTTP_POST, .handler = camaras_set_handler },
+        { .uri = "/radio",       .method = HTTP_GET,  .handler = aos_radio_page_handler },
+        { .uri = "/api/radio",   .method = HTTP_GET,  .handler = aos_radio_get_handler },
+        { .uri = "/api/radio",   .method = HTTP_POST, .handler = aos_radio_set_handler },
         { .uri = "/remoto",              .method = HTTP_GET,  .handler = remoto_page_handler },
         { .uri = "/api/remoto/config",   .method = HTTP_GET,  .handler = remoto_config_get },
         { .uri = "/api/remoto/config",   .method = HTTP_POST, .handler = remoto_config_post },

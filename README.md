@@ -109,7 +109,8 @@ There is also a pseudolocalisation pack for stress-testing layouts.
 recordings to the card from any browser — and for configuring the things that
 are miserable to type on a 368 px screen: WiFi, the Home Assistant address and
 token, the weather location, which exchange rates to watch, which sensors to
-plot, and the whole remote-control profile. It also carries every switch of the
+plot, the cameras, the radio stations on the Radio app's nine keys (searched in
+radio-browser.info from the page itself), and the whole remote-control profile. It also carries every switch of the
 Settings app, a live view of the screen with the controls to drive it from the
 browser, and the log tailed over wifi. Two of its pages are editors rather than
 forms: `/pixel` for the drawings and `/lua` for the scripts, both writing the
@@ -389,6 +390,12 @@ a touchpad, Doom walks and shoots with two fingers, and Lua scripts get a
 | <img src="docs/img/app-maze.png" width="200"><br>**Laberinto** — a ball rolling through a generated maze, driven by tilting the board. | <img src="docs/img/app-cotiz.png" width="200"><br>**Cotizaciones** — exchange rates, configured from the portal. | <img src="docs/img/app-scanner.png" width="200"><br>**Escáner** — a WiFi and LAN survey: networks around you, hosts and open ports, written to the card as NDJSON. |
 | <img src="docs/img/app-flappy.png" width="200"><br>**Flappy** — one button, one bird, the usual pipes. | <img src="docs/img/app-simon.png" width="200"><br>**Simon** — the colour-and-sound memory game, each pad with its own tone. | <img src="docs/img/app-dice.png" width="200"><br>**Dados** — dice of any number of sides, rolled by shaking the watch. |
 | <img src="docs/img/app-pixel.png" width="200"><br>**Pixel Art** — 8x8 and 16x16 drawings with a 32-colour palette, frames that become a looping GIF, exported to the card as PNG and GIF. <img src="docs/img/pixel-kitten.gif" width="96"><br>The kitten is one of the samples it seeds on first run, and this GIF is the watch's own export. Since v0.4.2 a drawing can be sent to the other watch over the link. | <img src="docs/img/app-pixel-gallery.png" width="200"><br>Its gallery of eight canvases. The same files open in the portal's `/pixel` page, where they are drawn with a mouse and saved back; the watch reloads them on its own. | <img src="docs/img/app-hello.png" width="200"><br>**hello_app** — the 30-line template. It is what you copy to start one of your own; see [docs/APP-API.md](docs/APP-API.md). |
+
+#### Radio
+
+| | | |
+|---|---|---|
+| <img src="docs/img/app-radio.png" width="200"><br>**Radio** — internet stations on a front panel from the sixties: nine keys, a lit dial with the station, the song and its cover, and a needle over the scale. It plays through the firmware's player, so it goes on with the app closed and the control centre drives it. | <img src="docs/img/app-radio-info.png" width="200"><br>Tap the dial for everything the stream says of itself. The cover is looked up on iTunes by the song's title, and only taken when the artist matches; the title changes when its song is heard, not when it is downloaded ten seconds before. | <img src="docs/img/app-radio-idle.png" width="200"><br>The keys are filled in the portal's `/radio` page, from a list kept on the card and a search in radio-browser.info; the logos are drawn in the browser. MP3 over http or https; [docs/RADIO.md](docs/RADIO.md) has the measurements. |
 
 ### Written in Lua, on the watch
 
@@ -671,6 +678,7 @@ into. The portal serves each one by name.
 | `icons/` | icon files (`<app.id>.aic`) that replace an app's icon | the portal's `/iconos` ([ICONS.md](docs/ICONS.md)) |
 | `recordings/` | what Grabadora records (WAV, 16 kHz mono) | the watch |
 | `redes/` | the network scanner's surveys | the watch |
+| `radio/` | the Radio app's list of stations (`library.json`) and the logo of each key (`logoN.jpg`) | the portal's `/radio` |
 | `menu.txt` | the launcher's order and folders | the portal's `/menu` ([MENU.md](docs/MENU.md)) |
 
 ## Quick start
@@ -738,6 +746,7 @@ and UDP in the simulator.
 | [STEPS.md](docs/STEPS.md) | the step counter: why it is software, how it was tuned on counted walks |
 | [VIDEO.md](docs/VIDEO.md) | video from the card: the decoder, the background task, the direct blit, and the clock |
 | [CAMERAS.md](docs/CAMERAS.md) | live IP cameras: what the H.264 and JPEG decoders do on this board, measured, and how the Cameras app splits the work across the cores |
+| [RADIO.md](docs/RADIO.md) | internet radio: what a station URL turns out to be, titles shown when they are heard, what it costs, time to sound and why the WiFi's power save mattered, the covers |
 | [MUSIC.md](docs/MUSIC.md) | MP3 and the player: the decoder checked against ffmpeg, the ring, what it costs and what it does to the app in front, gapless, the cover, mixing |
 | [RAM-AUDIT.md](docs/RAM-AUDIT.md) | where the internal RAM went and how the apps' code moved to PSRAM |
 | [ROADMAP.md](docs/ROADMAP.md) | what is planned and has no date: Android phones, and USB host (a pendrive on the watch), waiting for a way to power it |
@@ -787,7 +796,8 @@ device modes (keyboard, mouse, gamepad, MIDI, network, disk) have all been
 exercised on the board — most of the measurements quoted throughout the source
 were taken there. The link between two watches has been played with on two
 boards: Pong, Truco, a drawing sent, the radar, the walkie through a door, a
-fight in Chatarra's phone booth and a match of Neon Snakes.
+fight in Chatarra's phone booth and a match of Neon Snakes. Internet radio has
+played on both watches, over http and https, with the screen off.
 USB host mode (a pendrive on the watch) works but is parked: the board cannot
 power a peripheral ([USB.md](docs/USB.md)).
 
