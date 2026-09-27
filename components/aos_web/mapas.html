@@ -139,7 +139,9 @@ const TR = {
          "contributors, OpenMapTiles and OpenFreeMap.",
     ir: "Go", mostrar: "On the watch", borrar: "Delete", conf_borrar: "Delete “{n}” from the watch?",
     teselas: "tiles", falta_nombre: "Give it a name first.",
-    estim: "{n} tiles from zoom {a} to {b}, about {mb} MB on the card.",
+    estim: "{n} tiles from zoom {a} to {b}: about {mb} on the card (measured on {m} sample tiles).",
+    estim_calc: "{n} tiles from zoom {a} to {b}: working out the size...",
+    estim_sin: "{n} tiles from zoom {a} to {b}. The size could not be worked out (no internet?).",
     muy_grande: "{n} tiles: too big. Zoom the map in, or pick less detail.",
     bajando: "Downloading {i} of {n} tiles...", armando: "Packing...",
     subiendo: "Saving to the watch: part {i} of {n}...", indice: "Saving the index of names...",
@@ -172,7 +174,9 @@ const TR = {
          "Mitwirkende, OpenMapTiles und OpenFreeMap.",
     ir: "Hin", mostrar: "Auf der Uhr", borrar: "Löschen", conf_borrar: "„{n}“ von der Uhr löschen?",
     teselas: "Kacheln", falta_nombre: "Zuerst einen Namen geben.",
-    estim: "{n} Kacheln von Zoom {a} bis {b}, etwa {mb} MB auf der Karte.",
+    estim: "{n} Kacheln von Zoom {a} bis {b}: etwa {mb} auf der Karte (gemessen an {m} Stichproben).",
+    estim_calc: "{n} Kacheln von Zoom {a} bis {b}: Größe wird ermittelt...",
+    estim_sin: "{n} Kacheln von Zoom {a} bis {b}. Größe nicht ermittelbar (kein Internet?).",
     muy_grande: "{n} Kacheln: zu groß. Näher heranzoomen oder weniger Detail wählen.",
     bajando: "Lade {i} von {n} Kacheln...", armando: "Packe...",
     subiendo: "Speichere auf der Uhr: Teil {i} von {n}...", indice: "Speichere den Namensindex...",
@@ -186,7 +190,9 @@ const TR = {
 const ES = {
   ir: "Ir", mostrar: "En el reloj", borrar: "Borrar", conf_borrar: "¿Borrar «{n}» del reloj?",
   teselas: "teselas", falta_nombre: "Primero ponele un nombre.",
-  estim: "{n} teselas del zoom {a} al {b}, unos {mb} MB en la tarjeta.",
+  estim: "{n} teselas del zoom {a} al {b}: unos {mb} en la tarjeta (medido sobre {m} teselas de muestra).",
+  estim_calc: "{n} teselas del zoom {a} al {b}: calculando el tamaño...",
+  estim_sin: "{n} teselas del zoom {a} al {b}. No se pudo calcular el tamaño (¿sin internet?).",
   muy_grande: "{n} teselas: demasiado grande. Acercá el mapa o elegí menos detalle.",
   bajando: "Descargando {i} de {n} teselas...", armando: "Armando los paquetes...",
   subiendo: "Guardando en el reloj: parte {i} de {n}...", indice: "Guardando el índice de nombres...",
@@ -459,16 +465,78 @@ function cajaVista() {
    nivel menos que su zoom (mp_render.h). */
 const MINZ = 6;
 
+/* El tamano no se puede saber sin bajar: una tesela del centro recortada pesa 85 KB y una del
+   conurbano 14. Se mide una muestra repartida por la zona (12 teselas del zoom mas alto, 6 del
+   siguiente, 3 del otro, 1 de cada nivel bajo), recortada como en la descarga, y se extrapola.
+   El indice se cuenta con los nombres de la muestra y se divide por dos: una avenida esta en
+   decenas de teselas y en el indice una vez. Contra lo bajado de verdad (2026-09-27): CABA
+   15,1 estimado / 15,6 real, AMBA 31,5 / 33,8. El valor fijo de antes (130 KB por tesela,
+   medido en Palermo) decia 35 y 202. */
+const muestras = new Map();             /* "z/x/y" -> { b: bytes recortada, i: bytes de indice } */
+let plantilla = null, estTimer = null, estTok = 0;
+
+async function laPlantilla() {
+  if (!plantilla) plantilla = (await (await fetch(TILEJSON)).json()).tiles[0];
+  return plantilla;
+}
+
+async function medir(tt) {
+  const k = tt.z + "/" + tt.x + "/" + tt.y;
+  if (muestras.has(k)) return muestras.get(k);
+  const url = (await laPlantilla()).replace("{z}", tt.z).replace("{x}", tt.x).replace("{y}", tt.y);
+  const r = await fetch(url);
+  const u8 = r.ok ? new Uint8Array(await r.arrayBuffer()) : new Uint8Array(0);
+  let ib = 0;
+  nombres(u8, tt.z, tt.x, tt.y, (nm, tipo) => { ib += 2 * nm.length + tipo.length + 24; });
+  const m = { b: recortar(u8).length, i: ib };
+  muestras.set(k, m);
+  return m;
+}
+
+function repartidas(arr, k) {
+  if (arr.length <= k) return arr;
+  const out = [];
+  for (let i = 0; i < k; i++) out.push(arr[Math.floor((i + 0.5) * arr.length / k)]);
+  return out;
+}
+
 function estimar() {
   if (!mapa) return;
   const maxz = +$("d-detalle").value;
-  const n = teselasDe(cajaVista(), MINZ, maxz).length;
-  /* medido sobre Buenos Aires: ~130 KB por tesela ya recortada, mas el indice de nombres */
-  const mb = Math.max(0.1, n * 0.13).toFixed(1);
+  const caja = cajaVista();
+  const n = teselasDe(caja, MINZ, maxz).length;
   const e = $("estimacion");
-  e.className = n > MAX_TESELAS ? "datos mal" : "datos";
-  e.textContent = n > MAX_TESELAS ? t("muy_grande", { n }) : t("estim", { n, a: MINZ, b: maxz, mb });
+  const tok = ++estTok;
+  clearTimeout(estTimer);
   $("descargar").disabled = n > MAX_TESELAS || bajando;
+  if (n > MAX_TESELAS) {
+    e.className = "datos mal";
+    e.textContent = t("muy_grande", { n });
+    return;
+  }
+  e.className = "datos";
+  e.textContent = t("estim_calc", { n, a: MINZ, b: maxz });
+  /* cuando el mapa se queda quieto: moverlo no tiene que disparar descargas */
+  estTimer = setTimeout(async () => {
+    try {
+      const porZ = {};
+      for (const tt of teselasDe(caja, MINZ, maxz)) (porZ[tt.z] = porZ[tt.z] || []).push(tt);
+      let bytes = 0, idx = 0, medidas = 0;
+      for (const zs of Object.keys(porZ)) {
+        const z = +zs, arr = porZ[zs];
+        const k = z === maxz ? 12 : z === maxz - 1 ? 6 : z === maxz - 2 ? 3 : 1;
+        const ms = await Promise.all(repartidas(arr, k).map(medir));
+        if (tok !== estTok) return;
+        const prom = f => ms.reduce((a, m) => a + f(m), 0) / ms.length;
+        bytes += (prom(m => m.b) + 20) * arr.length;
+        if (z === maxz) idx = prom(m => m.i) * arr.length * 0.5;
+        medidas += ms.length;
+      }
+      e.textContent = t("estim", { n, a: MINZ, b: maxz, mb: aos.humano(Math.round(bytes + idx)), m: medidas });
+    } catch (err) {
+      if (tok === estTok) e.textContent = t("estim_sin", { n, a: MINZ, b: maxz });
+    }
+  }, 700);
 }
 
 /* ----------------------------------------------------- MVT, lo necesario -- */
@@ -644,8 +712,7 @@ async function descargar() {
   prog.hidden = false;
   est.className = "datos";
   try {
-    const tj = await (await fetch(TILEJSON)).json();
-    const plantilla = tj.tiles[0];
+    const plantilla = await laPlantilla();
     const hechas = [];
     const idx = new Map();
     let i = 0, listas = 0;

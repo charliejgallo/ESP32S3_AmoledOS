@@ -189,6 +189,19 @@ time from OpenFreeMap, the names read from each tile before its POI layer is
 dropped, the packs built and uploaded part by part, the index after, and the
 zone added to `zones.txt`.
 
+**The size is measured, not guessed.** Before a download the page fetches a
+sample spread over the zone (12 tiles of the deepest zoom, 6 of the next, 3
+of the one after, one of each low level), strips them as the download will,
+and extrapolates; the index is counted from the sample's names and halved,
+because an avenue is in dozens of tiles and once in the index. The first
+version multiplied the tile count by 130 KB, measured over Palermo, where the
+heavy low zooms are most of a small zone: it said 35 MB for the city of
+Buenos Aires (15.6 real) and 202 MB for Greater Buenos Aires (33.8 real).
+Checked against those two downloads, the sample says 15.1 and 31.5; on
+zones taller than those it came out up to ~15 % short. The downloads
+themselves were right: every tile of the box was in the packs, and the ones
+compared byte by byte matched OpenFreeMap's, stripped.
+
 **Wake the watch first.** A 3.2 MB upload to a watch asleep with its screen
 off was cut after a minute; awake, it took 20 s. The page sends
 `que=despertar` before every file.
