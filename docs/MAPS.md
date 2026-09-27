@@ -171,9 +171,14 @@ zoom plus one). `goto.txt` is the same without the name.
 portal takes 8 MB) is several packs with the same name; the list shows one
 row.
 
-`.idx`: one name per line, `key \t name \t kind \t lat \t lon`, sorted by key
-(lower case, no accents). Kinds: `lugar`, `calle`, `agua`, `parque`, or the
-OSM class of a point of interest (`restaurant`, `school`, `bus`...).
+`.idx` (AIX2, written by `write_idx()` in `tools/map_pack.py`, which has the
+byte layout, and by the page, byte for byte the same): a table of kinds
+(`lugar`, `calle`, `agua`, `parque`, or the OSM class of a point of interest:
+`restaurant`, `school`...), one 16-byte key per word of every name (its first
+9 normalised letters from that word on, the class, whether it is the name's
+first word, the name's length, where the name is), sorted, a table with the
+first key of every 256, and the names with their position and kind. Bus stops
+are left out: 16 % of a city's names, all of them "street and street".
 
 A neighbourhood (Palermo Soho, ~2 km across, z6-14) is 25 tiles, 3.2 MB of
 pack and a 450 KB index with 7 403 names. The low zooms are most of the pack:
@@ -213,12 +218,22 @@ before touch screens. A key's letters come in turn when it is tapped again
 within a second; its letters are shown under the text with the one that would
 go in marked. ⌫ deletes (a long press clears), 0 is the space, ✓ searches.
 
-The worker reads every `.idx` in 16 KB chunks and keeps the 22 best matches:
-the query at the start of the name first, then at the start of a word, then
-anywhere, places before streets before points of interest, shorter names
-first. With a connection, Photon (`photon.komoot.io`, biased to the map's
-centre) adds up to eight more, marked with the WiFi sign; it knows streets
-with their numbers, which the index does not. Picking a result moves the map
+The worker looks the query up in every `.idx`: it loads the table of blocks
+(a few KB for a city), finds where the keys starting with the query's longest
+word begin, reads that stretch, and then only the best 48 names (144 when the
+query has several words, since not all will have every word), in file order.
+Every word of the query must start a word of the name: "av corrientes" finds
+"Avenida Corrientes", "rivad" finds "Avenida Rivadavia". Names that start with
+the query come first, then places before streets before points of interest,
+shorter first.
+
+The first version read the whole index line by line: 1.0 s for a
+neighbourhood's 450 KB on the board, and the city (3.2 MB) and Greater Buenos
+Aires (5.2 MB) together would have been some 20 s a search. The same
+indexes, rewritten (`tools/map_pack.py --reindex`), are 2.6 and 4.4 MB and
+are searched, with the neighbourhood's, in 199 ms on the board ("av corrientes", a two-word query that reads the most names).
+
+Picking a result moves the map
 there with a pin and the name.
 
 ## Traps met on the way

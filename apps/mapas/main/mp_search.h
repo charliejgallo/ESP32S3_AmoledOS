@@ -2,13 +2,13 @@
  * MAPAS - search: the names of the downloaded zones, and Photon online.
  *
  * Every offline zone brings an index, <card>/maps/<zone>.idx, written by the
- * portal's /mapas page: one name per line,
- *
- *     key \t name \t kind \t latitude \t longitude
- *
- * with key the name in lower case without accents, latitude and longitude in
- * millionths of a degree, sorted by key. The watch reads it in chunks and
- * keeps the best matches; nothing of it stays in RAM.
+ * portal's /mapas page or tools/map_pack.py (whose write_idx() documents the
+ * AIX2 format): one 9-byte key per word of every name, sorted, and a table
+ * with the first key of every 256. A search loads that table, reads only the
+ * keys that start with the query's longest word, and then the few names it
+ * needs: a few reads, however big the city. The first version's text index
+ * (one line per name, read whole: ~1 s per 450 KB on the board) is still
+ * read if found.
  *
  * Online, Photon (komoot's geocoder over OpenStreetMap) answers streets with
  * their numbers, which the offline index does not have. The request is the

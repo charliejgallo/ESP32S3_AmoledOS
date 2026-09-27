@@ -23,7 +23,12 @@ the AMOLED; everything measured in [docs/MAPS.md](docs/MAPS.md).
   (`maps/*.idx`); `tools/map_pack.py` does the same from the command line.
 - **Search**: a 3 x 4 keypad like an old phone's (multi-tap), over the
   downloaded zones' names and, online, Photon, which adds street numbers.
-  The place found gets a pin.
+  The place found gets a pin. The zones' index (AIX2) has a key per word,
+  sorted, and is searched by blocks: 199 ms over the city and Greater Buenos
+  Aires together, where reading it whole would have been ~17 s.
+  `tools/map_pack.py --reindex` rewrites an index of the first format.
+- **The portal's size estimate is measured** on a sample of the zone's
+  tiles: 15.1 MB for the city (15.6 real; the first version said 35).
 - **Firmware**: the `/mapas` page and the `maps` folder for the file API.
 
 ## v0.8.2 — 2026-09-26

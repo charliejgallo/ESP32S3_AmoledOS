@@ -102,9 +102,10 @@
    *.amp       paquetes de teselas, formato en apps/mapas/main/mp_store.h:
                "AMP1", n, minz, maxz, flags, O S E N (1e6), nombre[32], 64,
                n x { z, pad[3], x, y, offset, largo }, datos. Ordenado por (z, x, y).
-   *.idx       los nombres de la zona para buscar, uno por linea:
-               clave \t nombre \t tipo \t lat(1e6) \t lon(1e6), ordenado por clave (minusculas
-               sin tildes). */
+   *.idx       los nombres de la zona para buscar, formato AIX2: una clave de 9 letras por
+               palabra, ordenadas, para que el reloj busque por bloques sin leer el archivo
+               entero. El formato esta en tools/map_pack.py (write_idx), que escribe lo mismo, y
+               lo lee apps/mapas/main/mp_search.c. */
 const DIR = "maps";
 const TILEJSON = "https://tiles.openfreemap.org/planet";
 const ESTILO = "https://tiles.openfreemap.org/styles/liberty";
@@ -655,6 +656,99 @@ function clave(s) {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+/* ------------------------------------------------------- el indice AIX2 -- */
+/* Igual que write_idx() de tools/map_pack.py, byte por byte: la normalizacion es la del reloj
+   (mp_search_key): letras de Latin-1 sin tilde, minusculas, el resto fuera de ASCII afuera. */
+
+const FOLD = "AAAAAAACEEEEIIIIDNOOOOOxOUUUUYTsaaaaaaaceeeeiiiidnooooo/ouuuuyty";
+const STOP = new Set(["de", "del", "la", "las", "el", "los", "y", "e", "a", "al", "en", "of", "the", "da", "do", "dos"]);
+const SIN_INDICE = new Set(["bus"]);   /* paradas con nombre de esquina: las calles ya estan */
+const KEY_LEN = 9, BLOQUE = 256, MAX_CLAVES = 6;
+
+function normal(s) {
+  let out = "", esp = true;
+  for (let ch of s) {
+    const c = ch.codePointAt(0);
+    if (c >= 0xC0 && c <= 0xFF) ch = FOLD[c - 0xC0];
+    else if (c >= 0x80) continue;
+    if (/\s/.test(ch)) { if (!esp) out += " "; esp = true; continue; }
+    esp = false;
+    out += ch >= "A" && ch <= "Z" ? ch.toLowerCase() : ch;
+  }
+  return out.replace(/ +$/, "");
+}
+const alnum = c => (c >= "a" && c <= "z") || (c >= "0" && c <= "9");
+
+function clavesDe(n) {
+  const out = [];
+  for (let i = 0; i < n.length && out.length < MAX_CLAVES; i++) {
+    if (!alnum(n[i]) || (i && alnum(n[i - 1]))) continue;
+    let j = i;
+    while (j < n.length && alnum(n[j])) j++;
+    const w = n.slice(i, j);
+    if (i && (STOP.has(w) || (w.length === 1 && !/[0-9]/.test(w)))) continue;
+    out.push([n.slice(i, i + KEY_LEN), i === 0]);
+  }
+  return out;
+}
+
+function armarIndice(entradas) {   /* [nombre, tipo, lat, lon] */
+  entradas = entradas.filter(e => !SIN_INDICE.has(e[1]) && !/^\d+\s*-\s/.test(e[0]));
+  const frec = {};
+  for (const e of entradas) frec[e[1]] = (frec[e[1]] || 0) + 1;
+  /* como sorted() de Python con clave -frecuencia: estable, empates en orden de aparicion */
+  let tipos = Object.keys(frec).map((k, i) => [k, frec[k], i]).sort((a, b) => b[1] - a[1] || a[2] - b[2])
+                .map(x => x[0]).slice(0, 255);
+  if (!tipos.includes("poi")) tipos = tipos.slice(0, 254).concat(["poi"]);
+  const ix = new Map(tipos.map((k, i) => [k, i]));
+  const enc = new TextEncoder();
+  const nombres = [], claves = [];
+  let largo = 0;
+  for (const [nm, tipo, la, lo] of entradas) {
+    const n = normal(nm);
+    if (!n) continue;
+    const ki = ix.has(tipo) ? ix.get(tipo) : ix.get("poi");
+    let nb = enc.encode(nm);
+    if (nb.length > 60) nb = enc.encode(new TextDecoder().decode(nb.subarray(0, 60)).replace(/\uFFFD$/, ""));
+    const rec = new Uint8Array(9 + nb.length + 1), dv = new DataView(rec.buffer);
+    dv.setInt32(0, Math.round(la * 1e6), true);
+    dv.setInt32(4, Math.round(lo * 1e6), true);
+    rec[8] = ki;
+    rec.set(nb, 9);
+    const off = largo;
+    nombres.push(rec);
+    largo += rec.length;
+    const cls = { lugar: 0, calle: 1, agua: 2 }[tipos[ki]] ?? 3;
+    for (const [k, prim] of clavesDe(n)) claves.push([k, cls, prim ? 1 : 0, Math.min(255, n.length), off]);
+  }
+  /* el orden de Python sobre las tuplas: la clave rellena con NUL, despues los numeros */
+  const kbytes = k => { const b = new Uint8Array(KEY_LEN); for (let i = 0; i < k.length; i++) b[i] = k.charCodeAt(i); return b; };
+  for (const c of claves) c[0] = kbytes(c[0]);
+  claves.sort((a, b) => {
+    for (let i = 0; i < KEY_LEN; i++) if (a[0][i] !== b[0][i]) return a[0][i] - b[0][i];
+    return a[1] - b[1] || a[2] - b[2] || a[3] - b[3] || a[4] - b[4];
+  });
+  const kb = enc.encode(tipos.join("\0") + "\0");
+  const nbloques = Math.ceil(claves.length / BLOQUE);
+  const kindsOff = 40, blocksOff = kindsOff + kb.length, keysOff = blocksOff + nbloques * KEY_LEN,
+        namesOff = keysOff + claves.length * 16;
+  const out = new Uint8Array(namesOff + largo), dv = new DataView(out.buffer);
+  out.set([65, 73, 88, 50], 0);                                 /* AIX2 */
+  [entradas.length, claves.length, tipos.length, kindsOff, blocksOff, keysOff, namesOff, BLOQUE, 0]
+    .forEach((v, i) => dv.setUint32(4 + i * 4, v, true));
+  out.set(kb, kindsOff);
+  for (let b = 0; b < nbloques; b++) out.set(claves[b * BLOQUE][0], blocksOff + b * KEY_LEN);
+  claves.forEach((c, i) => {
+    const o = keysOff + i * 16;
+    out.set(c[0], o);
+    out[o + 9] = c[1]; out[o + 10] = c[2]; out[o + 11] = c[3];
+    dv.setUint32(o + 12, c[4], true);
+  });
+  let o = namesOff;
+  for (const r of nombres) { out.set(r, o); o += r.length; }
+  return out;
+}
+
 /* ------------------------------------------------------------- descargar -- */
 
 let bajando = false, cancelar = false;
@@ -772,13 +866,9 @@ async function descargar() {
 
     est.textContent = t("indice");
     await despertar();
-    const filas = [];
-    for (const [k, v] of idx) {
-      const nm = v.nm.replace(/[\t\r\n]/g, " ");
-      filas.push(k.split("\u0001")[0] + "\t" + nm + "\t" + v.tipo + "\t" + Math.round(v.la * 1e6) + "\t" + Math.round(v.lo * 1e6));
-    }
-    filas.sort();
-    await subirXHR(base + ".idx", new Blob([filas.join("\n") + "\n"], { type: "text/plain" }))
+    const indice = armarIndice([...idx.values()].map(v => [v.nm, v.tipo, v.la, v.lo]));
+    const nnombres = new DataView(indice.buffer).getUint32(4, true);
+    await subirXHR(base + ".idx", new Blob([indice]))
       .catch(e => { throw new Error(t("err_placa") + e.message); });
 
     /* y la zona, para ir desde el menu del reloj */
@@ -788,7 +878,7 @@ async function descargar() {
     await escribirZonas().catch(() => {});
     pintarZonas();
 
-    est.textContent = t("listo", { t: hechas.length, p: partes.length, nn: filas.length });
+    est.textContent = t("listo", { t: hechas.length, p: partes.length, nn: nnombres });
     cargarPaquetes();
   } catch (e) {
     est.className = "datos mal";

@@ -78,6 +78,18 @@ static int match(const char *key, const char *q)
     return best;
 }
 
+/* a name into a fixed buffer without cutting a letter in half */
+static void copy_utf8(char *dst, size_t n, const char *src)
+{
+    size_t l = strlen(src);
+    if (l >= n) {
+        l = n - 1;
+        while (l > 0 && ((unsigned char)src[l] & 0xC0) == 0x80) l--;
+    }
+    memcpy(dst, src, l);
+    dst[l] = 0;
+}
+
 static void keep(mp_hit_t *out, int *n, int max, const mp_hit_t *h)
 {
     /* the same name at nearly the same spot is one hit (a street's name in
@@ -111,14 +123,244 @@ static void line(char *l, const char *q, mp_hit_t *out, int *n, int max)
     if (m < 0) return;
     mp_hit_t h;
     memset(&h, 0, sizeof h);
-    snprintf(h.name, sizeof h.name, "%s", f[1]);
-    snprintf(h.sub, sizeof h.sub, "%s", f[2]);
+    copy_utf8(h.name, sizeof h.name, f[1]);
+    copy_utf8(h.sub, sizeof h.sub, f[2]);
     h.kind = (uint8_t)kind_of(f[2]);
     h.lat = (int32_t)strtol(f[3], NULL, 10);
     h.lon = (int32_t)strtol(f[4], NULL, 10);
     static const int KB[] = { 0, 10, 30, 15, 5 };
     h.score = m + KB[h.kind] + (int)strlen(f[0]) / 4;
     keep(out, n, max, &h);
+}
+
+/* The first version's text index: every line read and matched. ~1 s per
+ * 450 KB on the board, which for a city (3 MB) was seconds per search. */
+static void legacy_file(FILE *fp, const char *key, mp_hit_t *out, int *n, int max,
+                        char *buf, int CH, volatile bool *cancel)
+{
+    int have = 0;
+    for (;;) {
+        int r = (int)fread(buf + have, 1, (size_t)(CH - have), fp);
+        if (r <= 0 && have == 0) break;
+        int len = have + (r > 0 ? r : 0);
+        buf[len] = 0;
+        char *p = buf;
+        for (;;) {
+            char *nl = strchr(p, '\n');
+            if (!nl) break;
+            *nl = 0;
+            line(p, key, out, n, max);
+            p = nl + 1;
+        }
+        have = (int)(buf + len - p);
+        if (r <= 0) {
+            if (have > 0) line(p, key, out, n, max);
+            break;
+        }
+        if (have >= CH - 1) have = 0;           /* a line longer than a chunk: drop it */
+        memmove(buf, p, (size_t)have);
+        if (*cancel) break;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+ * AIX2: one key per word, sorted, found by blocks
+ *
+ * The format is written by tools/map_pack.py (write_idx) and the portal's
+ * /mapas page; see the comment there. A search reads the header, the block
+ * table (the first key of every 256: 9 bytes each, a few KB for a city),
+ * then only the stretch of keys that starts with the query's longest word,
+ * and at most CHECK name records, in file order.
+ * ------------------------------------------------------------------------- */
+
+#define KEY_LEN   9
+#define MAX_CAND  600
+#define CHECK     48
+#define MAX_WORDS 6
+#define WORD_LEN  24
+
+typedef struct {
+    char     k[KEY_LEN];
+    uint8_t  cls, flags, nlen;
+    uint32_t off;
+} ikey_t;                               /* 16 bytes, as '<9sBBBI' */
+
+typedef struct {
+    uint32_t off;
+    int      score;
+} cand_t;
+
+static uint32_t rd32(const uint8_t *p)
+{
+    return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24;
+}
+
+static bool alnum(char c)
+{
+    return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
+}
+
+/* the query's words (already in key form) */
+static int words(const char *q, char w[][WORD_LEN], int max)
+{
+    int n = 0;
+    while (*q && n < max) {
+        while (*q && !alnum(*q)) q++;
+        int k = 0;
+        while (alnum(*q)) {
+            if (k < WORD_LEN - 1) w[n][k++] = *q;
+            q++;
+        }
+        if (k) w[n++][k] = 0;
+    }
+    return n;
+}
+
+/* every query word starts some word of the name; *first: the first one
+ * starts the name */
+static bool words_match(const char *name, char w[][WORD_LEN], int nw, bool *first)
+{
+    *first = false;
+    for (int i = 0; i < nw; i++) {
+        size_t l = strlen(w[i]);
+        bool found = false;
+        for (const char *p = name; *p && !found; p++) {
+            if (!alnum(*p) || (p > name && alnum(p[-1]))) continue;
+            if (!strncmp(p, w[i], l)) {
+                found = true;
+                if (i == 0 && p == name) *first = true;
+            }
+        }
+        if (!found) return false;
+    }
+    return true;
+}
+
+static const int CLS_KIND[4] = { MP_KIND_PLACE, MP_KIND_STREET, MP_KIND_WATER, MP_KIND_POI };
+static const int KIND_W[5] = { 0, 10, 30, 15, 5 };      /* by MP_KIND_*: places first */
+
+static int cand_score_cmp(const void *a, const void *b)
+{
+    return ((const cand_t *)a)->score - ((const cand_t *)b)->score;
+}
+
+static int cand_off_cmp(const void *a, const void *b)
+{
+    uint32_t x = ((const cand_t *)a)->off, y = ((const cand_t *)b)->off;
+    return x < y ? -1 : x > y;
+}
+
+static void aix2_file(FILE *fp, const uint8_t *h, const char *key, mp_hit_t *out, int *n, int max,
+                      volatile bool *cancel)
+{
+    uint32_t nkeys = rd32(h + 8), nkinds = rd32(h + 12), kinds_off = rd32(h + 16);
+    uint32_t blocks_off = rd32(h + 20), keys_off = rd32(h + 24), names_off = rd32(h + 28);
+    uint32_t block = rd32(h + 32);
+    if (!nkeys || !block || block > 4096 || nkeys > 4000000 || blocks_off < kinds_off || keys_off < blocks_off || names_off < keys_off) return;
+    uint32_t nblocks = (nkeys + block - 1) / block;
+    if (keys_off - blocks_off != nblocks * KEY_LEN || blocks_off - kinds_off > 8192) return;
+
+    char w[MAX_WORDS][WORD_LEN];
+    int nw = words(key, w, MAX_WORDS);
+    if (!nw) return;
+    /* the longest word leads: fewer keys start with it */
+    int lead = 0;
+    for (int i = 1; i < nw; i++)
+        if (strlen(w[i]) > strlen(w[lead])) lead = i;
+    char q[KEY_LEN + 1];
+    snprintf(q, sizeof q, "%.9s", w[lead]);
+    size_t L = strlen(q);
+    bool full = nw == 1 && strlen(w[lead]) <= KEY_LEN;   /* the key alone answers */
+
+    size_t kb = blocks_off - kinds_off;
+    /* one block: the kinds (and a NUL), the block table, a chunk of keys
+     * (aligned), the candidates */
+    uint8_t *mem = (uint8_t *)mp_malloc(kb + 1 + (size_t)nblocks * KEY_LEN + 4 + (size_t)block * sizeof(ikey_t) +
+                                        MAX_CAND * sizeof(cand_t));
+    if (!mem) return;
+    char *kinds = (char *)mem;
+    uint8_t *blocks = mem + kb + 1;
+    ikey_t *chunk = (ikey_t *)(((uintptr_t)(blocks + (size_t)nblocks * KEY_LEN) + 3) & ~(uintptr_t)3);
+    cand_t *cand = (cand_t *)(chunk + block);
+    if (fseek(fp, (long)kinds_off, SEEK_SET) || fread(kinds, 1, kb, fp) != kb ||
+        fread(blocks, KEY_LEN, nblocks, fp) != nblocks) {
+        mp_free(mem);
+        return;
+    }
+    kinds[kb] = 0;
+
+    /* the last block whose first key sorts before the query */
+    uint32_t b = 0;
+    {
+        uint32_t lo = 0, hi = nblocks;
+        while (lo < hi) {
+            uint32_t mid = (lo + hi) / 2;
+            if (memcmp(blocks + (size_t)mid * KEY_LEN, q, L) < 0) lo = mid + 1;
+            else hi = mid;
+        }
+        b = lo ? lo - 1 : 0;
+    }
+
+    int nc = 0;
+    bool done = false;
+    for (; b < nblocks && !done && !*cancel; b++) {
+        uint32_t first = b * block, cnt = nkeys - first < block ? nkeys - first : block;
+        if (fseek(fp, (long)(keys_off + first * sizeof(ikey_t)), SEEK_SET) ||
+            fread(chunk, sizeof(ikey_t), cnt, fp) != cnt)
+            break;
+        for (uint32_t i = 0; i < cnt; i++) {
+            int c = memcmp(chunk[i].k, q, L);
+            if (c < 0) continue;
+            if (c > 0) {
+                done = true;
+                break;
+            }
+            int kind = CLS_KIND[chunk[i].cls & 3];
+            int score = (lead == 0 && (chunk[i].flags & 1) ? 0 : 100) + KIND_W[kind] + chunk[i].nlen / 4;
+            int j;
+            for (j = 0; j < nc && cand[j].off != chunk[i].off; j++) {}
+            if (j < nc) {
+                if (score < cand[j].score) cand[j].score = score;
+            } else if (nc < MAX_CAND) {
+                cand[nc].off = chunk[i].off;
+                cand[nc].score = score;
+                nc++;
+            } else {
+                done = true;
+                break;
+            }
+        }
+    }
+
+    /* the best by their keys; their names read in file order */
+    qsort(cand, (size_t)nc, sizeof(cand_t), cand_score_cmp);
+    int nchk = nc < CHECK ? nc : CHECK;
+    if (!full) nchk = nc < CHECK * 3 ? nc : CHECK * 3;   /* some will not match every word */
+    qsort(cand, (size_t)nchk, sizeof(cand_t), cand_off_cmp);
+    for (int i = 0; i < nchk && !*cancel; i++) {
+        uint8_t rec[80];
+        if (fseek(fp, (long)(names_off + cand[i].off), SEEK_SET)) continue;
+        size_t r = fread(rec, 1, sizeof rec - 1, fp);
+        if (r < 10) continue;
+        rec[r] = 0;
+        mp_hit_t hh;
+        memset(&hh, 0, sizeof hh);
+        hh.lat = (int32_t)rd32(rec);
+        hh.lon = (int32_t)rd32(rec + 4);
+        uint8_t ki = rec[8];
+        copy_utf8(hh.name, sizeof hh.name, (const char *)rec + 9);
+        const char *ks = kinds;
+        for (uint8_t k = 0; k < ki && k < nkinds && *ks; k++) ks += strlen(ks) + 1;
+        copy_utf8(hh.sub, sizeof hh.sub, ks);
+        hh.kind = (uint8_t)kind_of(ks);
+        char nk[MP_HIT_NAME];
+        mp_search_key(hh.name, nk, sizeof nk);
+        bool at_start;
+        if (!words_match(nk, w, nw, &at_start)) continue;
+        hh.score = (at_start ? 0 : 100) + KIND_W[hh.kind] + (int)strlen(nk) / 4;
+        keep(out, n, max, &hh);
+    }
+    mp_free(mem);
 }
 
 int mp_search_files(const char *key, mp_hit_t *out, int max, volatile bool *cancel)
@@ -142,28 +384,12 @@ int mp_search_files(const char *key, mp_hit_t *out, int max, volatile bool *canc
         snprintf(path, sizeof path, "%s/%s", dir, e->d_name);
         FILE *fp = fopen(path, "rb");
         if (!fp) continue;
-        int have = 0;
-        for (;;) {
-            int r = (int)fread(buf + have, 1, (size_t)(CH - have), fp);
-            if (r <= 0 && have == 0) break;
-            int len = have + (r > 0 ? r : 0);
-            buf[len] = 0;
-            char *p = buf;
-            for (;;) {
-                char *nl = strchr(p, '\n');
-                if (!nl) break;
-                *nl = 0;
-                line(p, key, out, &n, max);
-                p = nl + 1;
-            }
-            have = (int)(buf + len - p);
-            if (r <= 0) {
-                if (have > 0) line(p, key, out, &n, max);
-                break;
-            }
-            if (have >= CH - 1) have = 0;           /* a line longer than a chunk: drop it */
-            memmove(buf, p, (size_t)have);
-            if (*cancel) break;
+        uint8_t h[40];
+        if (fread(h, 1, sizeof h, fp) == sizeof h && !memcmp(h, "AIX2", 4)) {
+            aix2_file(fp, h, key, out, &n, max, cancel);
+        } else {
+            fseek(fp, 0, SEEK_SET);
+            legacy_file(fp, key, out, &n, max, buf, CH, cancel);
         }
         fclose(fp);
     }

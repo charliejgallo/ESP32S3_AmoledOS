@@ -205,6 +205,7 @@ typedef struct {
     bool        bench;
     int         bench_phase;
     bool        bench_zoomed;
+    char        bench_q[40];
     uint32_t    bench_t;
     uint32_t    b_frames, b_compose, b_blit;
     volatile uint32_t b_renders, b_render_us;
@@ -1004,12 +1005,12 @@ static void bench_step(app_t *a)
     case 5: view_zoom_at(a, a->view.z + 0.8f * dt, SW / 2, SH / 2); next = el > 2500; break;
     case 6:
         if (!a->bench_zoomed) {
-            snprintf(a->query, sizeof a->query, "serrano");
+            snprintf(a->query, sizeof a->query, "%s", a->bench_q);
             search_start(a);
             a->bench_zoomed = true;
         }
         next = (a->search_seq != 0 && !a->searching && a->photon_id == 0 && a->photon_done) || el > 20000;
-        if (next) aos_hal_log("mapas", "bench search: %d hits, online %s", a->nhits,
+        if (next) aos_hal_log("mapas", "bench search \"%s\": %d hits, online %s", a->query, a->nhits,
                               a->photon_done ? "answered" : "no");
         break;
     default: return;
@@ -1687,7 +1688,14 @@ static void *mp_create(aos_app_t *self, lv_obj_t *root)
         snprintf(path, sizeof path, "%s/bench.txt", mp_maps_dir());
         FILE *fp = fopen(path, "rb");
         if (fp) {
+            /* "q=text" in it: the search to time (else "serrano") */
+            char b[48] = "";
+            size_t r = fread(b, 1, sizeof b - 1, fp);
+            b[r] = 0;
             fclose(fp);
+            char *nl = strpbrk(b, "\r\n");
+            if (nl) *nl = 0;
+            snprintf(a->bench_q, sizeof a->bench_q, "%.39s", !strncmp(b, "q=", 2) && b[2] ? b + 2 : "serrano");
             a->bench = true;
             a->bench_t = (uint32_t)aos_hal_uptime_ms();
             /* always the same place: the centre of Buenos Aires at z13 */

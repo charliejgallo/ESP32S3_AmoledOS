@@ -12,6 +12,7 @@ layers the watch draws, and writes what the app reads from <card>/maps:
 
     python3 tools/map_pack.py "Palermo" --center=-34.5885,-58.4305 --km 3
     python3 tools/map_pack.py "Buenos Aires" --bbox=-58.53,-34.71,-58.33,-34.53 --out /Volumes/SD/maps
+    python3 tools/map_pack.py --reindex caba.idx amba.idx     first version's text index -> AIX2
 
 The formats are documented in apps/mapas/main/mp_store.h (.amp) and
 apps/mapas/main/mp_search.h (.idx), and must match what components/aos_web/
@@ -179,6 +180,121 @@ def key(s):
     return re.sub(r"\s+", " ", s).strip()
 
 
+# ------------------------------------------------------------ the index --
+#
+# AIX2, little-endian (the watch's reader is apps/mapas/main/mp_search.c, the
+# browser's writer components/aos_web/mapas.html; the three must agree):
+#
+#   0  "AIX2"   4 names   8 keys   12 kinds   16 kinds_off   20 blocks_off
+#   24 keys_off   28 names_off   32 block (256)   36 reserved
+#   kinds   NUL-terminated strings ("lugar", "calle", "agua", "school"...)
+#   blocks  the first key of every 256, 9 bytes each: the watch loads these
+#   keys    16 bytes each, sorted: key[9], class, flags (1: the name's first
+#           word), name length (normalised, capped at 255), name offset (u32)
+#   names   lat i32, lon i32 (1e6), kind u8, the name in UTF-8, NUL
+#
+# A key is the normalised name from one of its words on, 9 bytes: "avenida
+# rivadavia" gives "avenida r" and "rivadavia". Normalised the way the watch
+# does it: Latin-1 letters without accent, lower case, anything else beyond
+# ASCII dropped, runs of spaces as one.
+
+FOLD = "AAAAAAACEEEEIIIIDNOOOOOxOUUUUYTsaaaaaaaceeeeiiiidnooooo/ouuuuyty"
+STOP = {"de", "del", "la", "las", "el", "los", "y", "e", "a", "al", "en", "of", "the", "da", "do", "dos"}
+SKIP_KINDS = {"bus"}            # stops named after their corner: the streets are there already
+KEY_LEN, BLOCK, MAX_KEYS = 9, 256, 6
+
+
+def norm(s):
+    out, space = [], True
+    for ch in s:
+        c = ord(ch)
+        if 0xC0 <= c <= 0xFF:
+            ch = FOLD[c - 0xC0]
+        elif c >= 0x80:
+            continue
+        if ch.isspace():
+            if not space:
+                out.append(" ")
+            space = True
+            continue
+        space = False
+        out.append(ch.lower() if "A" <= ch <= "Z" else ch)
+    return "".join(out).rstrip()
+
+
+def alnum(c):
+    return "a" <= c <= "z" or "0" <= c <= "9"
+
+
+def word_keys(n):
+    """(key, first word?) for every word worth a key"""
+    out = []
+    for i, c in enumerate(n):
+        if not alnum(c) or (i and alnum(n[i - 1])):
+            continue
+        j = i
+        while j < len(n) and alnum(n[j]):
+            j += 1
+        w = n[i:j]
+        if i and (w in STOP or (len(w) == 1 and not w.isdigit())):
+            continue
+        out.append((n[i:i + KEY_LEN], i == 0))
+        if len(out) >= MAX_KEYS:
+            break
+    return out
+
+
+def kind_class(k):
+    return {"lugar": 0, "calle": 1, "agua": 2}.get(k, 3)
+
+
+def write_idx(entries):
+    """entries: (name, kind, lat, lon) -> the AIX2 file's bytes"""
+    # bus stops, and bus lines named "135 - Rivadavia" that come as streets
+    entries = [e for e in entries if e[1] not in SKIP_KINDS and not re.match(r"^\d+\s*-\s", e[0])]
+    freq = {}
+    for e in entries:
+        freq[e[1]] = freq.get(e[1], 0) + 1
+    kinds = [k for k, _ in sorted(freq.items(), key=lambda kv: -kv[1])][:255]
+    if "poi" not in kinds:
+        kinds = kinds[:254] + ["poi"]
+    kind_ix = {k: i for i, k in enumerate(kinds)}
+    names, keys = bytearray(), []
+    for name, kind, la, lo in entries:
+        n = norm(name)
+        if not n:
+            continue
+        ki = kind_ix.get(kind, kind_ix["poi"])
+        off = len(names)
+        nb = name.encode("utf-8")[:60].decode("utf-8", "ignore").encode("utf-8")
+        names += struct.pack("<iiB", round(la * 1e6), round(lo * 1e6), ki) + nb + b"\0"
+        for k, first in word_keys(n):
+            keys.append((k.encode("ascii").ljust(KEY_LEN, b"\0"), kind_class(kinds[ki]), 1 if first else 0,
+                         min(255, len(n)), off))
+    keys.sort()
+    kb = b"".join(k.encode("ascii") + b"\0" for k in kinds)
+    blocks = b"".join(keys[i][0] for i in range(0, len(keys), BLOCK))
+    kr = b"".join(struct.pack("<9sBBBI", *k) for k in keys)
+    kinds_off = 40
+    blocks_off = kinds_off + len(kb)
+    keys_off = blocks_off + len(blocks)
+    names_off = keys_off + len(kr)
+    head = b"AIX2" + struct.pack("<9I", len(entries), len(keys), len(kinds), kinds_off, blocks_off,
+                                 keys_off, names_off, BLOCK, 0)
+    return head + kb + blocks + kr + bytes(names)
+
+
+def read_idx_v1(path):
+    """the text index of the first version: key, name, kind, lat, lon"""
+    out = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            p = line.rstrip("\n").split("\t")
+            if len(p) >= 5:
+                out.append((p[1], p[2], int(p[3]) / 1e6, int(p[4]) / 1e6))
+    return out
+
+
 def slug(s):
     s = key(s)
     return (re.sub(r"[^a-z0-9]+", "-", s).strip("-")[:24]) or "zona"
@@ -239,6 +355,17 @@ def pack(name, box, tiles):
 
 
 def main():
+    if len(sys.argv) >= 3 and sys.argv[1] == "--reindex":
+        # the first version's text index -> AIX2, in place of the same name
+        for path in sys.argv[2:]:
+            if open(path, "rb").read(4) == b"AIX2":
+                print(path, "already AIX2")
+                continue
+            data = write_idx(read_idx_v1(path))
+            with open(path, "wb") as f:
+                f.write(data)
+            print(path, struct.unpack_from("<I", data, 4)[0], "names,", len(data), "bytes")
+        return
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("name")
     g = ap.add_mutually_exclusive_group(required=True)
@@ -301,12 +428,11 @@ def main():
         with open(fn, "wb") as f:
             f.write(pack(a.name, (w, s, e, n), p))
         print(fn, os.path.getsize(fn))
-    rows = sorted(f"{k[0]}\t{v[0]}\t{v[1]}\t{round(v[2] * 1e6)}\t{round(v[3] * 1e6)}".replace("\r", " ")
-                  for k, v in idx.items() if "\t" not in v[0] and "\n" not in v[0])
+    data = write_idx([(v[0], v[1], v[2], v[3]) for v in idx.values()])
     fn = os.path.join(a.out, base + ".idx")
-    with open(fn, "w", encoding="utf-8") as f:
-        f.write("\n".join(rows) + "\n")
-    print(fn, len(rows), "names")
+    with open(fn, "wb") as f:
+        f.write(data)
+    print(fn, struct.unpack_from("<I", data, 4)[0], "names,", len(data), "bytes")
     print(f"zones.txt line:  {a.name}\t{round((s + n) / 2 * 1e6)}\t{round((w + e) / 2 * 1e6)}\t150")
 
 
