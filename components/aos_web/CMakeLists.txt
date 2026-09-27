@@ -5,5 +5,5 @@ idf_component_register(
     EMBED_TXTFILES "portal.html" "wifi.html" "clima.html" "remoto.html" "red.html"
                    "cotiz.html" "camaras.html" "radio.html" "sensores.html" "ap.html" "pixel.html" "pato.html" "lua.html" "usb.html" "iconos.html"
                    "inicio.html" "ajustes.html" "pantalla.html" "registro.html" "alarmas.html"
-                   "aos.css" "aos.js" "menu.html" "aic.js" "glifos.js" "modelos.html"
+                   "aos.css" "aos.js" "menu.html" "aic.js" "glifos.js" "modelos.html" "mapas.html"
 )

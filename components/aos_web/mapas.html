@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Mapas</title>
+<link rel="stylesheet" href="/aos.css">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+  .buscar { display: flex; gap: 8px; margin-bottom: 8px; }
+  .buscar input { flex: 1; min-width: 0; }
+  .resultados { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+  .resultados button { text-align: left; background: var(--card); color: var(--text); font-weight: 400;
+                       padding: 8px 12px; border-radius: 10px; }
+  .resultados button span { color: var(--dim); font-size: 12.5px; margin-left: 6px; }
+  #mapa { width: 100%; height: 420px; border-radius: 14px; overflow: hidden; background: var(--card); }
+  #mapa .sin { padding: 40px 20px; color: var(--dim); text-align: center; }
+  .vista { color: var(--dim); font-size: 12.5px; margin: 6px 2px 0; font-variant-numeric: tabular-nums; }
+  .lista { display: flex; flex-direction: column; gap: 8px; }
+  .fila { background: var(--card); border-radius: 12px; padding: 10px 14px;
+          display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .fila b { font-weight: 500; flex: 1 1 140px; word-break: break-word; }
+  .fila span { color: var(--dim); font-size: 13px; }
+  .fila button { padding: 7px 11px; font-size: 13px; border-radius: 9px; }
+  .fila button.borrar { background: #3a2626; color: var(--red); }
+  .vacio { color: var(--dim); font-size: 14px; margin: 0; }
+  .agregar { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .agregar input { flex: 1 1 180px; }
+  .panel { background: var(--card); border-radius: 14px; padding: 14px 16px; margin-top: 10px; }
+  .panel label { display: block; font-size: 13px; color: var(--dim); margin: 0 0 6px; }
+  .panel select, .panel input { width: 100%; margin-bottom: 12px; }
+  .datos { font-size: 13.5px; color: var(--dim); line-height: 1.6; white-space: pre-line; }
+  .datos.mal { color: var(--red); }
+  progress { width: 100%; height: 10px; margin-top: 10px; }
+  .acciones { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .pie { color: var(--dim); font-size: 12.5px; margin-top: 26px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Mapas</h1></div>
+  <p class="sub" data-t="bajada">Las zonas de la app Mapas y los mapas para usar sin conexión. El mapa del
+     reloj es de OpenStreetMap, servido por OpenFreeMap: sin cuenta y sin clave.</p>
+
+  <nav class="paginas"></nav>
+
+  <div class="buscar">
+    <input id="q" data-t-ph="ph_buscar" placeholder="Buscar un lugar: ciudad, calle, barrio...">
+    <button id="btn-q" data-t="btn_buscar">Buscar</button>
+  </div>
+  <div class="resultados" id="resultados"></div>
+  <div id="mapa"></div>
+  <p class="vista" id="vista"></p>
+
+  <h2 data-t="h_zonas">Zonas</h2>
+  <div class="lista" id="zonas"></div>
+  <p class="vacio" id="sin-zonas" data-t="sin_zonas" hidden>Todavía no hay zonas. Mové el mapa hasta
+     un lugar y guardalo: en el reloj aparece en el menú ≡ de la app.</p>
+  <div class="agregar">
+    <input id="z-nombre" maxlength="30" data-t-ph="ph_nombre" placeholder="Nombre de la zona">
+    <button id="z-guardar" data-t="btn_guardar">Guardar lo que se ve como zona</button>
+    <button class="sec" id="z-mostrar" data-t="btn_mostrar">Mostrarlo en el reloj</button>
+  </div>
+
+  <h2 data-t="h_offline">Sin conexión</h2>
+  <div class="lista" id="paquetes"></div>
+  <p class="vacio" id="sin-paquetes" data-t="sin_paquetes" hidden>No hay mapas guardados en el reloj.</p>
+  <div class="panel">
+    <label data-t="l_zona">Se descarga lo que se ve en el mapa de arriba, con este nombre:</label>
+    <input id="d-nombre" maxlength="30" data-t-ph="ph_nombre" placeholder="Nombre de la zona">
+    <label data-t="l_detalle">Hasta qué detalle</label>
+    <select id="d-detalle">
+      <option value="14" data-t="op_14">Calles, con sus nombres (lo más completo)</option>
+      <option value="13" data-t="op_13">Avenidas y barrios</option>
+      <option value="12" data-t="op_12">Rutas y ciudades</option>
+    </select>
+    <div class="datos" id="estimacion"></div>
+    <progress id="prog" max="1" value="0" hidden></progress>
+    <div class="datos" id="estado"></div>
+    <div class="acciones">
+      <button id="descargar" data-t="btn_descargar">Descargar y guardar en el reloj</button>
+      <button class="sec" id="cancelar" data-t="btn_cancelar" hidden>Cancelar</button>
+    </div>
+  </div>
+
+  <p class="pie" data-t="pie">Todo se hace en este navegador: baja las teselas de OpenFreeMap, les
+     quita lo que el reloj no dibuja, arma el índice de nombres para buscar y las guarda en /maps de
+     la tarjeta en paquetes de hasta 7,5 MB. En la app, lo guardado se usa antes que la red y lo que
+     se ve en línea queda en la tarjeta para la próxima vez. Datos © colaboradores de OpenStreetMap,
+     OpenMapTiles y OpenFreeMap.</p>
+</div>
+
+<script src="/aos.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+/* El firmware no sabe nada de mapas: guarda y lee bytes con /api/upload, /api/download,
+   /api/list y /api/delete (dir=maps). La app lee tres cosas de /maps:
+
+   zones.txt   una zona por linea, separada por tabuladores: nombre, latitud y longitud en
+               millonesimas de grado, zoom en decimas (convencion de 256 px del reloj).
+   goto.txt    lo mismo sin nombre: la app va ahi y lo borra ("Mostrar en el reloj").
+   *.amp       paquetes de teselas, formato en apps/mapas/main/mp_store.h:
+               "AMP1", n, minz, maxz, flags, O S E N (1e6), nombre[32], 64,
+               n x { z, pad[3], x, y, offset, largo }, datos. Ordenado por (z, x, y).
+   *.idx       los nombres de la zona para buscar, formato AIX2: una clave de 9 letras por
+               palabra, ordenadas, para que el reloj busque por bloques sin leer el archivo
+               entero. El formato esta en tools/map_pack.py (write_idx), que escribe lo mismo, y
+               lo lee apps/mapas/main/mp_search.c. */
+const DIR = "maps";
+const TILEJSON = "https://tiles.openfreemap.org/planet";
+const ESTILO = "https://tiles.openfreemap.org/styles/liberty";
+const PARTE = 7.5 * 1024 * 1024;          /* el portal acepta 8 MB por subida */
+const MAX_TESELAS = 2500;
+/* las capas que el reloj dibuja (mp_mvt.c): el resto se queda afuera del paquete */
+const CAPAS = new Set(["water", "waterway", "landcover", "landuse", "park", "building", "aeroway",
+                       "transportation", "transportation_name", "boundary", "place", "water_name"]);
+const $ = aos.$;
+
+const TR = {
+  en: {
+    titulo: "Maps",
+    bajada: "The Maps app's zones and the maps for use without a connection. The watch's map is " +
+            "OpenStreetMap, served by OpenFreeMap: no account and no key.",
+    ph_buscar: "Search a place: city, street, neighbourhood...", btn_buscar: "Search",
+    h_zonas: "Zones",
+    sin_zonas: "No zones yet. Move the map to a place and save it: on the watch it shows up in the " +
+               "app's ≡ menu.",
+    ph_nombre: "Name of the zone", btn_guardar: "Save what is shown as a zone",
+    btn_mostrar: "Show it on the watch",
+    h_offline: "Without a connection", sin_paquetes: "No maps saved on the watch.",
+    l_zona: "What the map above shows is downloaded, with this name:",
+    l_detalle: "Down to which detail",
+    op_14: "Streets, with their names (the most complete)", op_13: "Avenues and neighbourhoods",
+    op_12: "Roads and towns",
+    btn_descargar: "Download and save to the watch", btn_cancelar: "Cancel",
+    pie: "All of it happens in this browser: it fetches the tiles from OpenFreeMap, takes out what " +
+         "the watch does not draw, builds the index of names for searching and saves them in /maps " +
+         "on the card in packs of up to 7.5 MB. In the app, what is saved is used before the network, " +
+         "and what is seen online stays on the card for next time. Data © OpenStreetMap " +
+         "contributors, OpenMapTiles and OpenFreeMap.",
+    ir: "Go", mostrar: "On the watch", borrar: "Delete", conf_borrar: "Delete “{n}” from the watch?",
+    teselas: "tiles", falta_nombre: "Give it a name first.",
+    estim: "{n} tiles from zoom {a} to {b}: about {mb} on the card (measured on {m} sample tiles).",
+    estim_calc: "{n} tiles from zoom {a} to {b}: working out the size...",
+    estim_sin: "{n} tiles from zoom {a} to {b}. The size could not be worked out (no internet?).",
+    muy_grande: "{n} tiles: too big. Zoom the map in, or pick less detail.",
+    bajando: "Downloading {i} of {n} tiles...", armando: "Packing...",
+    subiendo: "Saving to the watch: part {i} of {n}...", indice: "Saving the index of names...",
+    listo: "Saved: {t} tiles in {p} file(s), {nn} names for searching.", cancelado: "Cancelled.",
+    err_red: "Could not download tile {k}: ", err_placa: "The watch does not answer: ",
+    sin_mapa: "The map needs internet on this computer (MapLibre and OpenFreeMap).",
+    vista: "Centre {la}, {lo} · zoom {z} on the watch", nada: "Nothing found.",
+    guardada: "Zone saved.", enviado: "Sent: the watch opens Maps there.", cache: "cache of what was seen online"
+  },
+  de: {
+    titulo: "Karten",
+    bajada: "Die Zonen der App Karten und die Karten zur Nutzung ohne Verbindung. Die Karte der Uhr " +
+            "ist OpenStreetMap, bereitgestellt von OpenFreeMap: kein Konto, kein Schlüssel.",
+    ph_buscar: "Ort suchen: Stadt, Straße, Viertel...", btn_buscar: "Suchen",
+    h_zonas: "Zonen",
+    sin_zonas: "Noch keine Zonen. Karte zu einem Ort bewegen und speichern: auf der Uhr erscheint er " +
+               "im Menü ≡ der App.",
+    ph_nombre: "Name der Zone", btn_guardar: "Angezeigtes als Zone speichern",
+    btn_mostrar: "Auf der Uhr zeigen",
+    h_offline: "Ohne Verbindung", sin_paquetes: "Keine Karten auf der Uhr gespeichert.",
+    l_zona: "Heruntergeladen wird, was die Karte oben zeigt, unter diesem Namen:",
+    l_detalle: "Bis zu welchem Detail",
+    op_14: "Straßen mit Namen (am vollständigsten)", op_13: "Hauptstraßen und Viertel",
+    op_12: "Fernstraßen und Orte",
+    btn_descargar: "Herunterladen und auf der Uhr speichern", btn_cancelar: "Abbrechen",
+    pie: "Alles passiert in diesem Browser: er lädt die Kacheln von OpenFreeMap, entfernt, was die " +
+         "Uhr nicht zeichnet, baut den Namensindex für die Suche und speichert sie in /maps auf der " +
+         "Karte in Paketen bis 7,5 MB. In der App wird Gespeichertes vor dem Netz genutzt, und was " +
+         "online gesehen wird, bleibt für das nächste Mal auf der Karte. Daten © OpenStreetMap-" +
+         "Mitwirkende, OpenMapTiles und OpenFreeMap.",
+    ir: "Hin", mostrar: "Auf der Uhr", borrar: "Löschen", conf_borrar: "„{n}“ von der Uhr löschen?",
+    teselas: "Kacheln", falta_nombre: "Zuerst einen Namen geben.",
+    estim: "{n} Kacheln von Zoom {a} bis {b}: etwa {mb} auf der Karte (gemessen an {m} Stichproben).",
+    estim_calc: "{n} Kacheln von Zoom {a} bis {b}: Größe wird ermittelt...",
+    estim_sin: "{n} Kacheln von Zoom {a} bis {b}. Größe nicht ermittelbar (kein Internet?).",
+    muy_grande: "{n} Kacheln: zu groß. Näher heranzoomen oder weniger Detail wählen.",
+    bajando: "Lade {i} von {n} Kacheln...", armando: "Packe...",
+    subiendo: "Speichere auf der Uhr: Teil {i} von {n}...", indice: "Speichere den Namensindex...",
+    listo: "Gespeichert: {t} Kacheln in {p} Datei(en), {nn} Namen für die Suche.", cancelado: "Abgebrochen.",
+    err_red: "Kachel {k} nicht ladbar: ", err_placa: "Die Uhr antwortet nicht: ",
+    sin_mapa: "Die Karte braucht Internet auf diesem Computer (MapLibre und OpenFreeMap).",
+    vista: "Mitte {la}, {lo} · Zoom {z} auf der Uhr", nada: "Nichts gefunden.",
+    guardada: "Zone gespeichert.", enviado: "Gesendet: die Uhr öffnet Karten dort.", cache: "Cache des online Gesehenen"
+  }
+};
+const ES = {
+  ir: "Ir", mostrar: "En el reloj", borrar: "Borrar", conf_borrar: "¿Borrar «{n}» del reloj?",
+  teselas: "teselas", falta_nombre: "Primero ponele un nombre.",
+  estim: "{n} teselas del zoom {a} al {b}: unos {mb} en la tarjeta (medido sobre {m} teselas de muestra).",
+  estim_calc: "{n} teselas del zoom {a} al {b}: calculando el tamaño...",
+  estim_sin: "{n} teselas del zoom {a} al {b}. No se pudo calcular el tamaño (¿sin internet?).",
+  muy_grande: "{n} teselas: demasiado grande. Acercá el mapa o elegí menos detalle.",
+  bajando: "Descargando {i} de {n} teselas...", armando: "Armando los paquetes...",
+  subiendo: "Guardando en el reloj: parte {i} de {n}...", indice: "Guardando el índice de nombres...",
+  listo: "Guardado: {t} teselas en {p} archivo(s), {nn} nombres para buscar.", cancelado: "Cancelado.",
+  err_red: "No se pudo bajar la tesela {k}: ", err_placa: "El reloj no contesta: ",
+  sin_mapa: "El mapa necesita internet en esta computadora (MapLibre y OpenFreeMap).",
+  vista: "Centro {la}, {lo} · zoom {z} en el reloj", nada: "No se encontró nada.",
+  guardada: "Zona guardada.", enviado: "Enviado: el reloj abre Mapas ahí.", cache: "caché de lo visto en línea"
+};
+function t(k, v) {
+  let s = aos.t(k);
+  if (s === k && ES[k]) s = ES[k];
+  for (const x in (v || {})) s = s.split("{" + x + "}").join(v[x]);
+  return s;
+}
+
+/* ------------------------------------------------------------ el mapa -- */
+
+let mapa = null;
+
+/* El zoom de MapLibre es de teselas de 512 px; el del reloj, de 256: uno mas. Y la pantalla del
+   reloj tiene 368 px de ancho: para que muestre lo mismo que este mapa se aleja lo que haga falta. */
+function zoomReloj() {
+  if (!mapa) return 15;
+  const w = $("mapa").clientWidth || 368;
+  const z = mapa.getZoom() + 1 + Math.log2(368 / w);
+  return Math.max(3, Math.min(18, Math.round(z * 10) / 10));
+}
+
+function pintarVista() {
+  if (!mapa) return;
+  const c = mapa.getCenter();
+  $("vista").textContent = t("vista", { la: c.lat.toFixed(5), lo: c.lng.toFixed(5), z: zoomReloj().toFixed(1) });
+  estimar();
+}
+
+function iniciarMapa(centro, zoom) {
+  if (typeof maplibregl === "undefined") {
+    $("mapa").innerHTML = '<div class="sin"></div>';
+    $("mapa").firstChild.textContent = t("sin_mapa");
+    return;
+  }
+  mapa = new maplibregl.Map({ container: "mapa", style: ESTILO, center: centro, zoom: zoom,
+                              attributionControl: { compact: true } });
+  mapa.addControl(new maplibregl.NavigationControl({ showCompass: false }));
+  mapa.on("moveend", pintarVista);
+  mapa.on("load", pintarVista);
+}
+
+/* Buscar: Photon (de komoot, sobre OpenStreetMap), que contesta con CORS. */
+async function buscar() {
+  const q = $("q").value.trim();
+  const cont = $("resultados");
+  cont.innerHTML = "";
+  if (!q) return;
+  let feats = [];
+  try {
+    const lang = ["en", "de", "fr", "it"].includes(aos.idioma()) ? aos.idioma() : "default";
+    const r = await fetch("https://photon.komoot.io/api/?limit=6&lang=" + lang + "&q=" + encodeURIComponent(q));
+    feats = (await r.json()).features || [];
+  } catch (e) { feats = []; }
+  if (!feats.length) {
+    const p = document.createElement("p");
+    p.className = "vacio";
+    p.textContent = t("nada");
+    cont.appendChild(p);
+    return;
+  }
+  for (const f of feats) {
+    const pr = f.properties || {};
+    const b = document.createElement("button");
+    b.textContent = pr.name || pr.street || "?";
+    const sp = document.createElement("span");
+    sp.textContent = [pr.city, pr.state, pr.country].filter(Boolean).join(", ");
+    b.appendChild(sp);
+    b.onclick = () => {
+      cont.innerHTML = "";
+      const [lo, la] = f.geometry.coordinates;
+      if (pr.extent && mapa) mapa.fitBounds([[pr.extent[0], pr.extent[3]], [pr.extent[2], pr.extent[1]]], { maxZoom: 15 });
+      else if (mapa) mapa.flyTo({ center: [lo, la], zoom: 14 });
+      if (!$("z-nombre").value) $("z-nombre").value = (pr.name || "").slice(0, 30);
+      if (!$("d-nombre").value) $("d-nombre").value = (pr.name || "").slice(0, 30);
+    };
+    cont.appendChild(b);
+  }
+}
+
+/* ---------------------------------------------------- archivos del reloj -- */
+
+async function leerTexto(nombre) {
+  try {
+    const r = await fetch("/api/download?dir=" + DIR + "&name=" + encodeURIComponent(nombre) + "&_=" + Date.now());
+    if (!r.ok) return "";
+    return await r.text();
+  } catch (e) { return ""; }
+}
+
+/* Un reloj dormido con la pantalla apagada no termina una subida grande (medido: 3,2 MB se
+   cortaron al minuto; despierto, 20 s). Se lo despierta antes de cada archivo. */
+async function despertar() {
+  await aos.post("/api/accion", { que: "despertar" }).catch(() => {});
+}
+
+function subirXHR(nombre, cuerpo, alProgreso) {
+  return new Promise((ok, mal) => {
+    const x = new XMLHttpRequest();
+    x.open("POST", "/api/upload?dir=" + DIR + "&name=" + encodeURIComponent(nombre));
+    x.upload.onprogress = e => { if (alProgreso && e.lengthComputable) alProgreso(e.loaded / e.total); };
+    x.onload = () => (x.status >= 200 && x.status < 300) ? ok() : mal(new Error(x.responseText || x.status));
+    x.onerror = () => mal(new Error("red"));
+    x.send(cuerpo);
+  });
+}
+
+async function borrarArchivo(nombre) {
+  await fetch("/api/delete?dir=" + DIR + "&name=" + encodeURIComponent(nombre), { method: "POST" });
+}
+
+/* ----------------------------------------------------------------- zonas -- */
+
+let zonas = [];
+
+function leerZonas(txt) {
+  const out = [];
+  for (const l of txt.split(/\r?\n/)) {
+    if (!l || l[0] === "#") continue;
+    const p = l.split("\t");
+    if (p.length < 3) continue;
+    out.push({ nombre: p[0], la: +p[1] / 1e6, lo: +p[2] / 1e6, z: p[3] ? +p[3] / 10 : 15 });
+  }
+  return out;
+}
+
+function escribirZonas() {
+  let txt = "# AmoledOS - zonas de la app Mapas: nombre, lat y lon x 1e6, zoom x 10\n";
+  for (const z of zonas) {
+    txt += z.nombre.replace(/[\t\r\n]/g, " ") + "\t" + Math.round(z.la * 1e6) + "\t" +
+           Math.round(z.lo * 1e6) + "\t" + Math.round(z.z * 10) + "\n";
+  }
+  return subirXHR("zones.txt", new Blob([txt], { type: "text/plain" }));
+}
+
+async function mostrarEnReloj(la, lo, z) {
+  const txt = Math.round(la * 1e6) + "\t" + Math.round(lo * 1e6) + "\t" + Math.round(z * 10) + "\n";
+  await subirXHR("goto.txt", new Blob([txt], { type: "text/plain" }));
+  await aos.post("/api/accion", { que: "abrir", id: "demo.mapas" }).catch(() => {});
+  aos.brindis(t("enviado"));
+}
+
+function pintarZonas() {
+  const cont = $("zonas");
+  cont.innerHTML = "";
+  $("sin-zonas").hidden = zonas.length > 0;
+  zonas.forEach((z, i) => {
+    const f = document.createElement("div");
+    f.className = "fila";
+    f.innerHTML = "<b></b><span></span><button class='sec'></button><button class='sec'></button><button class='borrar'></button>";
+    f.querySelector("b").textContent = z.nombre;
+    f.querySelector("span").textContent = z.la.toFixed(4) + ", " + z.lo.toFixed(4) + " · z" + z.z.toFixed(1);
+    const [ir, rel, bo] = f.querySelectorAll("button");
+    ir.textContent = t("ir");
+    ir.onclick = () => { if (mapa) mapa.flyTo({ center: [z.lo, z.la], zoom: z.z - 1 }); };
+    rel.textContent = t("mostrar");
+    rel.onclick = () => mostrarEnReloj(z.la, z.lo, z.z);
+    bo.textContent = t("borrar");
+    bo.onclick = async () => {
+      if (!confirm(t("conf_borrar", { n: z.nombre }))) return;
+      zonas.splice(i, 1);
+      await escribirZonas().catch(() => {});
+      pintarZonas();
+    };
+    cont.appendChild(f);
+  });
+}
+
+async function cargarZonas() {
+  zonas = leerZonas(await leerTexto("zones.txt"));
+  pintarZonas();
+}
+
+async function guardarZona() {
+  const nombre = $("z-nombre").value.trim();
+  if (!nombre) { aos.brindis(t("falta_nombre")); return; }
+  if (!mapa) return;
+  const c = mapa.getCenter();
+  zonas.push({ nombre: nombre.slice(0, 30), la: c.lat, lo: c.lng, z: zoomReloj() });
+  try {
+    await escribirZonas();
+    aos.brindis(t("guardada"));
+  } catch (e) {
+    aos.brindis(t("err_placa") + e.message);
+  }
+  pintarZonas();
+}
+
+/* --------------------------------------------------------------- paquetes -- */
+
+function slug(s) {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24) || "zona";
+}
+
+async function cargarPaquetes() {
+  const cont = $("paquetes");
+  cont.innerHTML = "";
+  let arch = [];
+  try {
+    const r = await fetch("/api/list?dir=" + DIR + "&_=" + Date.now());
+    arch = ((await r.json()).files || []);
+  } catch (e) { arch = []; }
+  /* una zona son sus partes (nombre.amp, nombre.2.amp...) y su indice (nombre.idx) */
+  const grupos = {};
+  for (const f of arch) {
+    const m = /^([^.]+)(\.\d+)?\.(amp|idx)$/i.exec(f.name);
+    if (!m) continue;
+    const g = grupos[m[1]] || (grupos[m[1]] = { archivos: [], bytes: 0 });
+    g.archivos.push(f.name);
+    g.bytes += f.size || 0;
+  }
+  const claves = Object.keys(grupos);
+  $("sin-paquetes").hidden = claves.length > 0;
+  for (const k of claves) {
+    const g = grupos[k];
+    const f = document.createElement("div");
+    f.className = "fila";
+    f.innerHTML = "<b></b><span></span><button class='borrar'></button>";
+    f.querySelector("b").textContent = k;
+    f.querySelector("span").textContent = aos.humano(g.bytes) + " · " + g.archivos.length;
+    const bo = f.querySelector("button");
+    bo.textContent = t("borrar");
+    bo.onclick = async () => {
+      if (!confirm(t("conf_borrar", { n: k }))) return;
+      for (const a of g.archivos) await borrarArchivo(a);
+      cargarPaquetes();
+    };
+    cont.appendChild(f);
+  }
+  if (arch.some(f => f.dir && f.name === "cache")) {
+    const p = document.createElement("p");
+    p.className = "vacio";
+    p.textContent = "/maps/cache: " + t("cache");
+    cont.appendChild(p);
+  }
+}
+
+/* Teselas en la caja, zoom a zoom. */
+const lon2x = (lo, z) => Math.floor((lo + 180) / 360 * (1 << z));
+const lat2y = (la, z) => {
+  const r = la * Math.PI / 180;
+  return Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * (1 << z));
+};
+function teselasDe(b, minz, maxz) {
+  const out = [];
+  for (let z = minz; z <= maxz; z++) {
+    const n = 1 << z;
+    const x0 = Math.max(0, lon2x(b.w, z)), x1 = Math.min(n - 1, lon2x(b.e, z));
+    const y0 = Math.max(0, lat2y(b.n, z)), y1 = Math.min(n - 1, lat2y(b.s, z));
+    for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) out.push({ z, x, y });
+  }
+  return out;
+}
+function cajaVista() {
+  const b = mapa.getBounds();
+  return { w: Math.max(-180, b.getWest()), e: Math.min(179.9999, b.getEast()),
+           s: Math.max(-85, b.getSouth()), n: Math.min(85, b.getNorth()) };
+}
+/* Los niveles bajos van siempre (1 o 2 teselas cada uno): alejarse en el reloj sin red tiene
+   que mostrar algo. Desde el 6 (una provincia en la pantalla del reloj): del 3 al 5 son unos
+   800 KB de continente que a una zona de ciudad no le sirven. El reloj dibuja con datos de un
+   nivel menos que su zoom (mp_render.h). */
+const MINZ = 6;
+
+/* El tamano no se puede saber sin bajar: una tesela del centro recortada pesa 85 KB y una del
+   conurbano 14. Se mide una muestra repartida por la zona (12 teselas del zoom mas alto, 6 del
+   siguiente, 3 del otro, 1 de cada nivel bajo), recortada como en la descarga, y se extrapola.
+   El indice se cuenta con los nombres de la muestra y se divide por dos: una avenida esta en
+   decenas de teselas y en el indice una vez. Contra lo bajado de verdad (2026-09-27): CABA
+   15,1 estimado / 15,6 real, AMBA 31,5 / 33,8. El valor fijo de antes (130 KB por tesela,
+   medido en Palermo) decia 35 y 202. */
+const muestras = new Map();             /* "z/x/y" -> { b: bytes recortada, i: bytes de indice } */
+let plantilla = null, estTimer = null, estTok = 0;
+
+async function laPlantilla() {
+  if (!plantilla) plantilla = (await (await fetch(TILEJSON)).json()).tiles[0];
+  return plantilla;
+}
+
+async function medir(tt) {
+  const k = tt.z + "/" + tt.x + "/" + tt.y;
+  if (muestras.has(k)) return muestras.get(k);
+  const url = (await laPlantilla()).replace("{z}", tt.z).replace("{x}", tt.x).replace("{y}", tt.y);
+  const r = await fetch(url);
+  const u8 = r.ok ? new Uint8Array(await r.arrayBuffer()) : new Uint8Array(0);
+  let ib = 0;
+  nombres(u8, tt.z, tt.x, tt.y, (nm, tipo) => { ib += 2 * nm.length + tipo.length + 24; });
+  const m = { b: recortar(u8).length, i: ib };
+  muestras.set(k, m);
+  return m;
+}
+
+function repartidas(arr, k) {
+  if (arr.length <= k) return arr;
+  const out = [];
+  for (let i = 0; i < k; i++) out.push(arr[Math.floor((i + 0.5) * arr.length / k)]);
+  return out;
+}
+
+function estimar() {
+  if (!mapa) return;
+  const maxz = +$("d-detalle").value;
+  const caja = cajaVista();
+  const n = teselasDe(caja, MINZ, maxz).length;
+  const e = $("estimacion");
+  const tok = ++estTok;
+  clearTimeout(estTimer);
+  $("descargar").disabled = n > MAX_TESELAS || bajando;
+  if (n > MAX_TESELAS) {
+    e.className = "datos mal";
+    e.textContent = t("muy_grande", { n });
+    return;
+  }
+  e.className = "datos";
+  e.textContent = t("estim_calc", { n, a: MINZ, b: maxz });
+  /* cuando el mapa se queda quieto: moverlo no tiene que disparar descargas */
+  estTimer = setTimeout(async () => {
+    try {
+      const porZ = {};
+      for (const tt of teselasDe(caja, MINZ, maxz)) (porZ[tt.z] = porZ[tt.z] || []).push(tt);
+      let bytes = 0, idx = 0, medidas = 0;
+      for (const zs of Object.keys(porZ)) {
+        const z = +zs, arr = porZ[zs];
+        const k = z === maxz ? 12 : z === maxz - 1 ? 6 : z === maxz - 2 ? 3 : 1;
+        const ms = await Promise.all(repartidas(arr, k).map(medir));
+        if (tok !== estTok) return;
+        const prom = f => ms.reduce((a, m) => a + f(m), 0) / ms.length;
+        bytes += (prom(m => m.b) + 20) * arr.length;
+        if (z === maxz) idx = prom(m => m.i) * arr.length * 0.5;
+        medidas += ms.length;
+      }
+      e.textContent = t("estim", { n, a: MINZ, b: maxz, mb: aos.humano(Math.round(bytes + idx)), m: medidas });
+    } catch (err) {
+      if (tok === estTok) e.textContent = t("estim_sin", { n, a: MINZ, b: maxz });
+    }
+  }, 700);
+}
+
+/* ----------------------------------------------------- MVT, lo necesario -- */
+
+class Lector {
+  constructor(u8, a, b) { this.u = u8; this.p = a || 0; this.fin = b === undefined ? u8.length : b; }
+  varint() {
+    let r = 0, s = 0, c;
+    do {
+      if (this.p >= this.fin) throw new Error("mvt");
+      c = this.u[this.p++];
+      if (s < 28) r |= (c & 0x7f) << s; else r += (c & 0x7f) * Math.pow(2, s);
+      s += 7;
+    } while (c & 0x80);
+    return r;
+  }
+  /* el siguiente campo: { f, w, v } o { f, w, a, b } para los de largo */
+  campo() {
+    const k = this.varint(), f = Math.floor(k / 8), w = k & 7;
+    if (w === 0) return { f, w, v: this.varint() };
+    if (w === 2) { const n = this.varint(), a = this.p; this.p += n; if (this.p > this.fin) throw new Error("mvt"); return { f, w, a, b: this.p }; }
+    if (w === 1) { this.p += 8; return { f, w }; }
+    if (w === 5) { this.p += 4; return { f, w }; }
+    throw new Error("mvt");
+  }
+  get quedan() { return this.p < this.fin; }
+}
+const dec = new TextDecoder();
+const zz = v => (v >>> 1) ^ -(v & 1);
+
+/* Solo las capas que el reloj dibuja: una tesela es una lista de capas, se copian los bytes. */
+function recortar(u8) {
+  const L = new Lector(u8), partes = [];
+  let total = 0;
+  while (L.quedan) {
+    const ini = L.p, c = L.campo();
+    if (c.f !== 3 || c.w !== 2) continue;
+    const C = new Lector(u8, c.a, c.b);
+    let nombre = "";
+    while (C.quedan) { const d = C.campo(); if (d.f === 1 && d.w === 2) { nombre = dec.decode(u8.subarray(d.a, d.b)); break; } }
+    if (CAPAS.has(nombre)) { partes.push(u8.subarray(ini, L.p)); total += L.p - ini; }
+  }
+  const out = new Uint8Array(total);
+  let o = 0;
+  for (const p of partes) { out.set(p, o); o += p.length; }
+  return out;
+}
+
+/* Los nombres de una tesela, con un punto cada uno, para el indice de busqueda. */
+const CAPAS_NOMBRES = { transportation_name: "calle", place: "lugar", poi: "poi", water_name: "agua",
+                        park: "parque", aerodrome_label: "aeropuerto", mountain_peak: "cerro" };
+function nombres(u8, z, x, y, alNombre) {
+  const L = new Lector(u8);
+  while (L.quedan) {
+    const c = L.campo();
+    if (c.f !== 3 || c.w !== 2) continue;
+    const C = new Lector(u8, c.a, c.b);
+    let capa = "", ext = 4096;
+    const claves = [], valores = [], feats = [];
+    while (C.quedan) {
+      const d = C.campo();
+      if (d.f === 1 && d.w === 2) capa = dec.decode(u8.subarray(d.a, d.b));
+      else if (d.f === 2 && d.w === 2) feats.push([d.a, d.b]);
+      else if (d.f === 3 && d.w === 2) claves.push(dec.decode(u8.subarray(d.a, d.b)));
+      else if (d.f === 4 && d.w === 2) valores.push([d.a, d.b]);
+      else if (d.f === 5 && d.w === 0) ext = d.v;
+    }
+    const tipo = CAPAS_NOMBRES[capa];
+    if (!tipo) continue;
+    const kName = claves.indexOf("name"), kLatin = claves.indexOf("name:latin"), kClass = claves.indexOf("class");
+    const cad = i => {
+      if (i === undefined || !valores[i]) return "";
+      const V = new Lector(u8, valores[i][0], valores[i][1]);
+      while (V.quedan) { const d = V.campo(); if (d.f === 1 && d.w === 2) return dec.decode(u8.subarray(d.a, d.b)); }
+      return "";
+    };
+    for (const [a, b] of feats) {
+      const F = new Lector(u8, a, b);
+      let tags = null, geom = null;
+      while (F.quedan) {
+        const d = F.campo();
+        if (d.f === 2 && d.w === 2) tags = [d.a, d.b];
+        else if (d.f === 4 && d.w === 2) geom = [d.a, d.b];
+      }
+      if (!tags || !geom) continue;
+      let nm = "", lat = "", cl = "";
+      const T = new Lector(u8, tags[0], tags[1]);
+      while (T.quedan) {
+        const k = T.varint(), v = T.varint();
+        if (k === kName) nm = cad(v); else if (k === kLatin) lat = cad(v); else if (k === kClass) cl = cad(v);
+      }
+      nm = nm || lat;
+      if (!nm) continue;
+      /* un punto: el del medio de la geometria */
+      const G = new Lector(u8, geom[0], geom[1]);
+      const pts = [];
+      let px = 0, py = 0;
+      while (G.quedan && pts.length < 4000) {
+        const cmd = G.varint(), id = cmd & 7, n = cmd >> 3;
+        if (id === 7) continue;
+        for (let i = 0; i < n; i++) { px += zz(G.varint()); py += zz(G.varint()); pts.push(px, py); }
+      }
+      if (!pts.length) continue;
+      const m = Math.floor(pts.length / 4) * 2;
+      const fx = pts[m] / ext, fy = pts[m + 1] / ext;
+      if (tipo !== "calle" && (fx < 0 || fy < 0 || fx >= 1 || fy >= 1)) continue;   /* el borde repetido */
+      const n2 = 1 << z;
+      const lon = (x + fx) / n2 * 360 - 180;
+      const lat2 = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + fy) / n2))) * 180 / Math.PI;
+      alNombre(nm, tipo === "poi" && cl ? cl : tipo, lat2, lon, z);
+    }
+  }
+}
+
+function clave(s) {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/* ------------------------------------------------------- el indice AIX2 -- */
+/* Igual que write_idx() de tools/map_pack.py, byte por byte: la normalizacion es la del reloj
+   (mp_search_key): letras de Latin-1 sin tilde, minusculas, el resto fuera de ASCII afuera. */
+
+const FOLD = "AAAAAAACEEEEIIIIDNOOOOOxOUUUUYTsaaaaaaaceeeeiiiidnooooo/ouuuuyty";
+const STOP = new Set(["de", "del", "la", "las", "el", "los", "y", "e", "a", "al", "en", "of", "the", "da", "do", "dos"]);
+const SIN_INDICE = new Set(["bus"]);   /* paradas con nombre de esquina: las calles ya estan */
+const KEY_LEN = 9, BLOQUE = 256, MAX_CLAVES = 6;
+
+function normal(s) {
+  let out = "", esp = true;
+  for (let ch of s) {
+    const c = ch.codePointAt(0);
+    if (c >= 0xC0 && c <= 0xFF) ch = FOLD[c - 0xC0];
+    else if (c >= 0x80) continue;
+    if (/\s/.test(ch)) { if (!esp) out += " "; esp = true; continue; }
+    esp = false;
+    out += ch >= "A" && ch <= "Z" ? ch.toLowerCase() : ch;
+  }
+  return out.replace(/ +$/, "");
+}
+const alnum = c => (c >= "a" && c <= "z") || (c >= "0" && c <= "9");
+
+function clavesDe(n) {
+  const out = [];
+  for (let i = 0; i < n.length && out.length < MAX_CLAVES; i++) {
+    if (!alnum(n[i]) || (i && alnum(n[i - 1]))) continue;
+    let j = i;
+    while (j < n.length && alnum(n[j])) j++;
+    const w = n.slice(i, j);
+    if (i && (STOP.has(w) || (w.length === 1 && !/[0-9]/.test(w)))) continue;
+    out.push([n.slice(i, i + KEY_LEN), i === 0]);
+  }
+  return out;
+}
+
+function armarIndice(entradas) {   /* [nombre, tipo, lat, lon] */
+  entradas = entradas.filter(e => !SIN_INDICE.has(e[1]) && !/^\d+\s*-\s/.test(e[0]));
+  const frec = {};
+  for (const e of entradas) frec[e[1]] = (frec[e[1]] || 0) + 1;
+  /* como sorted() de Python con clave -frecuencia: estable, empates en orden de aparicion */
+  let tipos = Object.keys(frec).map((k, i) => [k, frec[k], i]).sort((a, b) => b[1] - a[1] || a[2] - b[2])
+                .map(x => x[0]).slice(0, 255);
+  if (!tipos.includes("poi")) tipos = tipos.slice(0, 254).concat(["poi"]);
+  const ix = new Map(tipos.map((k, i) => [k, i]));
+  const enc = new TextEncoder();
+  const nombres = [], claves = [];
+  let largo = 0;
+  for (const [nm, tipo, la, lo] of entradas) {
+    const n = normal(nm);
+    if (!n) continue;
+    const ki = ix.has(tipo) ? ix.get(tipo) : ix.get("poi");
+    let nb = enc.encode(nm);
+    if (nb.length > 60) nb = enc.encode(new TextDecoder().decode(nb.subarray(0, 60)).replace(/\uFFFD$/, ""));
+    const rec = new Uint8Array(9 + nb.length + 1), dv = new DataView(rec.buffer);
+    dv.setInt32(0, Math.round(la * 1e6), true);
+    dv.setInt32(4, Math.round(lo * 1e6), true);
+    rec[8] = ki;
+    rec.set(nb, 9);
+    const off = largo;
+    nombres.push(rec);
+    largo += rec.length;
+    const cls = { lugar: 0, calle: 1, agua: 2 }[tipos[ki]] ?? 3;
+    for (const [k, prim] of clavesDe(n)) claves.push([k, cls, prim ? 1 : 0, Math.min(255, n.length), off]);
+  }
+  /* el orden de Python sobre las tuplas: la clave rellena con NUL, despues los numeros */
+  const kbytes = k => { const b = new Uint8Array(KEY_LEN); for (let i = 0; i < k.length; i++) b[i] = k.charCodeAt(i); return b; };
+  for (const c of claves) c[0] = kbytes(c[0]);
+  claves.sort((a, b) => {
+    for (let i = 0; i < KEY_LEN; i++) if (a[0][i] !== b[0][i]) return a[0][i] - b[0][i];
+    return a[1] - b[1] || a[2] - b[2] || a[3] - b[3] || a[4] - b[4];
+  });
+  const kb = enc.encode(tipos.join("\0") + "\0");
+  const nbloques = Math.ceil(claves.length / BLOQUE);
+  const kindsOff = 40, blocksOff = kindsOff + kb.length, keysOff = blocksOff + nbloques * KEY_LEN,
+        namesOff = keysOff + claves.length * 16;
+  const out = new Uint8Array(namesOff + largo), dv = new DataView(out.buffer);
+  out.set([65, 73, 88, 50], 0);                                 /* AIX2 */
+  [entradas.length, claves.length, tipos.length, kindsOff, blocksOff, keysOff, namesOff, BLOQUE, 0]
+    .forEach((v, i) => dv.setUint32(4 + i * 4, v, true));
+  out.set(kb, kindsOff);
+  for (let b = 0; b < nbloques; b++) out.set(claves[b * BLOQUE][0], blocksOff + b * KEY_LEN);
+  claves.forEach((c, i) => {
+    const o = keysOff + i * 16;
+    out.set(c[0], o);
+    out[o + 9] = c[1]; out[o + 10] = c[2]; out[o + 11] = c[3];
+    dv.setUint32(o + 12, c[4], true);
+  });
+  let o = namesOff;
+  for (const r of nombres) { out.set(r, o); o += r.length; }
+  return out;
+}
+
+/* ------------------------------------------------------------- descargar -- */
+
+let bajando = false, cancelar = false;
+
+function armarPaquete(nombre, caja, teselas) {
+  /* teselas: [{z,x,y,d:Uint8Array}] ya ordenadas */
+  const n = teselas.length;
+  let total = 64 + n * 20;
+  for (const tt of teselas) total += tt.d.length;
+  const buf = new ArrayBuffer(total), dv = new DataView(buf), u8 = new Uint8Array(buf);
+  u8.set([65, 77, 80, 49], 0);                              /* AMP1 */
+  dv.setUint32(4, n, true);
+  let minz = 99, maxz = 0;
+  for (const tt of teselas) { minz = Math.min(minz, tt.z); maxz = Math.max(maxz, tt.z); }
+  u8[8] = minz; u8[9] = maxz;
+  dv.setInt32(12, Math.round(caja.w * 1e6), true);
+  dv.setInt32(16, Math.round(caja.s * 1e6), true);
+  dv.setInt32(20, Math.round(caja.e * 1e6), true);
+  dv.setInt32(24, Math.round(caja.n * 1e6), true);
+  let nb = new TextEncoder().encode(nombre);
+  if (nb.length > 31) {                                     /* sin cortar una letra por la mitad */
+    let c = 31;
+    while (c > 0 && (nb[c] & 0xC0) === 0x80) c--;
+    nb = nb.subarray(0, c);
+  }
+  u8.set(nb, 28);
+  dv.setUint32(60, 64, true);
+  let off = 64 + n * 20;
+  teselas.forEach((tt, i) => {
+    const o = 64 + i * 20;
+    u8[o] = tt.z;
+    dv.setUint32(o + 4, tt.x, true);
+    dv.setUint32(o + 8, tt.y, true);
+    dv.setUint32(o + 12, off, true);
+    dv.setUint32(o + 16, tt.d.length, true);
+    u8.set(tt.d, off);
+    off += tt.d.length;
+  });
+  return buf;
+}
+
+async function descargar() {
+  const nombre = $("d-nombre").value.trim();
+  if (!nombre) { aos.brindis(t("falta_nombre")); return; }
+  if (!mapa || bajando) return;
+  const maxz = +$("d-detalle").value;
+  const caja = cajaVista();
+  const lista = teselasDe(caja, MINZ, maxz);
+  if (lista.length > MAX_TESELAS) return;
+  bajando = true;
+  cancelar = false;
+  $("descargar").disabled = true;
+  $("cancelar").hidden = false;
+  const prog = $("prog"), est = $("estado");
+  prog.hidden = false;
+  est.className = "datos";
+  try {
+    const plantilla = await laPlantilla();
+    const hechas = [];
+    const idx = new Map();
+    let i = 0, listas = 0;
+    const trabajador = async () => {
+      while (i < lista.length && !cancelar) {
+        const tt = lista[i++];
+        const url = plantilla.replace("{z}", tt.z).replace("{x}", tt.x).replace("{y}", tt.y);
+        let u8 = null;
+        for (let intento = 0; intento < 3 && !u8; intento++) {
+          try {
+            const r = await fetch(url);
+            if (r.status === 404 || r.status === 204) u8 = new Uint8Array(0);
+            else if (r.ok) u8 = new Uint8Array(await r.arrayBuffer());
+          } catch (e) { /* otra vez */ }
+        }
+        if (!u8) throw new Error(t("err_red", { k: tt.z + "/" + tt.x + "/" + tt.y }));
+        nombres(u8, tt.z, tt.x, tt.y, (nm, tipo, la, lo, z) => {
+          const k = clave(nm) + "\u0001" + (tipo === "calle" || tipo === "lugar" || tipo === "agua" ? tipo : "poi:" + tipo);
+          const prev = idx.get(k);
+          if (!prev || z > prev.z) idx.set(k, { nm, tipo, la, lo, z });
+        });
+        hechas.push({ z: tt.z, x: tt.x, y: tt.y, d: recortar(u8) });
+        listas++;
+        prog.value = listas / lista.length;
+        est.textContent = t("bajando", { i: listas, n: lista.length });
+      }
+    };
+    await Promise.all([1, 2, 3, 4, 5, 6].map(trabajador));
+    if (cancelar) throw new Error(t("cancelado"));
+
+    est.textContent = t("armando");
+    hechas.sort((a, b) => a.z - b.z || a.x - b.x || a.y - b.y);
+    const partes = [];
+    let actual = [], bytes = 0;
+    for (const tt of hechas) {
+      if (actual.length && bytes + tt.d.length + 20 > PARTE - 64) { partes.push(actual); actual = []; bytes = 0; }
+      actual.push(tt);
+      bytes += tt.d.length + 20;
+    }
+    if (actual.length) partes.push(actual);
+
+    const base = slug(nombre);
+    /* lo viejo de esta zona afuera primero: puede haber tenido mas partes */
+    try {
+      const r = await fetch("/api/list?dir=" + DIR + "&_=" + Date.now());
+      for (const f of ((await r.json()).files || [])) {
+        if (new RegExp("^" + base + "(\\.\\d+)?\\.(amp|idx)$").test(f.name)) await borrarArchivo(f.name);
+      }
+    } catch (e) { /* no habia */ }
+    for (let p = 0; p < partes.length; p++) {
+      const archivo = base + (p ? "." + (p + 1) : "") + ".amp";
+      await despertar();
+      est.textContent = t("subiendo", { i: p + 1, n: partes.length });
+      await subirXHR(archivo, new Blob([armarPaquete(nombre, caja, partes[p])]), f => { prog.value = f; })
+        .catch(e => { throw new Error(t("err_placa") + e.message); });
+    }
+
+    est.textContent = t("indice");
+    await despertar();
+    const indice = armarIndice([...idx.values()].map(v => [v.nm, v.tipo, v.la, v.lo]));
+    const nnombres = new DataView(indice.buffer).getUint32(4, true);
+    await subirXHR(base + ".idx", new Blob([indice]))
+      .catch(e => { throw new Error(t("err_placa") + e.message); });
+
+    /* y la zona, para ir desde el menu del reloj */
+    const c = mapa.getCenter();
+    zonas = zonas.filter(z => z.nombre !== nombre);
+    zonas.push({ nombre: nombre.slice(0, 30), la: c.lat, lo: c.lng, z: zoomReloj() });
+    await escribirZonas().catch(() => {});
+    pintarZonas();
+
+    est.textContent = t("listo", { t: hechas.length, p: partes.length, nn: nnombres });
+    cargarPaquetes();
+  } catch (e) {
+    est.className = "datos mal";
+    est.textContent = e.message || String(e);
+  }
+  bajando = false;
+  prog.hidden = true;
+  $("cancelar").hidden = true;
+  estimar();
+}
+
+/* ------------------------------------------------------------- arranque -- */
+
+$("btn-q").addEventListener("click", buscar);
+$("q").addEventListener("keydown", e => { if (e.key === "Enter") buscar(); });
+$("z-guardar").addEventListener("click", guardarZona);
+$("z-mostrar").addEventListener("click", () => {
+  if (!mapa) return;
+  const c = mapa.getCenter();
+  mostrarEnReloj(c.lat, c.lng, zoomReloj());
+});
+$("d-detalle").addEventListener("change", estimar);
+$("descargar").addEventListener("click", descargar);
+$("cancelar").addEventListener("click", () => { cancelar = true; });
+
+aos.init(TR).then(async () => {
+  await cargarZonas();
+  cargarPaquetes();
+  /* donde empezar: la primera zona, o la ciudad de Clima, o Buenos Aires */
+  let centro = [-58.3816, -34.6037], zoom = 11;
+  if (zonas.length) { centro = [zonas[0].lo, zonas[0].la]; zoom = zonas[0].z - 1; }
+  else {
+    try {
+      const c = await (await fetch("/api/clima")).json();
+      if (c && (c.lat10k || c.lon10k)) centro = [c.lon10k / 1e4, c.lat10k / 1e4];
+    } catch (e) { /* sin clima */ }
+  }
+  iniciarMapa(centro, zoom);
+});
+</script>
+</body>
+</html>

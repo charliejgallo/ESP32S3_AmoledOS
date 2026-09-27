@@ -612,12 +612,14 @@ static const char blob_en__sistema_lang[] =
     "Hola\tHello\n"
     "Laberinto\tMaze\n"
     "Lua\tLua\n"
+    "Mapas\tMaps\n"
     "Mila\tMila\n"
     "Monster Hop\tMonster Hop\n"
     "Neon Snakes\tNeon Snakes\n"
     "Pixel Art\tPixel Art\n"
     "Pong\tPong\n"
     "Radar\tRadar\n"
+    "Radio\tRadio\n"
     "Grabadora\tRecorder\n"
     "Remoto\tRemote\n"
     "Sensores\tSensors\n"
@@ -752,7 +754,7 @@ static const char blob_en_aos_dice_lang[] =
     ;
 
 static const char blob_en_aos_lua_lang[] =
-    "No hay guiones en /lua de la tarjeta\tNo hay guiones en /lua de la tarjeta\n"
+    "No hay guiones en /lua de la tarjeta\tNo scripts in /lua on the card\n"
     ;
 
 static const char blob_en_aos_maze_lang[] =
@@ -862,6 +864,46 @@ static const char blob_en_aos_radar_lang[] =
     "Un metro\tOne metre\n"
     "Radar\tRadar\n"
     "Calibrar a 1 m\tCalibrate at 1 m\n"
+    ;
+
+static const char blob_en_aos_radio_lang[] =
+    "La tecla %d está libre: elegí una radio en %s.local/radio\tKey %d is free: choose a radio at %s.local/radio\n"
+    "Elegí tus radios en %s.local/radio\tChoose your radios at %s.local/radio\n"
+    "Sin WiFi\tNo WiFi\n"
+    "Formato no soportado: sólo MP3 y AAC\tFormat not supported: MP3 and AAC only\n"
+    "La radio no está en esa dirección\tThe radio is not at that address\n"
+    "Falta la hora para https\tNo clock yet for https\n"
+    "No se encontró el servidor\tServer not found\n"
+    "No se pudo conectar\tCould not connect\n"
+    "Sin memoria\tOut of memory\n"
+    "No se pudo sintonizar\tCould not tune in\n"
+    "No suena ninguna radio.\tNo radio is playing.\n"
+    "Tema\tSong\n"
+    "Álbum\tAlbum\n"
+    "La emisora dice\tThe station says\n"
+    "Formato\tFormat\n"
+    "estéreo\tstereo\n"
+    "mono\tmono\n"
+    "Servidor\tServer\n"
+    "Web\tWeb\n"
+    "Buffer\tBuffer\n"
+    "Reconexiones\tReconnects\n"
+    "Escuchando\tListening\n"
+    "Recibido\tReceived\n"
+    "Tapa\tCover\n"
+    "Motivo\tReason\n"
+    "Radio\tRadio\n"
+    "Elegí tus radios en\tChoose your radios at\n"
+    "Tocá una tecla\tPress a key\n"
+    "Sintonizando...\tTuning in...\n"
+    "Cargando...\tLoading...\n"
+    "Conectando con %.60s\tConnecting to %.60s\n"
+    "Llenando el buffer\tFilling the buffer\n"
+    "Reconectando (%u)\tReconnecting (%u)\n"
+    "En pausa\tPaused\n"
+    "En vivo  -  buffer %u s\tLive  -  buffer %u s\n"
+    "Suena la música de la tarjeta\tThe card's music is playing\n"
+    "Tocá para volver\tTap to go back\n"
     ;
 
 static const char blob_en_aos_remoto_lang[] =
@@ -2049,6 +2091,103 @@ static const char blob_en_demo_hello_lang[] =
     "tocar para sumar\ttap to count\n"
     ;
 
+static const char blob_en_demo_mapas_lang[] =
+    "Descargando\tDownloading\n"
+    "Sin datos aquí\tNo data here\n"
+    "Sin conexión\tNo connection\n"
+    "Esperando la hora\tWaiting for the time\n"
+    "Error de descarga\tDownload error\n"
+    "Zona\tZone\n"
+    "Guardada\tSaved\n"
+    "No se pudo guardar\tCould not save\n"
+    "Descargar: sí\tDownload: yes\n"
+    "Descargar: no\tDownload: no\n"
+    "Caché borrada\tCache cleared\n"
+    "Mapas\tMaps\n"
+    "Buscar\tSearch\n"
+    "Guardar esta vista\tSave this view\n"
+    "Zonas\tZones\n"
+    "Ciudad de Clima\tWeather's city\n"
+    "teselas\ttiles\n"
+    "Ajustes\tSettings\n"
+    "Borrar caché\tClear cache\n"
+    "Datos: OpenFreeMap, OpenMapTiles, OpenStreetMap\tData: OpenFreeMap, OpenMapTiles, OpenStreetMap\n"
+    "Descargado:\tDownloaded:\n"
+    "Escribí un nombre\tType a name\n"
+    "parque\tpark\n"
+    "aeropuerto\tairport\n"
+    "cerro\thill\n"
+    "comercio\tshop\n"
+    "escuela\tschool\n"
+    "restaurante\trestaurant\n"
+    "oficina\toffice\n"
+    "autos\tcars\n"
+    "ropa\tclothes\n"
+    "almacén\tgrocery\n"
+    "café\tcafé\n"
+    "hospital\thospital\n"
+    "comida rápida\tfast food\n"
+    "farmacia\tpharmacy\n"
+    "carnicería\tbutcher\n"
+    "peluquería\thairdresser\n"
+    "panadería\tbakery\n"
+    "templo\tplace of worship\n"
+    "club deportivo\tsports centre\n"
+    "bar\tbar\n"
+    "alojamiento\tlodging\n"
+    "universidad\tcollege\n"
+    "edificio público\ttown hall\n"
+    "heladería\tice cream\n"
+    "galería de arte\tart gallery\n"
+    "biblioteca\tlibrary\n"
+    "policía\tpolice\n"
+    "bicis de alquiler\tbike rental\n"
+    "veterinaria\tvet\n"
+    "estación\tstation\n"
+    "cancha\tpitch\n"
+    "estacionamiento\tparking\n"
+    "consultorio\tdoctor\n"
+    "bicicletería\tbike shop\n"
+    "cervecería\tbrewery\n"
+    "museo\tmuseum\n"
+    "lavandería\tlaundry\n"
+    "vinoteca\toff-licence\n"
+    "teatro\ttheatre\n"
+    "dentista\tdentist\n"
+    "atracción\tattraction\n"
+    "banco\tbank\n"
+    "estación de servicio\tpetrol station\n"
+    "estadio\tstadium\n"
+    "bomberos\tfire station\n"
+    "música\tmusic\n"
+    "cajero\tcash machine\n"
+    "monumento\tmonument\n"
+    "cine\tcinema\n"
+    "cementerio\tcemetery\n"
+    "juegos infantiles\tplayground\n"
+    "información\tinformation\n"
+    "correo\tpost office\n"
+    "pileta\tswimming pool\n"
+    "jardín\tgarden\n"
+    "puerto\tharbour\n"
+    "parque temático\ttheme park\n"
+    "terminal de ferry\tferry terminal\n"
+    "cárcel\tprison\n"
+    "camping\tcampsite\n"
+    "castillo\tcastle\n"
+    "baños\ttoilets\n"
+    "zoológico\tzoo\n"
+    "acuario\taquarium\n"
+    "lugar\tplace\n"
+    "calle\tstreet\n"
+    "agua\twater\n"
+    "Buscando...\tSearching...\n"
+    "Nada con ese nombre.\tNothing by that name.\n"
+    "Nada con ese nombre en las zonas descargadas.\tNothing by that name in the downloaded zones.\n"
+    "Buscando en línea...\tSearching online...\n"
+    "Sin memoria\tOut of memory\n"
+    ;
+
 static const char blob_en_demo_mila_lang[] =
     "Tocá para empezar\tTap to start\n"
     "Par\tPar\n"
@@ -2515,6 +2654,7 @@ static const aos_lang_file_t files_en[] = {
     { "aos.pixel.lang", blob_en_aos_pixel_lang },
     { "aos.pong.lang", blob_en_aos_pong_lang },
     { "aos.radar.lang", blob_en_aos_radar_lang },
+    { "aos.radio.lang", blob_en_aos_radio_lang },
     { "aos.remoto.lang", blob_en_aos_remoto_lang },
     { "aos.sensores.lang", blob_en_aos_sensores_lang },
     { "aos.simon.lang", blob_en_aos_simon_lang },
@@ -2535,6 +2675,7 @@ static const aos_lang_file_t files_en[] = {
     { "demo.gemas.lang", blob_en_demo_gemas_lang },
     { "demo.golf.lang", blob_en_demo_golf_lang },
     { "demo.hello.lang", blob_en_demo_hello_lang },
+    { "demo.mapas.lang", blob_en_demo_mapas_lang },
     { "demo.mila.lang", blob_en_demo_mila_lang },
     { "demo.monsterhop.lang", blob_en_demo_monsterhop_lang },
     { "demo.neon.lang", blob_en_demo_neon_lang },
@@ -3142,12 +3283,14 @@ static const char blob_de__sistema_lang[] =
     "Hola\tHallo\n"
     "Laberinto\tLabyrinth\n"
     "Lua\tLua\n"
+    "Mapas\tKarten\n"
     "Mila\tMila\n"
     "Monster Hop\tMonster Hop\n"
     "Neon Snakes\tNeon Snakes\n"
     "Pixel Art\tPixel Art\n"
     "Pong\tPong\n"
     "Radar\tRadar\n"
+    "Radio\tRadio\n"
     "Grabadora\tRekorder\n"
     "Remoto\tFernbedienung\n"
     "Sensores\tSensoren\n"
@@ -3282,7 +3425,7 @@ static const char blob_de_aos_dice_lang[] =
     ;
 
 static const char blob_de_aos_lua_lang[] =
-    "No hay guiones en /lua de la tarjeta\tNo hay guiones en /lua de la tarjeta\n"
+    "No hay guiones en /lua de la tarjeta\tKeine Skripte in /lua auf der Karte\n"
     ;
 
 static const char blob_de_aos_maze_lang[] =
@@ -3392,6 +3535,46 @@ static const char blob_de_aos_radar_lang[] =
     "Un metro\tEin Meter\n"
     "Radar\tRadar\n"
     "Calibrar a 1 m\tAuf 1 m kalibrieren\n"
+    ;
+
+static const char blob_de_aos_radio_lang[] =
+    "La tecla %d está libre: elegí una radio en %s.local/radio\tTaste %d ist frei: wähle ein Radio unter %s.local/radio\n"
+    "Elegí tus radios en %s.local/radio\tWähle deine Radios unter %s.local/radio\n"
+    "Sin WiFi\tKein WLAN\n"
+    "Formato no soportado: sólo MP3 y AAC\tFormat nicht unterstützt: nur MP3 und AAC\n"
+    "La radio no está en esa dirección\tDas Radio ist nicht unter dieser Adresse\n"
+    "Falta la hora para https\tKeine Uhrzeit für https\n"
+    "No se encontró el servidor\tServer nicht gefunden\n"
+    "No se pudo conectar\tKeine Verbindung möglich\n"
+    "Sin memoria\tKein Speicher\n"
+    "No se pudo sintonizar\tSender nicht empfangbar\n"
+    "No suena ninguna radio.\tEs läuft kein Radio.\n"
+    "Tema\tTitel\n"
+    "Álbum\tAlbum\n"
+    "La emisora dice\tDer Sender sagt\n"
+    "Formato\tFormat\n"
+    "estéreo\tStereo\n"
+    "mono\tMono\n"
+    "Servidor\tServer\n"
+    "Web\tWeb\n"
+    "Buffer\tPuffer\n"
+    "Reconexiones\tNeuverbindungen\n"
+    "Escuchando\tHört seit\n"
+    "Recibido\tEmpfangen\n"
+    "Tapa\tCover\n"
+    "Motivo\tGrund\n"
+    "Radio\tRadio\n"
+    "Elegí tus radios en\tWähle deine Radios unter\n"
+    "Tocá una tecla\tDrück eine Taste\n"
+    "Sintonizando...\tStelle ein...\n"
+    "Cargando...\tLade...\n"
+    "Conectando con %.60s\tVerbinde mit %.60s\n"
+    "Llenando el buffer\tPuffer wird gefüllt\n"
+    "Reconectando (%u)\tVerbinde neu (%u)\n"
+    "En pausa\tPausiert\n"
+    "En vivo  -  buffer %u s\tLive  -  Puffer %u s\n"
+    "Suena la música de la tarjeta\tDie Musik der Karte läuft\n"
+    "Tocá para volver\tTippen zum Zurückgehen\n"
     ;
 
 static const char blob_de_aos_remoto_lang[] =
@@ -4579,6 +4762,103 @@ static const char blob_de_demo_hello_lang[] =
     "tocar para sumar\ttippen zum Zählen\n"
     ;
 
+static const char blob_de_demo_mapas_lang[] =
+    "Descargando\tLade\n"
+    "Sin datos aquí\tKeine Daten hier\n"
+    "Sin conexión\tKeine Verbindung\n"
+    "Esperando la hora\tWarte auf die Uhrzeit\n"
+    "Error de descarga\tDownloadfehler\n"
+    "Zona\tZone\n"
+    "Guardada\tGespeichert\n"
+    "No se pudo guardar\tSpeichern fehlgeschlagen\n"
+    "Descargar: sí\tLaden: ja\n"
+    "Descargar: no\tLaden: nein\n"
+    "Caché borrada\tCache geleert\n"
+    "Mapas\tKarten\n"
+    "Buscar\tSuchen\n"
+    "Guardar esta vista\tDiese Ansicht speichern\n"
+    "Zonas\tZonen\n"
+    "Ciudad de Clima\tStadt von Wetter\n"
+    "teselas\tKacheln\n"
+    "Ajustes\tEinstellungen\n"
+    "Borrar caché\tCache leeren\n"
+    "Datos: OpenFreeMap, OpenMapTiles, OpenStreetMap\tDaten: OpenFreeMap, OpenMapTiles, OpenStreetMap\n"
+    "Descargado:\tGeladen:\n"
+    "Escribí un nombre\tNamen eingeben\n"
+    "parque\tPark\n"
+    "aeropuerto\tFlughafen\n"
+    "cerro\tBerg\n"
+    "comercio\tGeschäft\n"
+    "escuela\tSchule\n"
+    "restaurante\tRestaurant\n"
+    "oficina\tBüro\n"
+    "autos\tAutohaus\n"
+    "ropa\tBekleidung\n"
+    "almacén\tLebensmittel\n"
+    "café\tCafé\n"
+    "hospital\tKrankenhaus\n"
+    "comida rápida\tSchnellimbiss\n"
+    "farmacia\tApotheke\n"
+    "carnicería\tMetzgerei\n"
+    "peluquería\tFriseur\n"
+    "panadería\tBäckerei\n"
+    "templo\tGotteshaus\n"
+    "club deportivo\tSportzentrum\n"
+    "bar\tBar\n"
+    "alojamiento\tUnterkunft\n"
+    "universidad\tHochschule\n"
+    "edificio público\tRathaus\n"
+    "heladería\tEisdiele\n"
+    "galería de arte\tGalerie\n"
+    "biblioteca\tBibliothek\n"
+    "policía\tPolizei\n"
+    "bicis de alquiler\tFahrradverleih\n"
+    "veterinaria\tTierarzt\n"
+    "estación\tBahnhof\n"
+    "cancha\tSportplatz\n"
+    "estacionamiento\tParkplatz\n"
+    "consultorio\tArztpraxis\n"
+    "bicicletería\tFahrradladen\n"
+    "cervecería\tBrauerei\n"
+    "museo\tMuseum\n"
+    "lavandería\tWäscherei\n"
+    "vinoteca\tGetränkehandel\n"
+    "teatro\tTheater\n"
+    "dentista\tZahnarzt\n"
+    "atracción\tSehenswürdigkeit\n"
+    "banco\tBank\n"
+    "estación de servicio\tTankstelle\n"
+    "estadio\tStadion\n"
+    "bomberos\tFeuerwache\n"
+    "música\tMusik\n"
+    "cajero\tGeldautomat\n"
+    "monumento\tDenkmal\n"
+    "cine\tKino\n"
+    "cementerio\tFriedhof\n"
+    "juegos infantiles\tSpielplatz\n"
+    "información\tInformation\n"
+    "correo\tPost\n"
+    "pileta\tSchwimmbad\n"
+    "jardín\tGarten\n"
+    "puerto\tHafen\n"
+    "parque temático\tFreizeitpark\n"
+    "terminal de ferry\tFährterminal\n"
+    "cárcel\tGefängnis\n"
+    "camping\tCampingplatz\n"
+    "castillo\tBurg\n"
+    "baños\tToiletten\n"
+    "zoológico\tZoo\n"
+    "acuario\tAquarium\n"
+    "lugar\tOrt\n"
+    "calle\tStraße\n"
+    "agua\tWasser\n"
+    "Buscando...\tSuche...\n"
+    "Nada con ese nombre.\tNichts mit diesem Namen.\n"
+    "Nada con ese nombre en las zonas descargadas.\tNichts mit diesem Namen in den geladenen Zonen.\n"
+    "Buscando en línea...\tSuche online...\n"
+    "Sin memoria\tKein Speicher\n"
+    ;
+
 static const char blob_de_demo_mila_lang[] =
     "Tocá para empezar\tTippen zum Starten\n"
     "Par\tPar\n"
@@ -5045,6 +5325,7 @@ static const aos_lang_file_t files_de[] = {
     { "aos.pixel.lang", blob_de_aos_pixel_lang },
     { "aos.pong.lang", blob_de_aos_pong_lang },
     { "aos.radar.lang", blob_de_aos_radar_lang },
+    { "aos.radio.lang", blob_de_aos_radio_lang },
     { "aos.remoto.lang", blob_de_aos_remoto_lang },
     { "aos.sensores.lang", blob_de_aos_sensores_lang },
     { "aos.simon.lang", blob_de_aos_simon_lang },
@@ -5065,6 +5346,7 @@ static const aos_lang_file_t files_de[] = {
     { "demo.gemas.lang", blob_de_demo_gemas_lang },
     { "demo.golf.lang", blob_de_demo_golf_lang },
     { "demo.hello.lang", blob_de_demo_hello_lang },
+    { "demo.mapas.lang", blob_de_demo_mapas_lang },
     { "demo.mila.lang", blob_de_demo_mila_lang },
     { "demo.monsterhop.lang", blob_de_demo_monsterhop_lang },
     { "demo.neon.lang", blob_de_demo_neon_lang },
@@ -5074,7 +5356,7 @@ static const aos_lang_file_t files_de[] = {
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 614, 37, files_en, 38 },
-    { "de", "Deutsch", 614, 37, files_de, 38 },
+    { "en", "English", 616, 39, files_en, 40 },
+    { "de", "Deutsch", 616, 39, files_de, 40 },
 };
 const int aos_lang_pack_count = 2;

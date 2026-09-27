@@ -3,6 +3,45 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.9.0 — 2026-09-27
+
+**Mapas: a street map on the watch.** OpenStreetMap's data as vector tiles
+from OpenFreeMap (no key, no quota), drawn by the watch in a dark style for
+the AMOLED; everything measured in [docs/MAPS.md](docs/MAPS.md).
+
+- **The app** (`apps/mapas`, `demo.mapas`): drag with a flick, pinch, double
+  tap, + and −, street names along the streets, a scale and the attribution.
+  A background task renders into a buffer bigger than the screen and the
+  frame goes out in strips of internal RAM: 28-31 fps panning and 29 pinching
+  on the board, a render of the centre of Buenos Aires at z13 in 240-320 ms
+  and at z15 in ~70 ms. Tiles come from RAM, the offline packs, the card's
+  cache (`maps/cache/`) and the network, one download at a time.
+- **Zones**: saved from the portal or from the watch ("Save this view"),
+  listed in the app's ≡ menu, and "Show it on the watch" from the portal.
+- **Offline**: the portal's new `/mapas` page downloads what its map shows,
+  packs it for the card (`maps/*.amp`) with an index of every name
+  (`maps/*.idx`); `tools/map_pack.py` does the same from the command line.
+- **Search**: a 3 x 4 keypad like an old phone's (multi-tap), over the
+  downloaded zones' names and, online, Photon, which adds street numbers.
+  The place found gets a pin. The zones' index (AIX2) has a key per word,
+  sorted, and is searched by blocks: 199 ms over the city and Greater Buenos
+  Aires together, where reading it whole would have been ~17 s.
+  `tools/map_pack.py --reindex` rewrites an index of the first format.
+- **The portal's size estimate is measured** on a sample of the zone's
+  tiles: 15.1 MB for the city (15.6 real; the first version said 35).
+- **Firmware**: the `/mapas` page and the `maps` folder for the file API.
+
+**Languages, audited end to end** ([docs/I18N.md](docs/I18N.md#audit-before-v090-2026-09-27)):
+the English and German packs embedded in the firmware were v0.7.0's, so
+without the card's packs Radio showed in Spanish; they carry all 40
+catalogues again. Lua's "no scripts" message had never been translated. The
+pseudolocalisation pack lacked Cámaras, Radio and Mapas. The layout sweep in
+Spanish, English, German and pseudo found no regression, and now also opens
+Mapas' list, keypad and results.
+
+**README**: the app counts were three releases old (20 built-in apps and 40
+on the card, sixty in all; eleven on the link), and Mapas is in it.
+
 ## v0.8.2 — 2026-09-26
 
 **Cámaras: opened in fill mode, no labels over the picture.** The app

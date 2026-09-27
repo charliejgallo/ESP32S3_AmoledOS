@@ -2,7 +2,7 @@
 
 The long form of [APP-API.md](APP-API.md). That page is the contract - the
 callbacks, the flags, the icon, translation in five lines. This one is how
-the twenty-three apps in [`apps/`](../apps/) were actually written: the
+the forty apps in [`apps/`](../apps/) were actually written: the
 workflow, the drawing techniques and what each costs on the board, how to
 fetch data and how to be configured from the portal, how to test without the
 watch, and every trap that bit along the way. Everything measured is marked
@@ -1295,6 +1295,20 @@ power save off while a station connects (RADIO.md, "Time to sound"). A
 connection that stays open wants `aos_hal_net_low_latency(true)` while it
 runs; for one request, show something while it goes.
 
+**Big downloads over https: one at a time.** Two TLS downloads of a few
+hundred kilobytes at once crawled at 13 KB/s and made the WiFi log
+`bcn_timeout`; one alone came in at 333 KB/s (Mapas, MAPS.md). Two TCP windows
+fill the WiFi's receive buffers faster than TLS empties them, and the beacons
+are what gets dropped. Queue them, and hold `aos_hal_net_low_latency(true)`
+while they run.
+
+**A cut download still says 200.** The HAL speaks HTTP/1.0, where a response
+ends when the socket closes: a connection dropped halfway hands the app
+`AOS_HTTP_DONE`, status 200 and fewer bytes. If the body matters whole, check
+it (Mapas parses a tile to its last byte before caching it; a JSON can be
+checked for its closing brace), and treat a body that reached `max_bytes` as
+too big.
+
 **Read the clock after draining the queue.** A link tick that took `now` at
 its start, then handled the frames that had arrived (which set `last_seen =
 uptime`), then checked `now - last_seen > 6000` found `last_seen` later than
@@ -1302,6 +1316,22 @@ uptime`), then checked `now - last_seen > 6000` found `last_seen` later than
 "timed out" the moment a frame arrived. Take `now` again after receiving.
 
 ### The platform
+
+**A `malloc()` of 1 KB or less comes out of internal RAM.** The firmware is
+built with `CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=1024`: small blocks go to the
+scarce internal heap, big ones to PSRAM. Mapas baked its glyphs one malloc
+each (600-1000 bytes, 570 of them) and the worker's stack, which must be
+internal, no longer fitted: `aos_hal_worker_start_on()` failed. Many small
+blocks that live long want `heap_caps_malloc(n, MALLOC_CAP_SPIRAM |
+MALLOC_CAP_8BIT)` (Golf's `gf_malloc`, Mapas' `mp_malloc`), or one block
+carved up.
+
+**The portal's injected touches do not reach `aos_gesture`.** `/api/mem?tap=`
+feeds LVGL's input device; the gesture recogniser reads the touch task's
+samples. To drive an app that uses gestures without a finger, give it a
+scripted mode of its own (Mapas times a pan and a zoom when it finds
+`maps/bench.txt`).
+
 
 **Global data shared between files came out shifted before v0.4.9.** The
 firmware's `.so` loader dropped the addend of `R_XTENSA_GLOB_DAT`. When a file

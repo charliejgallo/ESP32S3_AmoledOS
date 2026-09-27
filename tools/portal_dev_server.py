@@ -38,6 +38,7 @@ CLIMA_PAGE  = os.path.join(ROOT, "components", "aos_web", "clima.html")
 COTIZ_PAGE  = os.path.join(ROOT, "components", "aos_web", "cotiz.html")
 CAMARAS_PAGE = os.path.join(ROOT, "components", "aos_web", "camaras.html")
 RADIO_PAGE  = os.path.join(ROOT, "components", "aos_web", "radio.html")
+MAPAS_PAGE  = os.path.join(ROOT, "components", "aos_web", "mapas.html")
 PIXEL_PAGE  = os.path.join(ROOT, "components", "aos_web", "pixel.html")
 SENSO_PAGE  = os.path.join(ROOT, "components", "aos_web", "sensores.html")
 LUA_PAGE    = os.path.join(ROOT, "components", "aos_web", "lua.html")
@@ -50,7 +51,7 @@ JS_FILE     = os.path.join(ROOT, "components", "aos_web", "aos.js")
 AP_SSID_AUTO = "AmoledOS-5IM"
 AP_PASS_FABRICA = "amoledos"
 AP_ALFABETO = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-DIRS = ("apps", "photos", "music", "recordings", "redes", "pixel", "lua", "radio")
+DIRS = ("apps", "photos", "music", "recordings", "redes", "pixel", "lua", "radio", "maps")
 
 CONTENT_TYPES = {
     ".wav": "audio/wav", ".mp3": "audio/mpeg",
@@ -451,6 +452,12 @@ class Handler(BaseHTTPRequestHandler):
 
         elif url.path == "/camaras":
             with open(CAMARAS_PAGE, "rb") as page:
+                self._send(200, page.read(), "text/html; charset=utf-8")
+
+        # /mapas writes zones.txt, goto.txt and the packs into sim_fs/maps,
+        # the same folder the simulator's Maps app reads.
+        elif url.path == "/mapas":
+            with open(MAPAS_PAGE, "rb") as page:
                 self._send(200, page.read(), "text/html; charset=utf-8")
 
         elif url.path == "/radio":
