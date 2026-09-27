@@ -103,6 +103,35 @@ Render times of one buffer, centre of Buenos Aires, as the fixes went in:
 | residential areas not drawn | 381-567 ms | 113-168 ms | 67-70 ms |
 | thin lines (≤ 2.5 px) Wu-style instead of capsules | **238-318 ms** | **113-151 ms** | **67-74 ms** |
 
+### The centre at z15 (v0.9.1)
+
+On the friend's watch, the first thing opened at z15 over the Obelisco took
+about a second. Rendered six times over the same view, with the log split by
+part (`maps/bench.txt` with `r` in it does that):
+
+| | z15.0 | z15.5 | z16.0 |
+| --- | --- | --- | --- |
+| v0.9.0: geometry + labels | 400 + 524 ms | 370 + 413 ms | 275 + 206 ms |
+| labels: fixed-point sampling, tight boxes, level glyphs unturned, binary search along the street | 400 + 90 | 363 + 77 | 264 + 38 |
+| buildings skipped while their fade-in is under 10 % | 199 + 90 | | |
+| lines up to 4 px Wu-style | 196 + 91 | 342 + 77 | 261 + 38 |
+| small polygons on the stack, no AA on buildings | **191 + 90** | **295 + 78** | **230 + 38** |
+
+- **Labels** were 12 ms a street name: each turned glyph was sampled
+  bilinearly in floats over a square sized by its diagonal, twice (halo and
+  glyph), and finding each glyph's place walked the street from its start.
+  Now 16.16 fixed point stepped along each row, the box of the turned mask's
+  corners, a glyph within 2° of level drawn as it is, and a binary search:
+  524 → 90 ms for 43 names.
+- **Buildings at z15.0 cost 155 ms and could not be seen**: they fade in
+  from z15 to z16, and at 15.0 their colour was the land's.
+- **What did not work:** gathering a tile's buildings into one polygon and
+  filling it in one sweep. 51 000 edges are 800 KB of PSRAM walked three
+  times, which cost more than the calls it saved (128 → 105 ms, where the
+  per-building path with its edges on the stack reached 88). The rest of the
+  buildings' time is writing their rows to PSRAM, scattered: the floor short
+  of rendering in bands of internal RAM.
+
 - **Residential areas** were the dearest class at z12 and their colour was a
   shade off the land's: they are not drawn.
 - **Thin lines**: a road is a chain of capsules with anti-aliased edges, and a
