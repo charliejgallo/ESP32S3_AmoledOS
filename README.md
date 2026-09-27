@@ -398,6 +398,13 @@ a touchpad, Doom walks and shoots with two fingers, and Lua scripts get a
 |---|---|---|
 | <img src="docs/img/app-radio.png" width="200"><br>**Radio** — internet stations on a front panel from the sixties: nine keys, a lit dial with the station, the song and its cover, and a needle over the scale. It plays through the firmware's player, so it goes on with the app closed and the control centre drives it. | <img src="docs/img/app-radio-info.png" width="200"><br>Tap the dial for everything the stream says of itself. The cover is looked up on iTunes by the song's title, and only taken when the artist matches; the title changes when its song is heard, not when it is downloaded ten seconds before. | <img src="docs/img/app-radio-idle.png" width="200"><br>The keys are filled in the portal's `/radio` page, from a list kept on the card and a search in radio-browser.info; the logos are drawn in the browser. MP3 and AAC (HE-AAC too) over http or https, and HLS; [docs/RADIO.md](docs/RADIO.md) has the measurements. |
 
+#### Mapas
+
+| | | |
+|---|---|---|
+| <img src="docs/img/app-mapas.png" width="200"><br>**Mapas** — OpenStreetMap on the watch, as vector tiles from OpenFreeMap (no key, no quota) drawn by the watch in a dark style for the AMOLED. Drag, flick, pinch, double tap, or + and −. | <img src="docs/img/app-mapas-calles.png" width="200"><br>Street names follow the streets. The map is rendered by a background task into a buffer bigger than the screen, so a pan never waits for it: 28-31 fps panning, 29 pinching, on the board. | <img src="docs/img/app-mapas-alfiler.png" width="200"><br>Zones and whole areas for use without a connection are saved from the portal's `/mapas` page, which downloads and packs the tiles in the browser. |
+| <img src="docs/img/app-mapas-teclado.png" width="200"><br>Search with an old phone's keypad: tap a key again within a second for its next letter. | <img src="docs/img/app-mapas-resultados.png" width="200"><br>The names come from the downloaded zones' index, and online from Photon, which knows street numbers too. | Everything measured, and the formats on the card, in [docs/MAPS.md](docs/MAPS.md). |
+
 ### Written in Lua, on the watch
 
 One of those `.so` files is a **Lua 5.4 interpreter**, and with it a script is
@@ -680,6 +687,7 @@ into. The portal serves each one by name.
 | `recordings/` | what Grabadora records (WAV, 16 kHz mono) | the watch |
 | `redes/` | the network scanner's surveys | the watch |
 | `radio/` | the Radio app's list of stations (`library.json`) and the logo of each key (`logoN.jpg`) | the portal's `/radio` |
+| `maps/` | Mapas: zones (`zones.txt`), offline zones (`.amp` packs and their `.idx` of names) and `cache/`, the tiles seen online | the portal's `/mapas`, `tools/map_pack.py`, and the app ([MAPS.md](docs/MAPS.md)) |
 | `menu.txt` | the launcher's order and folders | the portal's `/menu` ([MENU.md](docs/MENU.md)) |
 
 ## Quick start
@@ -748,6 +756,7 @@ and UDP in the simulator.
 | [VIDEO.md](docs/VIDEO.md) | video from the card: the decoder, the background task, the direct blit, and the clock |
 | [CAMERAS.md](docs/CAMERAS.md) | live IP cameras: what the H.264 and JPEG decoders do on this board, measured, and how the Cameras app splits the work across the cores |
 | [RADIO.md](docs/RADIO.md) | internet radio: what a station URL turns out to be, MP3, AAC and HLS, titles shown when they are heard, what it costs, time to sound and why the WiFi's power save mattered, uploads while a station plays, the covers |
+| [MAPS.md](docs/MAPS.md) | the street map: why vector tiles from OpenFreeMap, drawing them on the watch and what each fix saved, one download at a time, the offline packs and the search |
 | [MUSIC.md](docs/MUSIC.md) | MP3 and the player: the decoder checked against ffmpeg, the ring, what it costs and what it does to the app in front, gapless, the cover, mixing |
 | [RAM-AUDIT.md](docs/RAM-AUDIT.md) | where the internal RAM went and how the apps' code moved to PSRAM |
 | [ROADMAP.md](docs/ROADMAP.md) | what is planned and has no date: Android phones, and USB host (a pendrive on the watch), waiting for a way to power it |

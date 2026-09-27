@@ -42,6 +42,8 @@ extern const uint8_t clima_html_start[]  asm("_binary_clima_html_start");
 extern const uint8_t clima_html_end[]    asm("_binary_clima_html_end");
 extern const uint8_t modelos_html_start[] asm("_binary_modelos_html_start");
 extern const uint8_t modelos_html_end[]   asm("_binary_modelos_html_end");
+extern const uint8_t mapas_html_start[] asm("_binary_mapas_html_start");
+extern const uint8_t mapas_html_end[]   asm("_binary_mapas_html_end");
 extern const uint8_t pixel_html_start[]  asm("_binary_pixel_html_start");
 extern const uint8_t pixel_html_end[]    asm("_binary_pixel_html_end");
 extern const uint8_t pato_html_start[]   asm("_binary_pato_html_start");
@@ -205,6 +207,17 @@ static const char *resolve_dir(const char *dir)
             return NULL;
         }
         snprintf(path, sizeof(path), "%s/3d", root);
+    } else if (strcmp(dir, "maps") == 0) {
+        /* The Maps app's folder (branch mapas), on the card only: zones.txt,
+         * goto.txt, the offline packs (.amp) and their indexes (.idx), all
+         * written by the /mapas page through the generic handlers. The
+         * app's cache of tiles seen online is a subfolder, cache/, which the
+         * explorer reaches as sd/maps/cache. */
+        const char *root = aos_hal_path_sd_root();
+        if (!root) {
+            return NULL;
+        }
+        snprintf(path, sizeof(path), "%s/maps", root);
     } else if (strcmp(dir, "sd") == 0 || strncmp(dir, "sd/", 3) == 0 ||
                strcmp(dir, "usb") == 0 || strncmp(dir, "usb/", 4) == 0) {
         /* The explorer: any folder of the card, or of the pendrive in host
@@ -1738,6 +1751,17 @@ static esp_err_t modelos_page_handler(httpd_req_t *req)
     httpd_resp_set_type(req, "text/html; charset=utf-8");
     return httpd_resp_send(req, (const char *)modelos_html_start,
                            modelos_html_end - modelos_html_start - 1);
+}
+
+/* GET /mapas: the Maps app's zones and offline maps (branch mapas). Like /3d,
+ * the page does the work in the browser -it fetches OpenFreeMap's tiles,
+ * strips them and packs them- and stores the result through the generic file
+ * API with dir=maps; the firmware never learns the format. */
+static esp_err_t mapas_page_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    return httpd_resp_send(req, (const char *)mapas_html_start,
+                           mapas_html_end - mapas_html_start - 1);
 }
 
 /* /pato: same idea as /pixel. The page is the whole editor of the Pato goma
@@ -3589,6 +3613,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/clima",   .method = HTTP_POST, .handler = clima_set_handler },
         { .uri = "/pixel",       .method = HTTP_GET,  .handler = pixel_page_handler },
         { .uri = "/3d",          .method = HTTP_GET,  .handler = modelos_page_handler },
+        { .uri = "/mapas",       .method = HTTP_GET,  .handler = mapas_page_handler },
         { .uri = "/pato",        .method = HTTP_GET,  .handler = pato_page_handler },
         { .uri = "/lua",         .method = HTTP_GET,  .handler = lua_page_handler },
         { .uri = "/iconos",      .method = HTTP_GET,  .handler = iconos_page_handler },

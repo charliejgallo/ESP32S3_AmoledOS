@@ -3,6 +3,29 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased (branch mapas)
+
+**Mapas: a street map on the watch.** OpenStreetMap's data as vector tiles
+from OpenFreeMap (no key, no quota), drawn by the watch in a dark style for
+the AMOLED; everything measured in [docs/MAPS.md](docs/MAPS.md).
+
+- **The app** (`apps/mapas`, `demo.mapas`): drag with a flick, pinch, double
+  tap, + and −, street names along the streets, a scale and the attribution.
+  A background task renders into a buffer bigger than the screen and the
+  frame goes out in strips of internal RAM: 28-31 fps panning and 29 pinching
+  on the board, a render of the centre of Buenos Aires at z13 in 240-320 ms
+  and at z15 in ~70 ms. Tiles come from RAM, the offline packs, the card's
+  cache (`maps/cache/`) and the network, one download at a time.
+- **Zones**: saved from the portal or from the watch ("Save this view"),
+  listed in the app's ≡ menu, and "Show it on the watch" from the portal.
+- **Offline**: the portal's new `/mapas` page downloads what its map shows,
+  packs it for the card (`maps/*.amp`) with an index of every name
+  (`maps/*.idx`); `tools/map_pack.py` does the same from the command line.
+- **Search**: a 3 x 4 keypad like an old phone's (multi-tap), over the
+  downloaded zones' names and, online, Photon, which adds street numbers.
+  The place found gets a pin.
+- **Firmware**: the `/mapas` page and the `maps` folder for the file API.
+
 ## v0.8.2 — 2026-09-26
 
 **Cámaras: opened in fill mode, no labels over the picture.** The app
