@@ -66,6 +66,24 @@
   #define BIG_ALLOC(n)    heap_caps_calloc(1, (n), MALLOC_CAP_SPIRAM)
 #endif
 
+/* AOS_RADIO_DEBUG=1 in the simulator (or the bench) prints the HLS reader's
+ * steps with their times; on the board it is nothing. */
+#ifdef AOS_SIM
+  #include <time.h>
+  static double dbg_now(void)
+  {
+      struct timespec t;
+      clock_gettime(CLOCK_MONOTONIC, &t);
+      return t.tv_sec + t.tv_nsec / 1e9;
+  }
+  #define DBG(...) do { if (getenv("AOS_RADIO_DEBUG")) { printf("[radio %8.2f] ", dbg_now()); \
+                        printf(__VA_ARGS__); printf("\n"); } } while (0)
+  #define WARN(...) do { printf("[radio] "); printf(__VA_ARGS__); printf("\n"); } while (0)
+#else
+  #define DBG(...) do { } while (0)
+  #define WARN(...) ESP_LOGW("radio", __VA_ARGS__)
+#endif
+
 #define RING_BYTES      (192 * 1024)
 #define RECV_CHUNK      2048
 #define HDR_MAX         4096
@@ -116,6 +134,15 @@ typedef struct {
     bool     chunked;
     int      chunk_state;           /* 0 size, 1 size line rest, 2 data, 3 CRLF */
     uint32_t chunk_left;
+
+    /* HLS (branch aac) */
+    bool     hls;
+    volatile bool fetching;         /* a segment or a playlist on its way */
+    bool     ts;                    /* this segment is MPEG-TS */
+    uint8_t  tsbuf[188];
+    int      tsfill;
+    int      pmt_pid, audio_pid, audio_type;
+    uint32_t skip;                  /* bytes still to drop: a segment's ID3 tag */
 } radio_ctx_t;
 
 static radio_ctx_t        *s_cur;
@@ -454,8 +481,19 @@ static void meta_parse(radio_ctx_t *c, const char *block)
 }
 
 /* Audio with the metadata taken out, into the ring. */
+static bool ts_feed(radio_ctx_t *c, const uint8_t *p, int n, bool *let_go);
+
 static bool feed_audio(radio_ctx_t *c, const uint8_t *p, int n, bool *let_go)
 {
+    if (c->skip) {
+        uint32_t drop = (uint32_t)n < c->skip ? (uint32_t)n : c->skip;
+        c->skip -= drop;
+        p += drop;
+        n -= (int)drop;
+    }
+    if (c->ts) {
+        return ts_feed(c, p, n, let_go);
+    }
     while (n > 0) {
         if (!c->metaint) {
             c->got_audio = true;
@@ -590,14 +628,16 @@ static const char *hdr_get(const char *hdrs, const char *name, char *out, size_t
     return NULL;
 }
 
-/* The first http(s) address in a .pls or .m3u. True if it found one; with
- * *hls when it is an HLS playlist instead, which this does not play. */
-static bool playlist_first(const char *body, char *out, size_t cap, bool *hls)
+static void lower_str(char *s)
 {
-    *hls = strstr(body, "#EXT-X-") != NULL;
-    if (*hls) {
-        return false;
+    for (; *s; s++) {
+        *s = (char)tolower((unsigned char)*s);
     }
+}
+
+/* The first http(s) address in a .pls or .m3u. */
+static bool playlist_first(const char *body, char *out, size_t cap)
+{
     for (const char *line = body; line && *line;) {
         while (*line == ' ' || *line == '\t' || *line == '\r' || *line == '\n') {
             line++;
@@ -624,237 +664,801 @@ static bool playlist_first(const char *body, char *out, size_t cap, bool *hls)
     return false;
 }
 
-static int session(radio_ctx_t *c, char *url, size_t url_cap, uint8_t *buf)
-{
+/* One GET, up to the end of the headers: the connection is left open in
+ * *out with the headers in 'hdr' and the first bytes of the body after
+ * *body_at. Returns the HTTP status (ICY 200 is 200), R_REDIRECT with 'url'
+ * rewritten for a 3xx, R_STOP or R_FAILED. 'icy' asks for the metadata. */
+typedef struct {
+    aos_http_stream_t *s;
+    char *hdr;                      /* HDR_MAX + 1, PSRAM */
+    int   hlen, body_at;
     url_t u;
-    if (!url_parse(url, &u)) {
+} http_resp_t;
+
+static void resp_close(http_resp_t *r)
+{
+    aos_http_stream_close(r->s);
+    free(r->hdr);
+    r->s = NULL;
+    r->hdr = NULL;
+}
+
+static int http_begin(radio_ctx_t *c, char *url, size_t url_cap, bool icy, http_resp_t *r,
+                      uint8_t *buf)
+{
+    memset(r, 0, sizeof(*r));
+    if (!url_parse(url, &r->u)) {
         set_state(c, AOS_RADIO_FAILED, "not an http(s) address");
         return R_FATAL;
     }
     LOCK();
-    snprintf(c->host, sizeof(c->host), "%s", u.host);
-    c->tls = u.tls;
+    scopy(c->host, sizeof(c->host), r->u.host);
+    c->tls = r->u.tls;
     UNLOCK();
 
-    aos_http_stream_t *s = NULL;
-    int rc = aos_http_stream_open(&s, u.host, u.port, u.tls);
+    int rc = aos_http_stream_open(&r->s, r->u.host, r->u.port, r->u.tls);
     if (rc != 0) {
         set_state(c, c->state, http_err_text(rc));
         return R_FAILED;
     }
-
     char *req = (char *)buf;
     int n = snprintf(req, RECV_CHUNK,
                      "GET %s HTTP/1.0\r\n"
                      "Host: %s\r\n"
                      "User-Agent: AmoledOS/1.0\r\n"
                      "Accept: */*\r\n"
-                     "Icy-MetaData: 1\r\n"
+                     "%s"
                      "Connection: close\r\n\r\n",
-                     u.path, u.host);
-    if (n <= 0 || n >= RECV_CHUNK || !aos_http_stream_send(s, req, n)) {
-        aos_http_stream_close(s);
+                     r->u.path, r->u.host, icy ? "Icy-MetaData: 1\r\n" : "");
+    if (n <= 0 || n >= RECV_CHUNK || !aos_http_stream_send(r->s, req, n)) {
+        resp_close(r);
         set_state(c, c->state, "could not send the request");
         return R_FAILED;
     }
-
-    /* The headers, up to the blank line. */
-    char *hdr = BIG_ALLOC(HDR_MAX + 1);
-    if (!hdr) {
-        aos_http_stream_close(s);
+    r->hdr = BIG_ALLOC(HDR_MAX + 1);
+    if (!r->hdr) {
+        resp_close(r);
         return R_FAILED;
     }
-    int hlen = 0, body_at = -1, waited = 0;
-    while (body_at < 0) {
+    r->body_at = -1;
+    int waited = 0;
+    while (r->body_at < 0) {
         if (c->stop) {
-            free(hdr);
-            aos_http_stream_close(s);
+            resp_close(r);
             return R_STOP;
         }
-        int r = aos_http_stream_recv(s, hdr + hlen, HDR_MAX - hlen);
-        if (r == -2) {
+        int got = aos_http_stream_recv(r->s, r->hdr + r->hlen, HDR_MAX - r->hlen);
+        if (got == -2) {
             if (++waited >= 10) {
                 break;
             }
             continue;
         }
-        if (r <= 0) {
+        if (got <= 0) {
             break;
         }
-        hlen += r;
-        hdr[hlen] = '\0';
-        char *e = strstr(hdr, "\r\n\r\n");
+        r->hlen += got;
+        r->hdr[r->hlen] = '\0';
+        char *e = strstr(r->hdr, "\r\n\r\n");
         int skip = 4;
         if (!e) {
-            e = strstr(hdr, "\n\n");
+            e = strstr(r->hdr, "\n\n");
             skip = 2;
         }
         if (e) {
-            body_at = (int)(e - hdr) + skip;
-        } else if (hlen >= HDR_MAX) {
+            r->body_at = (int)(e - r->hdr) + skip;
+        } else if (r->hlen >= HDR_MAX) {
             break;
         }
     }
-    if (body_at < 0) {
-        free(hdr);
-        aos_http_stream_close(s);
+    if (r->body_at < 0) {
+        resp_close(r);
         set_state(c, c->state, "no answer from the server");
         return R_FAILED;
     }
-
     int status = 0;
-    if (strncmp(hdr, "HTTP/", 5) == 0) {
-        const char *sp = strchr(hdr, ' ');
+    if (strncmp(r->hdr, "HTTP/", 5) == 0) {
+        const char *sp = strchr(r->hdr, ' ');
         status = sp ? atoi(sp + 1) : 0;
-    } else if (strncmp(hdr, "ICY", 3) == 0) {
-        status = atoi(hdr + 4);
+    } else if (strncmp(r->hdr, "ICY", 3) == 0) {
+        status = atoi(r->hdr + 4);
     }
-    char v[256];
-
     if (status >= 300 && status < 400) {
-        int ret = R_FAILED;
-        if (hdr_get(hdr, "Location", v, sizeof(v))) {
-            char next[512];
-            url_resolve(next, sizeof(next), &u, v);
-            snprintf(url, url_cap, "%s", next);
-            ret = R_REDIRECT;
-        } else {
-            set_state(c, c->state, "a redirect with nowhere to go");
+        /* on the heap: the reader's stack is spent on TLS (see aos_radio_start) */
+        char *loc = BIG_ALLOC(256 + 512);
+        if (loc && hdr_get(r->hdr, "Location", loc, 256)) {
+            url_resolve(loc + 256, 512, &r->u, loc);
+            scopy(url, url_cap, loc + 256);
+            free(loc);
+            resp_close(r);
+            return R_REDIRECT;
         }
-        free(hdr);
-        aos_http_stream_close(s);
-        return ret;
+        free(loc);
+        resp_close(r);
+        set_state(c, c->state, "a redirect with nowhere to go");
+        return R_FAILED;
     }
     if (status != 200) {
         char e[64];
         snprintf(e, sizeof(e), status ? "the server said %d" : "not an HTTP answer", status);
-        free(hdr);
-        aos_http_stream_close(s);
+        resp_close(r);
         /* 404, 403, 410: the station is not there, and will not be in ten
          * seconds either. 5xx ("server full") is worth another try. */
-        set_state(c, (status >= 400 && status < 500) ? AOS_RADIO_FAILED : c->state, e);
-        return (status >= 400 && status < 500) ? R_FATAL : R_FAILED;
+        bool gone = status >= 400 && status < 500;
+        set_state(c, gone ? AOS_RADIO_FAILED : c->state, e);
+        return gone ? R_FATAL : R_FAILED;
+    }
+    char v[64];
+    c->chunked = false;
+    if (hdr_get(r->hdr, "Transfer-Encoding", v, sizeof(v))) {
+        lower_str(v);
+        c->chunked = strstr(v, "chunked") != NULL;
+    }
+    c->chunk_state = 0;
+    c->chunk_left = 0;
+    return 200;
+}
+
+/* Undoes a chunked body in place. */
+static int dechunk(char *body, int len)
+{
+    int r = 0, w = 0;
+    while (r < len) {
+        int size = 0, digits = 0;
+        while (r < len && isxdigit((unsigned char)body[r])) {
+            char ch = body[r++];
+            size = size * 16 + (isdigit((unsigned char)ch) ? ch - '0' : tolower((unsigned char)ch) - 'a' + 10);
+            digits++;
+        }
+        if (!digits) {
+            break;
+        }
+        while (r < len && body[r] != '\n') r++;
+        r++;
+        if (size == 0 || r + size > len) {
+            break;
+        }
+        memmove(body + w, body + r, (size_t)size);
+        w += size;
+        r += size + 2;
+    }
+    body[w] = '\0';
+    return w;
+}
+
+/* A whole body (a playlist) into 'out', redirects followed. Returns its
+ * length, or an R_ code (negative-free: R_* are all > 0, so -R_*). */
+static int http_fetch_body(radio_ctx_t *c, char *url, size_t url_cap, char *out, int max,
+                           uint8_t *buf);
+
+static int http_fetch(radio_ctx_t *c, char *url, size_t url_cap, char *out, int max, uint8_t *buf)
+{
+    c->fetching = true;
+    int r = http_fetch_body(c, url, url_cap, out, max, buf);
+    c->fetching = false;
+    return r;
+}
+
+static int http_fetch_body(radio_ctx_t *c, char *url, size_t url_cap, char *out, int max,
+                           uint8_t *buf)
+{
+    for (int hops = 0; hops <= MAX_REDIRECTS; hops++) {
+        http_resp_t r;
+        int st = http_begin(c, url, url_cap, false, &r, buf);
+        if (st == R_REDIRECT) {
+            continue;
+        }
+        if (st != 200) {
+            return -st;
+        }
+        int len = r.hlen - r.body_at;
+        if (len > max) {
+            len = max;
+        }
+        memcpy(out, r.hdr + r.body_at, (size_t)len);
+        for (int tries = 0; len < max && tries < 8 && !c->stop;) {
+            int got = aos_http_stream_recv(r.s, out + len, max - len);
+            if (got == -2) {
+                tries++;
+                continue;
+            }
+            if (got <= 0) {
+                break;
+            }
+            len += got;
+        }
+        out[len] = '\0';
+        if (c->chunked) {
+            len = dechunk(out, len);
+        }
+        resp_close(&r);
+        return c->stop ? -R_STOP : len;
+    }
+    set_state(c, AOS_RADIO_FAILED, "too many redirects");
+    return -R_FATAL;
+}
+
+/* Streams an open response's body through feed() until it ends. */
+static int pump(radio_ctx_t *c, http_resp_t *r, uint8_t *buf, bool live)
+{
+    bool let_go = false;
+    bool ok = feed(c, (const uint8_t *)r->hdr + r->body_at, r->hlen - r->body_at, &let_go);
+    int idle = 0;
+    int ret = live ? R_DROPPED : 0;
+    while (ok && !c->stop) {
+        int got = aos_http_stream_recv(r->s, buf, RECV_CHUNK);
+        if (got == -2) {
+            if (++idle >= IDLE_DROP_S) {
+                set_state(c, c->state, "the station went quiet");
+                ret = R_DROPPED;
+                break;
+            }
+            continue;
+        }
+        if (got <= 0) {
+            if (live) {
+                set_state(c, c->state, got == 0 ? "the station closed the connection"
+                                                : "the connection broke");
+            } else if (got < 0) {
+                ret = R_DROPPED;
+            }
+            break;
+        }
+        idle = 0;
+        ok = feed(c, buf, got, &let_go);
+    }
+    if (c->stop) {
+        return R_STOP;
+    }
+    return let_go ? R_LET_GO : ret;
+}
+
+/* ---- HLS (branch aac) -------------------------------------------------------
+ *
+ * A station that answers with an .m3u8 does not stream: it lists segments
+ * of a few seconds each, and a player fetches them one after the other and
+ * reloads the list for the next ones. What the reader does:
+ *
+ *  - A master playlist (#EXT-X-STREAM-INF) lists the same station at
+ *    several rates: the audio-only variant (no avc1/hvc1 in CODECS) with
+ *    the highest BANDWIDTH up to 160 kbit/s, else the lowest there is.
+ *  - A live media playlist is joined three segments from its end, as
+ *    players do, and reloaded when its segments run out, every half target
+ *    duration while nothing is new.
+ *  - A segment is MPEG-TS (0x47 every 188 bytes: PAT -> PMT -> the audio
+ *    PID's PES payload, which is ADTS AAC or MP3), or packed audio (an ID3
+ *    tag, skipped, then ADTS or MP3 as it is). Either way what reaches the
+ *    ring is bytes the decoder already knows.
+ *  - Refused with a reason: encrypted segments (#EXT-X-KEY), fMP4 segments
+ *    (#EXT-X-MAP), LATM audio in the TS.
+ */
+
+#define HLS_MAX_SEGS    64
+
+/* ---- MPEG-TS: the audio out of 188-byte packets ---- */
+
+static bool ts_packet(radio_ctx_t *c, const uint8_t *p, bool *let_go)
+{
+    bool pusi = (p[1] & 0x40) != 0;
+    int pid = ((p[1] & 0x1F) << 8) | p[2];
+    int afc = (p[3] >> 4) & 3;
+    int off = 4;
+    if (afc & 2) {
+        off += 1 + p[4];
+    }
+    if (!(afc & 1) || off >= 188) {
+        return true;
+    }
+    if (pid == 0 || (pid == c->pmt_pid && c->pmt_pid > 0)) {
+        if (pusi) {
+            off += 1 + p[off];          /* pointer field */
+        }
+        if (off + 12 > 188) {
+            return true;
+        }
+        const uint8_t *t = p + off;
+        int sec_len = ((t[1] & 0x0F) << 8) | t[2];
+        int end = off + 3 + sec_len - 4;        /* the CRC is not wanted */
+        if (end > 188) {
+            end = 188;
+        }
+        if (pid == 0 && t[0] == 0x00) {
+            for (int i = off + 8; i + 4 <= end; i += 4) {
+                int prog = (p[i] << 8) | p[i + 1];
+                if (prog != 0) {
+                    c->pmt_pid = ((p[i + 2] & 0x1F) << 8) | p[i + 3];
+                    break;
+                }
+            }
+        } else if (t[0] == 0x02 && off + 12 <= 188) {
+            int pil = ((t[10] & 0x0F) << 8) | t[11];
+            for (int i = off + 12 + pil; i + 5 <= end;) {
+                int type = p[i];
+                int es = ((p[i + 1] & 0x1F) << 8) | p[i + 2];
+                int eil = ((p[i + 3] & 0x0F) << 8) | p[i + 4];
+                if (type == 0x0F || type == 0x03 || type == 0x04 || type == 0x11) {
+                    c->audio_pid = es;
+                    c->audio_type = type;
+                    break;
+                }
+                i += 5 + eil;
+            }
+        }
+        return true;
+    }
+    if (pid != c->audio_pid || c->audio_pid <= 0) {
+        return true;
+    }
+    if (c->audio_type == 0x11) {
+        return true;                    /* LATM: hls_run() refuses it */
+    }
+    if (pusi) {
+        if (off + 9 > 188 || p[off] != 0 || p[off + 1] != 0 || p[off + 2] != 1) {
+            return true;
+        }
+        off += 9 + p[off + 8];          /* the PES header */
+        if (off >= 188) {
+            return true;
+        }
+    }
+    c->got_audio = true;
+    return ring_put(c, p + off, 188 - off, let_go);
+}
+
+static bool ts_feed(radio_ctx_t *c, const uint8_t *p, int n, bool *let_go)
+{
+    while (n > 0) {
+        if (c->tsfill == 0 && *p != 0x47) {
+            p++;                        /* lost sync: to the next 0x47 */
+            n--;
+            continue;
+        }
+        int take = 188 - c->tsfill < n ? 188 - c->tsfill : n;
+        memcpy(c->tsbuf + c->tsfill, p, (size_t)take);
+        c->tsfill += take;
+        p += take;
+        n -= take;
+        if (c->tsfill == 188) {
+            c->tsfill = 0;
+            if (!ts_packet(c, c->tsbuf, let_go)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+/* ---- the playlists ---- */
+
+/* The value of NAME= in an attribute list ("BANDWIDTH=64000,CODECS=..."). */
+static bool attr(const char *line, const char *name, char *out, size_t cap)
+{
+    size_t nl = strlen(name);
+    for (const char *p = line; (p = strstr(p, name)) != NULL; p += nl) {
+        if ((p == line || p[-1] == ',' || p[-1] == ':') && p[nl] == '=') {
+            const char *v = p + nl + 1;
+            size_t n;
+            if (*v == '"') {
+                v++;
+                n = strcspn(v, "\"");
+            } else {
+                n = strcspn(v, ",\r\n");
+            }
+            if (n >= cap) {
+                n = cap - 1;
+            }
+            memcpy(out, v, n);
+            out[n] = '\0';
+            return true;
+        }
+    }
+    return false;
+}
+
+/* From a master playlist, the variant to play, into 'url' (resolved). */
+static bool hls_variant(char *body, char *url, size_t url_cap, uint16_t *kbps)
+{
+    url_t base;
+    if (!url_parse(url, &base)) {
+        return false;
+    }
+    long best_bw = -1, low_bw = -1;
+    char *mem = BIG_ALLOC(400 * 3 + 512);   /* off the reader's stack */
+    if (!mem) {
+        return false;
+    }
+    char *best = mem, *low = mem + 400, *one = mem + 800, *next = mem + 1200;
+    for (char *line = strstr(body, "#EXT-X-STREAM-INF:"); line;
+         line = strstr(line + 1, "#EXT-X-STREAM-INF:")) {
+        char v[96] = "";
+        long bw = attr(line, "BANDWIDTH", v, sizeof(v)) ? atol(v) : 0;
+        bool video = false;
+        if (attr(line, "CODECS", v, sizeof(v))) {
+            video = strstr(v, "avc1") || strstr(v, "hvc1") || strstr(v, "hev1");
+        }
+        const char *uri = strchr(line, '\n');
+        while (uri && (*uri == '\n' || *uri == '\r' || *uri == '#')) {
+            if (*uri == '#') {
+                uri = strchr(uri, '\n');
+                continue;
+            }
+            uri++;
+        }
+        if (!uri || !*uri) {
+            continue;
+        }
+        size_t n = strcspn(uri, "\r\n");
+        if (n >= 400) {
+            continue;
+        }
+        memcpy(one, uri, n);
+        one[n] = '\0';
+        if (low_bw < 0 || bw < low_bw) {
+            low_bw = bw;
+            scopy(low, 400, one);
+        }
+        if (!video && bw <= 160000 && bw > best_bw) {
+            best_bw = bw;
+            scopy(best, 400, one);
+        }
+    }
+    const char *pick = best[0] ? best : low;
+    bool ok = pick[0] != '\0';
+    if (ok) {
+        long bw = best[0] ? best_bw : low_bw;
+        if (bw > 0) {
+            *kbps = (uint16_t)(bw / 1000);
+        }
+        url_resolve(next, 512, &base, pick);
+        scopy(url, url_cap, next);
+    }
+    free(mem);
+    return ok;
+}
+
+typedef struct {
+    uint32_t id;                    /* FNV-1a of its URI up to the '?'      */
+    int      at;                    /* offset of its URI in the body */
+} hls_seg_t;
+
+/* A segment is known by its name, not by EXT-X-MEDIA-SEQUENCE: RMC's server
+ * (ads stitched in on the server) sends sequence 1 on every reload while
+ * the segments move on, and a reader that trusted the number waited for
+ * ever. The query string changes per session on some CDNs and is left out. */
+static uint32_t seg_id(const char *uri)
+{
+    uint32_t h = 2166136261u;
+    for (; *uri && *uri != '?' && *uri != '\r' && *uri != '\n'; uri++) {
+        h = (h ^ (uint8_t)*uri) * 16777619u;
+    }
+    return h;
+}
+
+#define HLS_SEEN 32
+
+/* A media playlist's segments; returns how many, -1 for what is refused. */
+static int hls_parse(radio_ctx_t *c, char *body, hls_seg_t *segs, int *target, bool *ended)
+{
+    if (strstr(body, "#EXT-X-KEY") && !strstr(body, "METHOD=NONE")) {
+        set_state(c, AOS_RADIO_FAILED, "HLS: encrypted segments");
+        return -1;
+    }
+    if (strstr(body, "#EXT-X-MAP")) {
+        set_state(c, AOS_RADIO_FAILED, "HLS: fMP4 segments are not supported");
+        return -1;
+    }
+    const char *t = strstr(body, "#EXT-X-TARGETDURATION:");
+    *target = t ? atoi(t + 22) : 6;
+    if (*target <= 0 || *target > 60) {
+        *target = 6;
+    }
+    *ended = strstr(body, "#EXT-X-ENDLIST") != NULL;
+    int n = 0;
+    for (char *line = body; line && *line && n < HLS_MAX_SEGS;) {
+        char *nl = strchr(line, '\n');
+        if (strncmp(line, "#EXTINF", 7) == 0) {
+            char *uri = nl ? nl + 1 : NULL;
+            while (uri && (*uri == '#' || *uri == '\r' || *uri == '\n')) {
+                char *x = strchr(uri, '\n');
+                uri = x ? x + 1 : NULL;
+            }
+            if (uri && *uri) {
+                segs[n].id = seg_id(uri);
+                segs[n].at = (int)(uri - body);
+                n++;
+                nl = strchr(uri, '\n');
+            }
+        }
+        line = nl ? nl + 1 : NULL;
+    }
+    return n;
+}
+
+/* One segment: fetched, its container found from its first bytes, poured. */
+static int hls_segment_body(radio_ctx_t *c, char *url, size_t url_cap, uint8_t *buf);
+
+/* While a segment comes, the HAL keeps the WiFi out of power save
+ * (aos_radio_busy()): on the watch, with modem sleep, a 6 s segment over a
+ * fresh TLS connection took up to 5.7 s to arrive (2026-09-26). */
+static int hls_segment(radio_ctx_t *c, char *url, size_t url_cap, uint8_t *buf)
+{
+    c->fetching = true;
+    int r = hls_segment_body(c, url, url_cap, buf);
+    c->fetching = false;
+    return r;
+}
+
+static int hls_segment_body(radio_ctx_t *c, char *url, size_t url_cap, uint8_t *buf)
+{
+    http_resp_t r;
+    int st = R_REDIRECT;
+    for (int hops = 0; st == R_REDIRECT && hops <= MAX_REDIRECTS; hops++) {
+        st = http_begin(c, url, url_cap, false, &r, buf);
+    }
+    if (st != 200) {
+        return st == R_REDIRECT ? R_FAILED : st;
+    }
+    /* enough of the body to see what it is */
+    for (int tries = 0; r.hlen - r.body_at < 10 && tries < 5 && !c->stop;) {
+        int got = aos_http_stream_recv(r.s, r.hdr + r.hlen, HDR_MAX - r.hlen);
+        if (got == -2) {
+            tries++;
+            continue;
+        }
+        if (got <= 0) {
+            break;
+        }
+        r.hlen += got;
+    }
+    const uint8_t *b = (const uint8_t *)r.hdr + r.body_at;
+    int have = r.hlen - r.body_at;
+    c->ts = have > 0 && b[0] == 0x47;
+    c->tsfill = 0;
+    c->skip = 0;
+    if (!c->ts && have >= 10 && b[0] == 'I' && b[1] == 'D' && b[2] == '3') {
+        c->skip = 10 + ((uint32_t)(b[6] & 0x7F) << 21 | (uint32_t)(b[7] & 0x7F) << 14 |
+                        (uint32_t)(b[8] & 0x7F) << 7 | (b[9] & 0x7F));
+    }
+    int ret = pump(c, &r, buf, false);
+    resp_close(&r);
+    c->ts = false;
+    return ret;
+}
+
+static int hls_run(radio_ctx_t *c, char *url, size_t url_cap, char *body, uint8_t *buf)
+{
+    LOCK();
+    c->hls = true;
+    scopy(c->content_type, sizeof(c->content_type), "hls");
+    UNLOCK();
+    c->metaint = 0;
+    c->pmt_pid = c->audio_pid = c->audio_type = -1;
+
+    if (strstr(body, "#EXT-X-STREAM-INF")) {
+        uint16_t kbps = 0;
+        if (!hls_variant(body, url, url_cap, &kbps)) {
+            set_state(c, AOS_RADIO_FAILED, "HLS: no variant to play");
+            return R_FATAL;
+        }
+        LOCK();
+        c->kbps = kbps;
+        UNLOCK();
+        int len = http_fetch(c, url, url_cap, body, PLAYLIST_MAX, buf);
+        if (len < 0) {
+            return -len;
+        }
     }
 
-    char ctype[64] = "";
-    hdr_get(hdr, "Content-Type", ctype, sizeof(ctype));
-    for (char *p = ctype; *p; p++) {
-        *p = (char)tolower((unsigned char)*p);
+    hls_seg_t *segs = BIG_ALLOC(sizeof(hls_seg_t) * HLS_MAX_SEGS);
+    char *seg_url = BIG_ALLOC(512);
+    char *pl_url = BIG_ALLOC(512);
+    char *one = BIG_ALLOC(400);
+    if (!segs || !seg_url || !pl_url || !one) {
+        free(segs);
+        free(seg_url);
+        free(pl_url);
+        free(one);
+        return R_FAILED;
     }
+    scopy(pl_url, 512, url);
+    set_state(c, c->ready ? AOS_RADIO_PLAYING : AOS_RADIO_BUFFERING, "");
+    bool first = true;
+    uint32_t seen[HLS_SEEN] = {0};
+    int seen_at = 0;
+    int fails = 0, ret = R_DROPPED;
+    while (!c->stop) {
+        int target = 6;
+        bool ended = false;
+        int n = hls_parse(c, body, segs, &target, &ended);
+        if (n < 0) {
+            ret = R_FATAL;
+            break;
+        }
+        url_t base;
+        url_parse(pl_url, &base);
+        int from = 0;
+        if (first) {
+            from = n > 3 && !ended ? n - 3 : 0;
+            first = false;
+        }
+        int fetched = 0;
+        for (int i = from; i < n && !c->stop; i++) {
+            bool known = false;
+            for (int k = 0; k < HLS_SEEN && !known; k++) {
+                known = seen[k] == segs[i].id && segs[i].id != 0;
+            }
+            if (known) {
+                continue;
+            }
+            seen[seen_at] = segs[i].id;
+            seen_at = (seen_at + 1) % HLS_SEEN;
+            size_t len = strcspn(body + segs[i].at, "\r\n");
+            if (len >= 400) {
+                continue;
+            }
+            memcpy(one, body + segs[i].at, len);
+            one[len] = '\0';
+            url_resolve(seg_url, 512, &base, one);
+            DBG("segment %d/%d get (ring %u B)", i + 1, n, (unsigned)(c->head - c->tail));
+            int64_t t0 = (int64_t)aos_hal_uptime_ms();
+            uint32_t head0 = c->head;
+            int r = hls_segment(c, seg_url, 512, buf);
+            if (r == R_FAILED && c->head == head0 && !c->stop) {
+                /* nothing of it arrived: once more before it is lost */
+                WARN("hls: segment failed (%s), again", c->error);
+                r = hls_segment(c, seg_url, 512, buf);
+            }
+            int ms = (int)((int64_t)aos_hal_uptime_ms() - t0);
+            if (r != 0 || ms > 4000) {
+                WARN("hls: segment r=%d in %d ms, %u B buffered", r, ms,
+                     (unsigned)(c->head - c->tail));
+            }
+            DBG("segment %d/%d done r=%d (ring %u B)", i + 1, n, r, (unsigned)(c->head - c->tail));
+            if (r == R_STOP || r == R_LET_GO || r == R_FATAL) {
+                ret = r;
+                goto out;
+            }
+            if (r == 0) {
+                fails = 0;
+                fetched++;
+            } else if (++fails >= 3) {
+                goto out;               /* R_DROPPED: start the station again */
+            }
+            if (c->audio_type == 0x11) {
+                set_state(c, AOS_RADIO_FAILED, "HLS: LATM audio is not supported");
+                ret = R_FATAL;
+                goto out;
+            }
+        }
+        if (ended && !fetched) {
+            set_state(c, AOS_RADIO_FAILED, "the playlist ended");
+            ret = R_FATAL;
+            break;
+        }
+        DBG("playlist: %d segments, %d new, target %d s", n, fetched, target);
+        if (!fetched) {
+            int wait = target * 500;
+            for (int t = 0; t < wait && !c->stop; t += 100) {
+                SLEEP_MS(100);
+            }
+        }
+        scopy(url, url_cap, pl_url);
+        int len = http_fetch(c, url, url_cap, body, PLAYLIST_MAX, buf);
+        if (len < 0) {
+            WARN("hls: the playlist did not reload (%s)", c->error);
+            ret = -len == R_STOP ? R_STOP : R_DROPPED;
+            break;
+        }
+    }
+    if (c->stop) {
+        ret = R_STOP;
+    }
+out:
+    free(segs);
+    free(seg_url);
+    free(pl_url);
+    free(one);
+    return ret;
+}
+
+/* ---- a station, from the top ---- */
+
+static int session(radio_ctx_t *c, char *url, size_t url_cap, uint8_t *buf)
+{
+    http_resp_t r;
+    int st = http_begin(c, url, url_cap, true, &r, buf);
+    if (st != 200) {
+        return st;
+    }
+    char ctype[64] = "";
+    hdr_get(r.hdr, "Content-Type", ctype, sizeof(ctype));
+    lower_str(ctype);
     bool playlist = strstr(ctype, "mpegurl") || strstr(ctype, "scpls") || strstr(ctype, "x-pls") ||
-                    ends_with(u.path, ".pls") || ends_with(u.path, ".m3u") ||
-                    ends_with(u.path, ".m3u8");
-    if (playlist && !strstr(ctype, "audio/mpeg")) {
+                    ends_with(r.u.path, ".pls") || ends_with(r.u.path, ".m3u") ||
+                    ends_with(r.u.path, ".m3u8");
+    if (playlist && !strstr(ctype, "audio/mpeg") && !strstr(ctype, "aac")) {
         char *body = BIG_ALLOC(PLAYLIST_MAX + 1);
         int blen = 0;
         if (body) {
-            blen = hlen - body_at;
+            blen = r.hlen - r.body_at;
             if (blen > PLAYLIST_MAX) {
                 blen = PLAYLIST_MAX;
             }
-            memcpy(body, hdr + body_at, (size_t)blen);
+            memcpy(body, r.hdr + r.body_at, (size_t)blen);
             for (int tries = 0; blen < PLAYLIST_MAX && tries < 5 && !c->stop;) {
-                int r = aos_http_stream_recv(s, body + blen, PLAYLIST_MAX - blen);
-                if (r == -2) {
+                int got = aos_http_stream_recv(r.s, body + blen, PLAYLIST_MAX - blen);
+                if (got == -2) {
                     tries++;
                     continue;
                 }
-                if (r <= 0) {
+                if (got <= 0) {
                     break;
                 }
-                blen += r;
+                blen += got;
             }
             body[blen] = '\0';
+            if (c->chunked) {
+                dechunk(body, blen);
+            }
         }
-        free(hdr);
-        aos_http_stream_close(s);
-        bool hls = false;
-        char next[512];
-        bool found = body && playlist_first(body, next, sizeof(next), &hls);
+        resp_close(&r);
+        if (!body) {
+            return R_FAILED;
+        }
+        int ret;
+        if (strstr(body, "#EXT-X-")) {
+            ret = hls_run(c, url, url_cap, body, buf);
+        } else {
+            char next[512];
+            if (playlist_first(body, next, sizeof(next))) {
+                scopy(url, url_cap, next);
+                ret = R_REDIRECT;
+            } else {
+                set_state(c, AOS_RADIO_FAILED, "an empty playlist");
+                ret = R_FATAL;
+            }
+        }
         free(body);
-        if (hls) {
-            set_state(c, AOS_RADIO_FAILED, "HLS: not supported, only MP3 streams");
-            return R_FATAL;
-        }
-        if (!found) {
-            set_state(c, AOS_RADIO_FAILED, "an empty playlist");
-            return R_FATAL;
-        }
-        snprintf(url, url_cap, "%s", next);
-        return R_REDIRECT;
+        return ret;
     }
-    if (strstr(ctype, "aac") || strstr(ctype, "mp4") || strstr(ctype, "ogg") ||
-        strstr(ctype, "opus") || strstr(ctype, "flac") || strstr(ctype, "wav")) {
+    /* What the decoder cannot take. AAC (ADTS) and MP3 go on: the decoder
+     * finds out which from the bytes. */
+    if (strstr(ctype, "ogg") || strstr(ctype, "opus") || strstr(ctype, "flac") ||
+        strstr(ctype, "wav") || strstr(ctype, "audio/mp4") || strstr(ctype, "video/")) {
         char e[64];
-        snprintf(e, sizeof(e), "%.30s: only MP3 streams play", ctype);
-        free(hdr);
-        aos_http_stream_close(s);
+        snprintf(e, sizeof(e), "%.30s: only MP3 and AAC play", ctype);
+        resp_close(&r);
         set_state(c, AOS_RADIO_FAILED, e);
         return R_FATAL;
     }
 
     /* The audio. What the station says of itself, then the bytes. */
+    char v[160];
     LOCK();
-    snprintf(c->content_type, sizeof(c->content_type), "%s", ctype);
-    if (hdr_get(hdr, "icy-name", v, sizeof(v))) {
+    c->hls = false;
+    scopy(c->content_type, sizeof(c->content_type), ctype);
+    if (hdr_get(r.hdr, "icy-name", v, sizeof(v))) {
         to_utf8(c->icy_name, sizeof(c->icy_name), v);
     }
-    if (hdr_get(hdr, "icy-genre", v, sizeof(v))) {
+    if (hdr_get(r.hdr, "icy-genre", v, sizeof(v))) {
         to_utf8(c->icy_genre, sizeof(c->icy_genre), v);
     }
-    if (hdr_get(hdr, "icy-url", v, sizeof(v))) {
+    if (hdr_get(r.hdr, "icy-url", v, sizeof(v))) {
         scopy(c->icy_url, sizeof(c->icy_url), v);
     }
-    if (hdr_get(hdr, "icy-description", v, sizeof(v))) {
+    if (hdr_get(r.hdr, "icy-description", v, sizeof(v))) {
         to_utf8(c->icy_desc, sizeof(c->icy_desc), v);
     }
-    if (hdr_get(hdr, "icy-br", v, sizeof(v))) {
+    if (hdr_get(r.hdr, "icy-br", v, sizeof(v))) {
         c->kbps = (uint16_t)atoi(v);    /* "128,128" happens: atoi stops at the comma */
     }
     UNLOCK();
-    c->metaint = hdr_get(hdr, "icy-metaint", v, sizeof(v)) ? (uint32_t)atoi(v) : 0;
+    c->metaint = hdr_get(r.hdr, "icy-metaint", v, sizeof(v)) ? (uint32_t)atoi(v) : 0;
     c->audio_left = c->metaint;
     c->meta_len = -1;
-    c->chunked = false;
-    if (hdr_get(hdr, "Transfer-Encoding", v, sizeof(v))) {
-        for (char *p = v; *p; p++) {
-            *p = (char)tolower((unsigned char)*p);
-        }
-        c->chunked = strstr(v, "chunked") != NULL;
-    }
-    c->chunk_state = 0;
-    c->chunk_left = 0;
     set_state(c, c->ready ? AOS_RADIO_PLAYING : AOS_RADIO_BUFFERING, "");
-
-    bool let_go = false;
-    int  ret = R_DROPPED;
-    bool ok = feed(c, (const uint8_t *)hdr + body_at, hlen - body_at, &let_go);
-    free(hdr);
-    int idle = 0;
-    while (ok && !c->stop) {
-        int r = aos_http_stream_recv(s, buf, RECV_CHUNK);
-        if (r == -2) {
-            if (++idle >= IDLE_DROP_S) {
-                set_state(c, c->state, "the station went quiet");
-                break;
-            }
-            continue;
-        }
-        if (r <= 0) {
-            set_state(c, c->state, r == 0 ? "the station closed the connection"
-                                          : "the connection broke");
-            break;
-        }
-        idle = 0;
-        ok = feed(c, buf, r, &let_go);
-    }
-    aos_http_stream_close(s);
-    if (c->stop) {
-        return R_STOP;
-    }
-    if (let_go) {
-        ret = R_LET_GO;
-    }
+    int ret = pump(c, &r, buf, true);
+    resp_close(&r);
     return ret;
 }
 
@@ -953,6 +1557,7 @@ static void snapshot(radio_ctx_t *c, aos_radio_status_t *o)
     snprintf(o->content_type, sizeof(o->content_type), "%s", c->content_type);
     snprintf(o->error, sizeof(o->error), "%s", c->error);
     o->kbps = c->kbps;
+    o->hls = c->hls;
     o->reconnects = c->reconnects;
     o->bytes = c->head;
     uint32_t kbps = c->kbps ? c->kbps : 128;
@@ -994,13 +1599,14 @@ bool aos_radio_start(const char *url)
     }
     pthread_detach(t);
 #else
-    /* Internal stack: TLS and lwIP. Measured 4.7 KB at the deepest, on a
-     * StreamTheWorld station (a redirect, two handshakes); 7 KB leaves room
-     * for a server with a bigger certificate chain. The buffers are all in
-     * PSRAM. Priority 3, under LVGL: the ring gives it seconds of slack, and
-     * it never does floats, so it stays unpinned. */
+    /* Internal stack: TLS and lwIP. Measured 4.7 KB at the deepest on a
+     * StreamTheWorld station (a redirect, two handshakes), and 6.7 KB on
+     * ipanel.instream.audio and on an HLS master playlist over https
+     * (v0.8.1): 360 bytes were left of 7 KB. What was big on it moved to
+     * the heap, and it has 9 KB. Priority 3, under LVGL: the ring gives it
+     * seconds of slack, and it never does floats, so it stays unpinned. */
     TaskHandle_t th = NULL;
-    if (xTaskCreate(reader_task, "aos_radio", 7168, c, 3, &th) != pdPASS) {
+    if (xTaskCreate(reader_task, "aos_radio", 9216, c, 3, &th) != pdPASS) {
         free(ring);
         free(c);
         return false;
@@ -1134,6 +1740,7 @@ void aos_radio_fill_status(aos_radio_status_t *out)
         snprintf(out->content_type, sizeof(out->content_type), "%s", s_last.content_type);
         snprintf(out->error, sizeof(out->error), "%s", s_last.error);
         out->kbps = s_last.kbps;
+        out->hls = s_last.hls;
         out->reconnects = s_last.reconnects;
         out->bytes = s_last.bytes;
         out->state = st;
@@ -1162,4 +1769,27 @@ uint32_t aos_radio_stack_free(void)
     UNLOCK();
 #endif
     return n;
+}
+
+void aos_radio_fail(const char *why)
+{
+    lock_init();
+    LOCK();
+    if (s_cur) {
+        s_cur->failed = true;
+        s_cur->state = AOS_RADIO_FAILED;
+        scopy(s_cur->error, sizeof(s_cur->error), why);
+    }
+    UNLOCK();
+}
+
+bool aos_radio_busy(void)
+{
+    lock_init();
+    LOCK();
+    radio_ctx_t *c = s_cur;
+    bool busy = c && (c->fetching || c->state == AOS_RADIO_CONNECTING ||
+                      c->state == AOS_RADIO_RETRYING || c->state == AOS_RADIO_BUFFERING);
+    UNLOCK();
+    return busy;
 }

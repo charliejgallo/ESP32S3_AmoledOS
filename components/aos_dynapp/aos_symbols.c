@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb
  * Mas 121 funciones de libc/libm agregadas a mano.
- * Total: 2898 simbolos.
+ * Total: 2902 simbolos.
  */
 
 #include <stddef.h>
@@ -33,6 +33,9 @@ extern int _ctype_;
 extern int abort;
 extern int abs;
 extern int acosf;
+extern int aos_aac_close;
+extern int aos_aac_decode;
+extern int aos_aac_open;
 extern int aos_alarm_get;
 extern int aos_alarm_service_tick;
 extern int aos_alarm_set;
@@ -522,6 +525,7 @@ extern int aos_quick_slider;
 extern int aos_quick_tiles_create;
 extern int aos_quick_tiles_paint;
 extern int aos_radio_buffered;
+extern int aos_radio_fail;
 extern int aos_radio_fill_status;
 extern int aos_radio_read;
 extern int aos_radio_ready;
@@ -2934,6 +2938,9 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(abort),
     ESP_ELFSYM_EXPORT(abs),
     ESP_ELFSYM_EXPORT(acosf),
+    ESP_ELFSYM_EXPORT(aos_aac_close),
+    ESP_ELFSYM_EXPORT(aos_aac_decode),
+    ESP_ELFSYM_EXPORT(aos_aac_open),
     ESP_ELFSYM_EXPORT(aos_alarm_get),
     ESP_ELFSYM_EXPORT(aos_alarm_service_tick),
     ESP_ELFSYM_EXPORT(aos_alarm_set),
@@ -3423,6 +3430,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_quick_tiles_create),
     ESP_ELFSYM_EXPORT(aos_quick_tiles_paint),
     ESP_ELFSYM_EXPORT(aos_radio_buffered),
+    ESP_ELFSYM_EXPORT(aos_radio_fail),
     ESP_ELFSYM_EXPORT(aos_radio_fill_status),
     ESP_ELFSYM_EXPORT(aos_radio_read),
     ESP_ELFSYM_EXPORT(aos_radio_ready),

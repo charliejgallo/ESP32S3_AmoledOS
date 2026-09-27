@@ -253,8 +253,14 @@ static bool                 s_net_low_latency;      /* aos_hal_net_low_latency()
  * station plays, never the deepest modem sleep (with the screen off it is
  * the one the watch picks, and its long listen interval starves a stream);
  * 2 while one connects, none at all, because a TLS handshake is a dozen
- * round trips and modem sleep makes each one 200-300 ms. */
+ * round trips and modem sleep makes each one 200-300 ms. Since v0.8.1 also
+ * 2 while it reconnects or fetches an HLS segment (aos_radio_busy()). */
 static volatile int         s_radio_ps;
+/* An OTA upload in progress (branch aac): the WiFi stays out of power save
+ * until it ends. On 2026-09-26 four of seven uploads were cut halfway by
+ * bcn_timeout - the access point's beacons missed while the flash writes
+ * held the chip - and the log showed modem sleep during every one. */
+static volatile bool        s_ota_ps;
 static void               (*s_power_cb)(aos_power_event_t event, int percent);
 static int                  s_gyro_users;
 
@@ -2105,7 +2111,8 @@ static int radio_step(void)
         }
         s_dec = aos_audio_open_src(aos_radio_read, NULL, &s_dec_info);
         if (!s_dec) {
-            ESP_LOGW(TAG, "radio: no MP3 frames in %s", s_dec_path);
+            ESP_LOGW(TAG, "radio: no MP3 or AAC frames in %s", s_dec_path);
+            aos_radio_fail("no MP3 or AAC audio in the stream");
             return STEP_DONE;
         }
         s_dec_frames = 0;
@@ -2120,10 +2127,12 @@ static int radio_step(void)
         s_player_channels = s_dec_info.channels;
         s_track_start = s_pring_tail;
         radio_ps(1);
-        ESP_LOGI(TAG, "radio: %s, %lu Hz, %u kbps", s_dec_path,
-                 (unsigned long)s_dec_info.sample_rate, (unsigned)s_dec_info.kbps);
+        ESP_LOGI(TAG, "radio: %s, %s %lu Hz %u ch, %u kbps", s_dec_path, s_dec_info.codec,
+                 (unsigned long)s_dec_info.sample_rate, (unsigned)s_dec_info.channels,
+                 (unsigned)s_dec_info.kbps);
     }
 
+    radio_ps(aos_radio_busy() ? 2 : 1);
     if (s_pring_n - ring_used() < PLAYER_CHUNK) {
         return STEP_WAIT;
     }
@@ -2313,6 +2322,7 @@ static bool player_spawn_decoder(int core)
 static void player_task(void *arg)
 {
     int core = (int)(intptr_t)arg;
+    int64_t busy_since = esp_timer_get_time();
 
     while (!s_player_abort) {
         int want = s_dec_core_want;
@@ -2333,6 +2343,17 @@ static void player_task(void *arg)
         }
         if (r == STEP_WAIT) {
             ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(10));
+            busy_since = esp_timer_get_time();
+        } else if (esp_timer_get_time() - busy_since > 100000) {
+            /* A decoder with work that never runs out must still let its
+             * core's idle task run: at priority 5 and slowed down by an OTA
+             * writing the flash (every write stalls the caches of both
+             * cores), it decoded for seconds on end and the task watchdog
+             * reset the watch in the middle of the upload (2026-09-26,
+             * three out of three with a station playing). A tick off every
+             * 100 ms costs 1 % and the ring never notices. */
+            vTaskDelay(1);
+            busy_since = esp_timer_get_time();
         }
     }
 
@@ -2677,6 +2698,16 @@ bool aos_hal_player_status(aos_player_status_t *out)
     return true;
 }
 
+/* A literal for the format: the info struct is a copy on the stack. */
+static const char *codec_name(const aos_audio_info_t *info)
+{
+    if (info->format == AOS_AUDIO_AAC) {
+        return !strcmp(info->codec, "HE-AACv2") ? "HE-AACv2"
+             : !strcmp(info->codec, "HE-AAC") ? "HE-AAC" : "AAC";
+    }
+    return info->format == AOS_AUDIO_MP3 ? "MP3" : (info->format == AOS_AUDIO_WAV ? "WAV" : "");
+}
+
 bool aos_hal_player_info(aos_player_info_t *out)
 {
     if (!out) {
@@ -2693,7 +2724,7 @@ bool aos_hal_player_info(aos_player_info_t *out)
     portEXIT_CRITICAL(&s_player_mux);
 
     out->state       = s_player_state;
-    out->format      = info.format == AOS_AUDIO_MP3 ? "MP3" : (info.format == AOS_AUDIO_WAV ? "WAV" : "");
+    out->format      = codec_name(&info);
     out->kbps        = info.kbps;
     out->vbr         = info.vbr;
     out->sample_rate = info.sample_rate;
@@ -2794,6 +2825,7 @@ bool aos_hal_radio_status(aos_radio_status_t *out)
     aos_audio_info_t info = s_player_info;
     portEXIT_CRITICAL(&s_player_mux);
     out->title_gen   = s_radio_heard_gen;
+    snprintf(out->codec, sizeof(out->codec), "%s", codec_name(&info));
     out->sample_rate = info.sample_rate;
     out->channels    = info.channels;
     if (!out->kbps) {
@@ -4876,6 +4908,11 @@ bool aos_hal_ota_begin(size_t total_bytes)
     }
     s_ota_err[0] = '\0';
 
+    /* The music or the radio stops for the upload: the watch restarts when it
+     * ends anyway, and the decoder is what starved a core while the flash
+     * was being written (see player_task). */
+    aos_hal_player_stop();
+
     s_ota_part = esp_ota_get_next_update_partition(NULL);
     if (!s_ota_part) {
         snprintf(s_ota_err, sizeof(s_ota_err), "no hay particion OTA libre");
@@ -4899,6 +4936,8 @@ bool aos_hal_ota_begin(size_t total_bytes)
         ota_fail("esp_ota_begin", err);
         return false;
     }
+    s_ota_ps = true;
+    pm_policy_apply();
     ESP_LOGI(TAG, "ota: writing into %s (%u B free), image of %u B",
              s_ota_part->label, (unsigned)s_ota_part->size, (unsigned)total_bytes);
     return true;
@@ -4914,6 +4953,8 @@ bool aos_hal_ota_write(const void *data, size_t len)
         ota_fail("esp_ota_write", err);
         esp_ota_abort(s_ota);
         s_ota = 0;
+        s_ota_ps = false;
+        pm_policy_apply();
         return false;
     }
     return true;
@@ -4926,6 +4967,8 @@ bool aos_hal_ota_end(void)
     }
     esp_err_t err = esp_ota_end(s_ota);
     s_ota = 0;
+    s_ota_ps = false;
+    pm_policy_apply();
     if (err != ESP_OK) {
         /* ESP_ERR_OTA_VALIDATE_FAILED is the interesting one: the image
          * arrived whole but its checksum does not match. */
@@ -4947,6 +4990,8 @@ void aos_hal_ota_abort(void)
     if (s_ota) {
         esp_ota_abort(s_ota);
         s_ota = 0;
+        s_ota_ps = false;
+        pm_policy_apply();
         ESP_LOGW(TAG, "ota: aborted, the running image is untouched");
     }
 }
@@ -5713,7 +5758,7 @@ static void pm_policy_apply(void)
     }
 
     if (s_net_state != AOS_NET_OFF) {
-        bool fast = s_net_low_latency ||
+        bool fast = s_net_low_latency || s_ota_ps ||
                     (s_radio_ps == 2 && aos_hal_bt_state() == AOS_BT_OFF);
         int ps = fast ? WIFI_PS_NONE
                : (saving && s_display_state != AOS_DISPLAY_ACTIVE && !s_radio_ps) ? WIFI_PS_MAX_MODEM

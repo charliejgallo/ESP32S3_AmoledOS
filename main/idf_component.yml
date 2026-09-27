@@ -39,6 +39,12 @@ dependencies:
   espressif/esp_h264:
     version: "^1.4.1"
     public: true
+  # AAC and HE-AAC for the radio (branch aac). Prebuilt like the two above,
+  # under Espressif's modified MIT licence: free to use and ship, on Espressif
+  # chips only - which is all this firmware runs on. The simulator decodes
+  # AAC with libavcodec instead (sim/sim_codec.c), behind the same interface.
+  espressif/esp_audio_codec:
+    version: "^2.4.0"
   # USB (branch usb, see docs/USB.md). Device side: TinyUSB through Espressif's
   # wrapper. Host side: the class drivers from esp-usb.
   espressif/esp_tinyusb:

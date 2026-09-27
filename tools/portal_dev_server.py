@@ -114,6 +114,7 @@ def radio_get(base):
             "player": {"state": "stopped", "live": False, "title": "", "artist": ""},
             "radio": {"state": "off", "index": -1, "station": "", "url": "", "title": "",
                       "host": "", "icy_name": "", "icy_genre": "", "icy_url": "", "error": "",
+                      "codec": "", "hls": False,
                       "tls": False, "kbps": 0, "rate": 0, "channels": 0, "buffer_ms": 0,
                       "bytes": 0, "reconnects": 0, "listening_s": 0}}
 

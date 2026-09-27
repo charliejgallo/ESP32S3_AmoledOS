@@ -262,8 +262,10 @@ aos_radio_status_t rs;                  /* how the stream is doing: state, host,
 aos_hal_radio_status(&rs);              /* buffer, reconnects, error; title_gen on each song */
 ```
 
-MP3 over `http://` or `https://`, with redirects and `.pls`/`.m3u`; AAC, Ogg
-and HLS are refused with the reason in `rs.error`. Pause, resume, stop, next
+MP3 and AAC (LC, HE, HE v2; v0.8.1) over `http://` or `https://`, with
+redirects and `.pls`/`.m3u`, and HLS (v0.8.1); Ogg, Opus, FLAC, fMP4 and
+encrypted HLS are refused with the reason in `rs.error`. `rs.codec` says what
+plays and `rs.hls` whether it comes in segments. Pause, resume, stop, next
 and previous are the player's (`aos_hal_player_*`). The Radio app
 (`apps/radio`) is the worked example; [RADIO.md](RADIO.md) has the numbers.
 

@@ -35,10 +35,11 @@ On the computer, at `http://<name>.local/radio`, the portal's Radio page:
 - **The watch's keys**: drag a station from your list onto a key, or a key
   onto another to swap them. Each key can be played or cleared from there.
 - **My list**, kept on the card as `radio/library.json`. The first time it
-  holds 25 stations checked against the watch's own stream code.
+  holds 33 stations checked against the watch's own stream code, 8 of them
+  AAC or HLS.
 - **Find radios** in radio-browser.info's open directory, by name, country and
   genre. "Only the ones the watch can play" is on by default; with it off, an
-  AAC station is marked in red.
+  Ogg, FLAC or fMP4 station is marked in red.
 - **Add by hand**: a name and a stream address.
 - **Album covers**: the switch for the iTunes lookup.
 
@@ -47,11 +48,13 @@ without putting it on a key.
 
 ## What plays
 
-MP3 over `http://` or `https://`: Icecast, Shoutcast and the big stations'
-CDNs, following redirects and `.pls` / `.m3u` playlists. **AAC, Ogg and HLS
-do not play**: the watch refuses them and says why ("Format not supported: MP3
-only"). Many stations offer an MP3 stream beside their AAC one; the search
-with "only MP3" finds those.
+MP3 and AAC (AAC-LC, HE-AAC and HE-AACv2, since v0.8.1) over `http://` or
+`https://`: Icecast, Shoutcast and the big stations' CDNs, following
+redirects and `.pls` / `.m3u` playlists; and HLS (`.m3u8`) with MPEG-TS or
+packed-audio segments, since v0.8.1. **Ogg, Opus, FLAC, HLS in fMP4 and
+encrypted HLS do not play**: the watch refuses them and says why ("Format not
+supported: MP3 and AAC only"). The search with "only the ones the watch can
+play" leaves them out. The dial shows the codec ("HE-AAC 64 kbps", "AAC HLS").
 
 ## The cover
 
@@ -80,7 +83,8 @@ playing with the app closed.
 | `radio_ui.c` | the panel: LVGL objects that stand still, the scale drawn once on an ARGB8888 canvas, the needle moved by a 30 ms timer only while it travels |
 | `radio_art.c` | the covers: the iTunes lookup through the HAL's HTTP client, the logos from the card, JPEG to a 160 px square |
 
-It needs firmware **v0.8.0** or later (`aos_hal_radio_*`). The measurements
+It needs firmware **v0.8.0** or later (`aos_hal_radio_*`); AAC and HLS need
+v0.8.1. The measurements
 (time to sound, CPU, RAM, what a station URL turns out to be) are in
 [docs/RADIO.md](../../docs/RADIO.md).
 

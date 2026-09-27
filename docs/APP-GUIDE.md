@@ -1373,6 +1373,15 @@ handler then hung until the hardware watchdog reset the board); one
 millisecond after every frame, and every 1024 triangles while loading,
 cured it (v0.6.0).
 
+**Writing the flash slows every task down, and a task that catches up
+without ever blocking starves its core.** Each flash write stalls the caches
+of both cores. During an OTA upload the player's decoder, slowed down, saw
+its ring drain, rose to priority 5 and decoded without a pause; core 0's
+idle task never ran and the task watchdog reset the watch halfway through
+the upload (v0.8.1). Anything that loops while it "has work" needs a
+`vTaskDelay(1)` - `aos_hal_worker_sleep(1)` in a worker - every so often
+whatever the backlog, not only when it runs out.
+
 **A long job must be cancellable, or leaving the app crashes the watch.**
 `aos_hal_worker_stop()` waits 3 s for the worker to come back and then
 abandons it - and the loader unloads the `.so` right after `destroy()`, with

@@ -395,7 +395,7 @@ a touchpad, Doom walks and shoots with two fingers, and Lua scripts get a
 
 | | | |
 |---|---|---|
-| <img src="docs/img/app-radio.png" width="200"><br>**Radio** — internet stations on a front panel from the sixties: nine keys, a lit dial with the station, the song and its cover, and a needle over the scale. It plays through the firmware's player, so it goes on with the app closed and the control centre drives it. | <img src="docs/img/app-radio-info.png" width="200"><br>Tap the dial for everything the stream says of itself. The cover is looked up on iTunes by the song's title, and only taken when the artist matches; the title changes when its song is heard, not when it is downloaded ten seconds before. | <img src="docs/img/app-radio-idle.png" width="200"><br>The keys are filled in the portal's `/radio` page, from a list kept on the card and a search in radio-browser.info; the logos are drawn in the browser. MP3 over http or https; [docs/RADIO.md](docs/RADIO.md) has the measurements. |
+| <img src="docs/img/app-radio.png" width="200"><br>**Radio** — internet stations on a front panel from the sixties: nine keys, a lit dial with the station, the song and its cover, and a needle over the scale. It plays through the firmware's player, so it goes on with the app closed and the control centre drives it. | <img src="docs/img/app-radio-info.png" width="200"><br>Tap the dial for everything the stream says of itself. The cover is looked up on iTunes by the song's title, and only taken when the artist matches; the title changes when its song is heard, not when it is downloaded ten seconds before. | <img src="docs/img/app-radio-idle.png" width="200"><br>The keys are filled in the portal's `/radio` page, from a list kept on the card and a search in radio-browser.info; the logos are drawn in the browser. MP3 and AAC (HE-AAC too) over http or https, and HLS; [docs/RADIO.md](docs/RADIO.md) has the measurements. |
 
 ### Written in Lua, on the watch
 
@@ -746,7 +746,7 @@ and UDP in the simulator.
 | [STEPS.md](docs/STEPS.md) | the step counter: why it is software, how it was tuned on counted walks |
 | [VIDEO.md](docs/VIDEO.md) | video from the card: the decoder, the background task, the direct blit, and the clock |
 | [CAMERAS.md](docs/CAMERAS.md) | live IP cameras: what the H.264 and JPEG decoders do on this board, measured, and how the Cameras app splits the work across the cores |
-| [RADIO.md](docs/RADIO.md) | internet radio: what a station URL turns out to be, titles shown when they are heard, what it costs, time to sound and why the WiFi's power save mattered, the covers |
+| [RADIO.md](docs/RADIO.md) | internet radio: what a station URL turns out to be, MP3, AAC and HLS, titles shown when they are heard, what it costs, time to sound and why the WiFi's power save mattered, uploads while a station plays, the covers |
 | [MUSIC.md](docs/MUSIC.md) | MP3 and the player: the decoder checked against ffmpeg, the ring, what it costs and what it does to the app in front, gapless, the cover, mixing |
 | [RAM-AUDIT.md](docs/RAM-AUDIT.md) | where the internal RAM went and how the apps' code moved to PSRAM |
 | [ROADMAP.md](docs/ROADMAP.md) | what is planned and has no date: Android phones, and USB host (a pendrive on the watch), waiting for a way to power it |
@@ -797,7 +797,7 @@ exercised on the board — most of the measurements quoted throughout the source
 were taken there. The link between two watches has been played with on two
 boards: Pong, Truco, a drawing sent, the radar, the walkie through a door, a
 fight in Chatarra's phone booth and a match of Neon Snakes. Internet radio has
-played on both watches, over http and https, with the screen off.
+played on both watches, over http and https, MP3, AAC and HLS, with the screen off.
 USB host mode (a pendrive on the watch) works but is parked: the board cannot
 power a peripheral ([USB.md](docs/USB.md)).
 

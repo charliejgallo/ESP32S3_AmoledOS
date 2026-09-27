@@ -237,8 +237,8 @@ void radio_on_volume(radio_t *r, int v)
  * watch's language. The raw reason is in the info card. */
 static const char *why(const char *error)
 {
-    if (strstr(error, "only MP3") || strstr(error, "HLS")) {
-        return _("Formato no soportado: sólo MP3");
+    if (strstr(error, "only MP3") || strstr(error, "HLS:") || strstr(error, "no MP3 or AAC")) {
+        return _("Formato no soportado: sólo MP3 y AAC");
     }
     if (strstr(error, "404") || strstr(error, "410") || strstr(error, "403")) {
         return _("La radio no está en esa dirección");
@@ -294,7 +294,8 @@ void radio_info_text(radio_t *r, char *out, int cap)
             real_genre(rs.icy_genre) ? rs.icy_genre : "");
     }
     if (rs.sample_rate) {
-        ADD("%s: MP3 %u kbps, %u.%u kHz, %s\n", _("Formato"), (unsigned)rs.kbps,
+        ADD("%s: %s%s %u kbps, %u.%u kHz, %s\n", _("Formato"),
+            rs.codec[0] ? rs.codec : "MP3", rs.hls ? " (HLS)" : "", (unsigned)rs.kbps,
             (unsigned)(rs.sample_rate / 1000), (unsigned)(rs.sample_rate % 1000 / 100),
             rs.channels == 2 ? _("estéreo") : _("mono"));
     }
@@ -405,7 +406,8 @@ static void radio_tick(aos_app_t *self, void *inst)
         txt_copy(title, sizeof(title), rs.icy_name[0] ? rs.icy_name : station);
     }
     if (live && pi.state != AOS_PLAYER_STOPPED && rs.kbps) {
-        int n = snprintf(meta, sizeof(meta), "MP3  %u kbps", (unsigned)rs.kbps);
+        int n = snprintf(meta, sizeof(meta), "%s%s  %u kbps", rs.codec[0] ? rs.codec : "MP3",
+                         rs.hls ? " HLS" : "", (unsigned)rs.kbps);
         if (real_genre(rs.icy_genre) && n > 0 && n < (int)sizeof(meta)) {
             snprintf(meta + n, sizeof(meta) - (size_t)n, "  %.40s", rs.icy_genre);
         }

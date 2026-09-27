@@ -804,9 +804,11 @@ bool aos_hal_player_stats(aos_player_stats_t *out);
  *
  * A station is played BY THE PLAYER, the same decoder, ring and writer as a
  * file: it goes on with the app closed, the control centre and /api/player
- * drive it, an app that opens the speaker pauses it. MP3 streams over
- * http:// or https:// (Icecast, Shoutcast, most station CDNs), redirects and
- * .pls / .m3u playlists followed; AAC and Ogg are refused with a reason.
+ * drive it, an app that opens the speaker pauses it. MP3 and AAC (LC, HE,
+ * HE v2; since v0.8.1) over http:// or https:// (Icecast, Shoutcast, most
+ * station CDNs), redirects and .pls / .m3u playlists followed, and HLS
+ * (.m3u8 with MPEG-TS or packed-audio segments, since v0.8.1). Ogg, Opus,
+ * FLAC, fMP4 and encrypted HLS are refused with a reason.
  *
  * aos_hal_radio_play() takes the whole list of stations and the one to play:
  * aos_hal_player_next() / _prev() then move along it, from the app or from
@@ -861,7 +863,10 @@ typedef struct {
     uint32_t reconnects;
     uint32_t listening_s;       /* since play, pauses included              */
     char     error[64];         /* why FAILED or RETRYING, in English       */
-    uint32_t reserved[8];
+    char     codec[12];         /* "MP3", "AAC", "HE-AAC", "HE-AACv2" (v0.8.1) */
+    bool     hls;               /* segments from an .m3u8, not a stream     */
+    uint8_t  pad_[3];
+    uint32_t reserved[4];
 } aos_radio_status_t;
 
 bool aos_hal_radio_status(aos_radio_status_t *out);
