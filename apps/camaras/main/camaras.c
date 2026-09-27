@@ -197,7 +197,10 @@ static void open_camera(app_t *a, int index)
     lv_obj_remove_flag(a->view_obj, LV_OBJ_FLAG_HIDDEN);
     lv_label_set_text(a->name_label, v->cam.name);
     lv_label_set_text(a->status_label, "");
-    show_bands(a, true);
+    /* Opened in the mode it was left in: in fill there are no bands, and
+     * labels left visible would be drawn over the picture (and flicker on
+     * the board every time they change). */
+    show_bands(a, v->mode == CAM_FIT);
     a->shown = false;
     a->last_w = 0;
     a->last_h = 0;
