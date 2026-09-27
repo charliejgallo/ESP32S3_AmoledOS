@@ -97,6 +97,18 @@ for lang in $LANGS; do
     # AOS_SIM_VIEW=control opens directly.
     (cd $SIM && AOS_SIM_AUDIT="$lang/control" AOS_SIM_VIEW="control" $BIN 2>/dev/null) \
         | grep "^AUDIT" >> $OUT || true
+    # Mapas draws its map past LVGL (a blit), so its own screen has no text to
+    # audit: its three LVGL screens are the ≡ list, the keypad and the
+    # results, which the app opens straight away with its development
+    # switches (v0.9.0).
+    for scr in list keys; do
+        (cd $SIM && MAPAS_SCREEN=$scr AOS_SIM_AUDIT="$lang/demo.mapas.$scr" \
+            AOS_SIM_VIEW="demo.mapas" $BIN 2>/dev/null) \
+            | grep "^AUDIT" >> $OUT || true
+    done
+    (cd $SIM && MAPAS_Q="serrano" AOS_SIM_AUDIT="$lang/demo.mapas.results" AOS_SIM_AUDIT_MS=4000 \
+        AOS_SIM_VIEW="demo.mapas" $BIN 2>/dev/null) \
+        | grep "^AUDIT" >> $OUT || true
     # The watchface picker only exists after a long press on the watch, so
     # AOS_SIM_VIEW cannot reach it and for a long time nobody audited it. That
     # is where the buttons below the touch limit lived -see

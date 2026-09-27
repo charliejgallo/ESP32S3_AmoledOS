@@ -1511,15 +1511,97 @@ static void show_keys(app_t *a)
     keys_refresh(a);
 }
 
+/* What a point of interest is: the index and Photon carry OpenStreetMap's
+ * class ("railway", "fast_food") and three kinds of the index's own
+ * ("parque", "aeropuerto", "cerro"), none of them for the screen. The
+ * commonest, in the order they come in a city's index, in the watch's
+ * language; any other, as it came, with its underscores out. */
+static const struct {
+    const char *k, *es;
+} KIND_NAMES[] = {
+    { "parque", N_("parque") },
+    { "aeropuerto", N_("aeropuerto") },
+    { "cerro", N_("cerro") },
+    { "shop", N_("comercio") },
+    { "school", N_("escuela") },
+    { "restaurant", N_("restaurante") },
+    { "office", N_("oficina") },
+    { "car", N_("autos") },
+    { "clothing_store", N_("ropa") },
+    { "grocery", N_("almacén") },
+    { "park", N_("parque") },
+    { "cafe", N_("café") },
+    { "hospital", N_("hospital") },
+    { "fast_food", N_("comida rápida") },
+    { "pharmacy", N_("farmacia") },
+    { "butcher", N_("carnicería") },
+    { "hairdresser", N_("peluquería") },
+    { "bakery", N_("panadería") },
+    { "place_of_worship", N_("templo") },
+    { "sports_centre", N_("club deportivo") },
+    { "bar", N_("bar") },
+    { "lodging", N_("alojamiento") },
+    { "college", N_("universidad") },
+    { "town_hall", N_("edificio público") },
+    { "ice_cream", N_("heladería") },
+    { "art_gallery", N_("galería de arte") },
+    { "library", N_("biblioteca") },
+    { "police", N_("policía") },
+    { "bicycle_rental", N_("bicis de alquiler") },
+    { "veterinary", N_("veterinaria") },
+    { "railway", N_("estación") },
+    { "pitch", N_("cancha") },
+    { "parking", N_("estacionamiento") },
+    { "doctors", N_("consultorio") },
+    { "bicycle", N_("bicicletería") },
+    { "beer", N_("cervecería") },
+    { "museum", N_("museo") },
+    { "laundry", N_("lavandería") },
+    { "alcohol_shop", N_("vinoteca") },
+    { "theatre", N_("teatro") },
+    { "dentist", N_("dentista") },
+    { "attraction", N_("atracción") },
+    { "bank", N_("banco") },
+    { "fuel", N_("estación de servicio") },
+    { "stadium", N_("estadio") },
+    { "fire_station", N_("bomberos") },
+    { "music", N_("música") },
+    { "atm", N_("cajero") },
+    { "monument", N_("monumento") },
+    { "cinema", N_("cine") },
+    { "cemetery", N_("cementerio") },
+    { "playground", N_("juegos infantiles") },
+    { "information", N_("información") },
+    { "post", N_("correo") },
+    { "swimming_pool", N_("pileta") },
+    { "garden", N_("jardín") },
+    { "harbor", N_("puerto") },
+    { "theme_park", N_("parque temático") },
+    { "ferry_terminal", N_("terminal de ferry") },
+    { "prison", N_("cárcel") },
+    { "campsite", N_("camping") },
+    { "castle", N_("castillo") },
+    { "toilets", N_("baños") },
+    { "zoo", N_("zoológico") },
+    { "aquarium", N_("acuario") },
+};
+
 static const char *kind_text(const mp_hit_t *h)
 {
     switch (h->kind) {
     case MP_KIND_PLACE:   return _("lugar");
     case MP_KIND_STREET:  return _("calle");
     case MP_KIND_WATER:   return _("agua");
-    case MP_KIND_ADDRESS: return h->sub;
-    default:              return h->sub;     /* the OSM class: restaurant, school... */
+    case MP_KIND_ADDRESS: return h->sub;    /* the town, from Photon */
+    default:              break;
     }
+    for (size_t i = 0; i < sizeof KIND_NAMES / sizeof KIND_NAMES[0]; i++)
+        if (!strcmp(h->sub, KIND_NAMES[i].k)) return _(KIND_NAMES[i].es);
+    static char raw[40];
+    snprintf(raw, sizeof raw, "%s", h->sub);
+    for (char *c = raw; *c; c++)
+        if (*c == '_') *c = ' ';
+    return raw;
 }
 
 static void result_cb(lv_event_t *e)
@@ -1748,8 +1830,13 @@ static void *mp_create(aos_app_t *self, lv_obj_t *root)
     }
     a->timer = lv_timer_create(tick, TICK_MS, a);
 
-    /* development switch (the board's getenv() is always NULL): MAPAS_Q=text
-     * opens the results of that search, MAPAS_PICK=1 then picks the first */
+    /* development switches (the board's getenv() is always NULL): MAPAS_Q=text
+     * opens the results of that search, MAPAS_PICK=1 then picks the first,
+     * MAPAS_SCREEN=list or keys opens the ≡ list or the keypad (for
+     * tools/audit_layout.sh: the simulator's taps are not reliable enough) */
+    const char *scr = getenv("MAPAS_SCREEN");
+    if (scr && !strcmp(scr, "list")) show_list(a);
+    else if (scr && !strcmp(scr, "keys")) show_keys(a);
     const char *q = getenv("MAPAS_Q");
     if (q && q[0]) {
         snprintf(a->query, sizeof a->query, "%s", q);

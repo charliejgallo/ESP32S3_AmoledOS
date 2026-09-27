@@ -2,7 +2,7 @@
 
 The long form of [APP-API.md](APP-API.md). That page is the contract - the
 callbacks, the flags, the icon, translation in five lines. This one is how
-the twenty-three apps in [`apps/`](../apps/) were actually written: the
+the forty apps in [`apps/`](../apps/) were actually written: the
 workflow, the drawing techniques and what each costs on the board, how to
 fetch data and how to be configured from the portal, how to test without the
 watch, and every trap that bit along the way. Everything measured is marked

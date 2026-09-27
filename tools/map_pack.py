@@ -37,7 +37,7 @@ KEEP = {"water", "waterway", "landcover", "landuse", "park", "building", "aerowa
         "transportation", "transportation_name", "boundary", "place", "water_name"}
 NAMED = {"transportation_name": "calle", "place": "lugar", "poi": "poi", "water_name": "agua",
          "park": "parque", "aerodrome_label": "aeropuerto", "mountain_peak": "cerro"}
-UA = {"User-Agent": "AmoledOS map_pack/1.0 (+https://github.com/charliejgallo)"}
+UA = {"User-Agent": "AmoledOS map_pack/1.0 (+https://github.com/charliejgallo/ESP32S3_AmoledOS)"}
 
 
 # --------------------------------------------------------------- protobuf --

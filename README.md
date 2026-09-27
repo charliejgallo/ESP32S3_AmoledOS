@@ -2,11 +2,12 @@
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
 368x448 AMOLED you can hold in your hand. Seven watchfaces, twenty
-built-in apps, thirty-five more loaded from the microSD as shared objects — one
-of them a Lua interpreter, so a text file on the card is an app too — a web
-portal, iPhone notifications over BLE, a link between two watches over ESP-NOW
-with ten apps on it, and a desktop simulator that runs the same UI code so
-you can build the whole thing without the board.
+built-in apps, forty more loaded from the microSD as shared objects — one
+of them a Lua interpreter, so a text file on the card is an app too, and one a
+street map with offline zones — a web portal, iPhone notifications over BLE, a
+link between two watches over ESP-NOW with eleven apps on it, and a desktop
+simulator that runs the same UI code so you can build the whole thing without
+the board.
 
 <p align="center">
   <img src="docs/img/board-watchface.png" width="220" alt="Nixie watchface, photographed from the board">
@@ -110,7 +111,8 @@ recordings to the card from any browser — and for configuring the things that
 are miserable to type on a 368 px screen: WiFi, the Home Assistant address and
 token, the weather location, which exchange rates to watch, which sensors to
 plot, the cameras, the radio stations on the Radio app's nine keys (searched in
-radio-browser.info from the page itself), and the whole remote-control profile. It also carries every switch of the
+radio-browser.info from the page itself), the map's zones and the areas
+downloaded for use without a connection, and the whole remote-control profile. It also carries every switch of the
 Settings app, a live view of the screen with the controls to drive it from the
 browser, and the log tailed over wifi. Two of its pages are editors rather than
 forms: `/pixel` for the drawings and `/lua` for the scripts, both writing the
@@ -162,14 +164,15 @@ cost nothing measurable (a JPEG decode benchmark stayed at 111 ms).
 
 ## The apps
 
-Fifty-one of them, plus one for every Lua script on the card, in three
+Sixty of them, plus one for every Lua script on the card, in three
 families that differ in where the code lives — not in what they are allowed
 to do.
 
 ### Built into the firmware
 
-Twenty-one ship inside the binary. They are the ones the watch cannot be without
-— if the microSD is out, these still work.
+Twenty ship inside the binary. They are the ones the watch cannot be without
+— if the microSD is out, these still work. (Diagnóstico, in the table, was the
+twenty-first and is now a page of Settings.)
 
 | | | |
 |---|---|---|
@@ -183,7 +186,7 @@ Twenty-one ship inside the binary. They are the ones the watch cannot be without
 
 ### Loaded from the microSD
 
-Thirty-five more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
+Forty more live in [`apps/`](apps/) and are loaded from `/sdcard/apps` as
 `.so` files at startup. The same source builds into the simulator, so they are
 designed on a laptop and copied to the card without changing a line — and a new
 one needs no firmware rebuild. That includes its **launcher icon**: an app
@@ -386,7 +389,7 @@ a touchpad, Doom walks and shoots with two fingers, and Lua scripts get a
 | <img src="docs/img/app-gemas.png" width="200"><br>**Gemas** — match-three. The jewels are traced in code as convex polygons with facets, not stored as bitmaps. | <img src="docs/img/app-2043.png" width="200"><br>**2043** — a vertical shooter, an homage to Capcom's 1943, with a different boss per planet. | <img src="docs/img/app-arkanos.png" width="200"><br>**Arkanos** — brick breaking, twelve walls, and the app that introduced dirty-rectangle drawing. |
 | <img src="docs/img/app-claudito.png" width="200"><br>**Claudito** — a virtual pet, entirely hand-drawn pixel art on a 92x112 grid. | <img src="docs/img/app-truco.png" width="200"><br>**Truco** — Argentine truco against the machine, with cards drawn in code and a matchstick scoreboard. Since v0.4.1 also against the other watch over the link: the same engine runs on both, and only the moves travel. | <img src="docs/img/app-atasco.png" width="200"><br>**Atasco** — a sliding block puzzle. 25 levels, each with a BFS-verified minimum move count. |
 | <img src="docs/img/app-clima.png" width="200"><br>**Clima** — weather from Open-Meteo over HTTPS, with the icons drawn from shape descriptions at any size. | <img src="docs/img/app-remoto.png" width="200"><br>**Remoto** — a programmable Home Assistant remote: button pages, accelerometer gestures and a dial you turn with your wrist. | <img src="docs/img/app-sensores.png" width="200"><br>**Sensores** — up to four Home Assistant sensors with three hours of chart, sampled by the watch itself. |
-| <img src="docs/img/app-tuner.png" width="200"><br>**Afinador** — a chromatic tuner (NSDF pitch detection) and a sound level meter with A weighting. | <img src="docs/img/app-recorder.png" width="200"><br>**Recorder** — voice memos to WAV on the card, with a live waveform. | <img src="docs/img/app-mines.png" width="200"><br>**Buscaminas** — minesweeper on a single canvas, because 250 LVGL objects do not fit in internal RAM. |
+| <img src="docs/img/app-tuner.png" width="200"><br>**Afinador** — a chromatic tuner (NSDF pitch detection) and a sound level meter with A weighting. | <img src="docs/img/app-recorder.png" width="200"><br>**Grabadora** — voice memos to WAV on the card, with a live waveform. | <img src="docs/img/app-mines.png" width="200"><br>**Buscaminas** — minesweeper on a single canvas, because 250 LVGL objects do not fit in internal RAM. |
 | <img src="docs/img/app-maze.png" width="200"><br>**Laberinto** — a ball rolling through a generated maze, driven by tilting the board. | <img src="docs/img/app-cotiz.png" width="200"><br>**Cotizaciones** — exchange rates, configured from the portal. | <img src="docs/img/app-scanner.png" width="200"><br>**Escáner** — a WiFi and LAN survey: networks around you, hosts and open ports, written to the card as NDJSON. |
 | <img src="docs/img/app-flappy.png" width="200"><br>**Flappy** — one button, one bird, the usual pipes. | <img src="docs/img/app-simon.png" width="200"><br>**Simon** — the colour-and-sound memory game, each pad with its own tone. | <img src="docs/img/app-dice.png" width="200"><br>**Dados** — dice of any number of sides, rolled by shaking the watch. |
 | <img src="docs/img/app-pixel.png" width="200"><br>**Pixel Art** — 8x8 and 16x16 drawings with a 32-colour palette, frames that become a looping GIF, exported to the card as PNG and GIF. <img src="docs/img/pixel-kitten.gif" width="96"><br>The kitten is one of the samples it seeds on first run, and this GIF is the watch's own export. Since v0.4.2 a drawing can be sent to the other watch over the link. | <img src="docs/img/app-pixel-gallery.png" width="200"><br>Its gallery of eight canvases. The same files open in the portal's `/pixel` page, where they are drawn with a mouse and saved back; the watch reloads them on its own. | <img src="docs/img/app-hello.png" width="200"><br>**hello_app** — the 30-line template. It is what you copy to start one of your own; see [docs/APP-API.md](docs/APP-API.md). |
@@ -721,7 +724,7 @@ components/
   aos_dynapp/         .so loader and symbol table
   aos_ble/            NimBLE: ANCS, AMS, pairing
   aos_web/            the web portal, embedded in the binary
-apps/                 35 dynamic apps
+apps/                 40 dynamic apps
 tools/                generators, test benches, board utilities
 ```
 
@@ -745,7 +748,7 @@ and UDP in the simulator.
 | [BUILDING.md](docs/BUILDING.md) | firmware, simulator, dynamic apps, and every tool |
 | [APP-API.md](docs/APP-API.md) | writing an app, and the things that will bite you |
 | [APP-GUIDE.md](docs/APP-GUIDE.md) | the long form: how the apps were actually written - workflow, the four drawing techniques with their costs, data from the internet, configuration from the portal, testing without the board, and every trap that bit |
-| [LINK.md](docs/LINK.md) | two watches over ESP-NOW: the plan in phases, the design, what every phase measured, and the five apps on it |
+| [LINK.md](docs/LINK.md) | two watches over ESP-NOW: the plan in phases, the design, what every phase measured, and the apps on it |
 | [I18N.md](docs/I18N.md) | how translation works and why the key is the Spanish string |
 | [LUA.md](docs/LUA.md) | scripts on the watch: what a script is, everything it can reach, the rules the app enforces and why, and what a frame actually costs |
 | [MENU.md](docs/MENU.md) | the launcher's order and folders: `menu.txt`, the hexagon icons, the `/menu` page, and what 256 apps cost the board |
@@ -808,6 +811,9 @@ were taken there. The link between two watches has been played with on two
 boards: Pong, Truco, a drawing sent, the radar, the walkie through a door, a
 fight in Chatarra's phone booth and a match of Neon Snakes. Internet radio has
 played on both watches, over http and https, MP3, AAC and HLS, with the screen off.
+The map has been panned, zoomed and searched on the board, online and from
+offline zones of the city of Buenos Aires and its suburbs downloaded through
+the portal.
 USB host mode (a pendrive on the watch) works but is parked: the board cannot
 power a peripheral ([USB.md](docs/USB.md)).
 

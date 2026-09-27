@@ -20,7 +20,7 @@ components/
   aos_board/             AXP2101, PCF85063A, QMI8658, revision detection
   aos_ui/                UI runtime: launcher, watchfaces, navigation, theme,
                          i18n, notification overlay
-  aos_apps/              the 18 built-in apps
+  aos_apps/              the 20 built-in apps
   aos_dynapp/            .so loader and symbol table
   aos_ble/               NimBLE: ANCS, AMS, pairing (board only)
   aos_web/               the web portal, embedded in the binary: status, the
@@ -30,7 +30,7 @@ components/
   aos_fonts/             Montserrat with the Latin-1 supplement
   elf_loader/            Espressif's ELF loader (Apache-2.0, vendored)
 
-apps/                    27 dynamic apps, one directory each
+apps/                    40 dynamic apps, one directory each
 tools/                   generators, test benches and board utilities
 ```
 
