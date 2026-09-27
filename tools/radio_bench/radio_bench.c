@@ -1,7 +1,8 @@
 /*
  * AmoledOS - the radio's stream code, on the Mac.
  *
- * The same three files as the board (aos_radio.c, aos_http.c, aos_audio.c)
+ * The same three files as the board (aos_radio.c, aos_http.c, aos_audio.c;
+ * AAC through the simulator's libavcodec stand-in, sim/sim_aac.c)
  * against a real station: it connects, follows what the station answers,
  * decodes for a few seconds in real time and says what it found. It is how
  * the stations in the /radio page's first list were checked, and the quick
@@ -9,10 +10,11 @@
  * key.
  *
  *   cc -O1 -DAOS_SIM -Icomponents/aos_hal/include -Icomponents/aos_hal \
- *      -I/opt/homebrew/opt/mbedtls/include tools/radio_bench/radio_bench.c \
- *      components/aos_hal/aos_radio.c components/aos_hal/aos_http.c \
- *      components/aos_hal/aos_audio.c -L/opt/homebrew/opt/mbedtls/lib \
- *      -lmbedtls -lmbedx509 -lmbedcrypto -o /tmp/radio_bench
+ *      -I/opt/homebrew/opt/mbedtls/include $(pkg-config --cflags libavcodec) \
+ *      tools/radio_bench/radio_bench.c components/aos_hal/aos_radio.c \
+ *      components/aos_hal/aos_http.c components/aos_hal/aos_audio.c sim/sim_aac.c \
+ *      -L/opt/homebrew/opt/mbedtls/lib -lmbedtls -lmbedx509 -lmbedcrypto \
+ *      $(pkg-config --libs libavcodec libavutil) -o /tmp/radio_bench
  *
  *   /tmp/radio_bench <url> [seconds] [out.wav]
  *
@@ -33,6 +35,13 @@
 bool aos_hal_time_is_valid(void)
 {
     return true;
+}
+
+uint64_t aos_hal_uptime_ms(void)
+{
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return (uint64_t)t.tv_sec * 1000u + (uint64_t)t.tv_nsec / 1000000u;
 }
 
 static double now(void)
@@ -90,8 +99,8 @@ int main(int argc, char **argv)
     aos_radio_fill_status(&s);
     printf("ready=%d after %.2f s  state=%s  error='%s'\n", ready, now() - t0,
            state_name(s.state), s.error);
-    printf("host=%s tls=%d  name='%s' genre='%s'  icy-br=%u  type=%s  buffered=%u ms\n",
-           s.host, s.tls, s.icy_name, s.icy_genre, (unsigned)s.kbps, s.content_type,
+    printf("host=%s tls=%d hls=%d  name='%s' genre='%s'  icy-br=%u  type=%s  buffered=%u ms\n",
+           s.host, s.tls, s.hls, s.icy_name, s.icy_genre, (unsigned)s.kbps, s.content_type,
            (unsigned)s.buffer_ms);
     if (ready != 1) {
         aos_radio_stop();
@@ -105,7 +114,7 @@ int main(int argc, char **argv)
         aos_radio_stop();
         return 1;
     }
-    printf("MP3 %u Hz, %u ch, %u kbps\n", (unsigned)info.sample_rate,
+    printf("%s %u Hz, %u ch, %u kbps\n", info.codec, (unsigned)info.sample_rate,
            (unsigned)info.channels, (unsigned)info.kbps);
 
     FILE *f = out ? fopen(out, "wb") : NULL;

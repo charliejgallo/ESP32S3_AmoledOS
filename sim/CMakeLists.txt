@@ -97,6 +97,7 @@ add_executable(amoledos_sim
     main.c
     hal_sim.c
     sim_codec.c
+    sim_aac.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_http.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_tcp.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_radio.c

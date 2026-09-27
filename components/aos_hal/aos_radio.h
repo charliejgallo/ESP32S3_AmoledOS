@@ -43,6 +43,14 @@ uint32_t aos_radio_title_at_read(char *title, size_t len);
  * the network half; the HAL adds the station and the heard title. */
 void aos_radio_fill_status(aos_radio_status_t *out);
 
+/* The reader is connecting, reconnecting or fetching an HLS segment or
+ * playlist: the HAL keeps the WiFi out of power save meanwhile. */
+bool aos_radio_busy(void);
+
+/* The decoder found nothing it can play in what arrived: the station is
+ * given up with this reason (the status keeps it after the stop). */
+void aos_radio_fail(const char *why);
+
 /* Bytes of audio waiting in the ring. */
 uint32_t aos_radio_buffered(void);
 

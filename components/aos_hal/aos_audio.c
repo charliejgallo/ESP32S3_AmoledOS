@@ -2,6 +2,7 @@
  * AmoledOS - audio files in, PCM out. See aos_audio.h.
  */
 #include "aos_audio.h"
+#include "aos_aac.h"
 
 #include <ctype.h>
 #include <dirent.h>
@@ -100,6 +101,11 @@ struct aos_audio {
 
     uint32_t cost_frames;
     uint64_t cost_us;
+
+    /* AAC (streams only): the decoder, and what the ADTS headers say */
+    aos_aac_t *aac;
+    uint32_t core_rate;         /* the header's: half the output with SBR */
+    uint8_t  core_channels;
 };
 
 /* ---- small helpers ------------------------------------------------------- */
@@ -553,6 +559,9 @@ static int mp3_read(aos_audio_t *a, int16_t *pcm, int max_frames)
 
 /* ---- the public face ------------------------------------------------------ */
 
+static bool aac_open_src(aos_audio_t *a, aos_audio_info_t *info);
+static int  aac_read(aos_audio_t *a, int16_t *pcm, int max_frames);
+
 bool aos_audio_is_playable(const char *name)
 {
     const char *dot = name ? strrchr(name, '.') : NULL;
@@ -619,6 +628,13 @@ aos_audio_t *aos_audio_open_src(aos_audio_src_fn fn, void *ctx, aos_audio_info_t
     }
     mp3dec_init(&a->mp3.dec);
     mp3_refill(a);
+    if (aac_open_src(a, info)) {
+        return a;
+    }
+    if (a->format == AOS_AUDIO_AAC) {       /* ADTS, but it would not decode */
+        aos_audio_close(a);
+        return NULL;
+    }
 
     /* The first frame, as for a file. The caller waited for a buffer's worth
      * before opening, so 16 KB are in hand; minimp3 wants several frames in
@@ -652,6 +668,7 @@ aos_audio_t *aos_audio_open_src(aos_audio_src_fn fn, void *ctx, aos_audio_info_t
     info->sample_rate = a->sample_rate;
     info->channels = a->channels;
     info->kbps = a->kbps;
+    snprintf(info->codec, sizeof(info->codec), "MP3");
     mp3dec_init(&a->mp3.dec);
     return a;
 }
@@ -664,6 +681,7 @@ bool aos_audio_ended(const aos_audio_t *a)
 int aos_audio_read(aos_audio_t *a, int16_t *pcm, int max_frames)
 {
     if (!a || !pcm || max_frames <= 0) return -1;
+    if (a->format == AOS_AUDIO_AAC) return aac_read(a, pcm, max_frames);
     return a->format == AOS_AUDIO_MP3 ? mp3_read(a, pcm, max_frames)
                                       : wav_read(a, pcm, max_frames);
 }
@@ -719,6 +737,7 @@ void aos_audio_close(aos_audio_t *a)
 {
     if (!a) return;
     if (a->file) fclose(a->file);
+    aos_aac_close(a->aac);
     free(a->in);
     free(a->pcm);
     free(a->mp3.scratch);
@@ -831,4 +850,171 @@ int aos_audio_list_find(const aos_audio_list_t *list, const char *name)
         if (strcmp(list->names + list->offset[i], name) == 0) return i;
     }
     return -1;
+}
+
+/* ---- AAC (branch aac) ------------------------------------------------------
+ *
+ * ADTS frames out of the same input buffer the MP3 path uses: a 7-byte
+ * header with a 12-bit sync (0xFFF), layer 00, and the frame's whole length
+ * in 13 bits. A frame is handed to the decoder only when all of it is in
+ * the buffer; a byte that is not a header is skipped until one is found,
+ * which is also how a stream joined halfway lines up. */
+
+static const uint32_t ADTS_RATES[16] = { 96000, 88200, 64000, 48000, 44100, 32000, 24000,
+                                         22050, 16000, 12000, 11025, 8000, 7350, 0, 0, 0 };
+
+/* The frame's length if 'p' is an ADTS header, 0 if there are not 7 bytes
+ * to tell, -1 if it is not one. */
+static int adts_len(const uint8_t *p, int avail)
+{
+    if (avail < 7) {
+        return 0;
+    }
+    if (p[0] != 0xFF || (p[1] & 0xF6) != 0xF0 || ADTS_RATES[(p[2] >> 2) & 0x0F] == 0) {
+        return -1;
+    }
+    int len = ((p[3] & 0x03) << 11) | (p[4] << 3) | (p[5] >> 5);
+    return len >= 7 ? len : -1;
+}
+
+/* A header here and another right where it says it ends. */
+static bool adts_confirmed(const uint8_t *p, int avail)
+{
+    int len = adts_len(p, avail);
+    return len > 0 && len + 2 <= avail && adts_len(p + len, avail - len) != -1 &&
+           p[len] == 0xFF && (p[len + 1] & 0xF6) == 0xF0;
+}
+
+/* Decodes one frame at in_pos into a->pcm. >0 samples, 0 nothing decoded
+ * (a bad frame, skipped), -1 not enough bytes yet. */
+static int aac_frame(aos_audio_t *a)
+{
+    int avail = a->in_len - a->in_pos;
+    const uint8_t *p = a->in + a->in_pos;
+    int len = adts_len(p, avail);
+    if (len < 0) {
+        a->in_pos++;                    /* not a header: look further */
+        return 0;
+    }
+    if (len == 0 || len > avail) {
+        return -1;
+    }
+    uint32_t rate = 0;
+    uint8_t ch = 0;
+    uint64_t t0 = now_us();
+    int n = aos_aac_decode(a->aac, p, len, a->pcm, &rate, &ch);
+    a->cost_us += now_us() - t0;
+    if (n > 0) {
+        a->cost_frames += (uint32_t)n;
+        a->core_rate = ADTS_RATES[(p[2] >> 2) & 0x0F];
+        a->core_channels = (uint8_t)(((p[2] & 0x01) << 2) | (p[3] >> 6));
+        a->pcm_frames = n;
+        a->pcm_pos = 0;
+        a->pcm_channels = ch;
+        if (!a->sample_rate) {
+            a->sample_rate = rate;
+            a->channels = ch;
+        }
+    }
+    a->in_pos += len;
+    return n > 0 ? n : 0;
+}
+
+static int aac_read(aos_audio_t *a, int16_t *pcm, int max_frames)
+{
+    int done = 0;
+    while (done < max_frames) {
+        if (a->pcm_pos < a->pcm_frames) {
+            int n = a->pcm_frames - a->pcm_pos;
+            if (n > max_frames - done) n = max_frames - done;
+            const int16_t *src = a->pcm + a->pcm_pos * a->pcm_channels;
+            int16_t *dst = pcm + done * a->channels;
+            if (a->pcm_channels == a->channels) {
+                memcpy(dst, src, (size_t)n * a->channels * sizeof(int16_t));
+            } else if (a->channels == 2) {
+                for (int i = 0; i < n; i++) dst[2 * i] = dst[2 * i + 1] = src[i];
+            } else {
+                for (int i = 0; i < n; i++) dst[i] = (int16_t)((src[2 * i] + src[2 * i + 1]) / 2);
+            }
+            a->pcm_pos += n;
+            done += n;
+            continue;
+        }
+        if (a->in_len - a->in_pos < IN_LOW && !a->in_eof) {
+            mp3_refill(a);
+        }
+        if (a->in_pos >= a->in_len) {
+            break;
+        }
+        int r = aac_frame(a);
+        if (r < 0) {
+            if (a->in_eof) {
+                a->in_pos = a->in_len;      /* a torn last frame */
+            } else if (mp3_refill(a) == 0) {
+                break;                      /* dry for now */
+            }
+        }
+    }
+    return done;
+}
+
+/* Called from aos_audio_open_src() with the first bytes in 'in': true if
+ * they are ADTS, and then the decoder is open and the first frame decoded,
+ * so the output rate and channels (twice the header's rate with SBR, two
+ * channels out of one with PS) are known before the player opens the
+ * codec. */
+static bool aac_open_src(aos_audio_t *a, aos_audio_info_t *info)
+{
+    int at = -1;
+    for (int i = 0; i + 8 < a->in_len; i++) {
+        if (a->in[i] != 0xFF) {
+            continue;
+        }
+        if (adts_confirmed(a->in + i, a->in_len - i)) {
+            at = i;
+            break;
+        }
+        if ((a->in[i + 1] & 0xE0) == 0xE0 && ((a->in[i + 1] >> 1) & 3) != 0) {
+            return false;               /* an MPEG audio header first: MP3 */
+        }
+    }
+    if (at < 0) {
+        return false;
+    }
+    a->aac = aos_aac_open();
+    free(a->pcm);
+    a->pcm = big_alloc(AOS_AAC_MAX_SAMPLES * sizeof(int16_t));
+    if (!a->aac || !a->pcm) {
+        return false;
+    }
+    a->format = AOS_AUDIO_AAC;
+    a->in_pos = at;
+    uint32_t bytes = 0;
+    int frames = 0;
+    for (int tries = 0; tries < 16 && !a->sample_rate; tries++) {
+        int start = a->in_pos;
+        int r = aac_frame(a);
+        if (r < 0 && (a->in_eof || mp3_refill(a) == 0)) {
+            break;
+        }
+        if (a->in_pos > start) {
+            bytes += (uint32_t)(a->in_pos - start);
+            frames++;
+        }
+    }
+    if (!a->sample_rate || !a->channels) {
+        return false;
+    }
+    /* the bitrate from the frames' sizes: 1024 core samples each */
+    if (frames && a->core_rate) {
+        a->kbps = (uint16_t)((uint64_t)bytes * 8 * a->core_rate / (1024u * (uint32_t)frames) / 1000);
+    }
+    bool sbr = a->sample_rate > a->core_rate;
+    bool ps = a->core_channels == 1 && a->channels == 2;
+    snprintf(info->codec, sizeof(info->codec), "%s", ps ? "HE-AACv2" : sbr ? "HE-AAC" : "AAC");
+    info->format = AOS_AUDIO_AAC;
+    info->sample_rate = a->sample_rate;
+    info->channels = a->channels;
+    info->kbps = a->kbps;
+    return true;
 }

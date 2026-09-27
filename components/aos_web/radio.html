@@ -108,7 +108,7 @@
     <label><span data-t="l_genero">Género</span><input id="q_tag" type="text" placeholder="jazz"></label>
     <button type="submit" data-t="btn_buscar">Buscar</button>
     <label style="grid-column: 1 / -1; display: flex; gap: 8px; align-items: center;">
-      <input id="q_mp3" type="checkbox" checked> <span data-t="solo_mp3">Sólo las que suenan en el reloj (MP3)</span></label>
+      <input id="q_mp3" type="checkbox" checked> <span data-t="solo_mp3">Sólo las que suenan en el reloj (MP3, AAC, HLS)</span></label>
   </form>
   <ul class="lista" id="res"></ul>
 
@@ -129,9 +129,10 @@
 
   <div class="aviso">
     <b data-t="a_titulo">Qué suena en el reloj</b><br><br>
-    <span data-t="a_mp3">Streams MP3 por http:// o https:// (Icecast, Shoutcast y los de las
-      radios grandes), con redirecciones y listas .pls o .m3u. Los streams AAC, Ogg y HLS
-      (.m3u8) no se pueden decodificar en el reloj: el buscador los marca.</span>
+    <span data-t="a_mp3">MP3 y AAC (también HE-AAC) por http:// o https:// (Icecast, Shoutcast y
+      los de las radios grandes), con redirecciones y listas .pls o .m3u, y HLS (.m3u8) con
+      segmentos TS o AAC. Ogg, Opus, FLAC, HLS en fMP4 y HLS cifrado no se pueden decodificar en
+      el reloj: el buscador los marca.</span>
     <br><br>
     <span data-t="a_bg">La radio sigue sonando con la app cerrada. El centro de control y los
       botones de esta página la manejan igual.</span>
@@ -157,14 +158,15 @@ const TR = {
     h_buscar: "Find radios",
     buscar_ayuda: "In radio-browser.info's open directory, over 50,000 stations from all over the world.",
     l_nombre: "Name", l_pais: "Country", todos: "All", l_genero: "Genre", ph_q: "rock, jazz, 95.1...",
-    btn_buscar: "Search", solo_mp3: "Only the ones the watch can play (MP3)",
+    btn_buscar: "Search", solo_mp3: "Only the ones the watch can play (MP3, AAC, HLS)",
     h_mano: "Add by hand", l_url: "Stream address", btn_agregar: "Add",
     h_ajustes: "Settings", art_t: "Album covers",
     art_d: "Looks up the cover of the song on air in iTunes. All that leaves the watch is \"artist song\".",
     a_titulo: "What plays on the watch",
-    a_mp3: "MP3 streams over http:// or https:// (Icecast, Shoutcast and the big stations' own), " +
-           "with redirects and .pls or .m3u playlists. AAC, Ogg and HLS (.m3u8) streams cannot be " +
-           "decoded on the watch: the search marks them.",
+    a_mp3: "MP3 and AAC (HE-AAC too) over http:// or https:// (Icecast, Shoutcast and the big " +
+           "stations' own), with redirects and .pls or .m3u playlists, and HLS (.m3u8) with TS or AAC " +
+           "segments. Ogg, Opus, FLAC, HLS in fMP4 and encrypted HLS cannot be decoded on the watch: " +
+           "the search marks them.",
     a_bg: "The radio keeps playing with the app closed. The control centre and the buttons on this " +
           "page drive it just the same.",
     a_logo: "Logos are prepared in this browser and saved on the watch's card. If the station's site " +
@@ -190,14 +192,15 @@ const TR = {
     h_buscar: "Radios suchen",
     buscar_ayuda: "Im offenen Verzeichnis radio-browser.info, mit ueber 50.000 Sendern aus aller Welt.",
     l_nombre: "Name", l_pais: "Land", todos: "Alle", l_genero: "Genre", ph_q: "Rock, Jazz, 95.1...",
-    btn_buscar: "Suchen", solo_mp3: "Nur die, die die Uhr abspielen kann (MP3)",
+    btn_buscar: "Suchen", solo_mp3: "Nur die, die die Uhr abspielen kann (MP3, AAC, HLS)",
     h_mano: "Von Hand hinzufuegen", l_url: "Stream-Adresse", btn_agregar: "Hinzufuegen",
     h_ajustes: "Einstellungen", art_t: "Albumcover",
     art_d: "Sucht das Cover des laufenden Titels bei iTunes. Die Uhr verlaesst nur \"Kuenstler Titel\".",
     a_titulo: "Was auf der Uhr laeuft",
-    a_mp3: "MP3-Streams ueber http:// oder https:// (Icecast, Shoutcast und die der grossen Sender), " +
-           "mit Weiterleitungen und .pls- oder .m3u-Listen. AAC-, Ogg- und HLS-Streams (.m3u8) kann " +
-           "die Uhr nicht dekodieren: die Suche markiert sie.",
+    a_mp3: "MP3 und AAC (auch HE-AAC) ueber http:// oder https:// (Icecast, Shoutcast und die der " +
+           "grossen Sender), mit Weiterleitungen und .pls- oder .m3u-Listen, und HLS (.m3u8) mit TS- " +
+           "oder AAC-Segmenten. Ogg, Opus, FLAC, HLS in fMP4 und verschluesseltes HLS kann die Uhr " +
+           "nicht dekodieren: die Suche markiert sie.",
     a_bg: "Das Radio spielt weiter, wenn die App geschlossen ist. Das Kontrollzentrum und die Knoepfe " +
           "dieser Seite steuern es genauso.",
     a_logo: "Die Logos werden in diesem Browser vorbereitet und auf der Karte der Uhr gespeichert. " +
@@ -227,8 +230,9 @@ const ES = {
   arrastrar: "arrastrala a una tecla"
 };
 
-/* The list the page starts with, before anything is saved: MP3 stations
- * checked against the watch's own stream code on 2026-09-26. */
+/* The list the page starts with, before anything is saved: stations
+ * checked against the watch's own stream code on 2026-09-26 (the AAC and HLS
+ * ones for v0.8.1, the same day). */
 const DEFAULTS = [
   { name: "Metro 95.1", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/METRO.mp3", favicon: "https://cdn-profiles.tunein.com/s25987/images/logog.jpg", cc: "AR", tags: "95.1, 95.1 fm, argentina, buenos aires", codec: "MP3", kbps: 96 },
   { name: "Aspen 102.3", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/ASPEN.mp3", favicon: "https://fmaspen.com/wp-content/themes/aspen/images/logoaspen.png", cc: "AR", tags: "", codec: "MP3", kbps: 96 },
@@ -243,6 +247,11 @@ const DEFAULTS = [
   { name: "Radio Nacional AM 870", url: "https://sa.mp3.icecast.magma.edge-access.net/sc_rad1", favicon: "https://upload.wikimedia.org/wikipedia/commons/0/00/Nacional_AM_870_2016.png", cc: "AR", tags: "argentina, buenos aires", codec: "MP3", kbps: 56 },
   { name: "La Popu", url: "https://liveradio.mediainbox.net/popular.mp3", favicon: "https://www.lapopu.com.ar/img/favicon.png", cc: "AR", tags: "cuarteto, local news, music", codec: "MP3", kbps: 96 },
   { name: "La Nación +Música", url: "https://stream.radio.co/s2ed3bec0a/listen", favicon: "https://masmusica.lanacion.com.ar/assets/img/favicon.png", cc: "AR", tags: "adult contemporary, old hits", codec: "MP3", kbps: 128 },
+  { name: "Radio Mitre", url: "http://playerservices.streamtheworld.com/api/livestream-redirect/AM790_56AAC_SC", favicon: "https://cloudfront-arc.cienradios.com/radiomitre/favicons/apple-icon-120x120.png", cc: "AR", tags: "news", codec: "AAC+", kbps: 64 },
+  { name: "Radio 10", url: "https://radio10.stweb.tv/radio10/live/playlist.m3u8", favicon: "https://www.radio10.com.ar/css-custom/220/favicons/apple-touch-icon-120x120.png", cc: "AR", tags: "news, noticias", codec: "AAC", kbps: 65, hls: true },
+  { name: "Radio Con Vos 89.9", url: "https://server1.stweb.tv/rcvos/live/playlist.m3u8", favicon: "", cc: "AR", tags: "news, pop, rock", codec: "AAC", kbps: 49, hls: true },
+  { name: "La Red AM 910", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/LA_RED_AM910AAC.aac", favicon: "", cc: "AR", tags: "", codec: "AAC+", kbps: 64 },
+  { name: "El Destape", url: "https://ipanel.instream.audio/8004/stream", favicon: "https://www.eldestapeweb.com/img/favicons/apple-icon-120x120.png", cc: "AR", tags: "noticias locales", codec: "AAC", kbps: 48 },
   { name: "SomaFM Groove Salad", url: "https://ice1.somafm.com/groovesalad-128-mp3", favicon: "https://somafm.com/img3/groovesalad-400.jpg", cc: "US", tags: "ambient, chillout, downtempo, groove", codec: "MP3", kbps: 128 },
   { name: "SomaFM Drone Zone", url: "https://ice1.somafm.com/dronezone-128-mp3", favicon: "https://somafm.com/img3/dronezone-400.jpg", cc: "US", tags: "ambient, atmospheric, chillout, drone", codec: "MP3", kbps: 128 },
   { name: "SomaFM Secret Agent", url: "https://ice1.somafm.com/secretagent-128-mp3", favicon: "https://somafm.com/img3/secretagent-400.jpg", cc: "US", tags: "ambient, downtempo, jazz, lounge", codec: "MP3", kbps: 128 },
@@ -254,7 +263,10 @@ const DEFAULTS = [
   { name: "Radio Swiss Classic", url: "http://stream.srg-ssr.ch/m/rsc_de/mp3_128", favicon: "https://www.radioswissclassic.ch/favicon.ico", cc: "CH", tags: "classical, public radio, srg ssr", codec: "MP3", kbps: 128 },
   { name: "Radio Swiss Pop", url: "http://stream.srg-ssr.ch/m/rsp/mp3_128", favicon: "http://www.radioswisspop.ch/favicon.ico", cc: "CH", tags: "pop, public radio, srg ssr", codec: "MP3", kbps: 128 },
   { name: "WFMU", url: "https://stream0.wfmu.org/freeform-128k", favicon: "https://wfmu.org/images/wfmu_logo_94.gif", cc: "US", tags: "east orange, freeform, jersey city", codec: "MP3", kbps: 128 },
-  { name: "Deutschlandfunk", url: "https://st01.sslstream.dlf.de/dlf/01/128/mp3/stream.mp3", favicon: "https://www.deutschlandfunk.de/static/img/deutschlandfunk/icons/apple-touch-icon-128x128.png", cc: "DE", tags: "culture, news, public service, information", codec: "MP3", kbps: 128 }
+  { name: "Deutschlandfunk", url: "https://st01.sslstream.dlf.de/dlf/01/128/mp3/stream.mp3", favicon: "https://www.deutschlandfunk.de/static/img/deutschlandfunk/icons/apple-touch-icon-128x128.png", cc: "DE", tags: "culture, news, public service, information", codec: "MP3", kbps: 128 },
+  { name: "Radio Deejay", url: "https://4c4b867c89244861ac216426883d1ad0.msvdn.net/radiodeejay/radiodeejay/master_ma.m3u8", favicon: "https://www.deejay.it/favicon.ico", cc: "IT", tags: "italian, news, pop, talk", codec: "AAC+", kbps: 122, hls: true },
+  { name: "France Inter", url: "https://stream.radiofrance.fr/franceinter/franceinter_hifi.m3u8?id=radiofrance", favicon: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/France_Inter_logo_2021.svg/1200px-France_Inter_logo_2021.svg.png", cc: "FR", tags: "", codec: "AAC", kbps: 0, hls: true },
+  { name: "Onda Cero", url: "https://atres-live.ondacero.es/live/ondacero/bitrate_1.m3u8", favicon: "https://statics.atresmedia.com/ondacero/webapp/static/logotipo.svg", cc: "ES", tags: "noticias y música", codec: "AAC", kbps: 128, hls: true }
 ];
 
 const $ = aos.$;
@@ -308,7 +320,7 @@ function pintarAhora() {
     const est = { connecting: t("conectando"), buffering: t("cargando"), playing: t("en_vivo"),
                   retrying: t("reintento"), failed: t("fallo"), off: t("parado") }[rd.state] || rd.state;
     det = (pl.state === "paused" ? t("pausa") : est);
-    if (rd.kbps) det += " · MP3 " + rd.kbps + " kbps";
+    if (rd.kbps) det += " · " + (rd.codec || "MP3") + (rd.hls ? " HLS " : " ") + rd.kbps + " kbps";
     if (rd.host) det += " · " + rd.host;
     if (rd.state === "playing") det += " · buffer " + (rd.buffer_ms / 1000).toFixed(1) + " s";
     if (rd.error && (rd.state === "failed" || rd.state === "retrying")) det += " · " + rd.error;
@@ -472,6 +484,14 @@ async function guardarLista() {
   }
 }
 
+/* What the watch decodes: MP3 and AAC (HE-AAC is "AAC+" in radio-browser),
+ * streamed or in HLS. An HLS station often says UNKNOWN: it is usually AAC
+ * in TS, so it gets the benefit of the doubt. "MP4" there is fMP4 HLS. */
+function suena(st) {
+  const c = (st.codec || "MP3").toUpperCase();
+  return c === "MP3" || c === "AAC" || c === "AAC+" || (c === "UNKNOWN" && !!st.hls);
+}
+
 function pais(cc) { return cc ? cc.toUpperCase() : ""; }
 
 function filaRadio(st, opciones) {
@@ -482,9 +502,10 @@ function filaRadio(st, opciones) {
   const sinLogo = () => { const d = document.createElement("span"); d.className = "logo"; img.replaceWith(d); };
   if (st.favicon) { img.onerror = sinLogo; img.src = st.favicon; } else { sinLogo(); }
   li.querySelector(".nombre").textContent = st.name;
-  const mp3 = (st.codec || "MP3").toUpperCase() === "MP3";
+  const mp3 = suena(st);
   const cod = li.querySelector(".cod");
-  cod.textContent = (st.codec || "MP3") + (st.kbps ? " " + st.kbps : "");
+  cod.textContent = (st.codec && st.codec !== "UNKNOWN" ? st.codec : "?") + (st.hls ? " HLS" : "") +
+                    (st.kbps ? " " + st.kbps : "");
   if (!mp3) { cod.classList.add("no"); cod.title = t("no_suena"); }
   li.querySelector(".info").textContent = [pais(st.cc), st.tags || "", st.url].filter(Boolean).join(" · ");
   const acc = li.querySelector(".acc");
@@ -548,11 +569,12 @@ async function buscar(ev) {
   ev.preventDefault();
   const ul = $("res");
   ul.innerHTML = '<li class="chica">' + aos.esc(t("buscando")) + "</li>";
-  const p = new URLSearchParams({ order: "clickcount", reverse: "true", limit: "40", hidebroken: "true" });
+  const solo = $("q_mp3").checked;
+  const p = new URLSearchParams({ order: "clickcount", reverse: "true", limit: solo ? "120" : "40",
+                                  hidebroken: "true" });
   if ($("q_nombre").value.trim()) p.set("name", $("q_nombre").value.trim());
   if ($("q_pais").value) p.set("countrycode", $("q_pais").value);
   if ($("q_tag").value.trim()) p.set("tag", $("q_tag").value.trim().toLowerCase());
-  if ($("q_mp3").checked) p.set("codec", "MP3");
   let res = null;
   for (const s of SERVERS) {
     try {
@@ -564,13 +586,16 @@ async function buscar(ev) {
   if (!res) { ul.innerHTML = '<li class="chica">' + aos.esc(t("err_busq")) + "</li>"; return; }
   if (!res.length) { ul.innerHTML = '<li class="chica">' + aos.esc(t("sin_res")) + "</li>"; return; }
   const vistos = new Set();
+  let mostradas = 0;
   res.forEach(s => {
     const url = s.url_resolved || s.url;
-    if (!url || vistos.has(url)) return;
+    if (!url || vistos.has(url) || mostradas >= 40) return;
     vistos.add(url);
     const st = { name: s.name.trim().slice(0, 47), url, favicon: s.favicon || "", cc: s.countrycode || "",
                  tags: (s.tags || "").split(",").slice(0, 4).join(", "), codec: s.codec || "MP3",
-                 kbps: s.bitrate || 0 };
+                 kbps: s.bitrate || 0, hls: s.hls === 1 };
+    if (solo && !suena(st)) return;
+    mostradas++;
     ul.appendChild(filaRadio(st, acc => {
       const b = document.createElement("button");
       const ya = () => lista.some(x => x.url === st.url);

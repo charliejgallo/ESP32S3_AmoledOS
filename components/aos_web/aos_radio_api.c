@@ -197,10 +197,12 @@ esp_err_t aos_radio_get_handler(httpd_req_t *req)
     n += jstr(j + n, cap - n, rs->icy_url);
     n += snprintf(j + n, cap - n, ",\"error\":");
     n += jstr(j + n, cap - n, rs->error);
+    n += snprintf(j + n, cap - n, ",\"codec\":");
+    n += jstr(j + n, cap - n, rs->codec);
     n += snprintf(j + n, cap - n,
-                  ",\"tls\":%s,\"kbps\":%u,\"rate\":%lu,\"channels\":%u,\"buffer_ms\":%lu,"
+                  ",\"hls\":%s,\"tls\":%s,\"kbps\":%u,\"rate\":%lu,\"channels\":%u,\"buffer_ms\":%lu,"
                   "\"bytes\":%lu,\"reconnects\":%lu,\"listening_s\":%lu}}",
-                  rs->tls ? "true" : "false", (unsigned)rs->kbps, (unsigned long)rs->sample_rate,
+                  rs->hls ? "true" : "false", rs->tls ? "true" : "false", (unsigned)rs->kbps, (unsigned long)rs->sample_rate,
                   (unsigned)rs->channels, (unsigned long)rs->buffer_ms, (unsigned long)rs->bytes,
                   (unsigned long)rs->reconnects, (unsigned long)rs->listening_s);
     free(rs);

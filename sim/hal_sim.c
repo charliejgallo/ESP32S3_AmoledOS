@@ -990,13 +990,14 @@ static void *radio_thread(void *arg)
             aos_audio_info_t info;
             dec = aos_audio_open_src(aos_radio_read, NULL, &info);
             if (!dec) {
-                printf("[hal] radio: no MP3 frames\n");
+                printf("[hal] radio: no MP3 or AAC frames\n");
+                aos_radio_fail("no MP3 or AAC audio in the stream");
                 break;
             }
             pthread_mutex_lock(&s_rmux);
             s_rinfo = info;
             pthread_mutex_unlock(&s_rmux);
-            printf("[hal] radio: MP3 %u kbps %u Hz %u ch\n", (unsigned)info.kbps,
+            printf("[hal] radio: %s %u kbps %u Hz %u ch\n", info.codec, (unsigned)info.kbps,
                    (unsigned)info.sample_rate, (unsigned)info.channels);
             if (!mute && (dev == 0 || dev_rate != info.sample_rate)) {
                 if (dev) SDL_CloseAudioDevice(dev);
@@ -1123,6 +1124,7 @@ bool aos_hal_radio_status(aos_radio_status_t *out)
     pthread_mutex_lock(&s_rmux);
     memcpy(out->title, s_rheard, sizeof(out->title));
     out->title_gen   = s_rheard_gen;
+    snprintf(out->codec, sizeof(out->codec), "%s", s_rinfo.codec);
     out->sample_rate = s_rinfo.sample_rate;
     out->channels    = s_rinfo.channels;
     if (!out->kbps) {
@@ -1145,7 +1147,10 @@ static bool radio_info(aos_player_info_t *out)
     snprintf(out->title, sizeof(out->title), "%s", s_rtitle);
     snprintf(out->artist, sizeof(out->artist), "%s", s_rartist);
     snprintf(out->album, sizeof(out->album), "%s", s_rlist[s_rindex].name);
-    out->format      = s_rinfo.format == AOS_AUDIO_MP3 ? "MP3" : "";
+    out->format      = s_rinfo.format == AOS_AUDIO_AAC
+                       ? (!strcmp(s_rinfo.codec, "HE-AACv2") ? "HE-AACv2"
+                          : !strcmp(s_rinfo.codec, "HE-AAC") ? "HE-AAC" : "AAC")
+                       : s_rinfo.format == AOS_AUDIO_MP3 ? "MP3" : "";
     out->kbps        = s_rinfo.kbps;
     out->sample_rate = s_rinfo.sample_rate;
     out->channels    = s_rinfo.channels;

@@ -3,6 +3,36 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+**Radio: AAC and HLS, and uploads that no longer reset the watch.**
+Everything is measured in [docs/RADIO.md](docs/RADIO.md).
+
+- **AAC:** AAC-LC, HE-AAC and HE-AACv2 streams play, through Espressif's
+  `esp_audio_codec` on the board and libavcodec in the simulator. The format
+  is told from the bytes, not from the server. HE-AAC costs 25-28 % of one
+  core and HE-AACv2 38 %; four minutes of HE-AACv2 with the screen off, 0
+  underruns. The dial and the info card say which one it is.
+- **HLS:** `.m3u8` stations play: master playlists (the audio variant up to
+  160 kbit/s is chosen), live playlists joined three segments from the end,
+  MPEG-TS and packed-audio segments. fMP4 and encrypted HLS are refused with
+  the reason. Segments are told apart by name, because a server that stitches
+  ads in kept its media sequence at 1.
+- **WiFi power save** goes off while a segment or a playlist is fetched and
+  while a station reconnects: a 6 s HLS segment took up to 5.7 s to arrive in
+  modem sleep. Five minutes of HLS with the screen off, 0 underruns.
+- **OTA with a station playing no longer resets the watch.** The decoder,
+  slowed by the flash writes, starved core 0's idle task and the task
+  watchdog fired halfway through the upload. The player now stops when an
+  upload begins, the decoder always leaves its core a tick every 100 ms, and
+  the WiFi stays out of power save during the upload. Four uploads in a row
+  with a station playing and the screen off: four took.
+- **The /radio page** searches for everything the watch plays (MP3, AAC,
+  AAC+, HLS), marks the rest in red, and its first list has 33 stations, 8 of
+  them AAC or HLS.
+- The reader's stack is 9 KB (it had 360 bytes to spare on some https
+  servers); its big buffers moved to the heap.
+
 ## v0.8.0 — 2026-09-26
 
 **Radio: internet stations on the watch.** A new app, `Radio`, and a portal

@@ -20,6 +20,7 @@
 typedef enum {
     AOS_AUDIO_WAV = 1,
     AOS_AUDIO_MP3,
+    AOS_AUDIO_AAC,              /* ADTS, from a stream only (branch aac) */
 } aos_audio_format_t;
 
 typedef struct {
@@ -35,6 +36,7 @@ typedef struct {
     uint32_t cover_offset;      /* the embedded picture (APIC), 0 = none */
     uint32_t cover_size;
     char     cover_mime[16];
+    char     codec[12];         /* "MP3", "WAV", "AAC", "HE-AAC", "HE-AACv2" */
 } aos_audio_info_t;
 
 typedef struct aos_audio aos_audio_t;
@@ -53,7 +55,10 @@ uint32_t aos_audio_seek(aos_audio_t *a, uint32_t ms);
 
 void aos_audio_close(aos_audio_t *a);
 
-/* MP3 from something that is not a file: an internet radio (aos_radio.c).
+/* MP3 or AAC from something that is not a file: an internet radio
+ * (aos_radio.c). Which of the two is found in the bytes, not taken from the
+ * server's word for it: an ADTS header (AAC) has layer bits 00, which no MP3
+ * frame has, and the next header must follow where the first says it ends.
  * 'fn' gives up to 'max' bytes: >0 bytes, 0 none right now, -1 no more ever.
  * No tags, no length, no seeking. aos_audio_read() on it returns 0 both when
  * the source is momentarily dry and when it has ended: aos_audio_ended()
