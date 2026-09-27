@@ -96,7 +96,7 @@ PSRAM (its buffers are above the malloc threshold); internal RAM while an
 AAC station plays is 23.8 KB, against 17.9 with MP3. Four minutes of El
 Destape (HE-AACv2, the heaviest) with the screen off: 0 underruns, buffer
 between 8.1 and 10.6 s, the PCM ring never under 1.6 s. The firmware grew
-125 KB (4,012,032 -> 4,137,456 B).
+123 KB (4,012,032 -> 4,138,160 B).
 
 ## HLS (v0.8.1)
 
