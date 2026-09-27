@@ -3,6 +3,19 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.8.2 — 2026-09-26
+
+**Cámaras: opened in fill mode, no labels over the picture.** The app
+remembers whether it was left showing the whole picture (fit) or the whole
+screen (fill). Opened in fill, it still showed the camera's name and the
+numbers on top of the picture, and on the watch they flickered each time they
+changed. They follow the mode now. Only `camaras.so` changed. The firmware is
+v0.8.1's under a new version number.
+
+The README's app table now has Cámaras, with pictures from the simulator of
+the U.S. National Park Service's North Entrance webcam at Yellowstone (public
+domain).
+
 ## v0.8.1 — 2026-09-26
 
 **Radio: AAC and HLS, and uploads that no longer reset the watch.**
