@@ -3,7 +3,7 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.8.1 — 2026-09-26
 
 **Radio: AAC and HLS, and uploads that no longer reset the watch.**
 Everything is measured in [docs/RADIO.md](docs/RADIO.md).
