@@ -117,10 +117,6 @@ static bool ensure(int ne)
     return true;
 }
 
-static int edge_cmp(const void *a, const void *b)
-{
-    return ((const edge_t *)a)->y0 - ((const edge_t *)b)->y0;
-}
 
 static void span(uint16_t *row, float xa, float xb, int cx0, int cx1, uint16_t c, uint32_t rgb)
 {
@@ -143,13 +139,150 @@ static void span(uint16_t *row, float xa, float xb, int cx0, int cx1, uint16_t c
     }
 }
 
-void mp_fill_poly(mp_fb_t *fb, const float *xy, const uint32_t *ring_n, int nring, uint32_t rgb)
+static int *s_cnt;                     /* edges starting at each row, then where they go */
+static int  s_cnt_cap;
+static int *s_ord;                     /* the edges, by starting row */
+static int  s_ord_cap;
+
+static bool ensure_rows(int rows, int ne)
+{
+    if (rows > s_cnt_cap) {
+        int *c = (int *)mp_realloc(s_cnt, (size_t)rows * sizeof(int));
+        if (!c) return false;
+        s_cnt = c;
+        s_cnt_cap = rows;
+    }
+    if (ne > s_ord_cap) {
+        int nc = s_ord_cap ? s_ord_cap : 1024;
+        while (nc < ne) nc *= 2;
+        int *o = (int *)mp_realloc(s_ord, (size_t)nc * sizeof(int));
+        if (!o) return false;
+        s_ord = o;
+        s_ord_cap = nc;
+    }
+    return true;
+}
+
+/* ceil for the coordinates a buffer has (well inside +-32768), inline:
+ * ceilf is a call into newlib, twice per edge */
+static inline int iceil(float v)
+{
+    int i = (int)(v + 32768.0f) - 32768;
+    return (float)i < v ? i + 1 : i;
+}
+
+static edge_t *s_act_e;                 /* the active edges themselves, sorted by x */
+static int     s_act_e_cap;
+
+/* Scanline, even-odd. The edges are bucketed by their first row (a count,
+ * not a sort: a tile's buildings in one polygon are tens of thousands of
+ * edges), and the active ones are COPIED into a small array kept sorted by x
+ * from row to row, which after one step is nearly sorted already. Pointing
+ * into the big edge array instead (800 KB of PSRAM for a city's buildings)
+ * missed the cache on every active edge of every row. aa: the two end
+ * pixels of each span blended by their coverage; without it they are
+ * rounded, which is write-only (buildings, where it does not show). */
+/* A polygon of a few edges (a building): the edges on the stack, sorted by
+ * insertion, and only its own rows walked. Nothing here touches a big array,
+ * so it all stays in the cache; the general path below costs a count over
+ * every row of the buffer per polygon. */
+#define SMALL_EDGES 48
+
+static void fill_small(mp_fb_t *fb, const float *xy, const uint32_t *ring_n, int nring,
+                       uint32_t rgb, bool aa)
+{
+    edge_t e[SMALL_EDGES], act[SMALL_EDGES];
+    int ne = 0, ymin = 1 << 30, ymax = -(1 << 30);
+    const float *p = xy;
+    for (int r = 0; r < nring; r++) {
+        int n = (int)ring_n[r];
+        for (int i = 0; i < n && n >= 3; i++) {
+            float xa = p[2 * i], ya = p[2 * i + 1];
+            int j = i + 1 == n ? 0 : i + 1;
+            float xb = p[2 * j], yb = p[2 * j + 1];
+            if (ya == yb) continue;
+            if (ya > yb) {
+                float t = xa; xa = xb; xb = t;
+                t = ya; ya = yb; yb = t;
+            }
+            int y0 = iceil(ya - 0.5f), y1 = iceil(yb - 0.5f);
+            if (y1 > fb->cy1) y1 = fb->cy1;
+            if (y0 >= y1 || y1 <= fb->cy0) continue;
+            float dx = (xb - xa) / (yb - ya);
+            if (y0 < fb->cy0) y0 = fb->cy0;
+            edge_t ed = { xa + ((float)y0 + 0.5f - ya) * dx, dx, y0, y1 };
+            int k = ne++;
+            while (k > 0 && e[k - 1].y0 > y0) {
+                e[k] = e[k - 1];
+                k--;
+            }
+            e[k] = ed;
+            if (y0 < ymin) ymin = y0;
+            if (y1 > ymax) ymax = y1;
+        }
+        p += 2 * n;
+    }
+    if (ne < 2) return;
+    uint16_t c = mp_be565(rgb);
+    int na = 0, next = 0;
+    for (int y = ymin; y < ymax; y++) {
+        for (; next < ne && e[next].y0 <= y; next++) {
+            int k = na++;
+            while (k > 0 && act[k - 1].x > e[next].x) {
+                act[k] = act[k - 1];
+                k--;
+            }
+            act[k] = e[next];
+        }
+        if (na >= 2) {
+            uint16_t *row = fb->px + (size_t)y * fb->w;
+            for (int k = 0; k + 1 < na; k += 2) {
+                if (aa) {
+                    span(row, act[k].x, act[k + 1].x, fb->cx0, fb->cx1, c, rgb);
+                } else {
+                    int xa = iceil(act[k].x - 0.5f), xb = iceil(act[k + 1].x - 0.5f);
+                    if (xa < fb->cx0) xa = fb->cx0;
+                    if (xb > fb->cx1) xb = fb->cx1;
+                    if (xb > xa) fill16(row + xa, xb - xa, c);
+                }
+            }
+        }
+        int w = 0;
+        for (int i = 0; i < na; i++) {
+            if (act[i].y1 <= y + 1) continue;
+            edge_t ed = act[i];
+            ed.x += ed.dx;
+            int k = w++;
+            while (k > 0 && act[k - 1].x > ed.x) {
+                act[k] = act[k - 1];
+                k--;
+            }
+            act[k] = ed;
+        }
+        na = w;
+    }
+}
+
+void mp_fill_poly_ex(mp_fb_t *fb, const float *xy, const uint32_t *ring_n, int nring, uint32_t rgb, bool aa)
 {
     int total = 0;
     for (int r = 0; r < nring; r++) total += (int)ring_n[r];
-    if (total < 3 || !ensure(total)) return;
+    if (total <= SMALL_EDGES) {
+        if (total >= 3) fill_small(fb, xy, ring_n, nring, rgb, aa);
+        return;
+    }
+    const int rows = fb->cy1 - fb->cy0;
+    if (total < 3 || rows <= 0 || !ensure(total) || !ensure_rows(rows + 1, total)) return;
+    if (total > s_act_e_cap) {
+        int nc = s_act_e_cap ? s_act_e_cap : 1024;
+        while (nc < total) nc *= 2;
+        edge_t *a = (edge_t *)mp_realloc(s_act_e, (size_t)nc * sizeof(edge_t));
+        if (!a) return;
+        s_act_e = a;
+        s_act_e_cap = nc;
+    }
 
-    int ne = 0, ymin = 1 << 30, ymax = -(1 << 30);
+    int ne = 0;
     const float *p = xy;
     for (int r = 0; r < nring; r++) {
         int n = (int)ring_n[r];
@@ -163,57 +296,83 @@ void mp_fill_poly(mp_fb_t *fb, const float *xy, const uint32_t *ring_n, int nrin
                     float t = xa; xa = xb; xb = t;
                     t = ya; ya = yb; yb = t;
                 }
-                int y0 = (int)ceilf(ya - 0.5f), y1 = (int)ceilf(yb - 0.5f);
-                if (y0 >= y1 || y1 <= fb->cy0 || y0 >= fb->cy1) continue;
+                int y0 = iceil(ya - 0.5f), y1 = iceil(yb - 0.5f);
+                if (y1 > fb->cy1) y1 = fb->cy1;
+                if (y0 >= y1 || y1 <= fb->cy0) continue;
                 edge_t *e = &s_edges[ne++];
                 e->dx = (xb - xa) / (yb - ya);
+                if (y0 < fb->cy0) y0 = fb->cy0;
                 e->x = xa + ((float)y0 + 0.5f - ya) * e->dx;
                 e->y0 = y0;
                 e->y1 = y1;
-                if (y0 < ymin) ymin = y0;
-                if (y1 > ymax) ymax = y1;
             }
         }
         p += 2 * n;
     }
     if (ne < 2) return;
-    qsort(s_edges, (size_t)ne, sizeof(edge_t), edge_cmp);
+
+    /* by starting row */
+    memset(s_cnt, 0, (size_t)(rows + 1) * sizeof(int));
+    int first = rows, last = 0;
+    for (int i = 0; i < ne; i++) {
+        int b = s_edges[i].y0 - fb->cy0;
+        s_cnt[b + 1]++;
+        if (b < first) first = b;
+        if (s_edges[i].y1 - fb->cy0 > last) last = s_edges[i].y1 - fb->cy0;
+    }
+    for (int b = 0; b < rows; b++) s_cnt[b + 1] += s_cnt[b];
+    for (int i = 0; i < ne; i++) s_ord[s_cnt[s_edges[i].y0 - fb->cy0]++] = i;
+    /* s_cnt[b] is now the end of bucket b; bucket b starts where b-1 ended */
 
     uint16_t c = mp_be565(rgb);
-    int y = ymin < fb->cy0 ? fb->cy0 : ymin;
-    int yend = ymax > fb->cy1 ? fb->cy1 : ymax;
-    int next = 0, na = 0;
-    for (; y < yend; y++) {
-        while (next < ne && s_edges[next].y0 <= y) {
-            edge_t *e = &s_edges[next];
-            if (e->y0 < y) e->x += (float)(y - e->y0) * e->dx;
-            s_act[na++] = next++;
-        }
-        int nx = 0;
-        for (int i = 0; i < na;) {
-            edge_t *e = &s_edges[s_act[i]];
-            if (e->y1 <= y) {
-                s_act[i] = s_act[--na];
-                continue;
-            }
-            /* insertion into the sorted crossings */
-            float x = e->x;
-            int k = nx++;
-            while (k > 0 && s_xs[k - 1] > x) {
-                s_xs[k] = s_xs[k - 1];
+    edge_t *act = s_act_e;
+    int na = 0, next = first ? s_cnt[first - 1] : 0;
+    for (int b = first; b < last; b++) {
+        const int y = fb->cy0 + b;
+        /* in: the ones that start here, each into its place */
+        for (; next < s_cnt[b]; next++) {
+            edge_t e = s_edges[s_ord[next]];
+            int k = na++;
+            while (k > 0 && act[k - 1].x > e.x) {
+                act[k] = act[k - 1];
                 k--;
             }
-            s_xs[k] = x;
-            e->x += e->dx;
-            i++;
+            act[k] = e;
         }
-        if (nx < 2) {
-            if (!na && next >= ne) break;
-            continue;
+        if (na >= 2) {
+            uint16_t *row = fb->px + (size_t)y * fb->w;
+            if (aa) {
+                for (int k = 0; k + 1 < na; k += 2) span(row, act[k].x, act[k + 1].x, fb->cx0, fb->cx1, c, rgb);
+            } else {
+                for (int k = 0; k + 1 < na; k += 2) {
+                    int xa = iceil(act[k].x - 0.5f), xb = iceil(act[k + 1].x - 0.5f);
+                    if (xa < fb->cx0) xa = fb->cx0;
+                    if (xb > fb->cx1) xb = fb->cx1;
+                    if (xb > xa) fill16(row + xa, xb - xa, c);
+                }
+            }
         }
-        uint16_t *row = fb->px + (size_t)y * fb->w;
-        for (int k = 0; k + 1 < nx; k += 2) span(row, s_xs[k], s_xs[k + 1], fb->cx0, fb->cx1, c, rgb);
+        /* one row down: out the ones that end, the rest stepped and back
+         * into order, in one pass */
+        int w = 0;
+        for (int i = 0; i < na; i++) {
+            if (act[i].y1 <= y + 1) continue;
+            edge_t e = act[i];
+            e.x += e.dx;
+            int k = w++;
+            while (k > 0 && act[k - 1].x > e.x) {
+                act[k] = act[k - 1];
+                k--;
+            }
+            act[k] = e;
+        }
+        na = w;
     }
+}
+
+void mp_fill_poly(mp_fb_t *fb, const float *xy, const uint32_t *ring_n, int nring, uint32_t rgb)
+{
+    mp_fill_poly_ex(fb, xy, ring_n, nring, rgb, true);
 }
 
 /* ---------------------------------------------------------------------------
@@ -298,7 +457,7 @@ static void seg(mp_fb_t *fb, float x0, float y0, float x1, float y1, float r,
     }
 }
 
-/* A thin segment (w <= 2.5), the way Wu draws lines: one step per pixel
+/* A thin segment (w <= 4), the way Wu draws lines: one step per pixel
  * along the long axis, and across it the pixels the band covers, each by how
  * much of it is covered. No square roots and no per-pixel distance: the
  * capsule of seg() cost ~8 us a segment on the board, and at z13 over a
@@ -355,7 +514,7 @@ void mp_polyline(mp_fb_t *fb, const float *xy, int n, float w, uint32_t rgb, int
         if (alpha < 8) return;
     }
     uint16_t c = mp_be565(rgb);
-    if (w <= 2.5f) {
+    if (w <= 4.0f) {
         for (int i = 0; i + 1 < n; i++)
             seg_thin(fb, xy[2 * i], xy[2 * i + 1], xy[2 * i + 2], xy[2 * i + 3], w, c, rgb, alpha);
         return;
@@ -554,46 +713,67 @@ void mp_text(mp_fb_t *fb, const mp_font_t *f, int x, int y, const char *s,
     }
 }
 
-static inline int sample(const uint8_t *m, int w, int h, float u, float v)
-{
-    u -= 0.5f;
-    v -= 0.5f;
-    int iu = (int)floorf(u), iv = (int)floorf(v);
-    float fu = u - (float)iu, fv = v - (float)iv;
-    int a = (iu >= 0 && iv >= 0 && iu < w && iv < h) ? m[iv * w + iu] : 0;
-    int b = (iu + 1 >= 0 && iv >= 0 && iu + 1 < w && iv < h) ? m[iv * w + iu + 1] : 0;
-    int c = (iu >= 0 && iv + 1 >= 0 && iu < w && iv + 1 < h) ? m[(iv + 1) * w + iu] : 0;
-    int d = (iu + 1 >= 0 && iv + 1 >= 0 && iu + 1 < w && iv + 1 < h) ? m[(iv + 1) * w + iu + 1] : 0;
-    float top = (float)a + ((float)b - (float)a) * fu;
-    float bot = (float)c + ((float)d - (float)c) * fu;
-    return (int)(top + (bot - top) * fv);
-}
-
 void mp_glyph_rot(mp_fb_t *fb, const mp_font_t *f, uint32_t cp, float cx, float cy,
                   float angle, uint32_t rgb, int pass)
 {
     const mp_glyph_t *g = glyph(f, cp);
     if (!g->a) return;
+    const uint8_t *m = pass ? g->a : g->halo;
     const float u0 = (float)(MP_HALO + 1) + g->adv * 0.5f, v0 = (float)MP_HALO + f->line_h * 0.5f;
+
+    /* nearly level: the mask as it is, which is sharper and ten times
+     * cheaper than resampling it */
+    if (fabsf(angle) < 0.035f) {
+        mask(fb, m, g->w, g->h, (int)floorf(cx - u0 + 0.5f), (int)floorf(cy - v0 + 0.5f), rgb);
+        return;
+    }
+
+    /* Turned: every screen pixel of the glyph's box, mapped back into the
+     * mask and sampled bilinearly, in 16.16 fixed point stepped along the
+     * row (a float per pixel, and a box sized by the glyph's diagonal, was
+     * ~12 ms a street name on the board). */
     const float cs = cosf(angle), sn = sinf(angle);
-    float rr = sqrtf((float)(g->w * g->w + g->h * g->h)) * 0.5f + 2.0f;
-    int x0 = (int)floorf(cx - rr), x1 = (int)ceilf(cx + rr);
-    int y0 = (int)floorf(cy - rr), y1 = (int)ceilf(cy + rr);
+    /* the box: the mask's four corners turned about (u0, v0) */
+    float xs[4], ys[4];
+    const float cu[4] = { 0, (float)g->w, 0, (float)g->w }, cv[4] = { 0, 0, (float)g->h, (float)g->h };
+    float bx0 = 1e9f, by0 = 1e9f, bx1 = -1e9f, by1 = -1e9f;
+    for (int i = 0; i < 4; i++) {
+        float du = cu[i] - u0, dv = cv[i] - v0;
+        xs[i] = cx + du * cs - dv * sn;
+        ys[i] = cy + du * sn + dv * cs;
+        if (xs[i] < bx0) bx0 = xs[i];
+        if (xs[i] > bx1) bx1 = xs[i];
+        if (ys[i] < by0) by0 = ys[i];
+        if (ys[i] > by1) by1 = ys[i];
+    }
+    int x0 = (int)floorf(bx0), x1 = (int)ceilf(bx1), y0 = (int)floorf(by0), y1 = (int)ceilf(by1);
     if (x0 < fb->cx0) x0 = fb->cx0;
     if (y0 < fb->cy0) y0 = fb->cy0;
     if (x1 > fb->cx1) x1 = fb->cx1;
     if (y1 > fb->cy1) y1 = fb->cy1;
-    const uint8_t *m = pass ? g->a : g->halo;
+    if (x0 >= x1 || y0 >= y1) return;
+
+    const int32_t dux = (int32_t)(cs * 65536.0f), dvx = (int32_t)(-sn * 65536.0f);
+    const int W = g->w, H = g->h;
+    const uint16_t c = mp_be565(rgb);
     for (int y = y0; y < y1; y++) {
+        float dy = (float)y + 0.5f - cy, dx = (float)x0 + 0.5f - cx;
+        /* the sample point, minus half a pixel for the bilinear corners */
+        int32_t fu = (int32_t)((u0 - 0.5f + dx * cs + dy * sn) * 65536.0f);
+        int32_t fv = (int32_t)((v0 - 0.5f - dx * sn + dy * cs) * 65536.0f);
         uint16_t *row = fb->px + (size_t)y * fb->w;
-        float dy = (float)y + 0.5f - cy;
-        for (int x = x0; x < x1; x++) {
-            float dx = (float)x + 0.5f - cx;
-            float u = u0 + dx * cs + dy * sn;
-            float v = v0 - dx * sn + dy * cs;
-            if (u < -1 || v < -1 || u > g->w + 1 || v > g->h + 1) continue;
-            int al = sample(m, g->w, g->h, u, v);
-            if (al > 8) row[x] = al >= 250 ? mp_be565(rgb) : blend(row[x], rgb, al);
+        for (int x = x0; x < x1; x++, fu += dux, fv += dvx) {
+            int iu = fu >> 16, iv = fv >> 16;
+            /* the mask has a zero border of MP_HALO + 1: its last row and
+             * column can be skipped */
+            if ((unsigned)iu >= (unsigned)(W - 1) || (unsigned)iv >= (unsigned)(H - 1)) continue;
+            const uint8_t *p = m + iv * W + iu;
+            int a = p[0], b = p[1], d0 = p[W], d1 = p[W + 1];
+            if (!(a | b | d0 | d1)) continue;
+            int wx = (fu >> 8) & 255, wy = (fv >> 8) & 255;
+            int top = a * 256 + (b - a) * wx, bot = d0 * 256 + (d1 - d0) * wx;
+            int al = (top * 256 + (bot - top) * wy) >> 16;
+            if (al > 8) row[x] = al >= 250 ? c : blend(row[x], rgb, al);
         }
     }
 }

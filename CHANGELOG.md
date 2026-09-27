@@ -3,6 +3,19 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.9.1 — 2026-09-27
+
+**Mapas: the centre of a city at z15 about three times faster.** Measured
+on the board over the Obelisco, the same view rendered six times: 925 →
+280 ms at z15.0, 785 → 375 at z15.5, 480 → 270 at z16. The street names
+went from 524 ms to 90 (turned glyphs in fixed point, in a tight box, level
+ones unturned, a binary search along the street); buildings are no longer
+drawn at z15.0, where their fade-in left them the colour of the land (155
+ms); lines up to 4 px take the fast path; small polygons fill with their
+edges on the stack, and buildings without anti-aliasing. What was tried and
+lost is in [docs/MAPS.md](docs/MAPS.md#the-centre-at-z15-v091). Only
+`mapas.so` changed; the firmware is v0.9.0's under a new version number.
+
 ## v0.9.0 — 2026-09-27
 
 **Mapas: a street map on the watch.** OpenStreetMap's data as vector tiles

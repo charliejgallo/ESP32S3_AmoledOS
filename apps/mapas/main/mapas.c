@@ -206,6 +206,9 @@ typedef struct {
     int         bench_phase;
     bool        bench_zoomed;
     char        bench_q[40];
+    bool        bench_static;       /* "r": the same view rendered again and again */
+    int         bs_zoom, bs_count;
+    uint32_t    bs_t;
     uint32_t    bench_t;
     uint32_t    b_frames, b_compose, b_blit;
     volatile uint32_t b_renders, b_render_us;
@@ -436,25 +439,30 @@ static void worker(void *arg)
             uint32_t rb, hp, hc;
             int rt;
             mp_store_stats(&rb, &rt, &hp, &hc);
-            /* the three dearest classes */
-            int top[3] = { -1, -1, -1 };
+            /* the dearest classes */
+            int top[5] = { -1, -1, -1, -1, -1 };
             for (int c = 0; c < MC_GEOM_END; c++) {
-                for (int k = 0; k < 3; k++) {
+                for (int k = 0; k < 5; k++) {
                     if (top[k] < 0 || st.us_cls[c] > st.us_cls[top[k]]) {
-                        for (int m = 2; m > k; m--) top[m] = top[m - 1];
+                        for (int m = 4; m > k; m--) top[m] = top[m - 1];
                         top[k] = c;
                         break;
                     }
                 }
             }
-            aos_hal_log("mapas", "z%.2f: tiles %u + geometry %u + labels %u ms; %d tiles, %d stand-ins, "
-                        "%d missing, %d labels, points %u -> %u; dearest classes %d:%u %d:%u %d:%u ms "
+            uint32_t sum = 0;
+            for (int c = 0; c < MC_GEOM_END; c++) sum += st.us_cls[c];
+            aos_hal_log("mapas", "z%.2f: tiles %u + geometry %u + labels %u (drawing %u) ms; %d tiles, %d stand-ins, "
+                        "%d missing, %d labels, points %u -> %u; classes %u ms, dearest %d:%u %d:%u %d:%u %d:%u %d:%u "
                         "| ram %d tiles %u KB, pack %u, cache %u",
                         (double)v.z, (unsigned)(st.us_tiles / 1000), (unsigned)(st.us_geom / 1000),
-                        (unsigned)(st.us_labels / 1000), st.shown, st.stand_in, st.missing, st.labels,
+                        (unsigned)(st.us_labels / 1000), (unsigned)(st.us_ldraw / 1000), st.shown,
+                        st.stand_in, st.missing, st.labels,
                         (unsigned)st.pts_in, (unsigned)st.pts_out,
+                        (unsigned)(sum / 1000),
                         top[0], (unsigned)(st.us_cls[top[0]] / 1000), top[1],
                         (unsigned)(st.us_cls[top[1]] / 1000), top[2], (unsigned)(st.us_cls[top[2]] / 1000),
+                        top[3], (unsigned)(st.us_cls[top[3]] / 1000), top[4], (unsigned)(st.us_cls[top[4]] / 1000),
                         rt, (unsigned)(rb / 1024), (unsigned)hp, (unsigned)hc);
             a->t_log = now;
         }
@@ -987,6 +995,40 @@ static void push_frame(app_t *a)
     a->b_blit += tb / 240;
 }
 
+/* "r" in bench.txt: the centre of Buenos Aires (the Obelisco) at z15, 15.5
+ * and 16, each rendered six times over once its tiles are in, so the log
+ * has steady numbers per part of the render. */
+static void bench_static_step(app_t *a)
+{
+    static const float Z[] = { 15.0f, 15.5f, 16.0f };
+    uint32_t now = (uint32_t)aos_hal_uptime_ms();
+    if (a->bs_zoom >= 3) return;
+    if (a->bs_count == 0 && now - a->bs_t > 100 && !a->bench_zoomed) {
+        uint32_t x, y;
+        mp_lonlat_to_world(-58.3816f, -34.6037f, &x, &y);
+        go_to(a, x, y, Z[a->bs_zoom]);
+        a->bench_zoomed = true;
+        a->bs_t = now;
+        return;
+    }
+    if (a->bs_count == 0 && (a->missing || inflight(a) || now - a->bs_t < 2500)) return;
+    if (now - a->bs_t < 1300) return;
+    a->bs_t = now;
+    if (a->bs_count++ < 6) {
+        a->dirty_tiles = true;          /* the worker renders the same view again */
+        return;
+    }
+    a->bs_count = 0;
+    a->bench_zoomed = false;
+    if (++a->bs_zoom >= 3) {
+        char path[128];
+        snprintf(path, sizeof path, "%s/bench.txt", mp_maps_dir() ? mp_maps_dir() : ".");
+        remove(path);
+        a->bench = false;
+        aos_hal_log("mapas", "bench static: done");
+    }
+}
+
 /* The bench: wait for the data, then pan, zoom in, pan, zoom out and a slow
  * continuous zoom like a pinch, logging each phase. */
 static void bench_step(app_t *a)
@@ -1048,7 +1090,10 @@ static void tick(lv_timer_t *t)
         go_to(a, a->goto_cx, a->goto_cy, a->goto_z);
         if (!a->viewing) show_map(a);
     }
-    if (a->bench) bench_step(a);
+    if (a->bench) {
+        if (a->bench_static) bench_static_step(a);
+        else bench_step(a);
+    }
     if (!a->viewing) return;
     float dt = TICK_MS / 1000.0f;
 
@@ -1778,6 +1823,7 @@ static void *mp_create(aos_app_t *self, lv_obj_t *root)
             char *nl = strpbrk(b, "\r\n");
             if (nl) *nl = 0;
             snprintf(a->bench_q, sizeof a->bench_q, "%.39s", !strncmp(b, "q=", 2) && b[2] ? b + 2 : "serrano");
+            a->bench_static = b[0] == 'r';
             a->bench = true;
             a->bench_t = (uint32_t)aos_hal_uptime_ms();
             /* always the same place: the centre of Buenos Aires at z13 */

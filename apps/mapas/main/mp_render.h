@@ -42,6 +42,7 @@ typedef struct {
     int      stand_in;              /* tiles drawn from an enlarged ancestor */
     uint32_t us_tiles;              /* finding them: RAM, packs, card */
     uint32_t us_geom, us_labels;    /* for the log */
+    uint32_t us_ldraw;              /* of us_labels, drawing the glyphs */
     uint32_t us_cls[32];            /* geometry time per class */
     uint32_t pts_in, pts_out;       /* points before and after simplifying */
     int      labels;

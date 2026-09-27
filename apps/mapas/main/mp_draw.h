@@ -35,6 +35,8 @@ void mp_blend_px(mp_fb_t *fb, int x, int y, uint32_t rgb, int alpha);
  * xy: 2 floats per point; ring_n: points per ring. The left and right end of
  * every span are blended by their coverage, which smooths the steep edges. */
 void mp_fill_poly(mp_fb_t *fb, const float *xy, const uint32_t *ring_n, int nring, uint32_t rgb);
+/* The same; aa false rounds the span ends instead (write-only, cheaper). */
+void mp_fill_poly_ex(mp_fb_t *fb, const float *xy, const uint32_t *ring_n, int nring, uint32_t rgb, bool aa);
 
 /* A polyline of width w (px), round joins and ends, anti-aliased. Widths
  * under one pixel are drawn one pixel wide and fainter. alpha 0..255. */

@@ -208,11 +208,24 @@ static int transform(const item_t *it, const mp_feat_t *f, int minpts, float tol
 }
 
 
+static uint32_t cycles(void)
+{
+#if defined(__XTENSA__)
+    uint32_t c;
+    __asm__ volatile("rsr %0, ccount" : "=a"(c));
+    return c;
+#else
+    return (uint32_t)(aos_hal_uptime_ms() * 240000u);
+#endif
+}
+
 /* ---------------------------------------------------------------------------
  * Labels
  * ------------------------------------------------------------------------- */
 
 #define CELL 5
+
+static uint32_t s_ldraw;          /* cycles spent drawing glyphs, for the log */
 
 static uint8_t *s_grid;
 static int      s_gw, s_gh, s_grid_cap;
@@ -338,15 +351,25 @@ static bool place_point(mp_fb_t *fb, const mp_font_t *font, float x, float y, co
     if (x0 < 2 || y0 < 2 || x1 > fb->w - 3 || y1 > fb->h - 3) return false;
     if (!grid_free(x0, y0, x1, y1)) return false;
     grid_mark(x0, y0, x1, y1);
+    uint32_t c0 = cycles();
     mp_text(fb, font, (int)(x - w * 0.5f), (int)(y - h * 0.5f), name, rgb, MP_BG, true);
+    s_ldraw += cycles() - c0;
     return true;
 }
 
-/* the point at distance s along the polyline (cum = running length) */
+/* the point at distance s along the polyline (cum = running length): a
+ * binary search, since every glyph asks three times and a street can have
+ * hundreds of points (walking from the start each time was most of placing) */
 static void along(const float *xy, const float *cum, int n, float s, int *k, float *px, float *py)
 {
-    while (*k < n - 2 && cum[*k + 1] < s) (*k)++;
-    int i = *k;
+    int lo = 0, hi = n - 2;
+    while (lo < hi) {
+        int mid = (lo + hi + 1) / 2;
+        if (cum[mid] <= s) lo = mid;
+        else hi = mid - 1;
+    }
+    *k = lo;
+    int i = lo;
     float seg = cum[i + 1] - cum[i];
     float t = seg > 1e-4f ? (s - cum[i]) / seg : 0;
     if (t < 0) t = 0;
@@ -429,8 +452,10 @@ static bool place_line(mp_fb_t *fb, const mp_font_t *font, float *xy, int n, con
         }
         if (!ok) continue;
         for (int g = 0; g < ng; g++) grid_mark(gx[g] - half, gy[g] - half, gx[g] + half, gy[g] + half);
+        uint32_t c0 = cycles();
         for (int g = 0; g < ng; g++) mp_glyph_rot(fb, font, cps[g], gx[g], gy[g], ga[g], MP_BG, 0);
         for (int g = 0; g < ng; g++) mp_glyph_rot(fb, font, cps[g], gx[g], gy[g], ga[g], rgb, 1);
+        s_ldraw += cycles() - c0;
         placed_add(hname, gx[ng / 2], gy[ng / 2]);
         return true;
     }
@@ -518,16 +543,6 @@ static int draw_labels(mp_fb_t *fb, const item_t *items, int nitems, float z, co
  * The view
  * ------------------------------------------------------------------------- */
 
-static uint32_t cycles(void)
-{
-#if defined(__XTENSA__)
-    uint32_t c;
-    __asm__ volatile("rsr %0, ccount" : "=a"(c));
-    return c;
-#else
-    return (uint32_t)(aos_hal_uptime_ms() * 240000u);
-#endif
-}
 
 void mp_render(mp_fb_t *fb, const mp_view_t *v, const mp_font_t *fonts, mp_render_stats_t *st)
 {
@@ -643,6 +658,11 @@ void mp_render(mp_fb_t *fb, const mp_view_t *v, const mp_font_t *fonts, mp_rende
         int alpha = 255;
         if (c == MC_BUILDING && v->z < s->minz + 1) alpha = (int)((v->z - s->minz) * 255);
         if (!area && v->z < s->minz + 0.5f) alpha = (int)((v->z - s->minz) * 2 * 255);
+        /* fading in and still nearly invisible: an area in the land's colour
+         * costs the same as a visible one (buildings at z15.0 were 155 ms of
+         * a 400 ms render over the centre of Buenos Aires, all of it the
+         * colour of the land) */
+        if (alpha < 24) continue;
         uint32_t cc0 = cycles();
         uint32_t rgb = s->rgb;
         if (area && alpha < 255) {
@@ -663,6 +683,16 @@ void mp_render(mp_fb_t *fb, const mp_view_t *v, const mp_font_t *fonts, mp_rende
                 if (!visible(it, f, w + 1)) continue;
                 int rings = transform(it, f, area ? 3 : 2, area ? 0.6f : 0.8f, st);
                 if (!rings) continue;
+                if (c == MC_BUILDING) {
+                    /* no anti-aliasing: dark grey on near black, it does
+                     * not show, and it makes every span write-only. (A
+                     * tile's buildings come as a few hundred features of
+                     * many rings each; gathering them all into one polygon
+                     * was tried and lost: 800 KB of edges in PSRAM cost
+                     * more than the calls it saved.) */
+                    mp_fill_poly_ex(fb, s_xy, s_rn, rings, rgb, false);
+                    continue;
+                }
                 if (area) {
                     mp_fill_poly(fb, s_xy, s_rn, rings, rgb);
                 } else {
@@ -680,7 +710,9 @@ void mp_render(mp_fb_t *fb, const mp_view_t *v, const mp_font_t *fonts, mp_rende
     }
     mp_fb_clip_all(fb);
     uint32_t c1 = cycles();
+    s_ldraw = 0;
     if (fonts && fonts[0].ok) st->labels = draw_labels(fb, items, nitems, v->z, fonts);
+    st->us_ldraw = s_ldraw / 240;
     uint32_t c2 = cycles();
     st->us_geom = (c1 - ct) / 240;
     st->us_labels = (c2 - c1) / 240;
