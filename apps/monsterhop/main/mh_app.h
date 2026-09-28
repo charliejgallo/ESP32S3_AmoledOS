@@ -207,6 +207,13 @@ void mha_save(app_t *a);
 void mha_ui_job(app_t *a, int what);
 bool mha_link_available(app_t *a, char *name, int n);
 void mha_link_begin(app_t *a);
+/* keys instead of the touch screen and the button (the desktop port): a hop
+ * one of the grid's four ways (DIR_*), the button's click, the pause, back.
+ * True when the game took it. */
+bool mha_key_hop(app_t *a, int dir);
+bool mha_key_action(app_t *a);
+bool mha_key_pause(app_t *a);
+bool mha_key_back(app_t *a);
 /* mh_link.c */
 void mhl_end(app_t *a);
 void mhl_tick(app_t *a);                /* the LVGL timer, every tick        */

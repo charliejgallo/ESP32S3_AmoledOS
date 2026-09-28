@@ -202,7 +202,7 @@ static void run_job(app_t *a, int j)
     uint64_t t0 = aos_hal_uptime_ms();
     switch (j) {
     case JOB_BOOT: {
-        char path[96];
+        char path[512];
         snprintf(path, sizeof path, "%s/monsterhop.pak", aos_hal_path_apps());
         bool ok = mh_art_open(path);
         if (ok) {
@@ -633,7 +633,7 @@ static uint8_t pak_tag(void)
 {
     uint32_t total = 0;
     for (int i = 0; i < 8; i++) {
-        char path[128];
+        char path[512];
         if (i) snprintf(path, sizeof path, "%s/monsterhop.pak.%d", aos_hal_path_apps(), i);
         else snprintf(path, sizeof path, "%s/monsterhop.pak", aos_hal_path_apps());
         FILE *f = fopen(path, "rb");
@@ -916,6 +916,54 @@ static bool go_back(app_t *a)
     default:
         return true;
     }
+}
+
+/* ---- keys (the desktop port) ---- */
+
+bool mha_key_hop(app_t *a, int dir)
+{
+    if (a->closing) return false;
+    if (a->state == ST_INTRO) {
+        a->intro_skip = true;
+        return true;
+    }
+    if (a->state != ST_PLAY) return false;
+    a->in_hop = 1 + (dir & 3);
+    a->last_hop_ms = lv_tick_get();
+    return true;
+}
+
+bool mha_key_action(app_t *a)
+{
+    if (a->closing) return false;
+    if (a->state == ST_INTRO) {
+        a->intro_skip = true;
+        return true;
+    }
+    if (a->state != ST_PLAY) return false;
+    a->in_action = true;
+    return true;
+}
+
+bool mha_key_pause(app_t *a)
+{
+    if (a->closing) return false;
+    if (a->state == ST_PLAY && !a->lk_race) {
+        a->want_pause = true;
+        return true;
+    }
+    if (a->state == ST_PAUSE) {
+        mha_resume(a);
+        return true;
+    }
+    return false;
+}
+
+/* false: nothing to go back to (the title), the host decides */
+bool mha_key_back(app_t *a)
+{
+    if (a->closing) return false;
+    return go_back(a);
 }
 
 static void take_gesture(app_t *a)
@@ -1234,7 +1282,9 @@ static void *mh_create(aos_app_t *self, lv_obj_t *root)
     a->canvas = lv_canvas_create(root);
     memset(a->cv, 0, (size_t)MH_W * MH_H * 2);
     lv_canvas_set_buffer(a->canvas, a->cv, MH_W, MH_H, LV_COLOR_FORMAT_RGB565);
-    lv_obj_set_pos(a->canvas, 0, 0);
+    /* a wider screen than the watch's (the desktop port): the panels stay a
+     * watch-sized column in the middle and the frame spreads under them */
+    lv_obj_set_pos(a->canvas, (AOS_SCREEN_W - MH_W) / 2, (AOS_SCREEN_H - MH_H) / 2);
     lv_obj_remove_flag(a->canvas, LV_OBJ_FLAG_CLICKABLE);
 
     a->touch = lv_obj_create(root);
@@ -1256,7 +1306,7 @@ static void *mh_create(aos_app_t *self, lv_obj_t *root)
     /* apps/monsterhop_dev.txt on the card, for measuring on the board:
      * "unlock" every level open */
     {
-        char path[96], buf[64] = "";
+        char path[512], buf[64] = "";
         snprintf(path, sizeof path, "%s/monsterhop_dev.txt", aos_hal_path_apps());
         FILE *f = fopen(path, "r");
         if (f) {

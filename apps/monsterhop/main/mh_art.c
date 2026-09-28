@@ -147,7 +147,7 @@ bool mh_art_open(const char *path)
     for (int i = 0; i < MAX_PARTS; i++) {
         FILE *f = s_fp;
         if (i > 0) {
-            char pp[160];
+            char pp[520];
             snprintf(pp, sizeof pp, "%s.%d", path, i);
             f = fopen(pp, "rb");
             if (!f) break;

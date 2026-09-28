@@ -28,8 +28,12 @@
 #include <stdint.h>
 
 #define MH_FLOOR_M      0.50923f
-#define MH_CW           512         /* the cache, LP pixels                   */
+/* the cache, LP pixels: the view plus a block of each side (MH_CW a power
+ * of two); a wider view (the desktop port) brings its own */
+#ifndef MH_CW
+#define MH_CW           512
 #define MH_CH           576
+#endif
 #define MH_CB           64          /* its blocks                             */
 #define MH_CNX          (MH_CW / MH_CB)
 #define MH_CNY          (MH_CH / MH_CB)

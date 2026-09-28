@@ -17,6 +17,10 @@
 #include "esp_heap_caps.h"
 #endif
 
+#ifdef MH_VIEW_RUNTIME
+int mh_view_w = 368, mh_view_h = 448;
+#endif
+
 void *mh_malloc(size_t n)
 {
 #if !defined(AOS_SIM) && !defined(AOS_SIM_BUILTIN) && !defined(MH_HARNESS)

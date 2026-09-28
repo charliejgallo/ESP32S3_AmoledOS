@@ -362,8 +362,12 @@ static lv_obj_t *panel(lv_obj_t *parent, int dim)
 {
     lv_obj_t *p = lv_obj_create(parent);
     lv_obj_remove_style_all(p);
-    lv_obj_set_size(p, AOS_SCREEN_W, AOS_SCREEN_H);
-    lv_obj_set_pos(p, 0, 0);
+    /* the frame may be wider than the watch (the desktop port): the panel
+     * covers all of it and its padding keeps what is in it where it was */
+    lv_obj_set_size(p, MH_W, MH_H);
+    lv_obj_set_pos(p, (AOS_SCREEN_W - MH_W) / 2, (AOS_SCREEN_H - MH_H) / 2);
+    lv_obj_set_style_pad_left(p, (MH_W - AOS_SCREEN_W) / 2, 0);
+    lv_obj_set_style_pad_top(p, (MH_H - AOS_SCREEN_H) / 2, 0);
     lv_obj_remove_flag(p, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(p, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(p, LV_OBJ_FLAG_HIDDEN);

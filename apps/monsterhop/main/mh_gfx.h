@@ -13,8 +13,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/* The watch's screen. A host with a screen of another shape (the desktop
+ * port) builds with MH_VIEW_RUNTIME and sets the size before the app opens:
+ * every place that draws takes it from here. */
+#ifdef MH_VIEW_RUNTIME
+extern int mh_view_w, mh_view_h;
+#define MH_W        mh_view_w
+#define MH_H        mh_view_h
+#else
 #define MH_W        368
 #define MH_H        448
+#endif
 
 static inline uint16_t mh_rgb(int r, int g, int b)
 {
