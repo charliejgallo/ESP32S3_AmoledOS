@@ -2494,6 +2494,12 @@ static const char blob_en_demo_monsterhop_lang[] =
     "¡Rápido!\tHurry!\n"
     "Falta monsterhop.pak en la tarjeta\tmonsterhop.pak is missing from the card\n"
     "No se pudo cargar el nivel\tThe level could not be loaded\n"
+    "Dos jugadores, una pantalla.\tTwo players, one screen.\n"
+    "¡Ganó el jugador 1!\tPlayer 1 wins!\n"
+    "¡Ganó el jugador 2!\tPlayer 2 wins!\n"
+    "¡Empate!\tIt's a tie!\n"
+    "J1\tP1\n"
+    "J2\tP2\n"
     ;
 
 static const char blob_en_demo_neon_lang[] =
@@ -5165,6 +5171,12 @@ static const char blob_de_demo_monsterhop_lang[] =
     "¡Rápido!\tSchnell!\n"
     "Falta monsterhop.pak en la tarjeta\tmonsterhop.pak fehlt auf der Karte\n"
     "No se pudo cargar el nivel\tDas Level konnte nicht geladen werden\n"
+    "Dos jugadores, una pantalla.\tZwei Spieler, ein Bildschirm.\n"
+    "¡Ganó el jugador 1!\tSpieler 1 gewinnt!\n"
+    "¡Ganó el jugador 2!\tSpieler 2 gewinnt!\n"
+    "¡Empate!\tUnentschieden!\n"
+    "J1\tS1\n"
+    "J2\tS2\n"
     ;
 
 static const char blob_de_demo_neon_lang[] =
