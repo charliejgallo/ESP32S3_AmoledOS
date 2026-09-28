@@ -1,7 +1,7 @@
 # Monster Hop
 
 A hop-by-hop action game on a grid, in the manner of the late-90s 3D
-Frogger: Tommy, an eleven-year-old in a cap, crosses sixteen levels full of
+Frogger: Tommy, an eleven-year-old in a cap, crosses twenty-four levels full of
 monsters to collect five keys in each and reach the exit. The world is seen
 from above at three-quarters, and every block, prop, monster and outfit is
 modelled in Blender and rendered to sprites that the watch lights, colours
@@ -11,6 +11,8 @@ and sorts by depth.
 |---|---|---|
 | <img src="../../docs/img/app-monsterhop-sewers.png" width="200"><br>The Sewers: a zombie on the walkway, a crate to push into the channel, steam vents. | <img src="../../docs/img/app-monsterhop-moat.png" width="200"><br>The Moat: rafts slide across the water; a vampire walks the bank. | <img src="../../docs/img/app-monsterhop-temple.png" width="200"><br>Temple Halls: boulders roll down the hall, a mummy guards the ledge. |
 | <img src="../../docs/img/app-monsterhop-river.png" width="200"><br>Rushing River: logs and lily pads to hop across, lanterns on the bank. | <img src="../../docs/img/app-monsterhop-hall.png" width="200"><br>The Great Hall: suits of armour on the carpets, spikes in the doorways. | <img src="../../docs/img/app-monsterhop-brute.png" width="200"><br>City Hall, the first lair: the Brute stomps round the statue. |
+| <img src="../../docs/img/app-monsterhop-jungle.png" width="200"><br>The Steaming Jungle: packs of compies run across the red dirt. | <img src="../../docs/img/app-monsterhop-lava.png" width="200"><br>The Lava River: the cracks glow, then erupt on a clock. | <img src="../../docs/img/app-monsterhop-trex.png" width="200"><br>The T-Rex Run: the Lost Valley's lair is a chase. |
+| <img src="../../docs/img/app-monsterhop-pier.png" width="200"><br>High Tide: waves sweep the quay, crabs snap sideways. | <img src="../../docs/img/app-monsterhop-wreck.png" width="200"><br>The Wreck: rafts, whirlpools and a fish-man in the water. | |
 
 | Zone | Monsters | Hazards | Lair |
 | --- | --- | --- | --- |
@@ -18,11 +20,14 @@ and sorts by depth.
 | Vampire Castle (violet) | vampires that turn into bats, haunted armour | the moat, spikes, moving platforms, bats | the Count's Chamber: he throws a ring of bats |
 | Mummy Desert (brown) | mummies that push boulders, scarabs in lines | quicksand, darts, rolling boulders | the Pharaoh's Tomb: the Pharaoh cracks his whip |
 | Werewolf Forest (green) | werewolves that charge on sight, crows that dive | the river and its logs, bear traps | Moon Clearing: the Alpha |
+| Lost Valley (red dirt) | raptors that stalk and pounce, triceratops that charge, pterodactyls that swoop, packs of compies | tar pits, lava cracks that erupt on a clock, falling volcanic rocks | the T-Rex Run: the T-Rex chases Tommy up the valley |
+| Abyss Bay (blue) | fish-men that rise from the water, crabs that snap sideways, jellyfish, piranhas | the tide (quays flood and drain), waves that push, whirlpools that drag | the Kraken's Lair: tentacles slam where their shadow warns |
 
 The four levels of a zone go from an easy walk to the lair with the boss.
-Zones open with stars: Zombie Town from the start, then 6, 14 and 22 stars.
-Two more zones, a witch swamp and a skeleton graveyard, wait on the map as
-locked spots: what each would be, and every place in the code a new zone
+The map is a hub: Zombie Town, the Lost Valley, Werewolf Forest and Abyss
+Bay are open from Tommy's house; Vampire Castle opens with 12 stars and the
+Mummy Desert with 24. Two more zones, a witch swamp and a skeleton
+graveyard, wait on the map as locked spots: what each would be, and every place in the code a new zone
 touches, are in [ZONE-IDEAS.md](ZONE-IDEAS.md).
 
 ## Playing
@@ -49,14 +54,14 @@ The first spot on the map, below Zombie Town:
 
 | | | |
 |---|---|---|
-| <img src="../../docs/img/app-monsterhop-title.png" width="200"><br>The title, over the world map. | <img src="../../docs/img/app-monsterhop-map.png" width="200"><br>The map: the house at the bottom, four zones of four levels, stars under each. | <img src="../../docs/img/app-monsterhop-house.png" width="200"><br>Tommy's house, the hub. |
+| <img src="../../docs/img/app-monsterhop-title.png" width="200"><br>The title, over the world map. | <img src="../../docs/img/app-monsterhop-map.png" width="200"><br>The map: the house at the bottom, six zones of four levels, stars under each; four open from the start. | <img src="../../docs/img/app-monsterhop-house.png" width="200"><br>Tommy's house, the hub. |
 | <img src="../../docs/img/app-monsterhop-wardrobe.png" width="200"><br>The wardrobe: a crown, a hero cape, a torch and a black kitten. | <img src="../../docs/img/app-monsterhop-shop.png" width="200"><br>The shop: everything costs coins from the levels. | <img src="../../docs/img/app-monsterhop-album.png" width="200"><br>The sticker album: one sticker hidden in every level. |
 
 | | |
 | --- | --- |
 | Wardrobe and shop | caps (the bill always shows), shirts, backpacks and capes, things in hand, pets that follow him, trails, skin and hair. Skin and hair colours are free; the odd skins (Martian, ghost, zombie, pumpkin, robot, lava, rainbow) cost coins |
-| Sticker album | one sticker hidden in every level, sixteen in all |
-| Trophies | fourteen, bronze to gold |
+| Sticker album | one sticker hidden in every level, twenty-four in all |
+| Trophies | sixteen, bronze to gold |
 | Stats, settings | difficulty, sound effects, music |
 | Play with a friend | the key race, below |
 
@@ -88,6 +93,17 @@ the reference: the guest eases towards it from the time in every position
 message (15 a second), because if both corrected they would chase each
 other's old positions.
 
+## On a computer
+
+The same game runs on macOS and Windows:
+[charliejgallo/MonsterHop](https://github.com/charliejgallo/MonsterHop) builds
+this folder's code with SDL2 in place of the watch. What only the computer
+does is under `MH_DESKTOP`: menus laid out for a 16:9 window, two players on
+a split screen, and, with the HD pack (`MH_RES=2` renders, `pack_assets.py
+--hd`), a 1600x900 frame with far scenery behind each zone
+(`tools/blender/backdrops.py`), bloom, a vignette and each zone's particles.
+The watch's build is unchanged by any of it.
+
 ## How it is built
 
 | File | What |
@@ -118,9 +134,9 @@ level plays, which leaves 888 KB of PSRAM free.
 | `tools/blender/` | the art: `SPEC.md` is the art bible (projection, passes, palettes), `mh_common.py` the shared camera and passes |
 | `tools/levels.py` + `tools/levels/*.py` | the levels as text maps; `python3 tools/levels.py` checks that every key, the exit and the sticker are in reach and that nothing stands on a prop or walks through one |
 | `tools/pack_assets.py` | runs `levels.py` (and stops if a level has problems), then packs every `assets/*/meta.json` and the levels into `assets/monsterhop.pak`, and the same in 7 MB parts in `assets/card/` (`monsterhop.pak`, `monsterhop.pak.1`...) because the portal takes 8 MB per upload; copy the parts to the card's `/apps/` and the game reads them as one file |
-| `tools/build.sh` → `/tmp/mhh` | the test bench on the Mac: `frame`, `bench`, `play` (the rules from a script of hops), `shot` (the same, then the whole scene to a picture), `racetest` (the shared keys) |
+| `tools/build.sh` → `/tmp/mhh` | the test bench on the Mac: `frame`, `bench`, `play` (the rules from a script of hops), `shot` (the same, then the whole scene to a picture), `racetest` (the shared keys), `bot <level|all>` (a Tommy that monsters cannot hurt looks for the way through every key to the exit: it wins all 24) |
 
-Simulator switches: `MH_LEVEL=<0..15>|test`, `MH_DIFF`, `MH_UNLOCK=1`,
+Simulator switches: `MH_LEVEL=<0..23>|test`, `MH_DIFF`, `MH_UNLOCK=1`,
 `MH_COINS`, `MH_TRAIL=1..4`, `MH_START=x,y` (the level starts in that cell),
 `MH_SCREEN=map|house|wardrobe|shop|album|trophies|stats|settings`, and
 `MH_RACE=<level>` with two simulators linked by `AOS_SIM_LINK_PORT` /
