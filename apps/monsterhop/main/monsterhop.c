@@ -238,6 +238,13 @@ static bool load_level(app_t *a, int idx)
     return true;
 }
 
+/* the pack's file: the desktop may choose the HD one */
+#ifdef MH_VIEW_RUNTIME
+#define PAK_NAME mh_pak_name
+#else
+#define PAK_NAME "monsterhop"
+#endif
+
 enum { JOB_MENU_BACK = JOB_UI + 1 };
 
 static void run_job(app_t *a, int j)
@@ -247,7 +254,7 @@ static void run_job(app_t *a, int j)
     switch (j) {
     case JOB_BOOT: {
         char path[512];
-        snprintf(path, sizeof path, "%s/monsterhop.pak", aos_hal_path_apps());
+        snprintf(path, sizeof path, "%s/%s.pak", aos_hal_path_apps(), PAK_NAME);
         bool ok = mh_art_open(path);
         if (ok) {
             a->outfit_dirty = false;
@@ -638,24 +645,35 @@ static bool text_mask(mh_mask_t *m, const char *txt, const lv_font_t *font)
     return m->a != NULL;
 }
 
+/* the HUD's fonts: with the desktop's HD art, the next sizes up (the font
+ * files top out at 48 px; 48/28 and 36/20 are close enough to twice) */
+#if defined(MH_DESKTOP)
+#include "aos_fonts.h"
+#define HUD_BIG   (MH_PX > 1 ? &aos_montserrat_48 : aos_font_title)
+#define HUD_SMALL (MH_PX > 1 ? &aos_montserrat_36 : aos_font_body)
+#else
+#define HUD_BIG   aos_font_title
+#define HUD_SMALL aos_font_body
+#endif
+
 static void hud_build(app_t *a)
 {
     static const char digits[] = "0123456789:/";
     char s[2] = { 0, 0 };
     for (int i = 0; i < 12; i++) {
         s[0] = digits[i];
-        text_mask(&a->hud.dig[i], s, aos_font_title);
-        text_mask(&a->hud.sdig[i], s, aos_font_body);
+        text_mask(&a->hud.dig[i], s, HUD_BIG);
+        text_mask(&a->hud.sdig[i], s, HUD_SMALL);
     }
-    text_mask(&a->hud.msg[MSG_KEY], _("¡Llave!"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_OPEN], _("¡Se abrió la salida!"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_CHECK], _("Punto de control"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_TIMEUP], _("¡Sin tiempo!"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_READY], _("¿Listo?"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_GO], _("¡Ya!"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_LIFE], _("¡Una vida más!"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_TIME], _("+30 segundos"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_LOW], _("¡Rápido!"), aos_font_title);
+    text_mask(&a->hud.msg[MSG_KEY], _("¡Llave!"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_OPEN], _("¡Se abrió la salida!"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_CHECK], _("Punto de control"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_TIMEUP], _("¡Sin tiempo!"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_READY], _("¿Listo?"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_GO], _("¡Ya!"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_LIFE], _("¡Una vida más!"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_TIME], _("+30 segundos"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_LOW], _("¡Rápido!"), HUD_BIG);
     a->hs.msg = -1;
 }
 
@@ -726,8 +744,8 @@ static uint8_t pak_tag(void)
     uint32_t total = 0;
     for (int i = 0; i < 8; i++) {
         char path[512];
-        if (i) snprintf(path, sizeof path, "%s/monsterhop.pak.%d", aos_hal_path_apps(), i);
-        else snprintf(path, sizeof path, "%s/monsterhop.pak", aos_hal_path_apps());
+        if (i) snprintf(path, sizeof path, "%s/%s.pak.%d", aos_hal_path_apps(), PAK_NAME, i);
+        else snprintf(path, sizeof path, "%s/%s.pak", aos_hal_path_apps(), PAK_NAME);
         FILE *f = fopen(path, "rb");
         if (!f) break;
         fseek(f, 0, SEEK_END);
@@ -797,7 +815,7 @@ void mha_level_start(app_t *a, int idx)
     a->job_level = idx;
     free(a->hud.title.a);
     a->hud.title.a = NULL;
-    text_mask(&a->hud.title, mha_level_title(idx), aos_font_title);
+    text_mask(&a->hud.title, mha_level_title(idx), HUD_BIG);
     mh_ui_loading_text(a, mha_level_title(idx));
     mh_ui_before_job(a, UJ_FREE_MAP);
     s_pending_ui = 0;

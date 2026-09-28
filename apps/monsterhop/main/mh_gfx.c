@@ -19,6 +19,8 @@
 
 #ifdef MH_VIEW_RUNTIME
 int mh_view_w = 368, mh_view_h = 448;
+int mh_px = 1;
+const char *mh_pak_name = "monsterhop";
 #endif
 
 void *mh_malloc(size_t n)

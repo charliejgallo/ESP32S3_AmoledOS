@@ -10,8 +10,8 @@
  * the panels' content starts at the watch's column, WX/WY move them back.
  */
 
-#define WX(x) ((x) - (MH_W - AOS_SCREEN_W) / 2)
-#define WY(y) ((y) - (MH_H - AOS_SCREEN_H) / 2)
+#define WX(x) ((x) - (MH_UI_W - AOS_SCREEN_W) / 2)
+#define WY(y) ((y) - (MH_UI_H - AOS_SCREEN_H) / 2)
 
 static struct {
     /* title and house */
@@ -171,7 +171,7 @@ static void wide_build_title(app_t *a, lv_obj_t *root)
     /* darker towards the bottom, where the buttons are */
     lv_obj_t *dim = lv_obj_create(p);
     lv_obj_remove_style_all(dim);
-    lv_obj_set_size(dim, MH_W, MH_H);
+    lv_obj_set_size(dim, MH_UI_W, MH_UI_H);
     lv_obj_set_pos(dim, WX(0), WY(0));
     lv_obj_set_style_bg_color(dim, lv_color_hex(0x000000), 0);
     lv_obj_set_style_bg_grad_color(dim, lv_color_hex(0x05030A), 0);
@@ -189,7 +189,7 @@ static void wide_build_title(app_t *a, lv_obj_t *root)
 
 static void wide_title_refresh(app_t *a)
 {
-    if (a->ui_map.buf && !W.bg.buf) wide_scale(&W.bg, &a->ui_map, MH_W, a->ui_map.h * MH_W / a->ui_map.w);
+    if (a->ui_map.buf && !W.bg.buf) wide_scale(&W.bg, &a->ui_map, MH_UI_W, a->ui_map.h * MH_UI_W / a->ui_map.w);
     wide_set(W.t_bg, &W.bg);
     if (a->ui_logo.buf && !W.logo.buf) {
         int w = 360, h = a->ui_logo.h * 360 / a->ui_logo.w;
@@ -610,7 +610,7 @@ static void wide_album_layout(app_t *a)
     lv_obj_t *title = lv_obj_get_child(s_ui.p[ST_ALBUM], 0);
     if (title) {
         lv_obj_set_pos(title, WX(0), WY(12));
-        lv_obj_set_width(title, MH_W);
+        lv_obj_set_width(title, MH_UI_W);
         lv_obj_set_style_text_font(title, aos_font_title, 0);
     }
 }
@@ -629,7 +629,7 @@ static void wide_trophies_layout(app_t *a)
     lv_obj_t *title = lv_obj_get_child(s_ui.p[ST_TROPHIES], 0);
     if (title) {
         lv_obj_set_pos(title, WX(0), WY(10));
-        lv_obj_set_width(title, MH_W);
+        lv_obj_set_width(title, MH_UI_W);
         lv_obj_set_style_text_font(title, aos_font_title, 0);
     }
 }
@@ -644,7 +644,7 @@ static void wide_build_stats(app_t *a)
     lv_obj_t *title = lv_obj_get_child(p, 0);
     if (title) {
         lv_obj_set_pos(title, WX(0), WY(10));
-        lv_obj_set_width(title, MH_W);
+        lv_obj_set_width(title, MH_UI_W);
         lv_obj_set_style_text_font(title, aos_font_title, 0);
     }
     for (int i = 0; i < 12; i++) {
@@ -709,7 +709,7 @@ static void lang_cb(lv_event_t *e)
 static void wide_build_settings(app_t *a, lv_obj_t *root)
 {
     lv_obj_t *p = s_ui.p[ST_SETTINGS] = panel(root, 256);
-    label(p, _("Ajustes"), aos_font_title, 0xFFFFFF, WX(0), WY(10), MH_W);
+    label(p, _("Ajustes"), aos_font_title, 0xFFFFFF, WX(0), WY(10), MH_UI_W);
     /* the game */
     lv_obj_t *c = side_box(p, 16, 58, 376, 380);
     label(c, _("Dificultad"), aos_font_body, 0xC8C0D8, 0, 12, 376);
@@ -851,7 +851,7 @@ static void wide_tick(app_t *a, int dt_ms)
     /* the title's map drifts slowly up and back, over the zones */
     if (a->state == ST_MENU && W.bg.buf) {
         W.pan += dt_ms / 1000.0f;
-        int span = W.bg.h - MH_H;
+        int span = W.bg.h - MH_UI_H;
         float k = 0.5f - 0.5f * cosf(W.pan * 0.06f);
         lv_obj_set_y(W.t_bg, WY(-span + (int)(k * span * 0.8f)));
     }

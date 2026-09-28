@@ -25,6 +25,14 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, 'assets')
 OUT = os.path.join(ASSETS, 'monsterhop.pak')
+# --hd: the desktop's pack at twice the resolution (monsterhop_hd.pak): each
+# folder from assets_hd/ when it was rendered in HD (tools/blender with
+# MH_RES=2), else the normal art doubled (a stand-in, said at the end);
+# the interface stays as it is (LVGL draws it at 800 x 450)
+HD = '--hd' in sys.argv
+ASSETS_HD = os.path.join(ROOT, 'assets_hd')
+OUT_HD = os.path.join(ASSETS, 'monsterhop_hd.pak')
+K = 1                      # the doubling of the stand-ins, per folder
 CARD = os.path.join(ASSETS, 'card')          # the same, in parts under 8 MB
 PART = 7 * 1024 * 1024
 LZ4 = '/tmp/mh_lz4blk'
@@ -57,7 +65,14 @@ def rgb565(rgb, dither=True):
 
 
 def load(d, fn, mode):
-    return np.asarray(Image.open(os.path.join(d, fn)).convert(mode))
+    im = Image.open(os.path.join(d, fn)).convert(mode)
+    if K != 1:
+        im = im.resize((im.width * K, im.height * K), Image.NEAREST)
+    return np.asarray(im)
+
+
+def anchor(info):
+    return info.get('ax', 0) * K, info.get('ay', 0) * K
 
 
 def encode_frame(fmt, cover, planes, ax, ay):
@@ -102,7 +117,7 @@ def frame_main(d, info):
         cover &= a4 > 0
         ida = ((ids.astype(np.int32) << 4) | a4).astype(np.uint8)
         pl = np.stack([ida, light, z], axis=2)
-        return LID, encode_frame(LID, cover, pl, info.get('ax', 0), info.get('ay', 0))
+        return LID, encode_frame(LID, cover, pl, *anchor(info))
     c = rgb565(img[..., :3])
     if info.get('kind') == 'ui':
         # interface art: colour and alpha for LVGL, no depth; opaque images
@@ -110,12 +125,12 @@ def frame_main(d, info):
         pl = np.stack([(c & 255).astype(np.uint8), (c >> 8).astype(np.uint8), al], axis=2)
         return IMG, encode_frame(IMG, al > 0 if (al < 255).any() else np.ones(al.shape, bool), pl, 0, 0)
     pl = np.stack([(c & 255).astype(np.uint8), (c >> 8).astype(np.uint8), al, z], axis=2)
-    return COL, encode_frame(COL, cover, pl, info.get('ax', 0), info.get('ay', 0))
+    return COL, encode_frame(COL, cover, pl, *anchor(info))
 
 
 def frame_plane(d, fn, info):
     a = load(d, fn, 'L')
-    return encode_frame(PLANE, a > 3, a[..., None], info.get('ax', 0), info.get('ay', 0))
+    return encode_frame(PLANE, a > 3, a[..., None], *anchor(info))
 
 
 def frame_glow(d, fn, info):
@@ -123,7 +138,7 @@ def frame_glow(d, fn, info):
     c = rgb565(g, dither=False)
     cover = c > 0
     pl = np.stack([(c & 255).astype(np.uint8), (c >> 8).astype(np.uint8)], axis=2)
-    return encode_frame(GLOW, cover, pl, info.get('ax', 0), info.get('ay', 0))
+    return encode_frame(GLOW, cover, pl, *anchor(info))
 
 
 # Rendered but left out of the pack, for the watch's memory (a level's art
@@ -175,8 +190,17 @@ def main():
         if ms and not s[1]:
             s[1] = ms
 
+    global K
+    stand_ins = []
     for dn in dirs:
         d = os.path.join(ASSETS, dn)
+        K = 1
+        if HD and dn != 'ui':
+            if os.path.isfile(os.path.join(ASSETS_HD, dn, 'meta.json')):
+                d = os.path.join(ASSETS_HD, dn)
+            else:
+                K = 2
+                stand_ins.append(dn)
         with open(os.path.join(d, 'meta.json')) as fh:
             meta = json.load(fh)
         n = 0
@@ -282,12 +306,17 @@ def main():
         data += c
         if verbose:
             print('  %-31s fmt %d x%-3d raw %7d lz4 %7d' % (name, fmt, nf, len(raw), len(c)))
-    with open(OUT, 'wb') as fh:
+    out = OUT_HD if HD else OUT
+    with open(out, 'wb') as fh:
         fh.write(b'MHPK' + struct.pack('<HH', 1, len(entries)))
         fh.write(table)
         fh.write(data)
     print('%s: %d entries, %.2f MB raw, %.2f MB on the card' %
-          (os.path.relpath(OUT, ROOT), len(entries), total_raw / 1e6, (hdr_len + len(data)) / 1e6))
+          (os.path.relpath(out, ROOT), len(entries), total_raw / 1e6, (hdr_len + len(data)) / 1e6))
+    if HD:
+        if stand_ins:
+            print('HD: not rendered yet, doubled from the normal art: ' + ', '.join(stand_ins))
+        return
     # the card's copy in parts, because the portal takes 8 MB per upload:
     # monsterhop.pak, monsterhop.pak.1, ... read back as one file (mh_art.c)
     blob = open(OUT, 'rb').read()

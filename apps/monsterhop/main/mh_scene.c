@@ -240,7 +240,7 @@ void mh_scene_bits_draw(const mh_scene_t *s, const mh_world_t *w, mh_img_t *im, 
     for (int i = 0; i < s->nmark; i++) {
         int x = (int)(mh_lpx(w, s->mark[i].x, s->mark[i].y) - (float)cam_x);
         int y = (int)(mh_lpy(w, s->mark[i].x, s->mark[i].y, s->mark[i].z) - (float)cam_y);
-        int rx = 34 * s->mark[i].r / 255, ry = 20 * s->mark[i].r / 255;
+        int rx = 34 * MH_PX * s->mark[i].r / 255, ry = 20 * MH_PX * s->mark[i].r / 255;
         if (y + ry < im->cy0 || y - ry > im->cy1 || x + rx < 0 || x - rx > MH_W) continue;
         if (s->mark[i].col) tint_ellipse(im, x, y, rx, ry, mh_hex(s->mark[i].col), s->mark[i].a);
         else mh_shadow_ellipse(im, x, y, rx, ry, s->mark[i].a);
@@ -255,22 +255,23 @@ void mh_scene_bits_draw(const mh_scene_t *s, const mh_world_t *w, mh_img_t *im, 
         switch (s->bit[i].kind) {
         case TRAIL_SPARKLES: {
             /* a four-pointed glint that shrinks */
-            int r = f < 0.4f ? 6 : f < 0.7f ? 4 : 3;
-            mh_rect_blend(im, x - r, y, 2 * r + 1, 1, c, a);
-            mh_rect_blend(im, x, y - r, 1, 2 * r + 1, c, a);
-            mh_rect_blend(im, x - r / 2, y - 1, r + 1, 3, c, a / 2);
-            mh_rect_blend(im, x - 1, y - r / 2, 3, r + 1, c, a / 2);
-            mh_disc(im, x * 16 + 8, y * 16 + 8, 40, mh_hex(0xFFFFFF), a);
+            int P = MH_PX, r = (f < 0.4f ? 6 : f < 0.7f ? 4 : 3) * P;
+            mh_rect_blend(im, x - r, y, 2 * r + 1, P, c, a);
+            mh_rect_blend(im, x, y - r, P, 2 * r + 1, c, a);
+            mh_rect_blend(im, x - r / 2, y - P, r + 1, 3 * P, c, a / 2);
+            mh_rect_blend(im, x - P, y - r / 2, 3 * P, r + 1, c, a / 2);
+            mh_disc(im, x * 16 + 8, y * 16 + 8, 40 * P, mh_hex(0xFFFFFF), a);
             break;
         }
         case TRAIL_CONFETTI: {
             /* a paper that flips as it falls */
             bool wide = ((int)(s->bit[i].t * 16) + i) & 1;
-            mh_rect_blend(im, x - 3, y - 2, wide ? 7 : 3, wide ? 3 : 5, c, a);
+            mh_rect_blend(im, x - 3 * MH_PX, y - 2 * MH_PX, (wide ? 7 : 3) * MH_PX, (wide ? 3 : 5) * MH_PX, c, a);
             break;
         }
         case TRAIL_HEARTS: {
             int k = f < 0.2f ? 12 + (int)(f * 20) : 16;     /* grows a little, then floats */
+            k *= MH_PX;
             mh_disc(im, x * 16 - k * 4, y * 16, k * 4, c, a);
             mh_disc(im, x * 16 + k * 4, y * 16, k * 4, c, a);
             for (int r = 0; r < k / 3; r++) mh_rect_blend(im, x - k / 2 + r, y + 1 + r, k - 2 * r + 1, 1, c, a);
@@ -279,8 +280,8 @@ void mh_scene_bits_draw(const mh_scene_t *s, const mh_world_t *w, mh_img_t *im, 
         }
         case TRAIL_STEPS:
             /* a shoe print: the sole and the heel */
-            mh_disc(im, x * 16, y * 16, 64, c, a * 5 / 8);
-            mh_disc(im, (x + 3) * 16, (y - 4) * 16, 44, c, a * 5 / 8);
+            mh_disc(im, x * 16, y * 16, 64 * MH_PX, c, a * 5 / 8);
+            mh_disc(im, (x + 3 * MH_PX) * 16, (y - 4 * MH_PX) * 16, 44 * MH_PX, c, a * 5 / 8);
             break;
         default:
             break;
@@ -415,7 +416,8 @@ static mh_draw_t *put(mh_dlist_t *l, const mh_world_t *w, const mh_spr_t *s, int
 static bool visible(const mh_scene_t *s, const mh_world_t *w, float x, float y, float z)
 {
     float lx = mh_lpx(w, x, y), ly = mh_lpy(w, x, y, z);
-    return lx > s->icam_x - 160 && lx < s->icam_x + MH_W + 160 && ly > s->icam_y - 60 && ly < s->icam_y + MH_H + 260;
+    return lx > s->icam_x - 160 * MH_PX && lx < s->icam_x + MH_W + 160 * MH_PX && ly > s->icam_y - 60 * MH_PX &&
+           ly < s->icam_y + MH_H + 260 * MH_PX;
 }
 
 /* ---- the camera and the pet ---- */
@@ -1080,7 +1082,7 @@ void mh_scene_build(mh_scene_t *s, const mh_world_t *w, const mh_game_t *g, cons
     mh_scene_look(s, w, h->x + DXv[h->dir] * lead * 0.5f, h->y + DYv[h->dir] * lead, h->floor * FLOOR_M, dt, false);
     if (g->shake > 0) {
         /* a big one's steps: the view jolts */
-        int k = (int)(g->shake * 14.0f);
+        int k = (int)(g->shake * 14.0f * MH_PX);
         s->icam_x += (int)(sinf(s->anim_t * 71.0f) * (float)k);
         s->icam_y += (int)(sinf(s->anim_t * 53.0f + 1.3f) * (float)k);
     }

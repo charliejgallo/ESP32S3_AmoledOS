@@ -20,10 +20,21 @@
 extern int mh_view_w, mh_view_h;
 #define MH_W        mh_view_w
 #define MH_H        mh_view_h
+/* pixels per pixel of the art's projection: 2 with the desktop's HD art
+ * (+1 m along X is then 120 px): every constant in screen pixels is
+ * multiplied by it */
+extern int mh_px;
+/* the pack's name without ".pak": the desktop picks the HD one */
+extern const char *mh_pak_name;
+#define MH_PX       mh_px
 #else
 #define MH_W        368
 #define MH_H        448
+#define MH_PX       1
 #endif
+/* the view for LVGL, whose pixels are the art's standard ones */
+#define MH_UI_W     (MH_W / MH_PX)
+#define MH_UI_H     (MH_H / MH_PX)
 
 static inline uint16_t mh_rgb(int r, int g, int b)
 {

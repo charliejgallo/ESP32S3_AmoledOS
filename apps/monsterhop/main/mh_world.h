@@ -38,7 +38,7 @@
 #define MH_CNX          (MH_CW / MH_CB)
 #define MH_CNY          (MH_CH / MH_CB)
 #define MH_DFAR         0x7FFF      /* the depth of nothing                   */
-#define MH_DPLANE_PX    (-0.51620f) /* depth per LP row on a horizontal plane */
+#define MH_DPLANE_PX    (-0.51620f / (float)MH_PX) /* depth per LP row on a horizontal plane */
 
 /* depth units per metre along X, Y, Z (1/32 m along the view direction) */
 #define MH_DX           (-7.22662f)
@@ -78,10 +78,13 @@ void mh_world_free(mh_world_t *w);
 bool mh_world_init_twin(mh_world_t *w, const mh_world_t *of);
 
 /* LP position of a world point (x, y in metres, z in metres) */
-static inline float mh_lpx(const mh_world_t *w, float x, float y) { return 60.0f * x + 20.0f * y + (float)w->ox; }
+static inline float mh_lpx(const mh_world_t *w, float x, float y)
+{
+    return (60.0f * x + 20.0f * y) * (float)MH_PX + (float)w->ox;
+}
 static inline float mh_lpy(const mh_world_t *w, float x, float y, float z)
 {
-    return 14.0f * x - 42.0f * y - z * (23.0f / MH_FLOOR_M) + (float)w->oy;
+    return (14.0f * x - 42.0f * y - z * (23.0f / MH_FLOOR_M)) * (float)MH_PX + (float)w->oy;
 }
 static inline int mh_depth(const mh_world_t *w, float x, float y, float z)
 {

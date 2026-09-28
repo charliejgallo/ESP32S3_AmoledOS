@@ -40,10 +40,10 @@ bool mh_world_init(mh_world_t *w, const mh_level_t *lv)
 {
     memset(w, 0, sizeof(*w));
     w->lv = lv;
-    w->ox = 160;
-    w->oy = 42 * lv->h + 260;
-    w->lw = 60 * lv->w + 20 * lv->h + 320;
-    w->lh = w->oy + 14 * lv->w + 46 + 120;
+    w->ox = 160 * MH_PX;
+    w->oy = (42 * lv->h + 260) * MH_PX;
+    w->lw = (60 * lv->w + 20 * lv->h + 320) * MH_PX;
+    w->lh = w->oy + (14 * lv->w + 46 + 120) * MH_PX;
     w->dofs = (int)(7.23f * lv->w) + 180;
     w->cc = (uint16_t *)mh_malloc((size_t)MH_CW * MH_CH * 2);
     w->cd = (uint16_t *)mh_malloc((size_t)MH_CW * MH_CH * 2);
@@ -112,8 +112,8 @@ void mh_world_invalidate_cell(mh_world_t *w, int x, int y)
 {
     /* the art of a cell reaches ~150 px around its anchor, and 240 above */
     float ax = mh_lpx(w, x + 0.5f, y + 0.5f), ay = mh_lpy(w, x + 0.5f, y + 0.5f, 0);
-    int bx0 = ((int)ax - 150) / MH_CB, bx1 = ((int)ax + 150) / MH_CB;
-    int by0 = ((int)ay - 260) / MH_CB, by1 = ((int)ay + 90) / MH_CB;
+    int bx0 = ((int)ax - 150 * MH_PX) / MH_CB, bx1 = ((int)ax + 150 * MH_PX) / MH_CB;
+    int by0 = ((int)ay - 260 * MH_PX) / MH_CB, by1 = ((int)ay + 90 * MH_PX) / MH_CB;
     for (int by = by0; by <= by1; by++) {
         for (int bx = bx0; bx <= bx1; bx++) {
             if (bx < 0 || by < 0) continue;
@@ -282,13 +282,13 @@ static void draw_block(mh_world_t *w, int bx, int by)
         }
     }
     /* the cells whose art can reach the block: anchors within this LP box */
-    float qx0 = (float)(b.x0 - 150 - w->ox), qx1 = (float)(b.x0 + MH_CB + 150 - w->ox);
-    float qy0 = (float)(b.y0 - 110 - w->oy), qy1 = (float)(b.y0 + MH_CB + 260 - w->oy);
+    float qx0 = (float)(b.x0 - 150 * MH_PX - w->ox), qx1 = (float)(b.x0 + MH_CB + 150 * MH_PX - w->ox);
+    float qy0 = (float)(b.y0 - 110 * MH_PX - w->oy), qy1 = (float)(b.y0 + MH_CB + 260 * MH_PX - w->oy);
     float cx[4] = { qx0, qx1, qx0, qx1 }, cy[4] = { qy0, qy0, qy1, qy1 };
     float wx0 = 1e9f, wx1 = -1e9f, wy0 = 1e9f, wy1 = -1e9f;
     for (int k = 0; k < 4; k++) {
-        float X = (42.0f * cx[k] + 20.0f * cy[k]) / 2800.0f;
-        float Y = (14.0f * cx[k] - 60.0f * cy[k]) / 2800.0f;
+        float X = (42.0f * cx[k] + 20.0f * cy[k]) / (2800.0f * MH_PX);
+        float Y = (14.0f * cx[k] - 60.0f * cy[k]) / (2800.0f * MH_PX);
         if (X < wx0) wx0 = X;
         if (X > wx1) wx1 = X;
         if (Y < wy0) wy0 = Y;

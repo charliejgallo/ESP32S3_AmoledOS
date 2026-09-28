@@ -84,47 +84,106 @@ static bool uimg_alloc(mh_uimg_t *u, int w, int h)
     return true;
 }
 
-/* a sprite over the picture at (x, y) (its frame's top-left), alpha-over */
-static void uimg_put(mh_uimg_t *u, const mh_spr_t *s, int fmt, const mh_lut_t *lut, int x, int y)
+/* one pixel over the picture, alpha-over */
+static inline void uimg_px(mh_uimg_t *u, int xx, int yy, uint16_t c, int a)
 {
-    if (!u->buf || !s) return;
     uint16_t *col = (uint16_t *)u->buf;
     uint8_t *al = u->buf + (size_t)u->w * u->h * 2;
-    int bpp = fmt == MH_PX_COL ? 4 : 3;
-    for (int r = 0; r < s->h; r++) {
-        int yy = y + r;
-        if (yy < 0 || yy >= u->h) continue;
-        int x0, x1;
-        const uint8_t *p = mh_spr_row(s, r, &x0, &x1);
-        for (int k = x0; k < x1; k++, p += bpp) {
-            int xx = x + k;
-            if (xx < 0 || xx >= u->w) continue;
-            uint16_t c;
-            int a;
-            if (fmt == MH_PX_LID) {
-                a = (p[0] & 15) * 17;
-                if (!a) continue;
-                c = lut ? lut->c[p[0] >> 4][p[1] >> 2] : mh_rgb(p[1], p[1], p[1]);
-            } else {
-                c = (uint16_t)(p[0] | (p[1] << 8));
-                a = p[2];
-                if (!a) continue;
-            }
-            size_t i = (size_t)yy * u->w + xx;
-            int da = al[i];
-            if (da == 0 || a >= 255) {
-                col[i] = c;
-                al[i] = (uint8_t)a;
-            } else {
-                col[i] = mh_blend(col[i], c, a);
-                al[i] = (uint8_t)(da + ((255 - da) * a >> 8));
-            }
-        }
+    size_t i = (size_t)yy * u->w + xx;
+    int da = al[i];
+    if (da == 0 || a >= 255) {
+        col[i] = c;
+        al[i] = (uint8_t)a;
+    } else {
+        col[i] = mh_blend(col[i], c, a);
+        al[i] = (uint8_t)(da + ((255 - da) * a >> 8));
     }
 }
 
-/* a sheet's frame alone, as a picture of its own size */
-static bool uimg_sheet(mh_uimg_t *u, const char *name, int frame, const mh_lut_t *lut)
+/* a sprite pixel's colour and alpha */
+static inline int spr_px(const uint8_t *p, int fmt, const mh_lut_t *lut, uint16_t *c)
+{
+    if (fmt == MH_PX_LID) {
+        int a = (p[0] & 15) * 17;
+        if (a) *c = lut ? lut->c[p[0] >> 4][p[1] >> 2] : mh_rgb(p[1], p[1], p[1]);
+        return a;
+    }
+    *c = (uint16_t)(p[0] | (p[1] << 8));
+    return p[2];
+}
+
+/* a sprite over the picture at (x, y) (its frame's top-left), alpha-over.
+ * The characters' art comes at MH_PX times the menus' size (the desktop's
+ * HD pack): k = MH_PX folds each k x k block into one pixel, averaged, so
+ * the anchor (x + ax, y + ay) lands where it would at 1x. */
+static void uimg_put_k(mh_uimg_t *u, const mh_spr_t *s, int fmt, const mh_lut_t *lut, int x, int y, int k)
+{
+    if (!u->buf || !s) return;
+    int bpp = fmt == MH_PX_COL ? 4 : 3;
+    if (k <= 1) {
+        for (int r = 0; r < s->h; r++) {
+            int yy = y + r;
+            if (yy < 0 || yy >= u->h) continue;
+            int x0, x1;
+            const uint8_t *p = mh_spr_row(s, r, &x0, &x1);
+            for (int q = x0; q < x1; q++, p += bpp) {
+                int xx = x + q;
+                if (xx < 0 || xx >= u->w) continue;
+                uint16_t c;
+                int a = spr_px(p, fmt, lut, &c);
+                if (a) uimg_px(u, xx, yy, c, a);
+            }
+        }
+        return;
+    }
+    /* the block grid is aligned on the anchor */
+    int ox = (k - s->ax % k) % k, oy = (k - s->ay % k) % k;
+    int X0 = x + s->ax - (s->ax + ox) / k, Y0 = y + s->ay - (s->ay + oy) / k;
+    int hw = (s->w + ox + k - 1) / k, hh = (s->h + oy + k - 1) / k;
+    uint32_t *acc = (uint32_t *)calloc((size_t)hw * 4, sizeof(uint32_t));
+    if (!acc) return;
+    for (int hy = 0; hy < hh; hy++) {
+        memset(acc, 0, (size_t)hw * 4 * sizeof(uint32_t));
+        for (int r = hy * k - oy; r < hy * k - oy + k; r++) {
+            if (r < 0 || r >= s->h) continue;
+            int x0, x1;
+            const uint8_t *p = mh_spr_row(s, r, &x0, &x1);
+            for (int q = x0; q < x1; q++, p += bpp) {
+                uint16_t c;
+                int a = spr_px(p, fmt, lut, &c);
+                if (!a) continue;
+                int cr, cg, cb;
+                mh_unpack(c, &cr, &cg, &cb);
+                uint32_t *e = acc + (size_t)((q + ox) / k) * 4;
+                e[0] += (uint32_t)(cr * a);
+                e[1] += (uint32_t)(cg * a);
+                e[2] += (uint32_t)(cb * a);
+                e[3] += (uint32_t)a;
+            }
+        }
+        int yy = Y0 + hy;
+        if (yy < 0 || yy >= u->h) continue;
+        for (int hx = 0; hx < hw; hx++) {
+            const uint32_t *e = acc + (size_t)hx * 4;
+            if (!e[3]) continue;
+            int xx = X0 + hx;
+            if (xx < 0 || xx >= u->w) continue;
+            uint16_t c = mh_rgb((int)(e[0] / e[3]), (int)(e[1] / e[3]), (int)(e[2] / e[3]));
+            int a = (int)(e[3] / (uint32_t)(k * k));
+            uimg_px(u, xx, yy, c, a > 255 ? 255 : a);
+        }
+    }
+    free(acc);
+}
+
+static void uimg_put(mh_uimg_t *u, const mh_spr_t *s, int fmt, const mh_lut_t *lut, int x, int y)
+{
+    uimg_put_k(u, s, fmt, lut, x, y, MH_PX);
+}
+
+/* a sheet's frame alone, as a picture of its own size; art (a monster, a
+ * character: not the menus' own pictures) comes at MH_PX in the HD pack */
+static bool uimg_sheet(mh_uimg_t *u, const char *name, int frame, const mh_lut_t *lut, bool art)
 {
     mh_anim_t an;
     if (!mh_art_load(name, &an)) {
@@ -132,8 +191,11 @@ static bool uimg_sheet(mh_uimg_t *u, const char *name, int frame, const mh_lut_t
         return false;
     }
     const mh_spr_t *s = &an.f[frame % an.n];
-    bool ok = uimg_alloc(u, s->w, s->h);
-    if (ok) uimg_put(u, s, an.fmt, lut, 0, 0);
+    int k = art ? MH_PX : 1;
+    bool ok = uimg_alloc(u, (s->w + k - 1) / k + (k > 1), (s->h + k - 1) / k + (k > 1));
+    /* at k > 1 the picture's (0, 0) is where the first block lands */
+    int ox = (k - s->ax % k) % k, oy = (k - s->ay % k) % k;
+    if (ok) uimg_put_k(u, s, an.fmt, lut, k > 1 ? (s->ax + ox) / k - s->ax : 0, k > 1 ? (s->ay + oy) / k - s->ay : 0, k);
     mh_anim_free(&an);
     return ok;
 }
@@ -174,7 +236,7 @@ static void cards_build(app_t *a)
         char nm[48];
         if (k[0] == '#') {
             snprintf(nm, sizeof nm, "emblem_%s", k + 1);
-            uimg_sheet(&a->ui_card[i], nm, 0, NULL);
+            uimg_sheet(&a->ui_card[i], nm, 0, NULL, true);
         } else {
             mh_pal_t p;
             memset(&p, 0, sizeof p);
@@ -183,7 +245,7 @@ static void cards_build(app_t *a)
             mh_lut_t lut;
             mh_lut_build(&lut, &p, 0xFFFFFF, 1u << 5);
             snprintf(nm, sizeof nm, "card_%s", k);
-            uimg_sheet(&a->ui_card[i], nm, 0, &lut);
+            uimg_sheet(&a->ui_card[i], nm, 0, &lut, true);
         }
         mh_yield();
     }
@@ -215,19 +277,19 @@ void mh_ui_job(app_t *a, int what)
     char nm[32];
     switch (what) {
     case UJ_MENU:
-        if (!a->ui_map.buf) uimg_sheet(&a->ui_map, "map", 0, NULL);
-        if (!a->ui_logo.buf) uimg_sheet(&a->ui_logo, "logo", 0, NULL);
-        if (!a->ui_house.buf) uimg_sheet(&a->ui_house, "house", 0, NULL);
+        if (!a->ui_map.buf) uimg_sheet(&a->ui_map, "map", 0, NULL, false);
+        if (!a->ui_logo.buf) uimg_sheet(&a->ui_logo, "logo", 0, NULL, false);
+        if (!a->ui_house.buf) uimg_sheet(&a->ui_house, "house", 0, NULL, false);
         {
             static const char *const em[MH_EMBLEMS] = { "city", "castle", "desert", "forest", "swamp", "graveyard",
                                                         "lock", "dino", "bay" };
             for (int i = 0; i < MH_EMBLEMS; i++) {
                 if (a->ui_emblem[i].buf) continue;
                 snprintf(nm, sizeof nm, "emblem_%s", em[i]);
-                uimg_sheet(&a->ui_emblem[i], nm, 0, NULL);
+                uimg_sheet(&a->ui_emblem[i], nm, 0, NULL, false);
             }
             static const char *const tr[4] = { "trophy_bronze", "trophy_silver", "trophy_gold", "medal" };
-            for (int i = 0; i < 4; i++) if (!a->ui_trophy[i].buf) uimg_sheet(&a->ui_trophy[i], tr[i], 0, NULL);
+            for (int i = 0; i < 4; i++) if (!a->ui_trophy[i].buf) uimg_sheet(&a->ui_trophy[i], tr[i], 0, NULL, false);
         }
         marker_build(a);
         if (!a->spots_ok) {
@@ -418,10 +480,10 @@ static lv_obj_t *panel(lv_obj_t *parent, int dim)
     lv_obj_remove_style_all(p);
     /* the frame may be wider than the watch (the desktop port): the panel
      * covers all of it and its padding keeps what is in it where it was */
-    lv_obj_set_size(p, MH_W, MH_H);
-    lv_obj_set_pos(p, (AOS_SCREEN_W - MH_W) / 2, (AOS_SCREEN_H - MH_H) / 2);
-    lv_obj_set_style_pad_left(p, (MH_W - AOS_SCREEN_W) / 2, 0);
-    lv_obj_set_style_pad_top(p, (MH_H - AOS_SCREEN_H) / 2, 0);
+    lv_obj_set_size(p, MH_UI_W, MH_UI_H);
+    lv_obj_set_pos(p, (AOS_SCREEN_W - MH_UI_W) / 2, (AOS_SCREEN_H - MH_UI_H) / 2);
+    lv_obj_set_style_pad_left(p, (MH_UI_W - AOS_SCREEN_W) / 2, 0);
+    lv_obj_set_style_pad_top(p, (MH_UI_H - AOS_SCREEN_H) / 2, 0);
     lv_obj_remove_flag(p, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(p, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(p, LV_OBJ_FLAG_HIDDEN);
