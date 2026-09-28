@@ -30,7 +30,8 @@ OUT = os.path.join(ASSETS, 'monsterhop.pak')
 # MH_RES=2), else the normal art doubled (a stand-in, said at the end);
 # the interface stays as it is (LVGL draws it at 800 x 450)
 HD = '--hd' in sys.argv
-ASSETS_HD = os.path.join(ROOT, 'assets_hd')
+# (MH_HD_ASSETS and MH_BACKDROPS point elsewhere, for trying things out)
+ASSETS_HD = os.environ.get('MH_HD_ASSETS') or os.path.join(ROOT, 'assets_hd')
 OUT_HD = os.path.join(ASSETS, 'monsterhop_hd.pak')
 K = 1                      # the doubling of the stand-ins, per folder
 CARD = os.path.join(ASSETS, 'card')          # the same, in parts under 8 MB
@@ -171,7 +172,8 @@ def main():
         sys.exit('levels.py found problems:\n' + r.stdout)
     if '--only' in sys.argv:
         only = sys.argv[sys.argv.index('--only') + 1].split(',')
-    dirs = sorted(d for d in os.listdir(ASSETS) if os.path.isfile(os.path.join(ASSETS, d, 'meta.json')))
+    dirs = sorted(d for d in os.listdir(ASSETS) if os.path.isfile(os.path.join(ASSETS, d, 'meta.json'))
+                  and d != 'backdrops')
     if only:
         dirs = [d for d in dirs if d in only]
     sheets = {}        # name -> [fmt, ms, {index: bytes}]
@@ -268,6 +270,32 @@ def main():
                         walk('%s_%d' % (prefix, i), v)
             walk('', pals)
         print('%-14s %4d sprites' % (dn, n))
+
+    # the far scenery behind each zone (tools/blender/backdrops.py), the
+    # desktop's HD pack only: bd_<zone>, opaque, at the HD pixel size
+    bdd = os.environ.get('MH_BACKDROPS') or os.path.join(ASSETS, 'backdrops')
+    if HD and os.path.isdir(bdd):
+        nb = 0
+        bm = {}
+        if os.path.isfile(os.path.join(bdd, 'meta.json')):
+            with open(os.path.join(bdd, 'meta.json')) as fh:
+                bm = json.load(fh)
+        for z in ('city', 'castle', 'desert', 'forest', 'dino', 'bay'):
+            fn = os.path.join(bdd, 'backdrop_%s.png' % z)
+            if not os.path.isfile(fn) or os.path.getsize(fn) == 0:
+                continue
+            im = Image.open(fn).convert('RGB')
+            if im.width < 2400:
+                # a draft at the normal size: doubled, smoothly
+                im = im.resize((im.width * 2, im.height * 2), Image.LANCZOS)
+            c = rgb565(np.asarray(im))
+            pl = np.stack([(c & 255).astype(np.uint8), (c >> 8).astype(np.uint8),
+                           np.full(c.shape, 255, np.uint8)], axis=2)
+            # the horizon's row rides in the anchor
+            hz = int(round(float(bm.get('backdrop_' + z, {}).get('horizon', 0.4)) * im.height))
+            add('bd_' + z, IMG, 0, encode_frame(IMG, np.ones(c.shape, bool), pl, 0, hz))
+            nb += 1
+        print('%-14s %4d zones' % ('backdrops', nb))
 
     lv = os.path.join(ASSETS, 'levels')
     if os.path.isdir(lv):

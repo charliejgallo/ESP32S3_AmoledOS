@@ -4,8 +4,10 @@
 #ifdef MH_DESKTOP
 
 #include "mh_post.h"
+#include "mh_art.h"
 
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -277,6 +279,52 @@ void mhp_finish(mh_post_t *p, int zone, uint16_t *px, int stride, int w, int h)
             if (vg[x] < 255) v = mh_darken(v, vg[x] + 1);
             row[x] = v;
         }
+    }
+}
+
+/* ---- the far scenery ---- */
+
+static struct {
+    int       zone;             /* loaded, -1 none                           */
+    uint16_t *px;
+    int       w, h, hz;
+} s_bd = { -1, NULL, 0, 0, 0 };
+
+void mhp_backdrop(mh_world_t *w, int zone)
+{
+    static const char *const n[ZONE_N] = { "city", "castle", "desert", "forest", "test", "dino", "bay" };
+    w->bd = NULL;
+    if (zone < 0 || zone >= ZONE_N) return;
+    if (s_bd.zone != zone) {
+        free(s_bd.px);
+        s_bd.px = NULL;
+        s_bd.zone = zone;
+        char nm[32];
+        snprintf(nm, sizeof nm, "bd_%s", n[zone]);
+        mh_anim_t an;
+        if (!mh_art_has(nm) || !mh_art_load(nm, &an)) return;
+        const mh_spr_t *f = &an.f[0];
+        s_bd.px = (uint16_t *)malloc((size_t)f->w * f->h * 2);
+        if (s_bd.px) {
+            s_bd.w = f->w;
+            s_bd.h = f->h;
+            s_bd.hz = f->ay;
+            memset(s_bd.px, 0, (size_t)f->w * f->h * 2);
+            /* an IMG sheet: colour lo, hi, alpha per pixel */
+            for (int y = 0; y < f->h; y++) {
+                int x0, x1;
+                const uint8_t *q = mh_spr_row(f, y, &x0, &x1);
+                uint16_t *row = s_bd.px + (size_t)y * f->w;
+                for (int x = x0; x < x1; x++, q += 3) row[x] = (uint16_t)(q[0] | (q[1] << 8));
+            }
+        }
+        mh_anim_free(&an);
+    }
+    if (s_bd.px) {
+        w->bd = s_bd.px;
+        w->bd_w = s_bd.w;
+        w->bd_h = s_bd.h;
+        w->bd_hz = s_bd.hz;
     }
 }
 

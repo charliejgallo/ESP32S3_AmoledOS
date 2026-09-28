@@ -202,6 +202,9 @@ static bool load_level(app_t *a, int idx)
         mh_level_free(&a->lv);
         return false;
     }
+#ifdef MH_DESKTOP
+    mhp_backdrop(&a->world, a->lv.zone);
+#endif
     mh_cast_level(&a->cast, &a->lv);
     uint32_t seed = (uint32_t)aos_hal_uptime_ms() | 1u;
     bool race = a->link_on && a->link_state == LK_LOADING;

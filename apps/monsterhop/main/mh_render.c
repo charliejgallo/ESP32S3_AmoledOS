@@ -162,6 +162,32 @@ void mh_render_band(const mh_world_t *w, mh_img_t *im, int cam_x, int cam_y, int
         memcpy(dst, src + cx, (size_t)n1 * 2);
         if (n1 < MH_W) memcpy(dst + n1, src, (size_t)(MH_W - n1) * 2);
     }
+#ifdef MH_DESKTOP
+    /* the far scenery where the cache holds nothing, moving at a sixth of
+     * the camera: its horizon a third down the view at the level's near end
+     * (where it starts), lower as the camera climbs to the far end */
+    if (w->bd) {
+        int bw = w->bd_w, bh = w->bd_h;
+        int sw = bw - MH_W, sh = bh - MH_H;
+        if (sw >= 0 && sh >= 0) {
+            const float k = 0.16f;
+            int bx = sw / 2 + (int)((cam_x + MH_W / 2 - w->lw / 2) * k);
+            int near = w->lh - MH_H;
+            int by = w->bd_hz - MH_H / 3 + (int)((cam_y - near) * k);
+            bx = bx < 0 ? 0 : bx > sw ? sw : bx;
+            by = by < 0 ? 0 : by > sh ? sh : by;
+            for (int y = y0; y < y1; y++) {
+                int cy = (cam_y + y) % MH_CH;
+                if (cy < 0) cy += MH_CH;
+                const uint16_t *dd = w->cd + (size_t)cy * MH_CW;
+                const uint16_t *src = w->bd + (size_t)(by + y) * bw + bx;
+                uint16_t *dst = im->px + (size_t)y * im->w;
+                for (int x = 0; x < MH_W; x++)
+                    if (dd[(cx + x) & (MH_CW - 1)] == MH_DFAR) dst[x] = src[x];
+            }
+        }
+    }
+#endif
     for (int i = 0; i < l->n; i++) {
         const mh_draw_t *e = &l->d[i];
         const mh_spr_t *s = e->s;

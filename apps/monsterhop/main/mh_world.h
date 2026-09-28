@@ -67,6 +67,11 @@ typedef struct {
     uint16_t void_row[MH_CH];       /* the void's colour per cache row      */
     int blocks_drawn;               /* statistics                           */
     bool twin;                      /* the art is another world's (a second view) */
+#ifdef MH_DESKTOP
+    /* the far scenery behind the void, with parallax (mh_post.c loads it) */
+    const uint16_t *bd;             /* RGB565, bd_w x bd_h, NULL = the void  */
+    int bd_w, bd_h, bd_hz;           /* bd_hz: the horizon's row        */
+#endif
 } mh_world_t;
 
 /* the level's art is loaded here (all assets it names); false if the cache

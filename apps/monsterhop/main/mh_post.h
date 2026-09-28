@@ -44,5 +44,8 @@ void mhp_bits(mh_post_t *p, int zone, mh_img_t *im, int cam_x, int cam_y, int w,
 /* bloom and vignette over a whole view (native RGB565) */
 void mhp_finish(mh_post_t *p, int zone, uint16_t *px, int stride, int w, int h);
 void mhp_free(mh_post_t *p);
+/* the zone's far scenery into the world (w->bd), if the pack has it
+ * ("bd_<zone>", the HD pack only); kept until another zone's is asked for */
+void mhp_backdrop(mh_world_t *w, int zone);
 
 #endif
