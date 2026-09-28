@@ -2522,6 +2522,10 @@ static const char blob_en_demo_monsterhop_lang[] =
     "Medusa\tJellyfish\n"
     "Hombre pez\tFish-man\n"
     "El Kraken\tThe Kraken\n"
+    "Zonas\tZones\n"
+    "Llaves\tKeys\n"
+    "Vidas\tLives\n"
+    "Faltan %d estrellas\t%d more stars\n"
     ;
 
 static const char blob_en_demo_neon_lang[] =
@@ -5221,6 +5225,10 @@ static const char blob_de_demo_monsterhop_lang[] =
     "Medusa\tQualle\n"
     "Hombre pez\tFischmensch\n"
     "El Kraken\tDer Krake\n"
+    "Zonas\tZonen\n"
+    "Llaves\tSchlüssel\n"
+    "Vidas\tLeben\n"
+    "Faltan %d estrellas\tNoch %d Sterne\n"
     ;
 
 static const char blob_de_demo_neon_lang[] =

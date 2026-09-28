@@ -306,6 +306,24 @@ typedef struct {
 
 static ui_t s_ui;
 
+#ifdef MH_DESKTOP
+/* the desktop's wide screens (mh_ui_wide.inc, included at the end): the
+ * title, the house, the map and the pause laid out over the whole frame */
+static void wide_build_title(app_t *a, lv_obj_t *root);
+static void wide_title_refresh(app_t *a);
+static void wide_build_house(app_t *a, lv_obj_t *root);
+static void wide_house_refresh(app_t *a);
+static void wide_build_map(app_t *a, lv_obj_t *p);
+static void wide_map_refresh(app_t *a, int next);
+static bool wide_pad(app_t *a, int i);
+static void wide_build_pause(app_t *a, lv_obj_t *root);
+static void wide_pause_fill(app_t *a);
+static void wide_tick(app_t *a, int dt_ms);
+static void wide_before_job(app_t *a, int what);
+static void wide_job_done(app_t *a, int what);
+static void wide_free(app_t *a);
+#endif
+
 static app_t *app_of(lv_event_t *e)
 {
     return (app_t *)lv_event_get_user_data(e);
@@ -454,6 +472,10 @@ static void title_house_cb(lv_event_t *e) { mh_snd(SND_SELECT); mha_set_state(ap
 
 static void build_title(app_t *a, lv_obj_t *root)
 {
+#ifdef MH_DESKTOP
+    wide_build_title(a, root);
+    return;
+#endif
     lv_obj_t *p = s_ui.p[ST_MENU] = panel(root, 0);
     lv_obj_set_style_bg_color(p, lv_color_hex(0x0C0A14), 0);
     lv_obj_set_style_bg_opa(p, LV_OPA_COVER, 0);
@@ -472,6 +494,10 @@ static void build_title(app_t *a, lv_obj_t *root)
 
 static void title_refresh(app_t *a)
 {
+#ifdef MH_DESKTOP
+    wide_title_refresh(a);
+    return;
+#endif
     if (a->ui_map.buf) {
         wrap(&a->ui_map);
         lv_image_set_src(s_ui.t_bg, &a->ui_map.dsc);
@@ -518,6 +544,9 @@ static void pad_cb(lv_event_t *e)
         aos_ui_toast(_("Próximamente: una zona nueva"), 1600);
         return;
     }
+#ifdef MH_DESKTOP
+    if (wide_pad(a, i)) return;
+#endif
     char b[200];
     if (!mha_level_open(a, i)) {
         int z = mha_level_info(i)->zone;
@@ -606,6 +635,9 @@ static void build_map(app_t *a, lv_obj_t *root)
     s_ui.m_pop_body = label(pop, "", aos_font_small, 0xC8C0D8, 10, 60, 300);
     s_ui.m_pop_play = button(pop, _("Jugar"), 20, 170, 170, 52, 0x30C060, pop_play_cb, a, NULL);
     button(pop, _("Cerrar"), 200, 170, 100, 52, 0x5A4A7A, pop_close_cb, a, NULL);
+#ifdef MH_DESKTOP
+    wide_build_map(a, p);
+#endif
 }
 
 /* the next level to play: the first open one without stars */
@@ -667,6 +699,9 @@ static void map_refresh(app_t *a)
     if (want < 0) want = 0;
     if (want > a->ui_map.h - AOS_SCREEN_H) want = a->ui_map.h - AOS_SCREEN_H;
     lv_obj_scroll_to_y(s_ui.m_scroll, want, LV_ANIM_OFF);
+#ifdef MH_DESKTOP
+    wide_map_refresh(a, nl);
+#endif
 }
 
 /* ---- the house ---- */
@@ -701,6 +736,10 @@ static void house_cb(lv_event_t *e)
 
 static void build_house(app_t *a, lv_obj_t *root)
 {
+#ifdef MH_DESKTOP
+    wide_build_house(a, root);
+    return;
+#endif
     lv_obj_t *p = s_ui.p[ST_HOUSE] = panel(root, 256);
     s_ui.h_img = image(p, NULL, 0, 0);
     s_ui.h_coins = label(p, "", aos_font_small, 0xFFD060, 0, 184, AOS_SCREEN_W);
@@ -719,6 +758,10 @@ static void build_house(app_t *a, lv_obj_t *root)
 
 static void house_refresh(app_t *a)
 {
+#ifdef MH_DESKTOP
+    wide_house_refresh(a);
+    return;
+#endif
     if (a->ui_house.buf) {
         wrap(&a->ui_house);
         lv_image_set_src(s_ui.h_img, &a->ui_house.dsc);
@@ -1257,6 +1300,9 @@ static void build_misc(app_t *a, lv_obj_t *root)
     lv_obj_add_flag(s_ui.l_bar, LV_OBJ_FLAG_HIDDEN);
     label(p, _("Cargando..."), aos_font_body, 0xC8C0D8, 0, 250, AOS_SCREEN_W);
 
+#ifdef MH_DESKTOP
+    wide_build_pause(a, root);
+#else
     p = s_ui.p[ST_PAUSE] = panel(root, 180);
     label(p, _("Pausa"), aos_font_title, 0xFFFFFF, 0, 10, AOS_SCREEN_W);
     s_ui.pz_px = (uint16_t *)mh_malloc((size_t)MH_LV_MAXW * PZ_CELL * MH_LV_MAXH * PZ_CELL * 2);
@@ -1270,6 +1316,7 @@ static void build_misc(app_t *a, lv_obj_t *root)
     button(p, _("Seguir"), 24, 330, 150, 48, 0x30C060, resume_cb, a, NULL);
     button(p, _("Reintentar"), 194, 330, 150, 48, ACCENT, restart_cb, a, NULL);
     button(p, _("Salir al mapa"), 64, 388, 240, 44, 0x5A4A7A, to_map_cb, a, NULL);
+#endif
 
     p = s_ui.p[ST_RESULT] = panel(root, 200);
     s_ui.r_title = label(p, "", aos_font_title, 0xFFE070, 0, 60, AOS_SCREEN_W);
@@ -1327,6 +1374,10 @@ void mh_ui_lobby_fill(app_t *a, const char *txt, const char *level, bool host)
 
 void mh_ui_pause_fill(app_t *a)
 {
+#ifdef MH_DESKTOP
+    wide_pause_fill(a);
+    return;
+#endif
     const mh_level_t *lv = &a->lv;
     const mh_game_t *g = &a->game;
     if (!s_ui.pz_px || !a->level_ok) return;
@@ -1492,15 +1543,19 @@ void mh_ui_show(app_t *a, int st)
 /* before the worker rewrites pictures, LVGL lets go of them */
 void mh_ui_before_job(app_t *a, int what)
 {
+#ifdef MH_DESKTOP
+    wide_before_job(a, what);
+#endif
     if (what == UJ_MENU || what == UJ_FREE_MAP) {
         lv_image_set_src(s_ui.m_marker, NULL);
         if (a->ui_marker.buf) lv_image_cache_drop(&a->ui_marker.dsc);
     }
     if (what == UJ_FREE_MAP) {
-        lv_image_set_src(s_ui.t_bg, NULL);
+        /* (the desktop's wide title and house have pictures of their own) */
+        if (s_ui.t_bg) lv_image_set_src(s_ui.t_bg, NULL);
         lv_image_set_src(s_ui.m_img, NULL);
-        lv_image_set_src(s_ui.t_logo, NULL);
-        lv_image_set_src(s_ui.h_img, NULL);
+        if (s_ui.t_logo) lv_image_set_src(s_ui.t_logo, NULL);
+        if (s_ui.h_img) lv_image_set_src(s_ui.h_img, NULL);
         /* the album and the trophies are rebuilt each time they are shown */
         lv_obj_clean(s_ui.al_grid);
         lv_obj_clean(s_ui.tr_list);
@@ -1526,6 +1581,9 @@ void mh_ui_job_done(app_t *a, int what)
     case UJ_TURN:
         s_ui.s_turn_ready = true;
         preview_draw(a);
+#ifdef MH_DESKTOP
+        wide_job_done(a, what);
+#endif
         break;
     case UJ_CARDS:
         if (a->state == ST_ALBUM) album_refresh(a);
@@ -1537,6 +1595,9 @@ void mh_ui_job_done(app_t *a, int what)
 
 void mh_ui_tick(app_t *a, int dt_ms)
 {
+#ifdef MH_DESKTOP
+    wide_tick(a, dt_ms);
+#endif
     if (a->state == ST_SHOP && s_ui.s_turn_ready) {
         s_ui.s_ms += (uint32_t)dt_ms;
         if (s_ui.s_ms >= 140) {
@@ -1557,8 +1618,15 @@ void mh_ui_free(app_t *a)
     for (int i = 0; i < 4; i++) uimg_free(&a->ui_trophy[i]);
     for (int i = 0; i < MH_LEVELS; i++) uimg_free(&a->ui_card[i]);
     for (int k = 0; k < 5; k++) mh_anim_free(&a->turn[k]);
+#ifdef MH_DESKTOP
+    wide_free(a);
+#endif
     free(s_ui.s_prev_px);
     free(s_ui.pz_px);
     s_ui.s_prev_px = NULL;
     s_ui.pz_px = NULL;
 }
+
+#ifdef MH_DESKTOP
+#include "mh_ui_wide.inc"
+#endif
