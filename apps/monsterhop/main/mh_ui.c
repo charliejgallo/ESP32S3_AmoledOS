@@ -329,6 +329,8 @@ static void wide_build_stats(app_t *a);
 static void wide_stats_fill(app_t *a);
 static void wide_build_settings(app_t *a, lv_obj_t *root);
 static void wide_settings_refresh(app_t *a);
+static void wide_results_lobby_layout(app_t *a);
+static void wide_lobby_fill(app_t *a);
 #endif
 
 /* the shop's rows and the album's cards: wider on the desktop */
@@ -1384,6 +1386,9 @@ static void build_misc(app_t *a, lv_obj_t *root)
           AOS_SCREEN_W - 40);
     s_ui.lb_go = button(p, _("¡A correr!"), 64, 298, 240, 50, 0x30C060, lobby_go_cb, a, NULL);
     button(p, _("Cancelar"), 84, 360, 200, 46, 0x5A4A7A, lobby_cancel_cb, a, NULL);
+#ifdef MH_DESKTOP
+    wide_results_lobby_layout(a);
+#endif
 }
 
 void mh_ui_boot_text(app_t *a, const char *txt) { (void)a; lv_label_set_text(s_ui.b_lbl, txt); }
@@ -1416,6 +1421,9 @@ void mh_ui_lobby_fill(app_t *a, const char *txt, const char *level, bool host)
         if (host) lv_obj_remove_flag(b[i], LV_OBJ_FLAG_HIDDEN);
         else lv_obj_add_flag(b[i], LV_OBJ_FLAG_HIDDEN);
     }
+#ifdef MH_DESKTOP
+    wide_lobby_fill(a);
+#endif
 }
 
 void mh_ui_pause_fill(app_t *a)

@@ -1151,7 +1151,7 @@ static void boot_done(app_t *a)
      *   MH_COINS=n              coins for the shop
      *   MH_TRAIL=1..4           wear that trail (0 none)
      *   MH_START=x,y            the level starts in that cell
-     *   MH_SCREEN=map|house|shop|wardrobe|album|trophies|stats|settings
+     *   MH_SCREEN=map|house|shop|wardrobe|album|trophies|stats|settings|result|lobby
      *   MH_RACE=<0..23>         into the lobby; the host starts that level
      *                           (two sims: AOS_SIM_LINK_PORT/_PARTNER)
      */
@@ -1163,6 +1163,19 @@ static void boot_done(app_t *a)
         a->prog.eq[CAT_TRAIL] = (int8_t)(atoi(e) - 1);
         mha_outfit(a);
     }
+    if ((e = getenv("MH_SCREEN")) && e[0] && !strcmp(e, "result")) {
+        /* a result as after a level, for pictures */
+        a->game.state = GS_WON;
+        a->level = 0;
+        mh_ui_result_fill(a, true, 2, 45, true, true, 1u << TR_FIRST);
+        mha_set_state(a, ST_RESULT);
+    }
+#ifdef MH_DESKTOP
+    if ((e = getenv("MH_SCREEN")) && e[0] && !strcmp(e, "lobby")) {
+        a->link_level = 17;
+        mhs_begin(a);
+    }
+#endif
     if ((e = getenv("MH_SCREEN")) && e[0]) {
         static const struct { const char *n; int st; } sc[] = {
             { "map", ST_MAP }, { "house", ST_HOUSE }, { "shop", ST_SHOP }, { "wardrobe", ST_SHOP },

@@ -33,6 +33,7 @@ static struct {
     /* stats, settings */
     lv_obj_t *st_num[12], *st_cap[12], *tr_count;
     lv_obj_t *c_full, *c_lang[3], *lang_note;
+    lv_obj_t *lb_emb;
     uint32_t *pz_px;
 } W = { .sel = -1 };
 
@@ -755,6 +756,94 @@ static void wide_settings_refresh(app_t *a)
     }
 }
 
+/* ---- the results and the two players' lobby: a card in the middle ---- */
+
+/* moves a watch-laid object into the card, at the card's (x, y) */
+static void into(lv_obj_t *o, lv_obj_t *card, int x, int y, int w)
+{
+    if (!o) return;
+    lv_obj_set_parent(o, card);
+    lv_obj_set_pos(o, x, y);
+    if (w > 0) lv_obj_set_width(o, w);
+}
+
+static void wide_results_lobby_layout(app_t *a)
+{
+    (void)a;
+    /* the results: title and stars on top, what happened in two columns,
+     * the two ways on side by side */
+    lv_obj_t *p = s_ui.p[ST_RESULT];
+    lv_obj_t *map_btn = lv_obj_get_child(p, -1);
+    lv_obj_t *next_btn = lv_obj_get_parent(s_ui.r_next);
+    lv_obj_t *c = side_box(p, 110, 26, 580, 400);
+    lv_obj_set_style_bg_opa(c, 235, 0);
+    lv_obj_set_style_border_color(c, lv_color_hex(GOLD), 0);
+    into(s_ui.r_title, c, 0, 18, 576);
+    for (int k = 0; k < 3; k++) {
+        into(s_ui.r_stars[k], c, 213 + k * 54, 74, 0);
+        lv_image_set_scale(s_ui.r_stars[k], 384);
+        lv_image_set_antialias(s_ui.r_stars[k], true);
+    }
+    into(s_ui.r_body, c, 24, 150, 260);
+    lv_obj_set_style_text_align(s_ui.r_body, LV_TEXT_ALIGN_LEFT, 0);
+    lv_obj_set_style_text_line_space(s_ui.r_body, 6, 0);
+    into(s_ui.r_extra, c, 300, 150, 256);
+    lv_obj_set_style_text_align(s_ui.r_extra, LV_TEXT_ALIGN_LEFT, 0);
+    lv_obj_set_style_text_font(s_ui.r_extra, aos_font_body, 0);
+    into(next_btn, c, 24, 318, 258);
+    lv_obj_set_height(next_btn, 56);
+    lv_obj_center(s_ui.r_next);
+    lv_obj_set_width(s_ui.r_next, 246);
+    into(map_btn, c, 296, 318, 258);
+    lv_obj_set_height(map_btn, 56);
+    lv_obj_t *ml = lv_obj_get_child(map_btn, 0);
+    if (ml) {
+        lv_obj_set_width(ml, 246);
+        lv_obj_center(ml);
+    }
+
+    /* the lobby: who plays with what, the level big with its zone's
+     * emblem, the rule, the two ways */
+    p = s_ui.p[ST_LOBBY];
+    lv_obj_t *title = lv_obj_get_child(p, 0), *rule = lv_obj_get_child(p, 5), *cancel = lv_obj_get_child(p, 7);
+    c = side_box(p, 100, 20, 600, 410);
+    lv_obj_set_style_bg_opa(c, 240, 0);
+    into(title, c, 0, 14, 596);
+    into(s_ui.lb_lbl, c, 20, 58, 556);
+    W.lb_emb = image(c, NULL, 94, 150);
+    lv_image_set_scale(W.lb_emb, 200);
+    lv_image_set_antialias(W.lb_emb, true);
+    into(s_ui.lb_level, c, 190, 170, 330);
+    lv_obj_set_style_text_align(s_ui.lb_level, LV_TEXT_ALIGN_LEFT, 0);
+    into(s_ui.lb_prev, c, 20, 172, 0);
+    lv_obj_set_size(s_ui.lb_prev, 56, 56);
+    into(s_ui.lb_next, c, 520, 172, 0);
+    lv_obj_set_size(s_ui.lb_next, 56, 56);
+    for (int k = 0; k < 2; k++) lv_obj_center(lv_obj_get_child(k ? s_ui.lb_next : s_ui.lb_prev, 0));
+    into(rule, c, 20, 262, 556);
+    into(s_ui.lb_go, c, 28, 324, 264);
+    lv_obj_set_height(s_ui.lb_go, 60);
+    lv_obj_center(lv_obj_get_child(s_ui.lb_go, 0));
+    into(cancel, c, 308, 324, 264);
+    lv_obj_set_height(cancel, 60);
+    lv_obj_center(lv_obj_get_child(cancel, 0));
+}
+
+static void wide_lobby_fill(app_t *a)
+{
+    if (!W.lb_emb) return;
+    int lvl = a->link_level >= 0 && a->link_level < MH_LEVELS ? a->link_level : 0;
+    int z = mha_level_info(lvl)->zone;
+    for (int k = 0; k < 6; k++) {
+        if (s_wz[k].zone != z) continue;
+        mh_uimg_t *em = &a->ui_emblem[s_wz[k].emblem];
+        if (em->buf) {
+            wrap(em);
+            lv_image_set_src(W.lb_emb, &em->dsc);
+        }
+    }
+}
+
 /* ---- the clock, the jobs ---- */
 
 static void wide_tick(app_t *a, int dt_ms)
@@ -785,6 +874,7 @@ static void wide_before_job(app_t *a, int what)
          * pictures are the desktop's own and stay */
         memset(W.turn_eq, -2, CAT_N);
         if (W.m_emb) lv_image_set_src(W.m_emb, NULL);
+        if (W.lb_emb) lv_image_set_src(W.lb_emb, NULL);
         for (int k = 0; k < 6; k++) if (W.m_zemb[k]) lv_image_set_src(W.m_zemb[k], NULL);
     }
 }
