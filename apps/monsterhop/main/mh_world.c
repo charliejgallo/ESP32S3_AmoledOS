@@ -23,6 +23,10 @@ static const mh_zone_look_t s_looks[ZONE_N] = {
     { 0x10281E, 0x040C08, 0xC8F0DC, 0x3A6A58, 0xD0FFF0 },
     /* test */
     { 0x1C2230, 0x080A10, 0xFFFFFF, 0x606878, 0xFFFFFF },
+    /* dino: a hazy volcanic afternoon, warm light */
+    { 0x5A3A26, 0x1C0E08, 0xFFE4C4, 0xB8704A, 0xFFF0C8 },
+    /* bay: a deep blue harbour night */
+    { 0x0E2438, 0x040A12, 0xC0E0F4, 0x2A5A7A, 0xA8F8FF },
 };
 
 const mh_zone_look_t *mh_zone_look(int zone)

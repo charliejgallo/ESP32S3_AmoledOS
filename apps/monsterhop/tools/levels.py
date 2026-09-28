@@ -32,7 +32,7 @@ OUT = os.path.join(ROOT, 'assets', 'levels')
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
 sys.path.insert(0, os.path.join(ROOT, 'tools', 'levels'))
 
-ZONES = {'city': 0, 'castle': 1, 'desert': 2, 'forest': 3, 'test': 4}
+ZONES = {'city': 0, 'castle': 1, 'desert': 2, 'forest': 3, 'test': 4, 'dino': 5, 'bay': 6}
 DIRS = {'n': 0, 'e': 1, 's': 2, 'w': 3}
 DXY = {0: (0, 1), 1: (1, 0), 2: (0, -1), 3: (-1, 0)}
 
@@ -40,12 +40,16 @@ CK_GROUND, CK_PIT, CK_WATER, CK_QUICK, CK_BRIDGE = range(5)
 CF_SOLID, CF_ORIGIN, CF_HIGH, CF_GROUP = 1, 2, 4, 8
 
 (ENT_NONE, ENT_KEY, ENT_COIN, ENT_HEART, ENT_HOURGLASS, ENT_CHEST, ENT_CHECKPOINT, ENT_EXIT,
- ENT_LEVER, ENT_CRATE, ENT_GROUPCELL, ENT_PLATFORM, ENT_MONSTER, ENT_LANE, ENT_TRAP, ENT_STICKER) = range(16)
+ ENT_LEVER, ENT_CRATE, ENT_GROUPCELL, ENT_PLATFORM, ENT_MONSTER, ENT_LANE, ENT_TRAP, ENT_STICKER,
+ ENT_TIDECELL) = range(17)
 
 MONSTERS = ['zombie', 'vampire', 'mummy', 'werewolf', 'zombiedog', 'armor', 'crow',
-            'brute', 'count', 'pharaoh', 'alpha']
-LANES = ['car', 'log', 'boulder', 'scarab', 'bat', 'lily']
-TRAPS = ['spikes', 'vent', 'darts', 'bear']
+            'brute', 'count', 'pharaoh', 'alpha',
+            'raptor', 'trike', 'ptero', 'fishman', 'crab', 'jelly', 'trex', 'kraken']
+# monsters whose path may cross water (they swim or float)
+SWIMMERS = ('fishman', 'jelly', 'kraken')
+LANES = ['car', 'log', 'boulder', 'scarab', 'bat', 'lily', 'compy']
+TRAPS = ['spikes', 'vent', 'darts', 'bear', 'lava', 'rock', 'piranha', 'wave', 'whirl']
 MF_PINGPONG, MF_NOTICE = 1, 2
 
 # things every zone understands
@@ -210,6 +214,13 @@ class Level:
     def trap(self, kind, x, y, dir='s', period=2000, phase=0):
         self.ent(ENT_TRAP, x, y, None, DIRS[dir], TRAPS.index(kind), 0, 0, period, phase)
 
+    def tide(self, pts, period=9000, phase=0):
+        """cells of ground the sea floods half of each period (dry first):
+        the foam shows before they go under"""
+        for (x, y) in pts:
+            assert self.cells[y][x]['kind'] == CK_GROUND, '%s: tide on %d,%d, not ground' % (self.name, x, y)
+            self.ent(ENT_TIDECELL, x, y, None, 0, self.asset(self.surf), 0, 0, period, phase)
+
     def platform(self, pts, ms=900, group=0, floor=0, pingpong=True):
         """a floating slab that follows a path (its top at floor); group = the
         lever that starts it (0 = always moving)"""
@@ -361,9 +372,16 @@ class Level:
                     x = ax + (bx > ax) * k - (bx < ax) * k
                     y = ay + (by > ay) * k - (by < ay) * k
                     c = self.cells[y][x]
-                    if c['flags'] & CF_SOLID or c['kind'] in (CK_PIT, CK_WATER):
+                    wet = c['kind'] == CK_WATER and MONSTERS[e[5]] in SWIMMERS
+                    if c['flags'] & CF_SOLID or (c['kind'] in (CK_PIT, CK_WATER) and not wet):
                         errs.append('%s walks through %d,%d' % (MONSTERS[e[5]], x, y))
                         break
+        limits = {ENT_TRAP: ('traps', 64), ENT_MONSTER: ('monsters', 24), ENT_LANE: ('lanes', 16),
+                  ENT_TIDECELL: ('tide cells', 80)}
+        for t, (nm, most) in limits.items():
+            n = sum(1 for e in self.ents if e[0] == t)
+            if n > most:
+                errs.append('%d %s (the game holds %d)' % (n, nm, most))
         for k in keys + exits:
             if k not in seen:
                 errs.append('out of reach: %s at %d,%d' % ('exit' if k in exits else 'key', k[0], k[1]))
@@ -404,7 +422,9 @@ def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     preview = '--preview' in sys.argv
     os.makedirs(OUT, exist_ok=True)
-    files = sorted(f[:-3] for f in os.listdir(os.path.join(ROOT, 'tools', 'levels')) if f.endswith('.py'))
+    # zone files; '_' files are helpers (levels/_grid.py)
+    files = sorted(f[:-3] for f in os.listdir(os.path.join(ROOT, 'tools', 'levels'))
+                   if f.endswith('.py') and not f.startswith('_'))
     bad = 0
     for zf in files:
         for lv in load_zone(zf):

@@ -44,7 +44,8 @@ static void fx_add(mh_game_t *g, int kind, float x, float y, float z)
 
 static void mark_dirty(mh_game_t *g, int x, int y)
 {
-    if (g->n_dirty < 16) {
+    if (!mh_in(g->lv, x, y)) return;
+    if (g->n_dirty < MH_MAX_DIRTY) {
         g->dirty[g->n_dirty][0] = x;
         g->dirty[g->n_dirty][1] = y;
         g->n_dirty++;
@@ -207,6 +208,11 @@ bool mh_trap_active(const mh_game_t *g, int ti, float *phase)
     case TRAP_SPIKES: return ph >= 0.5f && ph < 0.95f;
     case TRAP_VENT:   return ph >= 0.55f && ph < 0.85f;
     case TRAP_BEAR:   return !tr->sprung;
+    case TRAP_LAVA:   return ph >= 0.60f && ph < 0.92f;     /* 0.45-0.60 it glows: the warning */
+    case TRAP_ROCK:   return ph >= 0.88f && ph < 0.95f;     /* 0.55-0.88 its shadow grows       */
+    case TRAP_PIRANHA: return ph >= 0.50f && ph < 0.95f;
+    case TRAP_WAVE:   return ph >= 0.80f && ph < 0.90f;
+    case TRAP_WHIRL:  return true;
     default:          return false;
     }
 }
@@ -233,6 +239,29 @@ static void apply_groups(mh_game_t *g)
         c->deck = on ? (uint8_t)e->p0 : 0;
         if (on) c->h = e->c;
         mark_dirty(g, e->x, e->y);
+    }
+}
+
+/* the tide: each cell dry, foaming (the warning) or under the sea, on the
+ * level's clock alone (two watches agree without talking) */
+static void step_tides(mh_game_t *g)
+{
+    mh_level_t *lv = g->lv;
+    for (int i = 0; i < g->n_tide; i++) {
+        mh_tide_t *td = &g->tide[i];
+        float ph = fmodf(g->t + td->phase, td->period) / td->period;
+        uint8_t st = ph >= 0.5f ? 2 : ph >= 0.38f ? 1 : 0;
+        if (st == td->state) continue;
+        bool wet = st == 2, was = td->state == 2;
+        td->state = st;
+        if (wet == was) continue;
+        mh_cell_t *c = mh_cell(lv, td->x, td->y);
+        c->kind = wet ? (uint8_t)CK_WATER : td->dry_kind;
+        c->surf = wet ? td->surf : 0;
+        mark_dirty(g, td->x, td->y);
+        /* the neighbours' sides show or hide */
+        mark_dirty(g, td->x, td->y - 1);
+        mark_dirty(g, td->x + 1, td->y);
     }
 }
 
@@ -340,6 +369,18 @@ void mh_game_init(mh_game_t *g, mh_level_t *lv, int diff, uint32_t seed)
                 t->fired = -1;
             }
             break;
+        case ENT_TIDECELL:
+            if (g->n_tide < MH_MAX_TIDE && mh_in(lv, e->x, e->y)) {
+                mh_tide_t *td = &g->tide[g->n_tide++];
+                td->x = e->x;
+                td->y = e->y;
+                td->period = e->p0 ? e->p0 / 1000.0f : 8.0f;
+                td->phase = e->p1 / 1000.0f;
+                td->dry_kind = mh_cell(lv, e->x, e->y)->kind;
+                td->surf = e->a;
+                td->state = 0;
+            }
+            break;
         case ENT_MONSTER:
             if (g->n_mon < MH_MAX_MON && e->a < MON_N) {
                 mh_mon_t *m = &g->mon[g->n_mon++];
@@ -349,7 +390,8 @@ void mh_game_init(mh_game_t *g, mh_level_t *lv, int diff, uint32_t seed)
                 m->path = e->b < lv->n_paths ? e->b : -1;
                 m->step = e->p0 ? e->p0 / 1000.0f : 0.6f;
                 m->param = e->p1 / 1000.0f;
-                m->size = (m->kind == MON_BRUTE || m->kind == MON_PHARAOH || m->kind == MON_ALPHA) ? 2 : 1;
+                m->size = (m->kind == MON_BRUTE || m->kind == MON_PHARAOH || m->kind == MON_ALPHA ||
+                           m->kind == MON_TREX || m->kind == MON_KRAKEN) ? 2 : 1;
                 float off = m->size == 2 ? 1.0f : 0.5f;
                 m->x = e->x + off;
                 m->y = e->y + off;
@@ -362,8 +404,10 @@ void mh_game_init(mh_game_t *g, mh_level_t *lv, int diff, uint32_t seed)
                 m->gx = e->x;
                 m->gy = e->y;
                 m->sdir = 1;
-                m->state = (m->kind == MON_WEREWOLF || m->kind == MON_ALPHA) ? M_IDLE :
-                           m->kind == MON_CROW ? M_PERCH : M_WALK;
+                m->state = (m->kind == MON_WEREWOLF || m->kind == MON_ALPHA || m->kind == MON_TREX ||
+                            m->kind == MON_KRAKEN) ? M_IDLE :
+                           (m->kind == MON_CROW || m->kind == MON_PTERO) ? M_PERCH :
+                           m->kind == MON_FISHMAN ? M_LURK : M_WALK;
                 m->pal = mh_rand(&g->seed);
                 m->anim = mh_randf(&g->seed) * 4.0f;
             }
@@ -373,6 +417,7 @@ void mh_game_init(mh_game_t *g, mh_level_t *lv, int diff, uint32_t seed)
         }
     }
     apply_groups(g);
+    step_tides(g);
     g->n_dirty = 0;
     place_hero(g, lv->start_x, lv->start_y, lv->start_dir);
 }
@@ -578,6 +623,18 @@ static void respawn(mh_game_t *g)
         dir = DIR_N;
     }
     place_hero(g, x, y, dir);
+    /* a chase starts again a few steps behind */
+    for (int i = 0; i < g->n_mon; i++) {
+        mh_mon_t *m = &g->mon[i];
+        if (m->kind != MON_TREX || (m->flags & MF_DONE)) continue;
+        float back = (float)y + 0.5f - 6.0f, home = (float)m->home_y + 1.0f;
+        if (m->y > back) m->y = back < home ? home : back;
+        m->x = (float)x + 0.5f;
+        if (m->x < 1.0f) m->x = 1.0f;
+        if (m->x > g->lv->w - 1.0f) m->x = g->lv->w - 1.0f;
+        m->state = M_ROAR;
+        m->t = 0;
+    }
     g->h.cool = 0;
     g->state = GS_PLAY;
     g->st = 0;
@@ -785,6 +842,11 @@ static void step_hero(mh_game_t *g, float dt)
             if (!mh_in(g->lv, h->cx, h->cy)) { die(g, DIE_WATER); break; }
         } else if (mh_in(g->lv, h->cx, h->cy)) {
             const mh_cell_t *c = mh_cell(g->lv, h->cx, h->cy);
+            if (c->kind == CK_WATER && crate_at(g, h->cx, h->cy) < 0) {
+                /* the tide came in under him */
+                die(g, DIE_WATER);
+                break;
+            }
             if (c->kind == CK_QUICK && crate_at(g, h->cx, h->cy) < 0) {
                 h->quick_t += dt;
                 h->z = c->h * FLOOR_M - 0.05f - h->quick_t * 0.25f;
@@ -858,6 +920,78 @@ static void mon_walk(mh_game_t *g, mh_mon_t *m, float dt, float speed)
     (void)p;
 }
 
+/* a monster set at a point of its path, facing the way it moved */
+static void mon_at(mh_game_t *g, mh_mon_t *m, float s)
+{
+    float px, py;
+    path_at(g->lv, m->path, s, &px, &py);
+    float off = m->size == 2 ? 0.5f : 0.0f;
+    float ddx = px + off - m->x, ddy = py + off - m->y;
+    if (absf(ddx) > 0.001f || absf(ddy) > 0.001f) {
+        if (absf(ddx) > absf(ddy)) m->dir = ddx > 0 ? DIR_E : DIR_W;
+        else m->dir = ddy > 0 ? DIR_N : DIR_S;
+    }
+    m->x = px + off;
+    m->y = py + off;
+    m->s = s;
+}
+
+/* back to where its path left it, at `speed` cells a second; true there */
+static bool mon_back(mh_game_t *g, mh_mon_t *m, float dt, float speed)
+{
+    float px = m->x, py = m->y;
+    if (m->path >= 0) path_at(g->lv, m->path, m->s, &px, &py);
+    else {
+        px = m->home_x + 0.5f;
+        py = m->home_y + 0.5f;
+    }
+    float ddx = px - m->x, ddy = py - m->y;
+    float dist = absf(ddx) + absf(ddy), sp = dt * speed;
+    if (dist <= sp) {
+        m->x = px;
+        m->y = py;
+        return true;
+    }
+    m->dir = absf(ddx) > absf(ddy) ? (ddx > 0 ? DIR_E : DIR_W) : (ddy > 0 ? DIR_N : DIR_S);
+    m->x += ddx / dist * sp;
+    m->y += ddy / dist * sp;
+    return false;
+}
+
+/* a charge along m->dir, a cell every `per` seconds, `most` cells at most:
+ * false once it stops (true = still running); *hit if a wall stopped it */
+static bool mon_charge(mh_game_t *g, mh_mon_t *m, float dt, float per, int most, int floor, bool *hit)
+{
+    *hit = false;
+    m->t += dt / per;
+    while (m->t >= 1.0f) {
+        m->t -= 1.0f;
+        int nx = mh_ifloor(m->ox) + DXv[m->dir], ny = mh_ifloor(m->oy) + DYv[m->dir];
+        if (!clear_cell(g, nx, ny, floor) || (most > 0 && m->timer >= (float)most)) {
+            m->x = m->ox;
+            m->y = m->oy;
+            *hit = m->timer < (float)most || most <= 0;
+            return false;
+        }
+        m->ox += DXv[m->dir];
+        m->oy += DYv[m->dir];
+        m->timer += 1.0f;
+    }
+    m->x = m->ox + DXv[m->dir] * m->t;
+    m->y = m->oy + DYv[m->dir] * m->t;
+    return true;
+}
+
+bool mh_kraken_strike(const mh_mon_t *m, int *row, int *x0, int *x1, float *phase)
+{
+    if (m->kind != MON_KRAKEN || (m->state != M_WARN && m->state != M_SLAM)) return false;
+    *row = m->cy0;
+    *x0 = m->cx0 - 3;
+    *x1 = m->cx0 + 3;
+    *phase = m->state == M_WARN ? m->t / 1.1f : 1.0f + m->t / 0.9f;
+    return true;
+}
+
 static void spawn_projectile(mh_game_t *g, float x, float y, int z, int dir, bool boulder)
 {
     if (boulder) {
@@ -892,6 +1026,11 @@ static float mon_height(int kind)
     case MON_ZOMBIEDOG: return 0.5f;
     case MON_CROW: return 0.4f;
     case MON_BRUTE: case MON_ALPHA: case MON_PHARAOH: return 1.9f;
+    case MON_PTERO: return 0.5f;
+    case MON_CRAB: return 0.6f;
+    case MON_JELLY: return 0.8f;
+    case MON_RAPTOR: return 1.0f;
+    case MON_TREX: case MON_KRAKEN: return 2.0f;
     default: return 1.1f;
     }
 }
@@ -1047,7 +1186,8 @@ static void step_mon(mh_game_t *g, mh_mon_t *m, float dt)
         }
         break;
     }
-    case MON_CROW: {
+    case MON_CROW:
+    case MON_PTERO: {
         float hx = m->home_x + 0.5f, hy = m->home_y + 0.5f;
         float hz = mh_in(g->lv, m->home_x, m->home_y) ? mh_cell(g->lv, m->home_x, m->home_y)->h * FLOOR_M : 0;
         if (m->state == M_PERCH) {
@@ -1092,6 +1232,253 @@ static void step_mon(mh_game_t *g, mh_mon_t *m, float dt)
         }
         break;
     }
+    case MON_RAPTOR: {
+        /* it walks its beat; whoever it sees in a line within five cells it
+         * sprints at, four cells at most, then trots back */
+        bool hit;
+        if (m->state == M_WALK) {
+            mon_walk(g, m, dt, 1.0f);
+            if (hero_vulnerable(g)) {
+                for (int d = 0; d < 4; d++) {
+                    if (sees(g, cx, cy, d, 5, floor)) {
+                        m->dir = d;
+                        m->state = M_NOTICE;
+                        m->t = 0;
+                        break;
+                    }
+                }
+            }
+        } else if (m->state == M_NOTICE) {
+            m->t += dt;
+            if (m->t > 0.30f) {
+                m->state = M_RUN;
+                m->t = 0;
+                m->timer = 0;
+                m->ox = cx + 0.5f;
+                m->oy = cy + 0.5f;
+            }
+        } else if (m->state == M_RUN) {
+            if (!mon_charge(g, m, dt, 0.09f, 4, floor, &hit)) {
+                m->state = M_IDLE;
+                m->t = 0;
+            }
+        } else if (m->state == M_IDLE) {
+            m->t += dt;
+            if (m->t > 0.7f) m->state = M_RETURN;
+        } else if (m->state == M_RETURN) {
+            if (mon_back(g, m, dt, 3.0f)) {
+                m->state = M_WALK;
+                m->timer = 0;
+            }
+        }
+        break;
+    }
+    case MON_TRIKE: {
+        /* it grazes along its beat; seen straight ahead, it paws the ground
+         * (the warning) and charges until something stops it */
+        bool hit;
+        if (m->state == M_WALK) {
+            mon_walk(g, m, dt, 1.0f);
+            if (hero_vulnerable(g) && sees(g, cx, cy, m->dir, 6, floor)) {
+                m->state = M_HOWL;
+                m->t = 0;
+                g->events |= EV_HOWL;
+            }
+        } else if (m->state == M_HOWL) {
+            m->t += dt;
+            if (m->t > 0.8f) {
+                m->state = M_RUN;
+                m->t = 0;
+                m->timer = 0;
+                m->ox = cx + 0.5f;
+                m->oy = cy + 0.5f;
+            }
+        } else if (m->state == M_RUN) {
+            if (!mon_charge(g, m, dt, 0.13f, 0, floor, &hit)) {
+                m->state = M_STUN;
+                m->t = 0;
+                g->events |= EV_BUMP;
+            }
+        } else if (m->state == M_STUN) {
+            m->t += dt;
+            if (m->t > 1.4f) m->state = M_RETURN;
+        } else if (m->state == M_RETURN) {
+            if (mon_back(g, m, dt, 2.0f)) m->state = M_WALK;
+        }
+        break;
+    }
+    case MON_FISHMAN: {
+        /* hidden in the water at the start of its path; out when Tommy comes
+         * near, it walks the path and goes back under when he is far or after
+         * a while */
+        float hx = m->home_x + 0.5f, hy = m->home_y + 0.5f;
+        float dx = h->x - hx, dy = h->y - hy;
+        float d2 = dx * dx + dy * dy;
+        float wander = m->param > 0 ? m->param : 6.0f;
+        if (m->state == M_LURK) {
+            m->timer -= dt;
+            if (m->timer <= 0 && hero_vulnerable(g) && d2 < 2.6f * 2.6f) {
+                m->state = M_EMERGE;
+                m->t = 0;
+                m->dir = DIR_S;
+                g->events |= EV_SPLASHC;
+            }
+        } else if (m->state == M_EMERGE) {
+            m->t += dt;
+            if (m->t > 0.4f) {
+                m->state = M_WALK;
+                m->timer = 0;
+            }
+        } else if (m->state == M_WALK) {
+            mon_walk(g, m, dt, 1.0f);
+            m->timer += dt;
+            if (m->timer > wander || d2 > 5.5f * 5.5f) {
+                /* the way back: the same point of the path, but walked back */
+                if (m->path >= 0) {
+                    const mh_path_t *p = &g->lv->path[m->path];
+                    float L = path_len(g->lv, m->path);
+                    if (L > 0) {
+                        float q = fmodf(m->s, (p->flags & 1) ? 2 * L : L);
+                        if ((p->flags & 1) && q > L) q = 2 * L - q;
+                        m->s = q;
+                    }
+                }
+                m->state = M_RETURN;
+            }
+        } else if (m->state == M_RETURN) {
+            float ns = m->s - dt / m->step;
+            if (ns <= 0 || m->path < 0) {
+                ns = 0;
+                m->state = M_SUBMERGE;
+                m->t = 0;
+            }
+            if (m->path >= 0) mon_at(g, m, ns);
+        } else if (m->state == M_SUBMERGE) {
+            m->t += dt;
+            if (m->t > 0.4f) {
+                m->state = M_LURK;
+                m->timer = 2.0f;
+                m->dir = DIR_S;
+            }
+        }
+        break;
+    }
+    case MON_CRAB:
+        /* sideways along its beat; every so often both claws snap out */
+        if (m->state == M_WALK) {
+            mon_walk(g, m, dt, 1.0f);
+            m->timer += dt;
+            if (m->param > 0 && m->timer > m->param) {
+                m->state = M_SNAP;
+                m->t = 0;
+                m->timer = 0;
+            }
+        } else {
+            m->t += dt;
+            if (m->t > 0.5f) m->state = M_WALK;
+        }
+        break;
+    case MON_JELLY:
+        mon_walk(g, m, dt, 1.0f);
+        break;
+    case MON_TREX: {
+        /* the chase: it waits, roars, and comes up the level after Tommy,
+         * smashing what stands in its way */
+        const mh_level_t *lv = g->lv;
+        if (g->state == GS_WON) break;
+        if (m->state == M_IDLE) {
+            if (m->flags & MF_DONE) break;
+            m->timer += dt;
+            if (h->y > m->home_y + 4.0f || m->timer > 2.5f) {
+                m->state = M_ROAR;
+                m->t = 0;
+                g->events |= EV_HOWL;
+            }
+        } else if (m->state == M_ROAR) {
+            m->t += dt;
+            if (m->t > 1.2f) {
+                m->state = M_RUN;
+                m->timer = 0;
+            }
+        } else if (m->state == M_RUN || m->state == M_STOMP) {
+            if (m->state == M_RUN) {
+                m->y += dt / m->step;
+                float want = h->x - m->x;
+                float most = dt * 0.9f;
+                m->x += want > most ? most : want < -most ? -most : want;
+                if (m->x < 1.0f) m->x = 1.0f;
+                if (m->x > lv->w - 1.0f) m->x = lv->w - 1.0f;
+                m->dir = absf(want) > 1.2f ? (want > 0 ? DIR_E : DIR_W) : DIR_N;
+                if (m->y > lv->h - 1.5f) {
+                    m->y = lv->h - 1.5f;
+                    m->state = M_IDLE;
+                    m->flags |= MF_DONE;
+                }
+                m->timer += dt;
+                if (m->param > 0 && m->timer > m->param) {
+                    m->state = M_STOMP;
+                    m->t = 0;
+                    m->timer = 0;
+                }
+            } else {
+                m->t += dt;
+                if (m->t > 0.2f && m->dur == 0) {
+                    m->dur = 1;
+                    g->shake = 0.5f;
+                    g->events |= EV_STOMP;
+                }
+                if (m->t > 0.45f) {
+                    m->state = M_RUN;
+                    m->dur = 0;
+                }
+            }
+            if (g->shake < 0.12f) g->shake = 0.12f;
+            /* what it tramples: props in its 2x2 and the row ahead */
+            int x0 = mh_ifloor(m->x - 1.0f), y0 = mh_ifloor(m->y - 1.0f);
+            for (int yy = y0; yy <= y0 + 2; yy++) {
+                for (int xx = x0; xx <= x0 + 1; xx++) {
+                    if (!mh_in(lv, xx, yy)) continue;
+                    mh_cell_t *c = mh_cell(lv, xx, yy);
+                    if (!(c->flags & CF_SOLID) || (c->flags & CF_HIGH)) continue;
+                    c->flags &= (uint8_t)~(CF_SOLID | CF_ORIGIN);
+                    c->prop = 0;
+                    mark_dirty(g, xx, yy);
+                    fx_add(g, FX_POOF, xx + 0.5f, yy + 0.5f, c->h * FLOOR_M + 0.4f);
+                    g->events |= EV_BUMP;
+                }
+            }
+        }
+        break;
+    }
+    case MON_KRAKEN:
+        /* in the middle of the bay: now and then it marks Tommy's row (the
+         * warning) and slams a tentacle along it */
+        if (m->state == M_IDLE) {
+            m->timer += dt;
+            float every = m->param > 0 ? m->param : 3.2f;
+            if (m->timer > every && hero_vulnerable(g) && absf(h->y - m->y) < 9.0f) {
+                m->state = M_WARN;
+                m->t = 0;
+                m->cy0 = h->cy;
+                m->cx0 = h->cx;
+                m->timer = 0;
+            }
+        } else if (m->state == M_WARN) {
+            m->t += dt;
+            if (m->t > 1.1f) {
+                m->state = M_SLAM;
+                m->t = 0;
+                g->events |= EV_STOMP;
+                g->shake = 0.35f;
+            }
+        } else if (m->state == M_SLAM) {
+            m->t += dt;
+            if (m->t > 0.9f) {
+                m->state = M_IDLE;
+                m->timer = 0;
+            }
+        }
+        break;
     case MON_BRUTE:
     case MON_PHARAOH:
         if (m->state == M_WALK) {
@@ -1122,8 +1509,30 @@ static void step_mon(mh_game_t *g, mh_mon_t *m, float dt)
     /* deadly contact */
     if (!hero_vulnerable(g)) return;
     float reach = m->size == 2 ? 1.25f : 0.55f;
-    if (m->kind == MON_CROW && m->state != M_DIVE) return;
-    if ((m->kind == MON_WEREWOLF || m->kind == MON_ALPHA) && m->state == M_STUN) return;
+    if ((m->kind == MON_CROW || m->kind == MON_PTERO) && m->state != M_DIVE) return;
+    if ((m->kind == MON_WEREWOLF || m->kind == MON_ALPHA || m->kind == MON_TRIKE) && m->state == M_STUN) return;
+    if (m->kind == MON_FISHMAN && (m->state == M_LURK || m->state == M_SUBMERGE || (m->state == M_EMERGE && m->t < 0.25f)))
+        return;
+    if (m->kind == MON_KRAKEN) {
+        /* its body is out in the water; its tentacle sweeps a row */
+        int row, x0, x1;
+        float ph;
+        if (mh_kraken_strike(m, &row, &x0, &x1, &ph) && ph > 1.15f && ph < 1.6f && h->cy == row && h->cx >= x0 &&
+            h->cx <= x1)
+            die(g, DIE_MONSTER);
+        return;
+    }
+    if (m->kind == MON_CRAB && m->state == M_SNAP && m->t > 0.12f && m->t < 0.4f) {
+        /* the claws: a cell each side along the way it walks */
+        bool xa = m->dir == DIR_E || m->dir == DIR_W;
+        int ccx = mh_ifloor(m->x), ccy = mh_ifloor(m->y);
+        for (int k = -1; k <= 1; k += 2) {
+            if (h->cx == ccx + (xa ? k : 0) && h->cy == ccy + (xa ? 0 : k) && absf(h->z - m->z) < 0.6f) {
+                die(g, DIE_MONSTER);
+                return;
+            }
+        }
+    }
     float dx = absf(h->x - m->x), dy = absf(h->y - m->y);
     float mz = m->z + (m->state == M_BAT ? 0.6f : 0);
     float top = mz + (m->state == M_BAT ? 0.4f : mon_height(m->kind));
@@ -1146,6 +1555,7 @@ static void step_hazards(mh_game_t *g, float dt)
 {
     mh_hero_t *h = &g->h;
     bool vul = hero_vulnerable(g);
+    int near_whirl = -1;
     float pos[16];
     for (int li = 0; li < g->n_lane; li++) {
         const mh_lane_t *l = &g->lane[li];
@@ -1179,6 +1589,31 @@ static void step_hazards(mh_game_t *g, float dt)
             continue;
         }
         bool on_it = h->cx == tr->x && h->cy == tr->y && h->state != H_HOP && h->state != H_SUPER;
+        if (tr->kind == TRAP_WHIRL) {
+            /* riding over it goes under; standing beside it, it drags */
+            if (on_it && vul && h->ride >= 0) {
+                die(g, DIE_WATER);
+                return;
+            }
+            int ax = tr->x - h->cx, ay = tr->y - h->cy;
+            if ((ax == 0 || ay == 0) && ax * ax + ay * ay == 1 && h->state == H_IDLE) near_whirl = ti;
+            continue;
+        }
+        if (tr->kind == TRAP_WAVE) {
+            /* once a cycle: who stands on the cell is pushed along dir */
+            float cycle = mh_ifloor((g->t + tr->phase) / tr->period);
+            if (act && on_it && vul && h->state == H_IDLE && cycle != tr->fired) {
+                tr->fired = cycle;
+                int tx = tr->x + DXv[tr->dir], ty = tr->y + DYv[tr->dir];
+                bool solid;
+                int tf = mh_stand_floor(g, tx, ty, &solid);
+                if (!solid) {
+                    begin_hop(g, tx, ty, tf, false, 0.12f);
+                    g->events |= EV_SPLASHC;
+                }
+            }
+            continue;
+        }
         if (tr->kind == TRAP_BEAR) {
             if (on_it && !tr->sprung && vul) {
                 tr->sprung = true;
@@ -1188,9 +1623,21 @@ static void step_hazards(mh_game_t *g, float dt)
             continue;
         }
         if (act && on_it && vul) {
-            die(g, DIE_TRAP);
+            die(g, tr->kind == TRAP_PIRANHA ? DIE_WATER : DIE_TRAP);
             return;
         }
+    }
+    if (near_whirl >= 0 && vul) {
+        h->pull_t += dt;
+        if (h->pull_t > 0.9f) {
+            h->pull_t = 0;
+            const mh_trap_t *tr = &g->trap[near_whirl];
+            h->ride = -1;
+            begin_hop(g, tr->x, tr->y, -9, false, 0.10f);
+            g->events |= EV_SPLASHC;
+        }
+    } else {
+        h->pull_t = 0;
     }
     /* darts and bats in flight */
     for (int i = 0; i < MH_MAX_DART; i++) {
@@ -1274,6 +1721,11 @@ void mh_game_step(mh_game_t *g, float dt)
         }
     }
     if (g->exit_open) g->exit_t += dt;
+    step_tides(g);
+    if (g->shake > 0) {
+        g->shake -= dt;
+        if (g->shake < 0) g->shake = 0;
+    }
     if (g->link && (g->state == GS_PLAY || g->state == GS_DYING)) {
         /* a race runs on the level's clock alone, the same on both watches:
          * dying does not stop it and hourglasses do not add to it */

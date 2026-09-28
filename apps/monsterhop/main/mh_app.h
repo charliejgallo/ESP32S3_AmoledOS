@@ -39,6 +39,8 @@
 #define MH_FB_SPARE (600 * 1024)
 #define MH_BAND     64          /* rows per band of internal RAM           */
 #define MH_LEVELS   MH_NLEVELS
+#define MH_SPOTS    (MH_LEVELS + 3)     /* the map: the levels, the house, 2 future zones */
+#define MH_EMBLEMS  9
 
 enum { FB_FREE = 0, FB_BUSY, FB_READY, FB_SHOWN };
 
@@ -154,9 +156,9 @@ struct app {
     bool        dev_auto;
 
     /* pictures (mh_ui.c) */
-    mh_uimg_t   ui_map, ui_logo, ui_house, ui_marker, ui_emblem[7], ui_trophy[4];
+    mh_uimg_t   ui_map, ui_logo, ui_house, ui_marker, ui_emblem[MH_EMBLEMS], ui_trophy[4];
     mh_uimg_t   ui_card[MH_LEVELS];
-    int16_t     spots[19][2];       /* the map: 16 levels, house, 2 locked   */
+    int16_t     spots[MH_SPOTS][2];
     bool        spots_ok;
     bool        menu_art;           /* map, logo, house... are unpacked       */
     mh_anim_t   turn[5];            /* body, back, hand, cap, pet (the shop)  */
@@ -169,7 +171,7 @@ struct app {
     bool        is_host;
     char        partner[40];
     int8_t      rival_eq[CAT_N];
-    uint16_t    rival_open;         /* the levels open on the other watch    */
+    uint32_t    rival_open;         /* the levels open on the other watch    */
     int         link_level;
     mh_lk_op_t  lk_in[MH_LK_Q];     /* UI -> worker: what the other did      */
     volatile uint32_t lk_in_w, lk_in_r;

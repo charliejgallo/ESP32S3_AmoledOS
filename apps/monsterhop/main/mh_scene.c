@@ -53,6 +53,16 @@ static void mon_default(int kind, int var, mh_pal_t *p)
     case MON_CROW:
         p->c[1] = 0x2A2A38; p->c[2] = 0x4A4A60; p->c[3] = 0xE0A020; p->c[5] = 0xFF5030;
         break;
+    /* what the samples showed, for art that comes without its palette */
+    case MON_RAPTOR: p->c[1] = 0x3A6AD8; p->c[2] = 0xE8E0C8; p->c[11] = 0xFF8A2A; break;
+    case MON_TRIKE: p->c[1] = 0x9A8AC8; p->c[2] = 0xE8E0D8; p->c[11] = 0xFF8A2A; p->c[12] = 0x40C0B0; break;
+    case MON_PTERO: p->c[1] = 0xD84A3A; p->c[2] = 0xF0C890; p->c[11] = 0xFFD040; break;
+    case MON_TREX: p->c[1] = 0x4AA06A; p->c[2] = 0xE8D8A8; p->c[11] = 0x2A6A40; break;
+    case MON_FISHMAN: p->c[1] = 0x2A9A7A; p->c[2] = 0xC8E8C0; p->c[7] = 0x3A6AC8; p->c[8] = 0xF0F0F0;
+        p->c[11] = 0xFF6A5A; break;
+    case MON_CRAB: p->c[1] = 0xE8503A; p->c[2] = 0xF8C8A0; p->c[5] = 0x40E0FF; break;
+    case MON_JELLY: p->c[1] = 0xF080D8; p->c[2] = 0xF8C8F0; p->c[5] = 0x80FFFF; break;
+    case MON_KRAKEN: p->c[1] = 0xD83A6A; p->c[2] = 0xF8A0B8; p->c[5] = 0xFFE040; break;
     default:
         p->c[1] = 0x90A080;
         break;
@@ -62,7 +72,8 @@ static void mon_default(int kind, int var, mh_pal_t *p)
 static const char *mon_key(int kind)
 {
     static const char *const n[MON_N] = { "zombie", "vampire", "mummy", "werewolf", "zombiedog", "armor",
-                                          "crow", "brute", "count", "pharaoh", "alpha" };
+                                          "crow", "brute", "count", "pharaoh", "alpha", "raptor", "trike",
+                                          "ptero", "fishman", "crab", "jelly", "trex", "kraken" };
     return kind >= 0 && kind < MON_N ? n[kind] : "";
 }
 
@@ -191,8 +202,49 @@ static void bits_step(mh_scene_t *s, const mh_game_t *g, float dt)
     }
 }
 
+static void mark_add(mh_scene_t *s, float x, float y, float z, uint32_t col, int a, int r)
+{
+    if (s->nmark >= MH_SCENE_MARKS) return;
+    s->mark[s->nmark].x = x;
+    s->mark[s->nmark].y = y;
+    s->mark[s->nmark].z = z;
+    s->mark[s->nmark].col = col;
+    s->mark[s->nmark].a = (uint8_t)(a < 0 ? 0 : a > 255 ? 255 : a);
+    s->mark[s->nmark].r = (uint8_t)(r < 0 ? 0 : r > 255 ? 255 : r);
+    s->nmark++;
+}
+
+/* a soft ellipse of colour on the ground (a cell is ~34 x 20 px across) */
+static void tint_ellipse(mh_img_t *im, int cx, int cy, int rx, int ry, uint16_t c, int alpha)
+{
+    if (rx < 1 || ry < 1) return;
+    int x0 = cx - rx, x1 = cx + rx, y0 = cy - ry, y1 = cy + ry;
+    if (x0 < im->cx0) x0 = im->cx0;
+    if (y0 < im->cy0) y0 = im->cy0;
+    if (x1 >= im->cx1) x1 = im->cx1 - 1;
+    if (y1 >= im->cy1) y1 = im->cy1 - 1;
+    for (int y = y0; y <= y1; y++) {
+        uint16_t *row = im->px + (size_t)y * im->w;
+        int dy = (y - cy) * 256 / ry;
+        for (int x = x0; x <= x1; x++) {
+            int dx = (x - cx) * 256 / rx;
+            int d = (dx * dx + dy * dy) >> 8;
+            if (d >= 256) continue;
+            row[x] = mh_blend(row[x], c, alpha * (256 - d) >> 8);
+        }
+    }
+}
+
 void mh_scene_bits_draw(const mh_scene_t *s, const mh_world_t *w, mh_img_t *im, int cam_x, int cam_y)
 {
+    for (int i = 0; i < s->nmark; i++) {
+        int x = (int)(mh_lpx(w, s->mark[i].x, s->mark[i].y) - (float)cam_x);
+        int y = (int)(mh_lpy(w, s->mark[i].x, s->mark[i].y, s->mark[i].z) - (float)cam_y);
+        int rx = 34 * s->mark[i].r / 255, ry = 20 * s->mark[i].r / 255;
+        if (y + ry < im->cy0 || y - ry > im->cy1 || x + rx < 0 || x - rx > MH_W) continue;
+        if (s->mark[i].col) tint_ellipse(im, x, y, rx, ry, mh_hex(s->mark[i].col), s->mark[i].a);
+        else mh_shadow_ellipse(im, x, y, rx, ry, s->mark[i].a);
+    }
     for (int i = 0; i < s->nbit; i++) {
         const float f = s->bit[i].t / s->bit[i].life;
         int x = (int)(mh_lpx(w, s->bit[i].x, s->bit[i].y) - (float)cam_x);
@@ -279,6 +331,11 @@ void mh_scene_init(mh_scene_t *s, const mh_world_t *w, const mh_game_t *g, const
         p.c[1] = 0x2A9A8A; p.c[2] = 0xE0B040; p.c[3] = 0x1A1A1A; p.c[5] = 0xFF4020;
     }
     mh_lut_build(&s->scarab, &p, tint, 1u << 5);
+    if (!mh_pal_load("pal_compy", &p)) {
+        memset(&p, 0, sizeof p);
+        p.c[1] = 0x9AD83A; p.c[2] = 0xE8F0B0; p.c[3] = 0x1A1A1A; p.c[5] = 0xFF4020;
+    }
+    mh_lut_build(&s->compy, &p, tint, 1u << 5);
     static const uint32_t paints[4][2] = { { 0x8A3A2A, 0xD8C8A0 }, { 0x3A5A7A, 0xE0E0E0 },
                                            { 0x6A7A3A, 0xC8B870 }, { 0x7A5A8A, 0xD8D0E0 } };
     for (int i = 0; i < 4; i++) {
@@ -631,12 +688,49 @@ static void mon_draw(mh_scene_t *s, const mh_world_t *w, const mh_game_t *g, con
         slot = m->state == M_WHIP ? MA_WHIP : MA_WALK;
         bycell = slot == MA_WALK;
         break;
+    case MON_RAPTOR:
+        slot = m->state == M_NOTICE ? MA_NOTICE : m->state == M_RUN || m->state == M_RETURN ? MA_RUN :
+               m->state == M_IDLE ? MA_IDLE : MA_WALK;
+        bycell = slot == MA_WALK;
+        break;
+    case MON_TRIKE:
+        slot = m->state == M_HOWL ? MA_HOWL : m->state == M_RUN ? MA_RUN : m->state == M_STUN ? MA_STUN : MA_WALK;
+        bycell = slot == MA_WALK;
+        break;
+    case MON_PTERO:
+        slot = m->state == M_PERCH ? MA_PERCH : m->state == M_DIVE ? MA_DIVE : MA_FLY;
+        if (slot != MA_PERCH) z -= 1.0f;
+        break;
+    case MON_FISHMAN:
+        slot = m->state == M_LURK ? MA_LURK : m->state == M_EMERGE ? MA_EMERGE : m->state == M_SUBMERGE ? MA_DIVE :
+               MA_WALK;
+        bycell = slot == MA_WALK;
+        break;
+    case MON_CRAB:
+        slot = m->state == M_SNAP ? MA_SNAP : MA_WALK;
+        bycell = slot == MA_WALK;
+        break;
+    case MON_JELLY:
+        slot = MA_FLOAT;
+        z -= 0.18f;         /* on the water */
+        break;
+    case MON_TREX:
+        slot = m->state == M_ROAR ? MA_ROAR : m->state == M_STOMP ? MA_STOMP : m->state == M_IDLE ? MA_ROAR : MA_RUN;
+        break;
+    case MON_KRAKEN:
+        slot = m->state == M_SLAM || m->state == M_WARN ? MA_SLAM : MA_IDLE;
+        z -= 0.18f;
+        break;
     default:
         break;
     }
-    const mh_anim_t *a = rig_anim(r, slot, m->dir);
-    if (!a) a = rig_anim(r, MA_WALK, m->dir);
-    if (!a) a = rig_anim(r, MA_IDLE, m->dir);
+    /* the crab scuttles sideways: its art faces across the way it goes */
+    int fdir = m->dir;
+    if (m->kind == MON_CRAB) fdir = (m->dir == DIR_E || m->dir == DIR_W) ? DIR_S : DIR_E;
+    const mh_anim_t *a = rig_anim(r, slot, fdir);
+    if (!a && slot == MA_RUN) a = rig_anim(r, MA_RUN, DIR_N);    /* the T-Rex runs north only */
+    if (!a) a = rig_anim(r, MA_WALK, fdir);
+    if (!a) a = rig_anim(r, MA_IDLE, fdir);
     if (!a) {
         /* no art yet: the stand-in, in the monster's colours */
         mh_draw_t *d = put(l, w, pick(&c->stand_in, 0), MH_PX_LID, m->x, m->y, z);
@@ -645,15 +739,22 @@ static void mon_draw(mh_scene_t *s, const mh_world_t *w, const mh_game_t *g, con
     }
     int fr;
     if (bycell) fr = (int)(m->s * (float)a->n) % a->n;
+    else if (m->kind == MON_FISHMAN && (m->state == M_EMERGE || m->state == M_SUBMERGE))
+        fr = prog_frame(a, m->t / 0.4f);
+    else if (m->kind == MON_CRAB && m->state == M_SNAP) fr = prog_frame(a, m->t / 0.5f);
+    else if (m->kind == MON_TREX && m->state == M_STOMP) fr = prog_frame(a, m->t / 0.45f);
+    else if (m->kind == MON_KRAKEN && m->state == M_WARN) fr = prog_frame(a, m->t / 1.1f * 0.5f);
+    else if (m->kind == MON_KRAKEN && m->state == M_SLAM) fr = prog_frame(a, 0.5f + m->t / 0.9f * 0.5f);
+    else if (m->kind == MON_TRIKE && m->state == M_HOWL) fr = loop_frame(a, m->anim);
     else if (m->state == M_STOMP || m->state == M_WHIP || m->state == M_CAST || m->state == M_TRANSFORM ||
              m->state == M_UNTRANSFORM || m->state == M_HOWL)
         fr = prog_frame(a, m->kind == MON_BRUTE ? m->t / 0.9f : m->state == M_HOWL ? m->t / 0.7f :
                                m->state == M_CAST ? m->timer / 0.7f : m->timer / 0.35f);
     else fr = loop_frame(a, m->anim);
-    const mh_anim_t *sa = rig_shadow(r, slot, m->dir);
+    const mh_anim_t *sa = rig_shadow(r, slot, fdir);
     if (sa) {
         float gz = m->z;
-        if (m->kind == MON_CROW && m->state != M_PERCH) {
+        if ((m->kind == MON_CROW || m->kind == MON_PTERO) && m->state != M_PERCH) {
             const mh_level_t *lv = g->lv;
             int cx = mh_ifloor(m->x), cy = mh_ifloor(m->y);
             gz = mh_in(lv, cx, cy) ? mh_cell(lv, cx, cy)->h * FLOOR_M : 0;
@@ -680,6 +781,8 @@ static void ob(mh_dlist_t *l, const mh_world_t *w, const mh_cast_t *c, int i, in
     mh_draw_t *d = put(l, w, pick(&c->ob[i], frame), fmt, x, y, z);
     if (d) d->prio = (int8_t)prio;
 }
+
+static void mark_add(mh_scene_t *s, float x, float y, float z, uint32_t col, int a, int r);
 
 static void things_draw(mh_scene_t *s, const mh_world_t *w, const mh_game_t *g, const mh_cast_t *c, mh_dlist_t *l)
 {
@@ -781,15 +884,17 @@ static void things_draw(mh_scene_t *s, const mh_world_t *w, const mh_game_t *g, 
                 break;
             }
             case LANE_SCARAB:
-            case LANE_BAT: {
-                const mh_rig_t *r = ln->kind == LANE_BAT ? &c->bat : &c->scarab;
-                const mh_anim_t *a = rig_anim(r, ln->kind == LANE_BAT ? MA_FLY : MA_CRAWL, ln->dir);
+            case LANE_BAT:
+            case LANE_COMPY: {
+                const mh_rig_t *r = ln->kind == LANE_BAT ? &c->bat : ln->kind == LANE_COMPY ? &c->compy : &c->scarab;
+                const mh_anim_t *a = rig_anim(r, ln->kind == LANE_BAT ? MA_FLY : ln->kind == LANE_COMPY ? MA_RUN : MA_CRAWL,
+                                              ln->dir);
                 for (int p = 0; p < ln->size; p++) {
                     float px = fx - DXv[ln->dir] * p, py = fy - DYv[ln->dir] * p;
                     if (!visible(s, w, px, py, lz)) continue;
                     const mh_spr_t *sp = a ? pick(a, loop_frame(a, t + p * 0.07f)) : pick(&c->stand_in, 0);
                     mh_draw_t *d = put(l, w, sp, MH_PX_LID, px, py, lz);
-                    if (d) d->lut = ln->kind == LANE_BAT ? &s->bat : &s->scarab;
+                    if (d) d->lut = ln->kind == LANE_BAT ? &s->bat : ln->kind == LANE_COMPY ? &s->compy : &s->scarab;
                 }
                 break;
             }
@@ -832,8 +937,74 @@ static void things_draw(mh_scene_t *s, const mh_world_t *w, const mh_game_t *g, 
         case TRAP_BEAR:
             ob(l, w, c, OB_BEAR, tr->sprung ? 1 : 0, x, y, z, -1);
             break;
+        case TRAP_LAVA: {
+            /* cold, waking (the warning), erupting in a loop, cooling */
+            int oi = (tr->dir == DIR_E || tr->dir == DIR_W) ? OB_LAVA_X : OB_LAVA_Y;
+            int n = c->ob[oi].n;
+            int fr = ph < 0.45f ? 0 : ph < 0.60f ? 1 : ph < 0.92f ? 2 + (int)(t * 10.0f) % 3 : 5;
+            if (fr >= n) fr = n - 1;
+            ob(l, w, c, oi, fr < 0 ? 0 : fr, x, y, z, -1);
+            break;
+        }
+        case TRAP_ROCK: {
+            /* the shadow grows, the rock drops out of the sky, it shatters */
+            if (ph >= 0.55f && ph < 0.95f) {
+                float k = (ph - 0.55f) / 0.33f;
+                if (k > 1) k = 1;
+                mark_add(s, x, y, z, 0, 60 + (int)(k * 150), 90 + (int)(k * 130));
+            }
+            if (ph >= 0.80f && ph < 0.88f) {
+                float f = (ph - 0.80f) / 0.08f;
+                ob(l, w, c, OB_FALLROCK, 0, x, y, z + (1.0f - f) * 5.0f, 2);
+            } else if (ph >= 0.88f) {
+                int n = c->ob[OB_ROCKBITS].n;
+                if (n) ob(l, w, c, OB_ROCKBITS, prog_frame(&c->ob[OB_ROCKBITS], (ph - 0.88f) / 0.12f), x, y, z, 1);
+                else ob(l, w, c, OB_FALLROCK, 0, x, y, z, 1);
+            }
+            break;
+        }
+        case TRAP_PIRANHA: {
+            int n = c->ob[OB_PIRANHA].n;
+            int fr = ph < 0.45f || n < 2 ? 0 : 1 + (int)(t * 12.0f) % (n - 1);
+            ob(l, w, c, OB_PIRANHA, fr, x, y, z - 0.18f, 1);
+            break;
+        }
+        case TRAP_WAVE: {
+            if (ph < 0.72f || ph >= 0.97f) break;
+            int oi = (tr->dir == DIR_E || tr->dir == DIR_W) ? OB_WAVE_X : OB_WAVE_Y;
+            ob(l, w, c, oi, prog_frame(&c->ob[oi], (ph - 0.72f) / 0.25f), x, y, z, 2);
+            break;
+        }
         default:
             break;
+        }
+    }
+    /* the tide: the foam creeps in before a cell goes under */
+    for (int i = 0; i < g->n_tide; i++) {
+        const mh_tide_t *td = &g->tide[i];
+        if (td->state != 1 || !c->ob[OB_TIDE].n) continue;
+        float x = td->x + 0.5f, y = td->y + 0.5f, z = mh_cell(lv, td->x, td->y)->h * FLOOR_M;
+        if (!visible(s, w, x, y, z)) continue;
+        ob(l, w, c, OB_TIDE, c->ob[OB_TIDE].n > 1 ? 1 : 0, x, y, z, -1);
+    }
+    /* the kraken's strike: the row glows red, then the tentacle lies along it */
+    for (int i = 0; i < g->n_mon; i++) {
+        int row, x0, x1;
+        float ph;
+        if (!mh_kraken_strike(&g->mon[i], &row, &x0, &x1, &ph)) continue;
+        if (x0 < 0) x0 = 0;
+        if (x1 > lv->w - 1) x1 = lv->w - 1;
+        for (int x = x0; x <= x1; x++) {
+            if (!mh_in(lv, x, row)) continue;
+            const mh_cell_t *cl = mh_cell(lv, x, row);
+            float z = cl->h * FLOOR_M - (cl->kind == CK_WATER ? 0.18f : 0);
+            if (ph < 1.0f) {
+                int a = 50 + (int)(ph * 110) + ((int)(t * 8) & 1) * 30;
+                mark_add(s, x + 0.5f, row + 0.5f, z, 0xFF3050, a, 200);
+                continue;
+            }
+            int oi = x == x0 ? OB_TENT_W : x == x1 ? OB_TENT_E : OB_TENT_M;
+            ob(l, w, c, oi, prog_frame(&c->ob[oi], ph - 1.0f), x + 0.5f, row + 0.5f, z, 3);
         }
     }
     for (int i = 0; i < MH_MAX_DART; i++) {
@@ -897,6 +1068,13 @@ void mh_scene_build(mh_scene_t *s, const mh_world_t *w, const mh_game_t *g, cons
     const mh_hero_t *h = &g->h;
     float lead = 0.8f;
     mh_scene_look(s, w, h->x + DXv[h->dir] * lead * 0.5f, h->y + DYv[h->dir] * lead, h->floor * FLOOR_M, dt, false);
+    if (g->shake > 0) {
+        /* a big one's steps: the view jolts */
+        int k = (int)(g->shake * 14.0f);
+        s->icam_x += (int)(sinf(s->anim_t * 71.0f) * (float)k);
+        s->icam_y += (int)(sinf(s->anim_t * 53.0f + 1.3f) * (float)k);
+    }
+    s->nmark = 0;
     mh_dlist_clear(l);
     things_draw(s, w, g, c, l);
     for (int i = 0; i < g->n_mon; i++) mon_draw(s, w, g, c, l, &g->mon[i]);

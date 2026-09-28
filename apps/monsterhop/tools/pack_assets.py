@@ -185,9 +185,10 @@ def main():
                 pass
             add(base, fmt, idx, data, ms)
             if 'levels' in info:
-                # the map's spots: 16 levels, the house, the two locked zones
+                # the map's spots: the levels in the table's order (main/
+                # monsterhop.c: level_table), the house, the two future zones
                 pts = []
-                for z in ('city', 'castle', 'desert', 'forest'):
+                for z in ('city', 'castle', 'desert', 'forest', 'dino', 'bay'):
                     lv = info['levels'].get(z, [])
                     for k in range(4):
                         pts.append(lv[k] if k < len(lv) else [0, 0])

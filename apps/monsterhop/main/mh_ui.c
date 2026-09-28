@@ -27,6 +27,7 @@ static const char *sticker_of(int i)
     static const char *const n[MH_LEVELS] = {
         "zombie", "zombiedog", "#city", "brute", "vampire", "armor", "bat", "count",
         "mummy", "scarab", "#desert", "pharaoh", "werewolf", "crow", "#forest", "alpha",
+        "raptor", "ptero", "trike", "trex", "crab", "jelly", "fishman", "kraken",
     };
     return i >= 0 && i < MH_LEVELS ? n[i] : "";
 }
@@ -48,6 +49,14 @@ static const char *sticker_title(int i)
     case 11: return _("El Faraón");
     case 12: return _("Hombre lobo");
     case 13: return _("Cuervo");
+    case 16: return _("Raptor");
+    case 17: return _("Pterodáctilo");
+    case 18: return _("Triceratops");
+    case 19: return _("El T-Rex");
+    case 20: return _("Cangrejo gigante");
+    case 21: return _("Medusa");
+    case 22: return _("Hombre pez");
+    case 23: return _("El Kraken");
     case 14: return _("Bosque Lobizón");
     case 15: return _("El Alfa");
     default: return "";
@@ -210,8 +219,9 @@ void mh_ui_job(app_t *a, int what)
         if (!a->ui_logo.buf) uimg_sheet(&a->ui_logo, "logo", 0, NULL);
         if (!a->ui_house.buf) uimg_sheet(&a->ui_house, "house", 0, NULL);
         {
-            static const char *const em[7] = { "city", "castle", "desert", "forest", "swamp", "graveyard", "lock" };
-            for (int i = 0; i < 7; i++) {
+            static const char *const em[MH_EMBLEMS] = { "city", "castle", "desert", "forest", "swamp", "graveyard",
+                                                        "lock", "dino", "bay" };
+            for (int i = 0; i < MH_EMBLEMS; i++) {
                 if (a->ui_emblem[i].buf) continue;
                 snprintf(nm, sizeof nm, "emblem_%s", em[i]);
                 uimg_sheet(&a->ui_emblem[i], nm, 0, NULL);
@@ -225,7 +235,7 @@ void mh_ui_job(app_t *a, int what)
             uint8_t *b = mh_art_blob("map_spots", &len);
             if (b && len >= 2) {
                 int n = b[0] | (b[1] << 8);
-                for (int i = 0; i < n && i < 19 && 2 + i * 4 + 3 < (int)len; i++) {
+                for (int i = 0; i < n && i < MH_SPOTS && 2 + i * 4 + 3 < (int)len; i++) {
                     a->spots[i][0] = (int16_t)(b[2 + i * 4] | (b[3 + i * 4] << 8));
                     a->spots[i][1] = (int16_t)(b[4 + i * 4] | (b[5 + i * 4] << 8));
                 }
@@ -248,7 +258,7 @@ void mh_ui_job(app_t *a, int what)
         uimg_free(&a->ui_map);
         uimg_free(&a->ui_logo);
         uimg_free(&a->ui_house);
-        for (int i = 0; i < 7; i++) uimg_free(&a->ui_emblem[i]);
+        for (int i = 0; i < MH_EMBLEMS; i++) uimg_free(&a->ui_emblem[i]);
         for (int i = 0; i < 4; i++) uimg_free(&a->ui_trophy[i]);
         for (int i = 0; i < MH_LEVELS; i++) uimg_free(&a->ui_card[i]);
         for (int k = 0; k < 5; k++) mh_anim_free(&a->turn[k]);
@@ -269,7 +279,7 @@ typedef struct {
     /* title */
     lv_obj_t *t_bg, *t_logo, *t_coins;
     /* map */
-    lv_obj_t *m_scroll, *m_img, *m_pad[19], *m_star[MH_LEVELS][3], *m_marker, *m_head;
+    lv_obj_t *m_scroll, *m_img, *m_pad[MH_SPOTS], *m_star[MH_LEVELS][3], *m_marker, *m_head;
     lv_obj_t *m_pop, *m_pop_title, *m_pop_body, *m_pop_play;
     int       m_pop_level;
     /* house */
@@ -433,8 +443,8 @@ static lv_obj_t *image(lv_obj_t *parent, const void *src, int x, int y)
 
 static void coins_text(char *b, size_t n, const app_t *a)
 {
-    snprintf(b, n, "%d %s   %d/48", (int)a->prog.coins, a->prog.coins == 1 ? _("moneda") : _("monedas"),
-             mh_prog_stars(&a->prog));
+    snprintf(b, n, "%d %s   %d/%d", (int)a->prog.coins, a->prog.coins == 1 ? _("moneda") : _("monedas"),
+             mh_prog_stars(&a->prog), MH_LEVELS * 3);
 }
 
 /* ---- title ---- */
@@ -500,17 +510,17 @@ static void pad_cb(lv_event_t *e)
     app_t *a = app_of(e);
     int i = (int)(intptr_t)lv_obj_get_user_data(lv_event_get_target(e));
     mh_snd(SND_SELECT);
-    if (i == 16) {
+    if (i == MH_LEVELS) {
         mha_set_state(a, ST_HOUSE);
         return;
     }
-    if (i > 16) {
+    if (i > MH_LEVELS) {
         aos_ui_toast(_("Próximamente: una zona nueva"), 1600);
         return;
     }
     char b[200];
     if (!mha_level_open(a, i)) {
-        int z = i / 4;
+        int z = mha_level_info(i)->zone;
         if (mh_prog_stars(&a->prog) < mha_zone_need(z))
             snprintf(b, sizeof b, _("Hacen falta %d estrellas para abrir esta zona"), mha_zone_need(z));
         else snprintf(b, sizeof b, "%s", _("Termina el nivel anterior"));
@@ -524,7 +534,8 @@ static void pad_cb(lv_event_t *e)
     int ms = a->prog.best_ms[i];
     char best[32] = "-";
     if (ms > 0) snprintf(best, sizeof best, "%d:%02d", ms / 60000, (ms / 1000) % 60);
-    snprintf(b, sizeof b, "%s\n%s: %d/3   %s: %s\n%s: %s", mha_zone_title(i / 4), _("Estrellas"), a->prog.stars[i],
+    snprintf(b, sizeof b, "%s\n%s: %d/3   %s: %s\n%s: %s", mha_zone_title(mha_level_info(i)->zone), _("Estrellas"),
+             a->prog.stars[i],
              _("Récord"), best, _("Figurita"), (a->prog.stickers & (1u << i)) ? _("encontrada") : _("escondida"));
     lv_label_set_text(s_ui.m_pop_body, b);
     lv_obj_remove_flag(s_ui.m_pop, LV_OBJ_FLAG_HIDDEN);
@@ -541,12 +552,12 @@ static void build_map(app_t *a, lv_obj_t *root)
     lv_obj_set_scrollbar_mode(sc, LV_SCROLLBAR_MODE_OFF);
     lv_obj_add_flag(sc, LV_OBJ_FLAG_SCROLLABLE);
     s_ui.m_img = image(sc, NULL, 0, 0);
-    for (int i = 0; i < 19; i++) {
+    for (int i = 0; i < MH_SPOTS; i++) {
         lv_obj_t *b = lv_obj_create(sc);
         lv_obj_remove_style_all(b);
         lv_obj_set_size(b, 44, 44);
         lv_obj_set_style_radius(b, 22, 0);
-        lv_obj_set_style_border_width(b, i < 16 ? 3 : 0, 0);
+        lv_obj_set_style_border_width(b, i < MH_LEVELS ? 3 : 0, 0);
         lv_obj_set_style_border_color(b, lv_color_hex(GOLD), 0);
         lv_obj_set_style_bg_color(b, lv_color_hex(0xFFFFFF), LV_STATE_PRESSED);
         lv_obj_set_style_bg_opa(b, 90, LV_STATE_PRESSED);
@@ -555,7 +566,7 @@ static void build_map(app_t *a, lv_obj_t *root)
         lv_obj_set_user_data(b, (void *)(intptr_t)i);
         lv_obj_add_flag(b, LV_OBJ_FLAG_HIDDEN);
         s_ui.m_pad[i] = b;
-        if (i < 16) {
+        if (i < MH_LEVELS) {
             char n[4];
             snprintf(n, sizeof n, "%d", i % 4 + 1);
             lv_obj_t *l = lv_label_create(b);
@@ -602,7 +613,7 @@ static int next_level(const app_t *a)
 {
     int last = 0;
     for (int i = 0; i < MH_LEVELS; i++) {
-        if (!mha_level_open(a, i)) break;
+        if (!mha_level_open(a, i)) continue;     /* the hub: zones open out of order */
         last = i;
         if (!a->prog.stars[i]) return i;
     }
@@ -619,7 +630,7 @@ static void map_refresh(app_t *a)
     wrap(&a->ui_map);
     lv_image_set_src(s_ui.m_img, &a->ui_map.dsc);
     if (!a->spots_ok) return;
-    for (int i = 0; i < 19; i++) {
+    for (int i = 0; i < MH_SPOTS; i++) {
         lv_obj_t *pd = s_ui.m_pad[i];
         int x = a->spots[i][0], y = a->spots[i][1];
         if (x == 0 && y == 0) {
@@ -628,7 +639,7 @@ static void map_refresh(app_t *a)
         }
         lv_obj_set_pos(pd, x - 22, y - 22);
         lv_obj_remove_flag(pd, LV_OBJ_FLAG_HIDDEN);
-        if (i >= 16) continue;
+        if (i >= MH_LEVELS) continue;
         bool open = mha_level_open(a, i);
         lv_obj_set_style_border_color(pd, lv_color_hex(open ? GOLD : 0x606070), 0);
         lv_obj_set_style_bg_color(pd, lv_color_hex(open ? 0x2A1A40 : 0x202028), 0);
@@ -999,8 +1010,8 @@ static void album_refresh(app_t *a)
         lv_obj_remove_style_all(c);
         lv_obj_set_size(c, 82, 96);
         lv_obj_set_style_radius(c, 10, 0);
-        static const uint32_t zc[4] = { 0x3A4050, 0x3A2A5A, 0x5A4028, 0x1E4A34 };
-        lv_obj_set_style_bg_color(c, lv_color_hex(got ? zc[i / 4] : 0x18141E), 0);
+        static const uint32_t zc[ZONE_N] = { 0x3A4050, 0x3A2A5A, 0x5A4028, 0x1E4A34, 0x303030, 0x5A3420, 0x183A52 };
+        lv_obj_set_style_bg_color(c, lv_color_hex(got ? zc[mha_level_info(i)->zone] : 0x18141E), 0);
         lv_obj_set_style_bg_opa(c, LV_OPA_COVER, 0);
         lv_obj_set_style_border_color(c, lv_color_hex(got ? GOLD : 0x3A3448), 0);
         lv_obj_set_style_border_width(c, 2, 0);
@@ -1496,7 +1507,7 @@ void mh_ui_before_job(app_t *a, int what)
         mh_uimg_t *all[] = { &a->ui_map, &a->ui_logo, &a->ui_house };
         for (size_t i = 0; i < sizeof all / sizeof all[0]; i++)
             if (all[i]->buf) lv_image_cache_drop(&all[i]->dsc);
-        for (int i = 0; i < 7; i++) if (a->ui_emblem[i].buf) lv_image_cache_drop(&a->ui_emblem[i].dsc);
+        for (int i = 0; i < MH_EMBLEMS; i++) if (a->ui_emblem[i].buf) lv_image_cache_drop(&a->ui_emblem[i].dsc);
         for (int i = 0; i < 4; i++) if (a->ui_trophy[i].buf) lv_image_cache_drop(&a->ui_trophy[i].dsc);
         for (int i = 0; i < MH_LEVELS; i++) if (a->ui_card[i].buf) lv_image_cache_drop(&a->ui_card[i].dsc);
         s_ui.s_turn_ready = false;
@@ -1542,7 +1553,7 @@ void mh_ui_free(app_t *a)
     uimg_free(&a->ui_logo);
     uimg_free(&a->ui_house);
     uimg_free(&a->ui_marker);
-    for (int i = 0; i < 7; i++) uimg_free(&a->ui_emblem[i]);
+    for (int i = 0; i < MH_EMBLEMS; i++) uimg_free(&a->ui_emblem[i]);
     for (int i = 0; i < 4; i++) uimg_free(&a->ui_trophy[i]);
     for (int i = 0; i < MH_LEVELS; i++) uimg_free(&a->ui_card[i]);
     for (int k = 0; k < 5; k++) mh_anim_free(&a->turn[k]);

@@ -47,6 +47,8 @@ static const mh_level_info_t *level_table(int i)
         { "castle_1", ZONE_CASTLE }, { "castle_2", ZONE_CASTLE }, { "castle_3", ZONE_CASTLE }, { "castle_4", ZONE_CASTLE },
         { "desert_1", ZONE_DESERT }, { "desert_2", ZONE_DESERT }, { "desert_3", ZONE_DESERT }, { "desert_4", ZONE_DESERT },
         { "forest_1", ZONE_FOREST }, { "forest_2", ZONE_FOREST }, { "forest_3", ZONE_FOREST }, { "forest_4", ZONE_FOREST },
+        { "dino_1", ZONE_DINO },     { "dino_2", ZONE_DINO },     { "dino_3", ZONE_DINO },     { "dino_4", ZONE_DINO },
+        { "bay_1", ZONE_BAY },       { "bay_2", ZONE_BAY },       { "bay_3", ZONE_BAY },       { "bay_4", ZONE_BAY },
     };
     static const mh_level_info_t test = { "test_1", ZONE_TEST };
     return i >= 0 && i < MH_LEVELS ? &t[i] : &test;
@@ -76,6 +78,14 @@ const char *mha_level_title(int i)
     case 13: return _("El Río Bravo");
     case 14: return _("El Viejo Molino");
     case 15: return _("El Claro de la Luna");
+    case 16: return _("La Selva Humeante");
+    case 17: return _("Los Pozos de Brea");
+    case 18: return _("El Río de Lava");
+    case 19: return _("La Carrera del T-Rex");
+    case 20: return _("El Muelle");
+    case 21: return _("Marea Alta");
+    case 22: return _("El Barco Hundido");
+    case 23: return _("La Guarida del Kraken");
     default: return _("Campo de Prueba");
     }
 }
@@ -87,21 +97,29 @@ const char *mha_zone_title(int z)
     case ZONE_CASTLE: return _("Castillo Vampiro");
     case ZONE_DESERT: return _("Desierto de las Momias");
     case ZONE_FOREST: return _("Bosque Lobizón");
+    case ZONE_DINO: return _("Valle Perdido");
+    case ZONE_BAY: return _("Bahía Abisal");
     default: return "";
     }
 }
 
+/* The map is a hub: from Tommy's house the zombie town, the lost valley,
+ * the werewolf woods and the bay are open; the castle and the desert ask
+ * for stars (of the 48 the open four hold) */
 int mha_zone_need(int z)
 {
-    static const int need[4] = { 0, 6, 14, 22 };
-    return z >= 0 && z < 4 ? need[z] : 0;
+    switch (z) {
+    case ZONE_CASTLE: return 12;
+    case ZONE_DESERT: return 24;
+    default: return 0;
+    }
 }
 
 bool mha_level_open(const app_t *a, int i)
 {
     if (a->dev_auto) return true;
     if (i < 0 || i >= MH_LEVELS) return false;
-    if (mh_prog_stars(&a->prog) < mha_zone_need(i / 4)) return false;
+    if (mh_prog_stars(&a->prog) < mha_zone_need(mha_level_info(i)->zone)) return false;
     if (i % 4 == 0) return true;
     return a->prog.stars[i - 1] > 0;
 }
@@ -423,6 +441,24 @@ static void play_frame(app_t *a)
             mh_game_step(g, dt * 0.5f);
             mh_game_step(g, dt * 0.5f);
         }
+#ifdef AOS_SIM_BUILTIN
+        {
+            /* MH_TRACE=1: where Tommy and the monsters are, once a second */
+            static uint32_t tr_ms;
+            static int tr_on = -1;
+            if (tr_on < 0) tr_on = getenv("MH_TRACE") != NULL;
+            if (tr_on && (uint32_t)(now - tr_ms) > 1000) {
+                tr_ms = (uint32_t)now;
+                char b[200];
+                int n = snprintf(b, sizeof b, "t %.1f hero %.1f,%.1f st %d lives %d keys %d |", g->t, g->h.x, g->h.y,
+                                 g->h.state, g->lives, g->keys);
+                for (int k = 0; k < g->n_mon && k < 4 && n < (int)sizeof b - 30; k++)
+                    n += snprintf(b + n, sizeof b - (size_t)n, " m%d %.1f,%.1f s%d", g->mon[k].kind, g->mon[k].x,
+                                  g->mon[k].y, g->mon[k].state);
+                aos_hal_log("trace", "%s", b);
+            }
+        }
+#endif
         uint32_t ev = g->events;
         g->events = 0;
         mh_hud_events(&a->hs, ev, dt);
@@ -614,7 +650,8 @@ static void music_for(app_t *a, int st)
 {
     if (st == ST_INTRO || st == ST_PLAY) {
         int z = a->level_ok ? a->lv.zone : ZONE_CITY;
-        mh_music(z < 4 ? z : MUS_MENU, a->level >= 0 && (a->level % 4) == 3);
+        int th = z < 4 ? z : z == ZONE_DINO ? MUS_DINO : z == ZONE_BAY ? MUS_BAY : MUS_MENU;
+        mh_music(th, a->level >= 0 && (a->level % 4) == 3);
     } else if (st == ST_RESULT || st == ST_LOADING) {
         mh_music(MUS_NONE, false);
     } else if (st != ST_PAUSE) {
@@ -720,11 +757,12 @@ void mha_level_start(app_t *a, int idx)
     {
         /* a level reads its zone's blocks and props, its monsters and the
          * common objects: the zone's share of the pack plus a guess */
-        static const char *const zp[] = { "city_", "castle_", "desert_", "forest_" };
+        static const char *const zp[] = { "city_", "castle_", "desert_", "forest_", "", "dino_", "bay_" };
         char key[12];
         snprintf(key, sizeof key, idx < 0 ? "mh_ldt" : "mh_ld%d", idx);
         const mh_level_info_t *li = mha_level_info(idx);
-        uint32_t guess = (li && li->zone < 4 ? mh_art_prefix_bytes(zp[li->zone]) : 0) + 1500u * 1024u;
+        uint32_t guess = (li && li->zone < ZONE_N && zp[li->zone][0] ? mh_art_prefix_bytes(zp[li->zone]) : 0) +
+                         1500u * 1024u;
         load_begin(a, key, guess);
     }
 #ifdef MH_DESKTOP
@@ -1106,14 +1144,15 @@ static void boot_done(app_t *a)
     mha_set_state(a, ST_MENU);
 #ifdef AOS_SIM_BUILTIN
     /* Development switches (getenv() is NULL on the board):
-     *   MH_LEVEL=<0..15>|test   straight into that level
+     *   MH_LEVEL=<0..23>|test   straight into that level
+     *   MH_TRACE=1              Tommy and the monsters in the log, once a second
      *   MH_DIFF=0..2            the difficulty
      *   MH_UNLOCK=1             every level open
      *   MH_COINS=n              coins for the shop
      *   MH_TRAIL=1..4           wear that trail (0 none)
      *   MH_START=x,y            the level starts in that cell
      *   MH_SCREEN=map|house|shop|wardrobe|album|trophies|stats|settings
-     *   MH_RACE=<0..15>         into the lobby; the host starts that level
+     *   MH_RACE=<0..23>         into the lobby; the host starts that level
      *                           (two sims: AOS_SIM_LINK_PORT/_PARTNER)
      */
     const char *e;
