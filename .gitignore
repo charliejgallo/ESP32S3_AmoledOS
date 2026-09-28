@@ -58,6 +58,9 @@ apps/monsterhop/assets/levels/
 # the desktop's HD art: too big for this repo (MH_RES=2 renders, 2x pack)
 apps/monsterhop/assets_hd/
 apps/monsterhop/assets/monsterhop_hd.pak
+# the zones' far scenery (tools/blender/backdrops.py): desktop only, kept in
+# the MonsterHop repo's art/
+apps/monsterhop/assets/backdrops/
 # Mila: the same. Renders and mila.pak are tracked; the style samples and
 # the agents' sheets, the pack in parts, the compiled levels and the level
 # generator's candidates (tools/gen.py) are not.
