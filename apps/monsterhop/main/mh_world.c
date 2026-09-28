@@ -23,6 +23,10 @@ static const mh_zone_look_t s_looks[ZONE_N] = {
     { 0x10281E, 0x040C08, 0xC8F0DC, 0x3A6A58, 0xD0FFF0 },
     /* test */
     { 0x1C2230, 0x080A10, 0xFFFFFF, 0x606878, 0xFFFFFF },
+    /* dino: a hazy volcanic afternoon, warm light */
+    { 0x5A3A26, 0x1C0E08, 0xFFE4C4, 0xB8704A, 0xFFF0C8 },
+    /* bay: a deep blue harbour night */
+    { 0x0E2438, 0x040A12, 0xB4D4FF, 0x2A5A7A, 0xA8F8FF },
 };
 
 const mh_zone_look_t *mh_zone_look(int zone)
@@ -36,10 +40,10 @@ bool mh_world_init(mh_world_t *w, const mh_level_t *lv)
 {
     memset(w, 0, sizeof(*w));
     w->lv = lv;
-    w->ox = 160;
-    w->oy = 42 * lv->h + 260;
-    w->lw = 60 * lv->w + 20 * lv->h + 320;
-    w->lh = w->oy + 14 * lv->w + 46 + 120;
+    w->ox = 160 * MH_PX;
+    w->oy = (42 * lv->h + 260) * MH_PX;
+    w->lw = (60 * lv->w + 20 * lv->h + 320) * MH_PX;
+    w->lh = w->oy + (14 * lv->w + 46 + 120) * MH_PX;
     w->dofs = (int)(7.23f * lv->w) + 180;
     w->cc = (uint16_t *)mh_malloc((size_t)MH_CW * MH_CH * 2);
     w->cd = (uint16_t *)mh_malloc((size_t)MH_CW * MH_CH * 2);
@@ -61,9 +65,23 @@ bool mh_world_init(mh_world_t *w, const mh_level_t *lv)
     return true;
 }
 
+bool mh_world_init_twin(mh_world_t *w, const mh_world_t *of)
+{
+    memcpy(w, of, sizeof(*w));
+    w->twin = true;
+    w->cc = (uint16_t *)mh_malloc((size_t)MH_CW * MH_CH * 2);
+    w->cd = (uint16_t *)mh_malloc((size_t)MH_CW * MH_CH * 2);
+    if (!w->cc || !w->cd) {
+        mh_world_free(w);
+        return false;
+    }
+    mh_world_invalidate_all(w);
+    return true;
+}
+
 void mh_world_free(mh_world_t *w)
 {
-    for (int i = 0; i < MH_LV_MAXASSET; i++) {
+    for (int i = 0; i < MH_LV_MAXASSET && !w->twin; i++) {
         mh_anim_free(&w->art[i]);
         mh_anim_free(&w->sh[i]);
         mh_anim_free(&w->gl[i]);
@@ -71,6 +89,12 @@ void mh_world_free(mh_world_t *w)
     free(w->cc);
     free(w->cd);
     w->cc = w->cd = NULL;
+    if (w->twin) {
+        memset(w->art, 0, sizeof w->art);
+        memset(w->sh, 0, sizeof w->sh);
+        memset(w->gl, 0, sizeof w->gl);
+    }
+    w->twin = false;
 }
 
 void mh_world_invalidate_all(mh_world_t *w)
@@ -88,8 +112,8 @@ void mh_world_invalidate_cell(mh_world_t *w, int x, int y)
 {
     /* the art of a cell reaches ~150 px around its anchor, and 240 above */
     float ax = mh_lpx(w, x + 0.5f, y + 0.5f), ay = mh_lpy(w, x + 0.5f, y + 0.5f, 0);
-    int bx0 = ((int)ax - 150) / MH_CB, bx1 = ((int)ax + 150) / MH_CB;
-    int by0 = ((int)ay - 260) / MH_CB, by1 = ((int)ay + 90) / MH_CB;
+    int bx0 = ((int)ax - 150 * MH_PX) / MH_CB, bx1 = ((int)ax + 150 * MH_PX) / MH_CB;
+    int by0 = ((int)ay - 260 * MH_PX) / MH_CB, by1 = ((int)ay + 90 * MH_PX) / MH_CB;
     for (int by = by0; by <= by1; by++) {
         for (int bx = bx0; bx <= bx1; bx++) {
             if (bx < 0 || by < 0) continue;
@@ -258,13 +282,13 @@ static void draw_block(mh_world_t *w, int bx, int by)
         }
     }
     /* the cells whose art can reach the block: anchors within this LP box */
-    float qx0 = (float)(b.x0 - 150 - w->ox), qx1 = (float)(b.x0 + MH_CB + 150 - w->ox);
-    float qy0 = (float)(b.y0 - 110 - w->oy), qy1 = (float)(b.y0 + MH_CB + 260 - w->oy);
+    float qx0 = (float)(b.x0 - 150 * MH_PX - w->ox), qx1 = (float)(b.x0 + MH_CB + 150 * MH_PX - w->ox);
+    float qy0 = (float)(b.y0 - 110 * MH_PX - w->oy), qy1 = (float)(b.y0 + MH_CB + 260 * MH_PX - w->oy);
     float cx[4] = { qx0, qx1, qx0, qx1 }, cy[4] = { qy0, qy0, qy1, qy1 };
     float wx0 = 1e9f, wx1 = -1e9f, wy0 = 1e9f, wy1 = -1e9f;
     for (int k = 0; k < 4; k++) {
-        float X = (42.0f * cx[k] + 20.0f * cy[k]) / 2800.0f;
-        float Y = (14.0f * cx[k] - 60.0f * cy[k]) / 2800.0f;
+        float X = (42.0f * cx[k] + 20.0f * cy[k]) / (2800.0f * MH_PX);
+        float Y = (14.0f * cx[k] - 60.0f * cy[k]) / (2800.0f * MH_PX);
         if (X < wx0) wx0 = X;
         if (X > wx1) wx1 = X;
         if (Y < wy0) wy0 = Y;

@@ -94,11 +94,32 @@ int mh_prog_stars(const mh_prog_t *p)
     return s;
 }
 
+int mh_zone_first(int zone)
+{
+    switch (zone) {
+    case ZONE_CITY: return 0;
+    case ZONE_CASTLE: return 4;
+    case ZONE_DESERT: return 8;
+    case ZONE_FOREST: return 12;
+    case ZONE_DINO: return 16;
+    case ZONE_BAY: return 20;
+    default: return -1;
+    }
+}
+
 static bool zone_full(const mh_prog_t *p, int z)
 {
-    for (int k = 0; k < 4; k++) if (p->stars[z * 4 + k] < 3) return false;
+    int f = mh_zone_first(z);
+    if (f < 0) return false;
+    for (int k = 0; k < 4; k++) if (p->stars[f + k] < 3) return false;
     return true;
 }
+
+/* the zones built so far, and their trophies */
+static const struct { uint8_t zone, trophy; } s_zone_tr[] = {
+    { ZONE_CITY, TR_ZONE_CITY }, { ZONE_CASTLE, TR_ZONE_CASTLE }, { ZONE_DESERT, TR_ZONE_DESERT },
+    { ZONE_FOREST, TR_ZONE_FOREST }, { ZONE_DINO, TR_ZONE_DINO }, { ZONE_BAY, TR_ZONE_BAY },
+};
 
 static int popcount(uint32_t v)
 {
@@ -111,9 +132,11 @@ uint32_t mh_prog_trophies(mh_prog_t *p)
 {
     uint32_t had = p->trophies, now = had;
     if (p->stat[SX_LEVELS] > 0) now |= 1u << TR_FIRST;
-    for (int z = 0; z < 4; z++) if (zone_full(p, z)) now |= 1u << (TR_ZONE_CITY + z);
     bool bosses = true;
-    for (int z = 0; z < 4; z++) if (!p->stars[z * 4 + 3]) bosses = false;
+    for (size_t k = 0; k < sizeof s_zone_tr / sizeof s_zone_tr[0]; k++) {
+        if (zone_full(p, s_zone_tr[k].zone)) now |= 1u << s_zone_tr[k].trophy;
+        if (!p->stars[mh_zone_first(s_zone_tr[k].zone) + 3]) bosses = false;
+    }
     if (bosses) now |= 1u << TR_BOSSES;
     if (popcount(p->stickers) >= MH_NLEVELS) now |= 1u << TR_ALBUM;
     if (p->stat[SX_KEYS] >= 100) now |= 1u << TR_KEYS100;
@@ -143,6 +166,8 @@ const char *mh_trophy_name(int t)
     case TR_SHOP10: return _("A la moda");
     case TR_FRIEND: return _("Mejor amigo");
     case TR_ALL_STARS: return _("Todas las estrellas");
+    case TR_ZONE_DINO: return _("Domador del Valle");
+    case TR_ZONE_BAY: return _("Capitán de la Bahía");
     default: return "";
     }
 }
@@ -157,13 +182,23 @@ const char *mh_trophy_desc(int t)
     case TR_ZONE_CASTLE: return _("Tres estrellas en todo el Castillo Vampiro");
     case TR_ZONE_DESERT: return _("Tres estrellas en todo el Desierto de las Momias");
     case TR_ZONE_FOREST: return _("Tres estrellas en todo el Bosque Lobizón");
-    case TR_BOSSES: return _("Gana en las cuatro guaridas");
-    case TR_ALBUM: return _("Encuentra las 16 figuritas");
+    case TR_BOSSES: return _("Gana en todas las guaridas");
+    case TR_ALBUM: {
+        static char b[64];
+        snprintf(b, sizeof b, _("Encuentra las %d figuritas"), MH_NLEVELS);
+        return b;
+    }
     case TR_KEYS100: return _("Junta 100 llaves");
     case TR_HOPS5000: return _("Da 5000 saltos");
     case TR_SHOP10: return _("Compra 10 cosas en la tienda");
     case TR_FRIEND: return _("Gana una carrera contra el otro reloj");
-    case TR_ALL_STARS: return _("Las 48 estrellas");
+    case TR_ALL_STARS: {
+        static char b[64];
+        snprintf(b, sizeof b, _("Las %d estrellas"), MH_NLEVELS * 3);
+        return b;
+    }
+    case TR_ZONE_DINO: return _("Tres estrellas en todo el Valle Perdido");
+    case TR_ZONE_BAY: return _("Tres estrellas en toda la Bahía Abisal");
     default: return "";
     }
 }
@@ -171,7 +206,8 @@ const char *mh_trophy_desc(int t)
 int mh_trophy_tier(int t)
 {
     switch (t) {
-    case TR_ALBUM: case TR_BOSSES: case TR_ALL_STARS: case TR_ZONE_FOREST: return 2;
+    case TR_ALBUM: case TR_BOSSES: case TR_ALL_STARS: case TR_ZONE_FOREST: case TR_ZONE_BAY: return 2;
+    case TR_ZONE_DINO: return 1;
     case TR_ZONE_CITY: case TR_ZONE_CASTLE: case TR_ZONE_DESERT: case TR_HARD: case TR_KEYS100: case TR_HOPS5000: return 1;
     default: return 0;
     }

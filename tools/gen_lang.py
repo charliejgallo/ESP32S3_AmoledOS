@@ -153,7 +153,7 @@ def c_sources(root):
         dirnames[:] = [d for d in dirnames
                        if d not in ("build", "managed_components")]
         for name in sorted(filenames):
-            if name.endswith(".c") and name not in GENERATED:
+            if name.endswith((".c", ".inc")) and name not in GENERATED:
                 yield os.path.join(dirpath, name)
 
 

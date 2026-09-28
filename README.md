@@ -275,12 +275,20 @@ same stage at once, each seeing the other as a ghost.
   <img src="docs/img/app-monsterhop-brute.png" width="160" alt="Monster Hop: City Hall, the Brute boss next to Tommy on the plaza">
   <img src="docs/img/app-monsterhop-wardrobe.png" width="160" alt="Monster Hop: the wardrobe, Tommy in a crown and a cape with a black kitten">
 </p>
+<p align="center">
+  <img src="docs/img/app-monsterhop-trex.png" width="160" alt="Monster Hop: the T-Rex Run, the T-Rex right behind Tommy on the red dirt">
+  <img src="docs/img/app-monsterhop-lava.png" width="160" alt="Monster Hop: the Lava River, a crack erupting in flames next to the stepping stones">
+  <img src="docs/img/app-monsterhop-pier.png" width="160" alt="Monster Hop: High Tide, waves sweeping the quay and a crab">
+  <img src="docs/img/app-monsterhop-map.png" width="160" alt="Monster Hop: the map, a hub with the house at the bottom and six zones">
+</p>
 
 The third game from Blender renders, and the first built as a world of
-blocks. Tommy, eleven and in a cap, hops cell by cell through sixteen levels
-of Zombie Town, Vampire Castle, Mummy Desert and Werewolf Forest, collecting
-five keys in each while zombies lunge, vampires turn into bats, mummies push
-boulders and werewolves charge, with a boss in every zone's last level.
+blocks. Tommy, eleven and in a cap, hops cell by cell through twenty-four
+levels of Zombie Town, Vampire Castle, Mummy Desert, Werewolf Forest, the
+Lost Valley and Abyss Bay, collecting five keys in each while zombies lunge,
+vampires turn into bats, mummies push boulders, werewolves charge, raptors
+pounce and the tide comes in, with a boss in every zone's last level (the
+T-Rex chases you; the Kraken slams its tentacles).
 BOOT is the action: a lever, a chest, a crate to push into the water, or a
 super hop. Every block, prop, monster and each of Tommy's caps, capes and
 pets is a sprite with a depth pass: the watch builds each level from them
@@ -288,8 +296,10 @@ into a background cache that knows the depth of every pixel, and the
 sprites are tested against it pixel by pixel, so Tommy walks behind a wall
 and shows through it as a silhouette. Tommy's house is the hub: wardrobe,
 shop, a sticker album with one sticker hidden per level, trophies. 25 fps on
-the board. Two paired watches race for the same keys. More in
-[apps/monsterhop/README.md](apps/monsterhop/README.md).
+the board. Two paired watches race for the same keys. The same game runs
+on macOS and Windows in HD, with two players on a split screen:
+[charliejgallo/MonsterHop](https://github.com/charliejgallo/MonsterHop).
+More in [apps/monsterhop/README.md](apps/monsterhop/README.md).
 
 <p align="center">
   <img src="docs/img/photo-monsterhop-race.jpg" width="330" alt="Two watches in a Monster Hop race on Main Street, the same cars in the same places on both">

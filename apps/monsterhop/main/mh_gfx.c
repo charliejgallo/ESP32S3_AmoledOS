@@ -17,6 +17,12 @@
 #include "esp_heap_caps.h"
 #endif
 
+#ifdef MH_VIEW_RUNTIME
+int mh_view_w = 368, mh_view_h = 448;
+int mh_px = 1;
+const char *mh_pak_name = "monsterhop";
+#endif
+
 void *mh_malloc(size_t n)
 {
 #if !defined(AOS_SIM) && !defined(AOS_SIM_BUILTIN) && !defined(MH_HARNESS)
@@ -61,6 +67,11 @@ uint32_t mh_mix(uint32_t a, uint32_t b, int t)
 
 void mh_copy_swap(uint16_t *dst, const uint16_t *src, size_t n)
 {
+#ifdef MH_DESKTOP
+    /* the desktop's window takes the frame in the machine's own order */
+    if (dst != src) memcpy(dst, src, n * 2);
+    return;
+#endif
     /* two pixels per word; written as a byte shuffle the compiler would
      * call __bswapsi2, which the firmware does not export */
     size_t i = 0;

@@ -26,6 +26,17 @@
 #define WORKER_STACK    (12 * 1024)
 #define SWIPE_PX        22
 
+/* two players on one screen (the desktop port only) */
+static inline bool split_on(const app_t *a)
+{
+#ifdef MH_DESKTOP
+    return a->split;
+#else
+    (void)a;
+    return false;
+#endif
+}
+
 /* ---- the levels ---- */
 
 /* level numbers are forever: they key the records and travel over the link */
@@ -36,6 +47,8 @@ static const mh_level_info_t *level_table(int i)
         { "castle_1", ZONE_CASTLE }, { "castle_2", ZONE_CASTLE }, { "castle_3", ZONE_CASTLE }, { "castle_4", ZONE_CASTLE },
         { "desert_1", ZONE_DESERT }, { "desert_2", ZONE_DESERT }, { "desert_3", ZONE_DESERT }, { "desert_4", ZONE_DESERT },
         { "forest_1", ZONE_FOREST }, { "forest_2", ZONE_FOREST }, { "forest_3", ZONE_FOREST }, { "forest_4", ZONE_FOREST },
+        { "dino_1", ZONE_DINO },     { "dino_2", ZONE_DINO },     { "dino_3", ZONE_DINO },     { "dino_4", ZONE_DINO },
+        { "bay_1", ZONE_BAY },       { "bay_2", ZONE_BAY },       { "bay_3", ZONE_BAY },       { "bay_4", ZONE_BAY },
     };
     static const mh_level_info_t test = { "test_1", ZONE_TEST };
     return i >= 0 && i < MH_LEVELS ? &t[i] : &test;
@@ -65,6 +78,14 @@ const char *mha_level_title(int i)
     case 13: return _("El Río Bravo");
     case 14: return _("El Viejo Molino");
     case 15: return _("El Claro de la Luna");
+    case 16: return _("La Selva Humeante");
+    case 17: return _("Los Pozos de Brea");
+    case 18: return _("El Río de Lava");
+    case 19: return _("La Carrera del T-Rex");
+    case 20: return _("El Muelle");
+    case 21: return _("Marea Alta");
+    case 22: return _("El Barco Hundido");
+    case 23: return _("La Guarida del Kraken");
     default: return _("Campo de Prueba");
     }
 }
@@ -76,21 +97,29 @@ const char *mha_zone_title(int z)
     case ZONE_CASTLE: return _("Castillo Vampiro");
     case ZONE_DESERT: return _("Desierto de las Momias");
     case ZONE_FOREST: return _("Bosque Lobizón");
+    case ZONE_DINO: return _("Valle Perdido");
+    case ZONE_BAY: return _("Bahía Abisal");
     default: return "";
     }
 }
 
+/* The map is a hub: from Tommy's house the zombie town, the lost valley,
+ * the werewolf woods and the bay are open; the castle and the desert ask
+ * for stars (of the 48 the open four hold) */
 int mha_zone_need(int z)
 {
-    static const int need[4] = { 0, 6, 14, 22 };
-    return z >= 0 && z < 4 ? need[z] : 0;
+    switch (z) {
+    case ZONE_CASTLE: return 12;
+    case ZONE_DESERT: return 24;
+    default: return 0;
+    }
 }
 
 bool mha_level_open(const app_t *a, int i)
 {
     if (a->dev_auto) return true;
     if (i < 0 || i >= MH_LEVELS) return false;
-    if (mh_prog_stars(&a->prog) < mha_zone_need(i / 4)) return false;
+    if (mh_prog_stars(&a->prog) < mha_zone_need(mha_level_info(i)->zone)) return false;
     if (i % 4 == 0) return true;
     return a->prog.stars[i - 1] > 0;
 }
@@ -132,6 +161,9 @@ static uint32_t clock_ms(void)
 static void level_free(app_t *a)
 {
     a->level_ok = false;
+#ifdef MH_DESKTOP
+    mhs_free(a);
+#endif
     mh_world_free(&a->world);
     mh_level_free(&a->lv);
     a->loaded_level = -2;
@@ -170,9 +202,15 @@ static bool load_level(app_t *a, int idx)
         mh_level_free(&a->lv);
         return false;
     }
+#ifdef MH_DESKTOP
+    mhp_backdrop(&a->world, a->lv.zone);
+#endif
     mh_cast_level(&a->cast, &a->lv);
     uint32_t seed = (uint32_t)aos_hal_uptime_ms() | 1u;
     bool race = a->link_on && a->link_state == LK_LOADING;
+#ifdef MH_DESKTOP
+    if (a->split) race = true;
+#endif
     a->lk_race = race;
     /* a race: the same seed on both, the normal clock, lives that never end */
     mh_game_init(&a->game, &a->lv, race ? DIFF_NORMAL : a->prog.diff, race ? a->link_seed : seed);
@@ -182,7 +220,16 @@ static bool load_level(app_t *a, int idx)
     }
     mh_scene_init(&a->scene, &a->world, &a->game, &a->outfit, a->skin_fx);
     mh_scene_trail(&a->scene, a->trail);
+#ifdef MH_DESKTOP
+    if (a->split && !mhs_load(a)) {
+        aos_hal_log("mhop", "level %s: no memory for the second view", nm);
+        level_free(a);
+        return false;
+    }
+    if (race && !a->split) {
+#else
     if (race) {
+#endif
         mh_outfit_t o;
         mh_wear_t wr;
         int fx = 0, tr = 0;
@@ -194,6 +241,13 @@ static bool load_level(app_t *a, int idx)
     return true;
 }
 
+/* the pack's file: the desktop may choose the HD one */
+#ifdef MH_VIEW_RUNTIME
+#define PAK_NAME mh_pak_name
+#else
+#define PAK_NAME "monsterhop"
+#endif
+
 enum { JOB_MENU_BACK = JOB_UI + 1 };
 
 static void run_job(app_t *a, int j)
@@ -202,8 +256,8 @@ static void run_job(app_t *a, int j)
     uint64_t t0 = aos_hal_uptime_ms();
     switch (j) {
     case JOB_BOOT: {
-        char path[96];
-        snprintf(path, sizeof path, "%s/monsterhop.pak", aos_hal_path_apps());
+        char path[512];
+        snprintf(path, sizeof path, "%s/%s.pak", aos_hal_path_apps(), PAK_NAME);
         bool ok = mh_art_open(path);
         if (ok) {
             a->outfit_dirty = false;
@@ -271,8 +325,8 @@ static void spare_frame(app_t *a)
     a->spare_checked = true;
     uint32_t hi = 0, hp = 0;
     aos_hal_heap_info(&hi, &hp);
-    if (!a->fb[3] && hp > (uint32_t)(MH_W * MH_H * 2) + MH_FB_SPARE) {
-        uint16_t *f = (uint16_t *)mh_malloc((size_t)MH_W * MH_H * 2);
+    if (!a->fb[3] && hp > (uint32_t)(a->fw * a->fh * 2) + MH_FB_SPARE) {
+        uint16_t *f = (uint16_t *)mh_malloc((size_t)a->fw * a->fh * 2);
         if (f) {
             a->fb_state[3] = FB_FREE;
             a->fb[3] = f;
@@ -330,6 +384,15 @@ static void intro_camera(app_t *a, float dt)
     mh_scene_look(&a->scene, &a->world, kx[i], ky[i], 0, dt * 0.9f, a->intro_t < 0.05f);
 }
 
+static void frame_done(app_t *a, int i)
+{
+    a->w_frames++;
+    a->fb_seq[i] = ++a->seq;
+    a->fb_state[i] = FB_READY;
+    if (!a->spare_checked) spare_frame(a);
+    worker_yield();
+}
+
 static void play_frame(app_t *a)
 {
     int i = free_fb(a);
@@ -348,6 +411,13 @@ static void play_frame(app_t *a)
     a->w_last_ms = now;
     mh_game_t *g = &a->game;
     mh_scene_t *s = &a->scene;
+#ifdef MH_DESKTOP
+    if (a->split) {
+        mhs_frame(a, a->fb[i], dt, run);
+        frame_done(a, i);
+        return;
+    }
+#endif
     if (a->playing && !a->frozen) {
         if (a->lk_race) mhl_worker_before(a);
         int hop = a->in_hop;
@@ -381,6 +451,24 @@ static void play_frame(app_t *a)
             mh_game_step(g, dt * 0.5f);
             mh_game_step(g, dt * 0.5f);
         }
+#ifdef AOS_SIM_BUILTIN
+        {
+            /* MH_TRACE=1: where Tommy and the monsters are, once a second */
+            static uint32_t tr_ms;
+            static int tr_on = -1;
+            if (tr_on < 0) tr_on = getenv("MH_TRACE") != NULL;
+            if (tr_on && (uint32_t)(now - tr_ms) > 1000) {
+                tr_ms = (uint32_t)now;
+                char b[200];
+                int n = snprintf(b, sizeof b, "t %.1f hero %.1f,%.1f st %d lives %d keys %d |", g->t, g->h.x, g->h.y,
+                                 g->h.state, g->lives, g->keys);
+                for (int k = 0; k < g->n_mon && k < 4 && n < (int)sizeof b - 30; k++)
+                    n += snprintf(b + n, sizeof b - (size_t)n, " m%d %.1f,%.1f s%d", g->mon[k].kind, g->mon[k].x,
+                                  g->mon[k].y, g->mon[k].state);
+                aos_hal_log("trace", "%s", b);
+            }
+        }
+#endif
         uint32_t ev = g->events;
         g->events = 0;
         mh_hud_events(&a->hs, ev, dt);
@@ -410,6 +498,23 @@ static void play_frame(app_t *a)
     mh_world_prepare(&a->world, s->icam_x, s->icam_y, dirx, diry, 2);
     a->hs.pause_icon = a->state == ST_PLAY && !a->lk_race;
     a->hs.show_title = a->state == ST_INTRO;
+#ifdef MH_DESKTOP
+    /* the desktop draws the whole frame at once: the bits of the zone, the
+     * bloom and the vignette go over the scene, the HUD over them */
+    if (!a->post_px) a->post_px = (uint16_t *)mh_malloc((size_t)a->fw * a->fh * 2);
+    if (a->post_px) {
+        mh_img_t im;
+        mh_img_init(&im, a->post_px, MH_W, MH_H);
+        mh_render_band(&a->world, &im, s->icam_x, s->icam_y, 0, MH_H, &a->dl);
+        mh_scene_bits_draw(s, &a->world, &im, s->icam_x, s->icam_y);
+        mhp_bits(&a->post[0], a->lv.zone, &im, s->icam_x, s->icam_y, MH_W, MH_H, dt);
+        mhp_finish(&a->post[0], a->lv.zone, a->post_px, MH_W, MH_W, MH_H);
+        mh_hud_draw(&a->hud, &im, g, &a->hs, &a->world, s->icam_x, s->icam_y);
+        mh_copy_swap(a->fb[i], a->post_px, (size_t)MH_W * MH_H);
+        frame_done(a, i);
+        return;
+    }
+#endif
     for (int y0 = 0; y0 < MH_H; y0 += MH_BAND) {
         int y1 = y0 + MH_BAND > MH_H ? MH_H : y0 + MH_BAND;
         mh_img_t bim;
@@ -421,11 +526,7 @@ static void play_frame(app_t *a)
         mh_hud_draw(&a->hud, &bim, g, &a->hs, &a->world, s->icam_x, s->icam_y);
         mh_copy_swap(a->fb[i] + (size_t)y0 * MH_W, band, (size_t)(y1 - y0) * MH_W);
     }
-    a->w_frames++;
-    a->fb_seq[i] = ++a->seq;
-    a->fb_state[i] = FB_READY;
-    if (!a->spare_checked) spare_frame(a);
-    worker_yield();
+    frame_done(a, i);
 }
 
 static void worker_fn(void *arg)
@@ -487,7 +588,7 @@ void mha_ui_job(app_t *a, int what)
  * canvas, so the panel-order frame is swapped into LVGL's order. */
 static void canvas_show(app_t *a, int i)
 {
-    mh_copy_swap(a->cv, a->fb[i], (size_t)MH_W * MH_H);
+    mh_copy_swap(a->cv, a->fb[i], (size_t)a->fw * a->fh);
     lv_obj_invalidate(a->canvas);
 }
 
@@ -505,7 +606,7 @@ static void push_frame(app_t *a)
     for (int i = 0; i < a->nfb; i++) {
         if (i != best && a->fb_state[i] == FB_READY) a->fb_state[i] = FB_FREE;
     }
-    if (!aos_hal_display_blit(0, 0, MH_W, MH_H, a->fb[best])) canvas_show(a, best);
+    if (!aos_hal_display_blit(0, 0, a->fw, a->fh, a->fb[best])) canvas_show(a, best);
     if (a->shown >= 0 && a->shown != best) a->fb_state[a->shown] = FB_FREE;
     a->fb_state[best] = FB_SHOWN;
     a->shown = best;
@@ -547,24 +648,35 @@ static bool text_mask(mh_mask_t *m, const char *txt, const lv_font_t *font)
     return m->a != NULL;
 }
 
+/* the HUD's fonts: with the desktop's HD art, the next sizes up (the font
+ * files top out at 48 px; 48/28 and 36/20 are close enough to twice) */
+#if defined(MH_DESKTOP)
+#include "aos_fonts.h"
+#define HUD_BIG   (MH_PX > 1 ? &aos_montserrat_48 : aos_font_title)
+#define HUD_SMALL (MH_PX > 1 ? &aos_montserrat_36 : aos_font_body)
+#else
+#define HUD_BIG   aos_font_title
+#define HUD_SMALL aos_font_body
+#endif
+
 static void hud_build(app_t *a)
 {
     static const char digits[] = "0123456789:/";
     char s[2] = { 0, 0 };
     for (int i = 0; i < 12; i++) {
         s[0] = digits[i];
-        text_mask(&a->hud.dig[i], s, aos_font_title);
-        text_mask(&a->hud.sdig[i], s, aos_font_body);
+        text_mask(&a->hud.dig[i], s, HUD_BIG);
+        text_mask(&a->hud.sdig[i], s, HUD_SMALL);
     }
-    text_mask(&a->hud.msg[MSG_KEY], _("¡Llave!"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_OPEN], _("¡Se abrió la salida!"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_CHECK], _("Punto de control"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_TIMEUP], _("¡Sin tiempo!"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_READY], _("¿Listo?"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_GO], _("¡Ya!"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_LIFE], _("¡Una vida más!"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_TIME], _("+30 segundos"), aos_font_title);
-    text_mask(&a->hud.msg[MSG_LOW], _("¡Rápido!"), aos_font_title);
+    text_mask(&a->hud.msg[MSG_KEY], _("¡Llave!"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_OPEN], _("¡Se abrió la salida!"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_CHECK], _("Punto de control"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_TIMEUP], _("¡Sin tiempo!"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_READY], _("¿Listo?"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_GO], _("¡Ya!"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_LIFE], _("¡Una vida más!"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_TIME], _("+30 segundos"), HUD_BIG);
+    text_mask(&a->hud.msg[MSG_LOW], _("¡Rápido!"), HUD_BIG);
     a->hs.msg = -1;
 }
 
@@ -576,7 +688,8 @@ static void music_for(app_t *a, int st)
 {
     if (st == ST_INTRO || st == ST_PLAY) {
         int z = a->level_ok ? a->lv.zone : ZONE_CITY;
-        mh_music(z < 4 ? z : MUS_MENU, a->level >= 0 && (a->level % 4) == 3);
+        int th = z < 4 ? z : z == ZONE_DINO ? MUS_DINO : z == ZONE_BAY ? MUS_BAY : MUS_MENU;
+        mh_music(th, a->level >= 0 && (a->level % 4) == 3);
     } else if (st == ST_RESULT || st == ST_LOADING) {
         mh_music(MUS_NONE, false);
     } else if (st != ST_PAUSE) {
@@ -633,9 +746,9 @@ static uint8_t pak_tag(void)
 {
     uint32_t total = 0;
     for (int i = 0; i < 8; i++) {
-        char path[128];
-        if (i) snprintf(path, sizeof path, "%s/monsterhop.pak.%d", aos_hal_path_apps(), i);
-        else snprintf(path, sizeof path, "%s/monsterhop.pak", aos_hal_path_apps());
+        char path[512];
+        if (i) snprintf(path, sizeof path, "%s/%s.pak.%d", aos_hal_path_apps(), PAK_NAME, i);
+        else snprintf(path, sizeof path, "%s/%s.pak", aos_hal_path_apps(), PAK_NAME);
         FILE *f = fopen(path, "rb");
         if (!f) break;
         fseek(f, 0, SEEK_END);
@@ -682,20 +795,30 @@ void mha_level_start(app_t *a, int idx)
     {
         /* a level reads its zone's blocks and props, its monsters and the
          * common objects: the zone's share of the pack plus a guess */
-        static const char *const zp[] = { "city_", "castle_", "desert_", "forest_" };
+        static const char *const zp[] = { "city_", "castle_", "desert_", "forest_", "", "dino_", "bay_" };
         char key[12];
         snprintf(key, sizeof key, idx < 0 ? "mh_ldt" : "mh_ld%d", idx);
         const mh_level_info_t *li = mha_level_info(idx);
-        uint32_t guess = (li && li->zone < 4 ? mh_art_prefix_bytes(zp[li->zone]) : 0) + 1500u * 1024u;
+        uint32_t guess = (li && li->zone < ZONE_N && zp[li->zone][0] ? mh_art_prefix_bytes(zp[li->zone]) : 0) +
+                         1500u * 1024u;
         load_begin(a, key, guess);
     }
+#ifdef MH_DESKTOP
+    /* the two players' race: from their lobby, or again from its pause */
+    if (!(a->split && (a->split_go || a->state == ST_PAUSE))) a->split = false;
+    a->split_go = false;
+    if (a->split) {
+        a->link_state = LK_LOADING;
+        a->lk_loaded = false;
+    }
+#endif
     a->level = idx;
     a->playing = false;
     a->frozen = false;
     a->job_level = idx;
     free(a->hud.title.a);
     a->hud.title.a = NULL;
-    text_mask(&a->hud.title, mha_level_title(idx), aos_font_title);
+    text_mask(&a->hud.title, mha_level_title(idx), HUD_BIG);
     mh_ui_loading_text(a, mha_level_title(idx));
     mh_ui_before_job(a, UJ_FREE_MAP);
     s_pending_ui = 0;
@@ -793,6 +916,10 @@ static void race_result(app_t *a, bool left)
     bool won = !left && me > them;
     int earned = g->coins + (won ? 40 : 15);
     if (left) earned = g->coins;
+#ifdef MH_DESKTOP
+    /* two players here: the coins of both, one purse */
+    if (a->split) earned = g->coins + a->game2.coins + 40;
+#endif
     p->coins += earned;
     p->stat[SX_KEYS] += g->my_keys;
     p->stat[SX_COINS] += g->coins;
@@ -805,7 +932,7 @@ static void race_result(app_t *a, bool left)
     mh_prog_trophies(p);
     uint32_t new_tr = p->trophies & ~before;
     mha_save(a);
-    mh_ui_race_fill(a, left ? -1 : won ? 1 : 0, me, them, earned, new_tr);
+    mh_ui_race_fill(a, left ? -1 : won ? 1 : split_on(a) && me == them ? 2 : 0, me, them, earned, new_tr);
     mha_set_state(a, ST_RESULT);
     aos_hal_log("mhop", "race on level %d: %d to %d%s", a->level, me, them, left ? " (left)" : "");
     mh_ui_before_job(a, UJ_MENU);
@@ -888,7 +1015,7 @@ static bool go_back(app_t *a)
         return false;
     case ST_PLAY:
         /* in a race the clock can't stop: back leaves it */
-        if (a->lk_race) {
+        if (a->lk_race && !split_on(a)) {
             mhl_end(a);
             race_result(a, true);
             return true;
@@ -916,6 +1043,70 @@ static bool go_back(app_t *a)
     default:
         return true;
     }
+}
+
+/* ---- keys (the desktop port) ---- */
+
+bool mha_key_hop(app_t *a, int dir)
+{
+    if (a->closing) return false;
+    if (a->state == ST_INTRO) {
+        a->intro_skip = true;
+        return true;
+    }
+    if (a->state != ST_PLAY) return false;
+    a->in_hop = 1 + (dir & 3);
+    a->last_hop_ms = lv_tick_get();
+    return true;
+}
+
+bool mha_key_action(app_t *a)
+{
+    if (a->closing) return false;
+    if (a->state == ST_INTRO) {
+        a->intro_skip = true;
+        return true;
+    }
+    if (a->state != ST_PLAY) return false;
+    a->in_action = true;
+    return true;
+}
+
+#ifdef MH_DESKTOP
+bool mha_key_hop2(app_t *a, int dir)
+{
+    if (a->closing || !a->split || a->state != ST_PLAY) return false;
+    a->in_hop2 = 1 + (dir & 3);
+    return true;
+}
+
+bool mha_key_action2(app_t *a)
+{
+    if (a->closing || !a->split || a->state != ST_PLAY) return false;
+    a->in_action2 = true;
+    return true;
+}
+#endif
+
+bool mha_key_pause(app_t *a)
+{
+    if (a->closing) return false;
+    if (a->state == ST_PLAY && (!a->lk_race || split_on(a))) {
+        a->want_pause = true;
+        return true;
+    }
+    if (a->state == ST_PAUSE) {
+        mha_resume(a);
+        return true;
+    }
+    return false;
+}
+
+/* false: nothing to go back to (the title), the host decides */
+bool mha_key_back(app_t *a)
+{
+    if (a->closing) return false;
+    return go_back(a);
 }
 
 static void take_gesture(app_t *a)
@@ -989,16 +1180,18 @@ static void boot_done(app_t *a)
     }
     load_end(a);
     mha_set_state(a, ST_MENU);
+    if (a->dev_level >= 0 && a->dev_level < MH_LEVELS) mha_level_start(a, a->dev_level);
 #ifdef AOS_SIM_BUILTIN
     /* Development switches (getenv() is NULL on the board):
-     *   MH_LEVEL=<0..15>|test   straight into that level
+     *   MH_LEVEL=<0..23>|test   straight into that level
+     *   MH_TRACE=1              Tommy and the monsters in the log, once a second
      *   MH_DIFF=0..2            the difficulty
      *   MH_UNLOCK=1             every level open
      *   MH_COINS=n              coins for the shop
      *   MH_TRAIL=1..4           wear that trail (0 none)
      *   MH_START=x,y            the level starts in that cell
-     *   MH_SCREEN=map|house|shop|wardrobe|album|trophies|stats|settings
-     *   MH_RACE=<0..15>         into the lobby; the host starts that level
+     *   MH_SCREEN=map|house|shop|wardrobe|album|trophies|stats|settings|result|lobby
+     *   MH_RACE=<0..23>         into the lobby; the host starts that level
      *                           (two sims: AOS_SIM_LINK_PORT/_PARTNER)
      */
     const char *e;
@@ -1009,6 +1202,19 @@ static void boot_done(app_t *a)
         a->prog.eq[CAT_TRAIL] = (int8_t)(atoi(e) - 1);
         mha_outfit(a);
     }
+    if ((e = getenv("MH_SCREEN")) && e[0] && !strcmp(e, "result")) {
+        /* a result as after a level, for pictures */
+        a->game.state = GS_WON;
+        a->level = 0;
+        mh_ui_result_fill(a, true, 2, 45, true, true, 1u << TR_FIRST);
+        mha_set_state(a, ST_RESULT);
+    }
+#ifdef MH_DESKTOP
+    if ((e = getenv("MH_SCREEN")) && e[0] && !strcmp(e, "lobby")) {
+        a->link_level = 17;
+        mhs_begin(a);
+    }
+#endif
     if ((e = getenv("MH_SCREEN")) && e[0]) {
         static const struct { const char *n; int st; } sc[] = {
             { "map", ST_MAP }, { "house", ST_HOUSE }, { "shop", ST_SHOP }, { "wardrobe", ST_SHOP },
@@ -1022,6 +1228,14 @@ static void boot_done(app_t *a)
         }
     }
     if ((e = getenv("MH_LEVEL")) && e[0]) mha_level_start(a, e[0] == 't' ? -1 : atoi(e));
+#ifdef MH_DESKTOP
+    /* MH_SPLIT=<0..15>: straight into a two-player race on that level */
+    if ((e = getenv("MH_SPLIT")) && e[0]) {
+        mhs_begin(a);
+        a->link_level = atoi(e) % MH_LEVELS;
+        mhs_go(a);
+    }
+#endif
     if ((e = getenv("MH_RACE")) && e[0]) {
         char nm[32];
         s_sim_race = atoi(e) % MH_LEVELS;
@@ -1062,6 +1276,9 @@ static void frame(lv_timer_t *t)
     a->prev_ms = now;
     a->st_ms += (uint32_t)dt;
     mhl_tick(a);
+#ifdef MH_DESKTOP
+    mhs_tick(a);
+#endif
     load_tick(a, dt);
 #ifdef AOS_SIM_BUILTIN
     sim_race(a);
@@ -1124,7 +1341,7 @@ static void frame(lv_timer_t *t)
         }
         break;
     case ST_PLAY:
-        if (a->lk_race) a->want_pause = a->want_map = false;
+        if (a->lk_race && !split_on(a)) a->want_pause = a->want_map = false;
         if (a->want_pause || a->want_map) {
             a->want_pause = a->want_map = false;
             pause_show(a);
@@ -1179,7 +1396,7 @@ static void app_hide(aos_app_t *self, void *inst)
     (void)self;
     app_t *a = (app_t *)inst;
     if (a && a->link_on) mhl_end(a);
-    if (a && a->state == ST_PLAY && !a->lk_race) pause_show(a);
+    if (a && a->state == ST_PLAY && (!a->lk_race || split_on(a))) pause_show(a);
 }
 
 static void free_all(app_t *a)
@@ -1195,6 +1412,12 @@ static void free_all(app_t *a)
     a->cv = NULL;
     free(a->band);
     a->band = NULL;
+#ifdef MH_DESKTOP
+    free(a->post_px);
+    a->post_px = NULL;
+    mhp_free(&a->post[0]);
+    mhp_free(&a->post[1]);
+#endif
     mh_hud_free(&a->hud);
     mh_art_close();
 }
@@ -1208,12 +1431,14 @@ static void *mh_create(aos_app_t *self, lv_obj_t *root)
     aos_hal_heap_info(&hi, &hp);
     aos_hal_log("mhop", "opening | internal %u B, psram %u B", (unsigned)hi, (unsigned)hp);
     bool ok = true;
+    a->fw = (int16_t)MH_W;
+    a->fh = (int16_t)MH_H;
     for (int i = 0; i < 3; i++) {
-        a->fb[i] = (uint16_t *)mh_malloc((size_t)MH_W * MH_H * 2);
+        a->fb[i] = (uint16_t *)mh_malloc((size_t)a->fw * a->fh * 2);
         if (!a->fb[i]) ok = false;
     }
     a->nfb = 3;
-    a->cv = (uint16_t *)mh_malloc((size_t)MH_W * MH_H * 2);
+    a->cv = (uint16_t *)mh_malloc((size_t)a->fw * a->fh * 2);
     a->band = (uint16_t *)mh_malloc_internal((size_t)MH_W * MH_BAND * 2);
     if (!ok || !a->cv) {
         aos_hal_log("mhop", "out of memory");
@@ -1221,21 +1446,31 @@ static void *mh_create(aos_app_t *self, lv_obj_t *root)
         free(a);
         return NULL;
     }
-    memset(a->fb[0], 0, (size_t)MH_W * MH_H * 2);
+    memset(a->fb[0], 0, (size_t)a->fw * a->fh * 2);
     a->shown = -1;
     a->level = -1;
+    a->dev_level = -1;
     a->loaded_level = -2;
     a->root = root;
     mh_prog_load(&a->prog);
     mha_outfit(a);
+#ifndef MH_DESKTOP
+    /* (the desktop's root is see-through: the frames are under LVGL) */
     lv_obj_set_style_bg_color(root, lv_color_hex(0x000000), 0);
     lv_obj_set_style_bg_opa(root, LV_OPA_COVER, 0);
+#endif
 
     a->canvas = lv_canvas_create(root);
-    memset(a->cv, 0, (size_t)MH_W * MH_H * 2);
-    lv_canvas_set_buffer(a->canvas, a->cv, MH_W, MH_H, LV_COLOR_FORMAT_RGB565);
-    lv_obj_set_pos(a->canvas, 0, 0);
+    memset(a->cv, 0, (size_t)a->fw * a->fh * 2);
+    lv_canvas_set_buffer(a->canvas, a->cv, a->fw, a->fh, LV_COLOR_FORMAT_RGB565);
+    /* a wider screen than the watch's (the desktop port): the panels stay a
+     * watch-sized column in the middle and the frame spreads under them */
+    lv_obj_set_pos(a->canvas, (AOS_SCREEN_W - a->fw) / 2, (AOS_SCREEN_H - a->fh) / 2);
     lv_obj_remove_flag(a->canvas, LV_OBJ_FLAG_CLICKABLE);
+#ifdef MH_DESKTOP
+    /* the desktop's window shows the frames itself, under LVGL's layer */
+    lv_obj_add_flag(a->canvas, LV_OBJ_FLAG_HIDDEN);
+#endif
 
     a->touch = lv_obj_create(root);
     lv_obj_remove_style_all(a->touch);
@@ -1256,7 +1491,7 @@ static void *mh_create(aos_app_t *self, lv_obj_t *root)
     /* apps/monsterhop_dev.txt on the card, for measuring on the board:
      * "unlock" every level open */
     {
-        char path[96], buf[64] = "";
+        char path[512], buf[64] = "";
         snprintf(path, sizeof path, "%s/monsterhop_dev.txt", aos_hal_path_apps());
         FILE *f = fopen(path, "r");
         if (f) {
@@ -1264,6 +1499,9 @@ static void *mh_create(aos_app_t *self, lv_obj_t *root)
             buf[n] = 0;
             fclose(f);
             if (strstr(buf, "unlock")) a->dev_auto = true;
+            /* "level=N": straight into that level (measuring its memory) */
+            const char *lv = strstr(buf, "level=");
+            if (lv) a->dev_level = atoi(lv + 6);
             aos_hal_log("mhop", "dev switches: %s", buf);
         }
     }

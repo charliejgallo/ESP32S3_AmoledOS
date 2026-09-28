@@ -28,13 +28,17 @@
 #include <stdint.h>
 
 #define MH_FLOOR_M      0.50923f
-#define MH_CW           512         /* the cache, LP pixels                   */
+/* the cache, LP pixels: the view plus a block of each side (MH_CW a power
+ * of two); a wider view (the desktop port) brings its own */
+#ifndef MH_CW
+#define MH_CW           512
 #define MH_CH           576
+#endif
 #define MH_CB           64          /* its blocks                             */
 #define MH_CNX          (MH_CW / MH_CB)
 #define MH_CNY          (MH_CH / MH_CB)
 #define MH_DFAR         0x7FFF      /* the depth of nothing                   */
-#define MH_DPLANE_PX    (-0.51620f) /* depth per LP row on a horizontal plane */
+#define MH_DPLANE_PX    (-0.51620f / (float)MH_PX) /* depth per LP row on a horizontal plane */
 
 /* depth units per metre along X, Y, Z (1/32 m along the view direction) */
 #define MH_DX           (-7.22662f)
@@ -62,18 +66,30 @@ typedef struct {
     mh_anim_t gl[MH_LV_MAXASSET];   /* its glow, if any                     */
     uint16_t void_row[MH_CH];       /* the void's colour per cache row      */
     int blocks_drawn;               /* statistics                           */
+    bool twin;                      /* the art is another world's (a second view) */
+#ifdef MH_DESKTOP
+    /* the far scenery behind the void, with parallax (mh_post.c loads it) */
+    const uint16_t *bd;             /* RGB565, bd_w x bd_h, NULL = the void  */
+    int bd_w, bd_h, bd_hz;           /* bd_hz: the horizon's row        */
+#endif
 } mh_world_t;
 
 /* the level's art is loaded here (all assets it names); false if the cache
  * does not fit (missing art is drawn as nothing) */
 bool mh_world_init(mh_world_t *w, const mh_level_t *lv);
 void mh_world_free(mh_world_t *w);
+/* a second view of the same level (two players on one screen): its own
+ * cache, the art of `of`, which must outlive it */
+bool mh_world_init_twin(mh_world_t *w, const mh_world_t *of);
 
 /* LP position of a world point (x, y in metres, z in metres) */
-static inline float mh_lpx(const mh_world_t *w, float x, float y) { return 60.0f * x + 20.0f * y + (float)w->ox; }
+static inline float mh_lpx(const mh_world_t *w, float x, float y)
+{
+    return (60.0f * x + 20.0f * y) * (float)MH_PX + (float)w->ox;
+}
 static inline float mh_lpy(const mh_world_t *w, float x, float y, float z)
 {
-    return 14.0f * x - 42.0f * y - z * (23.0f / MH_FLOOR_M) + (float)w->oy;
+    return (14.0f * x - 42.0f * y - z * (23.0f / MH_FLOOR_M)) * (float)MH_PX + (float)w->oy;
 }
 static inline int mh_depth(const mh_world_t *w, float x, float y, float z)
 {

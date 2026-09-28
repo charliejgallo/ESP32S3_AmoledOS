@@ -321,6 +321,19 @@ static const int8_t MEN_L[32] = { 72, 1, 0, 72, 75, 1, 72, 1, 79, 1, 1, 1, 78, 1
 static const int8_t MEN_D[32] = { 5, 0, 4, 0, 6, 0, 4, 0, 5, 0, 4, 0, 6, 0, 4, 0,
                                   5, 0, 4, 0, 6, 0, 4, 0, 5, 0, 4, 1, 6, 0, 6, 0 };
 
+/* the lost valley: drums and a pentatonic call in D minor */
+static const int8_t DINO_B[32] = { 38, 0, 38, 0, 0, 0, 38, 0, 41, 0, 0, 0, 43, 0, 41, 0,
+                                   38, 0, 38, 0, 0, 0, 36, 0, 33, 0, 0, 0, 36, 0, 38, 0 };
+static const int8_t DINO_L[32] = { 74, 1, 72, 1, 69, 1, 1, 0, 67, 1, 69, 1, 72, 1, 1, 1,
+                                   74, 1, 77, 1, 76, 1, 74, 1, 72, 1, 69, 1, 67, 1, 1, 0 };
+static const int8_t DINO_D[32] = { 1, 0, 4, 1, 2, 0, 4, 0, 1, 0, 4, 1, 2, 0, 4, 4,
+                                   1, 0, 4, 1, 2, 0, 4, 0, 1, 1, 4, 1, 2, 0, 6, 4 };
+
+/* the bay: a swaying shanty in 6/8, A minor */
+static const int8_t BAY_B[24] = { 45, 0, 0, 40, 0, 0, 41, 0, 0, 43, 0, 0, 45, 0, 0, 40, 0, 0, 41, 0, 0, 40, 0, 0 };
+static const int8_t BAY_L[24] = { 69, 1, 72, 76, 1, 74, 72, 1, 71, 69, 1, 0, 76, 1, 74, 72, 1, 71, 69, 1, 1, 1, 1, 0 };
+static const int8_t BAY_D[24] = { 1, 0, 4, 2, 0, 4, 1, 0, 4, 2, 0, 4, 1, 0, 4, 2, 0, 4, 1, 0, 4, 2, 4, 4 };
+
 static const theme_t *theme_of(int i)
 {
     static const theme_t t[MUS_N] = {
@@ -329,6 +342,8 @@ static const theme_t *theme_of(int i)
         { 128, 32, DES_B, DES_L, DES_D },
         { 190, 24, FOR_B, FOR_L, FOR_D },
         { 125, 32, MEN_B, MEN_L, MEN_D },
+        { 132, 32, DINO_B, DINO_L, DINO_D },
+        { 175, 24, BAY_B, BAY_L, BAY_D },
     };
     return i >= 0 && i < MUS_N ? &t[i] : NULL;
 }

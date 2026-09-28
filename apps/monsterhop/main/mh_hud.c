@@ -57,15 +57,19 @@ void mh_hud_events(mh_hud_state_t *s, uint32_t ev, float dt)
 
 /* ---- little drawings ---- */
 
+/* every size in screen pixels times the art's scale (2 with the desktop's
+ * HD art); the masks of text come already scaled (monsterhop.c) */
+#define P MH_PX
+
 static void outline_text(mh_img_t *im, const mh_mask_t *m, int x, int y, uint16_t c, int alpha)
 {
     uint16_t k = mh_hex(0x000000);
     int oa = alpha * 3 >> 2;
-    mh_mask_draw(im, m, x - 1, y, k, oa);
-    mh_mask_draw(im, m, x + 1, y, k, oa);
-    mh_mask_draw(im, m, x, y - 1, k, oa);
-    mh_mask_draw(im, m, x, y + 1, k, oa);
-    mh_mask_draw(im, m, x, y + 2, k, oa);
+    mh_mask_draw(im, m, x - P, y, k, oa);
+    mh_mask_draw(im, m, x + P, y, k, oa);
+    mh_mask_draw(im, m, x, y - P, k, oa);
+    mh_mask_draw(im, m, x, y + P, k, oa);
+    mh_mask_draw(im, m, x, y + 2 * P, k, oa);
     mh_mask_draw(im, m, x, y, c, alpha);
 }
 
@@ -75,7 +79,7 @@ static int number_w(const mh_mask_t *d, const char *s)
     int w = 0;
     for (; *s; s++) {
         int i = *s >= '0' && *s <= '9' ? *s - '0' : *s == ':' ? 10 : *s == '/' ? 11 : -1;
-        if (i >= 0 && d[i].a) w += d[i].w - 1;
+        if (i >= 0 && d[i].a) w += d[i].w - P;
     }
     return w;
 }
@@ -85,7 +89,7 @@ static void number(mh_img_t *im, const mh_mask_t *d, const char *s, int x, int y
         int i = *s >= '0' && *s <= '9' ? *s - '0' : *s == ':' ? 10 : *s == '/' ? 11 : -1;
         if (i < 0 || !d[i].a) continue;
         outline_text(im, &d[i], x, y, c, 255);
-        x += d[i].w - 1;
+        x += d[i].w - P;
     }
 }
 
@@ -98,15 +102,16 @@ static void key_icon(mh_img_t *im, int x, int y, int who, float glow)
     uint16_t k = mh_hex(0x1A1208);
     int a = 255;
     if (have && glow > 0) {
-        mh_disc(im, (x + 11) * 16, (y + 6) * 16, (int)(16 * (9 + glow * 6)), mh_hex(0xFFE8A0), (int)(glow * 120));
+        mh_disc(im, (x + 11 * P) * 16, (y + 6 * P) * 16, (int)(16 * (9 + glow * 6) * P), mh_hex(0xFFE8A0),
+                (int)(glow * 120));
     }
-    mh_disc(im, (x + 5) * 16, (y + 6) * 16, 6 * 16, k, a);
-    mh_disc(im, (x + 5) * 16, (y + 6) * 16, 5 * 16, c, a);
-    mh_disc(im, (x + 5) * 16, (y + 6) * 16, 2 * 16, k, a);
-    mh_rect(im, x + 9, y + 4, 12, 4, k);
-    mh_rect(im, x + 9, y + 5, 12, 2, c);
-    mh_rect(im, x + 16, y + 7, 2, 4, c);
-    mh_rect(im, x + 19, y + 7, 2, 3, c);
+    mh_disc(im, (x + 5 * P) * 16, (y + 6 * P) * 16, 6 * 16 * P, k, a);
+    mh_disc(im, (x + 5 * P) * 16, (y + 6 * P) * 16, 5 * 16 * P, c, a);
+    mh_disc(im, (x + 5 * P) * 16, (y + 6 * P) * 16, 2 * 16 * P, k, a);
+    mh_rect(im, x + 9 * P, y + 4 * P, 12 * P, 4 * P, k);
+    mh_rect(im, x + 9 * P, y + 5 * P, 12 * P, 2 * P, c);
+    mh_rect(im, x + 16 * P, y + 7 * P, 2 * P, 4 * P, c);
+    mh_rect(im, x + 19 * P, y + 7 * P, 2 * P, 3 * P, c);
 }
 
 static void heart_icon(mh_img_t *im, int x, int y, uint16_t c)
@@ -115,21 +120,21 @@ static void heart_icon(mh_img_t *im, int x, int y, uint16_t c)
     for (int pass = 0; pass < 2; pass++) {
         uint16_t col = pass ? c : k;
         int g = pass ? 0 : 1;
-        mh_disc(im, (x + 4) * 16, (y + 4) * 16, (4 + g) * 16, col, 255);
-        mh_disc(im, (x + 10) * 16, (y + 4) * 16, (4 + g) * 16, col, 255);
-        for (int r = 0; r < 8 + g; r++) {
-            int half = 7 + g - r;
+        mh_disc(im, (x + 4 * P) * 16, (y + 4 * P) * 16, (4 + g) * 16 * P, col, 255);
+        mh_disc(im, (x + 10 * P) * 16, (y + 4 * P) * 16, (4 + g) * 16 * P, col, 255);
+        for (int r = 0; r < (8 + g) * P; r++) {
+            int half = (7 + g) * P - r;
             if (half < 0) break;
-            mh_rect(im, x + 7 - half, y + 5 + r, 2 * half, 1, col);
+            mh_rect(im, x + 7 * P - half, y + 5 * P + r, 2 * half, 1, col);
         }
     }
 }
 
 static void coin_icon(mh_img_t *im, int x, int y, float flash)
 {
-    mh_disc(im, (x + 7) * 16, (y + 7) * 16, 8 * 16, mh_hex(0x3A2808), 255);
-    mh_disc(im, (x + 7) * 16, (y + 7) * 16, 7 * 16, mh_hex(flash > 0 ? 0xFFF0A0 : GOLD), 255);
-    mh_disc(im, (x + 7) * 16, (y + 7) * 16, 4 * 16, mh_hex(0xE8A020), 255);
+    mh_disc(im, (x + 7 * P) * 16, (y + 7 * P) * 16, 8 * 16 * P, mh_hex(0x3A2808), 255);
+    mh_disc(im, (x + 7 * P) * 16, (y + 7 * P) * 16, 7 * 16 * P, mh_hex(flash > 0 ? 0xFFF0A0 : GOLD), 255);
+    mh_disc(im, (x + 7 * P) * 16, (y + 7 * P) * 16, 4 * 16 * P, mh_hex(0xE8A020), 255);
 }
 
 /* a filled triangle pointing along (dx, dy) with its tip at (x, y) */
@@ -139,7 +144,7 @@ static void arrow(mh_img_t *im, float x, float y, float dx, float dy, uint16_t c
     if (n < 1e-3f) return;
     dx /= n;
     dy /= n;
-    float len = 22, half = 12;
+    float len = 22.0f * P, half = 12.0f * P;
     float bx = x - dx * len, by = y - dy * len;
     float px = -dy, py = dx;
     float ax = bx + px * half, ay = by + py * half, cx = bx - px * half, cy = by - py * half;
@@ -160,9 +165,9 @@ static void arrow(mh_img_t *im, float x, float y, float dx, float dy, uint16_t c
             float e2 = (x - cx) * (qy - cy) - (y - cy) * (qx - cx);
             bool in = (e0 >= 0 && e1 >= 0 && e2 >= 0) || (e0 <= 0 && e1 <= 0 && e2 <= 0);
             if (!in) continue;
-            float d0 = ab(e0) / 24, d1 = ab(e1) / 24, d2 = ab(e2) / 22;
+            float d0 = ab(e0) / (24 * P), d1 = ab(e1) / (24 * P), d2 = ab(e2) / (22 * P);
             float d = mn(d0, mn(d1, d2));
-            row[xx] = mh_blend(row[xx], d < 2.0f ? k : c, alpha);
+            row[xx] = mh_blend(row[xx], d < 2.0f * P ? k : c, alpha);
         }
     }
 }
@@ -172,30 +177,30 @@ void mh_hud_draw(const mh_hud_t *h, mh_img_t *im, const mh_game_t *g, const mh_h
 {
     /* the band: skip what does not touch it */
     int by0 = im->cy0, by1 = im->cy1;
-    if (by0 < 64) {
+    if (by0 < 64 * P) {
         /* a dark strip for legibility */
-        for (int y = by0; y < by1 && y < 40; y++) {
+        for (int y = by0; y < by1 && y < 40 * P; y++) {
             uint16_t *row = im->px + (size_t)y * im->w;
-            int k = 256 - (40 - y) * 4;
+            int k = 256 - (40 * P - y) * 4 / P;
             for (int x = 0; x < MH_W; x++) row[x] = mh_darken(row[x], k);
         }
         /* pause */
         if (s->pause_icon) {
-            mh_rrect(im, 12, 10, 6, 20, 2, mh_hex(0xFFFFFF), 200);
-            mh_rrect(im, 22, 10, 6, 20, 2, mh_hex(0xFFFFFF), 200);
+            mh_rrect(im, 12 * P, 10 * P, 6 * P, 20 * P, 2 * P, mh_hex(0xFFFFFF), 200);
+            mh_rrect(im, 22 * P, 10 * P, 6 * P, 20 * P, 2 * P, mh_hex(0xFFFFFF), 200);
         }
         /* keys */
-        int kx = 44;
+        int kx = 44 * P;
         if (g->link) {
             /* a race: this watch's keys in gold first, the other's in blue */
             int mine = g->my_keys, theirs = g->keys - g->my_keys;
             for (int i = 0; i < MH_KEYS; i++)
-                key_icon(im, kx + i * 25, 8, i < mine ? 1 : i < mine + theirs ? 2 : 0, i < mine ? s->key_flash : 0);
+                key_icon(im, kx + i * 25 * P, 8 * P, i < mine ? 1 : i < mine + theirs ? 2 : 0, i < mine ? s->key_flash : 0);
         } else {
-            for (int i = 0; i < MH_KEYS; i++) key_icon(im, kx + i * 25, 8, i < g->keys, s->key_flash);
+            for (int i = 0; i < MH_KEYS; i++) key_icon(im, kx + i * 25 * P, 8 * P, i < g->keys, s->key_flash);
             /* lives */
-            int lx = 44;
-            for (int i = 0; i < g->lives && i < 6; i++) heart_icon(im, lx + i * 17, 26, mh_hex(RED));
+            int lx = 44 * P;
+            for (int i = 0; i < g->lives && i < 6; i++) heart_icon(im, lx + i * 17 * P, 26 * P, mh_hex(RED));
         }
         /* the clock, top right; the coins under it */
         char b[16];
@@ -205,13 +210,13 @@ void mh_hud_draw(const mh_hud_t *h, mh_img_t *im, const mh_game_t *g, const mh_h
             snprintf(b, sizeof b, "%d:%02d", t / 60, t % 60);
             int ww = number_w(h->dig, b);
             bool low = t <= 10 && ((int)(g->t * 4) & 1);
-            number(im, h->dig, b, MH_W - 14 - ww, 4, mh_hex(low ? 0xFF6060 : WHITE));
+            number(im, h->dig, b, MH_W - 14 * P - ww, 4 * P, mh_hex(low ? 0xFF6060 : WHITE));
         }
         snprintf(b, sizeof b, "%d", g->coins);
         int cw = number_w(h->sdig, b);
-        int cy = g->timer ? 34 : 8;
-        coin_icon(im, MH_W - 18 - cw - 18, cy + 1, s->coin_flash);
-        number(im, h->sdig, b, MH_W - 14 - cw, cy, mh_hex(s->coin_flash > 0 ? 0xFFF0A0 : WHITE));
+        int cy = (g->timer ? 34 : 8) * P;
+        coin_icon(im, MH_W - 36 * P - cw, cy + P, s->coin_flash);
+        number(im, h->sdig, b, MH_W - 14 * P - cw, cy, mh_hex(s->coin_flash > 0 ? 0xFFF0A0 : WHITE));
     }
     /* the arrow towards the nearest key, when it is off the screen */
     float tx, ty;
@@ -219,18 +224,18 @@ void mh_hud_draw(const mh_hud_t *h, mh_img_t *im, const mh_game_t *g, const mh_h
         int tz = 0;
         int ix = (int)tx, iy = (int)ty;
         if (mh_in(g->lv, ix, iy)) tz = mh_cell(g->lv, ix, iy)->h;
-        float sx = mh_lpx(w, tx, ty) - cam_x, sy = mh_lpy(w, tx, ty, tz * MH_FLOOR_M) - cam_y - 20;
-        bool off = sx < 0 || sx > MH_W || sy < 50 || sy > MH_H;
+        float sx = mh_lpx(w, tx, ty) - cam_x, sy = mh_lpy(w, tx, ty, tz * MH_FLOOR_M) - cam_y - 20 * P;
+        bool off = sx < 0 || sx > MH_W || sy < 50 * P || sy > MH_H;
         if (off) {
-            float cx = MH_W / 2.0f, cy = MH_H / 2.0f + 20;
+            float cx = MH_W / 2.0f, cy = MH_H / 2.0f + 20 * P;
             float dx = sx - cx, dy = sy - cy;
             /* clamp the ray to the screen, inset */
-            float kx = dx > 0 ? (MH_W - 26 - cx) / dx : dx < 0 ? (26 - cx) / dx : 1e9f;
-            float ky = dy > 0 ? (MH_H - 26 - cy) / dy : dy < 0 ? (70 - cy) / dy : 1e9f;
+            float kx = dx > 0 ? (MH_W - 26 * P - cx) / dx : dx < 0 ? (26 * P - cx) / dx : 1e9f;
+            float ky = dy > 0 ? (MH_H - 26 * P - cy) / dy : dy < 0 ? (70 * P - cy) / dy : 1e9f;
             float k = mn(kx, ky);
             float ex = cx + dx * k, ey = cy + dy * k;
             float pulse = 0.75f + 0.25f * sinf(g->t * 6.0f);
-            if (ey + 24 > by0 && ey - 24 < by1)
+            if (ey + 24 * P > by0 && ey - 24 * P < by1)
                 arrow(im, ex, ey, dx, dy, mh_hex(g->exit_open ? 0x6AF07A : GOLD), (int)(230 * pulse));
         }
     }
@@ -240,7 +245,7 @@ void mh_hud_draw(const mh_hud_t *h, mh_img_t *im, const mh_game_t *g, const mh_h
         float t = s->msg_t;
         int a = t < 0.15f ? (int)(t / 0.15f * 255) : t > 1.4f ? (int)((1.8f - t) / 0.4f * 255) : 255;
         if (a < 0) a = 0;
-        int y = 120 - (int)(t < 0.15f ? (0.15f - t) * 80 : 0);
+        int y = (120 - (int)(t < 0.15f ? (0.15f - t) * 80 : 0)) * P;
         if (y + m->h > by0 && y < by1) {
             uint32_t col = s->msg == MSG_TIMEUP || s->msg == MSG_LOW ? 0xFF7070 :
                            s->msg == MSG_OPEN ? 0x8AF59A : 0xFFE070;
@@ -249,7 +254,7 @@ void mh_hud_draw(const mh_hud_t *h, mh_img_t *im, const mh_game_t *g, const mh_h
     }
     if (s->show_title && h->title.a) {
         const mh_mask_t *m = &h->title;
-        int y = 70;
+        int y = 70 * P;
         if (y + m->h > by0 && y < by1) outline_text(im, m, (MH_W - m->w) / 2, y, mh_hex(0xFFFFFF), 255);
     }
 }

@@ -13,7 +13,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MH_NLEVELS 16
+#define MH_NLEVELS 24
 
 enum {
     SX_KEYS = 0, SX_COINS, SX_HOPS, SX_LOST, SX_LEVELS, SX_RACES, SX_RACES_WON, SX_PLAY_S, SX_BOUGHT,
@@ -22,7 +22,9 @@ enum {
 
 enum {
     TR_FIRST = 0, TR_CLEAN, TR_HARD, TR_ZONE_CITY, TR_ZONE_CASTLE, TR_ZONE_DESERT, TR_ZONE_FOREST,
-    TR_BOSSES, TR_ALBUM, TR_KEYS100, TR_HOPS5000, TR_SHOP10, TR_FRIEND, TR_ALL_STARS, TR_N,
+    TR_BOSSES, TR_ALBUM, TR_KEYS100, TR_HOPS5000, TR_SHOP10, TR_FRIEND, TR_ALL_STARS,
+    TR_ZONE_DINO, TR_ZONE_BAY,      /* stored bits: new ones at the end       */
+    TR_N,
 };
 
 typedef struct {
@@ -43,6 +45,8 @@ void mh_prog_save(const mh_prog_t *p);
 void mh_prog_reset(mh_prog_t *p);
 bool mh_prog_owns(const mh_prog_t *p, int cat, int i);
 int  mh_prog_stars(const mh_prog_t *p);
+/* a zone's first level in the table (levels are forever, zones too), -1 none */
+int  mh_zone_first(int zone);
 /* checks every trophy; returns the bits won right now */
 uint32_t mh_prog_trophies(mh_prog_t *p);
 

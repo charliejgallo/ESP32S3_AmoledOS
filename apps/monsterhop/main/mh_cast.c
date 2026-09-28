@@ -3,6 +3,8 @@
  */
 #include "mh_cast.h"
 
+#include <stdlib.h>
+
 #include <stdio.h>
 #include <string.h>
 
@@ -30,7 +32,7 @@ const char *mh_pet_name(int i)
 }
 const char *mh_zone_key(int zone)
 {
-    static const char *const n[ZONE_N] = { "city", "castle", "desert", "forest", "test" };
+    static const char *const n[ZONE_N] = { "city", "castle", "desert", "forest", "test", "dino", "bay" };
     return zone >= 0 && zone < ZONE_N ? n[zone] : "test";
 }
 
@@ -126,6 +128,16 @@ static int mon_anims(int kind, anim_def_t *out)
     case MON_COUNT:     A(MA_GLIDE, "glide", 4); A(MA_CAST, "cast", 4); break;
     case MON_PHARAOH:   A(MA_WALK, "walk", 4); A(MA_WHIP, "whip", 4); break;
     case MON_ALPHA:     A(MA_RUN, "run", 4); A(MA_HOWL, "howl", 4); A(MA_STUN, "stun", 4); break;
+    case MON_RAPTOR:    A(MA_IDLE, "idle", 4); A(MA_WALK, "walk", 4); A(MA_NOTICE, "notice", 4); A(MA_RUN, "run", 4); break;
+    case MON_TRIKE:     A(MA_IDLE, "idle", 4); A(MA_WALK, "walk", 4); A(MA_HOWL, "howl", 4); A(MA_RUN, "run", 4);
+                        A(MA_STUN, "stun", 4); break;
+    case MON_PTERO:     A(MA_PERCH, "perch", 4); A(MA_FLY, "fly", 4); A(MA_DIVE, "dive", 4); break;
+    case MON_FISHMAN:   A(MA_LURK, "lurk", 1); A(MA_EMERGE, "emerge", 1); A(MA_IDLE, "idle", 4); A(MA_WALK, "walk", 4);
+                        A(MA_DIVE, "dive", 1); break;
+    case MON_CRAB:      A(MA_IDLE, "idle", 4); A(MA_WALK, "walk", 4); A(MA_SNAP, "snap", 4); break;
+    case MON_JELLY:     A(MA_FLOAT, "float", 1); break;
+    case MON_TREX:      A(MA_RUN, "run", 4); A(MA_ROAR, "roar", 4); A(MA_STOMP, "stomp", 4); break;
+    case MON_KRAKEN:    A(MA_IDLE, "idle", 1); A(MA_SLAM, "slam", 1); break;
     default: break;
     }
 #undef A
@@ -135,13 +147,15 @@ static int mon_anims(int kind, anim_def_t *out)
 static const char *mon_prefix(int kind)
 {
     static const char *const n[MON_N] = { "zombie", "vampire", "mummy", "werewolf", "zombiedog", "armor",
-                                          "crow", "brute", "count", "pharaoh", "alpha" };
+                                          "crow", "brute", "count", "pharaoh", "alpha", "raptor", "trike",
+                                          "ptero", "fishman", "crab", "jelly", "trex", "kraken" };
     return kind >= 0 && kind < MON_N ? n[kind] : "";
 }
 
 /* bats and scarabs are rigs too, kept in the slots after the monsters */
 static const anim_def_t BAT_ANIMS[] = { { MA_FLY, "fly", 4 } };
 static const anim_def_t SCARAB_ANIMS[] = { { MA_CRAWL, "crawl", 4 } };
+static const anim_def_t COMPY_ANIMS[] = { { MA_RUN, "run", 4 } };
 
 static void ob_load(mh_cast_t *c, int i, const char *name)
 {
@@ -159,7 +173,7 @@ static void ob_load(mh_cast_t *c, int i, const char *name)
 bool mh_cast_level(mh_cast_t *c, const mh_level_t *lv)
 {
     bool want[MON_N] = { false };
-    bool bat = false, scarab = false;
+    bool bat = false, scarab = false, compy = false;
     for (int i = 0; i < lv->n_ents; i++) {
         const mh_ent_def_t *e = &lv->ent[i];
         if (e->type == ENT_MONSTER && e->a < MON_N) {
@@ -168,16 +182,22 @@ bool mh_cast_level(mh_cast_t *c, const mh_level_t *lv)
         }
         if (e->type == ENT_LANE && e->a == LANE_BAT) bat = true;
         if (e->type == ENT_LANE && e->a == LANE_SCARAB) scarab = true;
+        if (e->type == ENT_LANE && e->a == LANE_COMPY) compy = true;
     }
-    anim_def_t defs[8];
+    anim_def_t defs[MH_RIG_MAX];
     for (int k = 0; k < MON_N; k++) {
         if (!want[k]) {
-            rig_free(&c->mon[k]);
+            if (c->mon[k]) {
+                rig_free(c->mon[k]);
+                free(c->mon[k]);
+                c->mon[k] = NULL;
+            }
             continue;
         }
-        if (c->mon[k].any) continue;
+        if (!c->mon[k]) c->mon[k] = (mh_rig_t *)mh_calloc(1, sizeof(mh_rig_t));
+        if (!c->mon[k] || c->mon[k]->any) continue;
         int n = mon_anims(k, defs);
-        rig_load(&c->mon[k], mon_prefix(k), defs, n, true);
+        rig_load(c->mon[k], mon_prefix(k), defs, n, true);
     }
     const char *z = mh_zone_key(lv->zone);
     char nm[48];
@@ -192,7 +212,10 @@ bool mh_cast_level(mh_cast_t *c, const mh_level_t *lv)
         c->zone = lv->zone;
         static const char *const zoned[] = { "gate", "crate", "platform", "spikes", "vent", "dart_x", "dart_y",
                                              "boulder_x", "boulder_y", "runcar_e", "runcar_w", "logfloat_w",
-                                             "logfloat_m", "logfloat_e", "lily", "beartrap", "coffin_open" };
+                                             "logfloat_m", "logfloat_e", "lily", "beartrap", "coffin_open",
+                                             "tide", "lava_x", "lava_y", "fallrock", "rockbits", "piranha",
+                                             "wave_x", "wave_y", "tentacle_w", "tentacle_m", "tentacle_e" };
+        _Static_assert(sizeof zoned / sizeof zoned[0] == OB_STICKER - OB_GATE, "a name for each zone object");
         for (int i = OB_GATE; i < OB_STICKER; i++) {
             snprintf(nm, sizeof nm, "%s_%s", z, zoned[i - OB_GATE]);
             ob_load(c, i, nm);
@@ -201,14 +224,21 @@ bool mh_cast_level(mh_cast_t *c, const mh_level_t *lv)
     }
     if (bat != c->bat.any) rig_load(&c->bat, "bat", BAT_ANIMS, bat ? 1 : 0, true);
     if (scarab != c->scarab.any) rig_load(&c->scarab, "scarab", SCARAB_ANIMS, scarab ? 1 : 0, true);
+    if (compy != c->compy.any) rig_load(&c->compy, "compy", COMPY_ANIMS, compy ? 1 : 0, true);
     return true;
 }
 
 void mh_cast_level_free(mh_cast_t *c)
 {
-    for (int k = 0; k < MON_N; k++) rig_free(&c->mon[k]);
+    for (int k = 0; k < MON_N; k++) {
+        if (!c->mon[k]) continue;
+        rig_free(c->mon[k]);
+        free(c->mon[k]);
+        c->mon[k] = NULL;
+    }
     rig_free(&c->bat);
     rig_free(&c->scarab);
+    rig_free(&c->compy);
     for (int i = 0; i < OB_N; i++) {
         mh_anim_free(&c->ob[i]);
         mh_anim_free(&c->ob_sh[i]);
@@ -224,9 +254,15 @@ void mh_cast_free(mh_cast_t *c)
     rig_free(&c->back);
     rig_free(&c->hand);
     rig_free(&c->pet);
-    for (int k = 0; k < MON_N; k++) rig_free(&c->mon[k]);
+    for (int k = 0; k < MON_N; k++) {
+        if (!c->mon[k]) continue;
+        rig_free(c->mon[k]);
+        free(c->mon[k]);
+        c->mon[k] = NULL;
+    }
     rig_free(&c->bat);
     rig_free(&c->scarab);
+    rig_free(&c->compy);
     for (int i = 0; i < OB_N; i++) {
         mh_anim_free(&c->ob[i]);
         mh_anim_free(&c->ob_sh[i]);

@@ -22,12 +22,17 @@ typedef struct {
 } mh_outfit_t;
 
 #define MH_SCENE_BITS 40
+#define MH_SCENE_MARKS 24
 
 typedef struct {
     mh_lut_t body, cap, back, hand, pet, rival;
-    mh_lut_t mon[MON_N][3];         /* up to three variants per monster      */
-    int      mon_var[MON_N];
-    mh_lut_t bat, scarab, car[4];
+    /* the level's monster kinds only (a level has a few of the 19): up to
+     * three variants each; mon_slot says which row a kind has (-1 none) */
+#define MH_SCENE_KINDS 8
+    mh_lut_t mon[MH_SCENE_KINDS][3];
+    int      mon_var[MH_SCENE_KINDS];
+    int8_t   mon_slot[MON_N];
+    mh_lut_t bat, scarab, compy, car[4];
     uint32_t tint;
     mh_pal_t body_pal;              /* for the rainbow skin                   */
     int      skin_fx;               /* SKIN_FX_* (mh_shop.h)                  */
@@ -54,6 +59,15 @@ typedef struct {
         uint8_t  kind;
     } bit[MH_SCENE_BITS];
     int      nbit;
+    /* warnings on the ground, drawn over the frame: a falling rock's shadow,
+     * the row the kraken is about to hit */
+    struct {
+        float    x, y, z;
+        uint32_t col;           /* 0: a shadow that darkens                  */
+        uint8_t  a;             /* strength                                  */
+        uint8_t  r;             /* size, 0..255 of a cell                    */
+    } mark[MH_SCENE_MARKS];
+    int      nmark;
     float    emit_t;
     int      last_state, step_side;
     uint32_t rnd;

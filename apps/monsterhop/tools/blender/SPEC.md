@@ -571,3 +571,128 @@ Paths in `assets` are relative to the scene file. A `.` in `heights` is a pit.
   zombie town, as the first spot of the path (`levels` meta gets a
   `house` point); and `house` — a 368 x 200 picture of the house for the
   hub screen (wardrobe, shop, album, trophies, stats, play with a friend).
+
+---
+
+## 13. Zones five and six: Lost Valley (`dino`) and Abyss Bay (`bay`) — 2026-09-27
+
+The style samples (`tiles_dino/_scene_glow_2x.png`, `tiles_bay/_scene_glow_2x.png`,
+`monsters/_sample_dino*`, `monsters/_sample_bay*`) are **approved as they are**:
+keep their look, colours and proportions for the whole set, and keep the
+monsters friendly (the bosses too). Build on the sample scripts
+(`zones_dino_*.py`, `monsters_dino*.py`, `zones_bay_*.py`, `monsters_bay.py`).
+Move the `dino` and `bay` lights into `mh_common.LIGHTS` (and say the values
+in the report: the watch's `s_looks` row needs them).
+
+Everything below follows sections 1-12: names prefixed with the zone,
+`kind`s, passes, footprints, `_sh`, glow where lit. **Zone art goes to
+`assets/tiles_<zone>/`, monsters and bosses to `assets/monsters/` and
+`assets/bosses/` with the existing `meta.json` merged (add entries, never
+drop or rename one).** Delete the sample-only files you no longer need
+(`_sample*` sub-folders) once the real ones exist, and keep the contact
+sheets.
+
+**Memory budget (the watch):** a level holds its zone's tiles and props, its
+monsters and the common objects in ~3.6 MB. Keep the zone's tiles + props +
+moving things under ~1.4 MB, a monster under ~380 KB with all its frames and
+facings, a boss under ~800 KB. Measure with the packer's encoding (the
+sample scripts' `budget`/`measure`) and put the table in the report.
+
+### 13.1 dino — Lost Valley (orange / jungle green)
+
+- **Blocks:** `dirt` (red-brown soil, 3 variants), `grass` (jungle grass, 3),
+  `basalt` (dark volcanic flagstones, 2), `path` (stepping stones on dirt, 2),
+  `bone` (bleached fossil-bone floor inlaid in dirt, 1, decorative).
+  Fills: `dirt`, `basalt`. `blk_*_vK` naming as the others.
+- **Surfaces:** `tar` (the sample's tar, 2 variants, **stronger warning**: a
+  thin glossy rim and bigger slow bubbles — it is the zone's quicksand).
+  `water` (a small jungle pool, teal-green, for logs/lilies-style lanes).
+- **Bridges:** `bridge_x`, `bridge_y` (a fallen trunk / bone bridge).
+- **Props:** `fern`, `fern_small`, `cycad`, `fiddlehead`, `tree` (big trunk,
+  3 m), `palm`, `ribcage_x` / `ribcage_y` (2x1 / 1x2), `skull` (fossil skull
+  rock), `boulder`, `nest` (with eggs), `bonefence_x` / `bonefence_y`,
+  `volcanorock` (a glowing-veined rock, glow), `amber` (a big amber crystal
+  with a bug inside, glow), `bush`, `flowers`.
+- **Moving / timed things** (`kind='dyn'`):
+  - `lava_x_<nn>` and `lava_y_<nn>` — **the timed lava crack**, a trap drawn
+    flush on a cell (crack along X / along Y, joining with the neighbours):
+    `00` cold (dark crack, a faint ember line), `01` waking (glowing orange,
+    small sparks), `02`-`04` erupting (bright, flames licking up to ~0.5 m,
+    glow pass), `05` cooling. The watch plays 00 → 01 (warning) → 02-04 loop
+    (deadly) → 05 → 00.
+  - `vent_<nn>` — a **geyser** mouth (same frame plan as the city's vent:
+    00 idle, 01-05 the jet rising to ~1.2 m, 06-07 falling; semi-transparent
+    steam and hot water; glow on the mouth).
+  - `fallrock` — a single volcanic rock (~0.6 m, glowing veins, glow pass)
+    anchored at its own bottom centre: the watch drops it from the sky onto a
+    cell (it draws the growing shadow itself); `rockbits_<nn>` 4 frames of it
+    shattering on the ground.
+  - `logfloat_w`, `logfloat_m`, `logfloat_e` — a floating fern-trunk log,
+    same rules as the forest's (top at z = -0.02).
+  - `gate_<nn>` — **the exit**: a gate of two tusks/bones with a stone slab
+    and an amber emblem, closed 00, opening 01-05, open 06 with a warm glow.
+  - `crate` — a pushable block: a mossy stone cube with a fossil spiral,
+    exactly one floor tall.
+- **Monsters** (`assets/monsters/`, 4 facings unless said):
+  | name | anims |
+  | --- | --- |
+  | `raptor` | `idle` 2 @ 400, `walk` 6 @ 90, `notice` 2 @ 150 (head up, crest flares), `run` 6 @ 50 (a fast sprint: it dashes at Tommy) |
+  | `trike` | `idle` 2 @ 400, `walk` 6 @ 120, `howl` 4 @ 120 (**the warning**: head down, pawing the ground), `run` 6 @ 60 (the charge), `stun` 4 @ 150 (dizzy after hitting something) |
+  | `ptero` | `perch` 2 @ 300 (on the ground, wings folded), `fly` 4 @ 60 (**anchor on the ground below**, at 1.0 m), `dive` 3 @ 60 (1.0 → 0.3 m) |
+  | `compy` | `run` 4 @ 50 only (the watch runs them in a pack along a lane, like the scarabs) |
+- **Boss — `trex`** (`assets/bosses/`, 2x2, anchor at the block's centre,
+  ~2.0 m; shrink or curl the tail so a frame fits ~200 px wide): the dino
+  lair is a **chase** — the T-Rex comes up the level behind Tommy smashing
+  props. Anims: `run` 6 @ 70 in **n, e, w** only (it chases up the screen),
+  `roar` 4 @ 120 in **n** and **s**, `stomp` 4 @ 90 in **n** (a foot slam;
+  the watch shakes the screen).
+- **Cards:** `card_raptor`, `card_trike`, `card_ptero`, `card_compy`,
+  `card_trex` (section 12's recipe).
+
+### 13.2 bay — Abyss Bay (petrol blue, cyan/magenta glow)
+
+- **Blocks:** `sand` (3), `rock` (barnacle rock, 2), `quay` (mossy quay
+  stone, 3), `plank_x`, `plank_y` (pier planks as ground, on stilts where the
+  cell's side shows). Fills: `sand`, `rock`, `quay`.
+- **Surfaces:** `sea` (2 variants), `deep` (the whirlpool: a spiral, slowly
+  readable as a hole; a surface like `sea`, frames `deep_<nn>` 4 @ 120 if it
+  helps it read).
+- **The tide:** `tide_<nn>` — the approved three states of a cell of wet
+  sand: `00` dry, `01` foam line creeping in (the warning), `02` flooded (a
+  thin sheet of sea over the sand). The watch swaps the cell between dry
+  ground and water on a clock and shows 01 before it floods.
+- **Bridges:** `bridge_x`, `bridge_y` (the pier on stilts over water).
+- **Props:** `lighthouse` (2x2, lamp glow; its shadow may stay long — it is
+  the landmark), `wreck_bow`, `wreck_stern` (2x1 each, meant side by side
+  along X), `rock_low`, `rock_spire` (glow), `tidepool` (anemone glow),
+  `bollard`, `crates` (stacked), `trap` (lobster trap), `buoy` (glow),
+  `anchor`, `net` (a fishing net on a frame), `lamp` (a harbour lamp post,
+  glow), `barrels`.
+- **Moving / timed things:**
+  - `logfloat_w`, `logfloat_m`, `logfloat_e` — **floating driftwood planks
+    / a raft**, one cell each, top at z = -0.02.
+  - `lily_<nn>` — a **floating buoy-raft** you can stand on that sinks in
+    turns: 00 floating, 01-03 going under.
+  - `piranha_<nn>` — the boiling piranha cell, drawn over `sea`: `00` calm
+    (a few fins), `01`-`04` boiling loop (jumping fish, foam). The watch
+    plays 00 while safe and 01-04 while deadly.
+  - `wave_x_<nn>`, `wave_y_<nn>` — a breaking wave sweeping along X / Y over
+    one cell, 5 @ 70 (curl, crash, foam): it pushes Tommy a cell.
+  - `gate_<nn>` — **the exit**: a harbour gate of iron bars with a ship's
+    wheel emblem, closed 00, opening 01-05, open 06 with a cyan glow.
+  - `crate` — a pushable wooden cargo crate, one floor tall.
+- **Monsters:**
+  | name | anims |
+  | --- | --- |
+  | `fishman` | `lurk` 2 @ 300 (**s only**: eyes and fins above the water; anchor at the surface), `emerge` 4 @ 100 (**s only**), `idle` 2 @ 400, `walk` 6 @ 110, `dive` 4 @ 100 (**s only**, back into the water) |
+  | `crab` | `idle` 2 @ 400, `walk` 6 @ 70 (**sideways**: facing n/s it scuttles along X, facing e/w along Y — say which in meta), `snap` 3 @ 80 (both claws snap out: the watch makes the cells beside it deadly) |
+  | `jelly` | `float` 4 @ 150 (s only, one facing is enough: it is round), glow pass on its bell |
+- **Boss — `kraken`** (`assets/bosses/`, 2x2 in open water, anchor at the
+  block's centre, keep a frame ~220 px): `idle` 4 @ 150 (s), `slam` 6 @ 80
+  (s: a tentacle rises and whips down to its right), and the tentacle alone
+  as a moving thing in the zone: `tentacle_w_<nn>`, `tentacle_m_<nn>`,
+  `tentacle_e_<nn>` (one cell each, along X, 4 frames: `00` rising out of
+  the water, `01` high, `02` slamming flat, `03` sinking) — the watch lays
+  a row of them across the row it hits.
+- **Cards:** `card_fishman`, `card_crab`, `card_jelly`, `card_kraken`, and
+  `card_piranha` (a single leaping piranha, drawn for the album only).

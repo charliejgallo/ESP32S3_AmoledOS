@@ -18,7 +18,7 @@
 #define MH_MAX_MON      24
 #define MH_MAX_PICK     128
 #define MH_MAX_LANE     16
-#define MH_MAX_TRAP     24
+#define MH_MAX_TRAP     64
 #define MH_MAX_CRATE    12
 #define MH_MAX_PLAT     8
 #define MH_MAX_LEVER    8
@@ -27,6 +27,8 @@
 #define MH_MAX_FX       24
 #define MH_MAX_DART     8
 #define MH_MAX_BOULDER  6
+#define MH_MAX_TIDE     80
+#define MH_MAX_DIRTY    64
 
 enum { DIFF_EASY = 0, DIFF_NORMAL, DIFF_HARD, DIFF_N };
 
@@ -70,10 +72,12 @@ typedef struct {
     float cool;             /* super hop cool-down                          */
     int   queued;           /* a command given mid-hop: 0 none, 1+dir, 5 action */
     bool  high;             /* airborne above monsters (super hop peak)     */
+    float pull_t;           /* standing beside a whirlpool                  */
 } mh_hero_t;
 
 enum { M_WALK = 0, M_IDLE, M_NOTICE, M_LUNGE, M_TRANSFORM, M_BAT, M_UNTRANSFORM, M_HOWL, M_RUN,
-       M_STUN, M_HOME, M_PERCH, M_RISE, M_DIVE, M_RETURN, M_STOMP, M_CAST, M_WHIP, M_FADE, M_PUSHB };
+       M_STUN, M_HOME, M_PERCH, M_RISE, M_DIVE, M_RETURN, M_STOMP, M_CAST, M_WHIP, M_FADE, M_PUSHB,
+       M_LURK, M_EMERGE, M_SUBMERGE, M_SNAP, M_ROAR, M_WARN, M_SLAM };
 
 typedef struct {
     uint8_t kind;           /* MON_*                                        */
@@ -168,6 +172,14 @@ typedef struct {
     bool lit;
 } mh_cp_t;
 
+/* a cell the tide floods and leaves on the level's clock */
+typedef struct {
+    int     x, y;
+    float   period, phase;
+    uint8_t dry_kind, surf;     /* what it is dry; the sea's surface asset  */
+    uint8_t state;              /* 0 dry, 1 the foam creeping in, 2 under   */
+} mh_tide_t;
+
 typedef struct {
     uint8_t kind;           /* FX_*                                         */
     float x, y, z, t;
@@ -207,8 +219,9 @@ typedef struct {
     mh_fx_t    fx[MH_MAX_FX];
     mh_dart_t  dart[MH_MAX_DART];
     mh_boulder_t boulder[MH_MAX_BOULDER];
+    mh_tide_t  tide[MH_MAX_TIDE];   int n_tide;
     uint32_t   groups;              /* lever groups that are on (bits)    */
-    int        dirty[16][2];        /* cells whose art changed (the cache) */
+    int        dirty[MH_MAX_DIRTY][2];  /* cells whose art changed (the cache) */
     int        n_dirty;
     /* the key race with the other watch (link): lives never run out, the
      * keys are shared and whoever took one first keeps it */
@@ -222,6 +235,8 @@ typedef struct {
     bool   rival;
     float  rx, ry, rz, rf;          /* rf: how far into its hop (0..1)      */
     int    rdir, rstate;
+    float  shake;                   /* the screen trembles (a T-Rex's steps) */
+    bool   god;                     /* tests only: nothing that bites hurts  */
 } mh_game_t;
 
 enum { GS_PLAY = 0, GS_DYING, GS_WON, GS_OVER };
@@ -241,6 +256,10 @@ bool mh_game_target(const mh_game_t *g, float *x, float *y);
 int  mh_lane_movers(const mh_game_t *g, int li, float *pos, int max);
 /* a platform's position at time t */
 void mh_plat_pos(const mh_game_t *g, int pi, float t, float *x, float *y);
+/* the kraken's strike: the row it hits and its span, the phase (0..1 of the
+ * warning, then 1..2 of the slam); false when it is not striking */
+bool mh_kraken_strike(const mh_mon_t *m, int *row, int *x0, int *x1, float *phase);
+
 /* is the trap deadly now? and its animation phase 0..1 */
 bool mh_trap_active(const mh_game_t *g, int ti, float *phase);
 /* the floor Tommy would stand on at (x, y): -9 = none (water, pit, solid) */

@@ -35,7 +35,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define PROTO     1
+/* 2: 24 levels, the open ones in 32 bits (v0.10): both watches need it */
+#define PROTO     2
 #define LINK_APP  "monsterhop"
 
 enum { M_HELLO = 1, M_START, M_READY, M_LOADED, M_POS, M_KEY, M_LEVER, M_CRATE, M_CHEST, M_EXIT, M_BYE };
@@ -45,7 +46,7 @@ typedef struct __attribute__((packed)) {
     uint32_t nonce;
     uint8_t  mac[6];
     int8_t   eq[CAT_N];
-    uint16_t open;
+    uint32_t open;
     uint8_t  pick;
 } msg_hello_t;
 
@@ -127,10 +128,10 @@ void mhl_worker_after(app_t *a)
 
 /* ---- sending ---- */
 
-static uint16_t open_mask(const app_t *a)
+static uint32_t open_mask(const app_t *a)
 {
-    uint16_t m = 0;
-    for (int i = 0; i < MH_LEVELS && i < 16; i++) if (mha_level_open(a, i)) m |= (uint16_t)(1u << i);
+    uint32_t m = 0;
+    for (int i = 0; i < MH_LEVELS && i < 32; i++) if (mha_level_open(a, i)) m |= 1u << i;
     return m;
 }
 
@@ -252,6 +253,9 @@ void mha_link_begin(app_t *a)
 
 void mhl_end(app_t *a)
 {
+#ifdef MH_DESKTOP
+    if (a->split) mhs_end(a);
+#endif
     if (a->link_on || s_started_link) {
         uint8_t bye[2] = { M_BYE, PROTO };
         for (int i = 0; i < 3; i++) aos_hal_link_send_partner(bye, sizeof bye);
@@ -266,6 +270,12 @@ void mhl_end(app_t *a)
 
 void mhl_pick(app_t *a, int delta)
 {
+#ifdef MH_DESKTOP
+    if (a->split) {
+        mhs_pick(a, delta);
+        return;
+    }
+#endif
     if (!a->is_host || a->link_state != LK_LOBBY) return;
     int i = a->link_level;
     for (int k = 0; k < MH_LEVELS; k++) {
@@ -279,6 +289,12 @@ void mhl_pick(app_t *a, int delta)
 
 void mhl_go(app_t *a)
 {
+#ifdef MH_DESKTOP
+    if (a->split) {
+        mhs_go(a);
+        return;
+    }
+#endif
     if (!a->is_host || a->link_state != LK_LOBBY || !a->link_peer_nonce) return;
     a->link_seed = ((uint32_t)aos_hal_uptime_ms() * 747796405u) | 1u;
     msg_start_t m = { .type = M_START, .proto = PROTO, .host_nonce = a->link_nonce,

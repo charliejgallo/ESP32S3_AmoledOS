@@ -18,7 +18,7 @@ enum {
     SND_GO, SND_N,
 };
 
-enum { MUS_NONE = -1, MUS_CITY = 0, MUS_CASTLE, MUS_DESERT, MUS_FOREST, MUS_MENU, MUS_N };
+enum { MUS_NONE = -1, MUS_CITY = 0, MUS_CASTLE, MUS_DESERT, MUS_FOREST, MUS_MENU, MUS_DINO, MUS_BAY, MUS_N };
 
 void mh_audio_open(void);
 void mh_audio_close(void);

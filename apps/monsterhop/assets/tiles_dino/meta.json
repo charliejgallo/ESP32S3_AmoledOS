@@ -1,0 +1,1616 @@
+{
+ "_projection": {
+  "depth_empty": 255,
+  "depth_unit_m": 0.03125,
+  "floor_m": 0.5092285591855548,
+  "floor_px": 23,
+  "px_per_m": 63.245553203367585,
+  "px_x": [
+   60,
+   14
+  ],
+  "px_y": [
+   20,
+   -42
+  ],
+  "view_dir": [
+   -0.2258317917585373,
+   0.6774953603744507,
+   -0.699999988079071
+  ]
+ },
+ "dino_amber": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 51,
+  "ay": 38,
+  "files": {
+   "gl": "dino_amber_gl.png",
+   "img": "dino_amber.png",
+   "sh": "dino_amber_sh.png",
+   "z": "dino_amber_z.png"
+  },
+  "h": 74,
+  "height_m": 0.86,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 102
+ },
+ "dino_blk_basalt_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_blk_basalt_v0.png",
+   "z": "dino_blk_basalt_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "dino_blk_basalt_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_blk_basalt_v1.png",
+   "z": "dino_blk_basalt_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "dino_blk_bone_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "decorative": true,
+  "files": {
+   "img": "dino_blk_bone_v0.png",
+   "z": "dino_blk_bone_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "dino_blk_dirt_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_blk_dirt_v0.png",
+   "z": "dino_blk_dirt_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "dino_blk_dirt_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_blk_dirt_v1.png",
+   "z": "dino_blk_dirt_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "dino_blk_dirt_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_blk_dirt_v2.png",
+   "z": "dino_blk_dirt_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "dino_blk_grass_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_blk_grass_v0.png",
+   "z": "dino_blk_grass_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "dino_blk_grass_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_blk_grass_v1.png",
+   "z": "dino_blk_grass_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "dino_blk_grass_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_blk_grass_v2.png",
+   "z": "dino_blk_grass_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "dino_blk_path_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_blk_path_v0.png",
+   "z": "dino_blk_path_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "dino_blk_path_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_blk_path_v1.png",
+   "z": "dino_blk_path_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "dino_bonefence_x": {
+  "along": "x",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 34,
+  "ay": 50,
+  "files": {
+   "img": "dino_bonefence_x.png",
+   "sh": "dino_bonefence_x_sh.png",
+   "z": "dino_bonefence_x_z.png"
+  },
+  "h": 60,
+  "height_m": 0.98,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 99
+ },
+ "dino_bonefence_y": {
+  "along": "y",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 16,
+  "ay": 57,
+  "files": {
+   "img": "dino_bonefence_y.png",
+   "sh": "dino_bonefence_y_sh.png",
+   "z": "dino_bonefence_y_z.png"
+  },
+  "h": 80,
+  "height_m": 0.98,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 65
+ },
+ "dino_boulder": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 30,
+  "ay": 49,
+  "files": {
+   "img": "dino_boulder.png",
+   "sh": "dino_boulder_sh.png",
+   "z": "dino_boulder_z.png"
+  },
+  "h": 74,
+  "height_m": 0.72,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 75
+ },
+ "dino_bridge_x": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 40,
+  "ay": 21,
+  "deck_z": 0.0,
+  "files": {
+   "img": "dino_bridge_x.png",
+   "sh": "dino_bridge_x_sh.png",
+   "z": "dino_bridge_x_z.png"
+  },
+  "h": 62,
+  "kind": "bridge",
+  "over": "dino_surf_water",
+  "shadow_z": -0.18,
+  "w": 86,
+  "walk": "x"
+ },
+ "dino_bridge_y": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 34,
+  "ay": 28,
+  "deck_z": 0.0,
+  "files": {
+   "img": "dino_bridge_y.png",
+   "sh": "dino_bridge_y_sh.png",
+   "z": "dino_bridge_y_z.png"
+  },
+  "h": 74,
+  "kind": "bridge",
+  "over": "dino_surf_water",
+  "shadow_z": -0.18,
+  "w": 70,
+  "walk": "y"
+ },
+ "dino_bush": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 31,
+  "ay": 39,
+  "files": {
+   "img": "dino_bush.png",
+   "sh": "dino_bush_sh.png",
+   "z": "dino_bush_z.png"
+  },
+  "h": 57,
+  "height_m": 0.64,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 76
+ },
+ "dino_crate": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 42,
+  "ay": 52,
+  "files": {
+   "img": "dino_crate.png",
+   "sh": "dino_crate_sh.png",
+   "z": "dino_crate_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "h": 82,
+  "height_m": 0.5092,
+  "kind": "dyn",
+  "pushable": true,
+  "shadow_z": 0.0,
+  "w": 105
+ },
+ "dino_cycad": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 48,
+  "files": {
+   "img": "dino_cycad.png",
+   "sh": "dino_cycad_sh.png",
+   "z": "dino_cycad_z.png"
+  },
+  "h": 75,
+  "height_m": 1.05,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 95
+ },
+ "dino_fallrock": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 48,
+  "ay": 39,
+  "files": {
+   "gl": "dino_fallrock_gl.png",
+   "img": "dino_fallrock.png",
+   "z": "dino_fallrock_z.png"
+  },
+  "h": 73,
+  "height_m": 0.6,
+  "kind": "dyn",
+  "note": "anchor at its own bottom centre; the watch drops it and draws the growing shadow",
+  "w": 96
+ },
+ "dino_fern": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 39,
+  "files": {
+   "img": "dino_fern.png",
+   "sh": "dino_fern_sh.png",
+   "z": "dino_fern_z.png"
+  },
+  "h": 70,
+  "height_m": 0.95,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 83
+ },
+ "dino_fern_small": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 24,
+  "ay": 19,
+  "files": {
+   "img": "dino_fern_small.png",
+   "sh": "dino_fern_small_sh.png",
+   "z": "dino_fern_small_z.png"
+  },
+  "h": 42,
+  "height_m": 0.5,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 55
+ },
+ "dino_fiddlehead": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 23,
+  "ay": 27,
+  "files": {
+   "img": "dino_fiddlehead.png",
+   "sh": "dino_fiddlehead_sh.png",
+   "z": "dino_fiddlehead_z.png"
+  },
+  "h": 44,
+  "height_m": 0.45,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 56
+ },
+ "dino_fill_basalt": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_fill_basalt.png",
+   "z": "dino_fill_basalt_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "dino_fill_dirt": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_fill_dirt.png",
+   "z": "dino_fill_dirt_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "dino_flowers": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 20,
+  "ay": 26,
+  "files": {
+   "img": "dino_flowers.png",
+   "sh": "dino_flowers_sh.png",
+   "z": "dino_flowers_z.png"
+  },
+  "h": 44,
+  "height_m": 0.4,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 54
+ },
+ "dino_gate_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 38,
+  "ay": 100,
+  "exit": true,
+  "files": {
+   "img": "dino_gate_00.png",
+   "sh": "dino_gate_00_sh.png",
+   "z": "dino_gate_00_z.png"
+  },
+  "frame": 0,
+  "frames": 7,
+  "h": 115,
+  "height_m": 2.2,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 141
+ },
+ "dino_gate_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 38,
+  "ay": 100,
+  "exit": true,
+  "files": {
+   "img": "dino_gate_01.png",
+   "sh": "dino_gate_01_sh.png",
+   "z": "dino_gate_01_z.png"
+  },
+  "frame": 1,
+  "frames": 7,
+  "h": 115,
+  "height_m": 2.2,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 141
+ },
+ "dino_gate_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 38,
+  "ay": 100,
+  "exit": true,
+  "files": {
+   "img": "dino_gate_02.png",
+   "sh": "dino_gate_02_sh.png",
+   "z": "dino_gate_02_z.png"
+  },
+  "frame": 2,
+  "frames": 7,
+  "h": 115,
+  "height_m": 2.2,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 141
+ },
+ "dino_gate_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 38,
+  "ay": 100,
+  "exit": true,
+  "files": {
+   "img": "dino_gate_03.png",
+   "sh": "dino_gate_03_sh.png",
+   "z": "dino_gate_03_z.png"
+  },
+  "frame": 3,
+  "frames": 7,
+  "h": 115,
+  "height_m": 2.2,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 141
+ },
+ "dino_gate_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 38,
+  "ay": 100,
+  "exit": true,
+  "files": {
+   "img": "dino_gate_04.png",
+   "sh": "dino_gate_04_sh.png",
+   "z": "dino_gate_04_z.png"
+  },
+  "frame": 4,
+  "frames": 7,
+  "h": 115,
+  "height_m": 2.2,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 141
+ },
+ "dino_gate_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 38,
+  "ay": 100,
+  "exit": true,
+  "files": {
+   "img": "dino_gate_05.png",
+   "sh": "dino_gate_05_sh.png",
+   "z": "dino_gate_05_z.png"
+  },
+  "frame": 5,
+  "frames": 7,
+  "h": 115,
+  "height_m": 2.2,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 141
+ },
+ "dino_gate_06": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 68,
+  "ay": 100,
+  "exit": true,
+  "files": {
+   "gl": "dino_gate_06_gl.png",
+   "img": "dino_gate_06.png",
+   "sh": "dino_gate_06_sh.png",
+   "z": "dino_gate_06_z.png"
+  },
+  "frame": 6,
+  "frames": 7,
+  "h": 145,
+  "height_m": 2.2,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 172
+ },
+ "dino_lava_x_00": {
+  "along": "x",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "trap",
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_lava_x_00.png",
+   "z": "dino_lava_x_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 86,
+  "hazard": false,
+  "height_m": 0.0,
+  "kind": "dyn",
+  "ms": 600,
+  "play": "00 hold, 01 warning, 02-04 loop (deadly), 05, back to 00",
+  "state": "cold",
+  "w": 88,
+  "warning": false
+ },
+ "dino_lava_x_01": {
+  "along": "x",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "trap",
+  "ax": 48,
+  "ay": 34,
+  "files": {
+   "gl": "dino_lava_x_01_gl.png",
+   "img": "dino_lava_x_01.png",
+   "z": "dino_lava_x_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 89,
+  "hazard": false,
+  "height_m": 0.22,
+  "kind": "dyn",
+  "ms": 150,
+  "play": "00 hold, 01 warning, 02-04 loop (deadly), 05, back to 00",
+  "state": "wake",
+  "w": 96,
+  "warning": true
+ },
+ "dino_lava_x_02": {
+  "along": "x",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "trap",
+  "ax": 48,
+  "ay": 37,
+  "files": {
+   "gl": "dino_lava_x_02_gl.png",
+   "img": "dino_lava_x_02.png",
+   "z": "dino_lava_x_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 92,
+  "hazard": true,
+  "height_m": 0.5,
+  "kind": "dyn",
+  "ms": 90,
+  "play": "00 hold, 01 warning, 02-04 loop (deadly), 05, back to 00",
+  "state": "hot",
+  "w": 96,
+  "warning": false
+ },
+ "dino_lava_x_03": {
+  "along": "x",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "trap",
+  "ax": 48,
+  "ay": 34,
+  "files": {
+   "gl": "dino_lava_x_03_gl.png",
+   "img": "dino_lava_x_03.png",
+   "z": "dino_lava_x_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 89,
+  "hazard": true,
+  "height_m": 0.5,
+  "kind": "dyn",
+  "ms": 90,
+  "play": "00 hold, 01 warning, 02-04 loop (deadly), 05, back to 00",
+  "state": "hot",
+  "w": 96,
+  "warning": false
+ },
+ "dino_lava_x_04": {
+  "along": "x",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "trap",
+  "ax": 48,
+  "ay": 34,
+  "files": {
+   "gl": "dino_lava_x_04_gl.png",
+   "img": "dino_lava_x_04.png",
+   "z": "dino_lava_x_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 89,
+  "hazard": true,
+  "height_m": 0.5,
+  "kind": "dyn",
+  "ms": 90,
+  "play": "00 hold, 01 warning, 02-04 loop (deadly), 05, back to 00",
+  "state": "hot",
+  "w": 96,
+  "warning": false
+ },
+ "dino_lava_x_05": {
+  "along": "x",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "trap",
+  "ax": 48,
+  "ay": 34,
+  "files": {
+   "gl": "dino_lava_x_05_gl.png",
+   "img": "dino_lava_x_05.png",
+   "z": "dino_lava_x_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 89,
+  "hazard": false,
+  "height_m": 0.3,
+  "kind": "dyn",
+  "ms": 200,
+  "play": "00 hold, 01 warning, 02-04 loop (deadly), 05, back to 00",
+  "state": "cool",
+  "w": 96,
+  "warning": false
+ },
+ "dino_lava_y_00": {
+  "along": "y",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "trap",
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_lava_y_00.png",
+   "z": "dino_lava_y_00_z.png"
+  },
+  "frame": 0,
+  "frames": 6,
+  "h": 86,
+  "hazard": false,
+  "height_m": 0.0,
+  "kind": "dyn",
+  "ms": 600,
+  "play": "00 hold, 01 warning, 02-04 loop (deadly), 05, back to 00",
+  "state": "cold",
+  "w": 88,
+  "warning": false
+ },
+ "dino_lava_y_01": {
+  "along": "y",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "trap",
+  "ax": 48,
+  "ay": 34,
+  "files": {
+   "gl": "dino_lava_y_01_gl.png",
+   "img": "dino_lava_y_01.png",
+   "z": "dino_lava_y_01_z.png"
+  },
+  "frame": 1,
+  "frames": 6,
+  "h": 89,
+  "hazard": false,
+  "height_m": 0.22,
+  "kind": "dyn",
+  "ms": 150,
+  "play": "00 hold, 01 warning, 02-04 loop (deadly), 05, back to 00",
+  "state": "wake",
+  "w": 96,
+  "warning": true
+ },
+ "dino_lava_y_02": {
+  "along": "y",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "trap",
+  "ax": 48,
+  "ay": 47,
+  "files": {
+   "gl": "dino_lava_y_02_gl.png",
+   "img": "dino_lava_y_02.png",
+   "z": "dino_lava_y_02_z.png"
+  },
+  "frame": 2,
+  "frames": 6,
+  "h": 102,
+  "hazard": true,
+  "height_m": 0.5,
+  "kind": "dyn",
+  "ms": 90,
+  "play": "00 hold, 01 warning, 02-04 loop (deadly), 05, back to 00",
+  "state": "hot",
+  "w": 96,
+  "warning": false
+ },
+ "dino_lava_y_03": {
+  "along": "y",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "trap",
+  "ax": 48,
+  "ay": 48,
+  "files": {
+   "gl": "dino_lava_y_03_gl.png",
+   "img": "dino_lava_y_03.png",
+   "z": "dino_lava_y_03_z.png"
+  },
+  "frame": 3,
+  "frames": 6,
+  "h": 103,
+  "hazard": true,
+  "height_m": 0.5,
+  "kind": "dyn",
+  "ms": 90,
+  "play": "00 hold, 01 warning, 02-04 loop (deadly), 05, back to 00",
+  "state": "hot",
+  "w": 96,
+  "warning": false
+ },
+ "dino_lava_y_04": {
+  "along": "y",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "trap",
+  "ax": 48,
+  "ay": 42,
+  "files": {
+   "gl": "dino_lava_y_04_gl.png",
+   "img": "dino_lava_y_04.png",
+   "z": "dino_lava_y_04_z.png"
+  },
+  "frame": 4,
+  "frames": 6,
+  "h": 97,
+  "hazard": true,
+  "height_m": 0.5,
+  "kind": "dyn",
+  "ms": 90,
+  "play": "00 hold, 01 warning, 02-04 loop (deadly), 05, back to 00",
+  "state": "hot",
+  "w": 96,
+  "warning": false
+ },
+ "dino_lava_y_05": {
+  "along": "y",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "trap",
+  "ax": 48,
+  "ay": 36,
+  "files": {
+   "gl": "dino_lava_y_05_gl.png",
+   "img": "dino_lava_y_05.png",
+   "z": "dino_lava_y_05_z.png"
+  },
+  "frame": 5,
+  "frames": 6,
+  "h": 91,
+  "hazard": false,
+  "height_m": 0.3,
+  "kind": "dyn",
+  "ms": 200,
+  "play": "00 hold, 01 warning, 02-04 loop (deadly), 05, back to 00",
+  "state": "cool",
+  "w": 96,
+  "warning": false
+ },
+ "dino_logfloat_e": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 15,
+  "files": {
+   "img": "dino_logfloat_e.png",
+   "sh": "dino_logfloat_e_sh.png",
+   "z": "dino_logfloat_e_z.png"
+  },
+  "float_z": -0.02,
+  "footprint": [
+   1,
+   1
+  ],
+  "h": 46,
+  "height_m": 0.2,
+  "kind": "dyn",
+  "part": "e",
+  "shadow_z": -0.16,
+  "w": 75
+ },
+ "dino_logfloat_m": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 15,
+  "files": {
+   "img": "dino_logfloat_m.png",
+   "sh": "dino_logfloat_m_sh.png",
+   "z": "dino_logfloat_m_z.png"
+  },
+  "float_z": -0.02,
+  "footprint": [
+   1,
+   1
+  ],
+  "h": 48,
+  "height_m": 0.2,
+  "kind": "dyn",
+  "part": "m",
+  "shadow_z": -0.16,
+  "w": 81
+ },
+ "dino_logfloat_w": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 32,
+  "ay": 13,
+  "files": {
+   "img": "dino_logfloat_w.png",
+   "sh": "dino_logfloat_w_sh.png",
+   "z": "dino_logfloat_w_z.png"
+  },
+  "float_z": -0.02,
+  "footprint": [
+   1,
+   1
+  ],
+  "h": 46,
+  "height_m": 0.2,
+  "kind": "dyn",
+  "part": "w",
+  "shadow_z": -0.16,
+  "w": 74
+ },
+ "dino_nest": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 29,
+  "ay": 30,
+  "files": {
+   "img": "dino_nest.png",
+   "sh": "dino_nest_sh.png",
+   "z": "dino_nest_z.png"
+  },
+  "h": 51,
+  "height_m": 0.34,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 67
+ },
+ "dino_palm": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 35,
+  "ay": 141,
+  "canopy_overhang_m": 0.4,
+  "files": {
+   "img": "dino_palm.png",
+   "sh": "dino_palm_sh.png",
+   "z": "dino_palm_z.png"
+  },
+  "h": 169,
+  "height_m": 2.9,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 200
+ },
+ "dino_ribcage_x": {
+  "along": "x",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 36,
+  "ay": 58,
+  "files": {
+   "img": "dino_ribcage_x.png",
+   "sh": "dino_ribcage_x_sh.png",
+   "z": "dino_ribcage_x_z.png"
+  },
+  "footprint": [
+   2,
+   1
+  ],
+  "h": 93,
+  "height_m": 1.1,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 149
+ },
+ "dino_ribcage_y": {
+  "along": "y",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 28,
+  "ay": 94,
+  "files": {
+   "img": "dino_ribcage_y.png",
+   "sh": "dino_ribcage_y_sh.png",
+   "z": "dino_ribcage_y_z.png"
+  },
+  "footprint": [
+   1,
+   2
+  ],
+  "h": 121,
+  "height_m": 1.1,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 110
+ },
+ "dino_rockbits_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "shatter",
+  "ax": 48,
+  "ay": 34,
+  "files": {
+   "gl": "dino_rockbits_00_gl.png",
+   "img": "dino_rockbits_00.png",
+   "sh": "dino_rockbits_00_sh.png",
+   "z": "dino_rockbits_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 68,
+  "height_m": 0.4,
+  "kind": "dyn",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 96
+ },
+ "dino_rockbits_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "shatter",
+  "ax": 48,
+  "ay": 37,
+  "files": {
+   "gl": "dino_rockbits_01_gl.png",
+   "img": "dino_rockbits_01.png",
+   "sh": "dino_rockbits_01_sh.png",
+   "z": "dino_rockbits_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 71,
+  "height_m": 0.4,
+  "kind": "dyn",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 96
+ },
+ "dino_rockbits_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "shatter",
+  "ax": 48,
+  "ay": 34,
+  "files": {
+   "gl": "dino_rockbits_02_gl.png",
+   "img": "dino_rockbits_02.png",
+   "sh": "dino_rockbits_02_sh.png",
+   "z": "dino_rockbits_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 68,
+  "height_m": 0.4,
+  "kind": "dyn",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 96
+ },
+ "dino_rockbits_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "shatter",
+  "ax": 48,
+  "ay": 34,
+  "files": {
+   "gl": "dino_rockbits_03_gl.png",
+   "img": "dino_rockbits_03.png",
+   "sh": "dino_rockbits_03_sh.png",
+   "z": "dino_rockbits_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 68,
+  "height_m": 0.4,
+  "kind": "dyn",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 96
+ },
+ "dino_skull": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 27,
+  "ay": 42,
+  "files": {
+   "img": "dino_skull.png",
+   "sh": "dino_skull_sh.png",
+   "z": "dino_skull_z.png"
+  },
+  "h": 64,
+  "height_m": 0.62,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 68
+ },
+ "dino_surf_tar_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_surf_tar_v0.png",
+   "z": "dino_surf_tar_v0_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "like": "desert_surf_quicksand",
+  "sinking": true,
+  "w": 88
+ },
+ "dino_surf_tar_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_surf_tar_v1.png",
+   "z": "dino_surf_tar_v1_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "like": "desert_surf_quicksand",
+  "sinking": true,
+  "w": 88
+ },
+ "dino_surf_water_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_surf_water_v0.png",
+   "z": "dino_surf_water_v0_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "w": 88,
+  "water": true
+ },
+ "dino_surf_water_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "dino_surf_water_v1.png",
+   "z": "dino_surf_water_v1_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "w": 88,
+  "water": true
+ },
+ "dino_tree": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 61,
+  "ay": 141,
+  "canopy_overhang_m": 0.35,
+  "files": {
+   "img": "dino_tree.png",
+   "sh": "dino_tree_sh.png",
+   "z": "dino_tree_z.png"
+  },
+  "h": 164,
+  "height_m": 3.05,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 209
+ },
+ "dino_vent_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "burst",
+  "ax": 51,
+  "ay": 41,
+  "files": {
+   "gl": "dino_vent_00_gl.png",
+   "img": "dino_vent_00.png",
+   "sh": "dino_vent_00_sh.png",
+   "z": "dino_vent_00_z.png"
+  },
+  "frame": 0,
+  "frames": 8,
+  "h": 77,
+  "hazard": false,
+  "height_m": 0.37,
+  "kind": "dyn",
+  "ms": 80,
+  "play": "as the city vent: 00 idle, 01-05 rising, 06-07 falling",
+  "shadow_z": 0.0,
+  "w": 102
+ },
+ "dino_vent_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "burst",
+  "ax": 51,
+  "ay": 51,
+  "files": {
+   "gl": "dino_vent_01_gl.png",
+   "img": "dino_vent_01.png",
+   "sh": "dino_vent_01_sh.png",
+   "z": "dino_vent_01_z.png"
+  },
+  "frame": 1,
+  "frames": 8,
+  "h": 87,
+  "hazard": false,
+  "height_m": 0.72,
+  "kind": "dyn",
+  "ms": 80,
+  "play": "as the city vent: 00 idle, 01-05 rising, 06-07 falling",
+  "shadow_z": 0.0,
+  "w": 112
+ },
+ "dino_vent_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "burst",
+  "ax": 51,
+  "ay": 59,
+  "files": {
+   "gl": "dino_vent_02_gl.png",
+   "img": "dino_vent_02.png",
+   "sh": "dino_vent_02_sh.png",
+   "z": "dino_vent_02_z.png"
+  },
+  "frame": 2,
+  "frames": 8,
+  "h": 95,
+  "hazard": false,
+  "height_m": 1.07,
+  "kind": "dyn",
+  "ms": 80,
+  "play": "as the city vent: 00 idle, 01-05 rising, 06-07 falling",
+  "shadow_z": 0.0,
+  "w": 108
+ },
+ "dino_vent_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "burst",
+  "ax": 51,
+  "ay": 80,
+  "files": {
+   "gl": "dino_vent_03_gl.png",
+   "img": "dino_vent_03.png",
+   "sh": "dino_vent_03_sh.png",
+   "z": "dino_vent_03_z.png"
+  },
+  "frame": 3,
+  "frames": 8,
+  "h": 116,
+  "hazard": true,
+  "height_m": 1.37,
+  "kind": "dyn",
+  "ms": 80,
+  "play": "as the city vent: 00 idle, 01-05 rising, 06-07 falling",
+  "shadow_z": 0.0,
+  "w": 128
+ },
+ "dino_vent_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "burst",
+  "ax": 51,
+  "ay": 77,
+  "files": {
+   "gl": "dino_vent_04_gl.png",
+   "img": "dino_vent_04.png",
+   "sh": "dino_vent_04_sh.png",
+   "z": "dino_vent_04_z.png"
+  },
+  "frame": 4,
+  "frames": 8,
+  "h": 113,
+  "hazard": true,
+  "height_m": 1.57,
+  "kind": "dyn",
+  "ms": 80,
+  "play": "as the city vent: 00 idle, 01-05 rising, 06-07 falling",
+  "shadow_z": 0.0,
+  "w": 134
+ },
+ "dino_vent_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "burst",
+  "ax": 51,
+  "ay": 80,
+  "files": {
+   "gl": "dino_vent_05_gl.png",
+   "img": "dino_vent_05.png",
+   "sh": "dino_vent_05_sh.png",
+   "z": "dino_vent_05_z.png"
+  },
+  "frame": 5,
+  "frames": 8,
+  "h": 116,
+  "hazard": true,
+  "height_m": 1.57,
+  "kind": "dyn",
+  "ms": 80,
+  "play": "as the city vent: 00 idle, 01-05 rising, 06-07 falling",
+  "shadow_z": 0.0,
+  "w": 136
+ },
+ "dino_vent_06": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "burst",
+  "ax": 51,
+  "ay": 57,
+  "files": {
+   "gl": "dino_vent_06_gl.png",
+   "img": "dino_vent_06.png",
+   "sh": "dino_vent_06_sh.png",
+   "z": "dino_vent_06_z.png"
+  },
+  "frame": 6,
+  "frames": 8,
+  "h": 93,
+  "hazard": false,
+  "height_m": 1.07,
+  "kind": "dyn",
+  "ms": 80,
+  "play": "as the city vent: 00 idle, 01-05 rising, 06-07 falling",
+  "shadow_z": 0.0,
+  "w": 114
+ },
+ "dino_vent_07": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "burst",
+  "ax": 51,
+  "ay": 42,
+  "files": {
+   "gl": "dino_vent_07_gl.png",
+   "img": "dino_vent_07.png",
+   "sh": "dino_vent_07_sh.png",
+   "z": "dino_vent_07_z.png"
+  },
+  "frame": 7,
+  "frames": 8,
+  "h": 78,
+  "hazard": false,
+  "height_m": 0.62,
+  "kind": "dyn",
+  "ms": 80,
+  "play": "as the city vent: 00 idle, 01-05 rising, 06-07 falling",
+  "shadow_z": 0.0,
+  "w": 102
+ },
+ "dino_volcanorock": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 49,
+  "ay": 40,
+  "files": {
+   "gl": "dino_volcanorock_gl.png",
+   "img": "dino_volcanorock.png",
+   "sh": "dino_volcanorock_sh.png",
+   "z": "dino_volcanorock_z.png"
+  },
+  "h": 79,
+  "height_m": 0.66,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 102
+ }
+}

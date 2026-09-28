@@ -25,6 +25,15 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, 'assets')
 OUT = os.path.join(ASSETS, 'monsterhop.pak')
+# --hd: the desktop's pack at twice the resolution (monsterhop_hd.pak): each
+# folder from assets_hd/ when it was rendered in HD (tools/blender with
+# MH_RES=2), else the normal art doubled (a stand-in, said at the end);
+# the interface stays as it is (LVGL draws it at 800 x 450)
+HD = '--hd' in sys.argv
+# (MH_HD_ASSETS and MH_BACKDROPS point elsewhere, for trying things out)
+ASSETS_HD = os.environ.get('MH_HD_ASSETS') or os.path.join(ROOT, 'assets_hd')
+OUT_HD = os.path.join(ASSETS, 'monsterhop_hd.pak')
+K = 1                      # the doubling of the stand-ins, per folder
 CARD = os.path.join(ASSETS, 'card')          # the same, in parts under 8 MB
 PART = 7 * 1024 * 1024
 LZ4 = '/tmp/mh_lz4blk'
@@ -57,7 +66,14 @@ def rgb565(rgb, dither=True):
 
 
 def load(d, fn, mode):
-    return np.asarray(Image.open(os.path.join(d, fn)).convert(mode))
+    im = Image.open(os.path.join(d, fn)).convert(mode)
+    if K != 1:
+        im = im.resize((im.width * K, im.height * K), Image.NEAREST)
+    return np.asarray(im)
+
+
+def anchor(info):
+    return info.get('ax', 0) * K, info.get('ay', 0) * K
 
 
 def encode_frame(fmt, cover, planes, ax, ay):
@@ -102,7 +118,7 @@ def frame_main(d, info):
         cover &= a4 > 0
         ida = ((ids.astype(np.int32) << 4) | a4).astype(np.uint8)
         pl = np.stack([ida, light, z], axis=2)
-        return LID, encode_frame(LID, cover, pl, info.get('ax', 0), info.get('ay', 0))
+        return LID, encode_frame(LID, cover, pl, *anchor(info))
     c = rgb565(img[..., :3])
     if info.get('kind') == 'ui':
         # interface art: colour and alpha for LVGL, no depth; opaque images
@@ -110,12 +126,12 @@ def frame_main(d, info):
         pl = np.stack([(c & 255).astype(np.uint8), (c >> 8).astype(np.uint8), al], axis=2)
         return IMG, encode_frame(IMG, al > 0 if (al < 255).any() else np.ones(al.shape, bool), pl, 0, 0)
     pl = np.stack([(c & 255).astype(np.uint8), (c >> 8).astype(np.uint8), al, z], axis=2)
-    return COL, encode_frame(COL, cover, pl, info.get('ax', 0), info.get('ay', 0))
+    return COL, encode_frame(COL, cover, pl, *anchor(info))
 
 
 def frame_plane(d, fn, info):
     a = load(d, fn, 'L')
-    return encode_frame(PLANE, a > 3, a[..., None], info.get('ax', 0), info.get('ay', 0))
+    return encode_frame(PLANE, a > 3, a[..., None], *anchor(info))
 
 
 def frame_glow(d, fn, info):
@@ -123,7 +139,15 @@ def frame_glow(d, fn, info):
     c = rgb565(g, dither=False)
     cover = c > 0
     pl = np.stack([(c & 255).astype(np.uint8), (c >> 8).astype(np.uint8)], axis=2)
-    return encode_frame(GLOW, cover, pl, info.get('ax', 0), info.get('ay', 0))
+    return encode_frame(GLOW, cover, pl, *anchor(info))
+
+
+# Rendered but left out of the pack, for the watch's memory (a level's art
+# must fit ~3.6 MB). The game falls back to what is there: a missing
+# animation plays the walk, a missing facing plays the south one. The
+# triceratops's 88 frames were 652 KB: it charges with its walk, and paws
+# and reels facing the camera only (~320 KB).
+SKIP = re.compile(r'^trike_(run_|howl_[new]_|stun_[new]_)')
 
 
 def split_name(name):
@@ -148,7 +172,8 @@ def main():
         sys.exit('levels.py found problems:\n' + r.stdout)
     if '--only' in sys.argv:
         only = sys.argv[sys.argv.index('--only') + 1].split(',')
-    dirs = sorted(d for d in os.listdir(ASSETS) if os.path.isfile(os.path.join(ASSETS, d, 'meta.json')))
+    dirs = sorted(d for d in os.listdir(ASSETS) if os.path.isfile(os.path.join(ASSETS, d, 'meta.json'))
+                  and d != 'backdrops')
     if only:
         dirs = [d for d in dirs if d in only]
     sheets = {}        # name -> [fmt, ms, {index: bytes}]
@@ -167,12 +192,23 @@ def main():
         if ms and not s[1]:
             s[1] = ms
 
+    global K
+    stand_ins = []
     for dn in dirs:
         d = os.path.join(ASSETS, dn)
+        K = 1
+        if HD and dn != 'ui':
+            if os.path.isfile(os.path.join(ASSETS_HD, dn, 'meta.json')):
+                d = os.path.join(ASSETS_HD, dn)
+            else:
+                K = 2
+                stand_ins.append(dn)
         with open(os.path.join(d, 'meta.json')) as fh:
             meta = json.load(fh)
         n = 0
         for name, info in sorted(meta.items()):
+            if SKIP.match(name):
+                continue
             if name.startswith('_') or not isinstance(info, dict) or 'files' not in info:
                 continue
             f = info['files']
@@ -185,9 +221,10 @@ def main():
                 pass
             add(base, fmt, idx, data, ms)
             if 'levels' in info:
-                # the map's spots: 16 levels, the house, the two locked zones
+                # the map's spots: the levels in the table's order (main/
+                # monsterhop.c: level_table), the house, the two future zones
                 pts = []
-                for z in ('city', 'castle', 'desert', 'forest'):
+                for z in ('city', 'castle', 'desert', 'forest', 'dino', 'bay'):
                     lv = info['levels'].get(z, [])
                     for k in range(4):
                         pts.append(lv[k] if k < len(lv) else [0, 0])
@@ -234,6 +271,32 @@ def main():
             walk('', pals)
         print('%-14s %4d sprites' % (dn, n))
 
+    # the far scenery behind each zone (tools/blender/backdrops.py), the
+    # desktop's HD pack only: bd_<zone>, opaque, at the HD pixel size
+    bdd = os.environ.get('MH_BACKDROPS') or os.path.join(ASSETS, 'backdrops')
+    if HD and os.path.isdir(bdd):
+        nb = 0
+        bm = {}
+        if os.path.isfile(os.path.join(bdd, 'meta.json')):
+            with open(os.path.join(bdd, 'meta.json')) as fh:
+                bm = json.load(fh)
+        for z in ('city', 'castle', 'desert', 'forest', 'dino', 'bay'):
+            fn = os.path.join(bdd, 'backdrop_%s.png' % z)
+            if not os.path.isfile(fn) or os.path.getsize(fn) == 0:
+                continue
+            im = Image.open(fn).convert('RGB')
+            if im.width < 2400:
+                # a draft at the normal size: doubled, smoothly
+                im = im.resize((im.width * 2, im.height * 2), Image.LANCZOS)
+            c = rgb565(np.asarray(im))
+            pl = np.stack([(c & 255).astype(np.uint8), (c >> 8).astype(np.uint8),
+                           np.full(c.shape, 255, np.uint8)], axis=2)
+            # the horizon's row rides in the anchor
+            hz = int(round(float(bm.get('backdrop_' + z, {}).get('horizon', 0.4)) * im.height))
+            add('bd_' + z, IMG, 0, encode_frame(IMG, np.ones(c.shape, bool), pl, 0, hz))
+            nb += 1
+        print('%-14s %4d zones' % ('backdrops', nb))
+
     lv = os.path.join(ASSETS, 'levels')
     if os.path.isdir(lv):
         for fn in sorted(os.listdir(lv)):
@@ -271,12 +334,17 @@ def main():
         data += c
         if verbose:
             print('  %-31s fmt %d x%-3d raw %7d lz4 %7d' % (name, fmt, nf, len(raw), len(c)))
-    with open(OUT, 'wb') as fh:
+    out = OUT_HD if HD else OUT
+    with open(out, 'wb') as fh:
         fh.write(b'MHPK' + struct.pack('<HH', 1, len(entries)))
         fh.write(table)
         fh.write(data)
     print('%s: %d entries, %.2f MB raw, %.2f MB on the card' %
-          (os.path.relpath(OUT, ROOT), len(entries), total_raw / 1e6, (hdr_len + len(data)) / 1e6))
+          (os.path.relpath(out, ROOT), len(entries), total_raw / 1e6, (hdr_len + len(data)) / 1e6))
+    if HD:
+        if stand_ins:
+            print('HD: not rendered yet, doubled from the normal art: ' + ', '.join(stand_ins))
+        return
     # the card's copy in parts, because the portal takes 8 MB per upload:
     # monsterhop.pak, monsterhop.pak.1, ... read back as one file (mh_art.c)
     blob = open(OUT, 'rb').read()

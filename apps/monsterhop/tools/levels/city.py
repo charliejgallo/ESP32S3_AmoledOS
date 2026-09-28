@@ -93,7 +93,7 @@ b..............b
 .......P.......K
 ................
 ................
-t..l....o...l..h
+t.l.....o....l.h
 ................
 .......o........
 ................
@@ -117,7 +117,7 @@ e..............e
     lv.lane('car', 0, 2, 'e', 16, size=2, ms=240, gap=6)
     lv.lane('car', 15, 4, 'w', 16, size=2, ms=300, gap=7)
     lv.lane('car', 0, 17, 'e', 16, size=2, ms=210, gap=5)
-    lv.lane('car', 15, 19, 'w', 16, size=2, ms=260, gap=6)
+    lv.lane('car', 15, 15, 'w', 16, size=2, ms=260, gap=6)
     # the zombies
     lv.monster('zombie', 1, 5, 'e', path=[(1, 5), (14, 5)], ms=750, pingpong=True)
     lv.monster('zombie', 12, 15, 'w', path=[(12, 15), (2, 15)], ms=650, pingpong=True, notice=True)

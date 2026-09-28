@@ -31,6 +31,9 @@
 #include "mh_scene.h"
 #include "mh_shop.h"
 #include "mh_world.h"
+#ifdef MH_DESKTOP
+#include "mh_post.h"
+#endif
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -39,6 +42,8 @@
 #define MH_FB_SPARE (600 * 1024)
 #define MH_BAND     64          /* rows per band of internal RAM           */
 #define MH_LEVELS   MH_NLEVELS
+#define MH_SPOTS    (MH_LEVELS + 3)     /* the map: the levels, the house, 2 future zones */
+#define MH_EMBLEMS  9
 
 enum { FB_FREE = 0, FB_BUSY, FB_READY, FB_SHOWN };
 
@@ -91,7 +96,9 @@ struct app {
     aos_app_t  *self;
     lv_obj_t   *root, *canvas, *touch;
 
-    /* frames */
+    /* frames: fw x fh, the screen's size when the app opened (MH_W/MH_H
+     * change while the worker draws the halves of a split screen) */
+    int16_t     fw, fh;
     uint16_t   *fb[MH_NFB];
     uint16_t   *cv;                 /* the canvas's own, LVGL's byte order    */
     uint16_t   *band;               /* MH_BAND rows in internal RAM, or NULL  */
@@ -150,11 +157,12 @@ struct app {
     int8_t      try_eq[CAT_N];      /* what the shop tries on                 */
     volatile bool outfit_dirty;     /* the hero's layers must be reloaded     */
     bool        dev_auto;
+    int         dev_level;          /* monsterhop_dev.txt "level=N", or -1  */
 
     /* pictures (mh_ui.c) */
-    mh_uimg_t   ui_map, ui_logo, ui_house, ui_marker, ui_emblem[7], ui_trophy[4];
+    mh_uimg_t   ui_map, ui_logo, ui_house, ui_marker, ui_emblem[MH_EMBLEMS], ui_trophy[4];
     mh_uimg_t   ui_card[MH_LEVELS];
-    int16_t     spots[19][2];       /* the map: 16 levels, house, 2 locked   */
+    int16_t     spots[MH_SPOTS][2];
     bool        spots_ok;
     bool        menu_art;           /* map, logo, house... are unpacked       */
     mh_anim_t   turn[5];            /* body, back, hand, cap, pet (the shop)  */
@@ -167,7 +175,7 @@ struct app {
     bool        is_host;
     char        partner[40];
     int8_t      rival_eq[CAT_N];
-    uint16_t    rival_open;         /* the levels open on the other watch    */
+    uint32_t    rival_open;         /* the levels open on the other watch    */
     int         link_level;
     mh_lk_op_t  lk_in[MH_LK_Q];     /* UI -> worker: what the other did      */
     volatile uint32_t lk_in_w, lk_in_r;
@@ -185,6 +193,28 @@ struct app {
     uint32_t    ld_from, ld_est, ld_ms;
     char        ld_key[16];
     uint8_t     ld_tag;             /* from the pack's size: a new pack forgets */
+
+#ifdef MH_DESKTOP
+    /* two players on one screen (mh_split.c): the key race with the second
+     * Tommy in a game of its own, the two stepped together and told of each
+     * other's keys, levers, crates and chests as the watches do by radio */
+    bool        split;              /* the lobby or the race is two players here */
+    bool        split_go;           /* the level that is starting is theirs  */
+    mh_world_t  world2;
+    mh_game_t   game2;
+    mh_scene_t  scene2;
+    mh_dlist_t  dl2;
+    mh_hud_state_t hs2;
+    mh_outfit_t outfit2;
+    int8_t      eq2[CAT_N];
+    int         fx2, trail2;
+    volatile int  in_hop2;
+    volatile bool in_action2;
+    uint16_t   *split_px;           /* both views, native order (fw x fh)    */
+    mh_post_t   post[2];            /* the finishing touches, per view      */
+    uint16_t   *post_px;            /* a whole frame, native order          */
+    bool        exit_told[2];
+#endif
 
     int         state;
     uint32_t    st_ms;
@@ -207,6 +237,31 @@ void mha_save(app_t *a);
 void mha_ui_job(app_t *a, int what);
 bool mha_link_available(app_t *a, char *name, int n);
 void mha_link_begin(app_t *a);
+/* keys instead of the touch screen and the button (the desktop port): a hop
+ * one of the grid's four ways (DIR_*), the button's click, the pause, back.
+ * True when the game took it. */
+bool mha_key_hop(app_t *a, int dir);
+bool mha_key_action(app_t *a);
+#ifdef MH_DESKTOP
+/* the second player's (a split screen); false when there is none */
+bool mha_key_hop2(app_t *a, int dir);
+bool mha_key_action2(app_t *a);
+/* the host: how each player plays, one line each, for the lobby */
+const char *mh_desktop_controls(void);
+/* the host's window: full screen or not (toggle = change it); the state */
+bool mh_desktop_fullscreen(bool toggle);
+/* mh_split.c */
+void mhs_begin(app_t *a);               /* the lobby, two players             */
+void mhs_end(app_t *a);
+void mhs_pick(app_t *a, int delta);
+void mhs_go(app_t *a);
+bool mhs_load(app_t *a);                /* the worker: the second view        */
+void mhs_free(app_t *a);
+void mhs_frame(app_t *a, uint16_t *fb, float dt, float run);   /* the worker */
+void mhs_tick(app_t *a);                /* the LVGL timer                     */
+#endif
+bool mha_key_pause(app_t *a);
+bool mha_key_back(app_t *a);
 /* mh_link.c */
 void mhl_end(app_t *a);
 void mhl_tick(app_t *a);                /* the LVGL timer, every tick        */

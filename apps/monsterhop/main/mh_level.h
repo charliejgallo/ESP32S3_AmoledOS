@@ -29,7 +29,8 @@
 #define MH_LV_MAXPATH   32
 #define MH_LV_MAXPT     256
 
-enum { ZONE_CITY = 0, ZONE_CASTLE, ZONE_DESERT, ZONE_FOREST, ZONE_TEST, ZONE_N };
+/* numbers that are stored or sent are forever: new zones after the test's */
+enum { ZONE_CITY = 0, ZONE_CASTLE, ZONE_DESERT, ZONE_FOREST, ZONE_TEST, ZONE_DINO, ZONE_BAY, ZONE_N };
 
 enum { DIR_N = 0, DIR_E, DIR_S, DIR_W };   /* +Y, +X, -Y, -X */
 
@@ -80,6 +81,8 @@ enum {
     ENT_LANE,           /* a = LANE_*, x y z dir, c = length (cells), b = size, p0 = ms per cell, p1 = gap/phase */
     ENT_TRAP,           /* a = TRAP_*, x y z dir, p0 = period ms, p1 = phase ms */
     ENT_STICKER,        /* x y z: the level's hidden sticker for the album  */
+    ENT_TIDECELL,       /* x y: the sea floods it on a clock; p0 = period ms, p1 = phase ms,
+                         * a = the sea's surface asset (flooded)            */
     ENT_N,
 };
 
@@ -88,12 +91,16 @@ enum {
     MON_ZOMBIE = 0, MON_VAMPIRE, MON_MUMMY, MON_WEREWOLF,
     MON_ZOMBIEDOG, MON_ARMOR, MON_CROW,
     MON_BRUTE, MON_COUNT, MON_PHARAOH, MON_ALPHA,
+    /* Lost Valley and Abyss Bay */
+    MON_RAPTOR, MON_TRIKE, MON_PTERO, MON_FISHMAN, MON_CRAB, MON_JELLY,
+    MON_TREX, MON_KRAKEN,
     MON_N,
 };
 /* monster flags (c) */
 enum {
     MF_PINGPONG = 1 << 0,   /* back and forth along the path, not a loop    */
     MF_NOTICE   = 1 << 1,   /* a zombie that turns and lunges               */
+    MF_DONE     = 1 << 7,   /* at run time: the chase reached the level's end */
 };
 
 /* lanes: movers that cross the level in a line, like Frogger's traffic */
@@ -104,6 +111,7 @@ enum {
     LANE_SCARAB,        /* a line of beetles: deadly                        */
     LANE_BAT,           /* bats flying across: deadly                       */
     LANE_LILY,          /* lily pads that sink in turns: ride them          */
+    LANE_COMPY,         /* a pack of little dinosaurs running across: deadly */
     LANE_N,
 };
 
@@ -113,6 +121,11 @@ enum {
     TRAP_VENT,          /* a burst of steam                                 */
     TRAP_DARTS,         /* a dart wall shooting along dir                   */
     TRAP_BEAR,          /* snaps once, then stays shut                      */
+    TRAP_LAVA,          /* a crack that wakes (warning) and erupts; dir: along X (e/w) or Y */
+    TRAP_ROCK,          /* a volcanic rock falls here, its shadow first     */
+    TRAP_PIRANHA,       /* a water cell that boils with piranhas: not even a raft is safe */
+    TRAP_WAVE,          /* a wave sweeps the cell and pushes Tommy along dir */
+    TRAP_WHIRL,         /* a whirlpool: it drags who lingers beside it      */
     TRAP_N,
 };
 

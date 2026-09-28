@@ -22,10 +22,11 @@ enum { HA_IDLE = 0, HA_HOP, HA_SUPER, HA_PUSH, HA_USE, HA_WIN, HA_HURT, HA_SINK,
 /* the monsters' */
 enum {
     MA_IDLE = 0, MA_WALK, MA_NOTICE, MA_LUNGE, MA_GLIDE, MA_TRANSFORM, MA_FLY, MA_PUSH,
-    MA_HOWL, MA_RUN, MA_STUN, MA_CRAWL, MA_PERCH, MA_DIVE, MA_STOMP, MA_CAST, MA_WHIP, MA_N,
+    MA_HOWL, MA_RUN, MA_STUN, MA_CRAWL, MA_PERCH, MA_DIVE, MA_STOMP, MA_CAST, MA_WHIP,
+    MA_LURK, MA_EMERGE, MA_SNAP, MA_FLOAT, MA_ROAR, MA_SLAM, MA_N,
 };
 
-#define MH_RIG_MAX 17
+#define MH_RIG_MAX 23
 
 typedef struct {
     mh_anim_t a[MH_RIG_MAX][4];     /* [animation][facing]; one-facing ones in [DIR_S] */
@@ -49,13 +50,17 @@ enum {
     OB_FX_DUST, OB_FX_SPLASH, OB_FX_POOF, OB_FX_SPARKLE, OB_FX_BUBBLES,
     OB_GATE, OB_CRATE, OB_PLATFORM, OB_SPIKES, OB_VENT, OB_DART_X, OB_DART_Y,
     OB_BOULDER_X, OB_BOULDER_Y, OB_RUNCAR_E, OB_RUNCAR_W, OB_LOG_W, OB_LOG_M, OB_LOG_E, OB_LILY,
-    OB_BEAR, OB_COFFIN, OB_STICKER, OB_N,
+    OB_BEAR, OB_COFFIN,
+    /* Lost Valley and Abyss Bay (a zone without them simply has none) */
+    OB_TIDE, OB_LAVA_X, OB_LAVA_Y, OB_FALLROCK, OB_ROCKBITS, OB_PIRANHA, OB_WAVE_X, OB_WAVE_Y,
+    OB_TENT_W, OB_TENT_M, OB_TENT_E,
+    OB_STICKER, OB_N,
 };
 
 typedef struct {
     mh_rig_t  body, cap, back, hand, pet;
-    mh_rig_t  mon[MON_N];
-    mh_rig_t  bat, scarab;          /* the vampire's other form, the swarms    */
+    mh_rig_t *mon[MON_N];            /* only the level's kinds, else NULL     */
+    mh_rig_t  bat, scarab, compy;   /* the vampire's other form, the swarms    */
     mh_anim_t ob[OB_N];
     mh_anim_t ob_sh[OB_N];
     mh_anim_t ob_gl[OB_N];

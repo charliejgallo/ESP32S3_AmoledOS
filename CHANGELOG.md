@@ -3,6 +3,40 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## v0.10.0 — 2026-09-28
+
+**Monster Hop: the Lost Valley and Abyss Bay, and the map becomes a hub.**
+Two new zones of four levels each, 24 in all
+([apps/monsterhop/README.md](apps/monsterhop/README.md)):
+
+- **Lost Valley**: raptors that stalk and pounce, triceratops that charge,
+  pterodactyls that swoop, packs of compies running across like traffic;
+  tar pits, lava cracks that glow and then erupt on a clock, volcanic rocks
+  that fall where their shadow warns. The lair is a chase: the T-Rex runs
+  Tommy up the valley.
+- **Abyss Bay**: fish-men that rise out of the water, crabs that snap
+  sideways, jellyfish, piranha pools not even a raft survives; the tide
+  floods and drains the quays, waves push, whirlpools drag. The lair is the
+  Kraken's: tentacles slam where their shadow shows first.
+- **The map is a hub**: Zombie Town, the Lost Valley, Werewolf Forest and
+  Abyss Bay are open from the house; the castle asks for 12 stars and the
+  desert for 24. 24 stickers, two new trophies, a theme for each zone.
+- **Every level audited**: `mhh bot` plays each one with a Tommy the
+  monsters cannot hurt, testing every hop on a copy of the game, pushing
+  crates and pulling levers; it wins all 24. It found Main Street's lamps
+  standing on the bridges, now moved.
+- **Memory**: only the monster kinds a level uses get palettes and rigs,
+  so eight more monsters cost the old zones nothing. Measured on the two
+  boards, memory free while playing: the castle's lair 128 / 220 KB, the
+  Lost Valley 375-542 KB, Main Street 629 KB with four frame buffers.
+- **The key race changed its protocol** (2): both watches need v0.10.0's
+  `monsterhop.so`. The pack is 17.7 MB, three parts for the portal.
+
+The same game on macOS and Windows, in HD and with two players on a split
+screen, is [charliejgallo/MonsterHop](https://github.com/charliejgallo/MonsterHop);
+its code lives here under `MH_DESKTOP` and leaves the watch's build as it
+was. The firmware only changes its embedded language packs.
+
 ## v0.9.1 — 2026-09-27
 
 **Mapas: the centre of a city at z15 about three times faster.** Measured
