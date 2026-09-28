@@ -215,6 +215,8 @@ static void view(app_t *a, int v, mh_world_t *w, mh_game_t *g, mh_scene_t *s, mh
     mh_img_clip(&im, 0, 0, MH_W, MH_H);
     mh_render_band(w, &im, s->icam_x, s->icam_y, 0, MH_H, dl);
     mh_scene_bits_draw(s, w, &im, s->icam_x, s->icam_y);
+    mhp_bits(&a->post[v], g->lv->zone, &im, s->icam_x, s->icam_y, MH_W, MH_H, a->playing ? 1.0f / 60.0f : 0);
+    mhp_finish(&a->post[v], g->lv->zone, a->split_px + (size_t)v * MH_W, a->fw, MH_W, MH_H);
     mh_hud_draw(&a->hud, &im, g, hs, w, s->icam_x, s->icam_y);
 }
 

@@ -488,6 +488,23 @@ static void play_frame(app_t *a)
     mh_world_prepare(&a->world, s->icam_x, s->icam_y, dirx, diry, 2);
     a->hs.pause_icon = a->state == ST_PLAY && !a->lk_race;
     a->hs.show_title = a->state == ST_INTRO;
+#ifdef MH_DESKTOP
+    /* the desktop draws the whole frame at once: the bits of the zone, the
+     * bloom and the vignette go over the scene, the HUD over them */
+    if (!a->post_px) a->post_px = (uint16_t *)mh_malloc((size_t)a->fw * a->fh * 2);
+    if (a->post_px) {
+        mh_img_t im;
+        mh_img_init(&im, a->post_px, MH_W, MH_H);
+        mh_render_band(&a->world, &im, s->icam_x, s->icam_y, 0, MH_H, &a->dl);
+        mh_scene_bits_draw(s, &a->world, &im, s->icam_x, s->icam_y);
+        mhp_bits(&a->post[0], a->lv.zone, &im, s->icam_x, s->icam_y, MH_W, MH_H, dt);
+        mhp_finish(&a->post[0], a->lv.zone, a->post_px, MH_W, MH_W, MH_H);
+        mh_hud_draw(&a->hud, &im, g, &a->hs, &a->world, s->icam_x, s->icam_y);
+        mh_copy_swap(a->fb[i], a->post_px, (size_t)MH_W * MH_H);
+        frame_done(a, i);
+        return;
+    }
+#endif
     for (int y0 = 0; y0 < MH_H; y0 += MH_BAND) {
         int y1 = y0 + MH_BAND > MH_H ? MH_H : y0 + MH_BAND;
         mh_img_t bim;
@@ -1374,6 +1391,12 @@ static void free_all(app_t *a)
     a->cv = NULL;
     free(a->band);
     a->band = NULL;
+#ifdef MH_DESKTOP
+    free(a->post_px);
+    a->post_px = NULL;
+    mhp_free(&a->post[0]);
+    mhp_free(&a->post[1]);
+#endif
     mh_hud_free(&a->hud);
     mh_art_close();
 }

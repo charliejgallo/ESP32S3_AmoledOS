@@ -31,6 +31,9 @@
 #include "mh_scene.h"
 #include "mh_shop.h"
 #include "mh_world.h"
+#ifdef MH_DESKTOP
+#include "mh_post.h"
+#endif
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -208,6 +211,8 @@ struct app {
     volatile int  in_hop2;
     volatile bool in_action2;
     uint16_t   *split_px;           /* both views, native order (fw x fh)    */
+    mh_post_t   post[2];            /* the finishing touches, per view      */
+    uint16_t   *post_px;            /* a whole frame, native order          */
     bool        exit_told[2];
 #endif
 
