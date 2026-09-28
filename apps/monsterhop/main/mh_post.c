@@ -256,6 +256,9 @@ void mhp_finish(mh_post_t *p, int zone, uint16_t *px, int stride, int w, int h)
     for (int y = 0; y < h; y++) {
         uint16_t *row = px + (size_t)y * stride;
         const uint8_t *vg = p->vig + (size_t)y * w;
+        /* a 4 x 4 ordered dither, 0..7 (half of it for green's 6 bits) */
+        static const uint8_t bayer[4][4] = { { 0, 4, 1, 5 }, { 6, 2, 7, 3 }, { 1, 5, 0, 4 }, { 7, 3, 6, 2 } };
+        const uint8_t *dth = bayer[y & 3];
         float fy = (y + 0.5f) / D - 0.5f;
         int y0 = (int)fy;
         if (fy < 0) y0 = 0;
@@ -275,9 +278,17 @@ void mhp_finish(mh_post_t *p, int zone, uint16_t *px, int stride, int w, int h)
                 bb = LERP(p->small_b) * strength >> 7;
 #undef LERP
             uint16_t v = row[x];
-            if (r | g | bb) v = mh_add(v, mh_rgb(r > 255 ? 255 : r, g > 255 ? 255 : g, bb > 255 ? 255 : bb));
-            if (vg[x] < 255) v = mh_darken(v, vg[x] + 1);
-            row[x] = v;
+            int k = vg[x] + 1;
+            if (!(r | g | bb) && k > 256) continue;
+            /* in 8 bits and dithered back to RGB565: the frame's 32 levels
+             * of red and blue would ring around the vignette and the glow */
+            /* the levels themselves (no replicated low bits), so an untouched
+             * pixel plus the dither floors back to what it was */
+            int pr = (v >> 8) & 0xF8, pg = (v >> 3) & 0xFC, pb = (v << 3) & 0xF8;
+            pr = ((pr + r) * k >> 8) + dth[x & 3];
+            pg = ((pg + g) * k >> 8) + (dth[x & 3] >> 1);
+            pb = ((pb + bb) * k >> 8) + dth[x & 3];
+            row[x] = mh_rgb(pr > 255 ? 255 : pr, pg > 255 ? 255 : pg, pb > 255 ? 255 : pb);
         }
     }
 }
