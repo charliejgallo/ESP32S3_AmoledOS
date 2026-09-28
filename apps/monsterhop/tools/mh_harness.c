@@ -139,6 +139,331 @@ static void cam_on(float x, float y, int floor, int *cx, int *cy)
     *cy = mh_iround(mh_lpy(&s_w, x, y, mh_floor_z(floor))) - MH_H * 6 / 10;
 }
 
+
+/* ---- the bot: can every level be won? ----
+ *
+ * Tommy cannot be hurt by what bites (g.god: monsters, cars, traps), but
+ * water, pits, tar and the tide still take him: the way through is the
+ * level's. Every time he stands still the bot looks for the shortest way
+ * (hops, super hops, rides on logs and platforms) to the nearest key, then
+ * to the exit, and tries the first step on a copy of the game half a second
+ * ahead: only a step that leaves him alive where it meant goes. Levers are
+ * pulled when nothing else leads on. */
+
+#define BOT_MAXC (MH_LV_MAXW * MH_LV_MAXH)
+static uint8_t s_ride[MH_LV_MAXH][MH_LV_MAXW];
+
+static const int BDX[4] = { 0, 1, 0, -1 }, BDY[4] = { 1, 0, -1, 0 };
+
+static void mark_ride(const mh_game_t *g)
+{
+    memset(s_ride, 0, sizeof s_ride);
+    const mh_level_t *lv = g->lv;
+    for (int i = 0; i < g->n_lane; i++) {
+        const mh_lane_t *l = &g->lane[i];
+        if (l->kind != LANE_LOG && l->kind != LANE_LILY) continue;
+        /* lily pads float every other cell and never move */
+        for (int k = 0; k < l->len; k += l->kind == LANE_LILY ? 2 : 1) {
+            int x = l->x + BDX[l->dir] * k, y = l->y + BDY[l->dir] * k;
+            if (mh_in(lv, x, y)) s_ride[y][x] = 1;
+        }
+    }
+    for (int i = 0; i < g->n_plat; i++) {
+        const mh_path_t *p = &lv->path[g->plat[i].path];
+        for (int k = 0; k < p->n; k++) {
+            int ax = lv->pt[p->first + k][0], ay = lv->pt[p->first + k][1];
+            int b = (k + 1) % p->n;
+            int bx = lv->pt[p->first + b][0], by = lv->pt[p->first + b][1];
+            for (;;) {
+                if (mh_in(lv, ax, ay)) s_ride[ay][ax] = 1;
+                if (ax == bx && ay == by) break;
+                ax += (bx > ax) - (bx < ax);
+                ay += (by > ay) - (by < ay);
+            }
+        }
+    }
+}
+
+/* where a move from (x, y, floor f) lands: false if the rules forbid it */
+static bool bot_move(const mh_game_t *g, int x, int y, int f, int d, bool super, int *ox, int *oy, int *of)
+{
+    const mh_level_t *lv = g->lv;
+    bool solid;
+    int tx = x + BDX[d] * (super ? 2 : 1), ty = y + BDY[d] * (super ? 2 : 1);
+    if (super) {
+        int mf = mh_stand_floor(g, x + BDX[d], y + BDY[d], &solid);
+        if (solid || (mf > -9 && mf > f + 2)) return false;
+    }
+    int tf = mh_stand_floor(g, tx, ty, &solid);
+    if (solid || !mh_in(lv, tx, ty)) return false;
+    if (tx == g->exit_x && ty == g->exit_y && !g->exit_open) return false;
+    if (tf <= -9) {
+        if (!s_ride[ty][tx]) return false;
+        tf = mh_cell(lv, tx, ty)->h;
+    } else if (tf - f > (super ? 2 : 1)) {
+        return false;
+    }
+    *ox = tx;
+    *oy = ty;
+    *of = tf;
+    return true;
+}
+
+/* breadth first from Tommy: distance and the first move to each cell */
+static int s_dist[BOT_MAXC], s_first[BOT_MAXC];
+
+static void bot_bfs_from(const mh_game_t *g, int sx, int sy, int sf)
+{
+    const mh_level_t *lv = g->lv;
+    int n = lv->w * lv->h;
+    for (int i = 0; i < n; i++) s_dist[i] = -1;
+    static int q[BOT_MAXC], qf[BOT_MAXC];
+    int h = 0, t = 0;
+    if (!mh_in(lv, sx, sy)) return;
+    s_dist[sy * lv->w + sx] = 0;
+    s_first[sy * lv->w + sx] = -1;
+    q[t] = sy * lv->w + sx;
+    qf[t++] = sf;
+    while (h < t) {
+        int c = q[h], f = qf[h++];
+        int x = c % lv->w, y = c / lv->w;
+        for (int m = 0; m < 8; m++) {
+            int d = m & 3;
+            bool super = m >= 4;
+            int tx, ty, tf;
+            if (!bot_move(g, x, y, f, d, super, &tx, &ty, &tf)) continue;
+            int k = ty * lv->w + tx;
+            if (s_dist[k] >= 0) continue;
+            s_dist[k] = s_dist[c] + (super ? 2 : 1);
+            s_first[k] = s_first[c] < 0 ? m : s_first[c];
+            q[t] = k;
+            qf[t++] = tf;
+        }
+    }
+}
+
+static void bot_bfs(const mh_game_t *g)
+{
+    bot_bfs_from(g, g->h.cx, g->h.cy, g->h.floor);
+}
+
+/* the move tried on a copy: alive, not stuck in the air, where it meant */
+static bool bot_safe(const mh_game_t *g, int m, float ahead)
+{
+    static mh_game_t p;
+    p = *g;
+    int lost = p.lost;
+    if (m >= 0) {
+        int d = m & 3;
+        if (m >= 4) {
+            p.h.dir = d;
+            mh_game_action(&p);
+        } else {
+            mh_game_hop(&p, d);
+        }
+        if (p.h.state != H_HOP && p.h.state != H_SUPER) return false;
+    }
+    const float dt = 1.0f / 60.0f;
+    for (float t = 0; t < ahead; t += dt) mh_game_step(&p, dt);
+    return p.lost == lost && p.state != GS_DYING && p.state != GS_OVER;
+}
+
+static void bot_do(mh_game_t *g, int m)
+{
+    int d = m & 3;
+    if (m >= 4) {
+        g->h.dir = d;
+        mh_game_action(g);
+    } else {
+        mh_game_hop(g, d);
+    }
+}
+
+static int bot_level(const char *level, const char *pak, bool verbose)
+{
+    setup(level, pak);
+    static mh_game_t g;
+    mh_game_init(&g, &s_lv, DIFF_EASY, 1234);
+    g.god = true;
+    g.timer = false;
+    g.lives = 999;
+    mark_ride(&g);
+    const float dt = 1.0f / 60.0f;
+    float last_progress = 0, stuck = 0;
+    uint32_t rnd = 12345;
+    int keys_before = 0, deaths = 0, lever_used = 0, pushes = 0, lost = 0;
+    int why[8] = { 0 };
+    const char *verdict = "STUCK";
+    while (g.t < 600) {
+        mh_game_step(&g, dt);
+        if (g.state == GS_WON) {
+            verdict = "WON";
+            break;
+        }
+        if (g.state == GS_DYING && g.lost == lost && g.st < dt * 1.5f) {
+            lost = g.lost + 1;
+            deaths++;
+            why[g.h.die_why & 7]++;
+            if (verbose) printf("  t %6.1f died (%d) at %d,%d\n", g.t, g.h.die_why, g.h.cx, g.h.cy);
+        }
+        if (g.keys != keys_before) {
+            keys_before = g.keys;
+            last_progress = g.t;
+            if (verbose) printf("  t %6.1f key %d at %d,%d\n", g.t, g.keys, g.h.cx, g.h.cy);
+        }
+        if (g.t - last_progress > 90) break;
+        if (verbose && (int)(g.t * 60) % 300 == 0)
+            printf("  t %6.1f at %d,%d floor %d state %d ride %d\n", g.t, g.h.cx, g.h.cy, g.h.floor, g.h.state, g.h.ride);
+        if (g.state != GS_PLAY || g.h.state != H_IDLE) continue;
+        /* where to: the nearest key by the way there, else the exit */
+        bot_bfs(&g);
+        const mh_level_t *lv = g.lv;
+        int best = -1, bd = 1 << 30;
+        for (int i = 0; i < g.n_pick; i++) {
+            const mh_pick_t *p = &g.pick[i];
+            if (p->type != ENT_KEY || p->taken) continue;
+            int k = p->y * lv->w + p->x;
+            if (s_dist[k] > 0 && s_dist[k] < bd) {
+                bd = s_dist[k];
+                best = k;
+            }
+        }
+        if (best < 0 && g.exit_open) {
+            /* the exit: through the cell in front of it */
+            int k = g.exit_y * lv->w + g.exit_x;
+            if (s_dist[k] > 0) best = k;
+        }
+        if (best < 0 && pushes < 60) {
+            /* nothing leads on: a crate that slides into a hole (water or a
+             * pit) along a flat way, pushed from behind */
+            int bc = -1, bdir = 0, bstand = -1, bdd = 1 << 30;
+            for (int i = 0; i < g.n_crate; i++) {
+                const mh_crate_t *c = &g.crate[i];
+                if (c->sunk) continue;
+                for (int d = 0; d < 4; d++) {
+                    int sx = c->x - BDX[d], sy = c->y - BDY[d];
+                    if (!mh_in(lv, sx, sy)) continue;
+                    bool hole = false;
+                    for (int j = 1; j <= 8; j++) {
+                        int x = c->x + BDX[d] * j, y = c->y + BDY[d] * j;
+                        if (!mh_in(lv, x, y)) break;
+                        const mh_cell_t *hc = mh_cell(lv, x, y);
+                        if (hc->kind == CK_WATER || hc->kind == CK_PIT) {
+                            hole = !(hc->flags & CF_SOLID);
+                            break;
+                        }
+                        bool solid;
+                        int f = mh_stand_floor(&g, x, y, &solid);
+                        if (solid || f != c->z) break;
+                    }
+                    if (!hole) continue;
+                    int k = sy * lv->w + sx;
+                    int dd = (sx == g.h.cx && sy == g.h.cy) ? 0 : s_dist[k];
+                    if (dd >= 0 && dd < bdd && (dd > 0 || (sx == g.h.cx && sy == g.h.cy))) {
+                        bdd = dd;
+                        bc = i;
+                        bdir = d;
+                        bstand = k;
+                    }
+                }
+            }
+            if (bc >= 0 && bdd == 0) {
+                g.h.dir = bdir;
+                mh_game_action(&g);
+                pushes++;
+                last_progress = g.t;
+                if (verbose) printf("  t %6.1f push crate %d %c\n", g.t, bc, "nesw"[bdir]);
+                continue;
+            }
+            if (bc >= 0) best = bstand;
+        }
+        if (best < 0 && lever_used < g.n_lever) {
+            /* nothing leads on: the next lever, from a cell beside it */
+            const mh_lever_t *lvr = &g.lever[lever_used];
+            for (int d = 0; d < 4 && best < 0; d++) {
+                int ax = lvr->x - BDX[d], ay = lvr->y - BDY[d];
+                if (!mh_in(lv, ax, ay)) continue;
+                int k = ay * lv->w + ax;
+                if (k == g.h.cy * lv->w + g.h.cx) {
+                    g.h.dir = d;
+                    mh_game_action(&g);
+                    lever_used++;
+                    last_progress = g.t;
+                    if (verbose) printf("  t %6.1f lever %d\n", g.t, lever_used);
+                    best = -2;
+                } else if (s_dist[k] > 0) {
+                    best = k;
+                }
+            }
+            if (best == -2) continue;
+        }
+        int m = best >= 0 ? s_first[best] : -1;
+        if (m >= 0 && bot_safe(&g, m, 0.6f)) {
+            bot_do(&g, m);
+            stuck = 0;
+            continue;
+        }
+        /* the planned step is not safe now: another safe step that leaves
+         * as short a way (a super hop instead of two hops...) */
+        if (m >= 0 && best >= 0) {
+            int want = s_dist[best], pick = -1;
+            for (int k = 0; k < 8; k++) {
+                int tx, ty, tf;
+                if (k == m || !bot_move(&g, g.h.cx, g.h.cy, g.h.floor, k & 3, k >= 4, &tx, &ty, &tf)) continue;
+                bot_bfs_from(&g, tx, ty, tf);
+                int left = s_dist[best];
+                if (left >= 0 && left + (k >= 4 ? 2 : 1) <= want && bot_safe(&g, k, 0.6f)) {
+                    pick = k;
+                    break;
+                }
+            }
+            if (pick >= 0) {
+                bot_do(&g, pick);
+                stuck = 0;
+                continue;
+            }
+        }
+        /* never safe from here (rafts leaving at the edge, a trap in the
+         * way): after a while, any safe step, and plan again from there */
+        stuck += dt;
+        if (stuck > 1.5f) {
+            int k0 = (int)(mh_rand(&rnd) & 7);
+            for (int k = 0; k < 8; k++) {
+                int mm = (k0 + k) & 7;
+                if (bot_safe(&g, mm, 0.8f)) {
+                    bot_do(&g, mm);
+                    stuck = 0;
+                    break;
+                }
+            }
+            continue;
+        }
+        /* waiting: only where waiting is safe, else any safe step */
+        if (!bot_safe(&g, -1, 1.2f)) {
+            for (int k = 0; k < 8; k++) {
+                if (bot_safe(&g, k, 0.8f)) {
+                    bot_do(&g, k);
+                    break;
+                }
+            }
+        }
+    }
+    if (verbose && g.state != GS_WON) {
+        bot_bfs(&g);
+        for (int i = 0; i < g.n_pick; i++)
+            if (g.pick[i].type == ENT_KEY && !g.pick[i].taken)
+                printf("  key left at %d,%d: way %d\n", g.pick[i].x, g.pick[i].y,
+                       s_dist[g.pick[i].y * s_lv.w + g.pick[i].x]);
+    }
+    printf("%-10s %-5s t %5.1f s (limit %3d, par %3d)  keys %d/5  deaths %d (water %d quick %d pit %d)  at %d,%d\n",
+           level, verdict, g.t, s_lv.time_s, s_lv.par_s, g.keys, deaths, why[DIE_WATER], why[DIE_QUICK], why[DIE_PIT],
+           g.h.cx, g.h.cy);
+    mh_world_free(&s_w);
+    mh_level_free(&s_lv);
+    mh_art_close();
+    return strcmp(verdict, "WON") == 0;
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 3) {
@@ -181,6 +506,23 @@ int main(int argc, char **argv)
         double ms = (double)(clock() - t0) * 1000.0 / CLOCKS_PER_SEC;
         printf("%d frames, %.3f ms each (Mac), %d blocks drawn\n", frames, ms / frames, s_w.blocks_drawn);
         return 0;
+    }
+    if (!strcmp(cmd, "bot")) {
+        /* bot <level|all> [pak]: can it be won? (MH_BOT_V=1 tells the way) */
+        const char *pak = argc > 3 ? argv[3] : "../assets/monsterhop.pak";
+        static const char *const all[] = { "city_1", "city_2", "city_3", "city_4", "castle_1", "castle_2", "castle_3",
+                                           "castle_4", "desert_1", "desert_2", "desert_3", "desert_4", "forest_1",
+                                           "forest_2", "forest_3", "forest_4", "dino_1", "dino_2", "dino_3", "dino_4",
+                                           "bay_1", "bay_2", "bay_3", "bay_4" };
+        bool v = getenv("MH_BOT_V") != NULL;
+        int won = 0, n = 0;
+        for (int i = 0; i < 24; i++) {
+            if (strcmp(level, "all") && strcmp(level, all[i])) continue;
+            won += bot_level(all[i], pak, v);
+            n++;
+        }
+        printf("%d of %d won\n", won, n);
+        return won == n ? 0 : 1;
     }
     if (!strcmp(cmd, "play") && argc >= 4) {
         /* play <level> "<script>" [pak]: n e s w = hop, a = action, . = wait

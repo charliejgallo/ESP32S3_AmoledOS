@@ -870,7 +870,7 @@ static void step_hero(mh_game_t *g, float dt)
 static bool hero_vulnerable(const mh_game_t *g)
 {
     const mh_hero_t *h = &g->h;
-    if (g->state != GS_PLAY || h->high) return false;
+    if (g->state != GS_PLAY || h->high || g->god) return false;
     if (g->st < INVULN_T && g->lost > 0 && h->state != H_WIN) {
         /* just respawned */
         return false;

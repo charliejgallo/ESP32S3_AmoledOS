@@ -323,6 +323,17 @@ class Level:
                     nx, ny = x + dx * step, y + dy * step
                     if (nx, ny) in seen:
                         continue
+                    if step == 2:
+                        # the super hop flies over water, pits and monsters,
+                        # not over a prop or a wall (as main/mh_game.c)
+                        mx, my = x + dx, y + dy
+                        if not (0 <= mx < self.w and 0 <= my < self.h):
+                            continue
+                        mc = self.cells[my][mx]
+                        if mc['flags'] & (CF_SOLID | CF_HIGH):
+                            continue
+                        if mc['kind'] not in (CK_PIT, CK_WATER) and mc['h'] > h0 + 2:
+                            continue
                     h1 = self.walkable(nx, ny)
                     if h1 is None and (nx, ny) in ride:
                         h1 = self.cells[ny][nx]['h']

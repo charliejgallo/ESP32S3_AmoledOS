@@ -236,6 +236,7 @@ typedef struct {
     float  rx, ry, rz, rf;          /* rf: how far into its hop (0..1)      */
     int    rdir, rstate;
     float  shake;                   /* the screen trembles (a T-Rex's steps) */
+    bool   god;                     /* tests only: nothing that bites hurts  */
 } mh_game_t;
 
 enum { GS_PLAY = 0, GS_DYING, GS_WON, GS_OVER };
