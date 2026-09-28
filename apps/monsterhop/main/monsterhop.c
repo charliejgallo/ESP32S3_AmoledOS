@@ -26,6 +26,17 @@
 #define WORKER_STACK    (12 * 1024)
 #define SWIPE_PX        22
 
+/* two players on one screen (the desktop port only) */
+static inline bool split_on(const app_t *a)
+{
+#ifdef MH_DESKTOP
+    return a->split;
+#else
+    (void)a;
+    return false;
+#endif
+}
+
 /* ---- the levels ---- */
 
 /* level numbers are forever: they key the records and travel over the link */
@@ -132,6 +143,9 @@ static uint32_t clock_ms(void)
 static void level_free(app_t *a)
 {
     a->level_ok = false;
+#ifdef MH_DESKTOP
+    mhs_free(a);
+#endif
     mh_world_free(&a->world);
     mh_level_free(&a->lv);
     a->loaded_level = -2;
@@ -173,6 +187,9 @@ static bool load_level(app_t *a, int idx)
     mh_cast_level(&a->cast, &a->lv);
     uint32_t seed = (uint32_t)aos_hal_uptime_ms() | 1u;
     bool race = a->link_on && a->link_state == LK_LOADING;
+#ifdef MH_DESKTOP
+    if (a->split) race = true;
+#endif
     a->lk_race = race;
     /* a race: the same seed on both, the normal clock, lives that never end */
     mh_game_init(&a->game, &a->lv, race ? DIFF_NORMAL : a->prog.diff, race ? a->link_seed : seed);
@@ -182,7 +199,16 @@ static bool load_level(app_t *a, int idx)
     }
     mh_scene_init(&a->scene, &a->world, &a->game, &a->outfit, a->skin_fx);
     mh_scene_trail(&a->scene, a->trail);
+#ifdef MH_DESKTOP
+    if (a->split && !mhs_load(a)) {
+        aos_hal_log("mhop", "level %s: no memory for the second view", nm);
+        level_free(a);
+        return false;
+    }
+    if (race && !a->split) {
+#else
     if (race) {
+#endif
         mh_outfit_t o;
         mh_wear_t wr;
         int fx = 0, tr = 0;
@@ -271,8 +297,8 @@ static void spare_frame(app_t *a)
     a->spare_checked = true;
     uint32_t hi = 0, hp = 0;
     aos_hal_heap_info(&hi, &hp);
-    if (!a->fb[3] && hp > (uint32_t)(MH_W * MH_H * 2) + MH_FB_SPARE) {
-        uint16_t *f = (uint16_t *)mh_malloc((size_t)MH_W * MH_H * 2);
+    if (!a->fb[3] && hp > (uint32_t)(a->fw * a->fh * 2) + MH_FB_SPARE) {
+        uint16_t *f = (uint16_t *)mh_malloc((size_t)a->fw * a->fh * 2);
         if (f) {
             a->fb_state[3] = FB_FREE;
             a->fb[3] = f;
@@ -330,6 +356,15 @@ static void intro_camera(app_t *a, float dt)
     mh_scene_look(&a->scene, &a->world, kx[i], ky[i], 0, dt * 0.9f, a->intro_t < 0.05f);
 }
 
+static void frame_done(app_t *a, int i)
+{
+    a->w_frames++;
+    a->fb_seq[i] = ++a->seq;
+    a->fb_state[i] = FB_READY;
+    if (!a->spare_checked) spare_frame(a);
+    worker_yield();
+}
+
 static void play_frame(app_t *a)
 {
     int i = free_fb(a);
@@ -348,6 +383,13 @@ static void play_frame(app_t *a)
     a->w_last_ms = now;
     mh_game_t *g = &a->game;
     mh_scene_t *s = &a->scene;
+#ifdef MH_DESKTOP
+    if (a->split) {
+        mhs_frame(a, a->fb[i], dt, run);
+        frame_done(a, i);
+        return;
+    }
+#endif
     if (a->playing && !a->frozen) {
         if (a->lk_race) mhl_worker_before(a);
         int hop = a->in_hop;
@@ -421,11 +463,7 @@ static void play_frame(app_t *a)
         mh_hud_draw(&a->hud, &bim, g, &a->hs, &a->world, s->icam_x, s->icam_y);
         mh_copy_swap(a->fb[i] + (size_t)y0 * MH_W, band, (size_t)(y1 - y0) * MH_W);
     }
-    a->w_frames++;
-    a->fb_seq[i] = ++a->seq;
-    a->fb_state[i] = FB_READY;
-    if (!a->spare_checked) spare_frame(a);
-    worker_yield();
+    frame_done(a, i);
 }
 
 static void worker_fn(void *arg)
@@ -487,7 +525,7 @@ void mha_ui_job(app_t *a, int what)
  * canvas, so the panel-order frame is swapped into LVGL's order. */
 static void canvas_show(app_t *a, int i)
 {
-    mh_copy_swap(a->cv, a->fb[i], (size_t)MH_W * MH_H);
+    mh_copy_swap(a->cv, a->fb[i], (size_t)a->fw * a->fh);
     lv_obj_invalidate(a->canvas);
 }
 
@@ -505,7 +543,7 @@ static void push_frame(app_t *a)
     for (int i = 0; i < a->nfb; i++) {
         if (i != best && a->fb_state[i] == FB_READY) a->fb_state[i] = FB_FREE;
     }
-    if (!aos_hal_display_blit(0, 0, MH_W, MH_H, a->fb[best])) canvas_show(a, best);
+    if (!aos_hal_display_blit(0, 0, a->fw, a->fh, a->fb[best])) canvas_show(a, best);
     if (a->shown >= 0 && a->shown != best) a->fb_state[a->shown] = FB_FREE;
     a->fb_state[best] = FB_SHOWN;
     a->shown = best;
@@ -689,6 +727,15 @@ void mha_level_start(app_t *a, int idx)
         uint32_t guess = (li && li->zone < 4 ? mh_art_prefix_bytes(zp[li->zone]) : 0) + 1500u * 1024u;
         load_begin(a, key, guess);
     }
+#ifdef MH_DESKTOP
+    /* the two players' race: from their lobby, or again from its pause */
+    if (!(a->split && (a->split_go || a->state == ST_PAUSE))) a->split = false;
+    a->split_go = false;
+    if (a->split) {
+        a->link_state = LK_LOADING;
+        a->lk_loaded = false;
+    }
+#endif
     a->level = idx;
     a->playing = false;
     a->frozen = false;
@@ -793,6 +840,10 @@ static void race_result(app_t *a, bool left)
     bool won = !left && me > them;
     int earned = g->coins + (won ? 40 : 15);
     if (left) earned = g->coins;
+#ifdef MH_DESKTOP
+    /* two players here: the coins of both, one purse */
+    if (a->split) earned = g->coins + a->game2.coins + 40;
+#endif
     p->coins += earned;
     p->stat[SX_KEYS] += g->my_keys;
     p->stat[SX_COINS] += g->coins;
@@ -805,7 +856,7 @@ static void race_result(app_t *a, bool left)
     mh_prog_trophies(p);
     uint32_t new_tr = p->trophies & ~before;
     mha_save(a);
-    mh_ui_race_fill(a, left ? -1 : won ? 1 : 0, me, them, earned, new_tr);
+    mh_ui_race_fill(a, left ? -1 : won ? 1 : split_on(a) && me == them ? 2 : 0, me, them, earned, new_tr);
     mha_set_state(a, ST_RESULT);
     aos_hal_log("mhop", "race on level %d: %d to %d%s", a->level, me, them, left ? " (left)" : "");
     mh_ui_before_job(a, UJ_MENU);
@@ -888,7 +939,7 @@ static bool go_back(app_t *a)
         return false;
     case ST_PLAY:
         /* in a race the clock can't stop: back leaves it */
-        if (a->lk_race) {
+        if (a->lk_race && !split_on(a)) {
             mhl_end(a);
             race_result(a, true);
             return true;
@@ -945,10 +996,26 @@ bool mha_key_action(app_t *a)
     return true;
 }
 
+#ifdef MH_DESKTOP
+bool mha_key_hop2(app_t *a, int dir)
+{
+    if (a->closing || !a->split || a->state != ST_PLAY) return false;
+    a->in_hop2 = 1 + (dir & 3);
+    return true;
+}
+
+bool mha_key_action2(app_t *a)
+{
+    if (a->closing || !a->split || a->state != ST_PLAY) return false;
+    a->in_action2 = true;
+    return true;
+}
+#endif
+
 bool mha_key_pause(app_t *a)
 {
     if (a->closing) return false;
-    if (a->state == ST_PLAY && !a->lk_race) {
+    if (a->state == ST_PLAY && (!a->lk_race || split_on(a))) {
         a->want_pause = true;
         return true;
     }
@@ -1070,6 +1137,14 @@ static void boot_done(app_t *a)
         }
     }
     if ((e = getenv("MH_LEVEL")) && e[0]) mha_level_start(a, e[0] == 't' ? -1 : atoi(e));
+#ifdef MH_DESKTOP
+    /* MH_SPLIT=<0..15>: straight into a two-player race on that level */
+    if ((e = getenv("MH_SPLIT")) && e[0]) {
+        mhs_begin(a);
+        a->link_level = atoi(e) % MH_LEVELS;
+        mhs_go(a);
+    }
+#endif
     if ((e = getenv("MH_RACE")) && e[0]) {
         char nm[32];
         s_sim_race = atoi(e) % MH_LEVELS;
@@ -1110,6 +1185,9 @@ static void frame(lv_timer_t *t)
     a->prev_ms = now;
     a->st_ms += (uint32_t)dt;
     mhl_tick(a);
+#ifdef MH_DESKTOP
+    mhs_tick(a);
+#endif
     load_tick(a, dt);
 #ifdef AOS_SIM_BUILTIN
     sim_race(a);
@@ -1172,7 +1250,7 @@ static void frame(lv_timer_t *t)
         }
         break;
     case ST_PLAY:
-        if (a->lk_race) a->want_pause = a->want_map = false;
+        if (a->lk_race && !split_on(a)) a->want_pause = a->want_map = false;
         if (a->want_pause || a->want_map) {
             a->want_pause = a->want_map = false;
             pause_show(a);
@@ -1227,7 +1305,7 @@ static void app_hide(aos_app_t *self, void *inst)
     (void)self;
     app_t *a = (app_t *)inst;
     if (a && a->link_on) mhl_end(a);
-    if (a && a->state == ST_PLAY && !a->lk_race) pause_show(a);
+    if (a && a->state == ST_PLAY && (!a->lk_race || split_on(a))) pause_show(a);
 }
 
 static void free_all(app_t *a)
@@ -1256,12 +1334,14 @@ static void *mh_create(aos_app_t *self, lv_obj_t *root)
     aos_hal_heap_info(&hi, &hp);
     aos_hal_log("mhop", "opening | internal %u B, psram %u B", (unsigned)hi, (unsigned)hp);
     bool ok = true;
+    a->fw = (int16_t)MH_W;
+    a->fh = (int16_t)MH_H;
     for (int i = 0; i < 3; i++) {
-        a->fb[i] = (uint16_t *)mh_malloc((size_t)MH_W * MH_H * 2);
+        a->fb[i] = (uint16_t *)mh_malloc((size_t)a->fw * a->fh * 2);
         if (!a->fb[i]) ok = false;
     }
     a->nfb = 3;
-    a->cv = (uint16_t *)mh_malloc((size_t)MH_W * MH_H * 2);
+    a->cv = (uint16_t *)mh_malloc((size_t)a->fw * a->fh * 2);
     a->band = (uint16_t *)mh_malloc_internal((size_t)MH_W * MH_BAND * 2);
     if (!ok || !a->cv) {
         aos_hal_log("mhop", "out of memory");
@@ -1269,7 +1349,7 @@ static void *mh_create(aos_app_t *self, lv_obj_t *root)
         free(a);
         return NULL;
     }
-    memset(a->fb[0], 0, (size_t)MH_W * MH_H * 2);
+    memset(a->fb[0], 0, (size_t)a->fw * a->fh * 2);
     a->shown = -1;
     a->level = -1;
     a->loaded_level = -2;
@@ -1280,11 +1360,11 @@ static void *mh_create(aos_app_t *self, lv_obj_t *root)
     lv_obj_set_style_bg_opa(root, LV_OPA_COVER, 0);
 
     a->canvas = lv_canvas_create(root);
-    memset(a->cv, 0, (size_t)MH_W * MH_H * 2);
-    lv_canvas_set_buffer(a->canvas, a->cv, MH_W, MH_H, LV_COLOR_FORMAT_RGB565);
+    memset(a->cv, 0, (size_t)a->fw * a->fh * 2);
+    lv_canvas_set_buffer(a->canvas, a->cv, a->fw, a->fh, LV_COLOR_FORMAT_RGB565);
     /* a wider screen than the watch's (the desktop port): the panels stay a
      * watch-sized column in the middle and the frame spreads under them */
-    lv_obj_set_pos(a->canvas, (AOS_SCREEN_W - MH_W) / 2, (AOS_SCREEN_H - MH_H) / 2);
+    lv_obj_set_pos(a->canvas, (AOS_SCREEN_W - a->fw) / 2, (AOS_SCREEN_H - a->fh) / 2);
     lv_obj_remove_flag(a->canvas, LV_OBJ_FLAG_CLICKABLE);
 
     a->touch = lv_obj_create(root);

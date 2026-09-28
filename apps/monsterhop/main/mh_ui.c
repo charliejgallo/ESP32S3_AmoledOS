@@ -673,6 +673,11 @@ static void house_cb(lv_event_t *e)
     case 4: mha_set_state(a, ST_STATS); break;
     case 5: {
         char name[32];
+#ifdef MH_DESKTOP
+        /* on a computer the friend sits next to you */
+        mhs_begin(a);
+        break;
+#endif
         if (mha_link_available(a, name, sizeof name)) mha_link_begin(a);
         else aos_ui_toast(_("Primero aparea otro reloj en Enlace"), 2200);
         break;
@@ -1192,6 +1197,12 @@ static void next_cb(lv_event_t *e)
         /* another race: back to the lobby (the link is still up if the
          * other did not leave) */
         char name[32];
+#ifdef MH_DESKTOP
+        if (a->split) {
+            mhs_begin(a);
+            return;
+        }
+#endif
         if (mha_link_available(a, name, sizeof name)) mha_link_begin(a);
         else mha_set_state(a, ST_HOUSE);
         return;
@@ -1363,6 +1374,22 @@ static void trophy_lines(char *x, size_t n, uint32_t new_tr)
 void mh_ui_race_fill(app_t *a, int outcome, int me, int them, int earned, uint32_t new_tr)
 {
     s_ui.r_race = true;
+#ifdef MH_DESKTOP
+    if (a->split) {
+        /* two players here: outcome 1 the first won, 0 the second, 2 a tie */
+        lv_label_set_text(s_ui.r_title, outcome == 1 ? _("¡Ganó el jugador 1!") : outcome == 0 ? _("¡Ganó el jugador 2!")
+                                                                                            : _("¡Empate!"));
+        for (int k = 0; k < 3; k++) lv_obj_add_flag(s_ui.r_stars[k], LV_OBJ_FLAG_HIDDEN);
+        char sb[200];
+        snprintf(sb, sizeof sb, "%s %d  -  %d %s\n%s: +%d", _("J1"), me, them, _("J2"), _("Monedas"), earned);
+        lv_label_set_text(s_ui.r_body, sb);
+        char sx[200] = "";
+        trophy_lines(sx, sizeof sx, new_tr);
+        lv_label_set_text(s_ui.r_extra, sx);
+        lv_label_set_text(s_ui.r_next, _("Otra carrera"));
+        return;
+    }
+#endif
     const char *who = a->partner[0] ? a->partner : "?";
     lv_label_set_text(s_ui.r_title, outcome > 0 ? _("¡Ganaste la carrera!") : outcome == 0 ? _("Perdiste la carrera")
                                                                                           : _("Dejaste la carrera"));

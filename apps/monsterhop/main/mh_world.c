@@ -61,9 +61,23 @@ bool mh_world_init(mh_world_t *w, const mh_level_t *lv)
     return true;
 }
 
+bool mh_world_init_twin(mh_world_t *w, const mh_world_t *of)
+{
+    memcpy(w, of, sizeof(*w));
+    w->twin = true;
+    w->cc = (uint16_t *)mh_malloc((size_t)MH_CW * MH_CH * 2);
+    w->cd = (uint16_t *)mh_malloc((size_t)MH_CW * MH_CH * 2);
+    if (!w->cc || !w->cd) {
+        mh_world_free(w);
+        return false;
+    }
+    mh_world_invalidate_all(w);
+    return true;
+}
+
 void mh_world_free(mh_world_t *w)
 {
-    for (int i = 0; i < MH_LV_MAXASSET; i++) {
+    for (int i = 0; i < MH_LV_MAXASSET && !w->twin; i++) {
         mh_anim_free(&w->art[i]);
         mh_anim_free(&w->sh[i]);
         mh_anim_free(&w->gl[i]);
@@ -71,6 +85,12 @@ void mh_world_free(mh_world_t *w)
     free(w->cc);
     free(w->cd);
     w->cc = w->cd = NULL;
+    if (w->twin) {
+        memset(w->art, 0, sizeof w->art);
+        memset(w->sh, 0, sizeof w->sh);
+        memset(w->gl, 0, sizeof w->gl);
+    }
+    w->twin = false;
 }
 
 void mh_world_invalidate_all(mh_world_t *w)

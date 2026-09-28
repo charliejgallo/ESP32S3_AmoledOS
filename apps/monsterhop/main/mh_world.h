@@ -66,12 +66,16 @@ typedef struct {
     mh_anim_t gl[MH_LV_MAXASSET];   /* its glow, if any                     */
     uint16_t void_row[MH_CH];       /* the void's colour per cache row      */
     int blocks_drawn;               /* statistics                           */
+    bool twin;                      /* the art is another world's (a second view) */
 } mh_world_t;
 
 /* the level's art is loaded here (all assets it names); false if the cache
  * does not fit (missing art is drawn as nothing) */
 bool mh_world_init(mh_world_t *w, const mh_level_t *lv);
 void mh_world_free(mh_world_t *w);
+/* a second view of the same level (two players on one screen): its own
+ * cache, the art of `of`, which must outlive it */
+bool mh_world_init_twin(mh_world_t *w, const mh_world_t *of);
 
 /* LP position of a world point (x, y in metres, z in metres) */
 static inline float mh_lpx(const mh_world_t *w, float x, float y) { return 60.0f * x + 20.0f * y + (float)w->ox; }

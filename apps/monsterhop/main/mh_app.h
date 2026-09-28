@@ -91,7 +91,9 @@ struct app {
     aos_app_t  *self;
     lv_obj_t   *root, *canvas, *touch;
 
-    /* frames */
+    /* frames: fw x fh, the screen's size when the app opened (MH_W/MH_H
+     * change while the worker draws the halves of a split screen) */
+    int16_t     fw, fh;
     uint16_t   *fb[MH_NFB];
     uint16_t   *cv;                 /* the canvas's own, LVGL's byte order    */
     uint16_t   *band;               /* MH_BAND rows in internal RAM, or NULL  */
@@ -186,6 +188,26 @@ struct app {
     char        ld_key[16];
     uint8_t     ld_tag;             /* from the pack's size: a new pack forgets */
 
+#ifdef MH_DESKTOP
+    /* two players on one screen (mh_split.c): the key race with the second
+     * Tommy in a game of its own, the two stepped together and told of each
+     * other's keys, levers, crates and chests as the watches do by radio */
+    bool        split;              /* the lobby or the race is two players here */
+    bool        split_go;           /* the level that is starting is theirs  */
+    mh_world_t  world2;
+    mh_game_t   game2;
+    mh_scene_t  scene2;
+    mh_dlist_t  dl2;
+    mh_hud_state_t hs2;
+    mh_outfit_t outfit2;
+    int8_t      eq2[CAT_N];
+    int         fx2, trail2;
+    volatile int  in_hop2;
+    volatile bool in_action2;
+    uint16_t   *split_px;           /* both views, native order (fw x fh)    */
+    bool        exit_told[2];
+#endif
+
     int         state;
     uint32_t    st_ms;
     bool        want_exit, closing;
@@ -212,6 +234,22 @@ void mha_link_begin(app_t *a);
  * True when the game took it. */
 bool mha_key_hop(app_t *a, int dir);
 bool mha_key_action(app_t *a);
+#ifdef MH_DESKTOP
+/* the second player's (a split screen); false when there is none */
+bool mha_key_hop2(app_t *a, int dir);
+bool mha_key_action2(app_t *a);
+/* the host: how each player plays, one line each, for the lobby */
+const char *mh_desktop_controls(void);
+/* mh_split.c */
+void mhs_begin(app_t *a);               /* the lobby, two players             */
+void mhs_end(app_t *a);
+void mhs_pick(app_t *a, int delta);
+void mhs_go(app_t *a);
+bool mhs_load(app_t *a);                /* the worker: the second view        */
+void mhs_free(app_t *a);
+void mhs_frame(app_t *a, uint16_t *fb, float dt, float run);   /* the worker */
+void mhs_tick(app_t *a);                /* the LVGL timer                     */
+#endif
 bool mha_key_pause(app_t *a);
 bool mha_key_back(app_t *a);
 /* mh_link.c */

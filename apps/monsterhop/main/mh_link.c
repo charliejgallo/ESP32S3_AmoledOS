@@ -252,6 +252,9 @@ void mha_link_begin(app_t *a)
 
 void mhl_end(app_t *a)
 {
+#ifdef MH_DESKTOP
+    if (a->split) mhs_end(a);
+#endif
     if (a->link_on || s_started_link) {
         uint8_t bye[2] = { M_BYE, PROTO };
         for (int i = 0; i < 3; i++) aos_hal_link_send_partner(bye, sizeof bye);
@@ -266,6 +269,12 @@ void mhl_end(app_t *a)
 
 void mhl_pick(app_t *a, int delta)
 {
+#ifdef MH_DESKTOP
+    if (a->split) {
+        mhs_pick(a, delta);
+        return;
+    }
+#endif
     if (!a->is_host || a->link_state != LK_LOBBY) return;
     int i = a->link_level;
     for (int k = 0; k < MH_LEVELS; k++) {
@@ -279,6 +288,12 @@ void mhl_pick(app_t *a, int delta)
 
 void mhl_go(app_t *a)
 {
+#ifdef MH_DESKTOP
+    if (a->split) {
+        mhs_go(a);
+        return;
+    }
+#endif
     if (!a->is_host || a->link_state != LK_LOBBY || !a->link_peer_nonce) return;
     a->link_seed = ((uint32_t)aos_hal_uptime_ms() * 747796405u) | 1u;
     msg_start_t m = { .type = M_START, .proto = PROTO, .host_nonce = a->link_nonce,
