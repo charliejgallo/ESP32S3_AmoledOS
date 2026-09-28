@@ -59,7 +59,7 @@ enum {
 
 typedef struct {
     mh_rig_t  body, cap, back, hand, pet;
-    mh_rig_t  mon[MON_N];
+    mh_rig_t *mon[MON_N];            /* only the level's kinds, else NULL     */
     mh_rig_t  bat, scarab, compy;   /* the vampire's other form, the swarms    */
     mh_anim_t ob[OB_N];
     mh_anim_t ob_sh[OB_N];

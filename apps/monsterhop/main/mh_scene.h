@@ -26,8 +26,12 @@ typedef struct {
 
 typedef struct {
     mh_lut_t body, cap, back, hand, pet, rival;
-    mh_lut_t mon[MON_N][3];         /* up to three variants per monster      */
-    int      mon_var[MON_N];
+    /* the level's monster kinds only (a level has a few of the 19): up to
+     * three variants each; mon_slot says which row a kind has (-1 none) */
+#define MH_SCENE_KINDS 8
+    mh_lut_t mon[MH_SCENE_KINDS][3];
+    int      mon_var[MH_SCENE_KINDS];
+    int8_t   mon_slot[MON_N];
     mh_lut_t bat, scarab, compy, car[4];
     uint32_t tint;
     mh_pal_t body_pal;              /* for the rainbow skin                   */

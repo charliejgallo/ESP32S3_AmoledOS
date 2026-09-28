@@ -1142,6 +1142,7 @@ static void boot_done(app_t *a)
     }
     load_end(a);
     mha_set_state(a, ST_MENU);
+    if (a->dev_level >= 0 && a->dev_level < MH_LEVELS) mha_level_start(a, a->dev_level);
 #ifdef AOS_SIM_BUILTIN
     /* Development switches (getenv() is NULL on the board):
      *   MH_LEVEL=<0..23>|test   straight into that level
@@ -1404,6 +1405,7 @@ static void *mh_create(aos_app_t *self, lv_obj_t *root)
     memset(a->fb[0], 0, (size_t)a->fw * a->fh * 2);
     a->shown = -1;
     a->level = -1;
+    a->dev_level = -1;
     a->loaded_level = -2;
     a->root = root;
     mh_prog_load(&a->prog);
@@ -1446,6 +1448,9 @@ static void *mh_create(aos_app_t *self, lv_obj_t *root)
             buf[n] = 0;
             fclose(f);
             if (strstr(buf, "unlock")) a->dev_auto = true;
+            /* "level=N": straight into that level (measuring its memory) */
+            const char *lv = strstr(buf, "level=");
+            if (lv) a->dev_level = atoi(lv + 6);
             aos_hal_log("mhop", "dev switches: %s", buf);
         }
     }

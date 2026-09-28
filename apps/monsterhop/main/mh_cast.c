@@ -3,6 +3,8 @@
  */
 #include "mh_cast.h"
 
+#include <stdlib.h>
+
 #include <stdio.h>
 #include <string.h>
 
@@ -185,12 +187,17 @@ bool mh_cast_level(mh_cast_t *c, const mh_level_t *lv)
     anim_def_t defs[MH_RIG_MAX];
     for (int k = 0; k < MON_N; k++) {
         if (!want[k]) {
-            rig_free(&c->mon[k]);
+            if (c->mon[k]) {
+                rig_free(c->mon[k]);
+                free(c->mon[k]);
+                c->mon[k] = NULL;
+            }
             continue;
         }
-        if (c->mon[k].any) continue;
+        if (!c->mon[k]) c->mon[k] = (mh_rig_t *)mh_calloc(1, sizeof(mh_rig_t));
+        if (!c->mon[k] || c->mon[k]->any) continue;
         int n = mon_anims(k, defs);
-        rig_load(&c->mon[k], mon_prefix(k), defs, n, true);
+        rig_load(c->mon[k], mon_prefix(k), defs, n, true);
     }
     const char *z = mh_zone_key(lv->zone);
     char nm[48];
@@ -223,7 +230,12 @@ bool mh_cast_level(mh_cast_t *c, const mh_level_t *lv)
 
 void mh_cast_level_free(mh_cast_t *c)
 {
-    for (int k = 0; k < MON_N; k++) rig_free(&c->mon[k]);
+    for (int k = 0; k < MON_N; k++) {
+        if (!c->mon[k]) continue;
+        rig_free(c->mon[k]);
+        free(c->mon[k]);
+        c->mon[k] = NULL;
+    }
     rig_free(&c->bat);
     rig_free(&c->scarab);
     rig_free(&c->compy);
@@ -242,7 +254,12 @@ void mh_cast_free(mh_cast_t *c)
     rig_free(&c->back);
     rig_free(&c->hand);
     rig_free(&c->pet);
-    for (int k = 0; k < MON_N; k++) rig_free(&c->mon[k]);
+    for (int k = 0; k < MON_N; k++) {
+        if (!c->mon[k]) continue;
+        rig_free(c->mon[k]);
+        free(c->mon[k]);
+        c->mon[k] = NULL;
+    }
     rig_free(&c->bat);
     rig_free(&c->scarab);
     rig_free(&c->compy);

@@ -154,6 +154,7 @@ struct app {
     int8_t      try_eq[CAT_N];      /* what the shop tries on                 */
     volatile bool outfit_dirty;     /* the hero's layers must be reloaded     */
     bool        dev_auto;
+    int         dev_level;          /* monsterhop_dev.txt "level=N", or -1  */
 
     /* pictures (mh_ui.c) */
     mh_uimg_t   ui_map, ui_logo, ui_house, ui_marker, ui_emblem[MH_EMBLEMS], ui_trophy[4];

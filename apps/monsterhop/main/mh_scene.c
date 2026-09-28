@@ -301,7 +301,15 @@ void mh_scene_init(mh_scene_t *s, const mh_world_t *w, const mh_game_t *g, const
     memset(s, 0, sizeof(*s));
     uint32_t tint = mh_zone_look(g->lv->zone)->tint;
     mh_scene_outfit(s, o, tint, skin_fx);
+    memset(s->mon_slot, -1, sizeof s->mon_slot);
+    int slots = 0;
+    for (int i = 0; i < g->n_mon; i++) {
+        int k = g->mon[i].kind;
+        if (k < MON_N && s->mon_slot[k] < 0 && slots < MH_SCENE_KINDS) s->mon_slot[k] = (int8_t)slots++;
+    }
     for (int k = 0; k < MON_N; k++) {
+        int sl = s->mon_slot[k];
+        if (sl < 0) continue;
         int nv = 0;
         for (int v = 0; v < 3; v++) {
             mh_pal_t p;
@@ -312,16 +320,16 @@ void mh_scene_init(mh_scene_t *s, const mh_world_t *w, const mh_game_t *g, const
                 if (k == MON_ZOMBIE) {
                     for (int vv = 0; vv < 3; vv++) {
                         mon_default(k, vv, &p);
-                        mh_lut_build(&s->mon[k][vv], &p, tint, 1u << 5);
+                        mh_lut_build(&s->mon[sl][vv], &p, tint, 1u << 5);
                     }
                     nv = 3;
                     break;
                 }
             }
-            mh_lut_build(&s->mon[k][v], &p, tint, 1u << 5);
+            mh_lut_build(&s->mon[sl][v], &p, tint, 1u << 5);
             nv = v + 1;
         }
-        s->mon_var[k] = nv ? nv : 1;
+        s->mon_var[sl] = nv ? nv : 1;
     }
     mh_pal_t p;
     if (!mh_pal_load("pal_bat", &p)) mon_default(MON_VAMPIRE, 0, &p);
@@ -637,8 +645,9 @@ static void mon_draw(mh_scene_t *s, const mh_world_t *w, const mh_game_t *g, con
                      const mh_mon_t *m)
 {
     if (!visible(s, w, m->x, m->y, m->z)) return;
-    const mh_rig_t *r = &c->mon[m->kind];
-    const mh_lut_t *lut = &s->mon[m->kind][m->pal % (uint32_t)s->mon_var[m->kind]];
+    const mh_rig_t *r = c->mon[m->kind];
+    int sl = s->mon_slot[m->kind] < 0 ? 0 : s->mon_slot[m->kind];
+    const mh_lut_t *lut = &s->mon[sl][m->pal % (uint32_t)(s->mon_var[sl] ? s->mon_var[sl] : 1)];
     int slot = MA_IDLE;
     bool bycell = false;       /* frames follow the steps along the path */
     float z = m->z;
