@@ -30,6 +30,9 @@ static struct {
     int       sel;
     /* the pause */
     lv_obj_t *pz, *pz_title, *pz_zone, *pz_info;
+    /* stats, settings */
+    lv_obj_t *st_num[12], *st_cap[12], *tr_count;
+    lv_obj_t *c_full, *c_lang[3], *lang_note;
     uint32_t *pz_px;
 } W = { .sel = -1 };
 
@@ -608,6 +611,147 @@ static void wide_album_layout(app_t *a)
         lv_obj_set_pos(title, WX(0), WY(12));
         lv_obj_set_width(title, MH_W);
         lv_obj_set_style_text_font(title, aos_font_title, 0);
+    }
+}
+
+/* ---- the trophies: three columns ---- */
+
+static void wide_trophies_layout(app_t *a)
+{
+    (void)a;
+    lv_obj_t *l = s_ui.tr_list;
+    lv_obj_set_pos(l, WX(18), WY(56));
+    lv_obj_set_size(l, 764, 388);
+    lv_obj_set_flex_flow(l, LV_FLEX_FLOW_ROW_WRAP);
+    lv_obj_set_style_pad_column(l, 8, 0);
+    lv_obj_set_style_pad_row(l, 8, 0);
+    lv_obj_t *title = lv_obj_get_child(s_ui.p[ST_TROPHIES], 0);
+    if (title) {
+        lv_obj_set_pos(title, WX(0), WY(10));
+        lv_obj_set_width(title, MH_W);
+        lv_obj_set_style_text_font(title, aos_font_title, 0);
+    }
+}
+
+/* ---- the stats: tiles, a number each ---- */
+
+static void wide_build_stats(app_t *a)
+{
+    (void)a;
+    lv_obj_t *p = s_ui.p[ST_STATS];
+    lv_obj_add_flag(s_ui.st_body, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_t *title = lv_obj_get_child(p, 0);
+    if (title) {
+        lv_obj_set_pos(title, WX(0), WY(10));
+        lv_obj_set_width(title, MH_W);
+        lv_obj_set_style_text_font(title, aos_font_title, 0);
+    }
+    for (int i = 0; i < 12; i++) {
+        lv_obj_t *c = side_box(p, 20 + (i % 4) * 192, 60 + (i / 4) * 128, 184, 118);
+        W.st_num[i] = label(c, "", aos_font_title, 0xFFD060, 0, 18, 184);
+        W.st_cap[i] = label(c, "", aos_font_small, 0xC8C0D8, 6, 64, 172);
+    }
+}
+
+static void wide_stats_fill(app_t *a)
+{
+    const int32_t *s = a->prog.stat;
+    int t = s[SX_PLAY_S];
+    char v[12][32];
+    const char *cap[12] = { _("Niveles terminados"), _("Estrellas"), _("Figuritas"), _("Trofeos"),
+                            _("Llaves juntadas"), _("Monedas juntadas"), _("Saltos"), _("Tiempo jugado"),
+                            _("Atrapado por monstruos"), _("Al agua"), _("Caídas"), _("Carreras ganadas") };
+    snprintf(v[0], 32, "%d", (int)s[SX_LEVELS]);
+    snprintf(v[1], 32, "%d/%d", mh_prog_stars(&a->prog), MH_LEVELS * 3);
+    snprintf(v[2], 32, "%d/%d", bits(a->prog.stickers), MH_LEVELS);
+    snprintf(v[3], 32, "%d/%d", bits(a->prog.trophies), TR_N);
+    snprintf(v[4], 32, "%d", (int)s[SX_KEYS]);
+    snprintf(v[5], 32, "%d", (int)s[SX_COINS]);
+    snprintf(v[6], 32, "%d", (int)s[SX_HOPS]);
+    snprintf(v[7], 32, "%dh %02dm", t / 3600, (t / 60) % 60);
+    snprintf(v[8], 32, "%d", (int)s[SX_CAUGHT]);
+    snprintf(v[9], 32, "%d", (int)s[SX_DROWNED]);
+    snprintf(v[10], 32, "%d", (int)s[SX_FELL]);
+    snprintf(v[11], 32, "%d/%d", (int)s[SX_RACES_WON], (int)s[SX_RACES]);
+    for (int i = 0; i < 12; i++) {
+        if (!W.st_num[i]) continue;
+        lv_label_set_text(W.st_num[i], v[i]);
+        lv_label_set_text(W.st_cap[i], cap[i]);
+    }
+}
+
+/* ---- the settings: the game on the left, the computer on the right ---- */
+
+static void full_cb(lv_event_t *e)
+{
+    app_t *a = app_of(e);
+    mh_snd(SND_SELECT);
+    mh_desktop_fullscreen(true);
+    wide_settings_refresh(a);
+}
+
+static const char *const s_lang_code[3] = { "es", "en", "de" };
+static int s_lang_pick = -1;
+
+static void lang_cb(lv_event_t *e)
+{
+    app_t *a = app_of(e);
+    int i = (int)(intptr_t)lv_obj_get_user_data(lv_event_get_current_target(e));
+    mh_snd(SND_SELECT);
+    /* the whole interface is built in one language: the new one comes with
+     * the next start (switching now would free the texts on screen) */
+    aos_hal_pref_set_str("lang", s_lang_code[i]);
+    s_lang_pick = i;
+    wide_settings_refresh(a);
+}
+
+static void wide_build_settings(app_t *a, lv_obj_t *root)
+{
+    lv_obj_t *p = s_ui.p[ST_SETTINGS] = panel(root, 256);
+    label(p, _("Ajustes"), aos_font_title, 0xFFFFFF, WX(0), WY(10), MH_W);
+    /* the game */
+    lv_obj_t *c = side_box(p, 16, 58, 376, 380);
+    label(c, _("Dificultad"), aos_font_body, 0xC8C0D8, 0, 12, 376);
+    const char *dn[DIFF_N] = { _("Fácil"), _("Normal"), _("Difícil") };
+    for (int i = 0; i < DIFF_N; i++) {
+        s_ui.c_diff[i] = button(c, dn[i], 14 + i * 118, 46, 110, 48, ACCENT, diff_cb, a, NULL);
+        lv_obj_set_user_data(s_ui.c_diff[i], (void *)(intptr_t)i);
+    }
+    label(c, _("Fácil: 5 vidas y sin reloj. Normal: 3 vidas y reloj. Difícil: 1 vida y un poco menos de tiempo."),
+          aos_font_small, 0x9A90B0, 16, 106, 344);
+    label(c, _("Sonido"), aos_font_body, 0xC8C0D8, 0, 214, 376);
+    s_ui.c_sfx = button(c, _("Efectos"), 24, 250, 156, 52, ACCENT, sound_cb, a, NULL);
+    s_ui.c_music = button(c, _("Música"), 196, 250, 156, 52, ACCENT, sound_cb, a, NULL);
+    /* the computer */
+    c = side_box(p, 408, 58, 376, 380);
+    W.c_full = button(c, _("Pantalla completa"), 24, 14, 328, 48, ACCENT, full_cb, a, NULL);
+    label(c, _("Idioma"), aos_font_body, 0xC8C0D8, 0, 76, 376);
+    static const char *const ln[3] = { "Español", "English", "Deutsch" };
+    for (int i = 0; i < 3; i++) {
+        W.c_lang[i] = button(c, ln[i], 14 + i * 118, 108, 110, 44, ACCENT, lang_cb, a, NULL);
+        lv_obj_set_user_data(W.c_lang[i], (void *)(intptr_t)i);
+    }
+    W.lang_note = label(c, "", aos_font_small, 0xFFD060, 10, 158, 356);
+    label(c, _("Controles"), aos_font_body, 0xC8C0D8, 0, 196, 376);
+    lv_obj_t *k = label(c, _("Flechas o WASD: saltar\nEspacio o Enter: la acción\nEsc o P: pausa\nF11: pantalla completa\nUn joystick también sirve"),
+                        aos_font_small, 0xE0D8F0, 24, 228, 330);
+    lv_obj_set_style_text_align(k, LV_TEXT_ALIGN_LEFT, 0);
+    lv_obj_set_style_text_line_space(k, 4, 0);
+}
+
+static void wide_settings_refresh(app_t *a)
+{
+    (void)a;
+    if (W.c_full) chip_style(W.c_full, mh_desktop_fullscreen(false));
+    const char *cur = aos_i18n_current();
+    int on = s_lang_pick;
+    if (on < 0) {
+        for (int i = 0; i < 3; i++) if (!strcmp(cur, s_lang_code[i])) on = i;
+    }
+    for (int i = 0; i < 3; i++) if (W.c_lang[i]) chip_style(W.c_lang[i], i == on);
+    if (W.lang_note) {
+        bool later = on >= 0 && strcmp(cur, s_lang_code[on]);
+        lv_label_set_text(W.lang_note, later ? _("El idioma cambia al volver a abrir el juego") : "");
     }
 }
 

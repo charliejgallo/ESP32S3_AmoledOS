@@ -242,6 +242,8 @@ bool mha_key_hop2(app_t *a, int dir);
 bool mha_key_action2(app_t *a);
 /* the host: how each player plays, one line each, for the lobby */
 const char *mh_desktop_controls(void);
+/* the host's window: full screen or not (toggle = change it); the state */
+bool mh_desktop_fullscreen(bool toggle);
 /* mh_split.c */
 void mhs_begin(app_t *a);               /* the lobby, two players             */
 void mhs_end(app_t *a);

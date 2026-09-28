@@ -2526,6 +2526,12 @@ static const char blob_en_demo_monsterhop_lang[] =
     "Llaves\tKeys\n"
     "Vidas\tLives\n"
     "Faltan %d estrellas\t%d more stars\n"
+    "Sonido\tSound\n"
+    "Pantalla completa\tFull screen\n"
+    "Idioma\tLanguage\n"
+    "Controles\tControls\n"
+    "Flechas o WASD: saltar\\nEspacio o Enter: la acción\\nEsc o P: pausa\\nF11: pantalla completa\\nUn joystick también sirve\tArrows or WASD: hop\\nSpace or Enter: the action\\nEsc or P: pause\\nF11: full screen\\nA gamepad works too\n"
+    "El idioma cambia al volver a abrir el juego\tThe language changes when you open the game again\n"
     ;
 
 static const char blob_en_demo_neon_lang[] =
@@ -5229,6 +5235,12 @@ static const char blob_de_demo_monsterhop_lang[] =
     "Llaves\tSchlüssel\n"
     "Vidas\tLeben\n"
     "Faltan %d estrellas\tNoch %d Sterne\n"
+    "Sonido\tTon\n"
+    "Pantalla completa\tVollbild\n"
+    "Idioma\tSprache\n"
+    "Controles\tSteuerung\n"
+    "Flechas o WASD: saltar\\nEspacio o Enter: la acción\\nEsc o P: pausa\\nF11: pantalla completa\\nUn joystick también sirve\tPfeile oder WASD: hüpfen\\nLeertaste oder Enter: Aktion\\nEsc oder P: Pause\\nF11: Vollbild\\nEin Gamepad geht auch\n"
+    "El idioma cambia al volver a abrir el juego\tDie Sprache wechselt beim nächsten Start\n"
     ;
 
 static const char blob_de_demo_neon_lang[] =

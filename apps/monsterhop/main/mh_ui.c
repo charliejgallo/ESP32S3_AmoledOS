@@ -324,6 +324,11 @@ static void wide_job_done(app_t *a, int what);
 static void wide_free(app_t *a);
 static void wide_shop_layout(app_t *a);
 static void wide_album_layout(app_t *a);
+static void wide_trophies_layout(app_t *a);
+static void wide_build_stats(app_t *a);
+static void wide_stats_fill(app_t *a);
+static void wide_build_settings(app_t *a, lv_obj_t *root);
+static void wide_settings_refresh(app_t *a);
 #endif
 
 /* the shop's rows and the album's cards: wider on the desktop */
@@ -332,7 +337,11 @@ static void wide_album_layout(app_t *a);
 #define SHOP_NAME_W 290
 #define CARD_W 88
 #define CARD_H 104
+#define TROPHY_W 248
+#define TROPHY_DESC_W 176
 #else
+#define TROPHY_W 336
+#define TROPHY_DESC_W 264
 #define SHOP_ROW_W 316
 #define SHOP_NAME_W 190
 #define CARD_W 82
@@ -1123,6 +1132,9 @@ static void build_trophies(app_t *a, lv_obj_t *root)
     lv_obj_set_flex_flow(l, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(l, 6, 0);
     lv_obj_add_flag(l, LV_OBJ_FLAG_SCROLLABLE);
+#ifdef MH_DESKTOP
+    wide_trophies_layout(a);
+#endif
     (void)a;
 }
 
@@ -1134,7 +1146,7 @@ static void trophies_refresh(app_t *a)
         lv_obj_t *r = lv_obj_create(s_ui.tr_list);
         lv_obj_remove_style_all(r);
         /* as tall as its description needs: some take two lines */
-        lv_obj_set_size(r, 336, LV_SIZE_CONTENT);
+        lv_obj_set_size(r, TROPHY_W, LV_SIZE_CONTENT);
         lv_obj_set_style_min_height(r, 60, 0);
         lv_obj_set_style_pad_bottom(r, 8, 0);
         lv_obj_set_style_radius(r, 12, 0);
@@ -1162,7 +1174,7 @@ static void trophies_refresh(app_t *a)
         lv_label_set_text(d, mh_trophy_desc(t));
         lv_obj_set_style_text_font(d, aos_font_small, 0);
         lv_obj_set_style_text_color(d, lv_color_hex(0xA8A0B8), 0);
-        lv_obj_set_width(d, 264);
+        lv_obj_set_width(d, TROPHY_DESC_W);
         lv_label_set_long_mode(d, LV_LABEL_LONG_MODE_WRAP);
         lv_obj_set_pos(d, 64, 30);
     }
@@ -1174,6 +1186,9 @@ static void build_stats(app_t *a, lv_obj_t *root)
     label(p, _("Estadísticas"), aos_font_body, 0xFFFFFF, 0, 8, AOS_SCREEN_W);
     s_ui.st_body = label(p, "", aos_font_small, 0xE0D8F0, 24, 50, AOS_SCREEN_W - 48);
     lv_obj_set_style_text_align(s_ui.st_body, LV_TEXT_ALIGN_LEFT, 0);
+#ifdef MH_DESKTOP
+    wide_build_stats(a);
+#endif
     (void)a;
 }
 
@@ -1190,14 +1205,17 @@ static void stats_refresh(app_t *a)
     char b[640];
     int t = s[SX_PLAY_S];
     snprintf(b, sizeof b,
-             "%s: %d\n%s: %d/48\n%s: %d/16\n%s: %d\n%s: %d\n%s: %d\n%s: %d\n%s: %d\n%s: %d\n%s: %d / %d\n%s: %dh %02dm",
-             _("Niveles terminados"), (int)s[SX_LEVELS], _("Estrellas"), mh_prog_stars(&a->prog),
-             _("Figuritas"), bits(a->prog.stickers), _("Llaves juntadas"), (int)s[SX_KEYS],
+             "%s: %d\n%s: %d/%d\n%s: %d/%d\n%s: %d\n%s: %d\n%s: %d\n%s: %d\n%s: %d\n%s: %d\n%s: %d / %d\n%s: %dh %02dm",
+             _("Niveles terminados"), (int)s[SX_LEVELS], _("Estrellas"), mh_prog_stars(&a->prog), MH_LEVELS * 3,
+             _("Figuritas"), bits(a->prog.stickers), MH_LEVELS, _("Llaves juntadas"), (int)s[SX_KEYS],
              _("Monedas juntadas"), (int)s[SX_COINS], _("Saltos"), (int)s[SX_HOPS],
              _("Atrapado por monstruos"), (int)s[SX_CAUGHT], _("Al agua"), (int)s[SX_DROWNED],
              _("Caídas"), (int)s[SX_FELL], _("Carreras ganadas"), (int)s[SX_RACES_WON], (int)s[SX_RACES],
              _("Tiempo jugado"), t / 3600, (t / 60) % 60);
     lv_label_set_text(s_ui.st_body, b);
+#ifdef MH_DESKTOP
+    wide_stats_fill(a);
+#endif
 }
 
 /* ---- settings ---- */
@@ -1212,6 +1230,9 @@ static void settings_refresh(app_t *a)
     for (int i = 0; i < DIFF_N; i++) chip_style(s_ui.c_diff[i], a->prog.diff == i);
     chip_style(s_ui.c_sfx, a->prog.sfx);
     chip_style(s_ui.c_music, a->prog.music);
+#ifdef MH_DESKTOP
+    wide_settings_refresh(a);
+#endif
 }
 
 static void diff_cb(lv_event_t *e)
@@ -1235,6 +1256,10 @@ static void sound_cb(lv_event_t *e)
 
 static void build_settings(app_t *a, lv_obj_t *root)
 {
+#ifdef MH_DESKTOP
+    wide_build_settings(a, root);
+    return;
+#endif
     lv_obj_t *p = s_ui.p[ST_SETTINGS] = panel(root, 256);
     label(p, _("Ajustes"), aos_font_title, 0xFFFFFF, 0, 40, AOS_SCREEN_W);
     label(p, _("Dificultad"), aos_font_body, 0xC8C0D8, 0, 96, AOS_SCREEN_W);
