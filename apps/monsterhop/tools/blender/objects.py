@@ -569,7 +569,7 @@ def g_chest():
             top = s.px(A0 + V((0, 0, CH_H + 0.06)))
             h_, w_ = s.a.shape
             yy, xx = [q.astype(np.float32) for q in np.mgrid[0:h_, 0:w_]]
-            src = np.exp(-(((xx - top[0]) / 16.0) ** 2 + ((yy - top[1] + 4) / 9.0) ** 2)) * k
+            src = np.exp(-(((xx - top[0]) / C.px(16.0)) ** 2 + ((yy - top[1] + C.px(4)) / C.px(9.0)) ** 2)) * k
             s.halo(GOLD_HALO, sigma=3.5, gain=1.2, amax=0.5 * k, z=s.zcode(A0 + V((0, 0, CH_H + 0.1))), src=np.maximum(src, 0))
             for (x, y), ln in zip(s.hot(2, min_sep=8), (6, 4)):
                 s.glint(x, y, ln * k, 0.9 * k, z=s.zcode(A0 + V((0, -0.2, CH_H + 0.1))))
@@ -966,7 +966,7 @@ def g_fx2():
 # UI icons (96 x 96, their own camera): trophies and the medal
 # ---------------------------------------------------------------------------
 
-ICON = 96
+ICON = C.px(96)
 C.mat('silver', build=L.gold_build(emit=0.45, base='#d0d6e0', rough=0.18, metal=0.8, rim=0.6, env=L.SILVER_ENV))
 C.mat('silver_star', build=L.gold_build(emit=0.8, base='#eef2f8', rough=0.15, metal=0.6, rim=0.3, env=L.SILVER_ENV))
 C.mat('bronze', build=L.gold_build(emit=0.45, base='#c47a3c', rough=0.22, metal=0.8, rim=0.6, env=L.BRONZE_ENV))

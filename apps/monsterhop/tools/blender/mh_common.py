@@ -15,6 +15,20 @@ Y (forward, away from the camera) moves it (20, -42) px, one floor up moves it
 (0, -23) px. Everything the watch draws is placed with those three vectors,
 so sprites rendered one at a time line up exactly when the watch puts them
 side by side.
+
+HD build (the desktop version): with MH_RES=2 in the environment every pixel
+constant doubles - +1 m along X = (120, 28) px, along Y = (40, -84) px, one
+floor = (0, -46) px, S = 126.49 px/m - while the metres (FLOOR_M, the camera
+angles, the _z depth units) stay. place_camera / fit / render_sprite /
+save_meta then make 2x images and 2x w, h, ax, ay by themselves, pixel
+margins scale (px()), and every output path inside .../monsterhop/assets/
+goes to .../monsterhop/assets_hd/ instead (out_path()), so the render
+scripts run unchanged:
+
+    MH_RES=2 Blender -b -P forest.py -- --out ../../assets/tiles_forest
+        -> assets_hd/tiles_forest/
+
+Without MH_RES (or MH_RES=1) nothing changes.
 """
 
 import bpy
@@ -32,12 +46,31 @@ from mathutils import Matrix, Vector as V
 # The projection (the engine hard-codes these numbers: never change them)
 # ---------------------------------------------------------------------------
 
-PX_X = (60, 14)        # +1 m along X on the screen (x right, y down)
-PX_Y = (20, -42)       # +1 m along Y
-FLOOR_PX = 23          # one floor up = (0, -23) px
+def _res():
+    v = os.environ.get('MH_RES', '').strip()
+    if not v:
+        return 1
+    r = int(v)
+    if r not in (1, 2):
+        raise ValueError('MH_RES must be 1 or 2, not %r' % v)
+    return r
 
-_U, _V, SIN_E = 60.0, 20.0, 0.7
-S = math.hypot(_U, _V)                       # 63.2456 px per metre
+
+RES = _res()           # 1: the watch build; 2: the desktop HD build (every pixel x 2)
+
+
+def px(n):
+    """A length in pixels of the normal build, in pixels of this build
+    (margins, blur radii, image sizes)."""
+    return n * RES
+
+
+PX_X = (60 * RES, 14 * RES)      # +1 m along X on the screen (x right, y down)
+PX_Y = (20 * RES, -42 * RES)     # +1 m along Y
+FLOOR_PX = 23 * RES              # one floor up = (0, -23) px
+
+_U, _V, SIN_E = 60.0 * RES, 20.0 * RES, 0.7
+S = math.hypot(_U, _V)                       # 63.2456 px per metre (126.49 in HD)
 PSI = math.atan2(_V, _U)                     # camera yaw, 18.43 deg
 ELEV = math.asin(SIN_E)                      # camera elevation, 44.43 deg
 COS_E = math.cos(ELEV)
@@ -364,7 +397,8 @@ def _world_points(objs):
 
 def fit(objs, anchor, margin=3, shadow_z=None, zoom=1.0):
     """Image size and anchor pixel that hold objs (and their shadow on the
-    plane z = shadow_z, when given)."""
+    plane z = shadow_z, when given). `margin` is in pixels of the normal
+    build (doubled in HD)."""
     A = V(anchor)
     pts = _world_points(objs)
     if shadow_z is not None:
@@ -375,9 +409,34 @@ def fit(objs, anchor, margin=3, shadow_z=None, zoom=1.0):
         sx, sy = to_screen(p, A)
         xs.append(sx * zoom)
         ys.append(sy * zoom)
+    margin = px(margin)             # given in pixels of the normal build
     x0, x1 = math.floor(min(xs)) - margin, math.ceil(max(xs)) + margin
     y0, y1 = math.floor(min(ys)) - margin, math.ceil(max(ys)) + margin
     return (x1 - x0, y1 - y0, -x0, -y0)
+
+
+# ---------------------------------------------------------------------------
+# Output paths: the HD build writes to assets_hd/ instead of assets/
+# ---------------------------------------------------------------------------
+
+HD_DIR = 'assets_hd'
+
+
+def out_path(path):
+    """Where a file or folder of the build goes. In the normal build: `path`
+    itself. In HD (MH_RES=2): its absolute path, with the `assets` folder of
+    apps/monsterhop swapped for `assets_hd` (.../monsterhop/assets/chars ->
+    .../monsterhop/assets_hd/chars); paths elsewhere are left alone.
+    Idempotent: an assets_hd path stays as it is."""
+    if RES == 1:
+        return path
+    ap = os.path.abspath(path)
+    parts = ap.split(os.sep)
+    for i in range(len(parts) - 1, 0, -1):
+        if parts[i] == 'assets' and parts[i - 1] == 'monsterhop':
+            parts[i] = HD_DIR
+            return os.sep.join(parts)
+    return ap
 
 
 # ---------------------------------------------------------------------------
@@ -399,6 +458,7 @@ def _render_exr(path, samples, filt, denoise, bounces):
     sc.cycles.glossy_bounces = min(bounces, 2)
     sc.cycles.transmission_bounces = min(bounces, 2)
     sc.cycles.transparent_max_bounces = 4
+    path = out_path(path)
     sc.render.filepath = path
     bpy.ops.render.render(write_still=True)
     img = bpy.data.images.load(path, check_existing=False)
@@ -447,6 +507,9 @@ def _dilate_fill(vals, have, need, empty):
 
 
 def write_png(path, arr):
+    if RES != 1:
+        path = out_path(path)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
     arr = np.ascontiguousarray(arr.astype(np.uint8))
     h, w = arr.shape[:2]
     ch = 1 if arr.ndim == 2 else arr.shape[2]
@@ -502,7 +565,7 @@ def render_sprite(out, name, objs, anchor, passes=('color', 'z'), holdout=(), si
     Files: <name>.png (colour or light), <name>_id.png, <name>_z.png,
     <name>_sh.png, <name>_gl.png. The sizes and the anchor pixel go to meta.json (save_meta).
     """
-    out = os.path.abspath(out)      # Blender mangles relative render paths
+    out = out_path(os.path.abspath(out))    # Blender mangles relative render paths
     os.makedirs(out, exist_ok=True)
     tmp = os.path.join(out, '_tmp')
     os.makedirs(tmp, exist_ok=True)
@@ -623,7 +686,7 @@ def render_sprite(out, name, objs, anchor, passes=('color', 'z'), holdout=(), si
 
 def save_meta(out, merge=True):
     """Write (or merge into) <out>/meta.json."""
-    out = os.path.abspath(out)
+    out = out_path(os.path.abspath(out))
     path = os.path.join(out, 'meta.json')
     meta = {}
     if merge and os.path.exists(path):
@@ -633,6 +696,8 @@ def save_meta(out, merge=True):
     info = dict(projection=dict(px_x=PX_X, px_y=PX_Y, floor_px=FLOOR_PX, floor_m=FLOOR_M,
                                 px_per_m=S, depth_unit_m=DEPTH_UNIT, depth_empty=DEPTH_EMPTY,
                                 view_dir=list(F)))
+    if RES != 1:
+        info['projection']['res'] = RES
     meta['_projection'] = info['projection']
     with open(path, 'w') as f:
         json.dump(meta, f, indent=1, sort_keys=True)
@@ -648,7 +713,8 @@ def save_meta(out, merge=True):
 # ---------------------------------------------------------------------------
 
 def args(defaults=None):
-    """Parse `-- --out DIR [--only a,b] [--samples N] [--cpu]` after Blender's own."""
+    """Parse `-- --out DIR [--only a,b] [--samples N] [--cpu]` after Blender's own.
+    In HD (MH_RES=2) `out` comes back already moved to assets_hd/."""
     import argparse
     argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
     ap = argparse.ArgumentParser(allow_abbrev=False)
@@ -658,6 +724,7 @@ def args(defaults=None):
     ap.add_argument('--cpu', action='store_true')
     a, _ = ap.parse_known_args(argv)
     a.only = [s for s in a.only.split(',') if s]
+    a.out = out_path(a.out)          # HD: .../assets/<dir> -> .../assets_hd/<dir>
     return a
 
 

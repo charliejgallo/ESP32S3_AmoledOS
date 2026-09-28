@@ -890,7 +890,7 @@ def main():
     b = my_args()
     a = C.args()
     mon_out = os.path.abspath(a.out)
-    boss_out = os.path.abspath(b.bosses or os.path.join(mon_out, '..', 'bosses'))
+    boss_out = C.out_path(os.path.abspath(b.bosses or os.path.join(mon_out, '..', 'bosses')))
     t_all = time.time()
     count = 0
     cur = None

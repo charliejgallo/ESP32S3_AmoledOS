@@ -3,6 +3,7 @@
 (into a staging root) into assets/monsters and assets/bosses.
 
     python3 monsters_dino_merge.py STAGE
+    MH_RES=2 python3 monsters_dino_merge.py STAGE     # the HD build: into assets_hd/
 
 STAGE/monsters/*.png + meta.json   -> assets/monsters/
 STAGE/bosses/*.png + meta.json     -> assets/bosses/
@@ -22,7 +23,8 @@ import shutil
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ASSETS = os.path.normpath(os.path.join(HERE, '..', '..', 'assets'))
+HD = os.environ.get('MH_RES', '').strip() not in ('', '1')     # the HD build (mh_common.RES == 2)
+ASSETS = os.path.normpath(os.path.join(HERE, '..', '..', 'assets_hd' if HD else 'assets'))
 MINE = ('raptor', 'trike', 'ptero', 'compy', 'trex')
 
 
@@ -35,8 +37,10 @@ def locked_update(path, fn):
     with open(lock, 'w') as lk:
         fcntl.flock(lk, fcntl.LOCK_EX)
         try:
-            with open(path) as fh:
-                data = json.load(fh)
+            data = {}
+            if os.path.exists(path) or not HD:      # HD: the folder may still be empty
+                with open(path) as fh:
+                    data = json.load(fh)
             n0 = len(data)
             data = fn(data)
             tmp = path + '.tmp_dino'
@@ -55,7 +59,10 @@ def merge(stage):
     for sub in ('monsters', 'bosses'):
         src = os.path.join(stage, sub)
         dst = os.path.join(ASSETS, sub)
+        os.makedirs(dst, exist_ok=True)
         for what, bak in (('meta.json', '_meta_before_dino.json'), ('palettes.json', '_palettes_before_dino.json')):
+            if HD and not os.path.exists(os.path.join(dst, what)):
+                continue
             if not os.path.exists(os.path.join(dst, bak)):
                 shutil.copy2(os.path.join(dst, what), os.path.join(dst, bak))
         with open(os.path.join(src, 'meta.json')) as fh:

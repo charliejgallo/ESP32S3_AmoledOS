@@ -114,7 +114,9 @@ class Sprite2D:
 
     def halo(self, color, sigma=3.0, gain=1.6, amax=0.55, z=None, src=None):
         """A soft glow behind the sprite (straight-alpha 'over', so it also
-        reads on dark ground). z: the depth code of the new halo pixels."""
+        reads on dark ground). z: the depth code of the new halo pixels.
+        sigma: in pixels of the normal build (doubled in HD)."""
+        sigma = C.px(sigma)
         base = self.a if src is None else src
         g = np.clip(blur(base, sigma) * gain, 0, amax)
         g = g * (1 - self.a)          # only around, the sprite stays itself
@@ -123,7 +125,9 @@ class Sprite2D:
         self.rgb, self.a = rgb, a
 
     def glint(self, x, y, length, strength=1.0, color=(1.0, 0.98, 0.85), z=None, diag=0.35, thick=0.6):
-        """A four-ray star glint centred on pixel (x, y) (float)."""
+        """A four-ray star glint centred on pixel (x, y) (float, pixels of
+        this build). length, thick: in pixels of the normal build."""
+        length, thick = C.px(length), C.px(thick)
         h, w = self.a.shape
         yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
         acc = np.zeros((h, w), np.float32)
@@ -158,7 +162,9 @@ class Sprite2D:
         self.z = np.where(new, z, self.z)
 
     def hot(self, k=1, min_sep=6, min_alpha=0.9):
-        """The k brightest pixels of the sprite (highlights), well apart."""
+        """The k brightest pixels of the sprite (highlights), well apart
+        (min_sep in pixels of the normal build)."""
+        min_sep = C.px(min_sep)
         lum = (self.rgb * np.array([0.3, 0.55, 0.15])).sum(-1) * (self.a >= min_alpha)
         pts = []
         lum = lum.copy()
@@ -192,9 +198,10 @@ def shape_glow(path, info, rmax, gain=1.0, power=2.0):
     yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
     dx = xx + 0.5 - info['ax']
     dy = yy + 0.5 - info['ay']
-    det = 60.0 * -42.0 - 20.0 * 14.0
-    X = (dx * -42.0 - 20.0 * dy) / det
-    Y = (60.0 * dy - 14.0 * dx) / det
+    (xx_, xy_), (yx_, yy_) = C.PX_X, C.PX_Y      # (60, 14), (20, -42) (x2 in HD)
+    det = xx_ * yy_ - yx_ * xy_
+    X = (dx * yy_ - yx_ * dy) / det
+    Y = (xx_ * dy - xy_ * dx) / det
     r = np.sqrt(X * X + Y * Y)
     win = np.clip(1 - (r / rmax) ** 2, 0, 1) ** power
     lin_ = np.where(gl <= 0.04045, gl / 12.92, ((gl + 0.055) / 1.055) ** 2.4)
@@ -216,7 +223,9 @@ def size_union(*sizes):
 
 
 def size_ground_disc(anchor, r, z=0.0, margin=2):
-    """The screen box of a disc of radius r on the plane z around anchor."""
+    """The screen box of a disc of radius r on the plane z around anchor
+    (margin in pixels of the normal build)."""
+    margin = C.px(margin)
     A = V(anchor)
     xs, ys = [], []
     for i in range(32):
@@ -230,6 +239,8 @@ def size_ground_disc(anchor, r, z=0.0, margin=2):
 
 
 def grow(size, m):
+    """size grown by m pixels of the normal build on every side."""
+    m = C.px(m)
     w, h, ax, ay = size
     return (w + 2 * m, h + 2 * m, ax + m, ay + m)
 
