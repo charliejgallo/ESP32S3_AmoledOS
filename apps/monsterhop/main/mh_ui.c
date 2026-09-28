@@ -322,6 +322,21 @@ static void wide_tick(app_t *a, int dt_ms);
 static void wide_before_job(app_t *a, int what);
 static void wide_job_done(app_t *a, int what);
 static void wide_free(app_t *a);
+static void wide_shop_layout(app_t *a);
+static void wide_album_layout(app_t *a);
+#endif
+
+/* the shop's rows and the album's cards: wider on the desktop */
+#ifdef MH_DESKTOP
+#define SHOP_ROW_W 396
+#define SHOP_NAME_W 290
+#define CARD_W 88
+#define CARD_H 104
+#else
+#define SHOP_ROW_W 316
+#define SHOP_NAME_W 190
+#define CARD_W 82
+#define CARD_H 96
 #endif
 
 static app_t *app_of(lv_event_t *e)
@@ -866,7 +881,7 @@ static void shop_list(app_t *a)
         if (!s_ui.s_buy && !own) continue;
         lv_obj_t *r = lv_obj_create(s_ui.s_list);
         lv_obj_remove_style_all(r);
-        lv_obj_set_size(r, 316, 40);
+        lv_obj_set_size(r, SHOP_ROW_W, 40);
         lv_obj_set_style_radius(r, 12, 0);
         bool sel = s_ui.s_sel == i;
         lv_obj_set_style_bg_color(r, lv_color_hex(sel ? 0x3A2A5A : 0x1C1628), 0);
@@ -896,7 +911,7 @@ static void shop_list(app_t *a)
         lv_label_set_text(l, _(it->name));
         lv_obj_set_style_text_font(l, aos_font_small, 0);
         lv_obj_set_style_text_color(l, lv_color_hex(0xFFFFFF), 0);
-        lv_obj_set_width(l, 190);
+        lv_obj_set_width(l, SHOP_NAME_W);
         lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_DOTS);
         lv_obj_set_pos(l, 58, 11);
         lv_obj_remove_flag(l, LV_OBJ_FLAG_CLICKABLE);
@@ -966,6 +981,9 @@ static void build_shop(app_t *a, lv_obj_t *root)
     lv_obj_set_style_pad_row(list, 6, 0);
     lv_obj_add_flag(list, LV_OBJ_FLAG_SCROLLABLE);
     s_ui.s_btn = button(p, "", 64, 400, 240, 42, 0x30C060, shop_btn_cb, a, &s_ui.s_btn_lbl);
+#ifdef MH_DESKTOP
+    wide_shop_layout(a);
+#endif
 }
 
 static void shop_refresh(app_t *a)
@@ -1041,6 +1059,9 @@ static void build_album(app_t *a, lv_obj_t *root)
     lv_obj_set_style_pad_row(g, 6, 0);
     lv_obj_set_style_pad_column(g, 6, 0);
     lv_obj_add_flag(g, LV_OBJ_FLAG_SCROLLABLE);
+#ifdef MH_DESKTOP
+    wide_album_layout(a);
+#endif
     (void)a;
 }
 
@@ -1051,7 +1072,7 @@ static void album_refresh(app_t *a)
         bool got = (a->prog.stickers & (1u << i)) != 0;
         lv_obj_t *c = lv_obj_create(s_ui.al_grid);
         lv_obj_remove_style_all(c);
-        lv_obj_set_size(c, 82, 96);
+        lv_obj_set_size(c, CARD_W, CARD_H);
         lv_obj_set_style_radius(c, 10, 0);
         static const uint32_t zc[ZONE_N] = { 0x3A4050, 0x3A2A5A, 0x5A4028, 0x1E4A34, 0x303030, 0x5A3420, 0x183A52 };
         lv_obj_set_style_bg_color(c, lv_color_hex(got ? zc[mha_level_info(i)->zone] : 0x18141E), 0);
@@ -1068,8 +1089,8 @@ static void album_refresh(app_t *a)
             lv_obj_t *im = image(c, &u->dsc, 0, 0);
             int sw = u->w, sh = u->h;
             int scale = 256;
-            if (sw > 76 || sh > 88) {
-                int s1 = 76 * 256 / sw, s2 = 88 * 256 / sh;
+            if (sw > CARD_W - 6 || sh > CARD_H - 8) {
+                int s1 = (CARD_W - 6) * 256 / sw, s2 = (CARD_H - 8) * 256 / sh;
                 scale = s1 < s2 ? s1 : s2;
             }
             lv_image_set_scale(im, (uint32_t)scale);

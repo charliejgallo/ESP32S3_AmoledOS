@@ -538,6 +538,79 @@ static void wide_pause_fill(app_t *a)
     lv_label_set_text(W.pz_info, b);
 }
 
+/* ---- the shop: Tommy big on the left, the catalogue on the right ---- */
+
+static void wide_shop_layout(app_t *a)
+{
+    (void)a;
+    lv_obj_set_pos(s_ui.s_title, WX(390), WY(10));
+    lv_obj_set_width(s_ui.s_title, 400);
+    lv_obj_set_style_text_font(s_ui.s_title, aos_font_title, 0);
+    lv_obj_set_pos(s_ui.s_coins, WX(390), WY(48));
+    lv_obj_set_width(s_ui.s_coins, 400);
+    lv_obj_set_style_text_align(s_ui.s_coins, LV_TEXT_ALIGN_CENTER, 0);
+    if (s_ui.s_prev) {
+        /* the turntable twice as big, around its middle */
+        lv_obj_set_pos(s_ui.s_prev, WX(190 - PREV_W / 2), WY(205 - PREV_H / 2));
+        lv_image_set_scale(s_ui.s_prev, 490);
+        lv_image_set_antialias(s_ui.s_prev, true);
+    }
+    lv_obj_set_pos(s_ui.s_item, WX(0), WY(400));
+    lv_obj_set_width(s_ui.s_item, 380);
+    lv_obj_set_style_text_font(s_ui.s_item, aos_font_body, 0);
+    /* every category in view: two rows of four */
+    lv_obj_t *t = s_ui.s_tabs;
+    lv_obj_set_pos(t, WX(390), WY(80));
+    lv_obj_set_size(t, 400, 84);
+    lv_obj_set_flex_flow(t, LV_FLEX_FLOW_ROW_WRAP);
+    lv_obj_set_style_pad_left(t, 0, 0);
+    lv_obj_set_style_pad_row(t, 6, 0);
+    lv_obj_set_style_pad_column(t, 6, 0);
+    lv_obj_remove_flag(t, LV_OBJ_FLAG_SCROLLABLE);
+    uint32_t n = lv_obj_get_child_count(t);
+    for (uint32_t k = 0; k < n; k++) {
+        lv_obj_t *b = lv_obj_get_child(t, (int32_t)k);
+        lv_obj_set_width(b, 95);
+        lv_obj_t *l = lv_obj_get_child(b, 0);
+        if (l) {
+            lv_obj_set_width(l, 89);
+            lv_obj_set_style_text_font(l, aos_font_small, 0);
+            lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_DOTS);
+            lv_obj_set_height(l, 20);
+            lv_obj_center(l);
+        }
+    }
+    lv_obj_set_pos(s_ui.s_list, WX(390), WY(172));
+    lv_obj_set_size(s_ui.s_list, 400, 214);
+    lv_obj_set_pos(s_ui.s_btn, WX(390), WY(394));
+    lv_obj_set_size(s_ui.s_btn, 400, 48);
+    lv_obj_t *bl = lv_obj_get_child(s_ui.s_btn, 0);
+    if (bl) {
+        lv_obj_set_width(bl, 388);
+        lv_obj_center(bl);
+    }
+}
+
+/* ---- the album: every sticker in view, two zones a row ---- */
+
+static void wide_album_layout(app_t *a)
+{
+    (void)a;
+    lv_obj_t *g = s_ui.al_grid;
+    lv_obj_set_pos(g, WX(20), WY(52));
+    lv_obj_set_size(g, 760, 3 * CARD_H + 2 * 10);
+    lv_obj_set_style_pad_row(g, 10, 0);
+    lv_obj_set_style_pad_column(g, 8, 0);
+    lv_obj_remove_flag(g, LV_OBJ_FLAG_SCROLLABLE);
+    /* the title over the whole width */
+    lv_obj_t *title = lv_obj_get_child(s_ui.p[ST_ALBUM], 0);
+    if (title) {
+        lv_obj_set_pos(title, WX(0), WY(12));
+        lv_obj_set_width(title, MH_W);
+        lv_obj_set_style_text_font(title, aos_font_title, 0);
+    }
+}
+
 /* ---- the clock, the jobs ---- */
 
 static void wide_tick(app_t *a, int dt_ms)
