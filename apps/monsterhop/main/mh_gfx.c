@@ -65,6 +65,11 @@ uint32_t mh_mix(uint32_t a, uint32_t b, int t)
 
 void mh_copy_swap(uint16_t *dst, const uint16_t *src, size_t n)
 {
+#ifdef MH_DESKTOP
+    /* the desktop's window takes the frame in the machine's own order */
+    if (dst != src) memcpy(dst, src, n * 2);
+    return;
+#endif
     /* two pixels per word; written as a byte shuffle the compiler would
      * call __bswapsi2, which the firmware does not export */
     size_t i = 0;

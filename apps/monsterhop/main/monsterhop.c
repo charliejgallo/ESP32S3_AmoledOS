@@ -1433,8 +1433,11 @@ static void *mh_create(aos_app_t *self, lv_obj_t *root)
     a->root = root;
     mh_prog_load(&a->prog);
     mha_outfit(a);
+#ifndef MH_DESKTOP
+    /* (the desktop's root is see-through: the frames are under LVGL) */
     lv_obj_set_style_bg_color(root, lv_color_hex(0x000000), 0);
     lv_obj_set_style_bg_opa(root, LV_OPA_COVER, 0);
+#endif
 
     a->canvas = lv_canvas_create(root);
     memset(a->cv, 0, (size_t)a->fw * a->fh * 2);
@@ -1443,6 +1446,10 @@ static void *mh_create(aos_app_t *self, lv_obj_t *root)
      * watch-sized column in the middle and the frame spreads under them */
     lv_obj_set_pos(a->canvas, (AOS_SCREEN_W - a->fw) / 2, (AOS_SCREEN_H - a->fh) / 2);
     lv_obj_remove_flag(a->canvas, LV_OBJ_FLAG_CLICKABLE);
+#ifdef MH_DESKTOP
+    /* the desktop's window shows the frames itself, under LVGL's layer */
+    lv_obj_add_flag(a->canvas, LV_OBJ_FLAG_HIDDEN);
+#endif
 
     a->touch = lv_obj_create(root);
     lv_obj_remove_style_all(a->touch);
