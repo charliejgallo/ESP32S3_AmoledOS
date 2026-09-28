@@ -746,6 +746,7 @@ static void mon_draw(mh_scene_t *s, const mh_world_t *w, const mh_game_t *g, con
     else if (m->kind == MON_KRAKEN && m->state == M_WARN) fr = prog_frame(a, m->t / 1.1f * 0.5f);
     else if (m->kind == MON_KRAKEN && m->state == M_SLAM) fr = prog_frame(a, 0.5f + m->t / 0.9f * 0.5f);
     else if (m->kind == MON_TRIKE && m->state == M_HOWL) fr = loop_frame(a, m->anim);
+    else if (m->kind == MON_TRIKE && m->state == M_RUN) fr = loop_frame(a, m->anim * 2.5f);   /* its walk, quick */
     else if (m->state == M_STOMP || m->state == M_WHIP || m->state == M_CAST || m->state == M_TRANSFORM ||
              m->state == M_UNTRANSFORM || m->state == M_HOWL)
         fr = prog_frame(a, m->kind == MON_BRUTE ? m->t / 0.9f : m->state == M_HOWL ? m->t / 0.7f :

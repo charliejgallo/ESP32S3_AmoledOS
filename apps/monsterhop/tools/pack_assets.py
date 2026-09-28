@@ -126,6 +126,14 @@ def frame_glow(d, fn, info):
     return encode_frame(GLOW, cover, pl, info.get('ax', 0), info.get('ay', 0))
 
 
+# Rendered but left out of the pack, for the watch's memory (a level's art
+# must fit ~3.6 MB). The game falls back to what is there: a missing
+# animation plays the walk, a missing facing plays the south one. The
+# triceratops's 88 frames were 652 KB: it charges with its walk, and paws
+# and reels facing the camera only (~320 KB).
+SKIP = re.compile(r'^trike_(run_|howl_[new]_|stun_[new]_)')
+
+
 def split_name(name):
     """(base, index) for sheet grouping"""
     m = re.match(r'^(.*)_(\d\d)$', name)
@@ -173,6 +181,8 @@ def main():
             meta = json.load(fh)
         n = 0
         for name, info in sorted(meta.items()):
+            if SKIP.match(name):
+                continue
             if name.startswith('_') or not isinstance(info, dict) or 'files' not in info:
                 continue
             f = info['files']

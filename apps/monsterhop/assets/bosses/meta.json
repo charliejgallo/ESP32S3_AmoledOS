@@ -4708,6 +4708,41 @@
   "w": 93,
   "zoom": 1.2
  },
+ "card_kraken": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 114,
+  "ay": 113,
+  "boss": "kraken",
+  "dir": "s",
+  "files": {
+   "id": "card_kraken_id.png",
+   "img": "card_kraken.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "h": 191,
+  "height_m": 2.4,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   13
+  ],
+  "kind": "card",
+  "pose": "idle_s_00",
+  "w": 235,
+  "zoom": 1.2
+ },
  "card_pharaoh": {
   "anchor": [
    1.0,
@@ -4743,6 +4778,43 @@
   },
   "kind": "card",
   "w": 116,
+  "zoom": 1.2
+ },
+ "card_trex": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "roar",
+  "ax": 46,
+  "ay": 107,
+  "boss": "trex",
+  "dir": "s",
+  "files": {
+   "id": "card_trex_id.png",
+   "img": "card_trex.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "h": 131,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "card",
+  "pose": "roar_s_00",
+  "w": 115,
   "zoom": 1.2
  },
  "count_cast_e_00": {
@@ -6857,6 +6929,412 @@
   "shadow_z": 0.0,
   "w": 132
  },
+ "kraken_idle_s_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 94,
+  "ay": 93,
+  "boss": "kraken",
+  "dir": "s",
+  "files": {
+   "id": "kraken_idle_s_00_id.png",
+   "img": "kraken_idle_s_00.png",
+   "sh": "kraken_idle_s_00_sh.png",
+   "z": "kraken_idle_s_00_z.png"
+  },
+  "float_z": -0.18,
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 4,
+  "h": 157,
+  "height_m": 2.4,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   13
+  ],
+  "kind": "char",
+  "ms": 150,
+  "note": "anchor = the water surface (the watch puts it at z = -0.18)",
+  "shadow_z": 0.0,
+  "w": 242
+ },
+ "kraken_idle_s_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 94,
+  "ay": 90,
+  "boss": "kraken",
+  "dir": "s",
+  "files": {
+   "id": "kraken_idle_s_01_id.png",
+   "img": "kraken_idle_s_01.png",
+   "sh": "kraken_idle_s_01_sh.png",
+   "z": "kraken_idle_s_01_z.png"
+  },
+  "float_z": -0.18,
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 4,
+  "h": 154,
+  "height_m": 2.4,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   13
+  ],
+  "kind": "char",
+  "ms": 150,
+  "note": "anchor = the water surface (the watch puts it at z = -0.18)",
+  "shadow_z": 0.0,
+  "w": 245
+ },
+ "kraken_idle_s_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 94,
+  "ay": 89,
+  "boss": "kraken",
+  "dir": "s",
+  "files": {
+   "id": "kraken_idle_s_02_id.png",
+   "img": "kraken_idle_s_02.png",
+   "sh": "kraken_idle_s_02_sh.png",
+   "z": "kraken_idle_s_02_z.png"
+  },
+  "float_z": -0.18,
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 4,
+  "h": 153,
+  "height_m": 2.4,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   13
+  ],
+  "kind": "char",
+  "ms": 150,
+  "note": "anchor = the water surface (the watch puts it at z = -0.18)",
+  "shadow_z": 0.0,
+  "w": 239
+ },
+ "kraken_idle_s_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "idle",
+  "ax": 94,
+  "ay": 92,
+  "boss": "kraken",
+  "dir": "s",
+  "files": {
+   "id": "kraken_idle_s_03_id.png",
+   "img": "kraken_idle_s_03.png",
+   "sh": "kraken_idle_s_03_sh.png",
+   "z": "kraken_idle_s_03_z.png"
+  },
+  "float_z": -0.18,
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 4,
+  "h": 156,
+  "height_m": 2.4,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   13
+  ],
+  "kind": "char",
+  "ms": 150,
+  "note": "anchor = the water surface (the watch puts it at z = -0.18)",
+  "shadow_z": 0.0,
+  "w": 236
+ },
+ "kraken_slam_s_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 94,
+  "ay": 85,
+  "boss": "kraken",
+  "dir": "s",
+  "files": {
+   "id": "kraken_slam_s_00_id.png",
+   "img": "kraken_slam_s_00.png",
+   "sh": "kraken_slam_s_00_sh.png",
+   "z": "kraken_slam_s_00_z.png"
+  },
+  "float_z": -0.18,
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 149,
+  "height_m": 2.4,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   13
+  ],
+  "kind": "char",
+  "ms": 80,
+  "note": "anchor = the water surface (the watch puts it at z = -0.18)",
+  "shadow_z": 0.0,
+  "slam_dir": "+x",
+  "w": 229
+ },
+ "kraken_slam_s_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 94,
+  "ay": 104,
+  "boss": "kraken",
+  "dir": "s",
+  "files": {
+   "id": "kraken_slam_s_01_id.png",
+   "img": "kraken_slam_s_01.png",
+   "sh": "kraken_slam_s_01_sh.png",
+   "z": "kraken_slam_s_01_z.png"
+  },
+  "float_z": -0.18,
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 168,
+  "height_m": 2.4,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   13
+  ],
+  "kind": "char",
+  "ms": 80,
+  "note": "anchor = the water surface (the watch puts it at z = -0.18)",
+  "shadow_z": 0.0,
+  "slam_dir": "+x",
+  "w": 244
+ },
+ "kraken_slam_s_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 94,
+  "ay": 119,
+  "boss": "kraken",
+  "dir": "s",
+  "files": {
+   "id": "kraken_slam_s_02_id.png",
+   "img": "kraken_slam_s_02.png",
+   "sh": "kraken_slam_s_02_sh.png",
+   "z": "kraken_slam_s_02_z.png"
+  },
+  "float_z": -0.18,
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 183,
+  "height_m": 2.4,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   13
+  ],
+  "kind": "char",
+  "ms": 80,
+  "note": "anchor = the water surface (the watch puts it at z = -0.18)",
+  "shadow_z": 0.0,
+  "slam_dir": "+x",
+  "w": 236
+ },
+ "kraken_slam_s_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 94,
+  "ay": 85,
+  "boss": "kraken",
+  "dir": "s",
+  "files": {
+   "id": "kraken_slam_s_03_id.png",
+   "img": "kraken_slam_s_03.png",
+   "sh": "kraken_slam_s_03_sh.png",
+   "z": "kraken_slam_s_03_z.png"
+  },
+  "float_z": -0.18,
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 149,
+  "height_m": 2.4,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   13
+  ],
+  "kind": "char",
+  "ms": 80,
+  "note": "anchor = the water surface (the watch puts it at z = -0.18)",
+  "shadow_z": 0.0,
+  "slam_dir": "+x",
+  "w": 222
+ },
+ "kraken_slam_s_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 94,
+  "ay": 85,
+  "boss": "kraken",
+  "dir": "s",
+  "files": {
+   "id": "kraken_slam_s_04_id.png",
+   "img": "kraken_slam_s_04.png",
+   "sh": "kraken_slam_s_04_sh.png",
+   "z": "kraken_slam_s_04_z.png"
+  },
+  "float_z": -0.18,
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 151,
+  "height_m": 2.4,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   13
+  ],
+  "kind": "char",
+  "ms": 80,
+  "note": "anchor = the water surface (the watch puts it at z = -0.18)",
+  "shadow_z": 0.0,
+  "slam_dir": "+x",
+  "w": 205
+ },
+ "kraken_slam_s_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 94,
+  "ay": 85,
+  "boss": "kraken",
+  "dir": "s",
+  "files": {
+   "id": "kraken_slam_s_05_id.png",
+   "img": "kraken_slam_s_05.png",
+   "sh": "kraken_slam_s_05_sh.png",
+   "z": "kraken_slam_s_05_z.png"
+  },
+  "float_z": -0.18,
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 149,
+  "height_m": 2.4,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   13
+  ],
+  "kind": "char",
+  "ms": 80,
+  "note": "anchor = the water surface (the watch puts it at z = -0.18)",
+  "shadow_z": 0.0,
+  "slam_dir": "+x",
+  "w": 205
+ },
  "pharaoh_walk_e_00": {
   "anchor": [
    1.0,
@@ -8824,5 +9302,1205 @@
   "ms": 80,
   "shadow_z": 0.0,
   "w": 166
+ },
+ "trex_roar_n_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "roar",
+  "ax": 56,
+  "ay": 121,
+  "boss": "trex",
+  "dir": "n",
+  "files": {
+   "id": "trex_roar_n_00_id.png",
+   "img": "trex_roar_n_00.png",
+   "sh": "trex_roar_n_00_sh.png",
+   "z": "trex_roar_n_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 4,
+  "h": 160,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 162
+ },
+ "trex_roar_n_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "roar",
+  "ax": 53,
+  "ay": 114,
+  "boss": "trex",
+  "dir": "n",
+  "files": {
+   "id": "trex_roar_n_01_id.png",
+   "img": "trex_roar_n_01.png",
+   "sh": "trex_roar_n_01_sh.png",
+   "z": "trex_roar_n_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 4,
+  "h": 153,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 156
+ },
+ "trex_roar_n_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "roar",
+  "ax": 57,
+  "ay": 114,
+  "boss": "trex",
+  "dir": "n",
+  "files": {
+   "id": "trex_roar_n_02_id.png",
+   "img": "trex_roar_n_02.png",
+   "sh": "trex_roar_n_02_sh.png",
+   "z": "trex_roar_n_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 4,
+  "h": 150,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 157
+ },
+ "trex_roar_n_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "roar",
+  "ax": 56,
+  "ay": 119,
+  "boss": "trex",
+  "dir": "n",
+  "files": {
+   "id": "trex_roar_n_03_id.png",
+   "img": "trex_roar_n_03.png",
+   "sh": "trex_roar_n_03_sh.png",
+   "z": "trex_roar_n_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 4,
+  "h": 157,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 159
+ },
+ "trex_roar_s_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "roar",
+  "ax": 37,
+  "ay": 88,
+  "boss": "trex",
+  "dir": "s",
+  "files": {
+   "id": "trex_roar_s_00_id.png",
+   "img": "trex_roar_s_00.png",
+   "sh": "trex_roar_s_00_sh.png",
+   "z": "trex_roar_s_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 4,
+  "h": 116,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 129
+ },
+ "trex_roar_s_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "roar",
+  "ax": 37,
+  "ay": 91,
+  "boss": "trex",
+  "dir": "s",
+  "files": {
+   "id": "trex_roar_s_01_id.png",
+   "img": "trex_roar_s_01.png",
+   "sh": "trex_roar_s_01_sh.png",
+   "z": "trex_roar_s_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 4,
+  "h": 132,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 116
+ },
+ "trex_roar_s_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "roar",
+  "ax": 36,
+  "ay": 91,
+  "boss": "trex",
+  "dir": "s",
+  "files": {
+   "id": "trex_roar_s_02_id.png",
+   "img": "trex_roar_s_02.png",
+   "sh": "trex_roar_s_02_sh.png",
+   "z": "trex_roar_s_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 4,
+  "h": 133,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 115
+ },
+ "trex_roar_s_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "roar",
+  "ax": 37,
+  "ay": 90,
+  "boss": "trex",
+  "dir": "s",
+  "files": {
+   "id": "trex_roar_s_03_id.png",
+   "img": "trex_roar_s_03.png",
+   "sh": "trex_roar_s_03_sh.png",
+   "z": "trex_roar_s_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 4,
+  "h": 127,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 120,
+  "shadow_z": 0.0,
+  "w": 120
+ },
+ "trex_run_e_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 59,
+  "ay": 74,
+  "boss": "trex",
+  "dir": "e",
+  "files": {
+   "id": "trex_run_e_00_id.png",
+   "img": "trex_run_e_00.png",
+   "sh": "trex_run_e_00_sh.png",
+   "z": "trex_run_e_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 97,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 186
+ },
+ "trex_run_e_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 57,
+  "ay": 78,
+  "boss": "trex",
+  "dir": "e",
+  "files": {
+   "id": "trex_run_e_01_id.png",
+   "img": "trex_run_e_01.png",
+   "sh": "trex_run_e_01_sh.png",
+   "z": "trex_run_e_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 98,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 186
+ },
+ "trex_run_e_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 57,
+  "ay": 79,
+  "boss": "trex",
+  "dir": "e",
+  "files": {
+   "id": "trex_run_e_02_id.png",
+   "img": "trex_run_e_02.png",
+   "sh": "trex_run_e_02_sh.png",
+   "z": "trex_run_e_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 99,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 188
+ },
+ "trex_run_e_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 59,
+  "ay": 74,
+  "boss": "trex",
+  "dir": "e",
+  "files": {
+   "id": "trex_run_e_03_id.png",
+   "img": "trex_run_e_03.png",
+   "sh": "trex_run_e_03_sh.png",
+   "z": "trex_run_e_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 97,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 186
+ },
+ "trex_run_e_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 60,
+  "ay": 76,
+  "boss": "trex",
+  "dir": "e",
+  "files": {
+   "id": "trex_run_e_04_id.png",
+   "img": "trex_run_e_04.png",
+   "sh": "trex_run_e_04_sh.png",
+   "z": "trex_run_e_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 101,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 188
+ },
+ "trex_run_e_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 60,
+  "ay": 77,
+  "boss": "trex",
+  "dir": "e",
+  "files": {
+   "id": "trex_run_e_05_id.png",
+   "img": "trex_run_e_05.png",
+   "sh": "trex_run_e_05_sh.png",
+   "z": "trex_run_e_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 102,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 190
+ },
+ "trex_run_n_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 56,
+  "ay": 111,
+  "boss": "trex",
+  "dir": "n",
+  "files": {
+   "id": "trex_run_n_00_id.png",
+   "img": "trex_run_n_00.png",
+   "sh": "trex_run_n_00_sh.png",
+   "z": "trex_run_n_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 149,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 154
+ },
+ "trex_run_n_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 55,
+  "ay": 112,
+  "boss": "trex",
+  "dir": "n",
+  "files": {
+   "id": "trex_run_n_01_id.png",
+   "img": "trex_run_n_01.png",
+   "sh": "trex_run_n_01_sh.png",
+   "z": "trex_run_n_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 148,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 154
+ },
+ "trex_run_n_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 55,
+  "ay": 114,
+  "boss": "trex",
+  "dir": "n",
+  "files": {
+   "id": "trex_run_n_02_id.png",
+   "img": "trex_run_n_02.png",
+   "sh": "trex_run_n_02_sh.png",
+   "z": "trex_run_n_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 150,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 154
+ },
+ "trex_run_n_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 56,
+  "ay": 111,
+  "boss": "trex",
+  "dir": "n",
+  "files": {
+   "id": "trex_run_n_03_id.png",
+   "img": "trex_run_n_03.png",
+   "sh": "trex_run_n_03_sh.png",
+   "z": "trex_run_n_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 149,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 154
+ },
+ "trex_run_n_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 55,
+  "ay": 112,
+  "boss": "trex",
+  "dir": "n",
+  "files": {
+   "id": "trex_run_n_04_id.png",
+   "img": "trex_run_n_04.png",
+   "sh": "trex_run_n_04_sh.png",
+   "z": "trex_run_n_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 151,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 156
+ },
+ "trex_run_n_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 55,
+  "ay": 114,
+  "boss": "trex",
+  "dir": "n",
+  "files": {
+   "id": "trex_run_n_05_id.png",
+   "img": "trex_run_n_05.png",
+   "sh": "trex_run_n_05_sh.png",
+   "z": "trex_run_n_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 153,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 157
+ },
+ "trex_run_w_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 72,
+  "ay": 93,
+  "boss": "trex",
+  "dir": "w",
+  "files": {
+   "id": "trex_run_w_00_id.png",
+   "img": "trex_run_w_00.png",
+   "sh": "trex_run_w_00_sh.png",
+   "z": "trex_run_w_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 6,
+  "h": 129,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 172
+ },
+ "trex_run_w_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 70,
+  "ay": 94,
+  "boss": "trex",
+  "dir": "w",
+  "files": {
+   "id": "trex_run_w_01_id.png",
+   "img": "trex_run_w_01.png",
+   "sh": "trex_run_w_01_sh.png",
+   "z": "trex_run_w_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 6,
+  "h": 131,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 172
+ },
+ "trex_run_w_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 70,
+  "ay": 95,
+  "boss": "trex",
+  "dir": "w",
+  "files": {
+   "id": "trex_run_w_02_id.png",
+   "img": "trex_run_w_02.png",
+   "sh": "trex_run_w_02_sh.png",
+   "z": "trex_run_w_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 6,
+  "h": 132,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 172
+ },
+ "trex_run_w_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 72,
+  "ay": 93,
+  "boss": "trex",
+  "dir": "w",
+  "files": {
+   "id": "trex_run_w_03_id.png",
+   "img": "trex_run_w_03.png",
+   "sh": "trex_run_w_03_sh.png",
+   "z": "trex_run_w_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 6,
+  "h": 129,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 172
+ },
+ "trex_run_w_04": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 69,
+  "ay": 96,
+  "boss": "trex",
+  "dir": "w",
+  "files": {
+   "id": "trex_run_w_04_id.png",
+   "img": "trex_run_w_04.png",
+   "sh": "trex_run_w_04_sh.png",
+   "z": "trex_run_w_04_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 4,
+  "frames": 6,
+  "h": 132,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 169
+ },
+ "trex_run_w_05": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "run",
+  "ax": 69,
+  "ay": 97,
+  "boss": "trex",
+  "dir": "w",
+  "files": {
+   "id": "trex_run_w_05_id.png",
+   "img": "trex_run_w_05.png",
+   "sh": "trex_run_w_05_sh.png",
+   "z": "trex_run_w_05_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 5,
+  "frames": 6,
+  "h": 133,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 70,
+  "shadow_z": 0.0,
+  "w": 169
+ },
+ "trex_stomp_n_00": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 58,
+  "ay": 119,
+  "boss": "trex",
+  "dir": "n",
+  "files": {
+   "id": "trex_stomp_n_00_id.png",
+   "img": "trex_stomp_n_00.png",
+   "sh": "trex_stomp_n_00_sh.png",
+   "z": "trex_stomp_n_00_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 0,
+  "frames": 4,
+  "h": 156,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 165
+ },
+ "trex_stomp_n_01": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 60,
+  "ay": 121,
+  "boss": "trex",
+  "dir": "n",
+  "files": {
+   "id": "trex_stomp_n_01_id.png",
+   "img": "trex_stomp_n_01.png",
+   "sh": "trex_stomp_n_01_sh.png",
+   "z": "trex_stomp_n_01_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 1,
+  "frames": 4,
+  "h": 158,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 169
+ },
+ "trex_stomp_n_02": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 54,
+  "ay": 111,
+  "boss": "trex",
+  "dir": "n",
+  "files": {
+   "id": "trex_stomp_n_02_id.png",
+   "img": "trex_stomp_n_02.png",
+   "sh": "trex_stomp_n_02_sh.png",
+   "z": "trex_stomp_n_02_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 2,
+  "frames": 4,
+  "h": 149,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 149
+ },
+ "trex_stomp_n_03": {
+  "anchor": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "anim": "stomp",
+  "ax": 56,
+  "ay": 115,
+  "boss": "trex",
+  "dir": "n",
+  "files": {
+   "id": "trex_stomp_n_03_id.png",
+   "img": "trex_stomp_n_03.png",
+   "sh": "trex_stomp_n_03_sh.png",
+   "z": "trex_stomp_n_03_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "frame": 3,
+  "frames": 4,
+  "h": 154,
+  "height_m": 2.0,
+  "ids": {
+   "1": "hide",
+   "13": "tongue",
+   "2": "belly, jaw, throat",
+   "3": "dark (mouth inside, nostrils, pupils, brows)",
+   "4": "white (teeth, claws)",
+   "5": "eye glow",
+   "6": "back ridge",
+   "7": "stripes"
+  },
+  "kind": "char",
+  "ms": 90,
+  "shadow_z": 0.0,
+  "w": 158
  }
 }

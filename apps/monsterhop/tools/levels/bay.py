@@ -6,7 +6,7 @@ Props: h lighthouse (2x2), b wreck bow (2x1), n wreck stern (2x1), r low
 rock, R rock spire, p tide pool, l bollard, c stacked crates, t lobster trap,
 u buoy (on the sand), a anchor, N fishing net, m harbour lamp, y barrels.
 Timed things: the tide (lv.tide: sand the sea floods half of each period),
-waves (trap 'wave', dir = where they push), piranhas (trap 'piranha' on a
+waves (trap 'wave', dir = where they push: 's' or 'e', the ways the art rolls), piranhas (trap 'piranha' on a
 sea cell), whirlpools (whirl(): a deep cell that drags who lingers beside).
 Rafts are log lanes, the sinking buoy-rafts lily lanes.
 """
@@ -157,9 +157,10 @@ def level2():
     lv.monster('fishman', 1, 6, 's', path=[(1, 6), (1, 8), (5, 8)], pingpong=True, ms=600, param=5000)
     lv.monster('fishman', 14, 9, 's', path=[(14, 9), (14, 11), (10, 11)], pingpong=True, ms=600, param=5000)
     lv.monster('fishman', 2, 12, 's', path=[(2, 12), (4, 12), (4, 14)], pingpong=True, ms=620, param=4500)
-    # waves along the quay's sea edge push towards the water
+    # waves break over the quay's sea edge and throw Tommy back a row (the
+    # art rolls towards the camera: waves along Y push south, along X east)
     for x, ph in ((2, 0), (5, 700), (9, 1400), (12, 2100)):
-        lv.trap('wave', x, 17, 'n', period=2800, phase=ph)
+        lv.trap('wave', x, 17, 's', period=2800, phase=ph)
     # the piranha channel: rafts across, and cells that boil in turns
     lv.lane('log', 0, 18, 'e', 16, size=3, ms=420, gap=3)
     lv.lane('log', 15, 19, 'w', 16, size=3, ms=380, gap=3)

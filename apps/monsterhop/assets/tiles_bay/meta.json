@@ -1,0 +1,1821 @@
+{
+ "_projection": {
+  "depth_empty": 255,
+  "depth_unit_m": 0.03125,
+  "floor_m": 0.5092285591855548,
+  "floor_px": 23,
+  "px_per_m": 63.245553203367585,
+  "px_x": [
+   60,
+   14
+  ],
+  "px_y": [
+   20,
+   -42
+  ],
+  "view_dir": [
+   -0.2258317917585373,
+   0.6774953603744507,
+   -0.699999988079071
+  ]
+ },
+ "bay_anchor": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 31,
+  "ay": 44,
+  "files": {
+   "img": "bay_anchor.png",
+   "sh": "bay_anchor_sh.png",
+   "z": "bay_anchor_z.png"
+  },
+  "h": 69,
+  "height_m": 0.78,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 70
+ },
+ "bay_barrels": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 38,
+  "ay": 49,
+  "files": {
+   "img": "bay_barrels.png",
+   "sh": "bay_barrels_sh.png",
+   "z": "bay_barrels_z.png"
+  },
+  "h": 68,
+  "height_m": 0.78,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 84
+ },
+ "bay_blk_plank_x_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "bay_blk_plank_x_v0.png",
+   "z": "bay_blk_plank_x_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88,
+  "walk": "x"
+ },
+ "bay_blk_plank_x_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "bay_blk_plank_x_v1.png",
+   "z": "bay_blk_plank_x_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88,
+  "walk": "x"
+ },
+ "bay_blk_plank_y_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "bay_blk_plank_y_v0.png",
+   "z": "bay_blk_plank_y_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88,
+  "walk": "y"
+ },
+ "bay_blk_plank_y_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "bay_blk_plank_y_v1.png",
+   "z": "bay_blk_plank_y_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88,
+  "walk": "y"
+ },
+ "bay_blk_quay_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "bay_blk_quay_v0.png",
+   "z": "bay_blk_quay_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "bay_blk_quay_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "bay_blk_quay_v1.png",
+   "z": "bay_blk_quay_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "bay_blk_quay_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "bay_blk_quay_v2.png",
+   "z": "bay_blk_quay_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "bay_blk_rock_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "bay_blk_rock_v0.png",
+   "z": "bay_blk_rock_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "bay_blk_rock_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "bay_blk_rock_v1.png",
+   "z": "bay_blk_rock_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "bay_blk_sand_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "bay_blk_sand_v0.png",
+   "z": "bay_blk_sand_v0_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "bay_blk_sand_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "bay_blk_sand_v1.png",
+   "z": "bay_blk_sand_v1_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "bay_blk_sand_v2": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "bay_blk_sand_v2.png",
+   "z": "bay_blk_sand_v2_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "bay_bollard": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 35,
+  "ay": 36,
+  "files": {
+   "img": "bay_bollard.png",
+   "sh": "bay_bollard_sh.png",
+   "z": "bay_bollard_z.png"
+  },
+  "h": 54,
+  "height_m": 0.57,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 74
+ },
+ "bay_bridge_x": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 42,
+  "ay": 38,
+  "deck_z": 0.0,
+  "files": {
+   "img": "bay_bridge_x.png",
+   "sh": "bay_bridge_x_sh.png",
+   "z": "bay_bridge_x_z.png"
+  },
+  "h": 82,
+  "height_m": 0.21,
+  "kind": "bridge",
+  "over": "bay_surf_sea",
+  "shadow_z": -0.18,
+  "w": 96,
+  "walk": "x"
+ },
+ "bay_bridge_y": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 42,
+  "ay": 36,
+  "deck_z": 0.0,
+  "files": {
+   "img": "bay_bridge_y.png",
+   "sh": "bay_bridge_y_sh.png",
+   "z": "bay_bridge_y_z.png"
+  },
+  "h": 79,
+  "height_m": 0.21,
+  "kind": "bridge",
+  "over": "bay_surf_sea",
+  "shadow_z": -0.18,
+  "w": 99,
+  "walk": "y"
+ },
+ "bay_buoy": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 64,
+  "ay": 48,
+  "files": {
+   "gl": "bay_buoy_gl.png",
+   "img": "bay_buoy.png",
+   "sh": "bay_buoy_sh.png",
+   "z": "bay_buoy_z.png"
+  },
+  "float_z": -0.18,
+  "h": 93,
+  "height_m": 0.97,
+  "kind": "dyn",
+  "note": "anchor = the waterline; the watch puts it on the water surface (z = -0.18) and may bob it",
+  "shadow_z": 0.0,
+  "w": 128
+ },
+ "bay_crate": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 40,
+  "ay": 52,
+  "files": {
+   "img": "bay_crate.png",
+   "sh": "bay_crate_sh.png",
+   "z": "bay_crate_z.png"
+  },
+  "footprint": [
+   1,
+   1
+  ],
+  "h": 81,
+  "height_m": 0.51,
+  "kind": "dyn",
+  "pushable": true,
+  "shadow_z": 0.0,
+  "w": 102
+ },
+ "bay_crates": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 35,
+  "ay": 58,
+  "files": {
+   "img": "bay_crates.png",
+   "sh": "bay_crates_sh.png",
+   "z": "bay_crates_z.png"
+  },
+  "h": 83,
+  "height_m": 0.95,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 95
+ },
+ "bay_fill_quay": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "bay_fill_quay.png",
+   "z": "bay_fill_quay_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "bay_fill_rock": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "bay_fill_rock.png",
+   "z": "bay_fill_rock_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "bay_fill_sand": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "files": {
+   "img": "bay_fill_sand.png",
+   "z": "bay_fill_sand_z.png"
+  },
+  "h": 86,
+  "kind": "tile",
+  "w": 88
+ },
+ "bay_gate_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 36,
+  "ay": 111,
+  "exit": true,
+  "files": {
+   "img": "bay_gate_00.png",
+   "sh": "bay_gate_00_sh.png",
+   "z": "bay_gate_00_z.png"
+  },
+  "frame": 0,
+  "frames": 7,
+  "h": 128,
+  "height_m": 2.42,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 156
+ },
+ "bay_gate_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 36,
+  "ay": 111,
+  "exit": true,
+  "files": {
+   "img": "bay_gate_01.png",
+   "sh": "bay_gate_01_sh.png",
+   "z": "bay_gate_01_z.png"
+  },
+  "frame": 1,
+  "frames": 7,
+  "h": 128,
+  "height_m": 2.42,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 156
+ },
+ "bay_gate_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 36,
+  "ay": 111,
+  "exit": true,
+  "files": {
+   "img": "bay_gate_02.png",
+   "sh": "bay_gate_02_sh.png",
+   "z": "bay_gate_02_z.png"
+  },
+  "frame": 2,
+  "frames": 7,
+  "h": 128,
+  "height_m": 2.42,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 156
+ },
+ "bay_gate_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 36,
+  "ay": 111,
+  "exit": true,
+  "files": {
+   "img": "bay_gate_03.png",
+   "sh": "bay_gate_03_sh.png",
+   "z": "bay_gate_03_z.png"
+  },
+  "frame": 3,
+  "frames": 7,
+  "h": 128,
+  "height_m": 2.42,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 156
+ },
+ "bay_gate_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 36,
+  "ay": 111,
+  "exit": true,
+  "files": {
+   "img": "bay_gate_04.png",
+   "sh": "bay_gate_04_sh.png",
+   "z": "bay_gate_04_z.png"
+  },
+  "frame": 4,
+  "frames": 7,
+  "h": 130,
+  "height_m": 2.42,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 156
+ },
+ "bay_gate_05": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 36,
+  "ay": 111,
+  "exit": true,
+  "files": {
+   "img": "bay_gate_05.png",
+   "sh": "bay_gate_05_sh.png",
+   "z": "bay_gate_05_z.png"
+  },
+  "frame": 5,
+  "frames": 7,
+  "h": 132,
+  "height_m": 2.42,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 156
+ },
+ "bay_gate_06": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "open",
+  "ax": 81,
+  "ay": 111,
+  "exit": true,
+  "files": {
+   "gl": "bay_gate_06_gl.png",
+   "img": "bay_gate_06.png",
+   "sh": "bay_gate_06_sh.png",
+   "z": "bay_gate_06_z.png"
+  },
+  "frame": 6,
+  "frames": 7,
+  "h": 165,
+  "height_m": 2.42,
+  "kind": "dyn",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "closed",
+   "6": "open"
+  },
+  "w": 201
+ },
+ "bay_lamp": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 89,
+  "ay": 100,
+  "files": {
+   "gl": "bay_lamp_gl.png",
+   "img": "bay_lamp.png",
+   "sh": "bay_lamp_sh.png",
+   "z": "bay_lamp_z.png"
+  },
+  "h": 162,
+  "height_m": 2.13,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 186
+ },
+ "bay_lighthouse": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 93,
+  "ay": 163,
+  "files": {
+   "gl": "bay_lighthouse_gl.png",
+   "img": "bay_lighthouse.png",
+   "sh": "bay_lighthouse_sh.png",
+   "z": "bay_lighthouse_z.png"
+  },
+  "footprint": [
+   2,
+   2
+  ],
+  "h": 242,
+  "height_m": 3.19,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 284
+ },
+ "bay_lily_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "sink",
+  "ax": 34,
+  "ay": 26,
+  "files": {
+   "img": "bay_lily_00.png",
+   "z": "bay_lily_00_z.png"
+  },
+  "float_z": -0.17,
+  "frame": 0,
+  "frames": 4,
+  "h": 54,
+  "height_m": 0.12,
+  "kind": "dyn",
+  "note": "a buoy-raft; anchor = its deck",
+  "standable": true,
+  "w": 68
+ },
+ "bay_lily_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "sink",
+  "ax": 34,
+  "ay": 28,
+  "files": {
+   "img": "bay_lily_01.png",
+   "z": "bay_lily_01_z.png"
+  },
+  "float_z": -0.17,
+  "frame": 1,
+  "frames": 4,
+  "h": 60,
+  "height_m": 0.12,
+  "kind": "dyn",
+  "note": "a buoy-raft; anchor = its deck",
+  "standable": false,
+  "w": 68
+ },
+ "bay_lily_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "sink",
+  "ax": 34,
+  "ay": 28,
+  "files": {
+   "img": "bay_lily_02.png",
+   "z": "bay_lily_02_z.png"
+  },
+  "float_z": -0.17,
+  "frame": 2,
+  "frames": 4,
+  "h": 63,
+  "height_m": 0.12,
+  "kind": "dyn",
+  "note": "a buoy-raft; anchor = its deck",
+  "standable": false,
+  "w": 68
+ },
+ "bay_lily_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "sink",
+  "ax": 34,
+  "ay": 27,
+  "files": {
+   "img": "bay_lily_03.png",
+   "z": "bay_lily_03_z.png"
+  },
+  "float_z": -0.17,
+  "frame": 3,
+  "frames": 4,
+  "h": 65,
+  "height_m": 0.12,
+  "kind": "dyn",
+  "note": "a buoy-raft; anchor = its deck",
+  "standable": false,
+  "w": 68
+ },
+ "bay_logfloat_e": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 23,
+  "files": {
+   "img": "bay_logfloat_e.png",
+   "z": "bay_logfloat_e_z.png"
+  },
+  "float_z": -0.02,
+  "footprint": [
+   1,
+   1
+  ],
+  "h": 54,
+  "height_m": 0.2,
+  "kind": "dyn",
+  "note": "a driftwood raft piece; anchor = its top",
+  "part": "e",
+  "w": 78
+ },
+ "bay_logfloat_m": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 39,
+  "ay": 22,
+  "files": {
+   "img": "bay_logfloat_m.png",
+   "z": "bay_logfloat_m_z.png"
+  },
+  "float_z": -0.02,
+  "footprint": [
+   1,
+   1
+  ],
+  "h": 54,
+  "height_m": 0.2,
+  "kind": "dyn",
+  "note": "a driftwood raft piece; anchor = its top",
+  "part": "m",
+  "w": 78
+ },
+ "bay_logfloat_w": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 35,
+  "ay": 23,
+  "files": {
+   "img": "bay_logfloat_w.png",
+   "z": "bay_logfloat_w_z.png"
+  },
+  "float_z": -0.02,
+  "footprint": [
+   1,
+   1
+  ],
+  "h": 55,
+  "height_m": 0.2,
+  "kind": "dyn",
+  "note": "a driftwood raft piece; anchor = its top",
+  "part": "w",
+  "w": 74
+ },
+ "bay_net": {
+  "along": "x",
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 31,
+  "ay": 69,
+  "files": {
+   "img": "bay_net.png",
+   "sh": "bay_net_sh.png",
+   "z": "bay_net_z.png"
+  },
+  "h": 81,
+  "height_m": 1.32,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 117
+ },
+ "bay_piranha_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "boil",
+  "ax": 26,
+  "ay": 20,
+  "files": {
+   "img": "bay_piranha_00.png",
+   "z": "bay_piranha_00_z.png"
+  },
+  "float_z": -0.18,
+  "frame": 0,
+  "frames": 5,
+  "h": 40,
+  "height_m": 0.5,
+  "kind": "dyn",
+  "ms": 80,
+  "over": "bay_surf_sea",
+  "states": {
+   "0": "calm (safe)",
+   "1-4": "boiling loop (deadly)"
+  },
+  "w": 50
+ },
+ "bay_piranha_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "boil",
+  "ax": 38,
+  "ay": 34,
+  "files": {
+   "img": "bay_piranha_01.png",
+   "z": "bay_piranha_01_z.png"
+  },
+  "float_z": -0.18,
+  "frame": 1,
+  "frames": 5,
+  "h": 58,
+  "height_m": 0.5,
+  "kind": "dyn",
+  "ms": 80,
+  "over": "bay_surf_sea",
+  "states": {
+   "0": "calm (safe)",
+   "1-4": "boiling loop (deadly)"
+  },
+  "w": 71
+ },
+ "bay_piranha_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "boil",
+  "ax": 38,
+  "ay": 36,
+  "files": {
+   "img": "bay_piranha_02.png",
+   "z": "bay_piranha_02_z.png"
+  },
+  "float_z": -0.18,
+  "frame": 2,
+  "frames": 5,
+  "h": 61,
+  "height_m": 0.5,
+  "kind": "dyn",
+  "ms": 80,
+  "over": "bay_surf_sea",
+  "states": {
+   "0": "calm (safe)",
+   "1-4": "boiling loop (deadly)"
+  },
+  "w": 74
+ },
+ "bay_piranha_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "boil",
+  "ax": 35,
+  "ay": 38,
+  "files": {
+   "img": "bay_piranha_03.png",
+   "z": "bay_piranha_03_z.png"
+  },
+  "float_z": -0.18,
+  "frame": 3,
+  "frames": 5,
+  "h": 65,
+  "height_m": 0.5,
+  "kind": "dyn",
+  "ms": 80,
+  "over": "bay_surf_sea",
+  "states": {
+   "0": "calm (safe)",
+   "1-4": "boiling loop (deadly)"
+  },
+  "w": 70
+ },
+ "bay_piranha_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "boil",
+  "ax": 38,
+  "ay": 33,
+  "files": {
+   "img": "bay_piranha_04.png",
+   "z": "bay_piranha_04_z.png"
+  },
+  "float_z": -0.18,
+  "frame": 4,
+  "frames": 5,
+  "h": 59,
+  "height_m": 0.5,
+  "kind": "dyn",
+  "ms": 80,
+  "over": "bay_surf_sea",
+  "states": {
+   "0": "calm (safe)",
+   "1-4": "boiling loop (deadly)"
+  },
+  "w": 76
+ },
+ "bay_rock_low": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 32,
+  "ay": 41,
+  "files": {
+   "img": "bay_rock_low.png",
+   "sh": "bay_rock_low_sh.png",
+   "z": "bay_rock_low_z.png"
+  },
+  "h": 64,
+  "height_m": 0.62,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 80
+ },
+ "bay_rock_spire": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 76,
+  "ay": 73,
+  "files": {
+   "gl": "bay_rock_spire_gl.png",
+   "img": "bay_rock_spire.png",
+   "sh": "bay_rock_spire_sh.png",
+   "z": "bay_rock_spire_z.png"
+  },
+  "h": 127,
+  "height_m": 1.6,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 158
+ },
+ "bay_surf_deep_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "deep": true,
+  "depth_m": 0.18,
+  "files": {
+   "img": "bay_surf_deep_v0.png",
+   "z": "bay_surf_deep_v0_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "w": 88
+ },
+ "bay_surf_sea_v0": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "deep": false,
+  "depth_m": 0.18,
+  "files": {
+   "img": "bay_surf_sea_v0.png",
+   "z": "bay_surf_sea_v0_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "w": 88
+ },
+ "bay_surf_sea_v1": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 44,
+  "ay": 31,
+  "deep": false,
+  "depth_m": 0.18,
+  "files": {
+   "img": "bay_surf_sea_v1.png",
+   "z": "bay_surf_sea_v1_z.png"
+  },
+  "h": 68,
+  "kind": "surf",
+  "w": 88
+ },
+ "bay_tentacle_e_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 44,
+  "ay": 26,
+  "files": {
+   "img": "bay_tentacle_e_00.png",
+   "sh": "bay_tentacle_e_00_sh.png",
+   "z": "bay_tentacle_e_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 47,
+  "height_m": 1.2,
+  "kind": "dyn",
+  "note": "one cell along X; the watch lays w, m..., e across the row it hits",
+  "part": "e",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "rising",
+   "1": "high (warning: its shadow marks the row)",
+   "2": "slammed flat (deadly)",
+   "3": "sinking"
+  },
+  "w": 85
+ },
+ "bay_tentacle_e_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 44,
+  "ay": 67,
+  "files": {
+   "img": "bay_tentacle_e_01.png",
+   "sh": "bay_tentacle_e_01_sh.png",
+   "z": "bay_tentacle_e_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 71,
+  "height_m": 1.2,
+  "kind": "dyn",
+  "note": "one cell along X; the watch lays w, m..., e across the row it hits",
+  "part": "e",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "rising",
+   "1": "high (warning: its shadow marks the row)",
+   "2": "slammed flat (deadly)",
+   "3": "sinking"
+  },
+  "w": 128
+ },
+ "bay_tentacle_e_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 44,
+  "ay": 27,
+  "files": {
+   "img": "bay_tentacle_e_02.png",
+   "sh": "bay_tentacle_e_02_sh.png",
+   "z": "bay_tentacle_e_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 50,
+  "height_m": 1.2,
+  "kind": "dyn",
+  "note": "one cell along X; the watch lays w, m..., e across the row it hits",
+  "part": "e",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "rising",
+   "1": "high (warning: its shadow marks the row)",
+   "2": "slammed flat (deadly)",
+   "3": "sinking"
+  },
+  "w": 90
+ },
+ "bay_tentacle_e_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 44,
+  "ay": 24,
+  "files": {
+   "img": "bay_tentacle_e_03.png",
+   "sh": "bay_tentacle_e_03_sh.png",
+   "z": "bay_tentacle_e_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 47,
+  "height_m": 1.2,
+  "kind": "dyn",
+  "note": "one cell along X; the watch lays w, m..., e across the row it hits",
+  "part": "e",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "rising",
+   "1": "high (warning: its shadow marks the row)",
+   "2": "slammed flat (deadly)",
+   "3": "sinking"
+  },
+  "w": 81
+ },
+ "bay_tentacle_m_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 44,
+  "ay": 25,
+  "files": {
+   "img": "bay_tentacle_m_00.png",
+   "sh": "bay_tentacle_m_00_sh.png",
+   "z": "bay_tentacle_m_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 46,
+  "height_m": 1.2,
+  "kind": "dyn",
+  "note": "one cell along X; the watch lays w, m..., e across the row it hits",
+  "part": "m",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "rising",
+   "1": "high (warning: its shadow marks the row)",
+   "2": "slammed flat (deadly)",
+   "3": "sinking"
+  },
+  "w": 92
+ },
+ "bay_tentacle_m_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 44,
+  "ay": 67,
+  "files": {
+   "img": "bay_tentacle_m_01.png",
+   "sh": "bay_tentacle_m_01_sh.png",
+   "z": "bay_tentacle_m_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 78,
+  "height_m": 1.2,
+  "kind": "dyn",
+  "note": "one cell along X; the watch lays w, m..., e across the row it hits",
+  "part": "m",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "rising",
+   "1": "high (warning: its shadow marks the row)",
+   "2": "slammed flat (deadly)",
+   "3": "sinking"
+  },
+  "w": 135
+ },
+ "bay_tentacle_m_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 44,
+  "ay": 27,
+  "files": {
+   "img": "bay_tentacle_m_02.png",
+   "sh": "bay_tentacle_m_02_sh.png",
+   "z": "bay_tentacle_m_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 48,
+  "height_m": 1.2,
+  "kind": "dyn",
+  "note": "one cell along X; the watch lays w, m..., e across the row it hits",
+  "part": "m",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "rising",
+   "1": "high (warning: its shadow marks the row)",
+   "2": "slammed flat (deadly)",
+   "3": "sinking"
+  },
+  "w": 97
+ },
+ "bay_tentacle_m_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 44,
+  "ay": 19,
+  "files": {
+   "img": "bay_tentacle_m_03.png",
+   "sh": "bay_tentacle_m_03_sh.png",
+   "z": "bay_tentacle_m_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 42,
+  "height_m": 1.2,
+  "kind": "dyn",
+  "note": "one cell along X; the watch lays w, m..., e across the row it hits",
+  "part": "m",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "rising",
+   "1": "high (warning: its shadow marks the row)",
+   "2": "slammed flat (deadly)",
+   "3": "sinking"
+  },
+  "w": 89
+ },
+ "bay_tentacle_w_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 41,
+  "ay": 21,
+  "files": {
+   "img": "bay_tentacle_w_00.png",
+   "sh": "bay_tentacle_w_00_sh.png",
+   "z": "bay_tentacle_w_00_z.png"
+  },
+  "frame": 0,
+  "frames": 4,
+  "h": 40,
+  "height_m": 1.2,
+  "kind": "dyn",
+  "note": "one cell along X; the watch lays w, m..., e across the row it hits",
+  "part": "w",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "rising",
+   "1": "high (warning: its shadow marks the row)",
+   "2": "slammed flat (deadly)",
+   "3": "sinking"
+  },
+  "w": 89
+ },
+ "bay_tentacle_w_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 40,
+  "ay": 58,
+  "files": {
+   "img": "bay_tentacle_w_01.png",
+   "sh": "bay_tentacle_w_01_sh.png",
+   "z": "bay_tentacle_w_01_z.png"
+  },
+  "frame": 1,
+  "frames": 4,
+  "h": 75,
+  "height_m": 1.2,
+  "kind": "dyn",
+  "note": "one cell along X; the watch lays w, m..., e across the row it hits",
+  "part": "w",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "rising",
+   "1": "high (warning: its shadow marks the row)",
+   "2": "slammed flat (deadly)",
+   "3": "sinking"
+  },
+  "w": 131
+ },
+ "bay_tentacle_w_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 41,
+  "ay": 30,
+  "files": {
+   "img": "bay_tentacle_w_02.png",
+   "sh": "bay_tentacle_w_02_sh.png",
+   "z": "bay_tentacle_w_02_z.png"
+  },
+  "frame": 2,
+  "frames": 4,
+  "h": 50,
+  "height_m": 1.2,
+  "kind": "dyn",
+  "note": "one cell along X; the watch lays w, m..., e across the row it hits",
+  "part": "w",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "rising",
+   "1": "high (warning: its shadow marks the row)",
+   "2": "slammed flat (deadly)",
+   "3": "sinking"
+  },
+  "w": 94
+ },
+ "bay_tentacle_w_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "slam",
+  "ax": 41,
+  "ay": 25,
+  "files": {
+   "img": "bay_tentacle_w_03.png",
+   "sh": "bay_tentacle_w_03_sh.png",
+   "z": "bay_tentacle_w_03_z.png"
+  },
+  "frame": 3,
+  "frames": 4,
+  "h": 48,
+  "height_m": 1.2,
+  "kind": "dyn",
+  "note": "one cell along X; the watch lays w, m..., e across the row it hits",
+  "part": "w",
+  "shadow_z": 0.0,
+  "states": {
+   "0": "rising",
+   "1": "high (warning: its shadow marks the row)",
+   "2": "slammed flat (deadly)",
+   "3": "sinking"
+  },
+  "w": 86
+ },
+ "bay_tide_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "tide",
+  "ax": 44,
+  "ay": 31,
+  "block": true,
+  "files": {
+   "img": "bay_tide_00.png",
+   "z": "bay_tide_00_z.png"
+  },
+  "frame": 0,
+  "frames": 3,
+  "h": 86,
+  "kind": "tile",
+  "states": {
+   "0": "dry (walkable)",
+   "1": "water coming in (warning, still walkable)",
+   "2": "flooded (sinks you)"
+  },
+  "w": 88
+ },
+ "bay_tide_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "tide",
+  "ax": 44,
+  "ay": 31,
+  "block": true,
+  "files": {
+   "img": "bay_tide_01.png",
+   "z": "bay_tide_01_z.png"
+  },
+  "frame": 1,
+  "frames": 3,
+  "h": 86,
+  "kind": "tile",
+  "states": {
+   "0": "dry (walkable)",
+   "1": "water coming in (warning, still walkable)",
+   "2": "flooded (sinks you)"
+  },
+  "w": 88
+ },
+ "bay_tide_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "tide",
+  "ax": 44,
+  "ay": 31,
+  "block": true,
+  "files": {
+   "img": "bay_tide_02.png",
+   "z": "bay_tide_02_z.png"
+  },
+  "frame": 2,
+  "frames": 3,
+  "h": 86,
+  "kind": "tile",
+  "states": {
+   "0": "dry (walkable)",
+   "1": "water coming in (warning, still walkable)",
+   "2": "flooded (sinks you)"
+  },
+  "w": 88
+ },
+ "bay_tidepool": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 70,
+  "ay": 49,
+  "files": {
+   "gl": "bay_tidepool_gl.png",
+   "img": "bay_tidepool.png",
+   "sh": "bay_tidepool_sh.png",
+   "z": "bay_tidepool_z.png"
+  },
+  "h": 98,
+  "height_m": 0.3,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 140
+ },
+ "bay_trap": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 32,
+  "ay": 30,
+  "files": {
+   "img": "bay_trap.png",
+   "sh": "bay_trap_sh.png",
+   "z": "bay_trap_z.png"
+  },
+  "h": 55,
+  "height_m": 0.36,
+  "kind": "prop",
+  "shadow_z": 0.0,
+  "w": 75
+ },
+ "bay_wave_x_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "wave",
+  "ax": 36,
+  "ay": 36,
+  "files": {
+   "img": "bay_wave_x_00.png",
+   "z": "bay_wave_x_00_z.png"
+  },
+  "frame": 0,
+  "frames": 5,
+  "h": 61,
+  "height_m": 0.42,
+  "kind": "dyn",
+  "ms": 70,
+  "push": "+x",
+  "w": 65
+ },
+ "bay_wave_x_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "wave",
+  "ax": 32,
+  "ay": 65,
+  "files": {
+   "img": "bay_wave_x_01.png",
+   "z": "bay_wave_x_01_z.png"
+  },
+  "frame": 1,
+  "frames": 5,
+  "h": 89,
+  "height_m": 0.87,
+  "kind": "dyn",
+  "ms": 70,
+  "push": "+x",
+  "w": 58
+ },
+ "bay_wave_x_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "wave",
+  "ax": 24,
+  "ay": 49,
+  "files": {
+   "img": "bay_wave_x_02.png",
+   "z": "bay_wave_x_02_z.png"
+  },
+  "frame": 2,
+  "frames": 5,
+  "h": 76,
+  "height_m": 0.53,
+  "kind": "dyn",
+  "ms": 70,
+  "push": "+x",
+  "w": 62
+ },
+ "bay_wave_x_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "wave",
+  "ax": 19,
+  "ay": 26,
+  "files": {
+   "img": "bay_wave_x_03.png",
+   "z": "bay_wave_x_03_z.png"
+  },
+  "frame": 3,
+  "frames": 5,
+  "h": 53,
+  "height_m": 0.21,
+  "kind": "dyn",
+  "ms": 70,
+  "push": "+x",
+  "w": 60
+ },
+ "bay_wave_x_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "wave",
+  "ax": 5,
+  "ay": 22,
+  "files": {
+   "img": "bay_wave_x_04.png",
+   "z": "bay_wave_x_04_z.png"
+  },
+  "frame": 4,
+  "frames": 5,
+  "h": 50,
+  "height_m": 0.08,
+  "kind": "dyn",
+  "ms": 70,
+  "push": "+x",
+  "w": 46
+ },
+ "bay_wave_y_00": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "wave",
+  "ax": 34,
+  "ay": 29,
+  "files": {
+   "img": "bay_wave_y_00.png",
+   "z": "bay_wave_y_00_z.png"
+  },
+  "frame": 0,
+  "frames": 5,
+  "h": 50,
+  "height_m": 0.42,
+  "kind": "dyn",
+  "ms": 70,
+  "push": "-y",
+  "w": 70
+ },
+ "bay_wave_y_01": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "wave",
+  "ax": 38,
+  "ay": 49,
+  "files": {
+   "img": "bay_wave_y_01.png",
+   "z": "bay_wave_y_01_z.png"
+  },
+  "frame": 1,
+  "frames": 5,
+  "h": 66,
+  "height_m": 0.87,
+  "kind": "dyn",
+  "ms": 70,
+  "push": "-y",
+  "w": 73
+ },
+ "bay_wave_y_02": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "wave",
+  "ax": 39,
+  "ay": 32,
+  "files": {
+   "img": "bay_wave_y_02.png",
+   "z": "bay_wave_y_02_z.png"
+  },
+  "frame": 2,
+  "frames": 5,
+  "h": 60,
+  "height_m": 0.53,
+  "kind": "dyn",
+  "ms": 70,
+  "push": "-y",
+  "w": 72
+ },
+ "bay_wave_y_03": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "wave",
+  "ax": 38,
+  "ay": 16,
+  "files": {
+   "img": "bay_wave_y_03.png",
+   "z": "bay_wave_y_03_z.png"
+  },
+  "frame": 3,
+  "frames": 5,
+  "h": 45,
+  "height_m": 0.21,
+  "kind": "dyn",
+  "ms": 70,
+  "push": "-y",
+  "w": 67
+ },
+ "bay_wave_y_04": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "anim": "wave",
+  "ax": 38,
+  "ay": 6,
+  "files": {
+   "img": "bay_wave_y_04.png",
+   "z": "bay_wave_y_04_z.png"
+  },
+  "frame": 4,
+  "frames": 5,
+  "h": 36,
+  "height_m": 0.08,
+  "kind": "dyn",
+  "ms": 70,
+  "push": "-y",
+  "w": 66
+ },
+ "bay_wreck_bow": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 43,
+  "ay": 76,
+  "files": {
+   "img": "bay_wreck_bow.png",
+   "sh": "bay_wreck_bow_sh.png",
+   "z": "bay_wreck_bow_z.png"
+  },
+  "footprint": [
+   2,
+   1
+  ],
+  "h": 111,
+  "height_m": 2.2,
+  "kind": "prop",
+  "pair": "bay_wreck_stern",
+  "shadow_z": 0.0,
+  "w": 216
+ },
+ "bay_wreck_stern": {
+  "anchor": [
+   0.5,
+   0.5,
+   0.0
+  ],
+  "ax": 95,
+  "ay": 85,
+  "files": {
+   "gl": "bay_wreck_stern_gl.png",
+   "img": "bay_wreck_stern.png",
+   "sh": "bay_wreck_stern_sh.png",
+   "z": "bay_wreck_stern_z.png"
+  },
+  "footprint": [
+   2,
+   1
+  ],
+  "h": 140,
+  "height_m": 2.42,
+  "kind": "prop",
+  "pair": "bay_wreck_bow",
+  "shadow_z": 0.0,
+  "w": 246
+ }
+}
