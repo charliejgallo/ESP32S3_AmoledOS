@@ -3,7 +3,10 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.10.1 — 2026-10-03
+
+**The watch pairs from the iPhone's Settings.** Firmware only; the apps
+and the language packs are those of v0.10.0.
 
 - **The watch shows up in the iPhone's Settings -> Bluetooth**, under Other
   Devices, and pairs from there: LightBlue is no longer needed. iOS lists
