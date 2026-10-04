@@ -86,6 +86,7 @@ static const ble_uuid128_t UUID_AMS_ENTITY_UPDATE = BLE_UUID128_INIT(
 /* -------------------------------------------------------------------------- */
 
 #define NOMBRE      "AmoledOS"
+#define APARIENCIA  0x00C0          /* Generic Watch, for the icon */
 #define SIN_CONN    0xFFFF
 
 static volatile bool     s_running;
@@ -170,30 +171,37 @@ static int gap_event(struct ble_gap_event *event, void *arg);
 static void ams_start(void);
 static void ams_stop(void);
 
-/* The advertising packet carries three things, and all three have to be there:
+/* The advertising packet, 31 bytes at most, carries four things:
  *
  *   flags                3 bytes   general discoverable + no BR/EDR
- *   complete name       10 bytes   "AmoledOS"
+ *   HID service (16-bit) 4 bytes   0x1812: what makes iOS list it
+ *   name                 6 bytes   "Amol", the name shortened to what fits;
+ *                                  the whole of it goes in the scan response
  *   ANCS solicitation   18 bytes   the 128-bit UUID in field 0x15
  *   ------------------------------
- *                       31 bytes   which is exactly what fits
+ *                       31 bytes
  *
  * The service solicitation is how an accessory tells iOS "I want your
- * notifications". The name is what makes it show up in the phone's
- * Settings -> Bluetooth list.
+ * notifications". But iOS lists in Settings -> Bluetooth only accessories of
+ * the kinds it handles there, a HID among them, and not a plain BLE
+ * peripheral: with flags, name and solicitation alone the watch could be
+ * found by LightBlue and never by Settings, however the name was placed
+ * (2026-09). Espressif's ANCS example (bluedroid ble_ancs) lists itself by
+ * advertising the HID service UUID, with no HID service behind it, and so
+ * does this; P4OS, which carries this same stack, tried it first with an
+ * iPhone (2026-10-03).
  *
- * > The first version left the name OUT, in the scan response, on the grounds
- * > that it did not fit. **It did fit**: the arithmetic was added up wrong (21
- * > of the packet + 10 of the name is 31, that is, exactly, and it was read as
- * > overflowing). The result was that the watch advertised perfectly well and
- * > **did not appear in the iPhone's list**, because iOS builds that list from
- * > the advertising packet's name and not from the scan response's. Without a
- * > phone to test against, an arithmetic mistake looks identical to a stack
- * > that works.
+ * > The first version had the name in the scan response, moved it to this
+ * > packet on the theory that iOS builds its list from here, and the watch
+ * > still did not show up: the list is filtered by kind, not by name. Without
+ * > a phone to test against, a theory that fits the symptom looks identical
+ * > to one that is true.
  *
- * The scan response is left with the transmit power, which is informative and
- * needed by nobody, but it leaves the second packet built in case something
- * ever has to go in there. */
+ * The scan response carries the complete name and the appearance, a watch,
+ * which picks the icon. iOS scans actively and lists the complete name:
+ * "AmoledOS", not "Amol" (iPhone 15 Pro Max, 2026-10-03). */
+#define NOMBRE_ADV  4
+
 static void advertise(void)
 {
     if (!s_running) {
@@ -207,9 +215,16 @@ static void advertise(void)
     adv[i++] = BLE_HS_ADV_TYPE_FLAGS;
     adv[i++] = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
 
+    adv[i++] = 3;
+    adv[i++] = BLE_HS_ADV_TYPE_COMP_UUIDS16;
+    adv[i++] = 0x12;                    /* 0x1812, HID, little end first */
+    adv[i++] = 0x18;
+
     size_t largo_nombre = strlen(NOMBRE);
+    bool corto = largo_nombre > NOMBRE_ADV;
+    if (corto) largo_nombre = NOMBRE_ADV;
     adv[i++] = (uint8_t)(1 + largo_nombre);
-    adv[i++] = BLE_HS_ADV_TYPE_COMP_NAME;
+    adv[i++] = corto ? BLE_HS_ADV_TYPE_INCOMP_NAME : BLE_HS_ADV_TYPE_COMP_NAME;
     memcpy(&adv[i], NOMBRE, largo_nombre);
     i += (int)largo_nombre;
 
@@ -226,8 +241,11 @@ static void advertise(void)
 
     struct ble_hs_adv_fields rsp;
     memset(&rsp, 0, sizeof(rsp));
-    rsp.tx_pwr_lvl_is_present = 1;
-    rsp.tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO;
+    rsp.name = (const uint8_t *)NOMBRE;
+    rsp.name_len = (uint8_t)strlen(NOMBRE);
+    rsp.name_is_complete = 1;
+    rsp.appearance = APARIENCIA;
+    rsp.appearance_is_present = 1;
     rc = ble_gap_adv_rsp_set_fields(&rsp);
     if (rc != 0) {
         ESP_LOGE(TAG, "ble_gap_adv_rsp_set_fields: %d", rc);
@@ -1269,6 +1287,7 @@ bool aos_ble_start(void)
     ble_hs_cfg.sm_their_key_dist = BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID;
 
     ble_svc_gap_device_name_set(NOMBRE);
+    ble_svc_gap_device_appearance_set(APARIENCIA);
 
     /* A large MTU makes a notification's text arrive in two or three chunks
      * instead of fifteen. The reassembly copes with either, but each chunk is

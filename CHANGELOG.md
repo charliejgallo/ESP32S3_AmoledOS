@@ -3,6 +3,20 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+- **The watch shows up in the iPhone's Settings -> Bluetooth**, under Other
+  Devices, and pairs from there: LightBlue is no longer needed. iOS lists
+  there only accessories of the kinds it handles, so the watch now
+  advertises the HID service UUID (0x1812) next to the ANCS solicitation,
+  as Espressif's own ANCS example does, with no HID service behind it. The
+  advertising packet carries the name shortened to "Amol"; the whole name
+  and the appearance (a watch) go in the scan response, and the list shows
+  "AmoledOS". Pairing, ANCS, AMS, the phone's battery and its clock all
+  checked again on an iPhone 15 Pro Max. A watch already
+  paired through LightBlue keeps working; to try the new way, Forget it on
+  the phone and pair again.
+
 ## v0.10.0 — 2026-09-28
 
 **Monster Hop: the Lost Valley and Abyss Bay, and the map becomes a hub.**
