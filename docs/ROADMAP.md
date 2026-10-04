@@ -106,12 +106,13 @@ Two decisions come first:
    detection plus a restart of the stack), not a per-connection switch. With
    HID always on, the iPhone also sees a HID device: harmless with AMS doing
    the work, but to be checked on the phone.
-2. **The advertising packet is full.** It is 31 bytes of 31: flags 3, name
-   10 and the ANCS solicitation 18, and iOS needs the name in that packet,
-   not in the scan response. The HID UUID does not fit next to both. An
-   Android mode can advertise HID in place of the solicitation; a single
-   mode has to move something to the scan response and be tried on both
-   phones.
+2. **The advertising packet already says HID.** It carries the 16-bit HID
+   UUID (0x1812) with no service behind it, because that is what makes iOS
+   list the watch in Settings -> Bluetooth; the name goes shortened there
+   and whole in the scan response (`advertise()` in `aos_ble.c`). A real
+   HID service makes that claim true, and has to be tried on the iPhone:
+   once the GATT table has a HID service, iOS may treat the watch as a
+   keyboard.
 
 **Done when** an Android phone with no app installed controls its music from
 Control BT, the screen says there is no track information, an iPhone still
