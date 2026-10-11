@@ -1,4 +1,4 @@
-idf_component_register(SRCS "aos_ble.c" "aos_ancs.c" "aos_ams.c"
+idf_component_register(SRCS "aos_ble.c" "aos_ble_scan.c" "aos_ancs.c" "aos_ams.c"
                        INCLUDE_DIRS "include"
                        REQUIRES bt nvs_flash esp_timer aos_hal)
 

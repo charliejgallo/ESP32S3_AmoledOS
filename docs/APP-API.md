@@ -458,6 +458,50 @@ speaker** (`aos_hal_spk_open/write/queued/is_open/close`), for audio that is
 not a file, and **FTM** (`aos_hal_ftm_supported/responder/responder_info/
 measure/result`), distance by time of flight to another watch.
 
+## Bluetooth LE: scanning and a GATT client
+
+Since the BLE app, an app can listen to what the devices around advertise
+and open a connection of its own to one of them, through `aos_hal_ble_*`
+(`components/aos_ble/aos_ble_scan.c`). The signatures are P4OS's, so an app
+moves between the two unchanged. Bluetooth has to be on
+(`aos_hal_bt_enabled()`); the calls only copy and queue, never wait for the
+radio, and can be made from LVGL's thread:
+
+```c
+/* create(), or when the user asks */
+aos_hal_ble_scan_start(true, 100);          /* active, listening 100 % of the time */
+
+/* a timer, a few times a second: every packet, repeats included */
+aos_ble_adv_t buf[64];
+int n;
+while ((n = aos_hal_ble_scan_read(buf, 64)) > 0) { ... }   /* addr, addr_type, kind, rssi, data[31] */
+
+/* a device's services */
+aos_hal_ble_gatt_connect(addr, addr_type);  /* stops the scan meanwhile; it comes back by itself */
+aos_hal_ble_gatt_state(&reason);            /* CONNECTING -> DISCOVERING -> READY, or FAILED */
+aos_hal_ble_gatt_attrs(table, max);         /* services, characteristics, descriptors, by handle */
+aos_hal_ble_gatt_read(handle);              /* answers come back as events */
+aos_hal_ble_gatt_events(evs, 8);            /* reads, notifications, write and subscribe results */
+
+/* destroy() */
+aos_hal_ble_gatt_disconnect();
+aos_hal_ble_scan_stop();
+```
+
+The ring holds 1024 packets in PSRAM: read it a few times a second, and
+`aos_hal_ble_scan_lost()` says how many did not fit. The parsing is the
+app's: the bytes come as they were on the air (`apps/ble/main/bl_decode.c`
+explains every AD structure and is plain C an app can borrow). The GATT
+client never pairs: the store of bonds is the phone's. One connection at a
+time, besides the phone's.
+
+Measured on the watch: scanning at 100 % hands over ~50 packets a second in
+a house and did not slow the WiFi down; internal RAM does not move. The
+numbers and `/api/ble`, which drives the same calls from the Mac, are in
+[apps/ble/README.md](../apps/ble/README.md). Give a scanning app
+`KEEP_AWAKE` for the same reason as the link: the app is destroyed when the
+screen dims, and the scan with it.
+
 ## Translation
 
 Strings go through `_()`, and the catalogue key **is the Spanish string

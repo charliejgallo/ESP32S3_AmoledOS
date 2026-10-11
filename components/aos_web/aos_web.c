@@ -3555,6 +3555,7 @@ esp_err_t aos_jpegbench_handler(httpd_req_t *req);
 esp_err_t aos_h264bench_handler(httpd_req_t *req);
 esp_err_t aos_imu_dump_handler(httpd_req_t *req);
 esp_err_t aos_link_handler(httpd_req_t *req);
+esp_err_t aos_ble_api_handler(httpd_req_t *req);  /* aos_ble_api.c */
 esp_err_t aos_player_handler(httpd_req_t *req);     /* aos_player_api.c */
 esp_err_t aos_radio_page_handler(httpd_req_t *req); /* aos_radio_api.c */
 esp_err_t aos_radio_get_handler(httpd_req_t *req);
@@ -3581,6 +3582,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/h264bench", .method = HTTP_GET, .handler = aos_h264bench_handler },
         { .uri = "/api/imu",     .method = HTTP_GET,  .handler = aos_imu_dump_handler },
         { .uri = "/api/link",    .method = HTTP_GET,  .handler = aos_link_handler },
+        { .uri = "/api/ble",     .method = HTTP_GET,  .handler = aos_ble_api_handler },
         { .uri = "/api/player",  .method = HTTP_GET,  .handler = aos_player_handler },
         { .uri = "/api/usb",     .method = HTTP_GET,  .handler = usb_handler },
         { .uri = "/usb",         .method = HTTP_GET,  .handler = usb_page_handler },

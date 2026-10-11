@@ -1374,7 +1374,11 @@ every 50 ms so core 0's idle task runs.
 becomes `__bswapsi2`; any `double` arithmetic (`(double)frames * 1000.0 / ms`
 for a log line) needs `__muldf3`, `__divdf3`, `__floatunsidf`. Swap byte by
 byte, and keep numbers in integer tenths. `build_apps.sh` lists what is
-missing.
+missing. A big-endian 32-bit read from bytes (`p[0] << 24 | ... | p[3]`) is
+recognised as a byte swap too; the BLE app builds its `u32be()` with
+`__attribute__((noinline, optimize("O0")))` under GCC only. `fgets` and
+`strcspn` are not lent either: `apps/ble/main/bl_scan.c` reads lines with
+`fread` a byte at a time over the `FILE`'s buffer.
 
 **`-Werror=format-truncation` is on in the board's build and not in the
 simulator's**: a `snprintf` of an `int` into a buffer the compiler thinks is

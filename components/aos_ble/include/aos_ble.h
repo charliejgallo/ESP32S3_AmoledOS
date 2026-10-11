@@ -73,6 +73,18 @@ void     aos_ble_pair_confirm(bool accept);
 bool aos_ble_notif_action(uint32_t uid, bool positive);
 
 /* --------------------------------------------------------------------------
+ * The apps' scanner and GATT client (aos_ble_scan.c)
+ *
+ * aos_ble.c calls these at the stack's moments; the scanner never touches
+ * the phone's connection and the phone's code never sees the scanner's.
+ * -------------------------------------------------------------------------- */
+uint8_t aos_ble_own_addr_type(void);
+void    aos_ble_scan_init(void);    /* after nimble_port_init */
+void    aos_ble_scan_deinit(void);  /* before nimble_port_stop */
+void    aos_ble_scan_synced(void);  /* from on_sync */
+void    aos_ble_scan_reset(void);   /* from on_reset */
+
+/* --------------------------------------------------------------------------
  * Phase F0 measurement bench
  *
  * Brings NimBLE up and walks only the five states that were needed to settle
