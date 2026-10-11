@@ -3,6 +3,35 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+**BLE: a Bluetooth LE scanner and analyser for the watch**
+([apps/ble/README.md](apps/ble/README.md)), brought from P4OS with the same
+firmware API.
+
+- **The app** (`aos.ble`): who is around (sorted, filtered, the signal and
+  its last 30 seconds), a radar by estimated distance, a finder that beeps
+  faster as you get closer, the readings thermometers broadcast (BTHome,
+  pvvx/ATC, MiBeacon, Govee, Ruuvi, SwitchBot, Qingping, Inkbird, Eddystone
+  TLM; the encrypted ones with their key), the statistics of the air, every
+  AD structure explained with its bytes, and a GATT explorer for the
+  devices that take a connection. A CSV of the sensors on the card. It
+  scans only while open and keeps the screen on meanwhile.
+- **Firmware: `aos_hal_ble_*`**, the apps' scanner and a GATT client of
+  their own (`components/aos_ble/aos_ble_scan.c`): every packet heard into a
+  ring in PSRAM, and one connection as a central with its own GAP callback,
+  so the phone's code never sees it. `CONFIG_BT_NIMBLE_MAX_CONNECTIONS` goes
+  from 1 to 2. `tools/gen_symbols.py` lends only that prefix of `aos_ble`.
+- **`/api/ble`** drives the same calls from the Mac to measure: packets a
+  second, devices, losses, memory, a GATT connection.
+- **The simulator** has a made-up neighbourhood (`sim/ble_sim.c`), and a
+  crowd with `AOS_SIM_BLE_CROWD=N`.
+- **Measured**: scanning at 100 % did not slow the WiFi down and internal
+  RAM does not move; the second connection costs nothing measurable at
+  rest. The GATT client connects at 15-30 ms: with NimBLE's default a stock
+  Xiaomi thermometer asked for it mid-discovery and the request in flight
+  was lost (ATT timeout 7 times in 13); now 17 in 17.
+
 ## v0.10.1 — 2026-10-03
 
 **The watch pairs from the iPhone's Settings.** Firmware only; the apps

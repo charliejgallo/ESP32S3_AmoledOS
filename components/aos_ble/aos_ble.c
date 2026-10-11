@@ -1240,6 +1240,7 @@ static void on_reset(int reason)
 {
     ESP_LOGE(TAG, "the host restarted (%d)", reason);
     limpiar_conexion();
+    aos_ble_scan_reset();
 }
 
 static void on_sync(void)
@@ -1251,6 +1252,7 @@ static void on_sync(void)
     }
     advertise();
     diag_scan();
+    aos_ble_scan_synced();          /* an app's scan, back on */
 }
 
 static void host_task(void *param)
@@ -1297,6 +1299,7 @@ bool aos_ble_start(void)
     ble_store_config_init();        /* keys in NVS */
 
     limpiar_conexion();
+    aos_ble_scan_init();
     s_running = true;
     nimble_port_freertos_init(host_task);
     ESP_LOGI(TAG, "BLE stack up");
@@ -1310,6 +1313,7 @@ void aos_ble_stop(void)
     }
     s_running = false;
 
+    aos_ble_scan_deinit();
     int rc = nimble_port_stop();
     if (rc == 0) {
         esp_err_t e = nimble_port_deinit();
@@ -1332,6 +1336,11 @@ void aos_ble_stop(void)
 bool aos_ble_running(void)
 {
     return s_running;
+}
+
+uint8_t aos_ble_own_addr_type(void)
+{
+    return s_addr_type;
 }
 
 /* Safety net. Advertising may have stopped on its own -a connection attempt

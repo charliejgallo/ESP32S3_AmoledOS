@@ -976,6 +976,112 @@ void     aos_hal_bt_pair_confirm(bool accept);
 void     aos_hal_bt_pair_cancel(void);
 
 /* --------------------------------------------------------------------------
+ * Bluetooth LE for apps (components/aos_ble/aos_ble_scan.c)
+ *
+ * What the devices around advertise, raw, and a GATT client for one device at
+ * a time. The parsing is the app's: the HAL hands over the bytes as they came.
+ * Same signatures as P4OS's, so an app moves between the two unchanged.
+ *
+ * Both need Bluetooth on (aos_hal_bt_enable). They share the S3's one 2.4 GHz
+ * radio with the phone, the WiFi and the link (ESP-NOW): scanning at a duty of
+ * 100 % takes air from all of them, so the duty is the caller's choice. One
+ * app owns the scanner and the client; another start takes them over. NimBLE
+ * runs them in its own task: these calls only copy, never wait for the radio,
+ * and can be made from LVGL's thread. In the simulator, a made-up
+ * neighbourhood (sim/ble_sim.c).
+ * -------------------------------------------------------------------------- */
+enum {
+    AOS_BLE_ADV_IND = 0,            /* connectable and scannable */
+    AOS_BLE_ADV_DIRECT_IND,         /* connectable, aimed at one device */
+    AOS_BLE_ADV_SCAN_IND,           /* scannable, not connectable */
+    AOS_BLE_ADV_NONCONN_IND,        /* neither: a beacon */
+    AOS_BLE_ADV_SCAN_RSP,           /* the answer to our scan request */
+};
+
+typedef struct {
+    uint32_t t_ms;                  /* aos_hal_uptime_ms() when it was heard */
+    uint8_t  addr[6];               /* as written: addr[0] is the first byte of "AA:BB:..." */
+    uint8_t  addr_type;             /* 0 public, 1 random */
+    uint8_t  kind;                  /* AOS_BLE_ADV_* */
+    int8_t   rssi;                  /* dBm */
+    uint8_t  len;                   /* bytes in data, 0..31 */
+    uint8_t  data[31];              /* the AD structures, as on the air */
+} aos_ble_adv_t;
+
+/* duty_pct: the share of the time the radio listens, 5..100. active asks
+ * every scannable device for its scan response (names often come only
+ * there). Every packet is kept, repeats included: the RSSI over time is the
+ * point. false if Bluetooth is off. */
+bool     aos_hal_ble_scan_start(bool active, int duty_pct);
+void     aos_hal_ble_scan_stop(void);
+bool     aos_hal_ble_scanning(void);
+/* Takes up to max reports, oldest first, off a ring of 1024 in PSRAM. Read
+ * it a few times a second: what does not fit is lost and counted. */
+int      aos_hal_ble_scan_read(aos_ble_adv_t *out, int max);
+uint32_t aos_hal_ble_scan_lost(void);
+
+typedef enum {
+    AOS_BLE_GATT_IDLE = 0,
+    AOS_BLE_GATT_CONNECTING,
+    AOS_BLE_GATT_DISCOVERING,       /* connected, listing its services */
+    AOS_BLE_GATT_READY,
+    AOS_BLE_GATT_FAILED,            /* see the reason; the link is gone */
+} aos_ble_gatt_state_t;
+
+enum { AOS_BLE_ATTR_SERVICE = 0, AOS_BLE_ATTR_CHAR, AOS_BLE_ATTR_DESC };
+
+typedef struct {
+    uint8_t  kind;                  /* AOS_BLE_ATTR_* */
+    uint8_t  props;                 /* a characteristic's: broadcast 0x01, read 0x02, write without
+                                       response 0x04, write 0x08, notify 0x10, indicate 0x20,
+                                       signed write 0x40, extended 0x80 */
+    uint16_t handle;                /* service: its first; characteristic: its value; descriptor: its own */
+    uint16_t end;                   /* service: its last handle; characteristic: its declaration */
+    uint8_t  uuid_len;              /* 2, 4 or 16 */
+    uint8_t  uuid[16];              /* little endian, as on the air */
+} aos_ble_attr_t;
+
+enum {
+    AOS_BLE_EV_READ = 0,            /* the answer to aos_hal_ble_gatt_read */
+    AOS_BLE_EV_NOTIFY,
+    AOS_BLE_EV_INDICATE,
+    AOS_BLE_EV_WRITE,               /* a write with response came back */
+    AOS_BLE_EV_SUBSCRIBE,           /* the CCCD write came back */
+};
+
+typedef struct {
+    uint32_t t_ms;
+    uint8_t  type;                  /* AOS_BLE_EV_* */
+    uint8_t  _pad;
+    uint16_t handle;
+    int16_t  status;                /* 0, or NimBLE's: 0x100 + the ATT error (0x105 wants
+                                       authentication, 0x10F encryption), 13 timeout... */
+    uint16_t len;
+    uint8_t  data[512];             /* reads are long reads: up to the 512 an attribute can hold */
+} aos_ble_gatt_ev_t;
+
+/* Connects (stopping the scan meanwhile, which comes back by itself),
+ * exchanges the MTU and discovers everything. Pairing is not offered: the
+ * bonds' store is the phone's. */
+bool aos_hal_ble_gatt_connect(const uint8_t addr[6], uint8_t addr_type);
+void aos_hal_ble_gatt_disconnect(void);
+/* reason: why it FAILED or why the link went (NimBLE's codes; 0x208 the
+ * device closed it, 0x213 the remote user, 0x23E it never established) */
+aos_ble_gatt_state_t aos_hal_ble_gatt_state(int *reason);
+uint16_t aos_hal_ble_gatt_mtu(void);
+bool     aos_hal_ble_gatt_rssi(int8_t *rssi);  /* measured once a second while connected */
+/* The table once READY: each service, its characteristics, each one's
+ * descriptors, in handle order. Returns how many there are (up to max). */
+int  aos_hal_ble_gatt_attrs(aos_ble_attr_t *out, int max);
+bool aos_hal_ble_gatt_read(uint16_t handle);
+bool aos_hal_ble_gatt_write(uint16_t handle, const void *data, size_t len, bool response);
+/* mode 0 off, 1 notifications, 2 indications: writes the characteristic's
+ * CCCD (the descriptor 0x2902 after its value handle). */
+bool aos_hal_ble_gatt_subscribe(uint16_t value_handle, int mode);
+/* Answers, notifications and errors, oldest first, off a ring of 64. */
+int  aos_hal_ble_gatt_events(aos_ble_gatt_ev_t *out, int max);
+
+/* --------------------------------------------------------------------------
  * Phone notifications
  *
  * The provider (NimBLE on the board, an imaginary phone in the simulator)

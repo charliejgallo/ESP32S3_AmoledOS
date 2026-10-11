@@ -30,7 +30,14 @@ DEFAULT_LIBS = ["lvgl__lvgl", "lvgl_port_lib",
                 # aos_hal_usb_* and aos_hal_mdns_* are declared in aos_hal.h but
                 # live here (aos_usb depends on aos_hal, not the other way round):
                 # without this line a .so calling the USB port fails only at load.
-                "aos_usb"]
+                "aos_usb",
+                # aos_hal_ble_* (the apps' scanner and GATT client) are declared
+                # in aos_hal.h and live in aos_ble, next to the stack; only
+                # that prefix is lent (LIB_ONLY), the phone's code stays private.
+                "aos_ble"]
+
+# Libraries from which only some prefixes are exported.
+LIB_ONLY = {"aos_ble": ("aos_hal_ble_",)}
 
 # libc and libm functions nearly any app will need and that the table
 # elf_loader brings does NOT include (snprintf, for instance: there you only
@@ -243,7 +250,11 @@ def main():
             symbols.append(name)
 
     for archive in archives:
+        lib = os.path.basename(archive)[3:-2]
+        only = LIB_ONLY.get(lib)
         for name in collect(nm, archive):
+            if only and not name.startswith(only):
+                continue
             if name not in seen:
                 seen.add(name)
                 symbols.append(name)

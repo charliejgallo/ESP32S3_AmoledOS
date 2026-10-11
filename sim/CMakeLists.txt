@@ -96,6 +96,7 @@ endif()
 add_executable(amoledos_sim
     main.c
     hal_sim.c
+    ble_sim.c
     sim_codec.c
     sim_aac.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_http.c
