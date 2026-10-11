@@ -163,6 +163,15 @@ With the app open: internal free 121.6 K (the same), PSRAM ~490 KB. A full
 redraw of any page takes 89-97 ms (the watchface takes 115-128); the radar
 redraws its area five times a second.
 
+**With the iPhone connected** (ANCS, the same day), scanning off, 10, 30,
+60 and 100 % for half a minute each: the phone never dropped, its battery
+level kept arriving over GATT, the WiFi was the same (104-130 KB/s, no ping
+lost), and nothing was lost; at 100 % the scan hears fewer packets (35 a
+second against 48), since the phone's connection takes its share of the
+air. One message sent with the app open at 100 % did not reach the watch;
+it was not isolated (it may have been the phone not raising it), and it was
+accepted as it is: while the scanner is open, notifications may not come.
+
 **GATT against a real device** (a stock Xiaomi thermometer, read only):
 connected, 86 attributes discovered (7 services, 39 characteristics, 40
 descriptors), its model, firmware, maker and battery read, and its
