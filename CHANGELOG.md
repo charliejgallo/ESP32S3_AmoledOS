@@ -3,11 +3,12 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.11.0 — 2026-10-10
 
 **BLE: a Bluetooth LE scanner and analyser for the watch**
 ([apps/ble/README.md](apps/ble/README.md)), brought from P4OS with the same
-firmware API.
+firmware API. Firmware and a new app (`ble.so`, which needs this firmware);
+the other apps are those of v0.10.1.
 
 - **The app** (`aos.ble`): who is around (sorted, filtered, the signal and
   its last 30 seconds), a radar by estimated distance, a finder that beeps
