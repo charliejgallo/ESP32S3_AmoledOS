@@ -559,6 +559,21 @@ static int gap_cb(struct ble_gap_event *event, void *arg)
     case BLE_GAP_EVENT_MTU:
         s_mtu = event->mtu.value;
         return 0;
+    case BLE_GAP_EVENT_L2CAP_UPDATE_REQ: {
+        const struct ble_gap_upd_params *p = event->conn_update_req.peer_params;
+        /* accepted; said, because a peer that asks in the middle of a
+         * procedure is what hung discovery (connect_to) */
+        ESP_LOGI(TAG, "peer asks itvl %u-%u latency %u timeout %u", p->itvl_min, p->itvl_max, p->latency,
+                 p->supervision_timeout);
+        return 0;
+    }
+    case BLE_GAP_EVENT_CONN_UPDATE: {
+        struct ble_gap_conn_desc d;
+        if (ble_gap_conn_find(event->conn_update.conn_handle, &d) == 0)
+            ESP_LOGI(TAG, "connection updated (%d): itvl %u latency %u timeout %u", event->conn_update.status,
+                     d.conn_itvl, d.conn_latency, d.supervision_timeout);
+        return 0;
+    }
     default:
         return 0;
     }
@@ -580,7 +595,19 @@ static void connect_to(const uint8_t addr[6], uint8_t type)
     ble_addr_t peer = { .type = type ? BLE_ADDR_RANDOM : BLE_ADDR_PUBLIC };
     for (int i = 0; i < 6; i++) peer.val[i] = addr[5 - i];
     s_state = AOS_BLE_GATT_CONNECTING;
-    int rc = ble_gap_connect(aos_ble_own_addr_type(), &peer, 8000, NULL, gap_cb, NULL);
+    /* 15-30 ms from the start, what small peripherals ask for anyway. With
+     * NimBLE's default (30-50 ms) a stock Xiaomi thermometer asked for these
+     * a few seconds in, and the ATT request in flight at that moment never
+     * got its answer: discovery hung until the 30 s ATT timeout, 7 times in
+     * 13 on the watch, whether the update was accepted or refused. Asked
+     * for from the start, it has nothing to ask: 14 in 14, in 7-11 s, with
+     * the scan at 100 % or without it (2026-10-10). */
+    static const struct ble_gap_conn_params cp = {
+        .scan_itvl = 16, .scan_window = 16,
+        .itvl_min = 12, .itvl_max = 24,         /* 15-30 ms */
+        .latency = 0, .supervision_timeout = 200,   /* 2 s */
+    };
+    int rc = ble_gap_connect(aos_ble_own_addr_type(), &peer, 8000, &cp, gap_cb, NULL);
     if (rc) {
         ESP_LOGW(TAG, "ble_gap_connect: %d", rc);
         s_reason = rc;

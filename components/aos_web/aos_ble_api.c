@@ -17,7 +17,7 @@
  * GET /api/ble?do=start&duty=100&active=1
  * GET /api/ble?do=stop | do=reset
  * GET /api/ble?do=connect&addr=AA:BB:CC:DD:EE:FF&type=1
- * GET /api/ble?do=disconnect | do=attrs | do=read&h=N
+ * GET /api/ble?do=disconnect | do=attrs | do=read&h=N | do=sub&h=N&mode=1
  * GET /api/ble?do=top                   the 24 loudest addresses heard
  */
 #include <stdio.h>
@@ -285,6 +285,11 @@ esp_err_t aos_ble_api_handler(httpd_req_t *req)
         result = "disconnecting";
     } else if (strcmp(what, "attrs") == 0) {
         attrs = true;
+    } else if (strcmp(what, "sub") == 0) {
+        int h = 0, mode = 1;
+        query_int(req, "h", &h);
+        query_int(req, "mode", &mode);
+        result = aos_hal_ble_gatt_subscribe((uint16_t)h, mode) ? "subscribing" : "subscribe refused";
     } else if (strcmp(what, "read") == 0) {
         int h = 0;
         query_int(req, "h", &h);

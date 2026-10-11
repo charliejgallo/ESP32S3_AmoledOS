@@ -163,6 +163,18 @@ With the app open: internal free 121.6 K (the same), PSRAM ~490 KB. A full
 redraw of any page takes 89-97 ms (the watchface takes 115-128); the radar
 redraws its area five times a second.
 
+**GATT against a real device** (a stock Xiaomi thermometer, read only):
+connected, 86 attributes discovered (7 services, 39 characteristics, 40
+descriptors), its model, firmware, maker and battery read, and its
+temperature notified every ~6 s for a minute with the scan running at the
+same time. The first tries hung: with NimBLE's default connection interval
+(30-50 ms) the thermometer asked for 15-30 ms a few seconds in, and the ATT
+request in flight then never got its answer, so discovery ended in the 30 s
+ATT timeout 7 times in 13, whether the update was accepted or refused. The
+client now connects at 15-30 ms from the start: 17 in 17, discovery in 7-13
+s, with the scan at 100 % or stopped (the scan was suspected and cleared:
+it adds a second or two, nothing more).
+
 `/api/ble` on the portal drives the same HAL calls from the Mac (state,
 counters, the loudest addresses, a GATT connection and its table): see the
 comment at the top of `components/aos_web/aos_ble_api.c`. It reads the

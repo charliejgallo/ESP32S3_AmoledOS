@@ -28,7 +28,9 @@ firmware API.
   crowd with `AOS_SIM_BLE_CROWD=N`.
 - **Measured**: scanning at 100 % did not slow the WiFi down and internal
   RAM does not move; the second connection costs nothing measurable at
-  rest.
+  rest. The GATT client connects at 15-30 ms: with NimBLE's default a stock
+  Xiaomi thermometer asked for it mid-discovery and the request in flight
+  was lost (ATT timeout 7 times in 13); now 17 in 17.
 
 ## v0.10.1 — 2026-10-03
 
