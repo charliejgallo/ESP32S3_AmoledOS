@@ -274,6 +274,12 @@ over USB.
 > The confirmation deliberately does **not** wait for the network: an image is
 > not broken because the router is down.
 
+> **Each sector is erased as its data arrives** (since 2026-10-14). The image
+> used to be erased whole before the upload: for those seconds the flash
+> driver kept a core busy, the task watchdog fired and the panic handler hung
+> writing the core dump, so the hardware watchdog reset the chip mid-upload
+> (boot reason "watchdog", no dump). An upload takes ~45 s now.
+
 The one thing it will not do is change the partition table or the bootloader.
 Those are still USB, and so is the first install on a fresh board.
 
@@ -285,11 +291,37 @@ Those are still USB, and so is the first install on a fresh board.
 > seconds, no reboot needed. If the port is gone anyway, replug once, or use
 > the OTA route above, which does not care.
 
+## When it crashes: the core dump
+
+A panic leaves a core dump in the `coredump` partition (512 KB), kept through
+any number of restarts until it is erased. The portal's *Log* page says when
+there is one and which firmware made it; on the Mac:
+
+```bash
+./tools/coredump.sh 192.168.1.107            # ERASE=1 to forget it afterwards
+```
+
+It reads from the dump the sha of the ELF that made it (16 characters,
+`CONFIG_APP_RETRIEVE_LEN_ELF_SHA=16`) and decodes it **only against that
+ELF**: read against another build, an old dump looks like a new bug pointing
+at the wrong lines. The ELFs are kept in `build/elf/<sha>.elf`, the last 10:
+`install_fw.sh` keeps the one of every firmware it installs
+(`tools/elf_keep.sh`). A firmware installed from a release has its ELF in that
+release (`amoledos.elf.xz`, from v0.14.0 on), which the script fetches with
+`gh`. With no ELF of that sha anywhere it stops and says so. `POST
+/api/coredump/test` panics on purpose, to try the whole path.
+
+The dump is the `/api/coredump` download with a 24-byte header before the ELF;
+by hand: strip up to `\x7fELF` and `esp-coredump info_corefile --core <file>
+--core-format elf <the ELF>`.
+
 ## Other tools
 
 | Tool | What it does |
 | --- | --- |
-| `tools/install_fw.sh` | pushes the firmware over WiFi (`/api/ota`), keeping NVS |
+| `tools/install_fw.sh` | pushes the firmware over WiFi (`/api/ota`), keeping NVS, and keeps its ELF |
+| `tools/coredump.sh [host]` | the last panic, decoded against the ELF of the firmware that made it |
+| `tools/elf_keep.sh [elf]` | keeps an ELF as `build/elf/<sha>.elf`, for `coredump.sh` |
 | `tools/gen_symbols.py` | generates the symbol table the apps resolve against |
 | `tools/gen_fonts.py` | regenerates Montserrat with the Latin-1 supplement |
 | `tools/gen_lang.py` | extracts, checks and embeds the translation catalogues |

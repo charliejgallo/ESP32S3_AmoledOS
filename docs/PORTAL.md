@@ -16,7 +16,7 @@ its app, from the card - see "The apps' own pages" below.
 | `/alarmas` | **Alarms.** The six slots of the Alarms app: time, on/off, the days of the week (with weekdays / weekend / every day shortcuts), delete, add. A change is stored in NVS and the alarm service reloads on its next tick, redrawing the app if it is open. |
 | `/pantalla` | **Screen.** A live capture of the panel, with the controls to drive it from the browser: wake, off, back, watchface, menu, a toast, and a button per app to open it. For testing without the watch on the wrist. |
 | `/archivos` | **Files.** The card by folder (apps, photos, music, videos, recordings): upload by drag, download, delete, listen, and a preview for photos. Shows the free space. A fifth tab, **Card**, is an explorer of the whole card: any folder, breadcrumbs, new folder, delete an empty one. |
-| `/registro` | **Log.** The ESP_LOG output, tailed over wifi from a 64 KB ring in PSRAM. Filter, pause, save as text. The ring survives a restart: **the previous boot** shows below, what happened before a panic, a watchdog or a restart. |
+| `/registro` | **Log.** The ESP_LOG output, tailed over wifi from a 64 KB ring in PSRAM. Filter, pause, save as text. The ring survives a restart: **the previous boot** shows below, what happened before a panic, a watchdog or a restart. When there is a core dump, a card says which firmware made it, to download or erase it. |
 | `/wifi` `/ap` `/red` | Connect to a network, configure the setup access point, read the network surveys. |
 | `/clima` `/cotiz` `/sensores` `/remoto` `/camaras` | *(the app's page, from the card)* Per-app configuration: weather location, exchange rates, Home Assistant sensors, the remote-control profile. |
 | `/radio` | **Radio.** *(the app's page, from the card)* What plays on the watch now, with its controls and the volume; the nine keys of the Radio app (drop a station on one, drag one onto another to swap them, play, clear); **My list**, kept on the card as `radio/library.json` through the generic file API; a search in radio-browser.info (from the browser: the firmware learns nothing about the directory) with "only MP3" on by default; an address by hand; and the covers switch. A station's logo is drawn in the browser on a 160 px square and saved as `radio/logoN.jpg`. See [RADIO.md](RADIO.md). |
@@ -98,7 +98,9 @@ GET  /api/usb                    the USB port (docs/USB.md): mode, hid_ready, ne
                                  a note, ?cp=name&from=dir&to=dir
                                  copies a file between folders (usb included), timed;
                                  ?tusblog=1 TinyUSB's own log
-GET  /api/coredump               the last panic's core dump (ELF); ?erase=1 clears it
+GET  /api/coredump               the last panic's core dump (ELF); ?erase=1 clears it;
+                                 ?info=1 {present, size, elf_sha, slot: running|other|none,
+                                 version, task, pc}: which firmware made it (docs/BUILDING.md)
 POST /api/coredump/test          a panic on purpose, to try the dump and ?prev=1
 GET  /api/pmu?...                the power experiments (docs/POWER.md)
 GET  /api/mem                    the RAM audit's report (docs/RAM-AUDIT.md): heaps by

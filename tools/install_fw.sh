@@ -62,6 +62,8 @@ if [[ $code != 2* ]]; then
     exit 1
 fi
 echo "   written: $(cat /tmp/aos_ota_out.$$)"
+# the ELF of what the watch is about to run, for tools/coredump.sh
+[[ -f ${BIN:r}.elf ]] && $ROOT/tools/elf_keep.sh ${BIN:r}.elf
 rm -f /tmp/aos_ota_out.$$
 
 echo "   restarting..."

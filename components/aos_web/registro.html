@@ -42,6 +42,16 @@
     que quedó. Las 64 KB alcanzan para unos doce minutos de arranque o muchas
     horas de reloj quieto.</footer>
 
+  <div class="tarjeta" id="volcado" hidden>
+    <b data-t="vol_titulo">Hay un volcado del último panic</b>
+    <p class="sub" id="vol-info"></p>
+    <p class="sub" data-t-html="vol_ayuda">Para leerlo en la Mac: <code>tools/coredump.sh</code>, que lo decodifica con el ELF del firmware que lo hizo.</p>
+    <div class="barra-reg">
+      <button class="sec chica" id="vol-bajar" data-t="vol_bajar">Descargar</button>
+      <button class="sec chica" id="vol-borrar" data-t="vol_borrar">Borrar</button>
+    </div>
+  </div>
+
   <details class="tarjeta" id="anterior">
     <summary><b data-t="ant_titulo">El arranque anterior</b>
       <span class="estado" id="ant-estado"></span></summary>
@@ -68,6 +78,11 @@ const TR = {
     ant_titulo: "The previous boot",
     ant_bajada: "The ring survives a restart: here is the last the watch wrote before a hang, a watchdog or a restart. A power cut loses it.",
     ant_motivo: "it ended by: %m", ant_nada: "nothing kept (the first boot after a power cut)",
+    vol_titulo: "There is a core dump of the last panic",
+    vol_ayuda: "To read it on the Mac: <code>tools/coredump.sh</code>, which decodes it with the ELF of the firmware that made it.",
+    vol_bajar: "Download", vol_borrar: "Erase",
+    vol_este: "made by the firmware running now (%v)", vol_otro: "made by the other OTA slot's firmware (%v)",
+    vol_viejo: "made by an older firmware, no longer on the watch", vol_tarea: "task %t, pc %p, %s",
     lineas: "%n lines", perdido: "(gap: the ring wrapped)", sin_conexion: "no connection to the watch"
   },
   de: {
@@ -79,12 +94,19 @@ const TR = {
     ant_titulo: "Der vorige Start",
     ant_bajada: "Der Ring uebersteht einen Neustart: hier steht, was die Uhr zuletzt vor einem Haenger, einem Watchdog oder einem Neustart schrieb. Ein Stromausfall loescht ihn.",
     ant_motivo: "beendet durch: %m", ant_nada: "nichts behalten (der erste Start nach einem Stromausfall)",
+    vol_titulo: "Es gibt einen Core-Dump der letzten Panik",
+    vol_ayuda: "Zum Lesen auf dem Mac: <code>tools/coredump.sh</code>, das ihn mit dem ELF der Firmware dekodiert, die ihn erzeugt hat.",
+    vol_bajar: "Herunterladen", vol_borrar: "Löschen",
+    vol_este: "von der laufenden Firmware (%v)", vol_otro: "von der Firmware im anderen OTA-Slot (%v)",
+    vol_viejo: "von einer älteren Firmware, die nicht mehr auf der Uhr ist", vol_tarea: "Task %t, pc %p, %s",
     lineas: "%n Zeilen", perdido: "(Luecke: der Ring ist uebergelaufen)", sin_conexion: "keine Verbindung zur Uhr"
   }
 };
 const ES = {
   lineas: "%n líneas", perdido: "(hueco: el anillo dio la vuelta)", sin_conexion: "sin conexión con el reloj",
-  ant_motivo: "terminó por: %m", ant_nada: "no quedó nada (el primer arranque después de un corte de energía)"
+  ant_motivo: "terminó por: %m", ant_nada: "no quedó nada (el primer arranque después de un corte de energía)",
+  vol_este: "lo hizo el firmware que corre ahora (%v)", vol_otro: "lo hizo el firmware del otro slot OTA (%v)",
+  vol_viejo: "lo hizo un firmware anterior, que ya no está en el reloj", vol_tarea: "tarea %t, pc %p, %s"
 };
 const $ = aos.$;
 function t(k) { const v = aos.t(k); return v === k ? (ES[k] !== undefined ? ES[k] : k) : v; }
@@ -190,7 +212,28 @@ $("b-ant-bajar").onclick = () => {
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
-aos.init(TR).then(() => { traer(); setInterval(traer, 2000); });
+/* El volcado del ultimo panic, si hay: de que firmware es */
+async function volcado() {
+  try {
+    const d = await (await fetch("/api/coredump?info=1")).json();
+    $("volcado").hidden = !d.present;
+    if (!d.present) return;
+    const de = d.slot === "running" ? t("vol_este") : d.slot === "other" ? t("vol_otro") : t("vol_viejo");
+    $("vol-info").textContent = de.replace("%v", d.version || "?") + " · " +
+      t("vol_tarea").replace("%t", d.task || "?").replace("%p", d.pc).replace("%s", aos.humano(d.size));
+  } catch (e) { /* un firmware sin ?info */ }
+}
+$("vol-bajar").onclick = () => {
+  const a = document.createElement("a");
+  a.href = "/api/coredump";
+  a.download = "amoledos-core.bin";
+  document.body.append(a); a.click(); a.remove();
+};
+$("vol-borrar").onclick = async () => {
+  await fetch("/api/coredump?erase=1").catch(() => {});
+  volcado();
+};
+aos.init(TR).then(() => { traer(); setInterval(traer, 2000); volcado(); });
 </script>
 </body>
 </html>

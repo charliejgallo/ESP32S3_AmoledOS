@@ -750,6 +750,12 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
 
+        elif url.path == "/api/coredump" and "info" in parse_qs(url.query):
+            # a dump of the other slot's firmware, so the page has something to say
+            self._send(200, json.dumps({"present": True, "size": 34244, "elf_sha": "5b4ffeea8de99881",
+                                        "slot": "other", "version": "v0.13.0", "task": "aos_web",
+                                        "pc": "0x4200db69"}))
+
         elif url.path == "/api/paginas":
             self._send(200, json.dumps({"paginas": app_pages(self.base)}))
 

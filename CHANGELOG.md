@@ -5,6 +5,17 @@ Newest first. Versions are git tags; what is above the latest tag is on
 
 ## Unreleased
 
+- **A core dump says which firmware made it, and is decoded only against
+  that ELF** (from P4OS). `GET /api/coredump?info=1` reads the ELF sha from
+  the dump's notes (16 characters now) and tells whether it is the running
+  firmware's or the other slot's, with its version, task and pc; the
+  portal's *Log* page shows it, to download or erase. `tools/coredump.sh`
+  decodes it against `build/elf/<sha>.elf`, which `install_fw.sh` keeps for
+  every firmware it installs (`tools/elf_keep.sh`), or the release's
+  `amoledos.elf.xz`, and refuses without it. Releases carry their ELF from
+  now on. Tried on the board: the test panic decoded to the very `abort()`,
+  and the refusal with its ELF away.
+
 - **An over-the-air update no longer restarts the watch halfway.** The
   image's ~4 MB used to be erased in one go before the upload: for that
   long the flash driver kept a core busy, the task watchdog fired, and the

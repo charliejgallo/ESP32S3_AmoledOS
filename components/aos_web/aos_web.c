@@ -15,6 +15,8 @@
 #include "aos_web_access.h" /* who may talk to the portal */
 #include "esp_timer.h"
 #include "esp_core_dump.h"
+#include "esp_ota_ops.h"     /* which slot's firmware made a core dump */
+#include "esp_app_desc.h"
 #include "esp_partition.h"
 #include <errno.h>
 #include <time.h>
@@ -2649,10 +2651,119 @@ static esp_err_t coredump_test_handler(httpd_req_t *req)
  * OTG side, where no console can print them. Decode on the Mac with
  * espcoredump.py info_corefile --core <file> --core-format elf build/amoledos.elf.
  * ?erase=1 clears it. */
+/* The ELF sha the dump carries in its notes (type 8266: the core dump's
+ * version, then the app ELF's sha as text), read straight from the
+ * partition: IDF's summary maps the whole partition, which may not fit next
+ * to the apps' code in the MMU. Empty when it cannot be read. */
+static void coredump_elf_sha(const esp_partition_t *part, char *out, size_t len)
+{
+    out[0] = 0;
+    uint8_t h[52];
+    const size_t base = 24;                         /* core_dump_header_t */
+    if (esp_partition_read(part, base, h, sizeof h) != ESP_OK || memcmp(h, "\x7f" "ELF", 4) != 0) {
+        return;
+    }
+    uint32_t phoff;
+    uint16_t phentsize, phnum;
+    memcpy(&phoff, h + 0x1C, 4);
+    memcpy(&phentsize, h + 0x2A, 2);
+    memcpy(&phnum, h + 0x2C, 2);
+    for (uint16_t i = 0; i < phnum && i < 64; i++) {
+        uint32_t ph[5];                             /* type, offset, vaddr, paddr, filesz */
+        if (esp_partition_read(part, base + phoff + (size_t)i * phentsize, ph, sizeof ph) != ESP_OK) {
+            return;
+        }
+        if (ph[0] != 4) {                           /* PT_NOTE */
+            continue;
+        }
+        size_t at = ph[1], end = ph[1] + ph[4];
+        while (at + 12 <= end) {
+            uint32_t nh[3];                         /* namesz, descsz, type */
+            if (esp_partition_read(part, base + at, nh, sizeof nh) != ESP_OK) {
+                return;
+            }
+            size_t desc = at + 12 + ((nh[0] + 3) & ~3u);
+            if (nh[2] == 8266) {
+                char sha[APP_ELF_SHA256_SZ + 1] = "";
+                esp_partition_read(part, base + desc + 4, sha, sizeof sha - 1);
+                size_t n = 0;
+                while (n + 1 < len && n < sizeof sha - 1 &&
+                       ((sha[n] >= '0' && sha[n] <= '9') || (sha[n] >= 'a' && sha[n] <= 'f'))) {
+                    out[n] = sha[n];
+                    n++;
+                }
+                out[n] = 0;
+                return;
+            }
+            at = desc + ((nh[1] + 3) & ~3u);
+        }
+    }
+}
+
+/* Whether 'sha' (a hex prefix) is the ELF of the firmware in this slot; its
+ * version goes to 'version'. */
+static bool slot_made_it(const esp_partition_t *slot, const char *sha, char *version, size_t len)
+{
+    esp_app_desc_t d;
+    if (!slot || !sha[0] || esp_ota_get_partition_description(slot, &d) != ESP_OK) {
+        return false;
+    }
+    char hex[65];
+    for (int i = 0; i < 32; i++) {
+        snprintf(hex + 2 * i, 3, "%02x", d.app_elf_sha256[i]);
+    }
+    if (strncmp(hex, sha, strlen(sha)) != 0) {
+        return false;
+    }
+    snprintf(version, len, "%s", d.version);
+    return true;
+}
+
+/* GET /api/coredump?info=1: {"present","size","elf_sha","slot":"running|other|none",
+ * "version","task","pc"}. The firmware that made it, so a dump kept since an
+ * older image is not read as a new crash against today's lines. */
+static esp_err_t coredump_info_send(httpd_req_t *req, const esp_partition_t *part, size_t size)
+{
+    char sha[APP_ELF_SHA256_SZ + 1] = "", version[40] = "", task[20] = "";
+    uint32_t pc = 0;
+    if (size) {
+        coredump_elf_sha(part, sha, sizeof sha);
+        esp_core_dump_summary_t *sum = heap_caps_calloc(1, sizeof *sum, MALLOC_CAP_SPIRAM);
+        if (sum && esp_core_dump_get_summary(sum) == ESP_OK) {
+            json_escape(task, sizeof task, sum->exc_task);
+            pc = sum->exc_pc;
+        }
+        free(sum);
+    }
+    const esp_partition_t *running = esp_ota_get_running_partition();
+    const char *slot = "none";
+    if (slot_made_it(running, sha, version, sizeof version)) {
+        slot = "running";
+    } else if (slot_made_it(esp_ota_get_next_update_partition(NULL), sha, version, sizeof version)) {
+        slot = "other";
+    }
+    char json[256];
+    snprintf(json, sizeof json,
+             "{\"present\":%s,\"size\":%u,\"elf_sha\":\"%s\",\"slot\":\"%s\",\"version\":\"%s\","
+             "\"task\":\"%s\",\"pc\":\"0x%08x\"}",
+             size ? "true" : "false", (unsigned)size, sha, size ? slot : "", version, task, (unsigned)pc);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    return httpd_resp_sendstr(req, json);
+}
+
 static esp_err_t coredump_handler(httpd_req_t *req)
 {
     char query[32] = "", value[8];
     httpd_req_get_url_query_str(req, query, sizeof(query));
+    if (httpd_query_key_value(query, "info", value, sizeof(value)) == ESP_OK) {
+        size_t a = 0, sz = 0;
+        if (esp_core_dump_image_get(&a, &sz) != ESP_OK) {
+            sz = 0;
+        }
+        return coredump_info_send(req, esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
+                                                                ESP_PARTITION_SUBTYPE_DATA_COREDUMP, NULL), sz);
+    }
     if (httpd_query_key_value(query, "erase", value, sizeof(value)) == ESP_OK) {
         esp_err_t e = esp_core_dump_image_erase();
         httpd_resp_set_type(req, "application/json");
