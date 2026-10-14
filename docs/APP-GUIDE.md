@@ -805,10 +805,19 @@ of a town in Texas because the space could not be hit. The way out is the web
 portal the firmware already serves ([PORTAL.md](PORTAL.md)), with the
 computer's keyboard. The mould is `/clima`:
 
-1. **An embedded `.html`** (`EMBED_TXTFILES` in `components/aos_web/CMakeLists.txt`)
-   and three handlers: the page, `GET /api/whatever` returning the state, `POST`
-   saving it. **Start from a copy of `clima.html`**: every page hooks into the
-   shared base (below).
+1. **The page is the app's, not the firmware's** (since 2026-10-14):
+   `apps/<app>/web/<app>.html`, named like the `.so`. `install_apps.sh` puts
+   it next to the `.so` on the card, `/sdcard/apps/<app>.html`, and the watch
+   serves it at `http://<watch>.local/<app>` and adds it to the navigation
+   ribbon by itself, under the app's name. No firmware to build, no OTA; a
+   changed page is one upload and a reload of the browser. **Start from
+   `apps/hello_app/web/hello_app.html`** (the watch's state, a card file read
+   and saved, opening the app on the watch) or from `apps/clima/web/clima.html`.
+   Most pages need no firmware at all: the generic file API
+   (`/api/upload`, `/api/download`, `/api/list` with `dir=sd/<folder>`) is
+   enough for Pixel Art, Lua, Maps and the 3D viewer. A JSON API of its own
+   (`GET /api/whatever` returning the state, `POST` saving it) is firmware, as
+   Clima's and Radio's are; only add one when a file will not do.
 2. **Portal and app talk through preferences.** The firmware does not know
    your `.so`; the only thing they share is a few NVS keys with your prefix.
 3. **To notice a change with the app open, re-read the preference every few
@@ -841,8 +850,9 @@ aos.init(TR).then(load);
 </script>
 ```
 
-Add the page to the page list in `aos.js`: one line, and the reason every
-page now links to every other. **The browser's languages are not the
+The ribbon lists every page on the card by itself (`GET /api/paginas`); the
+firmware's own pages are in the list in `aos.js`. A page cannot take the
+address of one of the firmware's (`/ajustes` always wins). **The browser's languages are not the
 firmware's**: in the firmware the key is the Spanish phrase and
 `gen_lang.py` extracts it; in a page the keys are short invented names
 (`data-t="btn_save"`), the Spanish is what is written in the HTML, and `TR`
@@ -871,8 +881,11 @@ never parses or prints a decimal point.
 `.html` files and answers the same endpoints against a local folder - by
 default `sim/sim_fs`, the one the simulator uses, with the same `prefs.txt`.
 Page open in the browser, simulator beside it: save, and the app reloads.
-That is the whole "portal writes, app notices" path without the board. Add
-your page there too; it is twenty lines.
+That is the whole "portal writes, app notices" path without the board. It
+serves `apps/*/web/*.html` straight from the repo, so an edit shows on reload;
+only a JSON API of your own has to be added there. **On the watch:**
+`PAGES=1 ./tools/install_apps.sh charlie.local <app>` uploads only the page and
+does not restart the board.
 
 ## 11. Build and install
 

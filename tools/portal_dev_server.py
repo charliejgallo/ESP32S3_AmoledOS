@@ -14,7 +14,9 @@ browser and the simulator beside it: the profile is saved and the app reloads
 it by itself, just as on the board.
 """
 import argparse
+import glob
 import json
+import re
 import os
 import posixpath
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -30,18 +32,14 @@ PANTALLA_PAGE = os.path.join(ROOT, "components", "aos_web", "pantalla.html")
 REGISTRO_PAGE = os.path.join(ROOT, "components", "aos_web", "registro.html")
 ALARMAS_PAGE = os.path.join(ROOT, "components", "aos_web", "alarmas.html")
 CAPTURA_FAKE = os.path.join(ROOT, "docs", "img", "launcher-list.png")
-REMOTO_PAGE = os.path.join(ROOT, "components", "aos_web", "remoto.html")
 RED_PAGE    = os.path.join(ROOT, "components", "aos_web", "red.html")
 WIFI_PAGE   = os.path.join(ROOT, "components", "aos_web", "wifi.html")
 AP_PAGE     = os.path.join(ROOT, "components", "aos_web", "ap.html")
-CLIMA_PAGE  = os.path.join(ROOT, "components", "aos_web", "clima.html")
-COTIZ_PAGE  = os.path.join(ROOT, "components", "aos_web", "cotiz.html")
-CAMARAS_PAGE = os.path.join(ROOT, "components", "aos_web", "camaras.html")
-RADIO_PAGE  = os.path.join(ROOT, "components", "aos_web", "radio.html")
-MAPAS_PAGE  = os.path.join(ROOT, "components", "aos_web", "mapas.html")
-PIXEL_PAGE  = os.path.join(ROOT, "components", "aos_web", "pixel.html")
-SENSO_PAGE  = os.path.join(ROOT, "components", "aos_web", "sensores.html")
-LUA_PAGE    = os.path.join(ROOT, "components", "aos_web", "lua.html")
+# The pages of the card's apps are not in components/aos_web: each lives in
+# its app (apps/<app>/web/<app>.html) and the watch serves it from
+# /sdcard/apps at /<app>. Here the repo's copy wins, so an edit shows on
+# reload, then the root's apps/ folder, like the card.
+APPS_DIR    = os.path.join(ROOT, "apps")
 CSS_FILE    = os.path.join(ROOT, "components", "aos_web", "aos.css")
 JS_FILE     = os.path.join(ROOT, "components", "aos_web", "aos.js")
 
@@ -58,6 +56,31 @@ CONTENT_TYPES = {
     ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
     ".png": "image/png", ".bmp": "image/bmp", ".gif": "image/gif",
 }
+
+
+def app_page(base, name):
+    """The file of the app page /<name>, or None: the firmware's rule."""
+    if not re.fullmatch(r"[a-z0-9_-]{1,32}", name):
+        return None
+    for path in (os.path.join(APPS_DIR, name, "web", name + ".html"),
+                 os.path.join(base, "apps", name + ".html")):
+        if os.path.isfile(path):
+            return path
+    # an app whose folder is not named like its page (none today)
+    for path in glob.glob(os.path.join(APPS_DIR, "*", "web", name + ".html")):
+        return path
+    return None
+
+
+def app_pages(base):
+    """/api/paginas: every page there is, named after its folder."""
+    names = set()
+    for path in glob.glob(os.path.join(APPS_DIR, "*", "web", "*.html")):
+        names.add(os.path.basename(path)[:-5])
+    for path in glob.glob(os.path.join(base, "apps", "*.html")):
+        names.add(os.path.basename(path)[:-5])
+    return [{"pagina": n, "app": "", "nombre": n} for n in sorted(names)
+            if re.fullmatch(r"[a-z0-9_-]{1,32}", n)]
 
 
 def prefs_path(base):
@@ -312,10 +335,6 @@ class Handler(BaseHTTPRequestHandler):
         return os.path.join(self.base, "data", "remoto.json")
 
     def _remoto_get(self, camino):
-        if camino == "/remoto":
-            with open(REMOTO_PAGE, "rb") as page:
-                return self._send(200, page.read(), "text/html; charset=utf-8")
-
         if camino == "/api/remoto/config":
             datos = prefs_leer(self.base)
             token = datos.get("rc_token", "")
@@ -425,7 +444,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         url = urlparse(self.path)
 
-        if url.path == "/remoto" or url.path.startswith("/api/remoto/"):
+        if url.path.startswith("/api/remoto/"):
             if self._remoto_get(url.path) is not None:
                 return
             return self._send(404, '{"error":"no existe"}')
@@ -442,45 +461,8 @@ class Handler(BaseHTTPRequestHandler):
             with open(AP_PAGE, "rb") as page:
                 self._send(200, page.read(), "text/html; charset=utf-8")
 
-        elif url.path == "/clima":
-            with open(CLIMA_PAGE, "rb") as page:
-                self._send(200, page.read(), "text/html; charset=utf-8")
-
-        elif url.path == "/cotiz":
-            with open(COTIZ_PAGE, "rb") as page:
-                self._send(200, page.read(), "text/html; charset=utf-8")
-
-        elif url.path == "/camaras":
-            with open(CAMARAS_PAGE, "rb") as page:
-                self._send(200, page.read(), "text/html; charset=utf-8")
-
-        # /mapas writes zones.txt, goto.txt and the packs into sim_fs/maps,
-        # the same folder the simulator's Maps app reads.
-        elif url.path == "/mapas":
-            with open(MAPAS_PAGE, "rb") as page:
-                self._send(200, page.read(), "text/html; charset=utf-8")
-
-        elif url.path == "/radio":
-            with open(RADIO_PAGE, "rb") as page:
-                self._send(200, page.read(), "text/html; charset=utf-8")
-
         elif url.path == "/api/radio":
             self._send(200, json.dumps(radio_get(self.base)))
-
-        elif url.path == "/pixel":
-            with open(PIXEL_PAGE, "rb") as page:
-                self._send(200, page.read(), "text/html; charset=utf-8")
-
-        elif url.path == "/sensores":
-            with open(SENSO_PAGE, "rb") as page:
-                self._send(200, page.read(), "text/html; charset=utf-8")
-
-        # /lua writes into the SAME folder the simulator reads, so the page in
-        # the browser and the simulator beside it behave as the page and the
-        # watch do: save here and the app picks the script up.
-        elif url.path == "/lua":
-            with open(LUA_PAGE, "rb") as page:
-                self._send(200, page.read(), "text/html; charset=utf-8")
 
         # The two shared ones. Deliberately no caching here: in development you
         # edit the css and reload, and an hour of max-age drives you mad.
@@ -716,6 +698,14 @@ class Handler(BaseHTTPRequestHandler):
                                  "attachment" if attach else "inline", name))
             self.end_headers()
             self.wfile.write(data)
+
+        elif url.path == "/api/paginas":
+            self._send(200, json.dumps({"paginas": app_pages(self.base)}))
+
+        # what no route answers: an app's page, like the firmware's 404 handler
+        elif app_page(self.base, url.path[1:]):
+            with open(app_page(self.base, url.path[1:]), "rb") as page:
+                self._send(200, page.read(), "text/html; charset=utf-8")
 
         else:
             self._send(404, '{"error":"no existe"}')

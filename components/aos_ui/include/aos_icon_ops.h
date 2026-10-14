@@ -177,6 +177,9 @@ void aos_icon_clear_ops(const char *id);
 /* The blob that will be drawn for this id: a file from the card first, then
  * what the app registered with aos_icon_set_ops(). NULL if neither. */
 const uint8_t *aos_icon_ops_for(const char *id, size_t *len);
+/* Only what the app registered (not a file's): what aos_dynapp keeps in its
+ * cache of the card's apps, so a boot without dlopen gives the same icon. */
+const uint8_t *aos_icon_app_ops(const char *id, size_t *len);
 
 /* Icon files on the card (or SPIFFS), <desc.id>.aic under
  * aos_hal_path_icons(). Reads them all again, replacing whatever the last

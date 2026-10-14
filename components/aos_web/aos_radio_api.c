@@ -1,7 +1,7 @@
 /*
  * AmoledOS - the portal's /radio page and its API (branch radio).
  *
- *   GET  /radio                             the page
+ *   (the page itself is the Radio app's, apps/radio/web/radio.html)
  *   GET  /api/radio                         the nine keys, the switches, what plays
  *   POST /api/radio  do=set&k=N&name=&url=  put a station on key N (0..8)
  *                    do=clear&k=N           empty key N
@@ -32,16 +32,6 @@
 #define TAG         "radio"
 #define KEYS        9
 #define SEP         '\x1f'
-
-extern const uint8_t radio_html_start[] asm("_binary_radio_html_start");
-extern const uint8_t radio_html_end[]   asm("_binary_radio_html_end");
-
-esp_err_t aos_radio_page_handler(httpd_req_t *req)
-{
-    httpd_resp_set_type(req, "text/html; charset=utf-8");
-    return httpd_resp_send(req, (const char *)radio_html_start,
-                           radio_html_end - radio_html_start - 1);
-}
 
 /* ---- the keys --------------------------------------------------------------- */
 

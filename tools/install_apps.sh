@@ -16,6 +16,13 @@
 # The firmware loads the .so files ONCE at startup, so this restarts the board
 # when it finishes. Without the restart nothing changes and it looks as though
 # it did not work.
+#
+# An app's portal page (apps/<x>/web/<x>.html) goes next to its .so, and the
+# watch serves it at /<x> (docs/PORTAL.md). A page needs no restart, only a
+# reload in the browser, so when nothing but pages goes up -an app whose .so
+# is not built, or PAGES=1- the board is not restarted.
+#
+#   PAGES=1 ./tools/install_apps.sh charlie.local radio   only Radio's page
 set -e
 ROOT=${0:a:h:h}
 HOST=${1:?usage: install_apps.sh <ip-or-name> [app...]}
@@ -23,9 +30,12 @@ shift
 WANT=("$@")
 
 files=()
+pages=0
 for d in $ROOT/apps/*(/); do
     name=${d:t}
     (( ${#WANT[@]} )) && [[ ${WANT[(Ie)$name]} -eq 0 ]] && continue
+    for page in $d/web/*.html(.N); do files+=($page); (( pages++ )); done
+    [[ -n $PAGES ]] && continue
     so=($d/build/*.so(.N))
     (( ${#so[@]} )) && files+=($so[1])
     # an app's own data pack (golf's art): it goes next to the .so. A pack
@@ -39,7 +49,7 @@ for d in $ROOT/apps/*(/); do
 done
 (( ${#files[@]} )) || { echo "no .so found - run ./tools/build_apps.sh first"; exit 1; }
 
-echo "== ${#files[@]} apps -> $HOST =="
+echo "== ${#files[@]} files ($pages pages) -> $HOST =="
 total=0
 for f in $files; do
     name=${f:t}
@@ -56,6 +66,10 @@ for f in $files; do
 done
 echo "   $total bytes in total"
 echo
+if (( ${#files[@]} == pages )); then
+    echo "only pages: no restart, reload the page in the browser"
+    exit 0
+fi
 # A bare 'python' may be the system's python2, which has no pyserial: the
 # upload succeeds, the restart fails with an ImportError and the board is left
 # with the old .so files loaded, which is exactly the symptom this script

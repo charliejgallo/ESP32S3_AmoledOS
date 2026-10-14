@@ -19,6 +19,8 @@
 #include "esp_timer.h"
 #include "esp_heap_caps.h"
 #include "esp_dlfcn.h"
+#include "esp_app_desc.h"
+#include "aos_icon_ops.h"
 #include "private/elf_symbol.h"
 
 #include <dirent.h>
@@ -431,6 +433,19 @@ bool aos_dynapp_is_dynamic(const char *app_id)
     return app_id && find_by_id(app_id);
 }
 
+bool aos_dynapp_module_app(const char *file, char *id, size_t id_len,
+                           char *name, size_t name_len)
+{
+    for (int i = 0; i < s_count; i++) {
+        if (s_apps[i].in_use && s_apps[i].index == 0 && strcmp(s_apps[i].file, file) == 0) {
+            snprintf(id, id_len, "%s", s_apps[i].id);
+            snprintf(name, name_len, "%s", s_apps[i].name);
+            return true;
+        }
+    }
+    return false;
+}
+
 /* --------------------------------------------------------------------------
  * Opening and closing the .so
  * -------------------------------------------------------------------------- */
@@ -692,6 +707,77 @@ static struct {
  * end. A module with many apps (lua.so) paid that wait once per script. */
 #define REGISTER_BATCH  16
 
+/* One app into the launcher: our own copies of its strings, the trampolines,
+ * and the icon when it comes from the cache (from the .so, init() already
+ * handed it over). The UI's lock is held across calls (*locked) and let go
+ * every REGISTER_BATCH apps for a frame. */
+static bool register_one(const char *filename, uint16_t index, const aos_app_desc_t *d,
+                         const uint8_t *aic, size_t aic_len, bool *locked, int *in_batch)
+{
+    if (s_count >= MAX_DYNAPPS) {
+        ESP_LOGE(TAG, "%s app %u does not fit: the limit is %d",
+                 filename, (unsigned)index, MAX_DYNAPPS);
+        return false;
+    }
+    dynapp_t *slot = &s_apps[s_count];
+    memset(slot, 0, sizeof(*slot));
+    snprintf(slot->file, sizeof(slot->file), "%s", filename);
+    snprintf(slot->id,   sizeof(slot->id),   "%s", d->id   ? d->id   : filename);
+    snprintf(slot->name, sizeof(slot->name), "%s", d->name ? d->name : filename);
+    snprintf(slot->icon, sizeof(slot->icon), "%s", d->icon ? d->icon : "");
+    slot->index = index;
+
+    aos_app_t stub = {0};
+    stub.desc = *d;
+    stub.desc.id   = slot->id;      /* pointing at OUR copies */
+    stub.desc.name = slot->name;
+    stub.desc.icon = slot->icon[0] ? slot->icon : NULL;
+
+    stub.create  = dyn_create;
+    stub.destroy = dyn_destroy;
+    stub.show    = dyn_show;
+    stub.hide    = dyn_hide;
+    stub.back    = dyn_back;
+    stub.button  = dyn_button;
+    stub.tick    = dyn_tick;
+    if (aic && aic_len) {
+        aos_icon_set_ops(&stub, aic, aic_len);
+    }
+
+    slot->in_use = true;
+    s_count++;
+
+    int64_t t;
+    if (!*locked) {
+        t = esp_timer_get_time();
+        *locked = aos_hal_lock(1000);
+        s_scan_cost.lock_us += esp_timer_get_time() - t;
+    }
+    bool ok = false;
+    if (*locked) {
+        t = esp_timer_get_time();
+        ok = aos_ui_register_app(&stub);
+        s_scan_cost.reg_us += esp_timer_get_time() - t;
+        if (++*in_batch >= REGISTER_BATCH) {
+            aos_hal_unlock();       /* let a frame through */
+            *locked = false;
+            *in_batch = 0;
+        }
+    }
+    if (!ok) {
+        /* aos_ui_register_app says why in its own log line; this one
+         * names the file, which is what tells you which .so to look at. */
+        ESP_LOGE(TAG, "%s[%u] -> %s was refused by the launcher",
+                 filename, (unsigned)index, slot->id);
+        slot->in_use = false;
+        s_count--;
+        return false;
+    }
+    ESP_LOGD(TAG, "registered %s[%u] -> %s (%s)",
+             filename, (unsigned)index, slot->id, slot->name);
+    return true;
+}
+
 static int register_apps(const char *filename, bool first_only, uint32_t *total)
 {
     *total = 0;
@@ -743,59 +829,10 @@ static int register_apps(const char *filename, bool first_only, uint32_t *total)
             }
         }
 
-        dynapp_t *slot = &s_apps[s_count];
-        memset(slot, 0, sizeof(*slot));
-        snprintf(slot->file, sizeof(slot->file), "%s", filename);
-        snprintf(slot->id,   sizeof(slot->id),   "%s", probe.desc.id   ? probe.desc.id   : filename);
-        snprintf(slot->name, sizeof(slot->name), "%s", probe.desc.name ? probe.desc.name : filename);
-        snprintf(slot->icon, sizeof(slot->icon), "%s", probe.desc.icon ? probe.desc.icon : "");
-        slot->index = (uint16_t)i;
-
-        aos_app_t stub = {0};
-        stub.desc = probe.desc;
-        stub.desc.id   = slot->id;      /* pointing at OUR copies */
-        stub.desc.name = slot->name;
-        stub.desc.icon = slot->icon[0] ? slot->icon : NULL;
-
-        stub.create  = dyn_create;
-        stub.destroy = dyn_destroy;
-        stub.show    = dyn_show;
-        stub.hide    = dyn_hide;
-        stub.back    = dyn_back;
-        stub.button  = dyn_button;
-        stub.tick    = dyn_tick;
-
-        slot->in_use = true;
-        s_count++;
-
-        if (!locked) {
-            t = esp_timer_get_time();
-            locked = aos_hal_lock(1000);
-            s_scan_cost.lock_us += esp_timer_get_time() - t;
-        }
-        bool ok = false;
-        if (locked) {
-            t = esp_timer_get_time();
-            ok = aos_ui_register_app(&stub);
-            s_scan_cost.reg_us += esp_timer_get_time() - t;
-            if (++in_batch >= REGISTER_BATCH) {
-                aos_hal_unlock();       /* let a frame through */
-                locked = false;
-                in_batch = 0;
-            }
-        }
-        if (!ok) {
-            /* aos_ui_register_app says why in its own log line; this one
-             * names the file, which is what tells you which .so to look at. */
-            ESP_LOGE(TAG, "%s[%u] -> %s was refused by the launcher",
-                     filename, (unsigned)i, slot->id);
-            slot->in_use = false;
-            s_count--;
+        if (!register_one(filename, (uint16_t)i, &probe.desc, NULL, 0, &locked, &in_batch)) {
             continue;
         }
         registered++;
-        ESP_LOGD(TAG, "registered %s[%u] -> %s (%s)",
-                 filename, (unsigned)i, slot->id, slot->name);
     }
     if (locked) {
         aos_hal_unlock();
@@ -890,6 +927,180 @@ static bool ends_with_so(const char *name)
     return len > 3 && strcmp(name + len - 3, ".so") == 0;
 }
 
+/* --------------------------------------------------------------------------
+ * The cache of the card's apps (2026-10-14, from P4OS)
+ *
+ * The scan used to dlopen() every .so only to read its descriptor: the whole
+ * file read into PSRAM and relocated, its symbols resolved, init() called,
+ * closed again - 37 ms a module on the board, 1.26 s for 34 (docs/MENU.md).
+ * What init() leaves -the descriptor and the icon it hands over; the apps'
+ * init does nothing else, checked for all 41 on 2026-10-14- goes into
+ * /spiffs/data/apps.cache, and a .so whose name, size and date match is
+ * registered from there without being opened. The code is loaded when the
+ * app is opened, as before. Not cached: a module with several apps (lua.so),
+ * whose list depends on the scripts on the card and not on the .so. The whole
+ * cache belongs to one firmware (its ELF sha): after an update every .so is
+ * opened once again, since a new symbol table can refuse one that loaded.
+ * -------------------------------------------------------------------------- */
+#define CACHE_MAGIC     0x43505041u         /* "APPC" */
+#define CACHE_VERSION   1
+
+typedef struct {
+    char     file[64];
+    uint32_t size, mtime;
+    char     id[40], name[40], icon[16];
+    int32_t  icon_vec;
+    uint32_t color_a, color_b, flags;
+    int32_t  order;
+    uint16_t aic_len;
+    uint8_t  aic[AOS_ICON_OPS_MAX];
+} cache_rec_t;
+
+typedef struct {
+    uint32_t magic, version;
+    char     fw[24];                        /* the firmware's ELF sha */
+    uint32_t count;
+} cache_head_t;
+
+static cache_rec_t *s_cache_old, *s_cache_new;
+static int s_cache_old_n, s_cache_new_n;
+static bool s_cache_dirty;
+
+static void cache_path(char *out, size_t n)
+{
+    snprintf(out, n, "%s/apps.cache", aos_hal_path_data());
+}
+
+static void cache_fw(char *out, size_t n)
+{
+    memset(out, 0, n);
+    esp_app_get_elf_sha256(out, n);
+}
+
+static void cache_load(void)
+{
+    s_cache_old = heap_caps_calloc(MAX_DYNAPPS, sizeof(cache_rec_t), MALLOC_CAP_SPIRAM);
+    s_cache_new = heap_caps_calloc(MAX_DYNAPPS, sizeof(cache_rec_t), MALLOC_CAP_SPIRAM);
+    s_cache_old_n = s_cache_new_n = 0;
+    s_cache_dirty = false;
+    if (!s_cache_old || !s_cache_new) {
+        return;
+    }
+    char path[96];
+    cache_path(path, sizeof path);
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        s_cache_dirty = true;
+        return;
+    }
+    cache_head_t h;
+    char fw[24];
+    cache_fw(fw, sizeof fw);
+    if (fread(&h, sizeof h, 1, f) == 1 && h.magic == CACHE_MAGIC && h.version == CACHE_VERSION &&
+        !memcmp(h.fw, fw, sizeof fw) && h.count <= MAX_DYNAPPS &&
+        fread(s_cache_old, sizeof(cache_rec_t), h.count, f) == h.count) {
+        s_cache_old_n = (int)h.count;
+    } else {
+        ESP_LOGI(TAG, "apps cache: none for this firmware, every .so is opened once");
+        s_cache_dirty = true;
+    }
+    fclose(f);
+}
+
+static const cache_rec_t *cache_find(const char *file, uint32_t size, uint32_t mtime)
+{
+    for (int i = 0; i < s_cache_old_n; i++) {
+        const cache_rec_t *r = &s_cache_old[i];
+        if (!strcmp(r->file, file) && r->size == size && r->mtime == mtime) {
+            return r;
+        }
+    }
+    return NULL;
+}
+
+static void cache_keep(const cache_rec_t *r)
+{
+    if (s_cache_new && s_cache_new_n < MAX_DYNAPPS) {
+        s_cache_new[s_cache_new_n++] = *r;
+    }
+}
+
+/* What the dlopen just registered for a one-app module, for next time. */
+static void cache_note(const char *file, uint32_t size, uint32_t mtime, const dynapp_t *slot)
+{
+    if (!s_cache_new || s_cache_new_n >= MAX_DYNAPPS) {
+        return;
+    }
+    const aos_app_t *a = aos_ui_app_find(slot->id);
+    if (!a) {
+        return;
+    }
+    cache_rec_t *r = &s_cache_new[s_cache_new_n];
+    memset(r, 0, sizeof *r);
+    snprintf(r->file, sizeof r->file, "%s", file);
+    r->size = size;
+    r->mtime = mtime;
+    snprintf(r->id, sizeof r->id, "%s", slot->id);
+    snprintf(r->name, sizeof r->name, "%s", slot->name);
+    snprintf(r->icon, sizeof r->icon, "%s", slot->icon);
+    r->icon_vec = (int32_t)a->desc.icon_vec;
+    r->color_a = a->desc.color_a;
+    r->color_b = a->desc.color_b;
+    r->flags = a->desc.flags;
+    r->order = a->desc.order;
+    size_t len = 0;
+    const uint8_t *aic = aos_icon_app_ops(slot->id, &len);
+    if (aic && len <= sizeof r->aic) {
+        memcpy(r->aic, aic, len);
+        r->aic_len = (uint16_t)len;
+    }
+    s_cache_new_n++;
+    s_cache_dirty = true;
+}
+
+/* Written only when something changed: on SPIFFS a write is slow and wears
+ * the flash, and an ordinary boot changes nothing. */
+static void cache_save(void)
+{
+    if (s_cache_new && (s_cache_dirty || s_cache_new_n != s_cache_old_n)) {
+        char path[96], tmp[104];
+        cache_path(path, sizeof path);
+        snprintf(tmp, sizeof tmp, "%s.part", path);
+        FILE *f = fopen(tmp, "wb");
+        if (f) {
+            cache_head_t h = { CACHE_MAGIC, CACHE_VERSION, { 0 }, (uint32_t)s_cache_new_n };
+            cache_fw(h.fw, sizeof h.fw);
+            bool ok = fwrite(&h, sizeof h, 1, f) == 1 &&
+                      fwrite(s_cache_new, sizeof(cache_rec_t), (size_t)s_cache_new_n, f) ==
+                          (size_t)s_cache_new_n;
+            ok = fclose(f) == 0 && ok;
+            if (ok) {
+                remove(path);
+                ok = rename(tmp, path) == 0;
+            }
+            ESP_LOGI(TAG, "apps cache: %d app(s) written%s", s_cache_new_n, ok ? "" : " - FAILED");
+        } else {
+            ESP_LOGW(TAG, "apps cache: %s could not be created", tmp);
+        }
+    }
+    free(s_cache_old);
+    free(s_cache_new);
+    s_cache_old = s_cache_new = NULL;
+}
+
+static void cache_desc(const cache_rec_t *r, aos_app_desc_t *d)
+{
+    memset(d, 0, sizeof *d);
+    d->id = r->id;
+    d->name = r->name;
+    d->icon = r->icon[0] ? r->icon : NULL;
+    d->icon_vec = (aos_icon_id_t)r->icon_vec;
+    d->color_a = r->color_a;
+    d->color_b = r->color_b;
+    d->flags = r->flags;
+    d->order = r->order;
+}
+
 int aos_dynapp_scan(void)
 {
     /* Before anything else: the reservation is asked for with the heap still
@@ -945,19 +1156,62 @@ int aos_dynapp_scan(void)
 
     int loaded = 0;
     struct dirent *item;
+    cache_load();
+    int from_cache = 0, opened = 0;
     while ((item = readdir(dir)) != NULL) {
         if (item->d_name[0] == '.' || !ends_with_so(item->d_name)) {
             continue;
         }
+        char full[192];
+        snprintf(full, sizeof full, "%s/%s", AOS_DYNAPP_DIR, item->d_name);
+        struct stat st;
+        uint32_t size = 0, mtime = 0;
+        if (stat(full, &st) == 0) {
+            size = (uint32_t)st.st_size;
+            mtime = (uint32_t)st.st_mtime;
+        }
+        /* described before, and not changed since: kept for the batch below */
+        const cache_rec_t *hit = size ? cache_find(item->d_name, size, mtime) : NULL;
+        if (hit) {
+            cache_keep(hit);
+            continue;
+        }
         uint32_t total = 0;
+        int before = s_count;
         if (register_apps(item->d_name, true, &total) > 0) {
             loaded++;
+            opened++;
             if (total > 1 && n_deferred < DEFERRED_MAX) {
                 snprintf(deferred[n_deferred++], sizeof(deferred[0]), "%s", item->d_name);
+            }
+            if (total == 1 && size && s_count == before + 1) {
+                cache_note(item->d_name, size, mtime, &s_apps[before]);
             }
         }
     }
     closedir(dir);
+    /* the ones from the cache, in batches under one lock: nothing opened */
+    {
+        bool locked = false;
+        int in_batch = 0;
+        for (int i = 0; i < s_cache_new_n; i++) {
+            const cache_rec_t *r = &s_cache_new[i];
+            if (find_by_id(r->id)) {
+                continue;                       /* opened above */
+            }
+            aos_app_desc_t d;
+            cache_desc(r, &d);
+            if (register_one(r->file, 0, &d, r->aic, r->aic_len, &locked, &in_batch)) {
+                loaded++;
+                from_cache++;
+            }
+        }
+        if (locked) {
+            aos_hal_unlock();
+        }
+    }
+    cache_save();
+    ESP_LOGI(TAG, "apps: %d from the cache, %d opened to be described", from_cache, opened);
     int64_t t1 = esp_timer_get_time();
 
     for (int i = 0; i < n_deferred; i++) {

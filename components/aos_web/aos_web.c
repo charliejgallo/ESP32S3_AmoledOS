@@ -38,29 +38,11 @@ extern const uint8_t portal_html_start[] asm("_binary_portal_html_start");
 extern const uint8_t portal_html_end[]   asm("_binary_portal_html_end");
 extern const uint8_t wifi_html_start[]   asm("_binary_wifi_html_start");
 extern const uint8_t wifi_html_end[]     asm("_binary_wifi_html_end");
-extern const uint8_t clima_html_start[]  asm("_binary_clima_html_start");
-extern const uint8_t clima_html_end[]    asm("_binary_clima_html_end");
-extern const uint8_t modelos_html_start[] asm("_binary_modelos_html_start");
-extern const uint8_t modelos_html_end[]   asm("_binary_modelos_html_end");
-extern const uint8_t mapas_html_start[] asm("_binary_mapas_html_start");
-extern const uint8_t mapas_html_end[]   asm("_binary_mapas_html_end");
-extern const uint8_t pixel_html_start[]  asm("_binary_pixel_html_start");
-extern const uint8_t pixel_html_end[]    asm("_binary_pixel_html_end");
 extern const uint8_t pato_html_start[]   asm("_binary_pato_html_start");
 extern const uint8_t pato_html_end[]     asm("_binary_pato_html_end");
-extern const uint8_t lua_html_start[]    asm("_binary_lua_html_start");
-extern const uint8_t lua_html_end[]      asm("_binary_lua_html_end");
 extern const uint8_t iconos_html_start[] asm("_binary_iconos_html_start");
 extern const uint8_t iconos_html_end[]   asm("_binary_iconos_html_end");
-extern const uint8_t cotiz_html_start[]  asm("_binary_cotiz_html_start");
-extern const uint8_t camaras_html_start[] asm("_binary_camaras_html_start");
-extern const uint8_t camaras_html_end[]   asm("_binary_camaras_html_end");
-extern const uint8_t cotiz_html_end[]    asm("_binary_cotiz_html_end");
-extern const uint8_t sensores_html_start[] asm("_binary_sensores_html_start");
-extern const uint8_t sensores_html_end[]   asm("_binary_sensores_html_end");
-extern const uint8_t remoto_html_start[] asm("_binary_remoto_html_start");
 extern const uint8_t red_html_start[]    asm("_binary_red_html_start");
-extern const uint8_t remoto_html_end[]   asm("_binary_remoto_html_end");
 extern const uint8_t red_html_end[]      asm("_binary_red_html_end");
 extern const uint8_t usb_html_start[]    asm("_binary_usb_html_start");
 extern const uint8_t usb_html_end[]      asm("_binary_usb_html_end");
@@ -1350,13 +1332,6 @@ static esp_err_t red_page_handler(httpd_req_t *req)
                            red_html_end - red_html_start - 1);
 }
 
-static esp_err_t clima_page_handler(httpd_req_t *req)
-{
-    httpd_resp_set_type(req, "text/html; charset=utf-8");
-    return httpd_resp_send(req, (const char *)clima_html_start,
-                           clima_html_end - clima_html_start - 1);
-}
-
 static esp_err_t clima_get_handler(httpd_req_t *req)
 {
     char    city[40] = {0};
@@ -1733,62 +1708,13 @@ static void rc_profile_path(char *out, size_t len)
 #define COTIZ_KEY_LIST  "cz_list"
 #define COTIZ_KEY_GEN   "cz_gen"
 
-/* /pixel: the page is the whole feature. It reads and writes the .pix files
- * through the generic file API (dir=pixel), so the firmware never learns the
- * format; that knowledge lives in the app and in the page, which share it. */
-static esp_err_t pixel_page_handler(httpd_req_t *req)
-{
-    httpd_resp_set_type(req, "text/html; charset=utf-8");
-    return httpd_resp_send(req, (const char *)pixel_html_start,
-                           pixel_html_end - pixel_html_start - 1);
-}
-
-/* /3d: the 3D viewer's models (v0.6.0). Like /pixel, the page is the whole
- * feature: it reads STL, OBJ and GLB in the browser, welds and reduces them
- * to the viewer's budget and uploads an .m3d with dir=3d. */
-static esp_err_t modelos_page_handler(httpd_req_t *req)
-{
-    httpd_resp_set_type(req, "text/html; charset=utf-8");
-    return httpd_resp_send(req, (const char *)modelos_html_start,
-                           modelos_html_end - modelos_html_start - 1);
-}
-
-/* GET /mapas: the Maps app's zones and offline maps (branch mapas). Like /3d,
- * the page does the work in the browser -it fetches OpenFreeMap's tiles,
- * strips them and packs them- and stores the result through the generic file
- * API with dir=maps; the firmware never learns the format. */
-static esp_err_t mapas_page_handler(httpd_req_t *req)
-{
-    httpd_resp_set_type(req, "text/html; charset=utf-8");
-    return httpd_resp_send(req, (const char *)mapas_html_start,
-                           mapas_html_end - mapas_html_start - 1);
-}
-
 /* /pato: same idea as /pixel. The page is the whole editor of the Pato goma
  * scripts (.pato files, dir=pato); the firmware only stores the bytes. */
-/* /lua: the same idea again. The page is the editor of the Lua scripts
- * (dir=lua) and the console where their errors land; what runs them is the
- * app on the watch, and neither this handler nor any other knows a single
- * thing about Lua. */
-static esp_err_t lua_page_handler(httpd_req_t *req)
-{
-    httpd_resp_set_type(req, "text/html");
-    return httpd_resp_send(req, (const char *)lua_html_start,
-                           lua_html_end - lua_html_start - 1);
-}
-
 static esp_err_t pato_page_handler(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "text/html; charset=utf-8");
     return httpd_resp_send(req, (const char *)pato_html_start,
                            pato_html_end - pato_html_start - 1);
-}
-
-static esp_err_t cotiz_page_handler(httpd_req_t *req)
-{
-    httpd_resp_set_type(req, "text/html; charset=utf-8");
-    return httpd_resp_send(req, (const char *)cotiz_html_start,
-                           cotiz_html_end - cotiz_html_start - 1);
 }
 
 static esp_err_t cotiz_get_handler(httpd_req_t *req)
@@ -1962,13 +1888,6 @@ static bool cam_text_ok(const char *s)
     return true;
 }
 
-static esp_err_t camaras_page_handler(httpd_req_t *req)
-{
-    httpd_resp_set_type(req, "text/html; charset=utf-8");
-    return httpd_resp_send(req, (const char *)camaras_html_start,
-                           camaras_html_end - camaras_html_start - 1);
-}
-
 static esp_err_t camaras_get_handler(httpd_req_t *req)
 {
     cam_rec_t *all = calloc(CAM_SLOTS_MAX, sizeof(cam_rec_t));
@@ -2134,13 +2053,6 @@ static esp_err_t camaras_set_handler(httpd_req_t *req)
     memset(all, 0, (CAM_SLOTS_MAX + 1) * sizeof(cam_rec_t));
     free(all);
     return camaras_reply(req, error);
-}
-
-static esp_err_t remoto_page_handler(httpd_req_t *req)
-{
-    httpd_resp_set_type(req, "text/html; charset=utf-8");
-    return httpd_resp_send(req, (const char *)remoto_html_start,
-                           remoto_html_end - remoto_html_start - 1);
 }
 
 /* What the browser needs to know when opening the page. The token is NEVER
@@ -2464,13 +2376,6 @@ static esp_err_t sensores_handler(httpd_req_t *req)
 #define SN_KEY_LIST  "sn_list"
 #define SN_KEY_GEN   "sn_gen"
 
-static esp_err_t sensores_page_handler(httpd_req_t *req)
-{
-    httpd_resp_set_type(req, "text/html; charset=utf-8");
-    return httpd_resp_send(req, (const char *)sensores_html_start,
-                           sensores_html_end - sensores_html_start - 1);
-}
-
 static esp_err_t sensores_conf_get(httpd_req_t *req)
 {
     char lista[400] = {0};
@@ -2759,6 +2664,130 @@ static esp_err_t coredump_handler(httpd_req_t *req)
     }
     free(buf);
     return httpd_resp_send_chunk(req, NULL, 0);
+}
+
+/* --------------------------------------------------------------------------
+ * The apps' own pages (2026-10-14, from P4OS's docs/PORTAL-PAGES.md)
+ *
+ * An app on the card brings its portal page the way it brings its .so: a
+ * file next to it, /sdcard/apps/<name>.html, served at /<name>. No firmware
+ * to build for a new app's page, and an updated page is one upload and a
+ * reload of the browser, without restarting the watch. The page is a whole
+ * HTML document that loads /aos.js and /aos.css, like the firmware's own.
+ *
+ * They are served from the 404 handler: a route of the firmware always
+ * wins, so a page cannot shadow /ajustes, and the short addresses the apps
+ * print on the watch ("charlie.local/radio") stay what they were when these
+ * pages lived in the firmware. The name is [a-z0-9_-], one level: nothing
+ * outside /sdcard/apps is reachable through it, and the portal could already
+ * read any file of the card anyway.
+ *
+ * The navigation ribbon asks /api/paginas which there are, and names each
+ * after the app of the .so with the same name, in the watch's language.
+ * -------------------------------------------------------------------------- */
+#define APP_PAGE_NAME_MAX   32
+
+static bool app_page_name_ok(const char *s, size_t len)
+{
+    if (len == 0 || len > APP_PAGE_NAME_MAX) {
+        return false;
+    }
+    for (size_t i = 0; i < len; i++) {
+        char c = s[i];
+        if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static esp_err_t not_found_handler(httpd_req_t *req, httpd_err_code_t err)
+{
+    const char *uri = req->uri;
+    size_t len = strcspn(uri + 1, "?#");
+    if (req->method != HTTP_GET || uri[0] != '/' || !app_page_name_ok(uri + 1, len)) {
+        return httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "no existe");
+    }
+    char path[96];
+    snprintf(path, sizeof(path), "%s/%.*s.html", AOS_DYNAPP_DIR, (int)len, uri + 1);
+    FILE *file = fopen(path, "rb");
+    if (!file) {
+        return httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "no existe");
+    }
+    char *buffer = malloc(UPLOAD_CHUNK);
+    if (!buffer) {
+        fclose(file);
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "sin memoria");
+    }
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    /* asked again every time: a page updated on the card shows on reload */
+    httpd_resp_set_hdr(req, "Cache-Control", "no-cache");
+    size_t got;
+    esp_err_t ret = ESP_OK;
+    while ((got = fread(buffer, 1, UPLOAD_CHUNK, file)) > 0) {
+        if (httpd_resp_send_chunk(req, buffer, got) != ESP_OK) {
+            ret = ESP_FAIL;
+            break;
+        }
+    }
+    free(buffer);
+    fclose(file);
+    return ret == ESP_OK ? httpd_resp_send_chunk(req, NULL, 0) : ret;
+}
+
+/* /3d was the 3D viewer's page when it lived in the firmware, and the app
+ * still says so on the watch ("en el portal (/3d)"): its page is /visor3d,
+ * named like visor3d.so. */
+static esp_err_t old_3d_handler(httpd_req_t *req)
+{
+    httpd_resp_set_status(req, "301 Moved Permanently");
+    httpd_resp_set_hdr(req, "Location", "/visor3d");
+    return httpd_resp_send(req, NULL, 0);
+}
+
+/* GET /api/paginas: {"paginas":[{"pagina":"radio","app":"aos.radio","nombre":"Radio"}]}
+ * One per .html in /sdcard/apps. "app" is empty and "nombre" the file's name
+ * when no .so of that name is registered. */
+static esp_err_t paginas_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-cache");
+    httpd_resp_sendstr_chunk(req, "{\"paginas\":[");
+    DIR *dir = opendir(AOS_DYNAPP_DIR);
+    int n = 0;
+    struct dirent *item;
+    while (dir && (item = readdir(dir)) != NULL) {
+        const char *dot = strrchr(item->d_name, '.');
+        if (!dot || strcmp(dot, ".html") != 0 ||
+            !app_page_name_ok(item->d_name, (size_t)(dot - item->d_name))) {
+            continue;
+        }
+        char page[APP_PAGE_NAME_MAX + 1], module[APP_PAGE_NAME_MAX + 4];
+        snprintf(page, sizeof(page), "%.*s", (int)(dot - item->d_name), item->d_name);
+        snprintf(module, sizeof(module), "%s.so", page);
+        char id[48] = "", name[48] = "", name_json[96], item_json[224];
+        if (aos_dynapp_module_app(module, id, sizeof(id), name, sizeof(name))) {
+            /* aos_tr reads the catalogues the UI task swaps on a language change */
+            if (aos_hal_lock(500)) {
+                const char *tr = aos_tr(name);
+                if (tr != name) {
+                    snprintf(name, sizeof(name), "%s", tr);
+                }
+                aos_hal_unlock();
+            }
+        } else {
+            snprintf(name, sizeof(name), "%s", page);
+        }
+        json_escape(name_json, sizeof(name_json), name);
+        snprintf(item_json, sizeof(item_json), "%s{\"pagina\":\"%s\",\"app\":\"%s\",\"nombre\":\"%s\"}",
+                 n++ ? "," : "", page, id, name_json);
+        httpd_resp_sendstr_chunk(req, item_json);
+    }
+    if (dir) {
+        closedir(dir);
+    }
+    httpd_resp_sendstr_chunk(req, "]}");
+    return httpd_resp_sendstr_chunk(req, NULL);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -3557,7 +3586,6 @@ esp_err_t aos_imu_dump_handler(httpd_req_t *req);
 esp_err_t aos_link_handler(httpd_req_t *req);
 esp_err_t aos_ble_api_handler(httpd_req_t *req);  /* aos_ble_api.c */
 esp_err_t aos_player_handler(httpd_req_t *req);     /* aos_player_api.c */
-esp_err_t aos_radio_page_handler(httpd_req_t *req); /* aos_radio_api.c */
 esp_err_t aos_radio_get_handler(httpd_req_t *req);
 esp_err_t aos_radio_set_handler(httpd_req_t *req);
 
@@ -3569,6 +3597,8 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/ajustes", .method = HTTP_POST, .handler = ajustes_post_handler },
         { .uri = "/api/accion",  .method = HTTP_POST, .handler = accion_handler },
         { .uri = "/api/apps",    .method = HTTP_GET,  .handler = apps_handler },
+        { .uri = "/api/paginas", .method = HTTP_GET,  .handler = paginas_handler },
+        { .uri = "/3d",          .method = HTTP_GET,  .handler = old_3d_handler },
         { .uri = "/pantalla",    .method = HTTP_GET,  .handler = pantalla_page_handler },
         { .uri = "/registro",    .method = HTTP_GET,  .handler = registro_page_handler },
         { .uri = "/api/log",     .method = HTTP_GET,  .handler = log_handler },
@@ -3610,30 +3640,21 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/lang",    .method = HTTP_GET,  .handler = lang_get_handler },
         { .uri = "/api/lang",    .method = HTTP_POST, .handler = lang_set_handler },
         { .uri = "/api/captura", .method = HTTP_GET, .handler = captura_handler },
-        { .uri = "/clima",       .method = HTTP_GET,  .handler = clima_page_handler },
         { .uri = "/api/clima",   .method = HTTP_GET,  .handler = clima_get_handler },
         { .uri = "/api/clima",   .method = HTTP_POST, .handler = clima_set_handler },
-        { .uri = "/pixel",       .method = HTTP_GET,  .handler = pixel_page_handler },
-        { .uri = "/3d",          .method = HTTP_GET,  .handler = modelos_page_handler },
-        { .uri = "/mapas",       .method = HTTP_GET,  .handler = mapas_page_handler },
         { .uri = "/pato",        .method = HTTP_GET,  .handler = pato_page_handler },
-        { .uri = "/lua",         .method = HTTP_GET,  .handler = lua_page_handler },
         { .uri = "/iconos",      .method = HTTP_GET,  .handler = iconos_page_handler },
         { .uri = "/api/icons",   .method = HTTP_GET,  .handler = icons_handler },
         { .uri = "/api/menu",    .method = HTTP_GET,  .handler = menu_get_handler },
         { .uri = "/api/menu",    .method = HTTP_POST, .handler = menu_post_handler },
         { .uri = "/api/respaldo", .method = HTTP_GET,  .handler = respaldo_get_handler },
         { .uri = "/api/respaldo", .method = HTTP_POST, .handler = respaldo_post_handler },
-        { .uri = "/cotiz",       .method = HTTP_GET,  .handler = cotiz_page_handler },
         { .uri = "/api/cotiz",   .method = HTTP_GET,  .handler = cotiz_get_handler },
         { .uri = "/api/cotiz",   .method = HTTP_POST, .handler = cotiz_set_handler },
-        { .uri = "/camaras",     .method = HTTP_GET,  .handler = camaras_page_handler },
         { .uri = "/api/camaras", .method = HTTP_GET,  .handler = camaras_get_handler },
         { .uri = "/api/camaras", .method = HTTP_POST, .handler = camaras_set_handler },
-        { .uri = "/radio",       .method = HTTP_GET,  .handler = aos_radio_page_handler },
         { .uri = "/api/radio",   .method = HTTP_GET,  .handler = aos_radio_get_handler },
         { .uri = "/api/radio",   .method = HTTP_POST, .handler = aos_radio_set_handler },
-        { .uri = "/remoto",              .method = HTTP_GET,  .handler = remoto_page_handler },
         { .uri = "/api/remoto/config",   .method = HTTP_GET,  .handler = remoto_config_get },
         { .uri = "/api/remoto/config",   .method = HTTP_POST, .handler = remoto_config_post },
         { .uri = "/api/remoto/perfil",   .method = HTTP_GET,  .handler = remoto_profile_get },
@@ -3641,7 +3662,6 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/remoto/probar",   .method = HTTP_GET,  .handler = remoto_probe_handler },
         { .uri = "/api/remoto/entidades",.method = HTTP_GET,  .handler = remoto_entities_handler },
         { .uri = "/api/sensores",        .method = HTTP_GET,  .handler = sensores_handler },
-        { .uri = "/sensores",            .method = HTTP_GET,  .handler = sensores_page_handler },
         { .uri = "/api/sensoresconf",    .method = HTTP_GET,  .handler = sensores_conf_get },
         { .uri = "/api/sensoresconf",    .method = HTTP_POST, .handler = sensores_conf_post },
 };
@@ -3674,6 +3694,9 @@ esp_err_t aos_web_start(void)
         ESP_LOGE(TAG, "the server did not start: %s", esp_err_to_name(ret));
         return ret;
     }
+
+    /* the apps' pages on the card: what no route of the firmware answers */
+    httpd_register_err_handler(s_server, HTTPD_404_NOT_FOUND, not_found_handler);
 
     for (unsigned i = 0; i < N_ROUTES; i++) {
         esp_err_t r = httpd_register_uri_handler(s_server, &ROUTES[i]);
