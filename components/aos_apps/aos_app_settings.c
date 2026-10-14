@@ -21,6 +21,7 @@
 #include "aos_i18n.h"
 #include "aos_wifi_qr.h"
 #include "aos_pair_ui.h"
+#include "aos_access.h"      /* the portal's trusted networks and sessions */
 #include "aos_settings_glyphs.h"
 #include "aos_quick.h"
 #include "aos_gesture.h"
@@ -2289,6 +2290,8 @@ static void back_cb(lv_event_t *event)
     close_sub(true);
 }
 
+static void build_portal_access(lv_obj_t *p);
+
 static void build_wifi(lv_obj_t *p)
 {
     lv_obj_t *c = card(p);
@@ -2339,6 +2342,69 @@ static void build_wifi(lv_obj_t *p)
 
     if (aos_hal_net_has_credentials()) {
         aos_button(p, _("Olvidar red"), AOS_C_CARD2, forget_cb, NULL);
+    }
+
+    build_portal_access(p);
+}
+
+/* --------------------------------------------------------------------------
+ * The portal's trusted networks (docs/SECURITY.md)
+ *
+ * Set here and only here: someone who got into the portal cannot open it
+ * further. One switch per network, the one the watch is on first; off takes
+ * a network out of the list (its row stays until the page is left, so a
+ * slip is undone with the same tap).
+ * -------------------------------------------------------------------------- */
+static char s_trust_names[AOS_ACCESS_TRUSTED_MAX + 1][33];
+
+static void trust_cb(lv_event_t *event)
+{
+    lv_obj_t *sw = lv_event_get_target(event);
+    int i = (int)(intptr_t)lv_obj_get_user_data(sw);
+    aos_hal_activity();
+    aos_access_set_trusted(s_trust_names[i], lv_obj_has_state(sw, LV_STATE_CHECKED));
+}
+
+static void sessions_close_cb(lv_event_t *event)
+{
+    (void)event;
+    aos_hal_activity();
+    aos_access_sessions_close_all();
+    aos_ui_toast(_("Sesiones del portal cerradas"), 1500);
+    lv_obj_add_flag(lv_event_get_target(event), LV_OBJ_FLAG_HIDDEN);
+}
+
+static void build_portal_access(lv_obj_t *p)
+{
+    caption(p, _("PORTAL WEB"));
+    lv_obj_t *c = card(p);
+    int n = 0;
+    bool connected = aos_hal_net_state() == AOS_NET_CONNECTED && aos_hal_net_ssid()[0];
+    if (connected) {
+        snprintf(s_trust_names[n], sizeof s_trust_names[0], "%s", aos_hal_net_ssid());
+        lv_obj_t *sw = switch_row2(c, s_trust_names[n], _("esta red: el portal entra sin pedir permiso"),
+                                   aos_access_is_trusted(s_trust_names[n]), trust_cb);
+        lv_obj_set_user_data(sw, (void *)(intptr_t)n);
+        n++;
+    }
+    char name[33];
+    for (int i = 0; aos_access_trusted_at(i, name, sizeof name) && n <= AOS_ACCESS_TRUSTED_MAX; i++) {
+        if (connected && strcmp(name, s_trust_names[0]) == 0) {
+            continue;
+        }
+        snprintf(s_trust_names[n], sizeof s_trust_names[0], "%s", name);
+        lv_obj_t *sw = switch_row2(c, s_trust_names[n], NULL, true, trust_cb);
+        lv_obj_set_user_data(sw, (void *)(intptr_t)n);
+        n++;
+    }
+    lv_obj_t *nota = aos_label(p, n ? _("En las demas redes, el reloj pregunta antes de dejar entrar a un navegador.")
+                                    : _("Ninguna red de confianza: el reloj pregunta antes de dejar entrar a un navegador."),
+                               aos_font_small, AOS_C_DIM);
+    lv_obj_set_width(nota, CONTENT_W);
+    lv_label_set_long_mode(nota, LV_LABEL_LONG_MODE_WRAP);
+    lv_obj_set_style_text_align(nota, LV_TEXT_ALIGN_CENTER, 0);
+    if (aos_access_session_count() > 0) {
+        aos_button(p, _("Cerrar sesiones del portal"), AOS_C_CARD2, sessions_close_cb, NULL);
     }
 }
 

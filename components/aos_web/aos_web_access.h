@@ -13,3 +13,10 @@ void aos_web_access_init(void);
  * answer carries; when the request is refused (another site's page, a name
  * that is not the watch's), sends the answer itself and returns false. */
 bool aos_web_access_ok(httpd_req_t *req);
+
+/* The login's API (docs/SECURITY.md): /api/auth, /api/pedir (GET and POST),
+ * /api/salir, /api/token (GET and POST). */
+esp_err_t aos_web_auth_handler(httpd_req_t *req);
+esp_err_t aos_web_ask_handler(httpd_req_t *req);
+esp_err_t aos_web_logout_handler(httpd_req_t *req);
+esp_err_t aos_web_token_handler(httpd_req_t *req);

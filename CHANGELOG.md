@@ -14,6 +14,19 @@ Newest first. Versions are git tags; what is above the latest tag is on
   only to its IP or its own name (421 otherwise). Every answer carries
   `nosniff` and `X-Frame-Options: DENY`. Tried on the board with the
   requests a browser sends.
+- **Off a trusted network, the watch approves each browser**
+  (docs/SECURITY.md). Trusted networks are chosen on the watch (Settings >
+  Wi-Fi, *Web portal*); the network the watch is on when this firmware
+  first runs becomes trusted. On any other network the portal asks the
+  watch: the watch wakes with *Allow this browser into the portal?* and a
+  code the browser shows too, and a tap gives that browser a session (an
+  HttpOnly cookie, kept in RAM). Refusals make the next request wait longer.
+  The cable and the watch's own access point need nothing. Scripts send a
+  token, `AOS_TOKEN`, shown in the portal's Settings, *Security*; a backup
+  neither carries nor restores the trusted networks or the token. Tried on
+  the board: the first-run rule, the API closed and open by token, the
+  watch's prompt in English, a session given, used and ended, a refusal and
+  its wait.
 
 ## v0.12.0 — 2026-10-14
 

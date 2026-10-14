@@ -24,7 +24,14 @@ moves in whole steps; 'vbat' is the finer signal. Neither converts to mAh
 without a discharge curve for this cell, so the report gives the cell's
 nominal 300 mAh as a yardstick and says so.
 """
+import os
 import argparse, csv, datetime, json, re, sys, time, urllib.request
+
+def _req(url):
+    """Off a trusted network the watch's API wants its token (docs/SECURITY.md)."""
+    tok = os.environ.get("AOS_TOKEN")
+    return urllib.request.Request(url, headers={"Authorization": "Bearer " + tok} if tok else {})
+
 
 FIELDS = ["ts", "uptime_s", "percent", "vbat", "vbus", "usb", "charging", "display",
           "panel_asleep", "light_sleep", "saving", "cpu_mhz", "board_temp",
@@ -32,7 +39,7 @@ FIELDS = ["ts", "uptime_s", "percent", "vbat", "vbus", "usb", "charging", "displ
           "apb_max_pct", "heap", "ok"]
 
 def get(base, path, timeout=12):
-    with urllib.request.urlopen(base + path, timeout=timeout) as r:
+    with urllib.request.urlopen(_req(base + path), timeout=timeout) as r:
         return r.read().decode()
 
 def modes(txt):

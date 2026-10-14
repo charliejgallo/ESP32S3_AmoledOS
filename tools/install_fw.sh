@@ -22,6 +22,9 @@
 # the previous one by itself at the next restart. That is why this script waits
 # and then checks the version - if the board comes back on the old firmware,
 # the new one did not survive.
+# Off a trusted network the watch's API wants its token (docs/SECURITY.md):
+# AOS_TOKEN=<token> from the portal's Settings, sent with every request.
+curl() { command curl ${AOS_TOKEN:+-H} ${AOS_TOKEN:+"Authorization: Bearer $AOS_TOKEN"} "$@"; }
 set -e
 ROOT=${0:a:h:h}
 HOST=${1:?usage: install_fw.sh <ip-or-name> [image.bin]}

@@ -25,6 +25,7 @@
 #include "aos_i18n.h"
 #include "aos_notif_ui.h"
 #include "aos_pair_ui.h"
+#include "aos_access.h"   /* the portal asks the watch to let a browser in */
 
 #include <string.h>
 #include <stdio.h>
@@ -707,6 +708,10 @@ void aos_ui_back(void)
         aos_pair_ui_cancel();
         return;
     }
+    if (aos_access_ui_visible()) {
+        aos_access_ui_cancel();     /* back refuses the browser */
+        return;
+    }
     if (aos_notif_ui_visible()) {
         aos_notif_ui_close();
         return;
@@ -1173,6 +1178,11 @@ static void handle_gesture(lv_dir_t dir)
      * cancels, just like the button. */
     if (aos_pair_ui_visible()) {
         aos_pair_ui_cancel();
+        return;
+    }
+    /* the portal's "Allow this browser?": the same, a swipe refuses */
+    if (aos_access_ui_visible()) {
+        aos_access_ui_cancel();
         return;
     }
 
@@ -1720,6 +1730,7 @@ void aos_ui_tick(void)
     /* Before the notifications: if both arrive at once, what needs an answer
      * goes first. */
     aos_pair_ui_tick();
+    aos_access_ui_tick();
 
     notif_tick();
 
@@ -1768,6 +1779,9 @@ void aos_ui_tick(void)
 
 void aos_ui_init(void)
 {
+    /* before the portal starts: its lock is made here, on one task */
+    aos_access_init();
+
     aos_theme_init();
     aos_i18n_init();
     aos_icon_scan_files();      /* <id>.aic files on the card, docs/ICONS.md */

@@ -21,10 +21,17 @@ compiled as a decoder, for the photo viewer. The conversion happens here, with
 no dependencies, by the same trick as tools/ppm2png.py.
 """
 
+import os
 import struct
 import sys
 import urllib.request
 import zlib
+
+def _req(url):
+    """Off a trusted network the watch's API wants its token (docs/SECURITY.md)."""
+    tok = os.environ.get("AOS_TOKEN")
+    return urllib.request.Request(url, headers={"Authorization": "Bearer " + tok} if tok else {})
+
 
 
 def bmp_a_png(bmp, destino):
@@ -73,7 +80,7 @@ def main():
     try:
         # Deliberately generous: waking the screen takes ~1 s on the board's
         # side, and it is half a megabyte over wifi.
-        with urllib.request.urlopen(url, timeout=45) as r:
+        with urllib.request.urlopen(_req(url), timeout=45) as r:
             bmp = r.read()
     except urllib.error.HTTPError as e:
         raise SystemExit(f"the board said no: {e.code} {e.read().decode('utf-8', 'replace')}")

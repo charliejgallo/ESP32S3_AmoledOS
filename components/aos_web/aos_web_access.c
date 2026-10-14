@@ -20,9 +20,22 @@
  *   watch's name, bare or with .local and the suffixes home routers add).
  *
  * Every answer also carries nosniff and X-Frame-Options: DENY.
+ *
+ * And who may use the API at all depends on where the request came in
+ * (aos_access.h): the cable, the watch's own network and a trusted Wi-Fi
+ * network need nothing; any other network needs a session the watch
+ * approved (the aos_s cookie) or the token (Authorization: Bearer). The
+ * pages themselves are served to anyone: they hold no data, and the login
+ * is one of them.
  */
 #include "aos_web_access.h"
+#include "aos_access.h"
 #include "aos_hal.h"
+
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include <ctype.h>
 #include <stdio.h>
@@ -106,6 +119,87 @@ static bool deny(httpd_req_t *req, const char *status, const char *why)
     return false;
 }
 
+/* ---- where a request came in ------------------------------------------------ */
+
+typedef enum { ZONE_CABLE, ZONE_AP, ZONE_TRUSTED, ZONE_OTHER } zone_t;
+
+static const char *const ZONE_NAME[] = { "cable", "ap", "confianza", "otra" };
+
+/* The watch's own address the request arrived at says which network it
+ * came through; the peer's is what the watch shows when it asks. */
+static zone_t zone_of(httpd_req_t *req, char *peer, size_t peer_len)
+{
+    int fd = httpd_req_to_sockfd(req);
+    struct sockaddr_in local = { 0 }, remote = { 0 };
+    socklen_t ll = sizeof local, rl = sizeof remote;
+    char here[16] = "";
+    if (getsockname(fd, (struct sockaddr *)&local, &ll) == 0) {
+        inet_ntoa_r(local.sin_addr, here, sizeof here);
+    }
+    if (peer) {
+        peer[0] = 0;
+        if (getpeername(fd, (struct sockaddr *)&remote, &rl) == 0) {
+            inet_ntoa_r(remote.sin_addr, peer, peer_len);
+        }
+    }
+    if (strcmp(here, "192.168.7.1") == 0) {
+        return ZONE_CABLE;
+    }
+    if (aos_hal_net_ap_active() && strcmp(here, aos_hal_net_ap_ip()) == 0) {
+        return ZONE_AP;
+    }
+    if (here[0] && strcmp(here, aos_hal_net_ip()) == 0 && aos_access_is_trusted(aos_hal_net_ssid())) {
+        return ZONE_TRUSTED;
+    }
+    return ZONE_OTHER;          /* another network, or one we cannot tell: the strict rule */
+}
+
+/* The session cookie, aos_s=<32 hex>, or empty. */
+static void session_cookie(httpd_req_t *req, char *out, size_t len)
+{
+    out[0] = 0;
+    char cookie[AOS_ACCESS_ID_LEN + 1];
+    size_t n = sizeof cookie;
+    if (httpd_req_get_cookie_val(req, "aos_s", cookie, &n) == ESP_OK) {
+        snprintf(out, len, "%s", cookie);
+    }
+}
+
+static bool has_token(httpd_req_t *req)
+{
+    char auth[16 + AOS_ACCESS_ID_LEN + 1];
+    return httpd_req_get_hdr_value_str(req, "Authorization", auth, sizeof auth) == ESP_OK &&
+           strncasecmp(auth, "Bearer ", 7) == 0 && aos_access_token_ok(auth + 7);
+}
+
+static bool authorized(httpd_req_t *req, zone_t zone)
+{
+    if (zone != ZONE_OTHER) {
+        return true;
+    }
+    char s[AOS_ACCESS_ID_LEN + 1];
+    session_cookie(req, s, sizeof s);
+    return (s[0] && aos_access_session_ok(s)) || has_token(req);
+}
+
+/* What any browser may ask without being let in: whether it has to, to be
+ * let in, and the language the login is drawn in. */
+static bool open_to_all(httpd_req_t *req)
+{
+    static const char *const OPEN[] = { "/api/auth", "/api/pedir", "/api/salir" };
+    const char *uri = req->uri;
+    size_t n = strcspn(uri, "?");
+    if (req->method == HTTP_GET && n == 9 && strncmp(uri, "/api/lang", 9) == 0) {
+        return true;            /* reading it; setting it is the watch's */
+    }
+    for (size_t i = 0; i < sizeof OPEN / sizeof OPEN[0]; i++) {
+        if (n == strlen(OPEN[i]) && strncmp(uri, OPEN[i], n) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void aos_web_access_init(void)
 {
     snprintf(s_boot_name, sizeof s_boot_name, "%s", aos_hal_device_name());
@@ -156,5 +250,126 @@ bool aos_web_access_ok(httpd_req_t *req)
             return deny(req, "403 Forbidden", "pedido desde otra página: rechazado");
         }
     }
+
+    if (!open_to_all(req) && !authorized(req, zone_of(req, NULL, 0))) {
+        ESP_LOGW(TAG, "refused %s: not let in on this network", req->uri);
+        httpd_resp_set_status(req, "401 Unauthorized");
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_sendstr(req, "{\"ok\":false,\"error\":\"login\"}");
+        return false;
+    }
     return true;
+}
+
+/* ---- the API of the login ---------------------------------------------------- */
+
+/* GET /api/auth: {"zona","necesita","tiene","red","redes":[...],"sesiones"} */
+esp_err_t aos_web_auth_handler(httpd_req_t *req)
+{
+    zone_t z = zone_of(req, NULL, 0);
+    char buf[512];
+    int n = snprintf(buf, sizeof buf, "{\"zona\":\"%s\",\"necesita\":%s,\"tiene\":%s,\"red\":\"",
+                     ZONE_NAME[z], z == ZONE_OTHER ? "true" : "false",
+                     authorized(req, z) ? "true" : "false");
+    /* SSIDs are the neighbours' text: escaped */
+    const char *ssid = aos_hal_net_state() == AOS_NET_CONNECTED ? aos_hal_net_ssid() : "";
+    for (const char *p = ssid; *p && n < (int)sizeof buf - 8; p++) {
+        if (*p == '"' || *p == '\\') buf[n++] = '\\';
+        if ((unsigned char)*p >= 0x20) buf[n++] = *p;
+    }
+    n += snprintf(buf + n, sizeof buf - n, "\",\"redes\":[");
+    char net[33];
+    for (int i = 0; aos_access_trusted_at(i, net, sizeof net) && n < (int)sizeof buf - 48; i++) {
+        buf[n++] = i ? ',' : ' ';
+        buf[n++] = '"';
+        for (const char *p = net; *p && n < (int)sizeof buf - 8; p++) {
+            if (*p == '"' || *p == '\\') buf[n++] = '\\';
+            if ((unsigned char)*p >= 0x20) buf[n++] = *p;
+        }
+        buf[n++] = '"';
+    }
+    snprintf(buf + n, sizeof buf - n, "],\"sesiones\":%d}", aos_access_session_count());
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    return httpd_resp_sendstr(req, buf);
+}
+
+/* POST /api/pedir: ask the watch -> {"id":N,"codigo":"1234"}; 409 while
+ * another browser waits; 429 {"espera":s} after refusals.
+ * GET /api/pedir?id=N -> {"estado":"esperando|aprobado|rechazado|vencido"};
+ * "aprobado" comes with the session cookie. */
+esp_err_t aos_web_ask_handler(httpd_req_t *req)
+{
+    char json[96];
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    if (req->method == HTTP_POST) {
+        char peer[16];
+        zone_of(req, peer, sizeof peer);
+        uint32_t id = 0, wait = 0;
+        uint16_t code = 0;
+        if (!aos_access_ask(peer, &id, &code, &wait)) {
+            if (wait) {
+                httpd_resp_set_status(req, "429 Too Many Requests");
+                snprintf(json, sizeof json, "{\"ok\":false,\"espera\":%u}", (unsigned)wait);
+            } else {
+                httpd_resp_set_status(req, "409 Conflict");
+                snprintf(json, sizeof json, "{\"ok\":false,\"error\":\"otro pedido en curso\"}");
+            }
+            return httpd_resp_sendstr(req, json);
+        }
+        ESP_LOGI(TAG, "%s asks to be let in (code %04u)", peer, (unsigned)code);
+        snprintf(json, sizeof json, "{\"ok\":true,\"id\":%u,\"codigo\":\"%04u\"}",
+                 (unsigned)id, (unsigned)code);
+        return httpd_resp_sendstr(req, json);
+    }
+    char query[32] = "", v[16] = "";
+    uint32_t id = 0;
+    if (httpd_req_get_url_query_str(req, query, sizeof query) == ESP_OK &&
+        httpd_query_key_value(query, "id", v, sizeof v) == ESP_OK) {
+        id = (uint32_t)strtoul(v, NULL, 10);
+    }
+    char session[AOS_ACCESS_ID_LEN + 1] = "";
+    aos_access_ask_t st = aos_access_ask_state(id, session, sizeof session);
+    static const char *const NAME[] = { "esperando", "aprobado", "rechazado", "vencido" };
+    /* out here and not in the if: httpd_resp_set_hdr keeps the pointer, and
+     * the header is only written when the answer is sent */
+    char cookie[96];
+    if (st == AOS_ACCESS_ASK_APPROVED) {
+        /* HttpOnly: the page's scripts never see it; Strict: no other site
+         * sends it; no Max-Age: it is the browser's session, like the watch's */
+        snprintf(cookie, sizeof cookie, "aos_s=%s; Path=/; HttpOnly; SameSite=Strict", session);
+        httpd_resp_set_hdr(req, "Set-Cookie", cookie);
+        ESP_LOGI(TAG, "a browser was let in");
+    }
+    snprintf(json, sizeof json, "{\"estado\":\"%s\"}", NAME[st]);
+    return httpd_resp_sendstr(req, json);
+}
+
+/* POST /api/salir: ends this browser's session. */
+esp_err_t aos_web_logout_handler(httpd_req_t *req)
+{
+    char s[AOS_ACCESS_ID_LEN + 1];
+    session_cookie(req, s, sizeof s);
+    if (s[0]) {
+        aos_access_session_end(s);
+    }
+    httpd_resp_set_hdr(req, "Set-Cookie", "aos_s=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0");
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_sendstr(req, "{\"ok\":true}");
+}
+
+/* GET /api/token: the scripts' token (whoever may use the API may use it
+ * from a script too). POST /api/token: a new one; the old stops working. */
+esp_err_t aos_web_token_handler(httpd_req_t *req)
+{
+    if (req->method == HTTP_POST) {
+        aos_access_token_new();
+    }
+    char tok[AOS_ACCESS_ID_LEN + 1], json[80];
+    aos_access_token(tok, sizeof tok);
+    snprintf(json, sizeof json, "{\"token\":\"%s\"}", tok);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    return httpd_resp_sendstr(req, json);
 }

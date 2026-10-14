@@ -12,6 +12,9 @@
 # the files there. And note: the pack is read at startup and on changing
 # language, so overwriting the active one has no effect until it is chosen
 # again.
+# Off a trusted network the watch's API wants its token (docs/SECURITY.md):
+# AOS_TOKEN=<token> from the portal's Settings, sent with every request.
+curl() { command curl ${AOS_TOKEN:+-H} ${AOS_TOKEN:+"Authorization: Bearer $AOS_TOKEN"} "$@"; }
 set -e
 ROOT=${0:a:h:h}
 HOST=${1:?usage: install_lang.sh <ip-or-name> <code> [code...]}

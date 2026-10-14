@@ -3400,6 +3400,15 @@ static bool pref_de_este_reloj(const char *key)
     return false;
 }
 
+/* The portal's access (aos_access.h): web_redes, web_token, web_init. Never
+ * in a backup, either way. Out, the file would carry the scripts' token; in,
+ * a browser let in on a hotel's network could make that network trusted,
+ * which only the watch itself may do. */
+static bool pref_del_acceso(const char *key)
+{
+    return strncmp(key, "web_", 4) == 0;
+}
+
 typedef struct {
     httpd_req_t *req;
     bool wifi;
@@ -3410,6 +3419,9 @@ static void respaldo_visit(const char *key, bool is_str, int32_t v, const char *
 {
     respaldo_ctx_t *c = (respaldo_ctx_t *)ctx;
     if (!c->wifi && strncmp(key, "wifi_", 5) == 0 && strcmp(key, "wifi_on") != 0) {
+        return;
+    }
+    if (pref_del_acceso(key)) {
         return;
     }
     char item[640];
@@ -3486,7 +3498,7 @@ static esp_err_t respaldo_post_handler(httpd_req_t *req)
         *t2 = '\0';
         const char *key = t1 + 1, *val = t2 + 1;
         size_t kl = strlen(key);
-        if (kl == 0 || kl > 15 || pref_de_este_reloj(key)) {     /* 15: NVS's key limit */
+        if (kl == 0 || kl > 15 || pref_de_este_reloj(key) || pref_del_acceso(key)) {     /* 15: NVS's key limit */
             omitidos++;
             continue;
         }
@@ -3649,6 +3661,12 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/accion",  .method = HTTP_POST, .handler = accion_handler },
         { .uri = "/api/apps",    .method = HTTP_GET,  .handler = apps_handler },
         { .uri = "/api/paginas", .method = HTTP_GET,  .handler = paginas_handler },
+        { .uri = "/api/auth",    .method = HTTP_GET,  .handler = aos_web_auth_handler },
+        { .uri = "/api/pedir",   .method = HTTP_GET,  .handler = aos_web_ask_handler },
+        { .uri = "/api/pedir",   .method = HTTP_POST, .handler = aos_web_ask_handler },
+        { .uri = "/api/salir",   .method = HTTP_POST, .handler = aos_web_logout_handler },
+        { .uri = "/api/token",   .method = HTTP_GET,  .handler = aos_web_token_handler },
+        { .uri = "/api/token",   .method = HTTP_POST, .handler = aos_web_token_handler },
         { .uri = "/3d",          .method = HTTP_GET,  .handler = old_3d_handler },
         { .uri = "/pantalla",    .method = HTTP_GET,  .handler = pantalla_page_handler },
         { .uri = "/registro",    .method = HTTP_GET,  .handler = registro_page_handler },

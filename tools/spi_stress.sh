@@ -13,6 +13,9 @@
 # flush the interleaved command lost. The fixed firmware finishes all three
 # and prints the same uptime, larger. Every request is spaced: the server has
 # a finite number of sockets (docs/PORTAL.md).
+# Off a trusted network the watch's API wants its token (docs/SECURITY.md):
+# AOS_TOKEN=<token> from the portal's Settings, sent with every request.
+curl() { command curl ${AOS_TOKEN:+-H} ${AOS_TOKEN:+"Authorization: Bearer $AOS_TOKEN"} "$@"; }
 set -u
 B=${1:?board ip}
 st() { curl -s --max-time 10 "http://$B/api/status" | grep -o '"version":"[^"]*"\|"uptime_s":[0-9]*\|"boot_reason":"[^"]*"' | tr '\n' ' '; echo; }

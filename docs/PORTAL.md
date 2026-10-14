@@ -38,7 +38,8 @@ in each page and are chosen by the **watch's** language, not the browser's.
 
 ## API
 
-Form-encoded bodies for POST, JSON back. Everything the pages use:
+Form-encoded bodies for POST, JSON back. Off a trusted network the API
+answers only a browser the watch let in, or the token (docs/SECURITY.md). Everything the pages use:
 
 ```
 GET  /api/status                 the whole state; the strip polls it every 15 s
@@ -53,6 +54,9 @@ POST /api/ajustes                any subset: nombre brillo volumen aod aod_brill
 POST /api/accion                 que=despertar|apagar|volver|inicio|menu|beep|
                                  sync_hora | hora&epoch=N | abrir&id=X | toast&texto=T
 GET  /api/apps                   the launcher's apps, and which one is open
+GET  /api/auth   POST /api/pedir   GET /api/pedir?id=   POST /api/salir   GET|POST /api/token
+                                 who may use the API on this network, and the login
+                                 (docs/SECURITY.md)
 GET  /api/paginas                the apps' pages on the card: [{pagina, app, nombre}],
                                  nombre being the app's name in the watch's language
 GET  /api/icons[?id=X]           every app with where its icon comes from (archivo|app|

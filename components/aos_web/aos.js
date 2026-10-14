@@ -60,6 +60,12 @@
           nav_archivos: "Archivos", nav_registro: "Registro", nav_usb: "USB",
           nav_wifi: "Conectar", nav_ap: "Punto de acceso", nav_red: "Escaneos",
           nav_pato: "Pato goma", nav_iconos: "Iconos",
+          lg_titulo: "Pedile permiso al reloj",
+          lg_texto: "Este reloj no está en una red de confianza, así que el portal necesita que lo apruebes en el reloj.",
+          lg_pedir: "Pedir permiso", lg_codigo: "Aprobá en el reloj el código", lg_esperando: "esperando la respuesta del reloj...",
+          lg_rechazado: "El reloj dijo que no.", lg_vencido: "Nadie respondió en el reloj. Probá de nuevo.",
+          lg_otro: "Otro navegador está esperando una respuesta del reloj.", lg_espera: "Esperá %s s antes de pedir de nuevo.",
+          lg_salir: "Cerrar sesión",
           viv_cargando: "cargando", viv_usb: "USB", viv_sin: "sin conexión con el reloj",
           viv_ram: "RAM", viv_activa: "pantalla activa", viv_aod: "atenuada",
           viv_off: "pantalla apagada", viv_ap: "modo AP", viv_prueba: "a prueba" },
@@ -68,6 +74,12 @@
           nav_archivos: "Files", nav_registro: "Log", nav_usb: "USB",
           nav_wifi: "Connect", nav_ap: "Access point", nav_red: "Scans",
           nav_pato: "Pato goma", nav_iconos: "Icons",
+          lg_titulo: "Ask the watch for permission",
+          lg_texto: "This watch is not on a trusted network, so the portal needs you to approve it on the watch.",
+          lg_pedir: "Ask for permission", lg_codigo: "Approve on the watch the code", lg_esperando: "waiting for the watch to answer...",
+          lg_rechazado: "The watch said no.", lg_vencido: "Nobody answered on the watch. Try again.",
+          lg_otro: "Another browser is waiting for an answer from the watch.", lg_espera: "Wait %s s before asking again.",
+          lg_salir: "Log out",
           viv_cargando: "loading", viv_usb: "USB", viv_sin: "no connection to the watch",
           viv_ram: "RAM", viv_activa: "screen on", viv_aod: "dimmed",
           viv_off: "screen off", viv_ap: "AP mode", viv_prueba: "on trial" },
@@ -76,6 +88,12 @@
           nav_archivos: "Dateien", nav_registro: "Protokoll", nav_usb: "USB",
           nav_wifi: "Verbinden", nav_ap: "Zugangspunkt", nav_red: "Scans",
           nav_pato: "Pato goma", nav_iconos: "Icons",
+          lg_titulo: "Die Uhr um Erlaubnis bitten",
+          lg_texto: "Diese Uhr ist in keinem vertrauenswuerdigen Netz, deshalb muss das Portal auf der Uhr erlaubt werden.",
+          lg_pedir: "Um Erlaubnis bitten", lg_codigo: "Auf der Uhr den Code erlauben", lg_esperando: "warte auf die Antwort der Uhr...",
+          lg_rechazado: "Die Uhr hat abgelehnt.", lg_vencido: "Niemand hat auf der Uhr geantwortet. Nochmal versuchen.",
+          lg_otro: "Ein anderer Browser wartet auf eine Antwort der Uhr.", lg_espera: "%s s warten, bevor du nochmal fragst.",
+          lg_salir: "Abmelden",
           viv_cargando: "laedt", viv_usb: "USB", viv_sin: "keine Verbindung zur Uhr",
           viv_ram: "RAM", viv_activa: "Bildschirm an", viv_aod: "gedimmt",
           viv_off: "Bildschirm aus", viv_ap: "AP-Modus", viv_prueba: "auf Probe" }
@@ -165,7 +183,10 @@
     var html = '<div class="marca"><a href="/" class="logo">AmoledOS</a>' +
                '<span class="quien" id="quien"></span>' +
                '<span class="viva" id="viva"><span class="chip dim">' +
-               esc(t("viv_cargando")) + '</span></span></div><div class="pills">';
+               esc(t("viv_cargando")) + '</span></span>' +
+               (acceso && acceso.zona === "otra" && acceso.tiene
+                 ? '<a href="#" class="salir" id="salir">' + esc(t("lg_salir")) + "</a>" : "") +
+               '</div><div class="pills">';
     for (var g = 0; g < GRUPOS.length; g++) {
       var grupo = GRUPOS[g];
       html += '<span class="grupo"><span class="rotulo">' + esc(t(grupo.t)) + "</span>";
@@ -189,6 +210,11 @@
     }
     html += "</div>";
     cinta.innerHTML = html;
+    var salir = document.getElementById("salir");
+    if (salir) salir.onclick = function (e) {
+      e.preventDefault();
+      fetch("/api/salir", { method: "POST" }).then(function () { location.reload(); });
+    };
     var activa = cinta.querySelector("a.aca");
     if (activa && activa.scrollIntoView) {
       try { activa.scrollIntoView({ block: "nearest", inline: "center" }); } catch (e) {}
@@ -236,7 +262,11 @@
   }
 
   function estado() {
-    return fetch("/api/status").then(function (r) { return r.json(); })
+    return fetch("/api/status").then(function (r) {
+        /* the session was closed from the watch: the login again */
+        if (r.status === 401) { location.reload(); throw new Error("401"); }
+        return r.json();
+      })
       .then(function (s) {
         ultimo = s;
         pintarViva(s);
@@ -306,6 +336,52 @@
     });
   }
 
+  /* Donde entro el pedido y si hace falta permiso (docs/SECURITY.md): en una
+     red que no es de confianza, el reloj aprueba cada navegador. */
+  var acceso = null;
+
+  /* La pantalla de permiso, en lugar de la pagina: un boton, el codigo que
+     tambien muestra el reloj, y la espera. Aprobado, se recarga la pagina y
+     ya entra con la cookie. Devuelve una promesa que no se cumple: la pagina
+     no carga sus datos sin permiso. */
+  function login() {
+    var wrap = document.querySelector(".wrap") || document.body;
+    var nav = wrap.querySelector(".paginas");
+    var kids = wrap.children;
+    for (var i = 0; i < kids.length; i++) {
+      if (kids[i] !== nav && !kids[i].classList.contains("top")) kids[i].style.display = "none";
+    }
+    var caja = document.createElement("div");
+    caja.className = "tarjeta";
+    caja.innerHTML = "<h3>" + esc(t("lg_titulo")) + "</h3><p class=\"sub\">" + esc(t("lg_texto")) +
+      "</p><div class=\"fila\"><button id=\"lg-pedir\">" + esc(t("lg_pedir")) +
+      "</button></div><p id=\"lg-estado\" class=\"sub\"></p>";
+    wrap.appendChild(caja);
+    var estadoEl = caja.querySelector("#lg-estado"), boton = caja.querySelector("#lg-pedir");
+    function decir(html) { estadoEl.innerHTML = html; }
+    function seguir(id) {
+      fetch("/api/pedir?id=" + id).then(function (r) { return r.json(); }).then(function (d) {
+        if (d.estado === "aprobado") { location.reload(); return; }
+        if (d.estado === "esperando") { setTimeout(function () { seguir(id); }, 1500); return; }
+        boton.disabled = false;
+        decir(esc(t(d.estado === "rechazado" ? "lg_rechazado" : "lg_vencido")));
+      }).catch(function () { setTimeout(function () { seguir(id); }, 3000); });
+    }
+    boton.onclick = function () {
+      boton.disabled = true;
+      fetch("/api/pedir", { method: "POST" }).then(function (r) {
+        return r.json().then(function (d) { return { st: r.status, d: d }; });
+      }).then(function (x) {
+        if (x.st === 429) { boton.disabled = false; decir(esc(t("lg_espera").replace("%s", x.d.espera))); return; }
+        if (x.st !== 200) { boton.disabled = false; decir(esc(t("lg_otro"))); return; }
+        decir(esc(t("lg_codigo")) + ' <b style="font-size:1.6em;letter-spacing:.12em">' + esc(x.d.codigo) +
+              "</b><br><span class=\"dim\">" + esc(t("lg_esperando")) + "</span>");
+        seguir(x.d.id);
+      }).catch(function () { boton.disabled = false; decir(esc(t("viv_sin"))); });
+    };
+    return new Promise(function () {});
+  }
+
   /* Arranque. Se le pasa el diccionario de la pagina: { en: {...}, de: {...} }.
      Devuelve una promesa para poder encadenar la carga de datos despues, que
      es lo que quieren todas: aos.init(TR).then(cargar). */
@@ -327,7 +403,13 @@
       })
       .catch(function () { /* sin endpoint queda el espanol del HTML */ })
       .then(function () {
+        return fetch("/api/auth").then(function (r) { return r.json(); })
+          .catch(function () { return null; });   /* un firmware sin login */
+      })
+      .then(function (a) {
+        acceso = a;
         pintarNav();
+        if (a && a.necesita && !a.tiene) return login();
         pedirPaginas();
         estado();
         setInterval(estado, 15000);
@@ -338,6 +420,7 @@
     init: init, t: t, esc: esc, aplicar: aplicar, brindis: brindis,
     humano: humano, duracion: duracion, post: post,
     estado: estado,
+    acceso: function () { return acceso; },
     alEstado: function (fn) { oyentes.push(fn); if (ultimo) fn(ultimo); },
     $: function (id) { return document.getElementById(id); },
     idioma: function () { return codigo; }

@@ -23,6 +23,9 @@
 # is not built, or PAGES=1- the board is not restarted.
 #
 #   PAGES=1 ./tools/install_apps.sh charlie.local radio   only Radio's page
+# Off a trusted network the watch's API wants its token (docs/SECURITY.md):
+# AOS_TOKEN=<token> from the portal's Settings, sent with every request.
+curl() { command curl ${AOS_TOKEN:+-H} ${AOS_TOKEN:+"Authorization: Bearer $AOS_TOKEN"} "$@"; }
 set -e
 ROOT=${0:a:h:h}
 HOST=${1:?usage: install_apps.sh <ip-or-name> [app...]}

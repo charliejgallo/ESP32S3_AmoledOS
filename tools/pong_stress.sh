@@ -3,6 +3,9 @@
 # tools/pong_stress.sh <minutes> <log>: the SPI/WiFi race test (docs/internal/HANDOFF-SPI-WIFI-NUCLEOS.md).
 # Pong on both boards for N minutes; every 20 s a tap on the host so a finished game restarts;
 # every 60 s the uptime of both, and a reboot is an uptime that went backwards.
+# Off a trusted network the watch's API wants its token (docs/SECURITY.md):
+# AOS_TOKEN=<token> from the portal's Settings, sent with every request.
+curl() { command curl ${AOS_TOKEN:+-H} ${AOS_TOKEN:+"Authorization: Bearer $AOS_TOKEN"} "$@"; }
 A=192.168.1.107; B=192.168.1.100; MIN=${1:-20}; LOG=${2:-pong_stress.log}
 act() { curl -s -m 5 -X POST -d "$2" http://$1/api/accion >/dev/null; }
 up() { curl -s -m 5 http://$1/api/status | python3 -c "import sys,json; print(json.load(sys.stdin).get('uptime_s',-1))" 2>/dev/null || echo -1; }

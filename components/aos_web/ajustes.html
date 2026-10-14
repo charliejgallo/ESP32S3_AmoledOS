@@ -209,6 +209,19 @@
     <input type="file" id="archivo-resp" accept=".json,application/json" hidden>
   </div>
 
+  <h2 data-t="h_seguridad">Seguridad</h2>
+  <div class="ajuste">
+    <div class="texto"><b data-t="redes_conf">Redes de confianza</b>
+      <span id="redes-conf"></span>
+      <span data-t="redes_conf_pie">En ellas el portal entra sin pedir permiso; en las demás, el reloj pregunta antes de dejar entrar a un navegador. Se eligen en el reloj: Ajustes, Wi-Fi.</span></div>
+  </div>
+  <div class="ajuste">
+    <div class="texto"><b data-t="token_t">Token para scripts</b>
+      <span id="token" style="font-family:ui-monospace,Menlo,monospace;word-break:break-all"></span>
+      <span data-t="token_pie">Fuera de una red de confianza, los scripts de tools/ lo mandan si se les pasa AOS_TOKEN=&lt;token&gt;. Uno nuevo deja sin efecto el anterior.</span></div>
+    <button class="sec" id="b-token" data-t="btn_token">Nuevo</button>
+  </div>
+
   <div class="aviso" id="aviso" hidden></div>
 </div>
 <div id="brindis"></div>
@@ -262,7 +275,12 @@ const TR = {
     resp_mal: "That is not an AmoledOS backup",
     resp_ok: "Restored: %n settings. Restart the watch now so they all apply?",
     hora_puesta: "time set", sincronizando: "asking the time server...",
-    sin_conexion: "no connection to the watch"
+    sin_conexion: "no connection to the watch",
+    h_seguridad: "Security", redes_conf: "Trusted networks",
+    redes_conf_pie: "On them the portal opens without asking; on any other, the watch asks before letting a browser in. They are chosen on the watch: Settings, Wi-Fi.",
+    token_t: "Token for scripts",
+    token_pie: "Off a trusted network, the scripts in tools/ send it when given AOS_TOKEN=<token>. A new one makes the old one stop working.",
+    btn_token: "New", ninguna_red: "none", token_nuevo: "new token: the old one no longer works"
   },
   de: {
     titulo: "Einstellungen",
@@ -310,10 +328,16 @@ const TR = {
     resp_mal: "Das ist keine AmoledOS-Sicherung",
     resp_ok: "Wiederhergestellt: %n Einstellungen. Uhr jetzt neu starten, damit alle gelten?",
     hora_puesta: "Zeit gestellt", sincronizando: "frage den Zeitserver...",
-    sin_conexion: "keine Verbindung zur Uhr"
+    sin_conexion: "keine Verbindung zur Uhr",
+    h_seguridad: "Sicherheit", redes_conf: "Vertrauenswürdige Netze",
+    redes_conf_pie: "In ihnen öffnet das Portal ohne zu fragen; in jedem anderen fragt die Uhr, bevor sie einen Browser hereinlässt. Sie werden auf der Uhr gewählt: Einstellungen, WLAN.",
+    token_t: "Token für Skripte",
+    token_pie: "Außerhalb eines vertrauenswürdigen Netzes schicken die Skripte in tools/ ihn mit, wenn AOS_TOKEN=<Token> gesetzt ist. Ein neuer macht den alten ungültig.",
+    btn_token: "Neu", ninguna_red: "keines", token_nuevo: "neuer Token: der alte gilt nicht mehr"
   }
 };
 const ES = {
+  ninguna_red: "ninguna", token_nuevo: "token nuevo: el anterior ya no sirve",
   nombre_malo: "nombre inválido: minúsculas, números y guiones nada más",
   tz_otra: "Otra (POSIX)...", guardado: "guardado", fallo: "falló: ",
   confirmar_wifi: "¿Apagar la wifi? Esta página va a dejar de responder.",
@@ -572,7 +596,24 @@ $("b-hora").onclick = async () => {
 };
 $("b-beep").onclick = () => aos.post("/api/accion", { que: "beep" }).catch(() => {});
 
-aos.init(TR).then(cargar);
+/* Seguridad: las redes de confianza se leen aca y se eligen en el reloj */
+async function cargarSeguridad() {
+  try {
+    const a = await (await fetch("/api/auth")).json();
+    $("redes-conf").textContent = a.redes && a.redes.length ? a.redes.join(", ") : t("ninguna_red");
+    $("token").textContent = (await (await fetch("/api/token")).json()).token;
+  } catch (e) { /* un firmware sin login */ }
+}
+$("b-token").onclick = async () => {
+  try {
+    const r = await fetch("/api/token", { method: "POST" });
+    if (!r.ok) throw new Error(r.status);
+    $("token").textContent = (await r.json()).token;
+    aos.brindis(t("token_nuevo"));
+  } catch (e) { aos.brindis(t("fallo") + e.message); }
+};
+
+aos.init(TR).then(cargar).then(cargarSeguridad);
 </script>
 </body>
 </html>

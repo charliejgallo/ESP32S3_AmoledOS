@@ -441,8 +441,49 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    login = False                    # --login: a watch on a network it does not trust
+
+    def _login_api(self, url):
+        """/api/auth, /api/pedir and /api/salir as the board answers them on
+        a network it does not trust (docs/SECURITY.md). Approval comes by
+        itself four seconds after asking: here there is no watch to tap."""
+        import time
+        tiene = "aos_s=dev" in (self.headers.get("Cookie") or "")
+        if url.path == "/api/auth":
+            return self._send(200, json.dumps({"zona": "otra" if Handler.login else "confianza",
+                                               "necesita": Handler.login, "tiene": tiene or not Handler.login,
+                                               "red": "Hotel", "redes": ["ComarcA"], "sesiones": 1 if tiene else 0}))
+        if url.path == "/api/pedir" and self.command == "POST":
+            Handler.asked_at = time.time()
+            return self._send(200, json.dumps({"ok": True, "id": 7, "codigo": "4821"}))
+        if url.path == "/api/pedir":
+            if time.time() - getattr(Handler, "asked_at", 0) < 4:
+                return self._send(200, '{"estado":"esperando"}')
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Set-Cookie", "aos_s=dev; Path=/; HttpOnly; SameSite=Strict")
+            self.end_headers()
+            self.wfile.write(b'{"estado":"aprobado"}')
+            return True
+        if url.path == "/api/token":
+            if self.command == "POST":
+                import secrets
+                Handler.token = secrets.token_hex(16)
+            return self._send(200, json.dumps({"token": getattr(Handler, "token", "0" * 32)}))
+        if url.path == "/api/salir":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Set-Cookie", "aos_s=; Path=/; Max-Age=0")
+            self.end_headers()
+            self.wfile.write(b'{"ok":true}')
+            return True
+        return None
+
     def do_GET(self):
         url = urlparse(self.path)
+
+        if url.path in ("/api/auth", "/api/pedir", "/api/token"):
+            return self._login_api(url)
 
         if url.path.startswith("/api/remoto/"):
             if self._remoto_get(url.path) is not None:
@@ -723,6 +764,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         url = urlparse(self.path)
 
+        if url.path in ("/api/pedir", "/api/salir", "/api/token"):
+            return self._login_api(url)
+
         if url.path.startswith("/api/remoto/"):
             size = int(self.headers.get("Content-Length", 0))
             cuerpo = self.rfile.read(size) if size else b""
@@ -886,7 +930,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default=os.path.join(ROOT, "sim", "sim_fs"))
     parser.add_argument("--port", type=int, default=8088)
+    parser.add_argument("--login", action="store_true",
+                        help="answer like a watch on a network it does not trust")
     args = parser.parse_args()
+    Handler.login = args.login
 
     Handler.base = args.root
     for name in DIRS:
