@@ -11,8 +11,10 @@ no `.so` changed.
 - **The boot scan remembers the card's apps.** What each `.so` says about
   itself (name, icon, colours, flags) is kept in `/spiffs/data/apps.cache`,
   checked by file name, size and date and by the firmware's ELF hash, so only
-  new or changed modules are opened at boot (37 ms each on the board,
-  1.26 s for 34). The first boot after an update opens them all once.
+  new or changed modules are opened at boot: on the board the scan went
+  from 2820 ms to 396 ms (41 modules), and the apps are in the launcher at
+  4.5 s of boot instead of 6.9 s. The first boot after an update opens them
+  all once.
   `lua.so` is not cached: its apps are the scripts on the card (docs/MENU.md).
 - **An app brings its own portal page**, `apps/<app>/web/<app>.html`, which
   goes next to its `.so` (`/sdcard/apps/<app>.html`) and is served at

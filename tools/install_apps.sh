@@ -34,7 +34,7 @@ pages=0
 for d in $ROOT/apps/*(/); do
     name=${d:t}
     (( ${#WANT[@]} )) && [[ ${WANT[(Ie)$name]} -eq 0 ]] && continue
-    for page in $d/web/*.html(.N); do files+=($page); (( pages++ )); done
+    for page in $d/web/*.html(.N); do files+=($page); pages=$((pages + 1)); done
     [[ -n $PAGES ]] && continue
     so=($d/build/*.so(.N))
     (( ${#so[@]} )) && files+=($so[1])
