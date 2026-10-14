@@ -5,6 +5,16 @@ Newest first. Versions are git tags; what is above the latest tag is on
 
 ## Unreleased
 
+- **An over-the-air update no longer restarts the watch halfway.** The
+  image's ~4 MB used to be erased in one go before the upload: for that
+  long the flash driver kept a core busy, the task watchdog fired, and the
+  panic handler hung writing the core dump with the erase half done, so the
+  chip's hardware watchdog reset it (boot reason "watchdog", no dump, the
+  phone dropped; 1 upload in 6, seen with the console on the cable). Each
+  sector is now erased as its data arrives, and the Wi-Fi leaves power save
+  before the upload starts. On the board: 8 uploads in a row, none cut, the
+  phone connected throughout; an upload takes ~45 s instead of ~30.
+
 - **Bluetooth: the watch asks for encryption only if the iPhone did not**
   (from P4OS). A bonded iPhone encrypts the link by itself as it
   reconnects; the watch's own request, started at the same instant, was a

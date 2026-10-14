@@ -4926,18 +4926,26 @@ bool aos_hal_ota_begin(size_t total_bytes)
         return false;
     }
 
-    /* OTA_SIZE_UNKNOWN erases the whole partition, which is several seconds.
-     * With the size known it only erases what it needs. */
-    esp_err_t err = esp_ota_begin(s_ota_part,
-                                  total_bytes ? total_bytes : OTA_SIZE_UNKNOWN,
-                                  &s_ota);
+    /* Each sector is erased as the data for it arrives, not the whole image
+     * up front (2026-10-14). With the size known, esp_ota_begin() erased ~4 MB
+     * in one call: for that long the flash driver kept CPU0 in its IPC task,
+     * IDLE0 starved, the task watchdog fired, and the panic handler hung
+     * erasing flash for the core dump with the other erase half done, so the
+     * hardware watchdog reset the chip: ESP_RST_WDT, no dump, the phone
+     * dropped. Seen on the board with the console on the cable, 1 upload in 6
+     * (and the "OTA cut by a watchdog" of v0.11.0 and v0.13.0). A sector at a
+     * time, the network reads in between and IDLE runs. The Wi-Fi leaves
+     * power save first, so the erase does not start on a dozing radio. */
+    s_ota_ps = true;
+    pm_policy_apply();
+    esp_err_t err = esp_ota_begin(s_ota_part, OTA_WITH_SEQUENTIAL_WRITES, &s_ota);
     if (err != ESP_OK) {
         s_ota = 0;
+        s_ota_ps = false;
+        pm_policy_apply();
         ota_fail("esp_ota_begin", err);
         return false;
     }
-    s_ota_ps = true;
-    pm_policy_apply();
     ESP_LOGI(TAG, "ota: writing into %s (%u B free), image of %u B",
              s_ota_part->label, (unsigned)s_ota_part->size, (unsigned)total_bytes);
     return true;
