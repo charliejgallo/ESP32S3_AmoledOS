@@ -3,6 +3,18 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+- **The portal refuses requests from other sites and other names**
+  (docs/SECURITY.md, from P4OS). A page from anywhere could make your
+  browser send the watch a form or a simple `fetch`, and the API acted on
+  it (delete a file, change the Wi-Fi, install firmware): the API now
+  answers only the portal's own pages (`Sec-Fetch-Site`, `Origin`); curl and
+  the scripts are not affected. And against DNS rebinding the portal answers
+  only to its IP or its own name (421 otherwise). Every answer carries
+  `nosniff` and `X-Frame-Options: DENY`. Tried on the board with the
+  requests a browser sends.
+
 ## v0.12.0 — 2026-10-14
 
 **A faster boot, apps that bring their own portal page, and the previous

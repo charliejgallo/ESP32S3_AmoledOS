@@ -12,6 +12,7 @@
 #include "aos_apps.h"   /* aos_alarm_get / set */
 #include "aos_dynapp.h" /* aos_dynapp_is_dynamic, for /api/apps */
 #include "aos_usb.h"    /* /api/usb: the USB port's mode, branch usb */
+#include "aos_web_access.h" /* who may talk to the portal */
 #include "esp_timer.h"
 #include "esp_core_dump.h"
 #include "esp_partition.h"
@@ -2722,6 +2723,9 @@ static bool app_page_name_ok(const char *s, size_t len)
 
 static esp_err_t not_found_handler(httpd_req_t *req, httpd_err_code_t err)
 {
+    if (!aos_web_access_ok(req)) {
+        return ESP_OK;          /* refused, and answered */
+    }
     const char *uri = req->uri;
     size_t len = strcspn(uri + 1, "?#");
     if (req->method != HTTP_GET || uri[0] != '/' || !app_page_name_ok(uri + 1, len)) {
@@ -3715,6 +3719,18 @@ static const httpd_uri_t ROUTES[] = {
 };
 #define N_ROUTES ((uint16_t)(sizeof(ROUTES) / sizeof(ROUTES[0])))
 
+/* Every route goes through here: the access check (aos_web_access.c), then
+ * its own handler, which rides in user_ctx. One place, so a route added
+ * tomorrow cannot forget it. */
+static esp_err_t gate(httpd_req_t *req)
+{
+    if (!aos_web_access_ok(req)) {
+        return ESP_OK;          /* refused, and answered */
+    }
+    esp_err_t (*handler)(httpd_req_t *) = (esp_err_t (*)(httpd_req_t *))req->user_ctx;
+    return handler(req);
+}
+
 esp_err_t aos_web_start(void)
 {
     if (s_server) {
@@ -3729,6 +3745,9 @@ esp_err_t aos_web_start(void)
      * so the endpoints simply gave 404 without a line in the log. Tied to the
      * array, adding a route cannot fail silently again. */
     config.max_uri_handlers = N_ROUTES;
+    /* the two every answer carries (aos_web_access.c) on top of a handler's
+     * own: /api/log sets three; 8 was the default */
+    config.max_resp_headers = 12;
     /* 8 KB and not 6: the /remoto handlers that query Home Assistant build the
      * Authorization header (320 B) and the URL on the stack, on top of what
      * the server already uses. An overflow here does not give a clean error,
@@ -3746,8 +3765,12 @@ esp_err_t aos_web_start(void)
     /* the apps' pages on the card: what no route of the firmware answers */
     httpd_register_err_handler(s_server, HTTPD_404_NOT_FOUND, not_found_handler);
 
+    aos_web_access_init();
     for (unsigned i = 0; i < N_ROUTES; i++) {
-        esp_err_t r = httpd_register_uri_handler(s_server, &ROUTES[i]);
+        httpd_uri_t route = ROUTES[i];      /* the server keeps its own copy */
+        route.user_ctx = (void *)route.handler;
+        route.handler = gate;
+        esp_err_t r = httpd_register_uri_handler(s_server, &route);
         if (r != ESP_OK) {
             /* Should never happen, because max_uri_handlers comes from the
              * size of the table. If it does, let it be seen. */
