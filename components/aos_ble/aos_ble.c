@@ -1083,6 +1083,36 @@ static void limpiar_conexion(void)
     aos_notif_reset_pending();
 }
 
+/* Encryption is asked for a moment after connecting, and only on a link the
+ * phone has not encrypted by then (2026-10-14, from P4OS). An iPhone that
+ * holds our keys encrypts by itself as soon as it reconnects; ours, started
+ * at the same moment, was a second security procedure the Security Manager
+ * gave up 30 s later, "encryption failed (13)" (BLE_HS_ETIMEOUT) in P4OS's
+ * log at every boot. A phone pairing for the first time does not start it,
+ * so this is still what starts its pairing. The callout runs on NimBLE's
+ * own task. */
+#define SEC_DELAY_MS 1500
+static struct ble_npl_callout s_sec_co;
+static bool s_sec_co_ok;
+
+static void sec_check(struct ble_npl_event *ev)
+{
+    (void)ev;
+    struct ble_gap_conn_desc d;
+    uint16_t conn = s_conn;
+    if (conn == SIN_CONN || ble_gap_conn_find(conn, &d) != 0 || d.sec_state.encrypted) {
+        return;
+    }
+    int rc = ble_gap_security_initiate(conn);
+    if (rc == BLE_HS_EALREADY) {
+        ESP_LOGI(TAG, "the phone is already pairing");
+    } else if (rc != 0) {
+        ESP_LOGW(TAG, "could not start encryption (%d)", rc);
+    } else {
+        ESP_LOGI(TAG, "link not encrypted by the phone: asking for it");
+    }
+}
+
 static int gap_event(struct ble_gap_event *event, void *arg)
 {
     (void)arg;
@@ -1098,12 +1128,13 @@ static int gap_event(struct ble_gap_event *event, void *arg)
         s_conn      = event->connect.conn_handle;
         s_conectado = true;
         ESP_LOGI(TAG, "phone connected");
-        /* We ask for encryption ourselves. Without an encrypted and
-         * authenticated connection the iPhone does not expose ANCS: its three
-         * characteristics require authorisation. If there are stored keys
-         * already this asks the user nothing. */
-        if (ble_gap_security_initiate(s_conn) != 0) {
-            ESP_LOGW(TAG, "could not start encryption");
+        /* The link has to be encrypted: without an encrypted and
+         * authenticated connection the iPhone does not expose ANCS (its three
+         * characteristics require authorisation). We ask for it ourselves if
+         * the phone has not, a moment later (sec_check). With stored keys
+         * this asks the user nothing. */
+        if (s_sec_co_ok) {
+            ble_npl_callout_reset(&s_sec_co, ble_npl_time_ms_to_ticks32(SEC_DELAY_MS));
         }
         return 0;
 
@@ -1122,7 +1153,15 @@ static int gap_event(struct ble_gap_event *event, void *arg)
 
     case BLE_GAP_EVENT_ENC_CHANGE:
         if (event->enc_change.status != 0) {
-            ESP_LOGW(TAG, "encryption failed (%d)", event->enc_change.status);
+            /* a procedure that lost the race to the phone's: the link is
+             * encrypted all the same */
+            if (ble_gap_conn_find(event->enc_change.conn_handle, &desc) == 0 &&
+                desc.sec_state.encrypted) {
+                ESP_LOGI(TAG, "a second security procedure ended (%d); the link is encrypted",
+                         event->enc_change.status);
+            } else {
+                ESP_LOGW(TAG, "encryption failed (%d)", event->enc_change.status);
+            }
             return 0;
         }
         s_cifrado     = true;
@@ -1300,6 +1339,7 @@ bool aos_ble_start(void)
 
     limpiar_conexion();
     aos_ble_scan_init();
+    s_sec_co_ok = ble_npl_callout_init(&s_sec_co, nimble_port_get_dflt_eventq(), sec_check, NULL) == 0;
     s_running = true;
     nimble_port_freertos_init(host_task);
     ESP_LOGI(TAG, "BLE stack up");
@@ -1314,6 +1354,11 @@ void aos_ble_stop(void)
     s_running = false;
 
     aos_ble_scan_deinit();
+    if (s_sec_co_ok) {
+        ble_npl_callout_stop(&s_sec_co);
+        ble_npl_callout_deinit(&s_sec_co);
+        s_sec_co_ok = false;
+    }
     int rc = nimble_port_stop();
     if (rc == 0) {
         esp_err_t e = nimble_port_deinit();

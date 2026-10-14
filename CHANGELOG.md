@@ -3,6 +3,16 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+- **Bluetooth: the watch asks for encryption only if the iPhone did not**
+  (from P4OS). A bonded iPhone encrypts the link by itself as it
+  reconnects; the watch's own request, started at the same instant, was a
+  second security procedure that ended in "encryption failed (13)" 30 s
+  later. Now the watch asks 1.5 s after the connection, and only on a link
+  still not encrypted (what starts a new phone's pairing). On the board,
+  reconnecting the paired iPhone: 2 failures in 3 before, none in 4 after.
+
 ## v0.13.0 — 2026-10-14
 
 **The portal's security**, brought from P4OS and made for a watch: other
