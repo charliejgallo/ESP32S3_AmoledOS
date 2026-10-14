@@ -44,18 +44,10 @@
       { url: "/ap",       t: "nav_ap"       },
       { url: "/red",      t: "nav_red"      }
     ]},
-    { t: "grp_apps", paginas: [
-      { url: "/clima",    t: "nav_clima"    },
-      { url: "/cotiz",    t: "nav_cotiz"    },
-      { url: "/camaras",  t: "nav_camaras"  },
-      { url: "/radio",    t: "nav_radio"    },
-      { url: "/mapas",    t: "nav_mapas"    },
-      { url: "/sensores", t: "nav_sensores" },
-      { url: "/remoto",   t: "nav_remoto"   },
-      { url: "/pixel",    t: "nav_pixel"    },
+    /* Las de las apps de la tarjeta no estan aca: cada una trae su pagina
+       (/sdcard/apps/<app>.html) y la cinta las pide a /api/paginas. */
+    { t: "grp_apps", apps: true, paginas: [
       { url: "/pato",     t: "nav_pato"     },
-      { url: "/lua",      t: "nav_lua"      },
-      { url: "/3d",       t: "nav_3d"       },
       { url: "/iconos",   t: "nav_iconos"   }
     ]}
   ];
@@ -67,8 +59,7 @@
           nav_inicio: "Inicio", nav_ajustes: "Ajustes", nav_alarmas: "Alarmas", nav_pantalla: "Pantalla", nav_menu: "Menú",
           nav_archivos: "Archivos", nav_registro: "Registro", nav_usb: "USB",
           nav_wifi: "Conectar", nav_ap: "Punto de acceso", nav_red: "Escaneos",
-          nav_clima: "Clima", nav_cotiz: "Cotizaciones", nav_camaras: "Cámaras", nav_radio: "Radio", nav_mapas: "Mapas",
-          nav_sensores: "Sensores", nav_remoto: "Remoto", nav_pixel: "Pixel Art", nav_pato: "Pato goma", nav_lua: "Lua", nav_3d: "Visor 3D", nav_iconos: "Iconos",
+          nav_pato: "Pato goma", nav_iconos: "Iconos",
           viv_cargando: "cargando", viv_usb: "USB", viv_sin: "sin conexión con el reloj",
           viv_ram: "RAM", viv_activa: "pantalla activa", viv_aod: "atenuada",
           viv_off: "pantalla apagada", viv_ap: "modo AP", viv_prueba: "a prueba" },
@@ -76,8 +67,7 @@
           nav_inicio: "Home", nav_ajustes: "Settings", nav_alarmas: "Alarms", nav_pantalla: "Screen", nav_menu: "Menu",
           nav_archivos: "Files", nav_registro: "Log", nav_usb: "USB",
           nav_wifi: "Connect", nav_ap: "Access point", nav_red: "Scans",
-          nav_clima: "Weather", nav_cotiz: "Exchange rates", nav_camaras: "Cameras", nav_radio: "Radio", nav_mapas: "Maps",
-          nav_sensores: "Sensors", nav_remoto: "Remote", nav_pixel: "Pixel Art", nav_pato: "Pato goma", nav_lua: "Lua", nav_3d: "3D viewer", nav_iconos: "Icons",
+          nav_pato: "Pato goma", nav_iconos: "Icons",
           viv_cargando: "loading", viv_usb: "USB", viv_sin: "no connection to the watch",
           viv_ram: "RAM", viv_activa: "screen on", viv_aod: "dimmed",
           viv_off: "screen off", viv_ap: "AP mode", viv_prueba: "on trial" },
@@ -85,8 +75,7 @@
           nav_inicio: "Start", nav_ajustes: "Einstellungen", nav_alarmas: "Wecker", nav_pantalla: "Bildschirm", nav_menu: "Menü",
           nav_archivos: "Dateien", nav_registro: "Protokoll", nav_usb: "USB",
           nav_wifi: "Verbinden", nav_ap: "Zugangspunkt", nav_red: "Scans",
-          nav_clima: "Wetter", nav_cotiz: "Wechselkurse", nav_camaras: "Kameras", nav_radio: "Radio", nav_mapas: "Karten",
-          nav_sensores: "Sensoren", nav_remoto: "Fernbedienung", nav_pixel: "Pixel Art", nav_pato: "Pato goma", nav_lua: "Lua", nav_3d: "3D-Viewer", nav_iconos: "Icons",
+          nav_pato: "Pato goma", nav_iconos: "Icons",
           viv_cargando: "laedt", viv_usb: "USB", viv_sin: "keine Verbindung zur Uhr",
           viv_ram: "RAM", viv_activa: "Bildschirm an", viv_aod: "gedimmt",
           viv_off: "Bildschirm aus", viv_ap: "AP-Modus", viv_prueba: "auf Probe" }
@@ -150,6 +139,25 @@
      paginas en sus tres grupos. En pantallas angostas la fila de paginas se
      desplaza de costado en vez de apilarse en tres renglones, y la pagina
      actual se trae a la vista sola. */
+  /* Las paginas de las apps de la tarjeta: [{ pagina, app, nombre }], de
+     /api/paginas. La ultima lista se guarda en la sesion para que la cinta
+     salga entera de una al pasar de pagina, y se pide de nuevo cada vez. */
+  var deApps = null;
+  try { deApps = JSON.parse(sessionStorage.getItem("aos_paginas")); } catch (e) {}
+
+  function pedirPaginas() {
+    fetch("/api/paginas").then(function (r) { return r.json(); })
+      .then(function (d) {
+        var lista = (d && d.paginas) || [];
+        lista.sort(function (a, b) { return a.nombre.localeCompare(b.nombre); });
+        var antes = JSON.stringify(deApps);
+        deApps = lista;
+        try { sessionStorage.setItem("aos_paginas", JSON.stringify(lista)); } catch (e) {}
+        if (JSON.stringify(lista) !== antes) pintarNav();
+      })
+      .catch(function () { /* sin la lista quedan las del firmware */ });
+  }
+
   function pintarNav() {
     var cinta = document.querySelector(".paginas");
     if (!cinta) return;
@@ -161,10 +169,21 @@
     for (var g = 0; g < GRUPOS.length; g++) {
       var grupo = GRUPOS[g];
       html += '<span class="grupo"><span class="rotulo">' + esc(t(grupo.t)) + "</span>";
+      var items = [];
       for (var i = 0; i < grupo.paginas.length; i++) {
-        var p = grupo.paginas[i];
-        html += '<a href="' + p.url + '"' +
-                (p.url === aca ? ' class="aca"' : "") + ">" + esc(t(p.t)) + "</a>";
+        items.push({ url: grupo.paginas[i].url, texto: t(grupo.paginas[i].t) });
+      }
+      if (grupo.apps && deApps) {
+        var propias = items.length;
+        for (var k = deApps.length - 1; k >= 0; k--) {
+          var url = "/" + deApps[k].pagina, repetida = false;
+          for (var j = 0; j < propias; j++) if (items[j].url === url) repetida = true;
+          if (!repetida) items.unshift({ url: url, texto: deApps[k].nombre });
+        }
+      }
+      for (var m = 0; m < items.length; m++) {
+        html += '<a href="' + esc(items[m].url) + '"' +
+                (items[m].url === aca ? ' class="aca"' : "") + ">" + esc(items[m].texto) + "</a>";
       }
       html += "</span>";
     }
@@ -309,6 +328,7 @@
       .catch(function () { /* sin endpoint queda el espanol del HTML */ })
       .then(function () {
         pintarNav();
+        pedirPaginas();
         estado();
         setInterval(estado, 15000);
       });

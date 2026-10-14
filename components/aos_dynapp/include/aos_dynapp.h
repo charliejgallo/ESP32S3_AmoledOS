@@ -46,6 +46,12 @@ bool aos_dynapp_unload(const char *app_id);
  * ones, so only the table of loaded stubs knows. */
 bool aos_dynapp_is_dynamic(const char *app_id);
 
+/* The app a module brings first (its index 0), by the module's file name
+ * ("radio.so"): what the portal names an app's page after. Copies its id and
+ * its name (untranslated); false if no such .so is registered. */
+bool aos_dynapp_module_app(const char *file, char *id, size_t id_len,
+                           char *name, size_t name_len);
+
 
 /* .so modules loaded right now. Returns how many; 'out' receives the names
  * separated by spaces. Those remaining are the background ones. */

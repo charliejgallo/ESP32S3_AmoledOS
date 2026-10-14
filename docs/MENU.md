@@ -173,6 +173,24 @@ app opens, so apps open faster too. A script costs one `fopen` on a FAT
 directory of 200 files (~21 ms): `lua.so` stopped also opening the `.aic` of
 every script and now only opens the ones the directory listing showed.
 
+**The scan cache (2026-10-14, from P4OS).** Opening a `.so` only to read its
+descriptor is the 37 ms a module above. What each one-app module's `init()`
+says -its descriptor and its icon, nothing else for any of the 41 apps- is
+kept in `/spiffs/data/apps.cache`, checked by file name, size and date and by
+the firmware's ELF hash; only new or changed modules are opened, and the file
+is written only when something changed. After a firmware update every `.so` is
+opened once again. `lua.so` is still opened every boot: its apps are the
+scripts on the card, not the module. Measured on charlie's watch (41
+modules, 45 apps): the scan took 2820 ms when every `.so` was opened (the
+first boot of the new firmware) and 396 ms from the cache, and the apps were
+in the launcher at 4.5 s of boot instead of 6.9 s. The boot log says how it
+went:
+
+```
+aos_dynapp: apps: 40 from the cache, 1 opened to be described
+aos_dynapp: scan: 41 modules, 45 apps, 396 ms (modules 227 ms, extra apps 168 ms; ...)
+```
+
 **Scripts crowding out apps.** With 200 scripts, `lua.so` came before
 `turbo.so` in the directory, took the slots, and Turbo and Monster Hop were the
 ones left out. The scan now registers one app per module first and the extra

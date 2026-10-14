@@ -3,6 +3,43 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+Brought from P4OS. Firmware, and the apps' pages for the card; no `.so`
+changed.
+
+- **The boot scan remembers the card's apps.** What each `.so` says about
+  itself (name, icon, colours, flags) is kept in `/spiffs/data/apps.cache`,
+  checked by file name, size and date and by the firmware's ELF hash, so only
+  new or changed modules are opened at boot: on the board the scan went
+  from 2820 ms to 396 ms (41 modules), and the apps are in the launcher at
+  4.5 s of boot instead of 6.9 s. The first boot after an update opens them
+  all once.
+  `lua.so` is not cached: its apps are the scripts on the card (docs/MENU.md).
+- **An app brings its own portal page**, `apps/<app>/web/<app>.html`, which
+  goes next to its `.so` (`/sdcard/apps/<app>.html`) and is served at
+  `/<app>`: a new app with a web page needs no firmware, and a page is
+  updated with one upload and a reload, without restarting the watch. The
+  ribbon lists them from `GET /api/paginas`, under the app's translated name.
+  `apps/hello_app/web/hello_app.html` is the template (docs/PORTAL.md, "The
+  apps' own pages").
+- **Ten pages moved out of the firmware into their apps**: Weather, Rates,
+  Cameras, Radio, Maps, Sensors, Remote, Pixel Art, Lua and the 3D viewer,
+  238 KB of flash. Their addresses are the same (`/radio`, `/clima`...),
+  except the 3D viewer's, `/visor3d`, to which `/3d` leads. Their JSON APIs
+  stay in the firmware. **Updating from a release: copy the `.html` files
+  of `apps.zip` to the card's `apps/` folder with the `.so` files**, or those
+  pages are missing.
+- **Going from one Lua script to another restarted the watch** (a
+  CacheError: the code of the open script unmapped). The loader's `dlopen`
+  hands back a module already loaded without counting it and `dlclose`
+  unloads it outright, so closing one app of `lua.so` took the code from
+  the next. Every close goes through `module_release()` now, which keeps a
+  module while one of its apps is alive (the fix P4OS made for Python).
+  Reproduced and tried on the board.
+- `tools/install_apps.sh` uploads the pages too, and does not restart the
+  board when only pages went up (`PAGES=1` for just the page).
+
 ## v0.11.0 — 2026-10-10
 
 **BLE: a Bluetooth LE scanner and analyser for the watch**

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Hola</title>
+<link rel="stylesheet" href="/aos.css">
+<!-- La plantilla de la pagina de una app (docs/PORTAL.md, "The apps' own
+     pages"). Va al lado del .so con el mismo nombre -hello_app.so,
+     hello_app.html- y el reloj la sirve en /hello_app: no hay firmware que
+     compilar. Lo que muestra es lo basico que necesita cualquiera: la
+     cinta y el idioma de aos.js, el estado del reloj, un archivo de la
+     tarjeta que se lee y se guarda, y abrir la app en el reloj. -->
+<style>
+  .hl-nota { width: 100%; min-height: 90px; box-sizing: border-box; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Hola</h1></div>
+  <p class="sub" data-t="bajada">La página de ejemplo de una app de la tarjeta.</p>
+
+  <nav class="paginas"></nav>
+
+  <div class="tarjeta">
+    <h3 data-t="t_reloj">El reloj</h3>
+    <dl class="datos">
+      <dt data-t="encendido">Encendido hace</dt><dd id="uptime">-</dd>
+      <dt data-t="bateria">Batería</dt><dd id="bateria">-</dd>
+    </dl>
+    <div class="fila"><button id="abrir" data-t="abrir">Abrir Hola en el reloj</button></div>
+  </div>
+
+  <div class="tarjeta">
+    <h3 data-t="t_nota">Una nota en la tarjeta</h3>
+    <p class="sub" data-t="nota_ayuda">Se guarda como /sdcard/hola.txt: así se hablan una página y su app.</p>
+    <textarea id="nota" class="hl-nota" spellcheck="false"></textarea>
+    <div class="fila"><button id="guardar" data-t="guardar">Guardar</button></div>
+  </div>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "Hello", bajada: "The sample page of an app on the card.",
+    t_reloj: "The watch", encendido: "Up for", bateria: "Battery",
+    abrir: "Open Hello on the watch", t_nota: "A note on the card",
+    nota_ayuda: "Saved as /sdcard/hola.txt: that is how a page and its app talk.",
+    guardar: "Save", guardado: "saved", abierta: "opened on the watch"
+  },
+  de: {
+    titulo: "Hallo", bajada: "Die Beispielseite einer App auf der Karte.",
+    t_reloj: "Die Uhr", encendido: "An seit", bateria: "Akku",
+    abrir: "Hallo auf der Uhr öffnen", t_nota: "Eine Notiz auf der Karte",
+    nota_ayuda: "Gespeichert als /sdcard/hola.txt: so sprechen eine Seite und ihre App miteinander.",
+    guardar: "Speichern", guardado: "gespeichert", abierta: "auf der Uhr geöffnet"
+  }
+};
+const $ = aos.$;
+/* un texto que solo arma el script: en espanol el que esta aca */
+const tx = (clave, es) => aos.idioma() === "es" ? es : aos.t(clave);
+const ARCHIVO = "hola.txt";        /* en la raiz de la tarjeta: dir=sd */
+
+function leerNota() {
+  fetch("/api/download?dir=sd&name=" + ARCHIVO)
+    .then(r => r.ok ? r.text() : "")
+    .then(t => { $("nota").value = t; });
+}
+
+$("guardar").onclick = () => {
+  fetch("/api/upload?dir=sd&name=" + ARCHIVO, { method: "POST", body: $("nota").value })
+    .then(r => { if (!r.ok) throw new Error(r.status); aos.brindis(tx("guardado", "guardado")); })
+    .catch(e => aos.brindis(String(e.message || e)));
+};
+
+$("abrir").onclick = () => {
+  aos.post("/api/accion", { que: "abrir", id: "demo.hello" })
+    .then(() => aos.brindis(tx("abierta", "abierta en el reloj")))
+    .catch(e => aos.brindis(e.message));
+};
+
+aos.init(TR).then(() => {
+  aos.alEstado(s => {
+    $("uptime").textContent = aos.duracion(s.uptime_s);
+    $("bateria").textContent = s.battery >= 0 ? s.battery + "%" : "?";
+  });
+  leerNota();
+});
+</script>
+</body>
+</html>

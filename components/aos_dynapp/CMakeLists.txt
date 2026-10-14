@@ -2,6 +2,7 @@ idf_component_register(
     SRCS "aos_dynapp.c" "aos_symbols.c"
     INCLUDE_DIRS "include"
     REQUIRES aos_ui aos_hal espressif__elf_loader espressif__esp_new_jpeg
+    PRIV_REQUIRES esp_app_format
 )
 
 # Interceptamos esp_elf_malloc() para mandar los datos del cargador a PSRAM y

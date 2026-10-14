@@ -556,6 +556,13 @@ aos_icon_source_t aos_icon_source(const char *id)
     return AOS_ICON_SRC_NONE;
 }
 
+const uint8_t *aos_icon_app_ops(const char *id, size_t *len)
+{
+    icon_reg_t *e = reg_find(id);
+    if (len) *len = e ? e->len : 0;
+    return e ? e->ops : NULL;
+}
+
 const uint8_t *aos_icon_ops_for(const char *id, size_t *len)
 {
     icon_reg_t *e = files_find(id);

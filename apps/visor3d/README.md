@@ -2,7 +2,7 @@
 
 Turn a model with one finger, zoom it with two. The files live in the card's
 `3d/` folder: **STL** (binary or ASCII) straight from any CAD program or
-slicer, and **M3D**, what the portal's `/3d` page makes out of STL, OBJ and
+slicer, and **M3D**, what the portal's `/visor3d` page makes out of STL, OBJ and
 GLB — with their colours. Since v0.6.0, and the first app built for two
 fingers (see [docs/GESTURES.md](../../docs/GESTURES.md)).
 
@@ -52,7 +52,7 @@ $B -b -P apps/visor3d/tools/mila_obj.py -- --out /tmp/m [--anim c_sit] [--items 
 $B -b -P apps/visor3d/tools/models_obj.py -- --model tommy|zombie|muscle --out /tmp/m
 ```
 
-Each writes an OBJ with its MTL; the portal's `/3d` page turns it into an
+Each writes an OBJ with its MTL; the portal's `/visor3d` page turns it into an
 M3D (16 000 triangles is what these use). `mila_obj.py` builds her with the
 game's rig and poses; `models_obj.py` loads Monster Hop's `chars.py` and
 `monsters.py` and Turbo's `cars.py` without running them, gives every face
@@ -64,7 +64,7 @@ those masks per face after cutting the body finer.
 colours: a torus knot, an ASCII gear, a bumpy sphere of 80 000 triangles
 (over the budget: the watch reduces it while loading) and a low-poly planet.
 
-## The portal's /3d page
+## The portal's /visor3d page (once /3d, which still leads there)
 
 Pick an STL, an OBJ (with its `.mtl`, for the colours) or a GLB; the browser
 reads it, welds it, reduces it to the triangle cap you choose, shows a
