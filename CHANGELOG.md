@@ -3,10 +3,11 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.12.0 — 2026-10-14
 
-Brought from P4OS. Firmware, and the apps' pages for the card; no `.so`
-changed.
+**A faster boot, apps that bring their own portal page, and the previous
+boot's log**, all brought from P4OS. Firmware, and the apps' pages for the
+card (`apps.zip` now carries them); no `.so` changed.
 
 - **The boot scan remembers the card's apps.** What each `.so` says about
   itself (name, icon, colours, flags) is kept in `/spiffs/data/apps.cache`,
