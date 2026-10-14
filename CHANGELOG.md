@@ -5,8 +5,8 @@ Newest first. Versions are git tags; what is above the latest tag is on
 
 ## Unreleased
 
-Two things brought from P4OS. Firmware, and the apps' pages for the card;
-no `.so` changed.
+Brought from P4OS. Firmware, and the apps' pages for the card; no `.so`
+changed.
 
 - **The boot scan remembers the card's apps.** What each `.so` says about
   itself (name, icon, colours, flags) is kept in `/spiffs/data/apps.cache`,
@@ -30,6 +30,13 @@ no `.so` changed.
   stay in the firmware. **Updating from a release: copy the `.html` files
   of `apps.zip` to the card's `apps/` folder with the `.so` files**, or those
   pages are missing.
+- **Going from one Lua script to another restarted the watch** (a
+  CacheError: the code of the open script unmapped). The loader's `dlopen`
+  hands back a module already loaded without counting it and `dlclose`
+  unloads it outright, so closing one app of `lua.so` took the code from
+  the next. Every close goes through `module_release()` now, which keeps a
+  module while one of its apps is alive (the fix P4OS made for Python).
+  Reproduced and tried on the board.
 - `tools/install_apps.sh` uploads the pages too, and does not restart the
   board when only pages went up (`PAGES=1` for just the page).
 
