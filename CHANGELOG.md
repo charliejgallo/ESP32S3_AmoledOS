@@ -3,7 +3,12 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.13.0 — 2026-10-14
+
+**The portal's security**, brought from P4OS and made for a watch: other
+sites can no longer drive the watch through your browser, and off a trusted
+network the watch approves each browser with a tap. Firmware and the
+language packs; the apps and their pages are those of v0.12.0.
 
 - **The portal refuses requests from other sites and other names**
   (docs/SECURITY.md, from P4OS). A page from anywhere could make your
