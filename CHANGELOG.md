@@ -3,7 +3,12 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.14.0 — 2026-10-14
+
+**Updates that no longer cut, readable crashes, and a quieter Bluetooth
+link.** Firmware only; the apps, their pages and the language packs are
+those of v0.13.0. Releases carry the firmware's ELF from now on
+(`amoledos.elf.xz`).
 
 - **A core dump says which firmware made it, and is decoded only against
   that ELF** (from P4OS). `GET /api/coredump?info=1` reads the ELF sha from
