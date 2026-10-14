@@ -2624,6 +2624,25 @@ static esp_err_t usb_handler(httpd_req_t *req)
     return r;
 }
 
+/* POST /api/coredump/test: a panic on purpose, after answering, to try the
+ * core dump and the previous boot's log end to end (from P4OS). The same
+ * door as /api/ota/restart: whoever reaches the portal can restart the
+ * watch anyway. */
+static void panic_task(void *arg)
+{
+    vTaskDelay(pdMS_TO_TICKS(300));     /* let the answer leave */
+    ESP_LOGW(TAG, "panic asked for by the portal (/api/coredump/test)");
+    abort();
+}
+
+static esp_err_t coredump_test_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, "{\"ok\":true}");
+    xTaskCreate(panic_task, "panic", 2048, NULL, 5, NULL);
+    return ESP_OK;
+}
+
 /* GET /api/coredump: the last core dump, raw (ELF), straight from the
  * coredump partition. For the panics that happen with the USB port on the
  * OTG side, where no console can print them. Decode on the Mac with
@@ -3492,13 +3511,41 @@ static esp_err_t iconos_page_handler(httpd_req_t *req)
  * offsets travel in two headers so the page can ask only for what is new. The
  * end is fixed before sending: the log keeps growing meanwhile and a chunked
  * stream with a moving end never finishes. */
+/* GET /api/log?prev=1: the previous boot's last 64 KB, whole, as the watch
+ * left it when it restarted; X-Motivo says how that boot ended (this boot's
+ * reason). 404 when there is none: the first boot after a power cut. */
+static esp_err_t log_prev_send(httpd_req_t *req)
+{
+    size_t len = 0;
+    const char *prev = aos_log_prev(&len);
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    httpd_resp_set_hdr(req, "X-Motivo", aos_hal_boot_reason());
+    if (!prev || !len) {
+        httpd_resp_set_status(req, "404 Not Found");
+        return httpd_resp_sendstr(req, "");
+    }
+    httpd_resp_set_type(req, "text/plain; charset=utf-8");
+    for (size_t at = 0; at < len; at += 4096) {
+        size_t n = len - at < 4096 ? len - at : 4096;
+        esp_err_t r = httpd_resp_send_chunk(req, prev + at, (ssize_t)n);
+        if (r != ESP_OK) {
+            return r;
+        }
+    }
+    return httpd_resp_send_chunk(req, NULL, 0);
+}
+
 static esp_err_t log_handler(httpd_req_t *req)
 {
     char query[48] = "", v[24];
     size_t desde = 0;
-    if (httpd_req_get_url_query_str(req, query, sizeof(query)) == ESP_OK &&
-        httpd_query_key_value(query, "desde", v, sizeof(v)) == ESP_OK) {
-        desde = (size_t)strtoul(v, NULL, 10);
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) == ESP_OK) {
+        if (httpd_query_key_value(query, "prev", v, sizeof(v)) == ESP_OK) {
+            return log_prev_send(req);
+        }
+        if (httpd_query_key_value(query, "desde", v, sizeof(v)) == ESP_OK) {
+            desde = (size_t)strtoul(v, NULL, 10);
+        }
     }
 
     size_t hasta = aos_log_total();
@@ -3617,6 +3664,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/usb",     .method = HTTP_GET,  .handler = usb_handler },
         { .uri = "/usb",         .method = HTTP_GET,  .handler = usb_page_handler },
         { .uri = "/api/coredump",.method = HTTP_GET,  .handler = coredump_handler },
+        { .uri = "/api/coredump/test", .method = HTTP_POST, .handler = coredump_test_handler },
         { .uri = "/api/list",    .method = HTTP_GET,  .handler = list_handler },
         { .uri = "/api/upload",  .method = HTTP_POST, .handler = upload_handler },
         { .uri = "/api/ota",     .method = HTTP_POST, .handler = ota_handler },

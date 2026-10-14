@@ -225,6 +225,11 @@ CONFIG_LWIP_TCP_RECVMBOX_SIZE=16
 # fragmentacion con la reserva de codigo, para que la mejora sea atribuible.
 CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
 
+# Lo que un reinicio no borra (EXT_RAM_NOINIT_ATTR; el test de PSRAM del
+# arranque lo saltea): el anillo del log, para leer el arranque anterior
+# despues de un panic o un watchdog (aos_log.c, /api/log?prev=1).
+CONFIG_SPIRAM_ALLOW_NOINIT_SEG_EXTERNAL_MEMORY=y
+
 # --- TLS ---------------------------------------------------------------------
 # Los cuatro ajustes salen de medir en la placa, no de suponer: los numeros
 # estan en docs/HANDOFF-HAL-RED-MIC.md seccion 3.1. Ninguno es un CONFIG_LV_*,

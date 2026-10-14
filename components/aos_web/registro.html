@@ -12,13 +12,16 @@
   .barra-reg .estado { color: var(--dim); font-size: 12.5px; margin-left: auto; font-variant-numeric: tabular-nums; }
   pre.consola { max-height: 72vh; min-height: 200px; }
   pre.consola.detenido { outline: 2px solid var(--amber); }
+  #anterior summary { cursor: pointer; display: flex; gap: 10px; align-items: baseline; }
+  #anterior .estado { color: var(--dim); font-size: 12.5px; }
+  #anterior pre.consola { max-height: 60vh; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top"><h1 data-t="titulo">Registro</h1></div>
   <p class="sub" data-t="bajada">Lo mismo que sale por la consola USB, guardado
-     en un anillo de 16 KB en PSRAM. Sirve cuando el cable no está o cuando el
+     en un anillo de 64 KB en PSRAM. Sirve cuando el cable no está o cuando el
      chip duerme y la consola USB se cae.</p>
 
   <nav class="paginas"></nav>
@@ -36,8 +39,20 @@
 
   <footer data-t="pie">Se pide cada 2 segundos lo que se agregó desde la última
     vez; si el anillo dio la vuelta entre medio, se muestra desde lo más viejo
-    que quedó. Las 16 KB alcanzan para unos tres minutos de arranque o varias
+    que quedó. Las 64 KB alcanzan para unos doce minutos de arranque o muchas
     horas de reloj quieto.</footer>
+
+  <details class="tarjeta" id="anterior">
+    <summary><b data-t="ant_titulo">El arranque anterior</b>
+      <span class="estado" id="ant-estado"></span></summary>
+    <p class="sub" data-t="ant_bajada">El anillo sobrevive a un reinicio: acá
+      queda lo último que escribió el reloj antes de un cuelgue, un watchdog o
+      un reinicio. Se pierde si se cortó la energía.</p>
+    <div class="barra-reg">
+      <button class="sec chica" id="b-ant-bajar" data-t="b_bajar">Guardar .txt</button>
+    </div>
+    <pre class="consola" id="ant-consola"></pre>
+  </details>
 </div>
 <div id="brindis"></div>
 
@@ -46,23 +61,30 @@
 const TR = {
   en: {
     titulo: "Log",
-    bajada: "The same as the USB console, kept in a 16 KB ring in PSRAM. For when the cable is not there, or when the chip sleeps and the USB console drops.",
+    bajada: "The same as the USB console, kept in a 64 KB ring in PSRAM. For when the cable is not there, or when the chip sleeps and the USB console drops.",
     ph_filtro: "filter by text or tag", pausar: "Pause", seguir: "Follow the end",
     b_vaciar: "Clear", b_bajar: "Save .txt",
-    pie: "It asks every 2 seconds for what was added since last time; if the ring wrapped in between, it shows from the oldest that remains. 16 KB is about three minutes of boot or several hours of an idle watch.",
+    pie: "It asks every 2 seconds for what was added since last time; if the ring wrapped in between, it shows from the oldest that remains. 64 KB is about twelve minutes of boot or many hours of an idle watch.",
+    ant_titulo: "The previous boot",
+    ant_bajada: "The ring survives a restart: here is the last the watch wrote before a hang, a watchdog or a restart. A power cut loses it.",
+    ant_motivo: "it ended by: %m", ant_nada: "nothing kept (the first boot after a power cut)",
     lineas: "%n lines", perdido: "(gap: the ring wrapped)", sin_conexion: "no connection to the watch"
   },
   de: {
     titulo: "Protokoll",
-    bajada: "Dasselbe wie die USB-Konsole, in einem 16-KB-Ring im PSRAM. Fuer wenn kein Kabel da ist oder der Chip schlaeft und die USB-Konsole wegfaellt.",
+    bajada: "Dasselbe wie die USB-Konsole, in einem 64-KB-Ring im PSRAM. Fuer wenn kein Kabel da ist oder der Chip schlaeft und die USB-Konsole wegfaellt.",
     ph_filtro: "nach Text oder Tag filtern", pausar: "Pause", seguir: "Am Ende bleiben",
     b_vaciar: "Leeren", b_bajar: ".txt speichern",
-    pie: "Alle 2 Sekunden wird geholt, was seit dem letzten Mal dazukam; ist der Ring dazwischen uebergelaufen, geht es beim aeltesten Rest los. 16 KB sind etwa drei Minuten Start oder mehrere Stunden ruhige Uhr.",
+    pie: "Alle 2 Sekunden wird geholt, was seit dem letzten Mal dazukam; ist der Ring dazwischen uebergelaufen, geht es beim aeltesten Rest los. 64 KB sind etwa zwoelf Minuten Start oder viele Stunden ruhige Uhr.",
+    ant_titulo: "Der vorige Start",
+    ant_bajada: "Der Ring uebersteht einen Neustart: hier steht, was die Uhr zuletzt vor einem Haenger, einem Watchdog oder einem Neustart schrieb. Ein Stromausfall loescht ihn.",
+    ant_motivo: "beendet durch: %m", ant_nada: "nichts behalten (der erste Start nach einem Stromausfall)",
     lineas: "%n Zeilen", perdido: "(Luecke: der Ring ist uebergelaufen)", sin_conexion: "keine Verbindung zur Uhr"
   }
 };
 const ES = {
-  lineas: "%n líneas", perdido: "(hueco: el anillo dio la vuelta)", sin_conexion: "sin conexión con el reloj"
+  lineas: "%n líneas", perdido: "(hueco: el anillo dio la vuelta)", sin_conexion: "sin conexión con el reloj",
+  ant_motivo: "terminó por: %m", ant_nada: "no quedó nada (el primer arranque después de un corte de energía)"
 };
 const $ = aos.$;
 function t(k) { const v = aos.t(k); return v === k ? (ES[k] !== undefined ? ES[k] : k) : v; }
@@ -141,6 +163,33 @@ $("b-bajar").onclick = () => {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 
+/* El arranque anterior: se pide una vez, al abrir la seccion. */
+let anterior = null;
+$("anterior").ontoggle = async () => {
+  if (!$("anterior").open || anterior !== null) return;
+  try {
+    const r = await fetch("/api/log?prev=1");
+    const motivo = r.headers.get("X-Motivo") || "?";
+    anterior = r.ok ? limpiar(await r.text()) : "";
+    $("ant-estado").textContent = anterior ? t("ant_motivo").replace("%m", motivo) : t("ant_nada");
+    $("ant-consola").innerHTML = anterior.split("\n").map(l => {
+      const c = claseDe(l);
+      return c ? '<span class="' + c + '">' + aos.esc(l) + "</span>" : aos.esc(l);
+    }).join("\n");
+    $("ant-consola").scrollTop = $("ant-consola").scrollHeight;
+  } catch (e) {
+    $("ant-estado").textContent = t("sin_conexion");
+  }
+};
+$("b-ant-bajar").onclick = () => {
+  if (!anterior) return;
+  const blob = new Blob([anterior], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "amoledos-anterior-" + new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19) + ".txt";
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
 aos.init(TR).then(() => { traer(); setInterval(traer, 2000); });
 </script>
 </body>

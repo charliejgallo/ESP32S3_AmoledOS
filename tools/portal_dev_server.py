@@ -635,6 +635,16 @@ class Handler(BaseHTTPRequestHandler):
                 {"id": "app.clima", "nombre": "Clima", "dinamica": True},
             ]}))
 
+        elif url.path == "/api/log" and "prev" in parse_qs(url.query):
+            # the previous boot, as the board keeps it across a restart
+            texto = ("I (31002) amoledos: heartbeat: display=active heap_int=122367\n"
+                     "W (33760) aos_web: panic asked for by the portal (/api/coredump/test)\n")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("X-Motivo", "PANIC")
+            self.end_headers()
+            self.wfile.write(texto.encode())
+
         elif url.path == "/api/log":
             # A log that grows by itself, in the board's format and with its
             # colours, so the page has to strip them here too.

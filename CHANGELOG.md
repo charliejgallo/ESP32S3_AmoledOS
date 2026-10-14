@@ -37,6 +37,14 @@ changed.
   the next. Every close goes through `module_release()` now, which keeps a
   module while one of its apps is alive (the fix P4OS made for Python).
   Reproduced and tried on the board.
+- **The previous boot's log survives the restart.** The log ring is 64 KB
+  now (16 before) in a part of PSRAM a restart does not clear, and each
+  line is pushed out of the cache as it is written. After a panic, a
+  watchdog or a restart, `/registro` shows "the previous boot" with how it
+  ended (`GET /api/log?prev=1`, `X-Motivo`); a power cut loses it.
+  `POST /api/coredump/test` panics on purpose to try it. Tried on the board:
+  after a software restart and after a panic, the last line kept is the
+  last one written.
 - `tools/install_apps.sh` uploads the pages too, and does not restart the
   board when only pages went up (`PAGES=1` for just the page).
 

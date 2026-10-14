@@ -2,7 +2,8 @@
  * AmoledOS - the log, kept in a ring so the portal can show it.
  *
  * Everything ESP_LOGx prints goes on to the console as before, and a copy
- * lands in a 16 KB ring in PSRAM. /api/log serves it. It exists because the
+ * lands in a 64 KB ring in PSRAM. /api/log serves it. The ring survives a
+ * restart, so the previous boot's last 64 KB can be read too (?prev=1). It exists because the
  * USB console dies with light sleep and the board disappears from the Mac
  * until it is plugged in again: with this, the log is read over wifi.
  *
@@ -18,7 +19,7 @@
 extern "C" {
 #endif
 
-#define AOS_LOG_RING_BYTES  16384
+#define AOS_LOG_RING_BYTES  65536
 
 /* Hooks esp_log. Call once, as early as possible in app_main: what is logged
  * before is not captured. Safe to call when PSRAM is missing: it then does
@@ -35,6 +36,11 @@ size_t aos_log_total(void);
  * Returns the number of bytes copied. */
 size_t aos_log_read(size_t from, size_t until, char *out, size_t out_len,
                     size_t *actual_from);
+
+/* The previous boot's log, as it was when the watch restarted (a panic, a
+ * watchdog, a restart; not a power cut, which clears PSRAM). NULL and 0 when
+ * there is none. Kept for the whole boot, read-only. */
+const char *aos_log_prev(size_t *len);
 
 #ifdef __cplusplus
 }

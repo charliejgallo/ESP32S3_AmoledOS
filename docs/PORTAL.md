@@ -16,7 +16,7 @@ its app, from the card - see "The apps' own pages" below.
 | `/alarmas` | **Alarms.** The six slots of the Alarms app: time, on/off, the days of the week (with weekdays / weekend / every day shortcuts), delete, add. A change is stored in NVS and the alarm service reloads on its next tick, redrawing the app if it is open. |
 | `/pantalla` | **Screen.** A live capture of the panel, with the controls to drive it from the browser: wake, off, back, watchface, menu, a toast, and a button per app to open it. For testing without the watch on the wrist. |
 | `/archivos` | **Files.** The card by folder (apps, photos, music, videos, recordings): upload by drag, download, delete, listen, and a preview for photos. Shows the free space. A fifth tab, **Card**, is an explorer of the whole card: any folder, breadcrumbs, new folder, delete an empty one. |
-| `/registro` | **Log.** The ESP_LOG output, tailed over wifi from a 16 KB ring in PSRAM. Filter, pause, save as text. |
+| `/registro` | **Log.** The ESP_LOG output, tailed over wifi from a 64 KB ring in PSRAM. Filter, pause, save as text. The ring survives a restart: **the previous boot** shows below, what happened before a panic, a watchdog or a restart. |
 | `/wifi` `/ap` `/red` | Connect to a network, configure the setup access point, read the network surveys. |
 | `/clima` `/cotiz` `/sensores` `/remoto` `/camaras` | *(the app's page, from the card)* Per-app configuration: weather location, exchange rates, Home Assistant sensors, the remote-control profile. |
 | `/radio` | **Radio.** *(the app's page, from the card)* What plays on the watch now, with its controls and the volume; the nine keys of the Radio app (drop a station on one, drag one onto another to swap them, play, clear); **My list**, kept on the card as `radio/library.json` through the generic file API; a search in radio-browser.info (from the browser: the firmware learns nothing about the directory) with "only MP3" on by default; an address by hand; and the covers switch. A station's logo is drawn in the browser on a 160 px square and saved as `radio/logoN.jpg`. See [RADIO.md](RADIO.md). |
@@ -71,6 +71,8 @@ POST /api/menu                   the whole new menu.txt as the body (validated w
 GET  /api/alarmas   POST /api/alarmas   i=N&minuto=M&on=0|1&dias=MASK  (minuto=-1 clears;
                                  dias is seven tm_wday bits, bit 0 Sunday, 0x7F every day)
 GET  /api/log?desde=N            the ring from offset N; X-Desde / X-Hasta headers
+GET  /api/log?prev=1             the previous boot's last 64 KB, kept across the restart
+                                 (not a power cut); X-Motivo says how it ended; 404 if none
 GET  /api/captura[?sin_despertar=1]   the screen, as BMP
 GET  /api/lang   POST /api/lang  language
 GET  /api/list?dir=  POST /api/upload  GET /api/download  POST /api/delete  POST /api/mkdir
@@ -93,6 +95,7 @@ GET  /api/usb                    the USB port (docs/USB.md): mode, hid_ready, ne
                                  copies a file between folders (usb included), timed;
                                  ?tusblog=1 TinyUSB's own log
 GET  /api/coredump               the last panic's core dump (ELF); ?erase=1 clears it
+POST /api/coredump/test          a panic on purpose, to try the dump and ?prev=1
 GET  /api/pmu?...                the power experiments (docs/POWER.md)
 GET  /api/mem                    the RAM audit's report (docs/RAM-AUDIT.md): heaps by
                                  region, tasks with stack peaks, block histogram, the
