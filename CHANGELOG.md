@@ -57,6 +57,9 @@ packs; the apps are those of v0.14.0.
   the symbol table would have lent them `aos_access_*` (approving a browser,
   the token for scripts); `tools/gen_symbols.py` leaves the prefix out. It
   lends `__bswapsi2`, which gcc turns a byte swap into on the S3.
+- **The release's ELF no longer carries the build machine's paths** (its
+  debug information had them ~10,000 times): `-fdebug-prefix-map` writes the
+  project as ".", the IDF as "/IDF" and the rest of the home as "~".
 - Tools: `install_apps.sh` uploads faces into the flash and restarts the
   watch over wifi when there is no serial cable; `build_apps.sh`,
   `gen_lang.py`, the simulator (`AOS_SIM_FACE=face.agua`) and
