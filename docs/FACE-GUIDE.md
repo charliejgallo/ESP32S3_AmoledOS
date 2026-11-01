@@ -10,6 +10,8 @@ face is built against the firmware's symbol table, like an app.
 
 ## 1. Copy the template
 
+<img src="img/face-hello.png" width="164" align="right" alt="The template face">
+
 `faces/face_hello/` is the smallest face that uses everything: the time and
 the date as LVGL labels, a ball that rolls with gravity in `frame()`, a tap
 that changes its colour, and a dimmed look.
