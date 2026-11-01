@@ -3,12 +3,13 @@
 Since v0.15.0 a watchface can come as a module of its own, a `.so` like the
 apps, instead of being compiled into the firmware. The firmware's seven are
 still there; the release brings five more on the card, and anyone can add
-one without building the firmware.
+one without building the firmware: [FACE-GUIDE.md](FACE-GUIDE.md) is how,
+starting from the template in `faces/face_hello`.
 
-| | | | | |
-|---|---|---|---|---|
-| <img src="img/face-agua.png" width="130"> | <img src="img/face-kaleido.png" width="130"> | <img src="img/face-casa.png" width="130"> | <img src="img/face-arena.png" width="130"> | <img src="img/face-orbitas.png" width="130"> |
-| Water | Kaleidoscope | Home | Sand | Orbits |
+| | | | | | |
+|---|---|---|---|---|---|
+| <img src="img/face-agua.png" width="120"> | <img src="img/face-kaleido.png" width="120"> | <img src="img/face-casa.png" width="120"> | <img src="img/face-arena.png" width="120"> | <img src="img/face-orbitas.png" width="120"> | <img src="img/face-picker.png" width="120"> |
+| Water | Kaleidoscope | Home | Sand | Orbits | the picker |
 
 ## The five
 
@@ -102,7 +103,9 @@ mounted and closed when another face takes its place.
 
 ## Writing one
 
-A face is a folder in `faces/`, laid out like an app:
+The step by step, with the traps, is [FACE-GUIDE.md](FACE-GUIDE.md); this is
+the shape of it. A face is a folder in `faces/`, laid out like an app
+(`faces/face_hello` is the template, and is not among the release's faces):
 
 ```
 faces/face_x/
@@ -192,7 +195,10 @@ moves.
 
 ## What is verified, and what is not yet
 
-On the board (charlie, 2026-11-01):
+On the board (a v2, the home watch, 2026-11-01):
+
+- **The picker**, by hand: the long press and the double tap, the arrows and
+  the swipe sideways, on every face and the Kaleidoscope's too.
 
 - **Installing from the card**: the five faces and Home's page copied into
   the flash at the first boot (~0.45 s a file: SPIFFS writes slowly), and
@@ -223,11 +229,10 @@ On the board (charlie, 2026-11-01):
 - **Removing** from the portal: a face out of the registry, the flash and
   the card, the firmware's refused, and the face on the wrist replaced by
   Digital at once, with no restart.
-- In the simulator as well: the picker with twelve faces, the double tap,
-  the long press on the Kaleidoscope and the swipe sideways, the dimmed
-  modes, tilting with the mouse, English and German (a language change now rebuilds the
-  face), and Home against `fake_ha.py`: values, a light toggled by a tap and
-  asked again, its page saving the list.
+- In the simulator as well: the dimmed modes, tilting with the mouse,
+  English and German (a language change now rebuilds the face), and Home
+  against `fake_ha.py`: values, a light toggled by a tap and asked again,
+  its page saving the list.
 
 Not tried yet: a boot with the card out (the face comes from the flash, so it
 should not notice), and Home against the real Home Assistant.

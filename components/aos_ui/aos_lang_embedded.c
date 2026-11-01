@@ -3341,6 +3341,10 @@ static const char blob_en_face_casa_lang[] =
     "Casa\tHome\n"
     ;
 
+static const char blob_en_face_hello_lang[] =
+    "Hola\tHello\n"
+    ;
+
 static const char blob_en_face_kaleido_lang[] =
     "Caleidoscopio\tKaleidoscope\n"
     ;
@@ -3394,6 +3398,7 @@ static const aos_lang_file_t files_en[] = {
     { "face.agua.lang", blob_en_face_agua_lang },
     { "face.arena.lang", blob_en_face_arena_lang },
     { "face.casa.lang", blob_en_face_casa_lang },
+    { "face.hello.lang", blob_en_face_hello_lang },
     { "face.kaleido.lang", blob_en_face_kaleido_lang },
     { "face.orbitas.lang", blob_en_face_orbitas_lang },
 };
@@ -6726,6 +6731,10 @@ static const char blob_de_face_casa_lang[] =
     "Casa\tZuhause\n"
     ;
 
+static const char blob_de_face_hello_lang[] =
+    "Hola\tHallo\n"
+    ;
+
 static const char blob_de_face_kaleido_lang[] =
     "Caleidoscopio\tKaleidoskop\n"
     ;
@@ -6779,12 +6788,13 @@ static const aos_lang_file_t files_de[] = {
     { "face.agua.lang", blob_de_face_agua_lang },
     { "face.arena.lang", blob_de_face_arena_lang },
     { "face.casa.lang", blob_de_face_casa_lang },
+    { "face.hello.lang", blob_de_face_hello_lang },
     { "face.kaleido.lang", blob_de_face_kaleido_lang },
     { "face.orbitas.lang", blob_de_face_orbitas_lang },
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 631, 45, files_en, 46 },
-    { "de", "Deutsch", 631, 45, files_de, 46 },
+    { "en", "English", 631, 46, files_en, 47 },
+    { "de", "Deutsch", 631, 46, files_de, 47 },
 };
 const int aos_lang_pack_count = 2;

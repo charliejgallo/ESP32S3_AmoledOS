@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb, aos_ble
  * Mas 122 funciones de libc/libm agregadas a mano.
- * Total: 2950 simbolos.
+ * Total: 2932 simbolos.
  */
 
 #include <stddef.h>
@@ -37,24 +37,6 @@ extern int acosf;
 extern int aos_aac_close;
 extern int aos_aac_decode;
 extern int aos_aac_open;
-extern int aos_access_answer;
-extern int aos_access_ask;
-extern int aos_access_ask_state;
-extern int aos_access_init;
-extern int aos_access_is_trusted;
-extern int aos_access_pending;
-extern int aos_access_session_count;
-extern int aos_access_session_end;
-extern int aos_access_session_ok;
-extern int aos_access_sessions_close_all;
-extern int aos_access_set_trusted;
-extern int aos_access_token;
-extern int aos_access_token_new;
-extern int aos_access_token_ok;
-extern int aos_access_trusted_at;
-extern int aos_access_ui_cancel;
-extern int aos_access_ui_tick;
-extern int aos_access_ui_visible;
 extern int aos_alarm_get;
 extern int aos_alarm_service_tick;
 extern int aos_alarm_set;
@@ -2990,24 +2972,6 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_aac_close),
     ESP_ELFSYM_EXPORT(aos_aac_decode),
     ESP_ELFSYM_EXPORT(aos_aac_open),
-    ESP_ELFSYM_EXPORT(aos_access_answer),
-    ESP_ELFSYM_EXPORT(aos_access_ask),
-    ESP_ELFSYM_EXPORT(aos_access_ask_state),
-    ESP_ELFSYM_EXPORT(aos_access_init),
-    ESP_ELFSYM_EXPORT(aos_access_is_trusted),
-    ESP_ELFSYM_EXPORT(aos_access_pending),
-    ESP_ELFSYM_EXPORT(aos_access_session_count),
-    ESP_ELFSYM_EXPORT(aos_access_session_end),
-    ESP_ELFSYM_EXPORT(aos_access_session_ok),
-    ESP_ELFSYM_EXPORT(aos_access_sessions_close_all),
-    ESP_ELFSYM_EXPORT(aos_access_set_trusted),
-    ESP_ELFSYM_EXPORT(aos_access_token),
-    ESP_ELFSYM_EXPORT(aos_access_token_new),
-    ESP_ELFSYM_EXPORT(aos_access_token_ok),
-    ESP_ELFSYM_EXPORT(aos_access_trusted_at),
-    ESP_ELFSYM_EXPORT(aos_access_ui_cancel),
-    ESP_ELFSYM_EXPORT(aos_access_ui_tick),
-    ESP_ELFSYM_EXPORT(aos_access_ui_visible),
     ESP_ELFSYM_EXPORT(aos_alarm_get),
     ESP_ELFSYM_EXPORT(aos_alarm_service_tick),
     ESP_ELFSYM_EXPORT(aos_alarm_set),
