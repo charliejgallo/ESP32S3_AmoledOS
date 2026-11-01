@@ -3,11 +3,12 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.15.0 — 2026-11-01
 
 **Watchfaces from the card, animated and that you can touch**
 ([docs/FACES.md](docs/FACES.md)). Firmware, five watchfaces on the card
-and the language packs; the apps are those of v0.14.0.
+(`apps.zip` has them in `faces/`, for the card's `/faces`) and the language
+packs; the apps are those of v0.14.0.
 
 - **A watchface can be a module of its own**, `face_<x>.so`, built like an
   app (`faces/`, `tools/build_apps.sh face_x`). The card delivers them in
@@ -16,57 +17,56 @@ and the language packs; the apps are those of v0.14.0.
   installed face. The chosen face is mounted from the flash, so it is there
   with or without a card; a face whose file went away falls back to the first
   that loads and comes back when it is found. Only the face on the screen is
-  in memory. A face's page (`face_x.html`) is served at `/face_x` and listed
-  in the portal's ribbon; `dir=faces` uploads straight into the flash, which
-  is what `tools/install_apps.sh` now does with them.
-- **Five new faces** on the card: **Water** (the battery as water that
-  stays level with the ground and sloshes when you move the wrist, bubbles
-  when you shake it or charge it, a ripple where you tap), **Kaleidoscope**
-  (twelve mirrors; tilt turns the tile, a tap makes the colours flow, a
-  shake drops in a new tile), **Home** (the time and four entities of
-  Home Assistant; a tap toggles a light or a switch; its list is chosen at
-  `/face_casa`, and with none it shows the Sensores app's), **Sand** (an
-  hourglass with no glass: a handful a minute, a colour every ten minutes,
-  piling on the digits and pouring when tilted, drained on the hour) and
-  **Orbits** (the time as planets and a comet, stars in three layers of
-  parallax).
+  in memory. What is installed is read from one index (`faces.idx`): the
+  faces cost a boot 34 ms (asking SPIFFS about each one cost 0.6 s).
+- **Five new faces**: **Water** (the battery as water that stays level with
+  the ground and sloshes when you move the wrist, bubbles when you shake it
+  or charge it, a ripple where you tap), **Kaleidoscope** (twelve mirrors;
+  tilt turns the tile, a tap makes the colours flow, a shake drops in a new
+  tile), **Home** (the time and four entities of Home Assistant; a tap
+  toggles a light or a switch; its list is chosen at `/face_casa`, and with
+  none it shows the Sensores app's), **Sand** (an hourglass with no glass: a
+  handful a minute, a colour every ten minutes, piling on the digits and
+  pouring when tilted, drained on the hour) and **Orbits** (the time as
+  planets and a comet, stars in three layers of parallax).
 - **What a face gets from the host**: an animation timer that exists only
   while the face is lit on the screen (none dimmed, so light sleep is not
   woken), the touch (press, move, release, tap, long press), gravity in the
-  screen's axes (`aos_watchface_gravity`), and its own language catalogue.
-  The animated faces share `faces/common/face_common.h`: the scene at half
-  resolution doubled by hand, the time as a sharp mask over it, and only what
-  changed presented; when nothing moves, nothing is drawn.
+  screen's axes (`aos_watchface_gravity`), its own language catalogue, and
+  the panel itself: an animated face pushes its frames straight to it when
+  nothing is drawn over the face (`aos_watchface_can_blit`), and its canvas
+  is brought up to date just before LVGL next draws it. The animated faces
+  share `faces/common/face_common.h`. Measured on the board: Water and Sand
+  29 fps, Orbits 24, the Kaleidoscope 15-16 (9-10 through LVGL).
 - **A bigger picker**: 70 px buttons for a finger, the face's name large,
-  "3 / 12" instead of a dot per face (twelve specks), and a swipe sideways
-  for the next or the previous face. **A double tap on the clock opens it**
-  too, on every face. The registry holds 24 faces (12 before).
+  "3 / 12" instead of a dot per face, and a swipe sideways for the next or
+  the previous face. **A double tap on the clock opens it** too, on every
+  face. The registry holds 24 faces (12 before).
 - **Removing a face** from the portal's `/ajustes` (*Watchfaces from the
   card*, `POST /api/esferas/quitar`): out of the registry, the flash and the
   card; its settings stay. Removing the face on the wrist puts the first one
-  in its place.
-- `tools/install_apps.sh` restarts the watch over wifi when there is no
-  serial cable.
+  in its place. A face's page (`face_x.html`) is served at `/face_x` and
+  listed in the portal's ribbon; `dir=faces` writes into the flash.
+- **Making your own**: [docs/FACE-GUIDE.md](docs/FACE-GUIDE.md), from the
+  template `faces/face_hello` (the time, a ball that rolls with gravity, a
+  tap) to giving the `.so` to someone. The template is not among the
+  release's faces.
 - **Changing the language rebuilds the face**: before, a face kept the old
   language until its texts next changed (the date, until midnight).
-- The simulator compiles the faces in (`AOS_SIM_FACE=face.agua`), and
-  `fake_ha.py` answers the `|default('',true)` Home asks with, and gives its
-  sensors units.
-
-- **An animated face pushes its frames straight to the panel** when nothing
-  is drawn over it (`aos_watchface_can_blit`, `aos_hal_display_blit`), and
-  its canvas is brought up to date just before LVGL next draws it. Measured
-  on the board: Water and Sand 29 fps, Orbits 24, the Kaleidoscope 15-16
-  (9-10 through LVGL).
-- `tools/gen_symbols.py` lends the modules `__bswapsi2`: gcc turns any byte
-  swap it recognises into that call on the S3.
+- **The modules no longer get the portal's security API**: regenerating
+  the symbol table would have lent them `aos_access_*` (approving a browser,
+  the token for scripts); `tools/gen_symbols.py` leaves the prefix out. It
+  lends `__bswapsi2`, which gcc turns a byte swap into on the S3.
+- Tools: `install_apps.sh` uploads faces into the flash and restarts the
+  watch over wifi when there is no serial cable; `build_apps.sh`,
+  `gen_lang.py`, the simulator (`AOS_SIM_FACE=face.agua`) and
+  `portal_dev_server.py` know `faces/`; `fake_ha.py` answers
+  `|default('',true)` and gives its sensors units.
 
 Tried on the board: the install from the card and the update from it, the
-upload through the portal, removing, the five faces and their frame rates.
-The faces cost a boot 34 ms: what is installed is read from one index
-(`faces.idx`), because SPIFFS is slow to `stat()` and asking it about each
-face cost 0.6 s. Not tried yet: a boot with the card out, and Home against
-the real Home Assistant.
+upload through the portal, removing (the face on the wrist too), the picker
+by hand, the five faces and their frame rates, the boot's 34 ms. Not tried
+yet: a boot with the card out, and Home against a real Home Assistant.
 
 ## v0.14.0 — 2026-10-14
 
