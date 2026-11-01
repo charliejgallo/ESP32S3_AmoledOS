@@ -31,10 +31,12 @@ ESTADO = {
     "light.floor":       {"state": "off", "attrs": {"brightness": 0}},
     "cover.blinds":      {"state": "closed", "attrs": {}},
     "media_player.tv":   {"state": "playing", "attrs": {"volume_level": 0.4}},
-    "sensor.room_temp":  {"state": "21.4", "attrs": {}},
-    "sensor.power":      {"state": "412", "attrs": {}},
-    "sensor.pressure":   {"state": "1014", "attrs": {}},
-    "sensor.humidity":   {"state": "58", "attrs": {}},
+    "sensor.room_temp":  {"state": "21.4", "attrs": {"unit_of_measurement": "°C",
+                                                      "friendly_name": "Living"}},
+    "sensor.power":      {"state": "412", "attrs": {"unit_of_measurement": "W",
+                                                    "friendly_name": "Consumo"}},
+    "sensor.pressure":   {"state": "1014", "attrs": {"unit_of_measurement": "hPa"}},
+    "sensor.humidity":   {"state": "58", "attrs": {"unit_of_measurement": "%"}},
     "scene.movie":       {"state": "unknown", "attrs": {}},
 }
 
@@ -81,7 +83,10 @@ PAT_LISTA = re.compile(
     r"\{\{\s*states\s*\|\s*map\(attribute='entity_id'\)\s*\|\s*"
     r"join\(','\)\s*\}\}")
 PAT_STATE = re.compile(r"\{\{\s*states\('([^']+)'\)\s*\}\}")
-PAT_ATTR  = re.compile(r"\{\{\s*state_attr\('([^']+)'\s*,\s*'([^']+)'\)\s*\}\}")
+# with or without "|default('',true)", which the Home watchface adds so that
+# an attribute the entity lacks comes out empty instead of "None"
+PAT_ATTR  = re.compile(r"\{\{\s*state_attr\('([^']+)'\s*,\s*'([^']+)'\)"
+                       r"(\s*\|\s*default\('[^']*'\s*,\s*true\))?\s*\}\}")
 
 
 def render(plantilla):
@@ -92,9 +97,11 @@ def render(plantilla):
     def de_atributo(m):
         e = ESTADO.get(m.group(1))
         if not e:
-            return "None"
+            return "" if m.group(3) else "None"
         v = e["attrs"].get(m.group(2))
-        return "None" if v is None else str(v)
+        if v is None:
+            return "" if m.group(3) else "None"
+        return str(v)
 
     salida = PAT_LISTA.sub(",".join(sorted(ESTADO)), plantilla)
     return PAT_ATTR.sub(de_atributo, PAT_STATE.sub(de_estado, salida))

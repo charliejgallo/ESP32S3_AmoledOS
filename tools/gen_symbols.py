@@ -97,6 +97,11 @@ EXTRA_SYMBOLS = [
     "__divsf3", "__mulsf3", "__addsf3", "__subsf3",
     "__floatsisf", "__floatunsisf", "__fixsfsi", "__fixunssfsi",
     "__divdi3", "__udivdi3", "__moddi3", "__umoddi3",
+    # Byte swaps: the Xtensa LX7 has no instruction for them, so gcc turns a
+    # swap it recognises (even one written by hand with shifts and masks)
+    # into this call. The watchfaces need it to push big-endian frames to
+    # the panel (faces/common/face_common.h, v0.15.0).
+    "__bswapsi2",
     # Conversion between float and double. The S3's FPU is single precision,
     # which means this is not "extra" floating-point arithmetic: it is dragged
     # in by any snprintf("%f", x) with a float, because variadics promote to

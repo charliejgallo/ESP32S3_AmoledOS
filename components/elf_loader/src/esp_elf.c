@@ -71,7 +71,15 @@ int esp_elf_open(elf_file_t *file, const char *name)
         return -1;
     }
 
-    ret = asprintf(&file_path, FS_PATH"/%s", name);
+    /* AmoledOS (v0.15.0): the watchfaces are installed into the internal
+     * flash and opened from there, "/spiffs/faces/face_agua.so", so a path
+     * already on that filesystem is taken as it is. Everything else is
+     * relative to FS_PATH, as upstream does it. */
+    if (strncmp(name, "/spiffs/", 8) == 0) {
+        ret = asprintf(&file_path, "%s", name);
+    } else {
+        ret = asprintf(&file_path, FS_PATH"/%s", name);
+    }
     if (ret < 0) {
         ESP_LOGE(TAG, "Failed to generate path errno=%d", errno);
         return -1;

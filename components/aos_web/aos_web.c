@@ -98,6 +98,12 @@ static const char *resolve_dir(const char *dir)
     }
     if (strcmp(dir, "apps") == 0) {
         snprintf(path, sizeof(path), "%s", aos_hal_path_apps());
+    } else if (strcmp(dir, "faces") == 0) {
+        /* The installed watchfaces (v0.15.0, docs/FACES.md), in the flash:
+         * a face_x.so uploaded here is installed at the next boot without
+         * any card, and a face's own settings file (face_casa.cfg) is
+         * written here by its page. The card's copies are sd/faces. */
+        snprintf(path, sizeof(path), "%s", AOS_FACES_DIR);
     } else if (strcmp(dir, "photos") == 0) {
         snprintf(path, sizeof(path), "%s", aos_hal_path_photos());
     } else if (strcmp(dir, "music") == 0) {
@@ -2845,6 +2851,11 @@ static esp_err_t not_found_handler(httpd_req_t *req, httpd_err_code_t err)
     char path[96];
     snprintf(path, sizeof(path), "%s/%.*s.html", AOS_DYNAPP_DIR, (int)len, uri + 1);
     FILE *file = fopen(path, "rb");
+    if (!file && strncmp(uri + 1, "face_", 5) == 0) {
+        /* a watchface's page, installed in the flash beside its .so */
+        snprintf(path, sizeof(path), "%s/%.*s.html", AOS_FACES_DIR, (int)len, uri + 1);
+        file = fopen(path, "rb");
+    }
     if (!file) {
         return httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "no existe");
     }
@@ -2911,6 +2922,40 @@ static esp_err_t paginas_handler(httpd_req_t *req)
             }
         } else {
             snprintf(name, sizeof(name), "%s", page);
+        }
+        json_escape(name_json, sizeof(name_json), name);
+        snprintf(item_json, sizeof(item_json), "%s{\"pagina\":\"%s\",\"app\":\"%s\",\"nombre\":\"%s\"}",
+                 n++ ? "," : "", page, id, name_json);
+        httpd_resp_sendstr_chunk(req, item_json);
+    }
+    if (dir) {
+        closedir(dir);
+    }
+    /* the watchfaces' pages, named after their face; "app" is the face's id */
+    dir = opendir(AOS_FACES_DIR);
+    while (dir && (item = readdir(dir)) != NULL) {
+        const char *dot = strrchr(item->d_name, '.');
+        if (!dot || strcmp(dot, ".html") != 0 || strncmp(item->d_name, "face_", 5) != 0 ||
+            !app_page_name_ok(item->d_name, (size_t)(dot - item->d_name))) {
+            continue;
+        }
+        char page[APP_PAGE_NAME_MAX + 1], so[APP_PAGE_NAME_MAX + 4];
+        snprintf(page, sizeof(page), "%.*s", (int)(dot - item->d_name), item->d_name);
+        snprintf(so, sizeof(so), "%s.so", page);
+        char id[32] = "", name[48], name_json[96], item_json[224];
+        snprintf(name, sizeof(name), "%s", page);
+        if (aos_hal_lock(500)) {
+            for (int i = 0; i < aos_watchface_count(); i++) {
+                const char *fp = aos_watchface_path(i);
+                const char *base = fp ? strrchr(fp, '/') : NULL;
+                if (base && strcmp(base + 1, so) == 0) {
+                    const aos_watchface_t *f = aos_watchface_at(i);
+                    snprintf(id, sizeof(id), "%s", f->id);
+                    snprintf(name, sizeof(name), "%s", aos_tr(f->name));
+                    break;
+                }
+            }
+            aos_hal_unlock();
         }
         json_escape(name_json, sizeof(name_json), name);
         snprintf(item_json, sizeof(item_json), "%s{\"pagina\":\"%s\",\"app\":\"%s\",\"nombre\":\"%s\"}",
@@ -3045,13 +3090,70 @@ static esp_err_t ajustes_get_handler(httpd_req_t *req)
         if (!f) continue;
         char nombre[64];
         json_escape(nombre, sizeof(nombre), f->name ? f->name : f->id);
-        snprintf(item, sizeof(item), "%s{\"id\":\"%s\",\"nombre\":\"%s\"}",
-                 i ? "," : "", f->id, nombre);
+        /* "modulo": a face from the card, which the page offers to remove */
+        snprintf(item, sizeof(item), "%s{\"id\":\"%s\",\"nombre\":\"%s\",\"modulo\":%s}",
+                 i ? "," : "", f->id, nombre, aos_watchface_path(i) ? "true" : "false");
         httpd_resp_sendstr_chunk(req, item);
     }
     httpd_resp_sendstr_chunk(req, "]}");
     httpd_resp_sendstr_chunk(req, NULL);
     return ESP_OK;
+}
+
+/* POST /api/esferas/quitar  id=face.agua
+ *
+ * Removes a watchface that came as a module (docs/FACES.md): out of the
+ * registry (the first face takes its place if it was the one on the wrist),
+ * and its files out of the flash AND the card's /faces, or the next boot
+ * would install it again from there. Its settings file (face_casa.cfg) is
+ * kept: putting the face back finds them. The firmware's faces cannot be
+ * removed. */
+static esp_err_t esfera_quitar_handler(httpd_req_t *req)
+{
+    char body[96], id[32] = "";
+    if (!leer_cuerpo(req, body, sizeof(body))) {
+        return ESP_FAIL;
+    }
+    httpd_query_key_value(body, "id", id, sizeof(id));
+
+    char path[64] = "";
+    bool ok = false;
+    if (id[0] && aos_hal_lock(2000)) {
+        for (int i = 0; i < aos_watchface_count(); i++) {
+            const aos_watchface_t *f = aos_watchface_at(i);
+            if (f && aos_watchface_path(i) && strcmp(f->id, id) == 0) {
+                snprintf(path, sizeof(path), "%s", aos_watchface_path(i));
+                break;
+            }
+        }
+        ok = path[0] && aos_watchface_unregister(id);
+        aos_hal_unlock();
+    }
+    httpd_resp_set_type(req, "application/json");
+    if (!ok) {
+        httpd_resp_set_status(req, "404 Not Found");
+        return httpd_resp_sendstr(req, "{\"ok\":false,\"error\":\"no es una esfera de la tarjeta\"}");
+    }
+
+    /* "/spiffs/faces/face_agua.so" -> base "face_agua" */
+    const char *slash = strrchr(path, '/');
+    char base[32];
+    snprintf(base, sizeof(base), "%.*s", (int)(strlen(slash + 1) - 3), slash + 1);
+    static const char *const EXT[] = { ".so", ".desc", ".html" };
+    char f[96];
+    for (unsigned k = 0; k < sizeof(EXT) / sizeof(EXT[0]); k++) {
+        snprintf(f, sizeof(f), "%s/%s%s", AOS_FACES_DIR, base, EXT[k]);
+        remove(f);
+    }
+    const char *root = aos_hal_path_sd_root();
+    if (root) {
+        for (unsigned k = 0; k < sizeof(EXT) / sizeof(EXT[0]); k++) {
+            snprintf(f, sizeof(f), "%s/%s/%s%s", root, AOS_FACES_CARD_SUBDIR, base, EXT[k]);
+            remove(f);
+        }
+    }
+    ESP_LOGI(TAG, "watchface %s removed (%s)", id, base);
+    return httpd_resp_sendstr(req, "{\"ok\":true}");
 }
 
 /* POST /api/ajustes: any subset of the keys above. Whatever touches the panel
@@ -3769,6 +3871,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/ajustes",     .method = HTTP_GET,  .handler = ajustes_page_handler },
         { .uri = "/api/ajustes", .method = HTTP_GET,  .handler = ajustes_get_handler },
         { .uri = "/api/ajustes", .method = HTTP_POST, .handler = ajustes_post_handler },
+        { .uri = "/api/esferas/quitar", .method = HTTP_POST, .handler = esfera_quitar_handler },
         { .uri = "/api/accion",  .method = HTTP_POST, .handler = accion_handler },
         { .uri = "/api/apps",    .method = HTTP_GET,  .handler = apps_handler },
         { .uri = "/api/paginas", .method = HTTP_GET,  .handler = paginas_handler },

@@ -53,6 +53,25 @@ bool aos_dynapp_module_app(const char *file, char *id, size_t id_len,
                            char *name, size_t name_len);
 
 
+/* --------------------------------------------------------------------------
+ * Watchfaces from modules (v0.15.0, docs/FACES.md)
+ *
+ * A face module is a .so named face_<something>.so that exports
+ * aos_face_abi/aos_face_init (aos_watchface.h). They are delivered on the card,
+ * in /faces, and INSTALLED into the internal flash, AOS_FACES_DIR, which is
+ * where they run from: the chosen face must be there at boot whether or not
+ * there is a card, or a working one.
+ * -------------------------------------------------------------------------- */
+
+#define AOS_FACES_DIR           "/spiffs/faces"
+#define AOS_FACES_CARD_SUBDIR   "faces"
+
+/* At boot, before the UI: copies into the flash every face of the card that
+ * is not there yet or is newer there (its page, face_x.html, with it), then
+ * registers every installed face with the watchface host and lends it the
+ * loader. Returns how many it registered. */
+int aos_dynapp_faces_init(void);
+
 /* .so modules loaded right now. Returns how many; 'out' receives the names
  * separated by spaces. Those remaining are the background ones. */
 int aos_dynapp_loaded_list(char *out, size_t len);

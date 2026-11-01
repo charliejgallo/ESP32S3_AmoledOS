@@ -3,8 +3,8 @@
  *
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb, aos_ble
- * Mas 121 funciones de libc/libm agregadas a mano.
- * Total: 2918 simbolos.
+ * Mas 122 funciones de libc/libm agregadas a mano.
+ * Total: 2950 simbolos.
  */
 
 #include <stddef.h>
@@ -14,6 +14,7 @@
 #pragma GCC diagnostic ignored "-Wbuiltin-declaration-mismatch"
 extern int LODEPNG_VERSION_STRING;
 extern int __addsf3;
+extern int __bswapsi2;
 extern int __divdi3;
 extern int __divsf3;
 extern int __errno;
@@ -36,6 +37,24 @@ extern int acosf;
 extern int aos_aac_close;
 extern int aos_aac_decode;
 extern int aos_aac_open;
+extern int aos_access_answer;
+extern int aos_access_ask;
+extern int aos_access_ask_state;
+extern int aos_access_init;
+extern int aos_access_is_trusted;
+extern int aos_access_pending;
+extern int aos_access_session_count;
+extern int aos_access_session_end;
+extern int aos_access_session_ok;
+extern int aos_access_sessions_close_all;
+extern int aos_access_set_trusted;
+extern int aos_access_token;
+extern int aos_access_token_new;
+extern int aos_access_token_ok;
+extern int aos_access_trusted_at;
+extern int aos_access_ui_cancel;
+extern int aos_access_ui_tick;
+extern int aos_access_ui_visible;
 extern int aos_alarm_get;
 extern int aos_alarm_service_tick;
 extern int aos_alarm_set;
@@ -470,9 +489,12 @@ extern int aos_i18n_app_load;
 extern int aos_i18n_app_unload;
 extern int aos_i18n_count;
 extern int aos_i18n_current;
+extern int aos_i18n_face_load;
+extern int aos_i18n_face_unload;
 extern int aos_i18n_init;
 extern int aos_i18n_scan;
 extern int aos_i18n_set;
+extern int aos_icon_app_ops;
 extern int aos_icon_clear_ops;
 extern int aos_icon_create;
 extern int aos_icon_create_ops;
@@ -577,6 +599,7 @@ extern int aos_ui_button;
 extern int aos_ui_current_app;
 extern int aos_ui_face_hide_if_covered;
 extern int aos_ui_face_show;
+extern int aos_ui_face_unobstructed;
 extern int aos_ui_home;
 extern int aos_ui_init;
 extern int aos_ui_inject_drag;
@@ -639,19 +662,28 @@ extern int aos_usb_net_up;
 extern int aos_usb_status_json;
 extern int aos_usb_tusb_log;
 extern int aos_watchface_at;
+extern int aos_watchface_can_blit;
 extern int aos_watchface_close_picker;
 extern int aos_watchface_count;
 extern int aos_watchface_create;
 extern int aos_watchface_current;
+extern int aos_watchface_gravity;
 extern int aos_watchface_is_aod;
+extern int aos_watchface_live;
 extern int aos_watchface_open_picker;
+extern int aos_watchface_path;
+extern int aos_watchface_picker_step;
 extern int aos_watchface_picker_visible;
 extern int aos_watchface_refresh;
 extern int aos_watchface_register;
+extern int aos_watchface_register_module;
+extern int aos_watchface_remount;
 extern int aos_watchface_resume;
 extern int aos_watchface_select;
 extern int aos_watchface_set_aod;
+extern int aos_watchface_set_loader;
 extern int aos_watchface_suspend;
+extern int aos_watchface_unregister;
 extern int aos_watchfaces_register_builtin;
 extern int aos_wifi_qr_text;
 extern int aos_wifi_scan_finish;
@@ -2935,6 +2967,7 @@ extern int vsnprintf;
 const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(LODEPNG_VERSION_STRING),
     ESP_ELFSYM_EXPORT(__addsf3),
+    ESP_ELFSYM_EXPORT(__bswapsi2),
     ESP_ELFSYM_EXPORT(__divdi3),
     ESP_ELFSYM_EXPORT(__divsf3),
     ESP_ELFSYM_EXPORT(__errno),
@@ -2957,6 +2990,24 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_aac_close),
     ESP_ELFSYM_EXPORT(aos_aac_decode),
     ESP_ELFSYM_EXPORT(aos_aac_open),
+    ESP_ELFSYM_EXPORT(aos_access_answer),
+    ESP_ELFSYM_EXPORT(aos_access_ask),
+    ESP_ELFSYM_EXPORT(aos_access_ask_state),
+    ESP_ELFSYM_EXPORT(aos_access_init),
+    ESP_ELFSYM_EXPORT(aos_access_is_trusted),
+    ESP_ELFSYM_EXPORT(aos_access_pending),
+    ESP_ELFSYM_EXPORT(aos_access_session_count),
+    ESP_ELFSYM_EXPORT(aos_access_session_end),
+    ESP_ELFSYM_EXPORT(aos_access_session_ok),
+    ESP_ELFSYM_EXPORT(aos_access_sessions_close_all),
+    ESP_ELFSYM_EXPORT(aos_access_set_trusted),
+    ESP_ELFSYM_EXPORT(aos_access_token),
+    ESP_ELFSYM_EXPORT(aos_access_token_new),
+    ESP_ELFSYM_EXPORT(aos_access_token_ok),
+    ESP_ELFSYM_EXPORT(aos_access_trusted_at),
+    ESP_ELFSYM_EXPORT(aos_access_ui_cancel),
+    ESP_ELFSYM_EXPORT(aos_access_ui_tick),
+    ESP_ELFSYM_EXPORT(aos_access_ui_visible),
     ESP_ELFSYM_EXPORT(aos_alarm_get),
     ESP_ELFSYM_EXPORT(aos_alarm_service_tick),
     ESP_ELFSYM_EXPORT(aos_alarm_set),
@@ -3391,9 +3442,12 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_i18n_app_unload),
     ESP_ELFSYM_EXPORT(aos_i18n_count),
     ESP_ELFSYM_EXPORT(aos_i18n_current),
+    ESP_ELFSYM_EXPORT(aos_i18n_face_load),
+    ESP_ELFSYM_EXPORT(aos_i18n_face_unload),
     ESP_ELFSYM_EXPORT(aos_i18n_init),
     ESP_ELFSYM_EXPORT(aos_i18n_scan),
     ESP_ELFSYM_EXPORT(aos_i18n_set),
+    ESP_ELFSYM_EXPORT(aos_icon_app_ops),
     ESP_ELFSYM_EXPORT(aos_icon_clear_ops),
     ESP_ELFSYM_EXPORT(aos_icon_create),
     ESP_ELFSYM_EXPORT(aos_icon_create_ops),
@@ -3498,6 +3552,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_ui_current_app),
     ESP_ELFSYM_EXPORT(aos_ui_face_hide_if_covered),
     ESP_ELFSYM_EXPORT(aos_ui_face_show),
+    ESP_ELFSYM_EXPORT(aos_ui_face_unobstructed),
     ESP_ELFSYM_EXPORT(aos_ui_home),
     ESP_ELFSYM_EXPORT(aos_ui_init),
     ESP_ELFSYM_EXPORT(aos_ui_inject_drag),
@@ -3560,19 +3615,28 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_usb_status_json),
     ESP_ELFSYM_EXPORT(aos_usb_tusb_log),
     ESP_ELFSYM_EXPORT(aos_watchface_at),
+    ESP_ELFSYM_EXPORT(aos_watchface_can_blit),
     ESP_ELFSYM_EXPORT(aos_watchface_close_picker),
     ESP_ELFSYM_EXPORT(aos_watchface_count),
     ESP_ELFSYM_EXPORT(aos_watchface_create),
     ESP_ELFSYM_EXPORT(aos_watchface_current),
+    ESP_ELFSYM_EXPORT(aos_watchface_gravity),
     ESP_ELFSYM_EXPORT(aos_watchface_is_aod),
+    ESP_ELFSYM_EXPORT(aos_watchface_live),
     ESP_ELFSYM_EXPORT(aos_watchface_open_picker),
+    ESP_ELFSYM_EXPORT(aos_watchface_path),
+    ESP_ELFSYM_EXPORT(aos_watchface_picker_step),
     ESP_ELFSYM_EXPORT(aos_watchface_picker_visible),
     ESP_ELFSYM_EXPORT(aos_watchface_refresh),
     ESP_ELFSYM_EXPORT(aos_watchface_register),
+    ESP_ELFSYM_EXPORT(aos_watchface_register_module),
+    ESP_ELFSYM_EXPORT(aos_watchface_remount),
     ESP_ELFSYM_EXPORT(aos_watchface_resume),
     ESP_ELFSYM_EXPORT(aos_watchface_select),
     ESP_ELFSYM_EXPORT(aos_watchface_set_aod),
+    ESP_ELFSYM_EXPORT(aos_watchface_set_loader),
     ESP_ELFSYM_EXPORT(aos_watchface_suspend),
+    ESP_ELFSYM_EXPORT(aos_watchface_unregister),
     ESP_ELFSYM_EXPORT(aos_watchfaces_register_builtin),
     ESP_ELFSYM_EXPORT(aos_wifi_qr_text),
     ESP_ELFSYM_EXPORT(aos_wifi_scan_finish),

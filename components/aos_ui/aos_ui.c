@@ -445,6 +445,26 @@ static void watchface_hide_if_covered(lv_anim_t *anim)
     }
 }
 
+/* For the watchface host: nothing of the UI's own is drawn over the face
+ * (an app, the launcher, the status bar, a toast, anything on lv_layer_top:
+ * the control centre, a notification, a pairing or a portal prompt). An
+ * animated face pushes its frames straight to the panel only then, since
+ * whatever LVGL drew on top would be painted over. */
+bool aos_ui_face_unobstructed(void)
+{
+    if (s_toast || s_current || s_launcher_visible || aos_control_visible() ||
+        (s_statusbar && !lv_obj_has_flag(s_statusbar, LV_OBJ_FLAG_HIDDEN))) {
+        return false;
+    }
+    lv_obj_t *top = lv_layer_top();
+    for (uint32_t i = 0; i < lv_obj_get_child_count(top); i++) {
+        if (!lv_obj_has_flag(lv_obj_get_child(top, (int32_t)i), LV_OBJ_FLAG_HIDDEN)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /* For the control centre (aos_control.c), which covers the face from
  * lv_layer_top and is not one of the states above. */
 void aos_ui_face_hide_if_covered(void)
@@ -1115,7 +1135,10 @@ static void apply_language(const char *code)
         s_launcher = NULL;
         s_launcher_visible = false;
     }
-    aos_watchface_refresh();
+    /* Built again, not refreshed: a face draws its texts when they change
+     * (the date, once a day), so a refresh left the old language on it
+     * until then. */
+    aos_watchface_remount();
 }
 
 void aos_ui_launcher_set_style(aos_launcher_style_t style)
@@ -1204,6 +1227,15 @@ static void handle_gesture(lv_dir_t dir)
         if (dir == LV_DIR_TOP) {
             aos_control_close(true);
         }
+        return;
+    }
+
+    /* With the picker open a swipe sideways is the next or the previous
+     * face, the way watchOS pages them; before, a swipe right was "back" and
+     * closed it. */
+    if (!s_current && aos_watchface_picker_visible() &&
+        (dir == LV_DIR_LEFT || dir == LV_DIR_RIGHT)) {
+        aos_watchface_picker_step(dir == LV_DIR_LEFT ? 1 : -1);
         return;
     }
 

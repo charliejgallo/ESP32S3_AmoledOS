@@ -40,6 +40,9 @@ AP_PAGE     = os.path.join(ROOT, "components", "aos_web", "ap.html")
 # /sdcard/apps at /<app>. Here the repo's copy wins, so an edit shows on
 # reload, then the root's apps/ folder, like the card.
 APPS_DIR    = os.path.join(ROOT, "apps")
+# And the watchfaces' (v0.15.0): faces/<face>/web/<face>.html, served at
+# /<face> like an app's.
+FACES_DIR   = os.path.join(ROOT, "faces")
 CSS_FILE    = os.path.join(ROOT, "components", "aos_web", "aos.css")
 JS_FILE     = os.path.join(ROOT, "components", "aos_web", "aos.js")
 
@@ -63,6 +66,7 @@ def app_page(base, name):
     if not re.fullmatch(r"[a-z0-9_-]{1,32}", name):
         return None
     for path in (os.path.join(APPS_DIR, name, "web", name + ".html"),
+                 os.path.join(FACES_DIR, name, "web", name + ".html"),
                  os.path.join(base, "apps", name + ".html")):
         if os.path.isfile(path):
             return path
@@ -75,7 +79,8 @@ def app_page(base, name):
 def app_pages(base):
     """/api/paginas: every page there is, named after its folder."""
     names = set()
-    for path in glob.glob(os.path.join(APPS_DIR, "*", "web", "*.html")):
+    for path in glob.glob(os.path.join(APPS_DIR, "*", "web", "*.html")) + \
+            glob.glob(os.path.join(FACES_DIR, "*", "web", "*.html")):
         names.add(os.path.basename(path)[:-5])
     for path in glob.glob(os.path.join(base, "apps", "*.html")):
         names.add(os.path.basename(path)[:-5])
@@ -306,6 +311,11 @@ def ha_pedir(base, camino, cuerpo=None):
 class Handler(BaseHTTPRequestHandler):
     base = ""
     app_abierta = ""
+    # The watchfaces from the card (v0.15.0) the page lists with "Quitar";
+    # removing one here takes it off this list, nothing more.
+    esferas_mod = [("face.agua", "Agua"), ("face.kaleido", "Caleidoscopio"),
+                   ("face.casa", "Casa"), ("face.arena", "Arena"),
+                   ("face.orbitas", "Órbitas")]
     log_buf = ""
     log_total = 0
     log_ms = 0
@@ -422,6 +432,13 @@ class Handler(BaseHTTPRequestHandler):
                     return None
             path = os.path.join(self.base, rel) if rel else self.base
             return path if os.path.isdir(path) else None
+        if name == "faces":
+            # On the board, the faces installed in the flash. The simulator's
+            # faces are compiled in, have no folder of their own and read
+            # their files from data/ (face_casa.c, cfg_path): so does this.
+            path = os.path.join(self.base, "data")
+            os.makedirs(path, exist_ok=True)
+            return path
         if name not in DIRS:
             return None
         path = os.path.join(self.base, name)
@@ -654,7 +671,9 @@ class Handler(BaseHTTPRequestHandler):
                             {"id": "rings", "nombre": "Anillos"},
                             {"id": "flip", "nombre": "Flip"},
                             {"id": "binary", "nombre": "Binaria"},
-                            {"id": "minimal", "nombre": "Minima"}],
+                            {"id": "minimal", "nombre": "Minima"}] +
+                           [{"id": i_, "nombre": n_, "modulo": True}
+                            for i_, n_ in Handler.esferas_mod],
                 "menu": i("launcher", 0),
                 "ahorro": i("pwr_save", 1), "cuidar": i("batt_care", 1),
                 "panel_slp": i("panel_slp", 0), "chip_slp": i("light_slp", 0),
@@ -779,6 +798,16 @@ class Handler(BaseHTTPRequestHandler):
             if self._remoto_post(url.path, cuerpo) is not None:
                 return
             return self._send(404, '{"error":"no existe"}')
+
+        if url.path == "/api/esferas/quitar":
+            size = int(self.headers.get("Content-Length", 0))
+            campos = parse_qs((self.rfile.read(size) if size else b"").decode())
+            fid = (campos.get("id") or [""])[0]
+            antes = len(Handler.esferas_mod)
+            Handler.esferas_mod = [e for e in Handler.esferas_mod if e[0] != fid]
+            if len(Handler.esferas_mod) == antes:
+                return self._send(404, '{"ok":false,"error":"no es una esfera de la tarjeta"}')
+            return self._send(200, '{"ok":true}')
 
         if url.path == "/api/radio":
             largo = int(self.headers.get("Content-Length") or 0)

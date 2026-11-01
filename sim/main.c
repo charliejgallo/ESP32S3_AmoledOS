@@ -121,6 +121,20 @@ void aos_sim_register_app(bool (*init)(aos_app_t *app))
     }
 }
 
+/* The watchfaces of faces/ (v0.15.0): on the board they are modules
+ * installed into the flash; here they are compiled in and registered at
+ * startup, after the firmware's seven, which aos_watchface_register() puts
+ * first whoever comes first. Constructors run before main(): nothing here
+ * touches LVGL. */
+void aos_sim_register_face(bool (*init)(aos_watchface_t *face))
+{
+    aos_watchface_t face;
+    memset(&face, 0, sizeof(face));
+    if (init && init(&face)) {
+        aos_watchface_register(&face);
+    }
+}
+
 void aos_sim_register_app_many(uint32_t (*count)(void),
                                bool (*init_at)(aos_app_t *app, uint32_t index))
 {
@@ -1515,6 +1529,14 @@ int main(void)
 
     aos_hal_init();
     aos_hal_set_button_cb(sim_button_cb);
+    /* AOS_SIM_FACE=face.agua starts on that watchface: the preference the
+     * picker writes, set before the clock is mounted. */
+    {
+        const char *face = getenv("AOS_SIM_FACE");
+        if (face && *face) {
+            aos_hal_pref_set_str("face", face);
+        }
+    }
     aos_ui_init();
     dim_veil_init();
     aos_apps_register_builtin();
