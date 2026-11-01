@@ -49,7 +49,8 @@ apps/
 
 A **watchface** is a module too, built the same way from `faces/` with a
 contract of its own (`aos_watchface.h`, an animation timer, the touch and
-gravity): see [FACES.md](FACES.md).
+gravity): its template is `faces/face_hello` and its guide
+[FACE-GUIDE.md](FACE-GUIDE.md).
 
 ### Before you write any of this: does it have to be C?
 

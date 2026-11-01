@@ -746,6 +746,35 @@ The symbol table needs two passes: dynamic apps resolve LVGL, the HAL and libc
 against a table generated from the build's own libraries, so the libraries have
 to exist first. See [docs/BUILDING.md](docs/BUILDING.md).
 
+## Starting points: your own apps and watchfaces
+
+Two templates, one for each kind of module, made to be copied: each is
+the smallest thing that uses all of its contract, and builds, loads and
+runs as it is.
+
+| | An app | A watchface |
+| --- | --- | --- |
+| | <img src="docs/img/app-hello.png" width="180"> | <img src="docs/img/face-hello.png" width="180"> |
+| **The template** | [`apps/hello_app`](apps/hello_app) | [`faces/face_hello`](faces/face_hello) |
+| **What it shows** | a screen of its own, its own launcher icon drawn as data, strings marked for translation, and a portal page (`web/hello_app.html`) that reads and writes a file on the card | the time and the date, a ball that rolls to wherever "down" is (`frame()` and the accelerometer), a tap that changes its colour, and a dimmed look |
+| **The guide** | [APP-GUIDE.md](docs/APP-GUIDE.md), the long form, and [APP-API.md](docs/APP-API.md), the contract | [FACE-GUIDE.md](docs/FACE-GUIDE.md), from copying it to giving the `.so` to someone |
+| **On the watch** | `/sdcard/apps`, in the launcher | installed from the card's `/faces` into the flash, in the picker |
+
+The same four steps for both, on the Mac with the firmware built once
+([BUILDING.md](docs/BUILDING.md)):
+
+```bash
+cp -r apps/hello_app apps/my_app                 # or faces/face_hello faces/face_mine
+                                                 # then rename: the guides say what
+cd sim && cmake --build build -j8 && AOS_SIM_VIEW=demo.my_app ./build/amoledos_sim
+                                                 # a face: AOS_SIM_FACE=face.mine
+./tools/build_apps.sh my_app                     # the .so, its ABI and symbols checked
+./tools/install_apps.sh <watch>.local my_app     # onto the watch over wifi, and a restart
+```
+
+No compiler at all: a **Lua script** on the card is an app too, written in the
+portal's `/lua` page and run as soon as it is saved ([LUA.md](docs/LUA.md)).
+
 ## How it is put together
 
 ```

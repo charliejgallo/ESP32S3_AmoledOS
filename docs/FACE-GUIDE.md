@@ -6,7 +6,10 @@ watch is in [FACES.md](FACES.md); this is how to make one, and the traps the
 first five fell into.
 
 You need the firmware's build working first ([BUILDING.md](BUILDING.md)): a
-face is built against the firmware's symbol table, like an app.
+face is built against the firmware's symbol table, like an app. For an app
+instead of a face, the template is `apps/hello_app` and the guide
+[APP-GUIDE.md](APP-GUIDE.md); the README's *Starting points* puts the two
+side by side.
 
 ## 1. Copy the template
 
