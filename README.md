@@ -1,8 +1,9 @@
 # AmoledOS
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
-368x448 AMOLED you can hold in your hand. Seven watchfaces, twenty
-built-in apps, forty more loaded from the microSD as shared objects — one
+368x448 AMOLED you can hold in your hand. Twelve watchfaces — five of them
+from the microSD, animated by the accelerometer — twenty built-in apps,
+forty more loaded from the microSD as shared objects — one
 of them a Lua interpreter, so a text file on the card is an app too, and one a
 street map with offline zones — a web portal, iPhone notifications over BLE, a
 link between two watches over ESP-NOW with eleven apps on it, and a desktop
@@ -42,6 +43,22 @@ almost nothing to leave lit.
 |---|---|---|---|---|---|---|
 | <img src="docs/img/face-digital.png" width="110"> | <img src="docs/img/face-analog.png" width="110"> | <img src="docs/img/face-nixie.png" width="110"> | <img src="docs/img/face-flip.png" width="110"> | <img src="docs/img/face-rings.png" width="110"> | <img src="docs/img/face-binary.png" width="110"> | <img src="docs/img/face-minimal.png" width="110"> |
 | digital | analog | nixie | flip | rings | binary | minimal |
+
+**Watchfaces from the card** (v0.15.0, [docs/FACES.md](docs/FACES.md)). A
+face can be a module of its own, delivered on the card and installed into the
+flash at boot, so the face you chose is there with or without a card. The
+release brings five, and they move: the battery as water that stays level
+when you tilt the watch and sloshes when you move it, a kaleidoscope that
+turns with the wrist and changes colour under your finger, four things of
+your house from Home Assistant with a tap to switch a light, an hourglass of
+sand that piles on the digits, and a solar system with stars in parallax. A
+double tap on any face opens the picker, and a face from the card is removed
+from the portal's settings.
+
+| | | | | |
+|---|---|---|---|---|
+| <img src="docs/img/face-agua.png" width="110"> | <img src="docs/img/face-kaleido.png" width="110"> | <img src="docs/img/face-casa.png" width="110"> | <img src="docs/img/face-arena.png" width="110"> | <img src="docs/img/face-orbitas.png" width="110"> |
+| water | kaleidoscope | home | sand | orbits |
 
 **Launcher.** Three styles — a vertical list with the watchOS scale-and-fade
 effect, a grid, and a honeycomb.
@@ -631,6 +648,7 @@ With a card reader, before the card goes into the watch:
 
 ```bash
 unzip apps.zip        -d /Volumes/<sd>/apps/    # the apps, and the games' .pak files
+mv /Volumes/<sd>/apps/faces /Volumes/<sd>/faces  # the watchfaces go in /faces (v0.15.0)
 unzip lang.zip        -d /Volumes/<sd>/lang/    # English and German, current
 unzip lua-scripts.zip -d /Volumes/<sd>/lua/     # example scripts (optional)
 ```
@@ -688,6 +706,7 @@ into. The portal serves each one by name.
 | folder | what goes in it | where from |
 |---|---|---|
 | `apps/` | the dynamic apps (`.so`) and the big games' assets (`golf.pak`, `turbo.pak`, `monsterhop.pak`, `mila.pak`) | `apps.zip`; read at startup |
+| `faces/` | watchfaces (`face_*.so`) and their pages; installed into the flash at boot, so the card is only how they arrive ([FACES.md](docs/FACES.md)) | `apps.zip`'s `faces/` (v0.15.0) |
 | `lang/<code>/` | translation packs (`en/`, `de/`), one `.lang` per app plus `_sistema.lang`; a pack on the card wins over the copy in the binary | `lang.zip`, or `tools/install_lang.sh` ([I18N.md](docs/I18N.md)) |
 | `lua/` | Lua scripts, each one an app in the launcher | `lua-scripts.zip`, or written in the portal's `/lua` |
 | `3d/` | models for Visor 3D: `.stl` and `.m3d` | `apps/visor3d/models/` (v0.6.0: `3d-models.zip`), or the portal's `/3d`, which converts STL, OBJ and GLB |
@@ -736,6 +755,7 @@ components/
   aos_ble/            NimBLE: ANCS, AMS, pairing
   aos_web/            the web portal, embedded in the binary
 apps/                 40 dynamic apps
+faces/                watchfaces as modules, installed from the card
 tools/                generators, test benches, board utilities
 ```
 

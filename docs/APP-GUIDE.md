@@ -47,6 +47,10 @@ apps/
       my_app.c
 ```
 
+A **watchface** is a module too, built the same way from `faces/` with a
+contract of its own (`aos_watchface.h`, an animation timer, the touch and
+gravity): see [FACES.md](FACES.md).
+
 ### Before you write any of this: does it have to be C?
 
 Since v0.3.15 there is a Lua interpreter on the card, and a `.lua` file in

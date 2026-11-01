@@ -44,6 +44,9 @@ answers only a browser the watch let in, or the token (docs/SECURITY.md). Everyt
 ```
 GET  /api/status                 the whole state; the strip polls it every 15 s
 GET  /api/ajustes                the settings, with the list of watchfaces
+                                 ("modulo": true for one from the card)
+POST /api/esferas/quitar         id=face.x: removes a watchface from the card,
+                                 out of the flash and the card (docs/FACES.md)
 POST /api/ajustes                any subset: nombre brillo volumen aod aod_brillo
                                  pant_activa aod_dura (screen timeouts, seconds; 0 =
                                  automatic / never) levantar (raise to wake) dnd_prog
@@ -186,3 +189,14 @@ OTA.
   internal app), Icons' and the network scans' (`/red`, the Scanner's).
 - **The development server** (`tools/portal_dev_server.py`) serves
   `apps/*/web/*.html` straight from the repo and answers `/api/paginas`.
+
+### The watchfaces' pages (v0.15.0)
+
+A watchface that is a module ([FACES.md](FACES.md)) brings its page the same
+way, beside its `.so`: `faces/<face>/web/<face>.html`, delivered in the
+card's `/faces`, installed into the flash with the face and served from there
+at `/<face>` (`/face_casa`, Home's). The ribbon lists it under the face's
+name. `dir=faces` is the flash's faces folder (`/spiffs/faces`): a face's page
+writes its settings there (Home's list, `face_casa.cfg`), and a `face_*.so`
+uploaded there is installed at the next boot. The development server maps it
+to the simulator's `data/`, where the compiled-in faces look.

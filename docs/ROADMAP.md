@@ -224,6 +224,11 @@ built a few cells at a time (docs/MENU.md); the grid is the place to start.
 
 ### Complications on the watchfaces
 
+**A first step in v0.15.0**: faces can come from the card as modules
+([FACES.md](FACES.md)), and Home is a face made of chosen readouts (four
+entities of Home Assistant). What is still missing is the general form below:
+slots in any face, filled per face from Settings.
+
 Small readouts inside a face (steps, battery, next alarm, weather, the
 phone's battery) that the user chooses per face, the way watchOS does. The
 data exists (`aos_hal_steps_*`, `aos_hal_battery_read`, the alarm service,
