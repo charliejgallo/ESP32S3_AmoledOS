@@ -222,6 +222,13 @@ void app_main(void)
     aos_hal_set_power_event_cb(power_cb);
     aos_hal_set_night_guard_cb(night_guard);
 
+    /* The watchfaces that come as modules (v0.15.0, docs/FACES.md): the
+     * card's are installed into the flash and every installed one goes into
+     * the registry BEFORE the UI exists, so the face chosen is mounted at
+     * once, from the flash, with or without a card. */
+    int faces = aos_dynapp_faces_init();
+    ESP_LOGI(TAG, "watchfaces from modules: %d", faces);
+
     if (aos_hal_lock(portMAX_DELAY)) {
         aos_ui_init();
         aos_apps_register_builtin();

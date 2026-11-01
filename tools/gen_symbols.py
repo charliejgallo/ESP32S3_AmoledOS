@@ -97,6 +97,11 @@ EXTRA_SYMBOLS = [
     "__divsf3", "__mulsf3", "__addsf3", "__subsf3",
     "__floatsisf", "__floatunsisf", "__fixsfsi", "__fixunssfsi",
     "__divdi3", "__udivdi3", "__moddi3", "__umoddi3",
+    # Byte swaps: the Xtensa LX7 has no instruction for them, so gcc turns a
+    # swap it recognises (even one written by hand with shifts and masks)
+    # into this call. The watchfaces need it to push big-endian frames to
+    # the panel (faces/common/face_common.h, v0.15.0).
+    "__bswapsi2",
     # Conversion between float and double. The S3's FPU is single precision,
     # which means this is not "extra" floating-point arithmetic: it is dragged
     # in by any snprintf("%f", x) with a float, because variadics promote to
@@ -142,7 +147,16 @@ EXTRA_SYMBOLS = [
 
 # Symbols that are never exported: internals of the compiler, of the linker or
 # of the loader itself (exporting them breaks the resolution).
-EXCLUDE_PREFIXES = ("_", ".", "$", "__")
+EXCLUDE_PREFIXES = ("_", ".", "$", "__",
+                    # The portal's security (v0.13.0, docs/SECURITY.md): which
+                    # browser gets in, the sessions, the token for scripts. An
+                    # app or a face has no business approving a browser or
+                    # reading the token, so it is not lent. A module is native
+                    # code in the firmware's address space and this is not a
+                    # wall; it keeps a careless one from doing it by a call.
+                    # (Regenerating the table for v0.15.0 is what brought
+                    # them in: v0.13.0 and v0.14.0 shipped a table from before.)
+                    "aos_access_")
 EXCLUDE_EXACT = {"elf_find_sym", "elf_find_sym_default", "elf_set_symbol_resolver"}
 
 

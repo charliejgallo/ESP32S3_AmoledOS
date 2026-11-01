@@ -18,6 +18,7 @@ bool      aos_launcher_close_folder(bool animate);
 /* The watchface under an overlay that is not an app or the launcher (the
  * control centre): hidden once covered, shown before it uncovers. */
 void      aos_ui_face_hide_if_covered(void);
+bool      aos_ui_face_unobstructed(void);
 void      aos_ui_face_show(void);
 lv_obj_t *aos_watchface_create(lv_obj_t *parent);
 void      aos_watchface_refresh(void);
@@ -28,6 +29,9 @@ void      aos_watchface_refresh(void);
  * safe: the face is mounted again when it is needed. */
 void      aos_watchface_suspend(void);
 void      aos_watchface_resume(void);
+
+/* The face on the screen, built again from scratch: after a language change. */
+void      aos_watchface_remount(void);
 
 #ifdef __cplusplus
 }

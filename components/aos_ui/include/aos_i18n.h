@@ -154,6 +154,11 @@ bool aos_i18n_set(const char *code);
 void aos_i18n_app_load(const char *app_id);
 void aos_i18n_app_unload(void);
 
+/* The same for a face from a module ("face.agua.lang"), loaded while the
+ * face is mounted and kept across a language change. */
+void aos_i18n_face_load(const char *face_id);
+void aos_i18n_face_unload(void);
+
 /* For the Settings screen: how many strings each live catalog holds. */
 int aos_i18n_count(void);
 int aos_i18n_app_count(void);

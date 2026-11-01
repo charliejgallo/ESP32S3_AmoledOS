@@ -2,8 +2,9 @@
 #
 # Builds every app in apps/ and checks that they are usable on the board.
 #
-#   ./tools/build_apps.sh            all of them
+#   ./tools/build_apps.sh            all of them, apps and watchfaces
 #   ./tools/build_apps.sh gemas      just one
+#   ./tools/build_apps.sh face_agua  a watchface, from faces/ (v0.15.0)
 #
 # It does three things that get forgotten by hand:
 #
@@ -23,6 +24,7 @@ source ~/esp/esp-idf/export.sh > /dev/null 2>&1
 
 TABLE=$ROOT/components/aos_dynapp/aos_symbols.c
 ABI=$(grep -oE '#define AOS_ABI_VERSION +[0-9]+' $ROOT/components/aos_ui/include/aos_app.h | grep -oE '[0-9]+$')
+FACE_ABI=$(grep -oE '#define AOS_FACE_ABI_VERSION +[0-9]+' $ROOT/components/aos_ui/include/aos_watchface.h | grep -oE '[0-9]+$')
 NM=$(ls ~/.espressif/tools/xtensa-esp-elf/*/xtensa-esp-elf/bin/xtensa-esp-elf-nm | head -1)
 OD=$(ls ~/.espressif/tools/xtensa-esp-elf/*/xtensa-esp-elf/bin/xtensa-esp-elf-objdump | head -1)
 
@@ -51,11 +53,17 @@ grep -E '^# CONFIG_LV_[A-Z0-9_]+ is not set$' $ROOT/sdkconfig |
     sed -E 's/^# (CONFIG_LV_[A-Z0-9_]+) is not set$/\1=n/' >> $LVCFG
 echo "LVGL configuration synced from the firmware ($(wc -l < $LVCFG | tr -d ' ') options)"
 
-apps=${@:-$(ls $ROOT/apps | grep -v '\.cmake$')}
+apps=${@:-$(ls $ROOT/apps | grep -v '\.cmake$'; ls $ROOT/faces 2>/dev/null)}
 problemas=0
 
 for app in ${(z)apps}; do
+    # a watchface lives in faces/ and exports aos_face_* instead (aos_watchface.h)
     dir=$ROOT/apps/$app
+    entry_abi=aos_app_abi entry_init=aos_app_init want_abi=$ABI
+    if [ ! -d $dir/main ] && [ -d $ROOT/faces/$app/main ]; then
+        dir=$ROOT/faces/$app
+        entry_abi=aos_face_abi entry_init=aos_face_init want_abi=$FACE_ABI
+    fi
     [ -d $dir/main ] || continue
     echo "=== $app ==="
     cd $dir
@@ -88,17 +96,17 @@ for app in ${(z)apps}; do
     # only finds symbols of function type. The ABI number is therefore not in
     # the rodata but inside aos_app_abi()'s code, which compiles to a single
     # 'movi' with the constant.
-    if ! $NM -D --defined-only $so | grep -qE ' aos_app_abi$' ||
-       ! $NM -D --defined-only $so | grep -qE ' aos_app_init$'; then
-        echo "  FAIL: it does not export aos_app_abi/aos_app_init"
+    if ! $NM -D --defined-only $so | grep -qE " $entry_abi\$" ||
+       ! $NM -D --defined-only $so | grep -qE " $entry_init\$"; then
+        echo "  FAIL: it does not export $entry_abi/$entry_init"
         problemas=$((problemas + 1))
         continue
     fi
-    abi=$($OD -d --disassemble=aos_app_abi $so |
+    abi=$($OD -d --disassemble=$entry_abi $so |
           grep -oE 'movi(\.n)?[[:space:]]+a[0-9]+,[[:space:]]*-?[0-9]+' |
           head -1 | grep -oE '\-?[0-9]+$')
-    if [ "$abi" != "$ABI" ]; then
-        echo "  FAIL: the .so says ABI $abi and the firmware expects $ABI"
+    if [ "$abi" != "$want_abi" ]; then
+        echo "  FAIL: the .so says ABI $abi and the firmware expects $want_abi"
         problemas=$((problemas + 1))
         continue
     fi
@@ -143,6 +151,7 @@ if [ $problemas -eq 0 ]; then
     echo "Built. NOT INSTALLED YET: the new .so files are still in apps/*/build/"
     echo "  over wifi:  ./tools/install_apps.sh <board-ip>"
     echo "  by hand:    cp apps/*/build/*.so /Volumes/<sd>/apps/"
+    echo "              cp faces/*/build/*.so /Volumes/<sd>/faces/   (watchfaces)"
     echo ""
     echo "  Without this step the board keeps running the old binaries, and the"
     echo "  symptom misleads: the firmware looks updated and the apps do not."

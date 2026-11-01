@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Casa</title>
+<link rel="stylesheet" href="/aos.css">
+<!-- La pagina de la esfera Casa (docs/FACES.md). Va al lado de su .so,
+     instalada en la flash con el: el reloj la sirve en /face_casa. Escribe
+     una sola cosa, face_casa.cfg en dir=faces, con el formato de la lista
+     de Sensores ("entidad|nombre;entidad|nombre"); la direccion y el token
+     son los de Remoto, por /api/remoto/config. -->
+<style>
+  .fc-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .fc-fila input { width: 100%; box-sizing: border-box; }
+  @media (max-width: 480px) { .fc-fila { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Casa</h1></div>
+  <p class="sub" data-t="bajada">La esfera con cuatro cosas de tu casa: un sensor muestra su valor,
+  una luz o un enchufe si está prendido, y tocarlo en el reloj lo prende o lo apaga.</p>
+
+  <nav class="paginas"></nav>
+
+  <h2>Home Assistant</h2>
+  <section>
+    <p class="sub" data-t="conex_ayuda">La misma conexión que usan Remoto y Sensores.</p>
+    <div class="fila">
+      <div>
+        <label for="url" data-t="lbl_url">Dirección</label>
+        <input id="url" placeholder="http://192.168.1.10:8123" maxlength="78">
+      </div>
+      <div>
+        <label for="token" data-t="lbl_token">Token de larga duración</label>
+        <input id="token" type="password" maxlength="278" autocomplete="off"
+               data-t-ph="ph_token" placeholder="vacío: el que ya está">
+      </div>
+    </div>
+    <div class="fila" style="margin-top:12px">
+      <button id="guardarConf" data-t="btn_conf">Guardar conexión</button>
+      <button class="sec" id="probar" data-t="btn_probar">Probar</button>
+      <span id="estadoConf" style="color:#8e8e93;font-size:13px"></span>
+    </div>
+  </section>
+
+  <h2 data-t="t_lista">Qué muestra</h2>
+  <section>
+    <p class="sub" data-t="lista_ayuda">Hasta cuatro. Sin nombre, usa el de Home Assistant.
+    Sin ninguna, la esfera muestra los sensores de la app Sensores.</p>
+    <div id="filas"></div>
+    <datalist id="entidades"></datalist>
+    <div class="fila" style="margin-top:12px">
+      <button id="guardar" data-t="guardar">Guardar</button>
+      <button class="sec" id="poner" data-t="poner">Poner esta esfera en el reloj</button>
+    </div>
+  </section>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "Home", bajada: "The watchface with four things of your house: a sensor shows its value, a light or a plug whether it is on, and tapping it on the watch turns it on or off.",
+    conex_ayuda: "The same connection Remote and Sensors use.",
+    lbl_url: "Address", lbl_token: "Long-lived token", ph_token: "empty: keep the one there",
+    btn_conf: "Save connection", btn_probar: "Test",
+    t_lista: "What it shows",
+    lista_ayuda: "Up to four. Without a name, Home Assistant's is used. With none, the face shows the Sensors app's sensors.",
+    entidad: "Entity", nombre: "Name (optional)",
+    guardar: "Save", poner: "Put this face on the watch",
+    guardado: "saved: the watch picks it up within 30 s", puesta: "the watch now shows Home",
+    conex_ok: "connection saved", preguntando: "asking..."
+  },
+  de: {
+    titulo: "Zuhause", bajada: "Das Zifferblatt mit vier Dingen deines Zuhauses: ein Sensor zeigt seinen Wert, ein Licht oder eine Steckdose, ob es an ist, und ein Tippen auf der Uhr schaltet es um.",
+    conex_ayuda: "Dieselbe Verbindung wie Fernbedienung und Sensoren.",
+    lbl_url: "Adresse", lbl_token: "Langlebiger Token", ph_token: "leer: der bisherige bleibt",
+    btn_conf: "Verbindung speichern", btn_probar: "Testen",
+    t_lista: "Was es zeigt",
+    lista_ayuda: "Bis zu vier. Ohne Namen wird der von Home Assistant genommen. Ohne Eintrag zeigt das Zifferblatt die Sensoren der App Sensoren.",
+    entidad: "Entität", nombre: "Name (optional)",
+    guardar: "Speichern", poner: "Dieses Zifferblatt auf die Uhr",
+    guardado: "gespeichert: die Uhr übernimmt es in 30 s", puesta: "die Uhr zeigt jetzt Zuhause",
+    conex_ok: "Verbindung gespeichert", preguntando: "frage..."
+  }
+};
+const $ = aos.$;
+const tx = (clave, es) => aos.idioma() === "es" ? es : aos.t(clave);
+const ARCHIVO = "face_casa.cfg";            /* beside the face, in the flash */
+const UTILES = /^(sensor|binary_sensor|light|switch|input_boolean|fan|climate|lock|cover|person|weather|media_player)\./;
+
+function filas(lista) {
+  const cont = $("filas");
+  cont.innerHTML = "";
+  for (let i = 0; i < 4; i++) {
+    const [e, n] = (lista[i] || "").split("|");
+    const fila = document.createElement("div");
+    fila.className = "fc-fila";
+    fila.innerHTML =
+      `<input class="ent" list="entidades" placeholder="${aos.esc(tx("entidad", "Entidad"))}" value="${aos.esc(e || "")}">` +
+      `<input class="nom" maxlength="24" placeholder="${aos.esc(tx("nombre", "Nombre (opcional)"))}" value="${aos.esc(n || "")}">`;
+    cont.appendChild(fila);
+  }
+}
+
+function leer() {
+  fetch("/api/download?dir=faces&name=" + ARCHIVO)
+    .then(r => r.ok ? r.text() : "")
+    .then(t => filas(t.trim() ? t.trim().split(";") : []))
+    .catch(() => filas([]));
+  fetch("/api/remoto/config").then(r => r.json()).then(c => { $("url").value = c.url || ""; })
+    .catch(() => {});
+}
+
+function entidades() {
+  fetch("/api/remoto/entidades").then(r => r.ok ? r.text() : "").then(t => {
+    const dl = $("entidades");
+    dl.innerHTML = "";
+    t.split(",").filter(e => UTILES.test(e)).sort().forEach(e => {
+      const o = document.createElement("option");
+      o.value = e;
+      dl.appendChild(o);
+    });
+  }).catch(() => {});
+}
+
+$("guardar").onclick = () => {
+  const recs = [];
+  document.querySelectorAll(".fc-fila").forEach(f => {
+    const e = f.querySelector(".ent").value.trim().toLowerCase();
+    /* the separators cannot ride in a name */
+    const n = f.querySelector(".nom").value.trim().replace(/[|;\n]/g, " ");
+    if (/^[a-z0-9_]+\.[a-z0-9_]+$/.test(e)) recs.push(n ? e + "|" + n : e);
+  });
+  fetch("/api/upload?dir=faces&name=" + ARCHIVO, { method: "POST", body: recs.join(";") + "\n" })
+    .then(r => { if (!r.ok) throw new Error(r.status); aos.brindis(tx("guardado", "guardado: el reloj lo toma en 30 s")); })
+    .catch(e => aos.brindis(String(e.message || e)));
+};
+
+$("guardarConf").onclick = () => {
+  aos.post("/api/remoto/config", { url: $("url").value.trim(), token: $("token").value.trim() })
+    .then(j => {
+      if (j.ok === false) throw new Error(j.error);
+      $("token").value = "";
+      aos.brindis(tx("conex_ok", "conexión guardada"));
+      entidades();
+    })
+    .catch(e => aos.brindis(String(e.message || e)));
+};
+
+$("probar").onclick = async () => {
+  $("probar").disabled = true;
+  $("estadoConf").textContent = tx("preguntando", "preguntando...");
+  try {
+    const j = await (await fetch("/api/remoto/probar")).json();
+    $("estadoConf").innerHTML = `<span class="${j.ok ? "ok" : "mal-txt"}">` + aos.esc(j.msg) + "</span>";
+    if (j.ok) entidades();
+  } catch (e) {
+    $("estadoConf").innerHTML = '<span class="mal-txt">' + aos.esc(e) + "</span>";
+  }
+  $("probar").disabled = false;
+};
+
+$("poner").onclick = () => {
+  aos.post("/api/ajustes", { esfera: "face.casa" })
+    .then(() => aos.brindis(tx("puesta", "el reloj ya muestra Casa")))
+    .catch(e => aos.brindis(e.message));
+};
+
+aos.init(TR).then(() => {
+  leer();
+  entidades();
+});
+</script>
+</body>
+</html>

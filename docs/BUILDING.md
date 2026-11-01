@@ -116,7 +116,11 @@ the `.so` symbol).
 ```bash
 AOS_SIM_VIEW=launcher  ./build/amoledos_sim     # also grid or honeycomb
 AOS_SIM_VIEW=aos.timer ./build/amoledos_sim     # any app id
+AOS_SIM_FACE=face.agua ./build/amoledos_sim     # starts on that watchface
 ```
+
+The watchfaces of `faces/` ([FACES.md](FACES.md)) are compiled in as well,
+after the firmware's seven.
 
 Some screens hang off `lv_layer_top` and cannot be reached reproducibly with a
 key script, so they have switches of their own:

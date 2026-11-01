@@ -68,16 +68,19 @@ CONTEXT = re.compile(
     r'(?<![A-Za-z0-9_])N?C_\(\s*"((?:[^"\\]|\\.)*)"\s*,\s*'
     r'((?:"(?:[^"\\]|\\.)*"\s*)+)\)')
 
-# `.id = "aos.timer"` / `app->desc.id = "demo.2043";`
-ID_RE = re.compile(r'(?:desc\s*)?\.\s*id\s*=\s*"([^"]+)"')
+# `.id = "aos.timer"` / `app->desc.id = "demo.2043";` / a watchface's
+# `face->id = "face.agua";`
+ID_RE = re.compile(r'(?:(?:desc\s*)?\.|face\s*->)\s*id\s*=\s*"([^"]+)"')
 # ...and the same through a macro, which is how remoto writes it:
 #     #define APP_ID "aos.remoto"
 #     app->desc.id = APP_ID;
 # Without this the app's whole catalog is skipped - with a warning, but
 # skipped, which is a quiet way to lose 50 strings.
-ID_MACRO_RE = re.compile(r'(?:desc\s*)?\.\s*id\s*=\s*([A-Z_][A-Z0-9_]*)\s*;')
-# `.name = "Gemas"` / `app->desc.name = "2043";`
-NAME_RE = re.compile(r'(?:desc\s*)?\.\s*name\s*=\s*"([^"]+)"')
+ID_MACRO_RE = re.compile(r'(?:(?:desc\s*)?\.|face\s*->)\s*id\s*=\s*([A-Z_][A-Z0-9_]*)\s*;')
+# `.name = "Gemas"` / `app->desc.name = "2043";` / `face->name = N_("Agua");`
+# Only a face's own pointer is called "face": any other "x->name" (the tuner's
+# note, "--") is not a module's name.
+NAME_RE = re.compile(r'(?:(?:desc\s*)?\.|face\s*->)\s*name\s*=\s*(?:N_\(\s*)?"([^"]+)"')
 
 
 def joined_literals(chunk):
@@ -248,11 +251,19 @@ def scan_marked(root, warnings=None):
 
 
 def app_dirs():
-    apps = os.path.join(REPO, "apps")
-    for name in sorted(os.listdir(apps)):
-        main = os.path.join(apps, name, "main")
-        if os.path.isdir(main):
-            yield name, main
+    """Every module on the card: the apps, and the watchfaces of faces/
+    (v0.15.0), whose `.id = "face.agua"` and `.name` read the same way. A
+    face's name goes to _sistema like an app's (the picker and Settings draw
+    it with the face not loaded); its own strings to "face.agua.lang", which
+    the host loads while the face is mounted."""
+    for top in ("apps", "faces"):
+        root = os.path.join(REPO, top)
+        if not os.path.isdir(root):
+            continue
+        for name in sorted(os.listdir(root)):
+            main = os.path.join(root, name, "main")
+            if os.path.isdir(main):
+                yield (name if top == "apps" else "%s/%s" % (top, name)), main
 
 
 def app_identity(main_dir):
@@ -768,9 +779,7 @@ def cmd_unmarked(args):
     wrapped simply never reaches aos_tr().
     """
     total = 0
-    for root in FIRMWARE_DIRS + ["apps/%s/main" % a for a in sorted(os.listdir(
-            os.path.join(REPO, "apps")))
-            if os.path.isdir(os.path.join(REPO, "apps", a, "main"))]:
+    for root in FIRMWARE_DIRS + [os.path.relpath(main, REPO) for _, main in app_dirs()]:
         if root in args.skip:
             continue
         rows = []

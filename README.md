@@ -1,7 +1,8 @@
 # AmoledOS
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
-368x448 AMOLED you can hold in your hand. Seven watchfaces, twenty
+368x448 AMOLED you can hold in your hand. Twelve watchfaces — five of them
+installed from the microSD, most of them moved by the accelerometer — twenty
 built-in apps, forty more loaded from the microSD as shared objects — one
 of them a Lua interpreter, so a text file on the card is an app too, and one a
 street map with offline zones — a web portal, iPhone notifications over BLE, a
@@ -34,7 +35,7 @@ in a plain and a keychain version.</em></p>
 
 ## What it does
 
-**Watch.** Seven interchangeable watchfaces, each with a dimmed always-on
+**Watch.** Seven watchfaces in the firmware, each with a dimmed always-on
 variant. On AMOLED a black pixel is switched off, so a nearly black face costs
 almost nothing to leave lit.
 
@@ -42,6 +43,27 @@ almost nothing to leave lit.
 |---|---|---|---|---|---|---|
 | <img src="docs/img/face-digital.png" width="110"> | <img src="docs/img/face-analog.png" width="110"> | <img src="docs/img/face-nixie.png" width="110"> | <img src="docs/img/face-flip.png" width="110"> | <img src="docs/img/face-rings.png" width="110"> | <img src="docs/img/face-binary.png" width="110"> | <img src="docs/img/face-minimal.png" width="110"> |
 | digital | analog | nixie | flip | rings | binary | minimal |
+
+**Watchfaces from the card** (v0.15.0, [docs/FACES.md](docs/FACES.md)). A
+face can be a module of its own, delivered on the card and installed into the
+flash at boot, so the face you chose is there with or without a card. The
+release brings five, and they move: the battery as water that stays level
+when you tilt the watch and sloshes when you move it, a kaleidoscope that
+turns with the wrist and changes colour under your finger, four things of
+your house from Home Assistant with a tap to switch a light, an hourglass of
+sand that piles on the digits, and a solar system with stars in parallax.
+When nothing is drawn over them, the animated ones push their frames straight
+to the panel: 29 fps for the water and the sand, 24 for the orbits.
+
+| | | | | | |
+|---|---|---|---|---|---|
+| <img src="docs/img/face-agua.png" width="110"> | <img src="docs/img/face-kaleido.png" width="110"> | <img src="docs/img/face-casa.png" width="110"> | <img src="docs/img/face-arena.png" width="110"> | <img src="docs/img/face-orbitas.png" width="110"> | <img src="docs/img/face-picker.png" width="110"> |
+| water | kaleidoscope | home | sand | orbits | the picker |
+
+The picker opens with a long press or a double tap on any face; its arrows
+or a swipe sideways go through the faces, with the real face behind it. A
+face from the card is removed from the portal's settings. Writing one of your
+own starts from a template: [docs/FACE-GUIDE.md](docs/FACE-GUIDE.md).
 
 **Launcher.** Three styles — a vertical list with the watchOS scale-and-fade
 effect, a grid, and a honeycomb.
@@ -631,6 +653,7 @@ With a card reader, before the card goes into the watch:
 
 ```bash
 unzip apps.zip        -d /Volumes/<sd>/apps/    # the apps, and the games' .pak files
+mv /Volumes/<sd>/apps/faces /Volumes/<sd>/faces  # the watchfaces go in /faces (v0.15.0)
 unzip lang.zip        -d /Volumes/<sd>/lang/    # English and German, current
 unzip lua-scripts.zip -d /Volumes/<sd>/lua/     # example scripts (optional)
 ```
@@ -688,6 +711,7 @@ into. The portal serves each one by name.
 | folder | what goes in it | where from |
 |---|---|---|
 | `apps/` | the dynamic apps (`.so`) and the big games' assets (`golf.pak`, `turbo.pak`, `monsterhop.pak`, `mila.pak`) | `apps.zip`; read at startup |
+| `faces/` | watchfaces (`face_*.so`) and their pages; installed into the flash at boot, so the card is only how they arrive ([FACES.md](docs/FACES.md)) | `apps.zip`'s `faces/` (v0.15.0) |
 | `lang/<code>/` | translation packs (`en/`, `de/`), one `.lang` per app plus `_sistema.lang`; a pack on the card wins over the copy in the binary | `lang.zip`, or `tools/install_lang.sh` ([I18N.md](docs/I18N.md)) |
 | `lua/` | Lua scripts, each one an app in the launcher | `lua-scripts.zip`, or written in the portal's `/lua` |
 | `3d/` | models for Visor 3D: `.stl` and `.m3d` | `apps/visor3d/models/` (v0.6.0: `3d-models.zip`), or the portal's `/3d`, which converts STL, OBJ and GLB |
@@ -736,6 +760,7 @@ components/
   aos_ble/            NimBLE: ANCS, AMS, pairing
   aos_web/            the web portal, embedded in the binary
 apps/                 40 dynamic apps
+faces/                watchfaces as modules, installed from the card
 tools/                generators, test benches, board utilities
 ```
 
@@ -759,6 +784,10 @@ and UDP in the simulator.
 | [BUILDING.md](docs/BUILDING.md) | firmware, simulator, dynamic apps, and every tool |
 | [APP-API.md](docs/APP-API.md) | writing an app, and the things that will bite you |
 | [APP-GUIDE.md](docs/APP-GUIDE.md) | the long form: how the apps were actually written - workflow, the four drawing techniques with their costs, data from the internet, configuration from the portal, testing without the board, and every trap that bit |
+| [FACES.md](docs/FACES.md) | the watchfaces from the card: the five, choosing and removing them, how the card delivers and the flash keeps, the drawing model, and what was measured |
+| [FACE-GUIDE.md](docs/FACE-GUIDE.md) | making a watchface of your own, from the template (`faces/face_hello`) to giving the `.so` to someone |
+| [GESTURES.md](docs/GESTURES.md) | the second finger the touch chip reports, and the gesture recogniser built on it |
+| [SECURITY.md](docs/SECURITY.md) | the portal's security: other sites refused, trusted networks, the watch approving each browser, the token for scripts |
 | [LINK.md](docs/LINK.md) | two watches over ESP-NOW: the plan in phases, the design, what every phase measured, and the apps on it |
 | [I18N.md](docs/I18N.md) | how translation works and why the key is the Spanish string |
 | [LUA.md](docs/LUA.md) | scripts on the watch: what a script is, everything it can reach, the rules the app enforces and why, and what a frame actually costs |
@@ -798,6 +827,9 @@ what that looks like in practice:
   the app is not using ([MUSIC.md](docs/MUSIC.md)).
 * Letting LVGL stretch a canvas costs **129 ms per frame**. Every game upscales
   by hand.
+* SPIFFS answers every `stat()` by **walking its pages**: asking it about each
+  installed watchface cost every boot 0.6 s. One index file read instead made
+  it 34 ms ([FACES.md](docs/FACES.md)).
 * Rebuilding a twenty-row list costs **111–124 ms** with the LVGL thread
   blocked; filling the same rows in costs 18–31.
 * Dynamic apps used to take their code from a **48 KB contiguous reservation**
@@ -825,6 +857,9 @@ played on both watches, over http and https, MP3, AAC and HLS, with the screen o
 The map has been panned, zoomed and searched on the board, online and from
 offline zones of the city of Buenos Aires and its suburbs downloaded through
 the portal.
+The watchfaces from the card have been installed from it, updated, uploaded
+through the portal and removed on the board, and their frame rates measured
+there ([FACES.md](docs/FACES.md)).
 USB host mode (a pendrive on the watch) works but is parked: the board cannot
 power a peripheral ([USB.md](docs/USB.md)).
 

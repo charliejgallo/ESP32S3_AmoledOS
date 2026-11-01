@@ -1,21 +1,26 @@
 # ---- ESP-IDF build output -------------------------------------------------
 build/
 apps/*/build/
+faces/*/build/
 sim/build/
 
 # Pulled by the component manager, not by us.
 managed_components/
 apps/*/managed_components/
 apps/*/managed_components
+faces/*/managed_components
 dependencies.lock
 apps/*/dependencies.lock
+faces/*/dependencies.lock
 
 # Generated from sdkconfig.defaults on the first build. The defaults are
 # tracked; the expanded config is not.
 sdkconfig
 sdkconfig.old
 apps/*/sdkconfig
+faces/*/sdkconfig
 apps/*/sdkconfig.old
+faces/*/sdkconfig.old
 
 # ---- Simulator ------------------------------------------------------------
 # Vendored LVGL checkout and the fake SD card the simulator writes into.

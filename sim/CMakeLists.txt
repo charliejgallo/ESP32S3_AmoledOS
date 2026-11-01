@@ -59,6 +59,10 @@ file(GLOB AOS_FONT_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../componen
 # lugar de exportar el simbolo de entrada del .so.
 file(GLOB AOS_DYNAPP_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../apps/*/main/*.c)
 
+# And the watchfaces of faces/ (v0.15.0): modules on the board, compiled in
+# here, where AOS_FACE_ENTRY registers them at startup.
+file(GLOB AOS_FACE_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../faces/*/main/*.c)
+
 # El interprete de apps/lua vive un nivel mas abajo que ese glob, que no es
 # recursivo. Se compila como biblioteca aparte y no dentro del ejecutable
 # porque es codigo de terceros: no le caben nuestras -Wall -Wextra (Lua sale
@@ -111,6 +115,7 @@ add_executable(amoledos_sim
     ${AOS_APPS_SRC}
     ${AOS_FONT_SRC}
     ${AOS_DYNAPP_SRC}
+    ${AOS_FACE_SRC}
 )
 
 target_include_directories(amoledos_sim PRIVATE

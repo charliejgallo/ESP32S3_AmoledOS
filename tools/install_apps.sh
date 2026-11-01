@@ -23,6 +23,10 @@
 # is not built, or PAGES=1- the board is not restarted.
 #
 #   PAGES=1 ./tools/install_apps.sh charlie.local radio   only Radio's page
+#
+# The watchfaces of faces/ (v0.15.0, docs/FACES.md) go with them, by name like
+# an app ("face_agua"), and not to the card: straight into the flash
+# (dir=faces), where they run from. Their page goes beside them.
 # Off a trusted network the watch's API wants its token (docs/SECURITY.md):
 # AOS_TOKEN=<token> from the portal's Settings, sent with every request.
 curl() { command curl ${AOS_TOKEN:+-H} ${AOS_TOKEN:+"Authorization: Bearer $AOS_TOKEN"} "$@"; }
@@ -33,32 +37,36 @@ shift
 WANT=("$@")
 
 files=()
+dirs=()                 # where each one goes: dir=apps, or dir=faces
 pages=0
-for d in $ROOT/apps/*(/); do
+for d in $ROOT/apps/*(/) $ROOT/faces/face_*(/N); do
     name=${d:t}
     (( ${#WANT[@]} )) && [[ ${WANT[(Ie)$name]} -eq 0 ]] && continue
-    for page in $d/web/*.html(.N); do files+=($page); pages=$((pages + 1)); done
+    dest=apps
+    [[ $d == $ROOT/faces/* ]] && dest=faces
+    for page in $d/web/*.html(.N); do files+=($page); dirs+=($dest); pages=$((pages + 1)); done
     [[ -n $PAGES ]] && continue
     so=($d/build/*.so(.N))
-    (( ${#so[@]} )) && files+=($so[1])
+    (( ${#so[@]} )) && { files+=($so[1]); dirs+=($dest); }
     # an app's own data pack (golf's art): it goes next to the .so. A pack
     # over the portal's 8 MB per upload comes in parts under assets/card/
     # (monsterhop.pak, monsterhop.pak.1...), which the app reads as one file
     if [ -d $d/assets/card ]; then
-        for pak in $d/assets/card/*.pak*(.N); do files+=($pak); done
+        for pak in $d/assets/card/*.pak*(.N); do files+=($pak); dirs+=($dest); done
     else
-        for pak in $d/assets/*.pak(.N); do files+=($pak); done
+        for pak in $d/assets/*.pak(.N); do files+=($pak); dirs+=($dest); done
     fi
 done
 (( ${#files[@]} )) || { echo "no .so found - run ./tools/build_apps.sh first"; exit 1; }
 
 echo "== ${#files[@]} files ($pages pages) -> $HOST =="
 total=0
-for f in $files; do
+for (( k = 1; k <= ${#files[@]}; k++ )); do
+    f=$files[$k]
     name=${f:t}
     size=$(wc -c < $f | tr -d ' ')
     code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 60 \
-        -X POST "http://$HOST/api/upload?dir=apps&name=$name" --data-binary "@$f") || code=000
+        -X POST "http://$HOST/api/upload?dir=$dirs[$k]&name=$name" --data-binary "@$f") || code=000
     if [[ $code == 2* ]]; then
         printf "   %-18s %7s B  ok\n" $name $size
         (( total += size ))
@@ -96,7 +104,8 @@ do
 done
 
 echo "restarting the board (the .so files are loaded at startup)..."
-PORT=$(ls /dev/cu.usbmodem* 2>/dev/null | head -1)
+ports=(/dev/cu.usbmodem*(N))
+PORT=${ports[1]}
 if [[ -n $PORT && -n $PYBIN ]]; then
     $PYBIN - $PORT <<'PY'
 import sys, time, serial
@@ -108,5 +117,12 @@ elif [[ -n $PORT ]]; then
     echo "   there is a port but no python with pyserial (try 'source ~/esp/esp-idf/export.sh')"
     echo "   restart the board by hand so it picks up the new .so files"
 else
-    echo "   no serial port: restart the board by hand so it picks up the new .so files"
+    # No cable: the portal restarts it (the same call install_fw.sh makes
+    # after an OTA, which restarts whether or not an image is pending).
+    if [[ $(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X POST \
+            "http://$HOST/api/ota/restart") == 2* ]]; then
+        echo "   done, restarted over wifi"
+    else
+        echo "   no serial port and the portal did not answer: restart the board by hand"
+    fi
 fi

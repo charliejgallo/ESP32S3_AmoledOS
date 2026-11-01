@@ -640,6 +640,11 @@ static const char blob_en__sistema_lang[] =
     "Video\tVideo\n"
     "Visor 3D\t3D Viewer\n"
     "Walkie\tWalkie\n"
+    "Agua\tWater\n"
+    "Arena\tSand\n"
+    "Casa\tHome\n"
+    "Caleidoscopio\tKaleidoscope\n"
+    "Órbitas\tOrbits\n"
     ;
 
 static const char blob_en_aos_ble_lang[] =
@@ -3307,6 +3312,47 @@ static const char blob_en_demo_visor3d_lang[] =
     "Sin memoria\tOut of memory\n"
     ;
 
+static const char blob_en_face_agua_lang[] =
+    "Agua\tWater\n"
+    ;
+
+static const char blob_en_face_arena_lang[] =
+    "Arena\tSand\n"
+    ;
+
+static const char blob_en_face_casa_lang[] =
+    "Encendido\tOn\n"
+    "Apagado\tOff\n"
+    "Abierto\tOpen\n"
+    "Cerrado\tClosed\n"
+    "En casa\tHome\n"
+    "Fuera\tAway\n"
+    "Sonando\tPlaying\n"
+    "Pausa\tPaused\n"
+    "Inactivo\tIdle\n"
+    "Home Assistant sin configurar\tHome Assistant not set up\n"
+    "ahora\tjust now\n"
+    "hace %u min\t%u min ago\n"
+    "Elegí qué mostrar en\\n%s.local/face_casa\tChoose what to show at\\n%s.local/face_casa\n"
+    "sin wifi\tno wifi\n"
+    "token rechazado (%d)\ttoken refused (%d)\n"
+    "Home Assistant no responde (%d)\tHome Assistant does not answer (%d)\n"
+    "no se pudo cambiar (%d)\tcould not change it (%d)\n"
+    "Casa\tHome\n"
+    ;
+
+static const char blob_en_face_hello_lang[] =
+    "Hola\tHello\n"
+    ;
+
+static const char blob_en_face_kaleido_lang[] =
+    "Caleidoscopio\tKaleidoscope\n"
+    ;
+
+static const char blob_en_face_orbitas_lang[] =
+    "Órbitas\tOrbits\n"
+    ;
+
 static const aos_lang_file_t files_en[] = {
     { "_sistema.lang", blob_en__sistema_lang },
     { "aos.ble.lang", blob_en_aos_ble_lang },
@@ -3349,6 +3395,12 @@ static const aos_lang_file_t files_en[] = {
     { "demo.topos.lang", blob_en_demo_topos_lang },
     { "demo.turbo.lang", blob_en_demo_turbo_lang },
     { "demo.visor3d.lang", blob_en_demo_visor3d_lang },
+    { "face.agua.lang", blob_en_face_agua_lang },
+    { "face.arena.lang", blob_en_face_arena_lang },
+    { "face.casa.lang", blob_en_face_casa_lang },
+    { "face.hello.lang", blob_en_face_hello_lang },
+    { "face.kaleido.lang", blob_en_face_kaleido_lang },
+    { "face.orbitas.lang", blob_en_face_orbitas_lang },
 };
 
 static const char blob_de__sistema_lang[] =
@@ -3978,6 +4030,11 @@ static const char blob_de__sistema_lang[] =
     "Video\tVideo\n"
     "Visor 3D\t3D-Viewer\n"
     "Walkie\tWalkie\n"
+    "Agua\tWasser\n"
+    "Arena\tSand\n"
+    "Casa\tZuhause\n"
+    "Caleidoscopio\tKaleidoskop\n"
+    "Órbitas\tUmlaufbahnen\n"
     ;
 
 static const char blob_de_aos_ble_lang[] =
@@ -6645,6 +6702,47 @@ static const char blob_de_demo_visor3d_lang[] =
     "Sin memoria\tKein Speicher\n"
     ;
 
+static const char blob_de_face_agua_lang[] =
+    "Agua\tWasser\n"
+    ;
+
+static const char blob_de_face_arena_lang[] =
+    "Arena\tSand\n"
+    ;
+
+static const char blob_de_face_casa_lang[] =
+    "Encendido\tAn\n"
+    "Apagado\tAus\n"
+    "Abierto\tOffen\n"
+    "Cerrado\tZu\n"
+    "En casa\tZuhause\n"
+    "Fuera\tWeg\n"
+    "Sonando\tSpielt\n"
+    "Pausa\tPause\n"
+    "Inactivo\tInaktiv\n"
+    "Home Assistant sin configurar\tHome Assistant nicht eingerichtet\n"
+    "ahora\tgerade eben\n"
+    "hace %u min\tvor %u min\n"
+    "Elegí qué mostrar en\\n%s.local/face_casa\tWähle, was angezeigt wird:\\n%s.local/face_casa\n"
+    "sin wifi\tkein WLAN\n"
+    "token rechazado (%d)\tToken abgelehnt (%d)\n"
+    "Home Assistant no responde (%d)\tHome Assistant antwortet nicht (%d)\n"
+    "no se pudo cambiar (%d)\tkonnte nicht schalten (%d)\n"
+    "Casa\tZuhause\n"
+    ;
+
+static const char blob_de_face_hello_lang[] =
+    "Hola\tHallo\n"
+    ;
+
+static const char blob_de_face_kaleido_lang[] =
+    "Caleidoscopio\tKaleidoskop\n"
+    ;
+
+static const char blob_de_face_orbitas_lang[] =
+    "Órbitas\tUmlaufbahnen\n"
+    ;
+
 static const aos_lang_file_t files_de[] = {
     { "_sistema.lang", blob_de__sistema_lang },
     { "aos.ble.lang", blob_de_aos_ble_lang },
@@ -6687,10 +6785,16 @@ static const aos_lang_file_t files_de[] = {
     { "demo.topos.lang", blob_de_demo_topos_lang },
     { "demo.turbo.lang", blob_de_demo_turbo_lang },
     { "demo.visor3d.lang", blob_de_demo_visor3d_lang },
+    { "face.agua.lang", blob_de_face_agua_lang },
+    { "face.arena.lang", blob_de_face_arena_lang },
+    { "face.casa.lang", blob_de_face_casa_lang },
+    { "face.hello.lang", blob_de_face_hello_lang },
+    { "face.kaleido.lang", blob_de_face_kaleido_lang },
+    { "face.orbitas.lang", blob_de_face_orbitas_lang },
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 626, 40, files_en, 41 },
-    { "de", "Deutsch", 626, 40, files_de, 41 },
+    { "en", "English", 631, 46, files_en, 47 },
+    { "de", "Deutsch", 631, 46, files_de, 47 },
 };
 const int aos_lang_pack_count = 2;

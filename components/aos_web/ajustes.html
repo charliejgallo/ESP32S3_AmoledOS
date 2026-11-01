@@ -43,6 +43,11 @@
       <span data-t="esfera_pie">Cambia en el momento, sin pasar por el selector.</span></div>
     <select id="esfera"></select>
   </div>
+  <div class="ajuste columna" id="fila-esferas-mod" hidden>
+    <div class="texto"><b data-t="esferas_mod">Esferas de la tarjeta</b>
+      <span data-t="esferas_mod_pie">Instaladas en la memoria del reloj. Quitar una la borra de la memoria y de la tarjeta; sus ajustes quedan.</span></div>
+    <div id="esferas-mod"></div>
+  </div>
   <div class="ajuste">
     <div class="texto"><b data-t="menu">Menú de apps</b></div>
     <select id="menu">
@@ -237,6 +242,10 @@ const TR = {
     nombre_malo: "not a valid name: lowercase letters, digits and hyphens only",
     h_pantalla: "Screen", brillo: "Brightness", esfera: "Watchface",
     esfera_pie: "Changes right away, without going through the picker.",
+    esferas_mod: "Watchfaces from the card",
+    esferas_mod_pie: "Installed in the watch's memory. Removing one deletes it from the memory and from the card; its settings stay.",
+    quitar: "Remove", puesta: "on the watch", quitada: "watchface removed",
+    quitar_seguro: "Remove %s from the watch and the card?",
     menu: "App menu", menu_lista: "List", menu_grilla: "Grid", menu_panal: "Honeycomb",
     aod: "Always on", aod_pie: "The time stays visible, dimmed, instead of switching off.",
     aod_brillo: "Dimmed brightness",
@@ -290,6 +299,10 @@ const TR = {
     nombre_malo: "kein gueltiger Name: nur Kleinbuchstaben, Ziffern und Bindestriche",
     h_pantalla: "Bildschirm", brillo: "Helligkeit", esfera: "Zifferblatt",
     esfera_pie: "Wechselt sofort, ohne die Auswahl.",
+    esferas_mod: "Zifferblätter von der Karte",
+    esferas_mod_pie: "Im Speicher der Uhr installiert. Entfernen löscht es aus dem Speicher und von der Karte; seine Einstellungen bleiben.",
+    quitar: "Entfernen", puesta: "auf der Uhr", quitada: "Zifferblatt entfernt",
+    quitar_seguro: "%s von der Uhr und der Karte entfernen?",
     menu: "App-Menue", menu_lista: "Liste", menu_grilla: "Raster", menu_panal: "Wabe",
     aod: "Immer an", aod_pie: "Die Zeit bleibt gedimmt sichtbar, statt auszugehen.",
     aod_brillo: "Gedimmte Helligkeit",
@@ -345,7 +358,9 @@ const ES = {
   resp_mal: "Eso no es un respaldo de AmoledOS",
   resp_ok: "Restaurado: %n ajustes. ¿Reiniciar el reloj ahora para que se apliquen todos?",
   hora_puesta: "hora puesta", sincronizando: "pidiendo la hora por internet...",
-  sin_conexion: "sin conexión con el reloj"
+  sin_conexion: "sin conexión con el reloj",
+  quitar: "Quitar", puesta: "puesta", quitada: "esfera quitada",
+  quitar_seguro: "¿Quitar %s del reloj y de la tarjeta?"
 };
 const $ = aos.$;
 function t(k) { const v = aos.t(k); return v === k ? (ES[k] !== undefined ? ES[k] : k) : v; }
@@ -419,6 +434,33 @@ function pintar(s) {
     o.value = f.id; o.textContent = f.nombre;
     if (f.id === s.esfera) o.selected = true;
     sel.append(o);
+  }
+  const mods = (s.esferas || []).filter(f => f.modulo);
+  $("fila-esferas-mod").hidden = !mods.length;
+  const lista = $("esferas-mod");
+  lista.innerHTML = "";
+  for (const f of mods) {
+    const fila = document.createElement("div");
+    fila.className = "cabeza";
+    fila.style.padding = "6px 0";
+    const n = document.createElement("div");
+    n.className = "texto";
+    n.textContent = f.nombre + (f.id === s.esfera ? "  ·  " + t("puesta") : "");
+    const b = document.createElement("button");
+    b.className = "sec";
+    b.textContent = t("quitar");
+    b.onclick = async () => {
+      if (!confirm(t("quitar_seguro").replace("%s", f.nombre))) return;
+      try {
+        await aos.post("/api/esferas/quitar", { id: f.id });
+        aos.brindis(t("quitada"));
+      } catch (e) {
+        aos.brindis(t("fallo") + e.message);
+      }
+      cargar();
+    };
+    fila.append(n, b);
+    lista.append(fila);
   }
   $("menu").value = String(s.menu || 0);
 

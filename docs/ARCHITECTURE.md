@@ -21,16 +21,20 @@ components/
   aos_ui/                UI runtime: launcher, watchfaces, navigation, theme,
                          i18n, notification overlay
   aos_apps/              the 20 built-in apps
-  aos_dynapp/            .so loader and symbol table
+  aos_dynapp/            .so loader and symbol table; installs the
+                         watchfaces of the card into the flash at boot
+                         (docs/FACES.md)
   aos_ble/               NimBLE: ANCS, AMS, pairing (board only)
   aos_web/               the web portal, embedded in the binary: status, the
                          watch's settings, alarms, a live screen, the log,
                          files, wifi, app settings, and the OTA endpoint
                          (docs/PORTAL.md)
   aos_fonts/             Montserrat with the Latin-1 supplement
-  elf_loader/            Espressif's ELF loader (Apache-2.0, vendored)
+  elf_loader/            Espressif's ELF loader (Apache-2.0, vendored; it also
+                         opens /spiffs paths, for the installed watchfaces)
 
 apps/                    40 dynamic apps, one directory each
+faces/                   watchfaces as modules (face_*.so) and what they share
 tools/                   generators, test benches and board utilities
 ```
 
@@ -39,7 +43,8 @@ The screen is laid out like this:
 ```
 screen
 +-- stage            (368x448, black)
-|   +-- watchface    layer 0, always alive
+|   +-- watchface    layer 0, always alive; a face from a module is in
+|   |                memory only while it is the one mounted
 |   +-- launcher     layer 1, created the first time it is used
 |   +-- app root     layer 2, one per open or backgrounded app
 +-- statusbar        overlaid on top

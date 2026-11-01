@@ -44,6 +44,12 @@ typedef struct {
 
 static catalog_t s_system;
 static catalog_t s_app;
+/* The face on the screen when it comes from a module (v0.15.0): its own
+ * catalogue, "<face id>.lang", beside the app's. A face is up under an app's
+ * screen only suspended, but the two are loaded at once all the same while
+ * an app slides in, so it is a slot of its own. */
+static catalog_t s_face;
+static char      s_face_id[32];
 static char      s_code[AOS_LANG_CODE_MAX] = BASE_CODE;
 
 /* -------------------------------------------------------------------------
@@ -143,12 +149,15 @@ const char *aos_tr(const char *es)
     if (!es || !*es) {
         return es;
     }
-    if (!s_system.count && !s_app.count) {
+    if (!s_system.count && !s_app.count && !s_face.count) {
         return es;              /* nothing loaded: the common case, no hashing */
     }
 
     uint32_t h = hash32(es);
     const char *hit = catalog_find(&s_app, es, h);
+    if (!hit) {
+        hit = catalog_find(&s_face, es, h);
+    }
     if (!hit) {
         hit = catalog_find(&s_system, es, h);
     }
@@ -163,7 +172,7 @@ const char *aos_trc(const char *ctx, const char *es)
     if (!ctx || !*ctx || !es || !*es) {
         return aos_tr(es);
     }
-    if (!s_system.count && !s_app.count) {
+    if (!s_system.count && !s_app.count && !s_face.count) {
         return es;
     }
 
@@ -175,6 +184,9 @@ const char *aos_trc(const char *ctx, const char *es)
 
     uint32_t h = hash32(key);
     const char *hit = catalog_find(&s_app, key, h);
+    if (!hit) {
+        hit = catalog_find(&s_face, key, h);
+    }
     if (!hit) {
         hit = catalog_find(&s_system, key, h);
     }
@@ -474,6 +486,31 @@ void aos_i18n_app_unload(void)
     catalog_free(&s_app);
 }
 
+static void face_catalog_load(void)
+{
+    catalog_free(&s_face);
+    if (!s_face_id[0] || strcmp(s_code, BASE_CODE) == 0) {
+        return;
+    }
+    char file[AOS_LANG_CODE_MAX + 64];
+    snprintf(file, sizeof(file), "%s.lang", s_face_id);
+    if (catalog_load(&s_face, s_code, file)) {
+        aos_hal_log("i18n", "catalogue for face %s: %d strings", s_face_id, s_face.count);
+    }
+}
+
+void aos_i18n_face_load(const char *face_id)
+{
+    snprintf(s_face_id, sizeof(s_face_id), "%s", face_id ? face_id : "");
+    face_catalog_load();
+}
+
+void aos_i18n_face_unload(void)
+{
+    s_face_id[0] = '\0';
+    catalog_free(&s_face);
+}
+
 bool aos_i18n_set(const char *code)
 {
     if (!code || !*code) {
@@ -482,6 +519,7 @@ bool aos_i18n_set(const char *code)
 
     if (strcmp(code, BASE_CODE) == 0) {
         catalog_free(&s_app);
+        catalog_free(&s_face);
         catalog_free(&s_system);
         snprintf(s_code, sizeof(s_code), "%s", BASE_CODE);
         aos_hal_pref_set_str(PREF_KEY, BASE_CODE);
@@ -510,6 +548,7 @@ bool aos_i18n_set(const char *code)
     catalog_free(&s_system);
     s_system = fresh;
     snprintf(s_code, sizeof(s_code), "%s", code);
+    face_catalog_load();        /* the face on the screen, in the new language */
     aos_hal_pref_set_str(PREF_KEY, s_code);
     aos_hal_log("i18n", "language: %s, %d strings (%s)", s_code, s_system.count,
                 desde_tarjeta ? "card" : "firmware");

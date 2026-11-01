@@ -21,6 +21,8 @@
 #include "esp_dlfcn.h"
 #include "esp_app_desc.h"
 #include "aos_icon_ops.h"
+#include "aos_watchface.h"
+#include "esp_spiffs.h"
 #include "private/elf_symbol.h"
 
 #include <dirent.h>
@@ -29,6 +31,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <stdio.h>
+#include <utime.h>
 
 static const char *TAG = "aos_dynapp";
 
@@ -1148,6 +1151,33 @@ static void cache_desc(const cache_rec_t *r, aos_app_desc_t *d)
     d->order = r->order;
 }
 
+/* The symbol index and the resolver, once: the watchfaces' modules are
+ * opened before the apps' scan (aos_dynapp_faces_init, before the UI), and
+ * either may come first. */
+static void loader_prepare(void)
+{
+    static bool done;
+    if (done) {
+        return;
+    }
+    done = true;
+
+    int64_t ti = esp_timer_get_time();
+    sym_index_build();
+    ESP_LOGI(TAG, "symbol index: %d entries, %u ms", s_sym_count,
+             (unsigned)((esp_timer_get_time() - ti) / 1000));
+    elf_set_symbol_resolver(resolver);
+
+    /* The loader logs every symbol of every module at INFO: hundreds of lines
+     * per .so, which is what made the 16 KB log ring forget the boot before
+     * anyone could read it. Its warnings and errors still come through. */
+    static const char *const LOUD[] = { "ELF", "DLMOD", "DLFCN", "elf_arch",
+                                        "ELF_SYMBOL", "elf_s3mmu" };
+    for (size_t i = 0; i < sizeof(LOUD) / sizeof(LOUD[0]); i++) {
+        esp_log_level_set(LOUD[i], ESP_LOG_WARN);
+    }
+}
+
 int aos_dynapp_scan(void)
 {
     /* Before anything else: the reservation is asked for with the heap still
@@ -1161,11 +1191,7 @@ int aos_dynapp_scan(void)
     ESP_LOGI(TAG, "apps' code runs from PSRAM: no internal reservation");
 #endif
 
-    int64_t ti = esp_timer_get_time();
-    sym_index_build();
-    ESP_LOGI(TAG, "symbol index: %d entries, %u ms", s_sym_count,
-             (unsigned)((esp_timer_get_time() - ti) / 1000));
-    elf_set_symbol_resolver(resolver);
+    loader_prepare();
 
     ESP_LOGI(TAG, "executable memory: %u B free, largest block %u B",
              (unsigned)heap_caps_get_free_size(MALLOC_CAP_EXEC),
@@ -1175,15 +1201,6 @@ int aos_dynapp_scan(void)
     if (!dir) {
         ESP_LOGI(TAG, "there is no %s folder, no dynamic apps", AOS_DYNAPP_DIR);
         return 0;
-    }
-
-    /* The loader logs every symbol of every module at INFO: hundreds of lines
-     * per .so, which is what made the 16 KB log ring forget the boot before
-     * anyone could read it. Its warnings and errors still come through. */
-    static const char *const LOUD[] = { "ELF", "DLMOD", "DLFCN", "elf_arch",
-                                        "ELF_SYMBOL", "elf_s3mmu" };
-    for (size_t i = 0; i < sizeof(LOUD) / sizeof(LOUD[0]); i++) {
-        esp_log_level_set(LOUD[i], ESP_LOG_WARN);
     }
 
     /* Two passes. The first registers ONE app of every module; the second
@@ -1275,4 +1292,399 @@ int aos_dynapp_scan(void)
              (unsigned)s_resolve_calls, (unsigned)(s_scan_cost.lock_us / 1000),
              (unsigned)(s_scan_cost.reg_us / 1000));
     return loaded;
+}
+
+/* --------------------------------------------------------------------------
+ * Watchfaces from modules (v0.15.0, docs/FACES.md)
+ *
+ * The card delivers, the flash keeps. Every face_*.so in the card's /faces
+ * is copied into AOS_FACES_DIR when the flash has none or an older one, with
+ * the card's date, so the next boot sees them equal and copies nothing. Only
+ * then is anything registered, and only from the flash: the face chosen is
+ * mounted at boot from there, with the card out, unreadable or half-mounted.
+ *
+ * What is installed is written down in one index, AOS_FACES_DIR/faces.idx
+ * (each file's size and date, and a face's id and name), and a boot reads
+ * that and nothing else of the flash: SPIFFS answers every stat() and every
+ * open by walking its pages, ~0.1 s each on this 5 MB partition, and a .desc
+ * and a stat per face cost the boot 0.6 s with nothing to do (measured on
+ * charlie, 2026-11-01). The card is FAT and quick to ask. Whatever changes
+ * the folder behind the index's back (an upload or a delete through the
+ * portal, a face removed) deletes it, and the next boot walks the flash once
+ * and writes it again: aos_dynapp_faces_changed().
+ *
+ * SPIFFS has no folders: "/spiffs/faces/x.so" is a file called "/faces/x.so",
+ * and opendir() on the prefix lists them. Names are at most 32 bytes with the
+ * "/faces/" (CONFIG_SPIFFS_OBJ_NAME_LEN), so a face's file name keeps under 24.
+ * -------------------------------------------------------------------------- */
+
+#define FACE_FILE_MAX       24          /* "face_kaleido.html" and room */
+/* Never fill the flash with faces: prefs, the apps' data and the music
+ * fallback live in the same 5 MB. */
+#define FACE_FLASH_RESERVE  (512 * 1024)
+
+static bool ends_with(const char *name, const char *ext)
+{
+    size_t n = strlen(name), e = strlen(ext);
+    return n > e && strcmp(name + n - e, ext) == 0;
+}
+
+static bool face_file_name_ok(const char *name)
+{
+    return strncmp(name, "face_", 5) == 0 && strlen(name) < FACE_FILE_MAX &&
+           (ends_with(name, ".so") || ends_with(name, ".html"));
+}
+
+static void *face_open(const char *path, aos_watchface_t *out)
+{
+    int64_t t0 = esp_timer_get_time();
+    void *handle = dlopen(path, RTLD_NOW);
+    if (!handle) {
+        ESP_LOGE(TAG, "dlopen(%s) failed: %s", path, dlerror());
+        return NULL;
+    }
+    uint32_t (*abi_fn)(void)                 = dlsym(handle, "aos_face_abi");
+    bool     (*init_fn)(aos_watchface_t *f)  = dlsym(handle, "aos_face_init");
+    if (!abi_fn || !init_fn) {
+        ESP_LOGE(TAG, "%s does not export aos_face_abi/aos_face_init", path);
+        module_release(handle, NULL);
+        return NULL;
+    }
+    uint32_t abi = abi_fn();
+    if (abi != AOS_FACE_ABI_VERSION) {
+        ESP_LOGE(TAG, "%s is face ABI %u and the firmware expects %u: rebuild it",
+                 path, (unsigned)abi, (unsigned)AOS_FACE_ABI_VERSION);
+        module_release(handle, NULL);
+        return NULL;
+    }
+    memset(out, 0, sizeof(*out));
+    if (!init_fn(out) || !out->id || !out->create) {
+        ESP_LOGE(TAG, "%s did not describe its face", path);
+        module_release(handle, NULL);
+        return NULL;
+    }
+    ESP_LOGI(TAG, "face %s opened from %s in %u ms", out->id, path,
+             (unsigned)((esp_timer_get_time() - t0) / 1000));
+    return handle;
+}
+
+static void face_close(void *handle)
+{
+    module_release(handle, NULL);
+}
+
+static bool flash_has_room(size_t bytes)
+{
+    /* By the label the BSP mounted it with: asked with NULL, SPIFFS looks
+     * for a partition mounted WITHOUT one, finds none, and every face was
+     * "no room in the flash" (the first boot on the board, 2026-11-01). */
+    size_t total = 0, used = 0;
+    if (esp_spiffs_info(CONFIG_BSP_SPIFFS_PARTITION_LABEL, &total, &used) != ESP_OK) {
+        ESP_LOGW(TAG, "faces: could not ask the flash how full it is");
+        return false;
+    }
+    return used + bytes + FACE_FLASH_RESERVE <= total;
+}
+
+/* card -> flash, through a .part so a cut copy never looks installed, and
+ * dated like the card's so the two compare equal afterwards */
+static bool face_copy(const char *from, const char *to, time_t mtime)
+{
+    char part[48];
+    snprintf(part, sizeof(part), AOS_FACES_DIR "/~%.24s", strrchr(to, '/') + 1);
+    FILE *in = fopen(from, "rb");
+    if (!in) {
+        return false;
+    }
+    FILE *out = fopen(part, "wb");
+    if (!out) {
+        fclose(in);
+        return false;
+    }
+    char *buf = malloc(4096);
+    bool ok = buf != NULL;
+    size_t n;
+    while (ok && (n = fread(buf, 1, 4096, in)) > 0) {
+        ok = fwrite(buf, 1, n, out) == n;
+    }
+    ok = ok && !ferror(in);
+    free(buf);
+    fclose(in);
+    ok = (fclose(out) == 0) && ok;
+    if (ok) {
+        remove(to);
+        ok = rename(part, to) == 0;
+    }
+    if (!ok) {
+        remove(part);
+        return false;
+    }
+    struct utimbuf times = { .actime = mtime, .modtime = mtime };
+    utime(to, &times);
+    return true;
+}
+
+#define FACES_IDX           AOS_FACES_DIR "/faces.idx"
+#define FACES_IDX_HEAD      "aosfaces 1"
+#define FACE_RECS           (AOS_MAX_WATCHFACES + 8)    /* the pages too */
+
+typedef struct {
+    char     file[FACE_FILE_MAX];
+    uint32_t size;
+    uint32_t mtime;
+    char     id[24];                /* a .so's; empty for a page */
+    char     name[32];
+} face_rec_t;
+
+static face_rec_t *s_frec;          /* PSRAM: only boot needs it */
+static int         s_nfrec;
+
+static face_rec_t *rec_find(const char *file)
+{
+    for (int i = 0; i < s_nfrec; i++) {
+        if (strcmp(s_frec[i].file, file) == 0) {
+            return &s_frec[i];
+        }
+    }
+    return NULL;
+}
+
+static face_rec_t *rec_add(const char *file)
+{
+    face_rec_t *r = rec_find(file);
+    if (!r && s_nfrec < FACE_RECS) {
+        r = &s_frec[s_nfrec++];
+        memset(r, 0, sizeof(*r));
+        snprintf(r->file, sizeof(r->file), "%.23s", file);
+    }
+    return r;
+}
+
+/* "<file>\t<size>\t<mtime>\t<id>\t<name>" per line, after the header */
+static bool idx_load(void)
+{
+    FILE *f = fopen(FACES_IDX, "r");
+    if (!f) {
+        return false;
+    }
+    char line[160];
+    bool ok = fgets(line, sizeof(line), f) && strncmp(line, FACES_IDX_HEAD, 10) == 0;
+    while (ok && fgets(line, sizeof(line), f)) {
+        line[strcspn(line, "\r\n")] = '\0';
+        char *save = NULL;
+        char *file = strtok_r(line, "\t", &save);
+        char *size = strtok_r(NULL, "\t", &save);
+        char *time = strtok_r(NULL, "\t", &save);
+        char *id   = strtok_r(NULL, "\t", &save);
+        char *name = strtok_r(NULL, "\t", &save);
+        if (!file || !size || !time || !face_file_name_ok(file)) {
+            continue;
+        }
+        face_rec_t *r = rec_add(file);
+        if (!r) {
+            break;
+        }
+        r->size = (uint32_t)strtoul(size, NULL, 10);
+        r->mtime = (uint32_t)strtoul(time, NULL, 10);
+        /* a page has no id: its line ends after the date, or has a "-" */
+        if (id && strcmp(id, "-") != 0) {
+            snprintf(r->id, sizeof(r->id), "%s", id);
+            snprintf(r->name, sizeof(r->name), "%s", name ? name : id);
+        }
+    }
+    fclose(f);
+    if (!ok) {
+        s_nfrec = 0;
+    }
+    return ok;
+}
+
+static void idx_save(void)
+{
+    FILE *f = fopen(FACES_IDX, "w");
+    if (!f) {
+        return;
+    }
+    fprintf(f, "%s\n", FACES_IDX_HEAD);
+    for (int i = 0; i < s_nfrec; i++) {
+        const face_rec_t *r = &s_frec[i];
+        fprintf(f, "%s\t%lu\t%lu\t%s\t%s\n", r->file, (unsigned long)r->size,
+                (unsigned long)r->mtime, r->id[0] ? r->id : "-", r->name[0] ? r->name : "-");
+    }
+    fclose(f);
+}
+
+/* A .so's id and name, by opening it: 5-9 ms on the board. */
+static bool rec_describe(face_rec_t *r)
+{
+    char path[48];
+    snprintf(path, sizeof(path), AOS_FACES_DIR "/%s", r->file);
+    aos_watchface_t face;
+    void *handle = face_open(path, &face);
+    if (!handle) {
+        r->id[0] = r->name[0] = '\0';
+        return false;
+    }
+    snprintf(r->id, sizeof(r->id), "%s", face.id);
+    snprintf(r->name, sizeof(r->name), "%s", face.name ? face.name : face.id);
+    face_close(handle);
+    return true;
+}
+
+/* No index (the first boot of this firmware, or the folder changed through
+ * the portal): the flash is walked once. The .desc files of the first
+ * version of this are deleted on the way. */
+static void idx_rebuild(void)
+{
+    s_nfrec = 0;
+    DIR *dir = opendir(AOS_FACES_DIR);
+    if (!dir) {
+        return;
+    }
+    struct dirent *item;
+    while ((item = readdir(dir)) != NULL) {
+        char path[48];
+        snprintf(path, sizeof(path), AOS_FACES_DIR "/%.24s", item->d_name);
+        if (strncmp(item->d_name, "face_", 5) == 0 && ends_with(item->d_name, ".desc")) {
+            remove(path);
+            continue;
+        }
+        if (!face_file_name_ok(item->d_name)) {
+            continue;
+        }
+        struct stat st;
+        if (stat(path, &st) != 0) {
+            continue;
+        }
+        face_rec_t *r = rec_add(item->d_name);
+        if (!r) {
+            break;
+        }
+        r->size = (uint32_t)st.st_size;
+        r->mtime = (uint32_t)st.st_mtime;
+        if (ends_with(r->file, ".so")) {
+            rec_describe(r);
+        }
+    }
+    closedir(dir);
+}
+
+/* Copies what the card has newer, against the index. Returns how many files
+ * it copied. */
+static int faces_sync_from_card(void)
+{
+    const char *root = aos_hal_path_sd_root();
+    if (!root) {
+        return 0;
+    }
+    char dir_path[64];
+    snprintf(dir_path, sizeof(dir_path), "%s/%s", root, AOS_FACES_CARD_SUBDIR);
+    DIR *dir = opendir(dir_path);
+    if (!dir) {
+        return 0;
+    }
+    int copied = 0;
+    struct dirent *item;
+    while ((item = readdir(dir)) != NULL) {
+        if (!face_file_name_ok(item->d_name)) {
+            continue;
+        }
+        char card[128], flash[48];
+        snprintf(card, sizeof(card), "%s/%.24s", dir_path, item->d_name);
+        snprintf(flash, sizeof(flash), AOS_FACES_DIR "/%.24s", item->d_name);
+        struct stat sc;
+        if (stat(card, &sc) != 0) {
+            continue;
+        }
+        face_rec_t *have = rec_find(item->d_name);
+        /* newer on the card is an update; older is left alone, so a face
+         * uploaded to the flash through the portal is not undone at boot by
+         * an old copy on the card */
+        if (have && (uint32_t)sc.st_mtime <= have->mtime) {
+            continue;
+        }
+        if (!flash_has_room((size_t)sc.st_size)) {
+            ESP_LOGW(TAG, "faces: no room in the flash for %s (%u B)", item->d_name,
+                     (unsigned)sc.st_size);
+            continue;
+        }
+        int64_t t0 = esp_timer_get_time();
+        if (!face_copy(card, flash, sc.st_mtime)) {
+            ESP_LOGE(TAG, "faces: could not copy %s into the flash", item->d_name);
+            continue;
+        }
+        copied++;
+        ESP_LOGI(TAG, "faces: %s %s (%u B, %u ms)", item->d_name,
+                 have ? "updated" : "installed", (unsigned)sc.st_size,
+                 (unsigned)((esp_timer_get_time() - t0) / 1000));
+        face_rec_t *r = have ? have : rec_add(item->d_name);
+        if (r) {
+            r->size = (uint32_t)sc.st_size;
+            r->mtime = (uint32_t)sc.st_mtime;
+            if (ends_with(r->file, ".so")) {
+                rec_describe(r);
+            }
+        }
+    }
+    closedir(dir);
+    return copied;
+}
+
+void aos_dynapp_faces_changed(const char *file)
+{
+    /* only a face or its page: a face's own settings (face_casa.cfg) are
+     * written there too, and saving them must not cost the next boot */
+    if (file && strncmp(file, "face_", 5) == 0 &&
+        (ends_with(file, ".so") || ends_with(file, ".html"))) {
+        remove(FACES_IDX);
+    }
+}
+
+int aos_dynapp_faces_init(void)
+{
+#if !CONFIG_ELF_LOADER_TEXT_PSRAM_MMU
+    pool_init();
+#endif
+    loader_prepare();
+    static const aos_face_loader_t loader = { .open = face_open, .close = face_close };
+    aos_watchface_set_loader(&loader);
+
+    int64_t t0 = esp_timer_get_time();
+    s_frec = heap_caps_calloc(FACE_RECS, sizeof(face_rec_t), MALLOC_CAP_SPIRAM);
+    if (!s_frec) {
+        return 0;
+    }
+    s_nfrec = 0;
+    bool indexed = idx_load();
+    if (!indexed) {
+        idx_rebuild();
+    }
+    int64_t t1 = esp_timer_get_time();
+    int copied = faces_sync_from_card();
+    if (!indexed || copied) {
+        idx_save();
+    }
+
+    int registered = 0;
+    for (int i = 0; i < s_nfrec; i++) {
+        const face_rec_t *r = &s_frec[i];
+        if (!ends_with(r->file, ".so") || !r->id[0]) {
+            continue;
+        }
+        char path[48];
+        snprintf(path, sizeof(path), AOS_FACES_DIR "/%s", r->file);
+        if (aos_watchface_register_module(r->id, r->name, path)) {
+            registered++;
+        } else {
+            ESP_LOGW(TAG, "faces: %s (%s) not registered", r->id, path);
+        }
+    }
+    free(s_frec);
+    s_frec = NULL;
+    ESP_LOGI(TAG, "faces: %d registered, %d copied from the card, %s, %u ms "
+                  "(flash %u ms)", registered, copied,
+             indexed ? "from the index" : "the flash walked and indexed",
+             (unsigned)((esp_timer_get_time() - t0) / 1000),
+             (unsigned)((t1 - t0) / 1000));
+    return registered;
 }
