@@ -742,6 +742,9 @@ static esp_err_t upload_handler(httpd_req_t *req)
     if (is_icons) {
         aos_ui_request_icons();
     }
+    if (strcmp(dir_path, AOS_FACES_DIR) == 0) {
+        aos_dynapp_faces_changed(name);         /* installed at the next boot */
+    }
 
     char json[96];
     snprintf(json, sizeof(json), "{\"ok\":true,\"size\":%d}", req->content_len);
@@ -960,6 +963,9 @@ static esp_err_t delete_handler(httpd_req_t *req)
         ESP_LOGI(TAG, "deleted %s", path);
         if (strcmp(dir_path, aos_hal_path_icons()) == 0) {
             aos_ui_request_icons();     /* the app's own icon comes back */
+        }
+        if (strcmp(dir_path, AOS_FACES_DIR) == 0) {
+            aos_dynapp_faces_changed(name);     /* the boot's index is stale */
         }
     }
 
@@ -3152,6 +3158,8 @@ static esp_err_t esfera_quitar_handler(httpd_req_t *req)
             remove(f);
         }
     }
+    snprintf(f, sizeof(f), "%s.so", base);
+    aos_dynapp_faces_changed(f);
     ESP_LOGI(TAG, "watchface %s removed (%s)", id, base);
     return httpd_resp_sendstr(req, "{\"ok\":true}");
 }

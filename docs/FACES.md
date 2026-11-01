@@ -54,19 +54,27 @@ here takes the long press any more.
 card    /faces/face_agua.so       delivered here (the release's apps.zip, faces/)
         /faces/face_casa.html     a face's portal page, if it has one
 flash   /spiffs/faces/face_agua.so    installed here, and run from here
-        /spiffs/faces/face_agua.desc  its id and name, so a boot opens nothing
+        /spiffs/faces/faces.idx       what is installed: sizes, dates, ids, names
         /spiffs/faces/face_casa.cfg   a face's own settings
 ```
 
 At every boot, **before the UI exists**, `aos_dynapp_faces_init()`
 (`components/aos_dynapp/aos_dynapp.c`):
 
-1. copies into the flash every `face_*.so` and `face_*.html` of the card's
-   `/faces` that the flash does not have, or has older (the card's date is
-   kept on the copy, so the next boot sees them equal and copies nothing);
-2. registers every face installed in the flash with the watchface host, by
-   its id and its name. These come from the `.desc` beside the `.so`; only a
-   face that is new or changed is opened to describe itself.
+1. reads `faces.idx`, the one file that says what the flash has installed;
+2. copies into the flash every `face_*.so` and `face_*.html` of the card's
+   `/faces` that the index does not have, or has older (the card's date is
+   kept on the copy, so the next boot sees them equal and copies nothing),
+   and opens a copied face once to learn its id and name;
+3. registers every installed face with the watchface host, by its id and its
+   name, from the index.
+
+The index is there because SPIFFS answers every `stat()` and every open by
+walking its pages: asking the flash about each face cost the boot 0.6 s with
+nothing to do; with the index it is 34 ms. Whatever changes the folder behind
+its back deletes it (an upload or a delete through the portal of a face or a
+page, a face removed; a face's settings file does not count), and the next
+boot walks the flash once, ~0.5 s, and writes it again.
 
 So the face chosen is in the registry when the clock is mounted, and it is
 mounted **from the flash**: with the card out, unreadable or half-mounted,
@@ -191,10 +199,11 @@ On the board (charlie, 2026-11-01):
   registered. A newer `.so` on the card replaced the flash's at the next
   boot; one uploaded to the flash through the portal (`install_apps.sh`) was
   newer than the card's and was left alone, as it should.
-- **What it costs a boot**: 0.6 s with nothing to copy (SPIFFS answers every
-  `stat()` slowly); 1.1 s when the faces have to describe themselves again
-  after an upload. A single index file instead of a `.desc` and a `stat()`
-  per face is the next step for that.
+- **What it costs a boot**: 34 ms with nothing to copy (from the index);
+  ~0.5 s the one boot after the folder changed through the portal (the flash
+  walked and indexed again); ~0.45 s per file copied from the card. Before
+  the index it was 0.6 s every boot: a `.desc` and a `stat()` per face, and
+  SPIFFS answers each slowly.
 - **Frame rates**, watch on the table, screen lit:
 
   | Face | asks for | gets | the face's own time a frame |

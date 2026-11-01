@@ -1303,9 +1303,15 @@ int aos_dynapp_scan(void)
  * then is anything registered, and only from the flash: the face chosen is
  * mounted at boot from there, with the card out, unreadable or half-mounted.
  *
- * Each installed face is described by a .desc beside it (its size, its date,
- * its id and its name) written the first time it is opened, so a boot opens
- * no module unless it is new: the same idea as the apps' scan cache.
+ * What is installed is written down in one index, AOS_FACES_DIR/faces.idx
+ * (each file's size and date, and a face's id and name), and a boot reads
+ * that and nothing else of the flash: SPIFFS answers every stat() and every
+ * open by walking its pages, ~0.1 s each on this 5 MB partition, and a .desc
+ * and a stat per face cost the boot 0.6 s with nothing to do (measured on
+ * charlie, 2026-11-01). The card is FAT and quick to ask. Whatever changes
+ * the folder behind the index's back (an upload or a delete through the
+ * portal, a face removed) deletes it, and the next boot walks the flash once
+ * and writes it again: aos_dynapp_faces_changed().
  *
  * SPIFFS has no folders: "/spiffs/faces/x.so" is a file called "/faces/x.so",
  * and opendir() on the prefix lists them. Names are at most 32 bytes with the
@@ -1418,7 +1424,153 @@ static bool face_copy(const char *from, const char *to, time_t mtime)
     return true;
 }
 
-/* Copies what the card has newer. Returns how many files it copied. */
+#define FACES_IDX           AOS_FACES_DIR "/faces.idx"
+#define FACES_IDX_HEAD      "aosfaces 1"
+#define FACE_RECS           (AOS_MAX_WATCHFACES + 8)    /* the pages too */
+
+typedef struct {
+    char     file[FACE_FILE_MAX];
+    uint32_t size;
+    uint32_t mtime;
+    char     id[24];                /* a .so's; empty for a page */
+    char     name[32];
+} face_rec_t;
+
+static face_rec_t *s_frec;          /* PSRAM: only boot needs it */
+static int         s_nfrec;
+
+static face_rec_t *rec_find(const char *file)
+{
+    for (int i = 0; i < s_nfrec; i++) {
+        if (strcmp(s_frec[i].file, file) == 0) {
+            return &s_frec[i];
+        }
+    }
+    return NULL;
+}
+
+static face_rec_t *rec_add(const char *file)
+{
+    face_rec_t *r = rec_find(file);
+    if (!r && s_nfrec < FACE_RECS) {
+        r = &s_frec[s_nfrec++];
+        memset(r, 0, sizeof(*r));
+        snprintf(r->file, sizeof(r->file), "%.23s", file);
+    }
+    return r;
+}
+
+/* "<file>\t<size>\t<mtime>\t<id>\t<name>" per line, after the header */
+static bool idx_load(void)
+{
+    FILE *f = fopen(FACES_IDX, "r");
+    if (!f) {
+        return false;
+    }
+    char line[160];
+    bool ok = fgets(line, sizeof(line), f) && strncmp(line, FACES_IDX_HEAD, 10) == 0;
+    while (ok && fgets(line, sizeof(line), f)) {
+        line[strcspn(line, "\r\n")] = '\0';
+        char *save = NULL;
+        char *file = strtok_r(line, "\t", &save);
+        char *size = strtok_r(NULL, "\t", &save);
+        char *time = strtok_r(NULL, "\t", &save);
+        char *id   = strtok_r(NULL, "\t", &save);
+        char *name = strtok_r(NULL, "\t", &save);
+        if (!file || !size || !time || !face_file_name_ok(file)) {
+            continue;
+        }
+        face_rec_t *r = rec_add(file);
+        if (!r) {
+            break;
+        }
+        r->size = (uint32_t)strtoul(size, NULL, 10);
+        r->mtime = (uint32_t)strtoul(time, NULL, 10);
+        /* a page has no id: its line ends after the date, or has a "-" */
+        if (id && strcmp(id, "-") != 0) {
+            snprintf(r->id, sizeof(r->id), "%s", id);
+            snprintf(r->name, sizeof(r->name), "%s", name ? name : id);
+        }
+    }
+    fclose(f);
+    if (!ok) {
+        s_nfrec = 0;
+    }
+    return ok;
+}
+
+static void idx_save(void)
+{
+    FILE *f = fopen(FACES_IDX, "w");
+    if (!f) {
+        return;
+    }
+    fprintf(f, "%s\n", FACES_IDX_HEAD);
+    for (int i = 0; i < s_nfrec; i++) {
+        const face_rec_t *r = &s_frec[i];
+        fprintf(f, "%s\t%lu\t%lu\t%s\t%s\n", r->file, (unsigned long)r->size,
+                (unsigned long)r->mtime, r->id[0] ? r->id : "-", r->name[0] ? r->name : "-");
+    }
+    fclose(f);
+}
+
+/* A .so's id and name, by opening it: 5-9 ms on the board. */
+static bool rec_describe(face_rec_t *r)
+{
+    char path[48];
+    snprintf(path, sizeof(path), AOS_FACES_DIR "/%s", r->file);
+    aos_watchface_t face;
+    void *handle = face_open(path, &face);
+    if (!handle) {
+        r->id[0] = r->name[0] = '\0';
+        return false;
+    }
+    snprintf(r->id, sizeof(r->id), "%s", face.id);
+    snprintf(r->name, sizeof(r->name), "%s", face.name ? face.name : face.id);
+    face_close(handle);
+    return true;
+}
+
+/* No index (the first boot of this firmware, or the folder changed through
+ * the portal): the flash is walked once. The .desc files of the first
+ * version of this are deleted on the way. */
+static void idx_rebuild(void)
+{
+    s_nfrec = 0;
+    DIR *dir = opendir(AOS_FACES_DIR);
+    if (!dir) {
+        return;
+    }
+    struct dirent *item;
+    while ((item = readdir(dir)) != NULL) {
+        char path[48];
+        snprintf(path, sizeof(path), AOS_FACES_DIR "/%.24s", item->d_name);
+        if (strncmp(item->d_name, "face_", 5) == 0 && ends_with(item->d_name, ".desc")) {
+            remove(path);
+            continue;
+        }
+        if (!face_file_name_ok(item->d_name)) {
+            continue;
+        }
+        struct stat st;
+        if (stat(path, &st) != 0) {
+            continue;
+        }
+        face_rec_t *r = rec_add(item->d_name);
+        if (!r) {
+            break;
+        }
+        r->size = (uint32_t)st.st_size;
+        r->mtime = (uint32_t)st.st_mtime;
+        if (ends_with(r->file, ".so")) {
+            rec_describe(r);
+        }
+    }
+    closedir(dir);
+}
+
+/* Copies what the card has newer, against the index. Returns how many files
+ * it copied. */
 static int faces_sync_from_card(void)
 {
     const char *root = aos_hal_path_sd_root();
@@ -1440,15 +1592,15 @@ static int faces_sync_from_card(void)
         char card[128], flash[48];
         snprintf(card, sizeof(card), "%s/%.24s", dir_path, item->d_name);
         snprintf(flash, sizeof(flash), AOS_FACES_DIR "/%.24s", item->d_name);
-        struct stat sc, sf;
+        struct stat sc;
         if (stat(card, &sc) != 0) {
             continue;
         }
-        bool have = stat(flash, &sf) == 0;
+        face_rec_t *have = rec_find(item->d_name);
         /* newer on the card is an update; older is left alone, so a face
          * uploaded to the flash through the portal is not undone at boot by
          * an old copy on the card */
-        if (have && sc.st_mtime <= sf.st_mtime) {
+        if (have && (uint32_t)sc.st_mtime <= have->mtime) {
             continue;
         }
         if (!flash_has_room((size_t)sc.st_size)) {
@@ -1457,59 +1609,35 @@ static int faces_sync_from_card(void)
             continue;
         }
         int64_t t0 = esp_timer_get_time();
-        if (face_copy(card, flash, sc.st_mtime)) {
-            copied++;
-            ESP_LOGI(TAG, "faces: %s %s (%u B, %u ms)", item->d_name,
-                     have ? "updated" : "installed", (unsigned)sc.st_size,
-                     (unsigned)((esp_timer_get_time() - t0) / 1000));
-        } else {
+        if (!face_copy(card, flash, sc.st_mtime)) {
             ESP_LOGE(TAG, "faces: could not copy %s into the flash", item->d_name);
+            continue;
+        }
+        copied++;
+        ESP_LOGI(TAG, "faces: %s %s (%u B, %u ms)", item->d_name,
+                 have ? "updated" : "installed", (unsigned)sc.st_size,
+                 (unsigned)((esp_timer_get_time() - t0) / 1000));
+        face_rec_t *r = have ? have : rec_add(item->d_name);
+        if (r) {
+            r->size = (uint32_t)sc.st_size;
+            r->mtime = (uint32_t)sc.st_mtime;
+            if (ends_with(r->file, ".so")) {
+                rec_describe(r);
+            }
         }
     }
     closedir(dir);
     return copied;
 }
 
-/* "<size>\t<mtime>\t<id>\t<name>" */
-static bool face_desc_read(const char *desc_path, const struct stat *so,
-                           char *id, size_t id_len, char *name, size_t name_len)
+void aos_dynapp_faces_changed(const char *file)
 {
-    FILE *f = fopen(desc_path, "r");
-    if (!f) {
-        return false;
+    /* only a face or its page: a face's own settings (face_casa.cfg) are
+     * written there too, and saving them must not cost the next boot */
+    if (file && strncmp(file, "face_", 5) == 0 &&
+        (ends_with(file, ".so") || ends_with(file, ".html"))) {
+        remove(FACES_IDX);
     }
-    char line[160] = "";
-    bool ok = fgets(line, sizeof(line), f) != NULL;
-    fclose(f);
-    if (!ok) {
-        return false;
-    }
-    line[strcspn(line, "\r\n")] = '\0';
-    char *save = NULL;
-    char *f_size = strtok_r(line, "\t", &save);
-    char *f_time = strtok_r(NULL, "\t", &save);
-    char *f_id   = strtok_r(NULL, "\t", &save);
-    char *f_name = strtok_r(NULL, "\t", &save);
-    if (!f_size || !f_time || !f_id || !f_name ||
-        strtoul(f_size, NULL, 10) != (unsigned long)so->st_size ||
-        strtoul(f_time, NULL, 10) != (unsigned long)so->st_mtime) {
-        return false;
-    }
-    snprintf(id, id_len, "%s", f_id);
-    snprintf(name, name_len, "%s", f_name);
-    return true;
-}
-
-static void face_desc_write(const char *desc_path, const struct stat *so,
-                            const char *id, const char *name)
-{
-    FILE *f = fopen(desc_path, "w");
-    if (!f) {
-        return;
-    }
-    fprintf(f, "%lu\t%lu\t%s\t%s\n", (unsigned long)so->st_size,
-            (unsigned long)so->st_mtime, id, name);
-    fclose(f);
 }
 
 int aos_dynapp_faces_init(void)
@@ -1522,48 +1650,41 @@ int aos_dynapp_faces_init(void)
     aos_watchface_set_loader(&loader);
 
     int64_t t0 = esp_timer_get_time();
-    int copied = faces_sync_from_card();
-
-    DIR *dir = opendir(AOS_FACES_DIR);
-    if (!dir) {
+    s_frec = heap_caps_calloc(FACE_RECS, sizeof(face_rec_t), MALLOC_CAP_SPIRAM);
+    if (!s_frec) {
         return 0;
     }
-    int registered = 0, opened = 0;
-    struct dirent *item;
-    while ((item = readdir(dir)) != NULL) {
-        if (!face_file_name_ok(item->d_name) || !ends_with(item->d_name, ".so")) {
+    s_nfrec = 0;
+    bool indexed = idx_load();
+    if (!indexed) {
+        idx_rebuild();
+    }
+    int64_t t1 = esp_timer_get_time();
+    int copied = faces_sync_from_card();
+    if (!indexed || copied) {
+        idx_save();
+    }
+
+    int registered = 0;
+    for (int i = 0; i < s_nfrec; i++) {
+        const face_rec_t *r = &s_frec[i];
+        if (!ends_with(r->file, ".so") || !r->id[0]) {
             continue;
         }
-        char path[48], desc[48];
-        snprintf(path, sizeof(path), AOS_FACES_DIR "/%.24s", item->d_name);
-        snprintf(desc, sizeof(desc), AOS_FACES_DIR "/%.*s.desc",
-                 (int)LV_MIN(strlen(item->d_name) - 3, 21), item->d_name);
-        struct stat st;
-        if (stat(path, &st) != 0) {
-            continue;
-        }
-        char id[24], name[32];
-        if (!face_desc_read(desc, &st, id, sizeof(id), name, sizeof(name))) {
-            aos_watchface_t face;
-            void *handle = face_open(path, &face);
-            if (!handle) {
-                continue;
-            }
-            snprintf(id, sizeof(id), "%s", face.id);
-            snprintf(name, sizeof(name), "%s", face.name ? face.name : face.id);
-            face_close(handle);
-            face_desc_write(desc, &st, id, name);
-            opened++;
-        }
-        if (aos_watchface_register_module(id, name, path)) {
+        char path[48];
+        snprintf(path, sizeof(path), AOS_FACES_DIR "/%s", r->file);
+        if (aos_watchface_register_module(r->id, r->name, path)) {
             registered++;
         } else {
-            ESP_LOGW(TAG, "faces: %s (%s) not registered", id, path);
+            ESP_LOGW(TAG, "faces: %s (%s) not registered", r->id, path);
         }
     }
-    closedir(dir);
-    ESP_LOGI(TAG, "faces: %d registered, %d copied from the card, %d opened to be "
-                  "described, %u ms", registered, copied, opened,
-             (unsigned)((esp_timer_get_time() - t0) / 1000));
+    free(s_frec);
+    s_frec = NULL;
+    ESP_LOGI(TAG, "faces: %d registered, %d copied from the card, %s, %u ms "
+                  "(flash %u ms)", registered, copied,
+             indexed ? "from the index" : "the flash walked and indexed",
+             (unsigned)((esp_timer_get_time() - t0) / 1000),
+             (unsigned)((t1 - t0) / 1000));
     return registered;
 }

@@ -62,9 +62,11 @@ and the language packs; the apps are those of v0.14.0.
   swap it recognises into that call on the S3.
 
 Tried on the board: the install from the card and the update from it, the
-upload through the portal, the five faces and their frame rates. The faces
-cost a boot 0.6 s (SPIFFS is slow to `stat()`). Not tried yet: a boot with
-the card out, and Home against the real Home Assistant.
+upload through the portal, removing, the five faces and their frame rates.
+The faces cost a boot 34 ms: what is installed is read from one index
+(`faces.idx`), because SPIFFS is slow to `stat()` and asking it about each
+face cost 0.6 s. Not tried yet: a boot with the card out, and Home against
+the real Home Assistant.
 
 ## v0.14.0 — 2026-10-14
 

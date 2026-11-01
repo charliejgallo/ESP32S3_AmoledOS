@@ -72,6 +72,11 @@ bool aos_dynapp_module_app(const char *file, char *id, size_t id_len,
  * loader. Returns how many it registered. */
 int aos_dynapp_faces_init(void);
 
+/* The portal wrote or deleted 'file' in AOS_FACES_DIR: if it is a face or a
+ * face's page, the boot's index is dropped and the next boot walks the flash
+ * once to write it again. A face's settings file does not count. */
+void aos_dynapp_faces_changed(const char *file);
+
 /* .so modules loaded right now. Returns how many; 'out' receives the names
  * separated by spaces. Those remaining are the background ones. */
 int aos_dynapp_loaded_list(char *out, size_t len);
