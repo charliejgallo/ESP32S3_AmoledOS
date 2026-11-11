@@ -3,7 +3,7 @@
 Since v0.15.0 a watchface can come as a module of its own, a `.so` like the
 apps, instead of being compiled into the firmware. The firmware's seven are
 still there; the releases bring nine more on the card (five in v0.15.0, four
-after it), and anyone can add one without building the firmware: [FACE-GUIDE.md](FACE-GUIDE.md) is how,
+in v0.16.0), and anyone can add one without building the firmware: [FACE-GUIDE.md](FACE-GUIDE.md) is how,
 starting from the template in `faces/face_hello`.
 
 | | | | | | |
@@ -15,6 +15,10 @@ starting from the template in `faces/face_hello`.
 |---|---|---|---|
 | <img src="img/face-palabras.png" width="120"> | <img src="img/face-mascota.png" width="120"> | <img src="img/face-acuario.png" width="120"> | <img src="img/face-paisaje.png" width="120"> |
 | Words | Pet | Aquarium | Landscape |
+
+<img src="img/face-mascota-animales.png" width="760" alt="The six pets">
+
+<img src="img/face-paisaje-climas.png" width="760" alt="The landscape in six weathers">
 
 ## The nine
 
