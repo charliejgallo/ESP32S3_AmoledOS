@@ -43,6 +43,8 @@ answers only a browser the watch let in, or the token (docs/SECURITY.md). Everyt
 
 ```
 GET  /api/status                 the whole state; the strip polls it every 15 s
+                                 (face, face_fps, face_busy: the watchface and
+                                 the frame rate it is getting, docs/FACE-GUIDE.md)
 GET  /api/ajustes                the settings, with the list of watchfaces
                                  ("modulo": true for one from the card)
 POST /api/esferas/quitar         id=face.x: removes a watchface from the card,

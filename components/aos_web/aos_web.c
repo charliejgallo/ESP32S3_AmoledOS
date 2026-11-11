@@ -530,7 +530,7 @@ static esp_err_t status_handler(httpd_req_t *req)
     if (n > 1 && json[n - 1] == '}') {
         json[--n] = '\0';
     }
-    char extra[640];
+    char extra[760];
     char ssid[68] = "", peer[68] = "";
     if (aos_hal_net_state() == AOS_NET_CONNECTED) {
         json_escape(ssid, sizeof(ssid), aos_hal_net_ssid());
@@ -557,6 +557,11 @@ static esp_err_t status_handler(httpd_req_t *req)
     bool calibrated = aos_ui_touch_calibration_get(&cal_ax, &cal_bx, &cal_ay, &cal_by);
     aos_steps_info_t steps = {0};
     aos_hal_steps_get(&steps);
+    /* the watchface and what it is getting (aos_watchface_stats): how a
+     * face's frame rate is measured on the watch */
+    int face_fps = 0, face_busy = 0;
+    aos_watchface_stats(&face_fps, &face_busy);
+    const char *face = aos_watchface_current();
     snprintf(extra, sizeof(extra),
              ",\"ssid\":\"%s\",\"rssi\":%d,\"ip\":\"%s\",\"wifi_on\":%s,"
              "\"ap\":%s,\"ap_ip\":\"%s\",\"bt\":\"%s\",\"bt_peer\":\"%s\","
@@ -564,7 +569,8 @@ static esp_err_t status_handler(httpd_req_t *req)
              "\"steps\":%u,\"steps_goal\":%u,\"name\":\"%s\","
              "\"app\":\"%s\",\"time_ok\":%s,\"tz\":\"%s\",\"now\":%lld,"
              "\"touch_cal\":%s,\"cal_ax\":%.4f,\"cal_bx\":%.2f,"
-             "\"cal_ay\":%.4f,\"cal_by\":%.2f}",
+             "\"cal_ay\":%.4f,\"cal_by\":%.2f,"
+             "\"face\":\"%s\",\"face_fps\":%d,\"face_busy\":%d}",
              ssid, ssid[0] ? aos_hal_net_rssi() : 0,
              ssid[0] ? aos_hal_net_ip() : "",
              aos_hal_net_enabled() ? "true" : "false",
@@ -579,7 +585,8 @@ static esp_err_t status_handler(httpd_req_t *req)
              app ? app : "",
              aos_hal_time_is_valid() ? "true" : "false", tz,
              (long long)time(NULL),
-             calibrated ? "true" : "false", cal_ax, cal_bx, cal_ay, cal_by);
+             calibrated ? "true" : "false", cal_ax, cal_bx, cal_ay, cal_by,
+             face ? face : "", face_fps, face_busy);
 
     char power[520];
     aos_hal_power_json(power, sizeof(power));

@@ -2,8 +2,8 @@
 
 Since v0.15.0 a watchface can come as a module of its own, a `.so` like the
 apps, instead of being compiled into the firmware. The firmware's seven are
-still there; the release brings five more on the card, and anyone can add
-one without building the firmware: [FACE-GUIDE.md](FACE-GUIDE.md) is how,
+still there; the releases bring nine more on the card (five in v0.15.0, four
+after it), and anyone can add one without building the firmware: [FACE-GUIDE.md](FACE-GUIDE.md) is how,
 starting from the template in `faces/face_hello`.
 
 | | | | | | |
@@ -11,7 +11,12 @@ starting from the template in `faces/face_hello`.
 | <img src="img/face-agua.png" width="120"> | <img src="img/face-kaleido.png" width="120"> | <img src="img/face-casa.png" width="120"> | <img src="img/face-arena.png" width="120"> | <img src="img/face-orbitas.png" width="120"> | <img src="img/face-picker.png" width="120"> |
 | Water | Kaleidoscope | Home | Sand | Orbits | the picker |
 
-## The five
+| | | | |
+|---|---|---|---|
+| <img src="img/face-palabras.png" width="120"> | <img src="img/face-mascota.png" width="120"> | <img src="img/face-acuario.png" width="120"> | <img src="img/face-paisaje.png" width="120"> |
+| Words | Pet | Aquarium | Landscape |
+
+## The nine
 
 | Face | What it shows | What it does |
 | --- | --- | --- |
@@ -20,6 +25,10 @@ starting from the template in `faces/face_hello`.
 | **Home** (`face.casa`) | the time and four things from Home Assistant | A sensor shows its value and unit, a light or a switch whether it is on, and **a tap on it toggles it**. Asked every 30 s while the screen is lit, never while it is dimmed. Its page is `/face_casa`. |
 | **Sand** (`face.arena`) | an hourglass with no glass | Every minute a handful of sand falls in from wherever "up" is; every ten minutes the colour changes, so the bands of the heap read the minutes. The sand piles on the digits and pours around them, and slides when you tilt the watch. On the hour it drains away. |
 | **Orbits** (`face.orbitas`) | the time as a small solar system | The hour is a ringed planet, the minute a blue one, the second a comet with its tail. The stars behind are three layers at different depths: tilting the watch slides them against each other. |
+| **Words** (`face.palabras`) | the time written out, in Spanish, English or German | A grid of 11x10 letters with the ones that spell the time lit ("SON LAS DIEZ MENOS CUARTO", "IT IS A QUARTER TO TEN", "ES IST VIERTEL VOR ZEHN"), rounded down to five minutes with the minutes left over as four dots. It follows the watch's language; **a tap** goes through the three. The letters fade when the phrase changes. |
+| **Pet** (`face.mascota`) | a small animal under the time | Six animals (cat, dog, rabbit, bear, frog, penguin) in nine colours. It breathes, blinks, and leans with the watch; **stroke it** (a tap on it) and it is happy, tap beside it and it looks there, shake the watch and it is dizzy. It sleeps at night and when the battery is under 15 %, and eats while the watch charges. **A tap on the time** changes it: the left half the animal, the right half the colour. Its page is `/face_mascota`. |
+| **Aquarium** (`face.acuario`) | seven fish behind the time | Each fish wanders on its own; seaweed sways and bubbles rise towards wherever "up" is. **A tap on the water** drops food and the fish come for it; **a tap on a fish** makes it dart away; a shake scatters them all. At night the water is dark and they swim slowly. |
+| **Landscape** (`face.paisaje`) | a valley under today's weather | The sky is the hour's, from the place's real sunrise and sunset, with the sun or the moon on its arc; clouds, rain, snow, fog and lightning are the weather's, the wind moves the clouds and bends the tree, and cold whitens the hills. Under the time, the temperature and tomorrow's range. **A tap** shows tomorrow's weather for a few seconds. |
 
 ### Home's list
 
@@ -35,6 +44,21 @@ fresh values.
 The list is `face_casa.cfg` beside the face in the flash, in the Sensores
 format (`light.lamp|Lamp;sensor.temp`), and the face reads it again every
 30 s: a change from the page shows without touching the watch.
+
+### The Pet's file, and the Landscape's place
+
+The Pet is `face_mascota.cfg` beside the face, `animal|colour|name`: the taps
+on the time write it, and so does its page (`<watch>.local/face_mascota`),
+which is where its name is set. The face reads it again when the screen
+lights.
+
+The Landscape has no settings of its own: its place is the one chosen in the
+Clima app (the preferences `clima_lat` and `clima_lon`), and with none it is
+a clear day by the watch's clock, with a line saying where to choose it. It
+asks Open-Meteo for one small forecast (now, today and tomorrow, sunrise and
+sunset; under 1 KB) when the one it has is older than half an hour, only with
+the screen lit and the face on it, and keeps it in a file, so it comes up
+with the last one known.
 
 ## Choosing one
 
@@ -192,6 +216,15 @@ scene and compare it row by row with what is on the screen; Sand redraws only
 the cells that changed; the Kaleidoscope changes every pixel every frame, so
 it asks for 20 fps instead of 30. The first three stop drawing when nothing
 moves.
+
+The faces that draw a scene (the Pet, the Aquarium, the Landscape) add
+`faces/common/face_draw.h`: soft-edged ellipses, thick lines and triangles
+into the same half-resolution buffer, and `fd_show()`, which presents only
+the rows that differ from what is on the screen. The Pet is a figure made of
+a dozen of those shapes drawn every frame from a pose, not a sprite: that is
+what lets it squash, lean and blink. Words draws its 110 letters into one
+canvas and only the ones that change again; it was once written with an LVGL
+object per letter, and taken out of the firmware for the RAM that cost.
 
 ## What is verified, and what is not yet
 

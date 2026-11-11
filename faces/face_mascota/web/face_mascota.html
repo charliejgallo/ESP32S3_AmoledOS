@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Mascota</title>
+<link rel="stylesheet" href="/aos.css">
+<!-- La pagina de la esfera Mascota (docs/FACES.md). Escribe una sola cosa,
+     face_mascota.cfg en dir=faces: "animal|color|nombre". Es el mismo archivo
+     que escribe la esfera cuando se toca la hora (izquierda: otro animal,
+     derecha: otro color); el nombre solo se pone aca. La esfera lo relee al
+     encenderse la pantalla. -->
+<style>
+  .fm-color { display: flex; flex-wrap: wrap; gap: 10px; }
+  .fm-color button { width: 38px; height: 38px; border-radius: 50%; padding: 0;
+                     border: 3px solid transparent; }
+  .fm-color button.on { border-color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Mascota</h1></div>
+  <p class="sub" data-t="bajada">Un animalito bajo la hora: acaricialo y se pone feliz, sacudí el reloj y se marea,
+  de noche duerme y mientras el reloj carga, come.</p>
+
+  <nav class="paginas"></nav>
+
+  <h2 data-t="t_elegir">Cuál</h2>
+  <section>
+    <div class="fila">
+      <div>
+        <label for="animal" data-t="lbl_animal">Animal</label>
+        <select id="animal"></select>
+      </div>
+      <div>
+        <label for="nombre" data-t="lbl_nombre">Nombre</label>
+        <input id="nombre" maxlength="18" data-t-ph="ph_nombre" placeholder="vacío: el del animal">
+      </div>
+    </div>
+    <label style="margin-top:14px;display:block" data-t="lbl_color">Color</label>
+    <div class="fm-color" id="colores"></div>
+    <div class="fila" style="margin-top:16px">
+      <button id="guardar" data-t="guardar">Guardar</button>
+      <button class="sec" id="poner" data-t="poner">Poner esta esfera en el reloj</button>
+    </div>
+    <p class="sub" style="margin-top:12px" data-t="pie">En el reloj, tocar la hora también lo cambia:
+    a la izquierda el animal, a la derecha el color.</p>
+  </section>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "Pet", bajada: "A small animal under the time: stroke it and it is happy, shake the watch and it is dizzy, it sleeps at night and eats while the watch charges.",
+    t_elegir: "Which one", lbl_animal: "Animal", lbl_nombre: "Name", ph_nombre: "empty: the animal's own",
+    lbl_color: "Colour", guardar: "Save", poner: "Put this face on the watch",
+    pie: "On the watch, a tap on the time changes it too: the animal on the left, the colour on the right.",
+    guardado: "saved: it shows when the screen next lights", puesta: "the watch now shows Pet",
+    a0: "Cat", a1: "Dog", a2: "Rabbit", a3: "Bear", a4: "Frog", a5: "Penguin"
+  },
+  de: {
+    titulo: "Haustier", bajada: "Ein kleines Tier unter der Uhrzeit: streichle es und es freut sich, schüttle die Uhr und ihm wird schwindlig, nachts schläft es, und während die Uhr lädt, frisst es.",
+    t_elegir: "Welches", lbl_animal: "Tier", lbl_nombre: "Name", ph_nombre: "leer: der des Tiers",
+    lbl_color: "Farbe", guardar: "Speichern", poner: "Dieses Zifferblatt auf die Uhr",
+    pie: "Auf der Uhr ändert ein Tippen auf die Uhrzeit es auch: links das Tier, rechts die Farbe.",
+    guardado: "gespeichert: zu sehen, wenn der Bildschirm wieder angeht", puesta: "die Uhr zeigt jetzt Haustier",
+    a0: "Katze", a1: "Hund", a2: "Hase", a3: "Bär", a4: "Frosch", a5: "Pinguin"
+  }
+};
+const $ = aos.$;
+const tx = (clave, es) => aos.idioma() === "es" ? es : aos.t(clave);
+const ARCHIVO = "face_mascota.cfg";
+/* los mismos, en el mismo orden, que face_mascota.c */
+const ANIMALES = ["Gato", "Perro", "Conejo", "Oso", "Rana", "Pingüino"];
+const COLORES = ["#F29A4A", "#9AA3AD", "#F2EEE6", "#4A4A58", "#9A6A42", "#E8CFA0", "#F2A0B8", "#8FC8F0", "#7CC860"];
+const POR_DEFECTO = [0, 4, 2, 5, 8, 3];
+let color = 0;
+
+function pintarColores() {
+  const c = $("colores");
+  c.innerHTML = "";
+  COLORES.forEach((hex, i) => {
+    const b = document.createElement("button");
+    b.style.background = hex;
+    if (i === color) b.className = "on";
+    b.onclick = () => { color = i; pintarColores(); };
+    c.appendChild(b);
+  });
+}
+
+function leer() {
+  ANIMALES.forEach((n, i) => {
+    const o = document.createElement("option");
+    o.value = i; o.textContent = tx("a" + i, n);
+    $("animal").appendChild(o);
+  });
+  fetch("/api/download?dir=faces&name=" + ARCHIVO).then(r => r.ok ? r.text() : "").then(t => {
+    const p = t.trim().split("|");
+    const a = Math.min(Math.max(parseInt(p[0]) || 0, 0), ANIMALES.length - 1);
+    const c = parseInt(p[1]);
+    $("animal").value = a;
+    color = (c >= 0 && c < COLORES.length) ? c : POR_DEFECTO[a];
+    $("nombre").value = p[2] || "";
+    pintarColores();
+  }).catch(pintarColores);
+}
+
+$("animal").onchange = () => { color = POR_DEFECTO[+$("animal").value]; pintarColores(); };
+
+$("guardar").onclick = () => {
+  /* the separator cannot ride in the name */
+  const nombre = $("nombre").value.trim().replace(/[|\n\r]/g, " ");
+  fetch("/api/upload?dir=faces&name=" + ARCHIVO,
+        { method: "POST", body: $("animal").value + "|" + color + "|" + nombre + "\n" })
+    .then(r => { if (!r.ok) throw new Error(r.status); aos.brindis(tx("guardado", "guardado: se ve al encenderse la pantalla")); })
+    .catch(e => aos.brindis(String(e.message || e)));
+};
+
+$("poner").onclick = () => {
+  aos.post("/api/ajustes", { esfera: "face.mascota" })
+    .then(() => aos.brindis(tx("puesta", "el reloj ya muestra Mascota")))
+    .catch(e => aos.brindis(e.message));
+};
+
+aos.init(TR).then(leer);
+</script>
+</body>
+</html>

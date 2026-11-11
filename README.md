@@ -1,7 +1,7 @@
 # AmoledOS
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
-368x448 AMOLED you can hold in your hand. Twelve watchfaces — five of them
+368x448 AMOLED you can hold in your hand. Sixteen watchfaces — nine of them
 installed from the microSD, most of them moved by the accelerometer — twenty
 built-in apps, forty more loaded from the microSD as shared objects — one
 of them a Lua interpreter, so a text file on the card is an app too, and one a
@@ -59,6 +59,17 @@ to the panel: 29 fps for the water and the sand, 24 for the orbits.
 |---|---|---|---|---|---|
 | <img src="docs/img/face-agua.png" width="110"> | <img src="docs/img/face-kaleido.png" width="110"> | <img src="docs/img/face-casa.png" width="110"> | <img src="docs/img/face-arena.png" width="110"> | <img src="docs/img/face-orbitas.png" width="110"> | <img src="docs/img/face-picker.png" width="110"> |
 | water | kaleidoscope | home | sand | orbits | the picker |
+
+Four more came after: the time written out in words, in Spanish, English or
+German; a pet you can stroke, in six animals and nine colours, that sleeps at
+night and eats while the watch charges; an aquarium whose fish come for the
+food you drop with a tap; and a landscape whose sky is the hour's and whose
+weather is the forecast's, with tomorrow's a tap away.
+
+| | | | |
+|---|---|---|---|
+| <img src="docs/img/face-palabras.png" width="110"> | <img src="docs/img/face-mascota.png" width="110"> | <img src="docs/img/face-acuario.png" width="110"> | <img src="docs/img/face-paisaje.png" width="110"> |
+| words | pet | aquarium | landscape |
 
 The picker opens with a long press or a double tap on any face; its arrows
 or a swipe sideways go through the faces, with the real face behind it. A

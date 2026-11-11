@@ -3,6 +3,32 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+**Four more watchfaces.** They are modules for the card's `/faces` and load
+on v0.15.0 as it is; the firmware gains only a way to measure a face.
+
+- **Words**: the time written out on a grid of 11x10 letters, in Spanish,
+  English or German ("SON LAS DIEZ MENOS CUARTO"), following the watch's
+  language or the one a tap chooses; the minutes over the five are four dots.
+  The face that was once taken out of the firmware for its 110 LVGL objects,
+  now one canvas.
+- **Pet**: a small animal under the time, made of parts drawn every frame:
+  six animals in nine colours. A tap on it strokes it, a shake makes it
+  dizzy, it sleeps at night and with the battery under 15 %, and eats while
+  the watch charges. A tap on the time changes the animal (left) or the
+  colour (right); its name is set at `/face_mascota`.
+- **Aquarium**: seven fish that wander, come for the food a tap drops, dart
+  away when touched and scatter at a shake; bubbles rise towards "up".
+- **Landscape**: a valley whose sky is the hour's (the place's real sunrise
+  and sunset) and whose weather is Open-Meteo's for the Clima app's place:
+  clouds, rain, snow, fog, lightning, wind. A tap shows tomorrow's.
+- `faces/common/face_draw.h`: soft-edged ellipses, lines and triangles, and
+  `fd_show()` to present only the rows that changed.
+- **Measuring a face on the watch**: `/api/status` has `face`, `face_fps` and
+  `face_busy` (`aos_watchface_stats`): the frames a second `frame()` really
+  ran, and the share of the time spent in it.
+
 ## v0.15.0 — 2026-11-01
 
 **Watchfaces from the card, animated and that you can touch**

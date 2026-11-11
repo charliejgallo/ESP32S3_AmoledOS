@@ -52,6 +52,8 @@ static lv_obj_t   *s_picker_name;
 static lv_obj_t   *s_picker_dots;
 static lv_timer_t *s_frame_timer;
 static uint32_t    s_frame_last_ms;
+static uint32_t    s_stat_n, s_stat_busy_ms, s_stat_since, s_stat_at;
+static int         s_stat_fps, s_stat_busy;
 static int         s_preview;       /* face being looked at in the picker */
 static bool        s_aod;
 static bool        s_suspended;     /* torn down under an app, s_active kept */
@@ -235,6 +237,31 @@ static void frame_cb(lv_timer_t *timer)
         dt = 100;
     }
     s_cur.frame(s_ctx, dt);
+
+    /* What the face really gets, for whoever is writing one: LVGL's timer
+     * runs late when drawing takes long, so the frames counted here are the
+     * frame rate, and the time inside frame() is the face's own share of it.
+     * /api/status reports both; the simulator's figures mean nothing. */
+    uint32_t after = (uint32_t)aos_hal_uptime_ms();
+    s_stat_n++;
+    s_stat_busy_ms += after - now;
+    if (after - s_stat_since >= 2000) {
+        uint32_t span = after - s_stat_since;
+        s_stat_fps = (int)(s_stat_n * 1000 / span);
+        s_stat_busy = (int)(s_stat_busy_ms * 100 / span);
+        s_stat_at = after;
+        s_stat_since = after;
+        s_stat_n = s_stat_busy_ms = 0;
+    }
+}
+
+void aos_watchface_stats(int *fps, int *busy_pct)
+{
+    /* figures older than a few seconds are of a face that is no longer
+     * animating (dimmed, covered, or one with no frame() at all) */
+    bool fresh = s_stat_at && (uint32_t)aos_hal_uptime_ms() - s_stat_at < 5000;
+    if (fps) *fps = fresh ? s_stat_fps : 0;
+    if (busy_pct) *busy_pct = fresh ? s_stat_busy : 0;
 }
 
 /* The timer exists only while the face can be seen lit: dimmed or under an
@@ -244,6 +271,8 @@ static void frame_timer_update(void)
     bool want = s_cur.frame && s_face_root && !s_suspended && !s_aod;
     if (want && !s_frame_timer) {
         s_frame_last_ms = (uint32_t)aos_hal_uptime_ms();
+        s_stat_since = s_frame_last_ms;
+        s_stat_n = s_stat_busy_ms = 0;
         s_frame_timer = lv_timer_create(frame_cb, s_cur.frame_ms ? s_cur.frame_ms : 33, NULL);
     } else if (!want && s_frame_timer) {
         lv_timer_delete(s_frame_timer);

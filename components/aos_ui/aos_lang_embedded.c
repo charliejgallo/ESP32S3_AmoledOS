@@ -640,11 +640,15 @@ static const char blob_en__sistema_lang[] =
     "Video\tVideo\n"
     "Visor 3D\t3D Viewer\n"
     "Walkie\tWalkie\n"
+    "Acuario\tAquarium\n"
     "Agua\tWater\n"
     "Arena\tSand\n"
     "Casa\tHome\n"
     "Caleidoscopio\tKaleidoscope\n"
+    "Mascota\tPet\n"
     "Órbitas\tOrbits\n"
+    "Paisaje\tLandscape\n"
+    "Palabras\tWords\n"
     ;
 
 static const char blob_en_aos_ble_lang[] =
@@ -3312,6 +3316,10 @@ static const char blob_en_demo_visor3d_lang[] =
     "Sin memoria\tOut of memory\n"
     ;
 
+static const char blob_en_face_acuario_lang[] =
+    "Acuario\tAquarium\n"
+    ;
+
 static const char blob_en_face_agua_lang[] =
     "Agua\tWater\n"
     ;
@@ -3349,8 +3357,37 @@ static const char blob_en_face_kaleido_lang[] =
     "Caleidoscopio\tKaleidoscope\n"
     ;
 
+static const char blob_en_face_mascota_lang[] =
+    "Michi\tKitty\n"
+    "Firulais\tBuddy\n"
+    "Copito\tSnowball\n"
+    "Osito\tTeddy\n"
+    "Sapo\tFroggy\n"
+    "Pingu\tPingu\n"
+    "Mascota\tPet\n"
+    ;
+
 static const char blob_en_face_orbitas_lang[] =
     "Órbitas\tOrbits\n"
+    ;
+
+static const char blob_en_face_paisaje_lang[] =
+    "Despejado\tClear\n"
+    "Algo nublado\tPartly cloudy\n"
+    "Nublado\tCloudy\n"
+    "Niebla\tFog\n"
+    "Llovizna\tDrizzle\n"
+    "Lluvia\tRain\n"
+    "Nieve\tSnow\n"
+    "Tormenta\tStorm\n"
+    "Elegí tu ciudad en Clima\tChoose your city in Weather\n"
+    "Mañana\tTomorrow\n"
+    "Paisaje\tLandscape\n"
+    ;
+
+static const char blob_en_face_palabras_lang[] =
+    "El idioma del reloj\tThe watch's language\n"
+    "Palabras\tWords\n"
     ;
 
 static const aos_lang_file_t files_en[] = {
@@ -3395,12 +3432,16 @@ static const aos_lang_file_t files_en[] = {
     { "demo.topos.lang", blob_en_demo_topos_lang },
     { "demo.turbo.lang", blob_en_demo_turbo_lang },
     { "demo.visor3d.lang", blob_en_demo_visor3d_lang },
+    { "face.acuario.lang", blob_en_face_acuario_lang },
     { "face.agua.lang", blob_en_face_agua_lang },
     { "face.arena.lang", blob_en_face_arena_lang },
     { "face.casa.lang", blob_en_face_casa_lang },
     { "face.hello.lang", blob_en_face_hello_lang },
     { "face.kaleido.lang", blob_en_face_kaleido_lang },
+    { "face.mascota.lang", blob_en_face_mascota_lang },
     { "face.orbitas.lang", blob_en_face_orbitas_lang },
+    { "face.paisaje.lang", blob_en_face_paisaje_lang },
+    { "face.palabras.lang", blob_en_face_palabras_lang },
 };
 
 static const char blob_de__sistema_lang[] =
@@ -4030,11 +4071,15 @@ static const char blob_de__sistema_lang[] =
     "Video\tVideo\n"
     "Visor 3D\t3D-Viewer\n"
     "Walkie\tWalkie\n"
+    "Acuario\tAquarium\n"
     "Agua\tWasser\n"
     "Arena\tSand\n"
     "Casa\tZuhause\n"
     "Caleidoscopio\tKaleidoskop\n"
+    "Mascota\tHaustier\n"
     "Órbitas\tUmlaufbahnen\n"
+    "Paisaje\tLandschaft\n"
+    "Palabras\tWörter\n"
     ;
 
 static const char blob_de_aos_ble_lang[] =
@@ -6702,6 +6747,10 @@ static const char blob_de_demo_visor3d_lang[] =
     "Sin memoria\tKein Speicher\n"
     ;
 
+static const char blob_de_face_acuario_lang[] =
+    "Acuario\tAquarium\n"
+    ;
+
 static const char blob_de_face_agua_lang[] =
     "Agua\tWasser\n"
     ;
@@ -6739,8 +6788,37 @@ static const char blob_de_face_kaleido_lang[] =
     "Caleidoscopio\tKaleidoskop\n"
     ;
 
+static const char blob_de_face_mascota_lang[] =
+    "Michi\tMieze\n"
+    "Firulais\tBello\n"
+    "Copito\tFlocke\n"
+    "Osito\tBärchen\n"
+    "Sapo\tQuaki\n"
+    "Pingu\tPingu\n"
+    "Mascota\tHaustier\n"
+    ;
+
 static const char blob_de_face_orbitas_lang[] =
     "Órbitas\tUmlaufbahnen\n"
+    ;
+
+static const char blob_de_face_paisaje_lang[] =
+    "Despejado\tKlar\n"
+    "Algo nublado\tLeicht bewölkt\n"
+    "Nublado\tBewölkt\n"
+    "Niebla\tNebel\n"
+    "Llovizna\tNiesel\n"
+    "Lluvia\tRegen\n"
+    "Nieve\tSchnee\n"
+    "Tormenta\tGewitter\n"
+    "Elegí tu ciudad en Clima\tWähle deine Stadt in Wetter\n"
+    "Mañana\tMorgen\n"
+    "Paisaje\tLandschaft\n"
+    ;
+
+static const char blob_de_face_palabras_lang[] =
+    "El idioma del reloj\tDie Sprache der Uhr\n"
+    "Palabras\tWörter\n"
     ;
 
 static const aos_lang_file_t files_de[] = {
@@ -6785,16 +6863,20 @@ static const aos_lang_file_t files_de[] = {
     { "demo.topos.lang", blob_de_demo_topos_lang },
     { "demo.turbo.lang", blob_de_demo_turbo_lang },
     { "demo.visor3d.lang", blob_de_demo_visor3d_lang },
+    { "face.acuario.lang", blob_de_face_acuario_lang },
     { "face.agua.lang", blob_de_face_agua_lang },
     { "face.arena.lang", blob_de_face_arena_lang },
     { "face.casa.lang", blob_de_face_casa_lang },
     { "face.hello.lang", blob_de_face_hello_lang },
     { "face.kaleido.lang", blob_de_face_kaleido_lang },
+    { "face.mascota.lang", blob_de_face_mascota_lang },
     { "face.orbitas.lang", blob_de_face_orbitas_lang },
+    { "face.paisaje.lang", blob_de_face_paisaje_lang },
+    { "face.palabras.lang", blob_de_face_palabras_lang },
 };
 
 const aos_lang_pack_t aos_lang_packs[] = {
-    { "en", "English", 631, 46, files_en, 47 },
-    { "de", "Deutsch", 631, 46, files_de, 47 },
+    { "en", "English", 635, 50, files_en, 51 },
+    { "de", "Deutsch", 635, 50, files_de, 51 },
 };
 const int aos_lang_pack_count = 2;

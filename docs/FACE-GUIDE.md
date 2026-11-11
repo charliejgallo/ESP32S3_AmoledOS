@@ -115,11 +115,37 @@ render the whole scene and compare it row by row with what is on the screen;
 Sand marks the cells it changes. Either way, a frame where nothing changed
 presents nothing.
 
+A face that draws a scene (a character, a landscape) adds
+`faces/common/face_draw.h` on top: `fd_ellipse()`, `fd_line()`, `fd_tri()`
+with soft edges, and `fd_show()`, which presents only the rows that differ
+from the screen. Draw the still part once into a buffer of your own, copy it
+each frame, draw what moves over the copy, and `fd_show()` it: the Pet, the
+Aquarium and the Landscape are all that.
+
+**Measure it on the watch, not in the simulator.** `/api/status` says what
+the face on the screen is getting:
+
+```bash
+curl -s http://<watch>.local/api/status | grep -o '"face[^,]*,"face_fps[^}]*'
+# "face":"face.mine","face_fps":24,"face_busy":31
+```
+
+`face_fps` is the frames a second `frame()` really ran over the last two
+seconds, and `face_busy` the percent of the time spent inside it (your
+drawing and the push to the panel). Both are zero when nothing animates.
+
+**Looking at a state without waiting for it.** `getenv()` is lent to the
+modules and always answers NULL on the board, so a face can have development
+switches that cost nothing there: `PAISAJE_DEMO="63,140,22,900"` shows the
+Landscape in the rain at three in the afternoon, `ACUARIO_HORA=12` the
+Aquarium by day.
+
 **What the compiler does behind your back.** A module can only call what the
 firmware lends it (`tools/gen_symbols.py`). `build_apps.sh` lists anything
 else and refuses: do not install a `.so` it refused, the watch cannot load
-it. It has happened with `strcspn` (write the loop) and with a byte swap
-(gcc turns one into `__bswapsi2`, which the firmware lends since v0.15.0).
+it. It has happened with `strcspn` (write the loop), with `fscanf` (read the
+file and `sscanf` it) and with a byte swap (gcc turns one into `__bswapsi2`,
+which the firmware lends since v0.15.0).
 
 ## 5. Text and languages
 
