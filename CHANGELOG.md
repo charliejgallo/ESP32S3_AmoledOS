@@ -3,9 +3,15 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.17.0 — 2026-11-10
 
-**The portal, easier to move around.** No change on the watch's screen.
+**The portal, easier to move around, and the Landscape from a city or a
+beach.** A firmware (the portal is in it), the Landscape's new module and its
+page in `apps.zip`'s `faces/`, and four pages that lose a button the portal
+now puts itself (Home's and the Pet's, Lua's and the template's). The other
+faces and every app are those of v0.16.0; so are the language packs.
+
+**The portal.** No change on the watch's screen.
 
 - **A side menu instead of the ribbon.** The pages were a row of pills above
   the content, and with the card's apps and faces they were three rows with

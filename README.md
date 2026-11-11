@@ -162,7 +162,15 @@ downloaded for use without a connection, and the whole remote-control profile. I
 Settings app, a live view of the screen with the controls to drive it from the
 browser, and the log tailed over wifi. Two of its pages are editors rather than
 forms: `/pixel` for the drawings and `/lua` for the scripts, both writing the
-same files the apps read. See [docs/PORTAL.md](docs/PORTAL.md).
+same files the apps read. Its pages, the firmware's and the ones each app and
+watchface brings, are in a side menu with a search and pinned pages (a drawer
+on a phone), and it says so when the watch stops answering. See
+[docs/PORTAL.md](docs/PORTAL.md).
+
+<p align="center">
+  <img src="docs/img/portal-inicio.png" width="720" alt="The portal's home page: the side menu and what the watch is showing"><br>
+  <em>The portal's Home, from the development server: the menu, the watch's screen with its controls, and the state.</em>
+</p>
 
 **The menu, in your order.** The portal's `/menu` page arranges the launcher:
 drag the apps into the order you want and into folders, and give each folder a

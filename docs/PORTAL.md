@@ -39,6 +39,8 @@ in each page and are chosen by the **watch's** language, not the browser's.
 
 ## The side menu
 
+![The portal's Home with the side menu](img/portal-inicio.png)
+
 `aos.js` draws it on every page, the firmware's and the ones the apps and the
 faces bring (v0.17.0; it was a ribbon of pills above the content, and with
 forty apps on the card there was no moving along it). A column on the left
