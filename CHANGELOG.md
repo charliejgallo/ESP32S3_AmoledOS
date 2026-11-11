@@ -28,6 +28,16 @@ on v0.15.0 as it is; the firmware gains only a way to measure a face.
 - **Measuring a face on the watch**: `/api/status` has `face`, `face_fps` and
   `face_busy` (`aos_watchface_stats`): the frames a second `frame()` really
   ran, and the share of the time spent in it.
+- **The animated faces push to the panel a strip at a time**, each strip
+  made while the previous one is on its way, and only the runs of rows that
+  changed; the second full-screen buffer they kept is gone (330 KB of PSRAM
+  less per face). The Kaleidoscope went from 15-16 fps to 19; the faces of
+  v0.15.0 are rebuilt with it. Everything stays in PSRAM: the strips were
+  tried in internal RAM (29 KB) and gave the same frame rate.
+- Measured on the board: Words 19 fps and no work between changes, the Pet
+  19 at 16 % busy, the Landscape 19 at 18 % (a cloudy night), the Aquarium
+  21 at 65 %. The Water with the charger's bubbles had fallen to 14 fps and
+  now asks the wave only near the surface.
 
 ## v0.15.0 — 2026-11-01
 

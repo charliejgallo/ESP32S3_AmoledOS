@@ -296,6 +296,7 @@ static void unmount(void)
 {
     tap_cancel();
     s_touch_down = false;
+    s_stat_at = 0;              /* the next face's figures, not this one's */
     if (s_frame_timer) {
         lv_timer_delete(s_frame_timer);
         s_frame_timer = NULL;

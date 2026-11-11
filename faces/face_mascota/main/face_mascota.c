@@ -61,6 +61,8 @@ typedef struct {
     float      happy, dizzy, look;  /* seconds left of each */
     float      look_x, look_y;      /* -1..1, where it looks */
     float      lean;                /* eased tilt, -1..1 */
+    float      since;               /* seconds since the last frame drawn */
+    bool       was_blinking;
     heart_t    heart[HEARTS];
     fc_grav_t  grav;
     float      last_mag;
@@ -398,6 +400,7 @@ static void frame(void *ctx, uint32_t dt_ms)
     }
     float dt = dt_ms / 1000.0f;
     m->t += dt;
+    bool tilting = false, hearts = false;
 
     float gx, gy, gz;
     if (aos_watchface_gravity(&gx, &gy, &gz)) {
@@ -406,7 +409,9 @@ static void frame(void *ctx, uint32_t dt_ms)
             m->dizzy = 2.5f;                    /* a shake */
         }
         m->last_mag = mag;
-        m->lean += (LV_CLAMP(-1.0f, gx * 1.6f, 1.0f) - m->lean) * LV_MIN(1.0f, dt * 5.0f);
+        float want = LV_CLAMP(-1.0f, gx * 1.6f, 1.0f);
+        tilting = fabsf(want - m->lean) > 0.04f;
+        m->lean += (want - m->lean) * LV_MIN(1.0f, dt * 5.0f);
     }
     m->blink_in -= dt;
     if (m->blink_in <= 0) {
@@ -423,9 +428,22 @@ static void frame(void *ctx, uint32_t dt_ms)
             h->life -= dt;
             h->y -= h->vy * dt;
             h->x += sinf(m->t * 4.0f + i) * 0.3f;
+            hearts = true;
         }
     }
-    render(m);
+    /* Breathing does not need twenty frames a second: while nothing else is
+     * happening it is drawn seven times a second, and at once when something
+     * does (a blink starting or ending, a stroke, a tilt). On the board the
+     * face spent 74 % of the time drawing a pet that was sitting still. */
+    bool blinking = m->blink > 0;
+    bool lively = m->happy > 0 || m->dizzy > 0 || m->look > 0 || hearts || tilting ||
+                  blinking != m->was_blinking;
+    m->was_blinking = blinking;
+    m->since += dt;
+    if (lively || m->since >= 0.14f) {
+        m->since = 0;
+        render(m);
+    }
 }
 
 static void *create(lv_obj_t *root)

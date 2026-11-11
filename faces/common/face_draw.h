@@ -49,21 +49,28 @@ static inline void fd_ellipse(uint16_t *b, float cx, float cy, float rx, float r
     int x0 = LV_MAX(0, (int)(cx - r - 1)), x1 = LV_MIN(FC_SW - 1, (int)(cx + r + 1));
     int y0 = LV_MAX(0, (int)(cy - r - 1)), y1 = LV_MIN(FC_SH - 1, (int)(cy + r + 1));
     float small = rx < ry ? rx : ry;
+    float irx = 1.0f / rx, iry = 1.0f / ry;
+    /* inside this the pixel is whole: no square root for most of the shape */
+    float core = small > 1.5f ? (1.0f - 1.5f / small) : 0.0f;
+    core *= core;
     for (int y = y0; y <= y1; y++) {
         float dy = y + 0.5f - cy;
         for (int x = x0; x <= x1; x++) {
             float dx = x + 0.5f - cx;
-            float lx = (dx * cs + dy * sn) / rx, ly = (-dx * sn + dy * cs) / ry;
+            float lx = (dx * cs + dy * sn) * irx, ly = (-dx * sn + dy * cs) * iry;
             float d = lx * lx + ly * ly;
             if (d >= 1.3f) {
                 continue;
             }
-            /* how far inside the edge, in pixels, roughly */
-            float in = (1.0f - sqrtf(d)) * small + 0.5f;
-            if (in <= 0) {
-                continue;
+            uint32_t a = alpha;
+            if (d > core) {
+                /* how far inside the edge, in pixels, roughly */
+                float in = (1.0f - sqrtf(d)) * small + 0.5f;
+                if (in <= 0) {
+                    continue;
+                }
+                a = in >= 1.0f ? alpha : (uint32_t)(in * alpha);
             }
-            uint32_t a = in >= 1.0f ? alpha : (uint32_t)(in * alpha);
             uint16_t *p = &b[y * FC_SW + x];
             *p = fc_mix(*p, c, a);
         }
@@ -137,27 +144,41 @@ static inline void fd_rect(uint16_t *b, int x0, int y0, int x1, int y1, uint16_t
 }
 
 /* Shows what changed between 'work' (the frame just drawn) and what is on
- * the screen: copies the rows that differ into fc->small and presents their
- * bounding box. A frame where nothing moved presents nothing. */
+ * the screen: copies the rows that differ into fc->small and presents them,
+ * in as many bands as there are runs of changed rows (a gap of a few
+ * unchanged rows is cheaper to send than to start another band). One box
+ * round everything meant sending the whole height for a fish at the top and
+ * a weed at the bottom; the push to the panel costs by the row. A frame
+ * where nothing moved presents nothing. */
 static inline void fd_show(fc_t *fc, const uint16_t *work)
 {
-    int dx0 = FC_SW, dy0 = FC_SH, dx1 = -1, dy1 = -1;
-    for (int y = 0; y < FC_SH; y++) {
-        uint16_t *dst = fc->small + y * FC_SW;
-        const uint16_t *src = work + y * FC_SW;
-        if (memcmp(dst, src, FC_SW * sizeof(uint16_t)) == 0) {
-            continue;
-        }
+    enum { GAP = 6 };
+    int bx0 = FC_SW, bx1 = -1, by0 = -1, last = -1;
+    for (int y = 0; y <= FC_SH; y++) {
+        bool diff = false;
         int a = 0, b = FC_SW - 1;
-        while (dst[a] == src[a]) a++;
-        while (dst[b] == src[b]) b--;
-        memcpy(dst + a, src + a, (size_t)(b - a + 1) * sizeof(uint16_t));
-        if (a < dx0) dx0 = a;
-        if (b > dx1) dx1 = b;
-        if (y < dy0) dy0 = y;
-        dy1 = y;
-    }
-    if (dx1 >= 0) {
-        fc_present(fc, dx0, dy0, dx1 + 1, dy1 + 1);
+        if (y < FC_SH) {
+            uint16_t *dst = fc->small + y * FC_SW;
+            const uint16_t *src = work + y * FC_SW;
+            if (memcmp(dst, src, FC_SW * sizeof(uint16_t)) != 0) {
+                diff = true;
+                while (dst[a] == src[a]) a++;
+                while (dst[b] == src[b]) b--;
+                memcpy(dst + a, src + a, (size_t)(b - a + 1) * sizeof(uint16_t));
+            }
+        }
+        if (diff) {
+            if (by0 < 0) {
+                by0 = y;
+                bx0 = FC_SW;
+                bx1 = -1;
+            }
+            if (a < bx0) bx0 = a;
+            if (b > bx1) bx1 = b;
+            last = y;
+        } else if (by0 >= 0 && (y - last > GAP || y == FC_SH)) {
+            fc_present(fc, bx0, by0, bx1 + 1, last + 1);
+            by0 = -1;
+        }
     }
 }

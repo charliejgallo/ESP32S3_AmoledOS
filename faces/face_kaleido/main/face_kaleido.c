@@ -13,9 +13,9 @@
  * falls inside its mirror's wedge is computed once (polar coordinates and
  * the fold), so a frame is a rotation, a texture read and a palette read.
  * The whole screen changes every frame, so this face asks for 20 fps, not 30,
- * and gets 15-16 on the board: 14 ms of drawing and 45 of presenting (the
- * doubling, the time's mask, and the blit, which waits for each 20-row
- * strip). Dimmed it keeps only a dark ring of glass.
+ * and gets 19 on the board, drawing 85 % of the time (9-10 through LVGL, and
+ * 15-16 when the frame was built whole before being pushed: face_common.h).
+ * Dimmed it keeps only a dark ring of glass.
  */
 #include "aos_watchface.h"
 #include "aos_theme.h"

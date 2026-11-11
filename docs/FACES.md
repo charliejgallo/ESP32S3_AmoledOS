@@ -210,8 +210,8 @@ same pass, so the digits stay sharp while the water moves behind them; a soft
 dark halo makes them readable over a bright scene.
 
 When nothing is drawn over the face, the frames go straight to the panel
-(`aos_hal_display_blit`) instead of through LVGL, and the canvas is brought
-up to date just before LVGL next draws it. Water and Orbits render the whole
+(`aos_hal_display_blit`) instead of through LVGL, a strip of 20 rows at a
+time, and the canvas is brought up to date just before LVGL next draws it. Water and Orbits render the whole
 scene and compare it row by row with what is on the screen; Sand redraws only
 the cells that changed; the Kaleidoscope changes every pixel every frame, so
 it asks for 20 fps instead of 30. The first three stop drawing when nothing
@@ -228,7 +228,8 @@ object per letter, and taken out of the firmware for the RAM that cost.
 
 ## What is verified, and what is not yet
 
-On the board (a v2, the home watch, 2026-11-01):
+On the board (a v2, the home watch; 2026-11-01, and 2026-11-10 for the four
+later faces and the frame rates):
 
 - **The picker**, by hand: the long press and the double tap, the arrows and
   the swipe sideways, on every face and the Kaleidoscope's too.
@@ -243,22 +244,42 @@ On the board (a v2, the home watch, 2026-11-01):
   walked and indexed again); ~0.45 s per file copied from the card. Before
   the index it was 0.6 s every boot: a `.desc` and a `stat()` per face, and
   SPIFFS answers each slowly.
-- **Frame rates**, watch on the table, screen lit:
+- **Frame rates**, watch on the table, screen lit, from `/api/status`
+  (`face_fps`, and `face_busy`: the share of the time spent in `frame()`):
 
-  | Face | asks for | gets | the face's own time a frame |
+  | Face | asks for | gets | busy |
   | --- | --- | --- | --- |
-  | Water (still) | 30 | 29 | ~1 ms (reading the IMU) |
-  | Sand | 30 | 29 | <1 ms |
-  | Orbits | 25 | 24 | ~10 ms |
-  | Kaleidoscope | 20 | 15-16 | ~60 ms: 14 drawing, 45 presenting |
+  | Water, still | 30 | 29 | 3 % (reading the IMU) |
+  | Sand, settled | 30 | 28-29 | 0 % |
+  | Words | 20 | 19 | 0 % |
+  | Pet, sitting | 20 | 19 | 16 % |
+  | Landscape, a cloudy night | 20 | 19 | 18 % |
+  | Orbits | 25 | 24 | 22 % |
+  | Aquarium | 22 | 21 | 65 % |
+  | Kaleidoscope | 20 | 19 | 85 % |
 
-  The Kaleidoscope changes every pixel every frame. Through LVGL it got 9-10
-  fps (a full-screen canvas costs ~95 ms there); pushing the frames straight
-  to the panel (`aos_hal_display_blit`, when nothing is over the face) took
-  it to 14, and writing only the panel's copy while blitting to 15-16. The
-  rest is the blit itself, which waits for each 20-row strip (~16 ms), and the
-  doubling with the time's mask; past that it would take drawing on the
-  other core, the way Turbo does.
+  How the Kaleidoscope, which changes every pixel every frame, got there:
+  9-10 fps through LVGL (a full-screen canvas costs ~95 ms there); 15-16
+  with the whole frame built in a second buffer and pushed
+  (`aos_hal_display_blit`); 19 with the frame made a strip of 20 rows at a
+  time, in two small buffers, each made while the other is on its way to the
+  panel. The strips were first in internal RAM (so the SPI could send them
+  without a copy) and cost 29 KB of it while a face was up; in PSRAM, where
+  everything else a face keeps is, the frame rate is the same and the
+  internal heap stays at 142-157 KB (157 with a face that does not animate).
+
+  What the first measurements taught, each fixed: the Pet spent 74 % of the
+  time drawing an animal that was sitting still, and the Landscape 94 % on a
+  cloudy night; both now draw seven or eight times a second unless something
+  is happening. The Water fell to 14 fps with the charger's stream of
+  bubbles: every pixel was asking the wave for its height, and now only the
+  ones near the surface do (not measured again with the water moving: the
+  watch had stopped charging).
+- **The four later faces** (Words, Pet, Aquarium, Landscape): installed
+  through the portal, on the firmware of v0.15.0's table; Words in the
+  watch's English, the Pet with its bowl while the watch charged, the
+  Aquarium in its night, and the Landscape with the real forecast of the
+  Clima app's place (22 degrees and cloudy, at night, the window lit).
 - **Removing** from the portal: a face out of the registry, the flash and
   the card, the firmware's refused, and the face on the wrist replaced by
   Digital at once, with no restart.
@@ -268,4 +289,7 @@ On the board (a v2, the home watch, 2026-11-01):
   its page saving the list.
 
 Not tried yet: a boot with the card out (the face comes from the flash, so it
-should not notice), and Home against the real Home Assistant.
+should not notice), Home against the real Home Assistant, and by hand on the
+wrist the four later faces' taps (stroking the Pet, feeding the fish,
+tomorrow's weather) and the Water moving since its last change; in the
+simulator they work.

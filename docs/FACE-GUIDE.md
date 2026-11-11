@@ -105,8 +105,19 @@ What it costs on the board, measured:
   once a minute, expensive if something moves behind it every frame. With
   `face_common.h` the text is a mask drawn once (`fc_mask_text`).
 - Reading the IMU is an I2C transfer: ~1 ms. Every frame is fine.
-- Water and Sand get 29 fps, Orbits 24, the Kaleidoscope (every pixel, every
-  frame) 15-16: its own drawing is 14 ms, presenting 45.
+- Water and Sand get 29 fps, Orbits 24, the Aquarium 21, the Kaleidoscope
+  (every pixel, every frame) 19. A face that changes the whole screen every
+  frame is busy 65-85 % of the time; one that changes a part of it, 15-25 %.
+- **Draw only as often as the thing moves.** The Pet breathing and the
+  Landscape's clouds are drawn seven or eight times a second, and at once
+  when something happens; at twenty they kept the watch busy 74 and 94 % of
+  the time for nothing the eye could see.
+- **Keep it in PSRAM.** Internal RAM is the scarce one (the Wi-Fi, the
+  Bluetooth and the panel's DMA live there). `malloc` and `calloc` of more
+  than 1 KB, and everything `lv_malloc` gives, already come from PSRAM; do
+  not ask for `MALLOC_CAP_INTERNAL` to gain a frame or two. `face_common.h`
+  tried it for its two strips and gave it back: the same frame rate from
+  PSRAM.
 
 With `face_common.h`: draw the scene into `fc.small` (184x224 RGB565,
 `fc_rgb()` / `fc_mix()`), call `fc_present()` with the rectangle that changed

@@ -65,6 +65,7 @@ typedef struct {
     int        kind, temp10, wind, minute;
     float      preview;
     float      t, flash, flash_in;
+    float      since;                   /* seconds since the last frame drawn */
     cloud_t    cloud[CLOUDS];
     drop_t     drop[DROPS];
     uint32_t   seed;
@@ -513,7 +514,15 @@ static void frame(void *ctx, uint32_t dt_ms)
     } else {
         p->flash = 0;
     }
-    render(p);
+    /* Clouds cross the sky in a minute and the tree sways once a second:
+     * eight frames a second show that as well as twenty do. What falls, and
+     * lightning, get every frame. (On the board, a cloudy night at twenty
+     * frames a second kept the face drawing 94 % of the time.) */
+    p->since += dt;
+    if (rain || p->kind == W_SNOW || p->flash > 0 || p->since >= 0.125f) {
+        p->since = 0;
+        render(p);
+    }
 }
 
 static void *create(lv_obj_t *root)

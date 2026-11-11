@@ -53,7 +53,8 @@ turns with the wrist and changes colour under your finger, four things of
 your house from Home Assistant with a tap to switch a light, an hourglass of
 sand that piles on the digits, and a solar system with stars in parallax.
 When nothing is drawn over them, the animated ones push their frames straight
-to the panel: 29 fps for the water and the sand, 24 for the orbits.
+to the panel: 29 fps for the water and the sand, 24 for the orbits, 19 for
+the kaleidoscope, which changes every pixel.
 
 | | | | | | |
 |---|---|---|---|---|---|
