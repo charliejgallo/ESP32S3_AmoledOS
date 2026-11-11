@@ -3,6 +3,65 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+**The portal, easier to move around.** No change on the watch's screen.
+
+- **A side menu instead of the ribbon.** The pages were a row of pills above
+  the content, and with the card's apps and faces they were three rows with
+  no way along them. Now a column on the left (a drawer on a phone, opened
+  from a bar that keeps the battery and the network in sight), in groups that
+  fold: Watch, Network, Apps, Watchfaces. A search box (`/` from anywhere,
+  Enter opens the first match) and a star on each page that pins it to the
+  top; what is pinned and folded is remembered by the browser. The watch's
+  name is beside the logo and in the tab's title.
+- **Home shows the screen**: a capture of what the watch is drawing, with
+  back, watchface, menu, wake and screen off beside it. It is taken by itself
+  only while the screen is lit; a tap on it wakes the watch and looks again.
+- **"Open on the watch" on every app's page, "Use this watchface" on every
+  face's**, beside the title, added by the portal (the pages that had their
+  own lost it).
+- **When the watch stops answering** the portal says so and keeps asking,
+  every 3 s; when it is back the notice goes, and after an update the page
+  reloads itself and Home says which version it is running.
+- **The pages' stylesheet and script are fresh after an update**: they are
+  served with an ETag of the build instead of an hour's cache, which left the
+  new pages with the old menu until a reload without the cache.
+- Home (the face) against a real Home Assistant: tried, lights and a sensor.
+
+**The Landscape, from a city or from a beach.** The face had one place, a
+valley; it has three, chosen with a tap on the time or on its new page,
+`<watch>.local/face_paisaje`, and kept in `face_paisaje.cfg`.
+
+- **City**: two rows of buildings over a street. The windows and the street
+  lamps light as the day goes (a few under a heavy sky), the street mirrors
+  the lamps when it rains, the chimney smokes under 12 degrees and the wind takes
+  the smoke, snow stays on the roofs and the cars go slower on it.
+- **Beach**: the sea takes the sky's colour and carries the sun's road, or
+  the moon's; its edge runs up the sand and back, further in a wind; the
+  parasol is open only on a fine calm day, the sailing boat stays in when it
+  rains, and the palm bends as the valley's tree does.
+- A tap below the time is still tomorrow's forecast.
+
+In the simulator: the three places by day, at dusk, at night, in rain, fog,
+snow and a storm; the page saving and the face reading it; the taps. On the
+v2 board, a cloudy night with the real forecast: the place changed through
+its file and seen in a capture, and by `/api/status` the valley 19 fps and
+18 % of the time drawing, the city 19 and 18 %, the beach 19-20 and 19-23 %;
+the internal heap 141-155 KB. Not tried on the board: rain, snow and a
+storm, which draw every frame, and the taps by hand.
+
+- **The portal read the screen's state one off**: `display` is 0 lit, 1
+  dimmed, 2 off, and the pages took 1 for lit and 2 for dimmed, as the
+  development server sent it. On the watch the chip said "screen off" with
+  the screen lit, since the first release. Found while measuring this.
+
+Tried in the development server (`tools/portal_dev_server.py`), wide and at a
+phone's width, and on the v2 board by hand from a browser; there, too, that
+the shared files are answered with a 304 to the ETag they were sent with. A
+capture asked while the screen is dimmed is slow (over ten seconds); Home
+asks by itself only while it is lit.
+
 ## v0.16.0 — 2026-11-10
 
 **Four more watchfaces, and all of them drawn faster.** Nine faces in

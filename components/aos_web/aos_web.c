@@ -1138,16 +1138,26 @@ static void json_escape(char *dst, size_t dst_len, const char *src)
     dst[w] = 0;
 }
 
-/* The two files every page shares. They are served with Cache-Control because
- * otherwise the browser asks for them again on every page and the only
- * advantage of having split them out is lost. An hour is enough: they change
- * when the board is reflashed, and at that point reloading by hand is normal
- * anyway. */
+/* The two files every page shares. The browser keeps them, and asks each time
+ * whether they are still the ones it has (an ETag made of this build's hash,
+ * answered with a 304 and no body): it was "an hour's cache" until v0.17.0,
+ * and after an update over WiFi the new pages came up dressed in the old
+ * stylesheet and driven by the old script until someone thought of reloading
+ * without the cache. */
 static esp_err_t estatico(httpd_req_t *req, const char *tipo,
                           const uint8_t *ini, const uint8_t *fin)
 {
+    char etag[24] = "\"", visto[24] = "";
+    esp_app_get_elf_sha256(etag + 1, 17);          /* 16 hex digits */
+    strlcat(etag, "\"", sizeof(etag));
     httpd_resp_set_type(req, tipo);
-    httpd_resp_set_hdr(req, "Cache-Control", "max-age=3600");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-cache");
+    httpd_resp_set_hdr(req, "ETag", etag);
+    if (httpd_req_get_hdr_value_str(req, "If-None-Match", visto, sizeof(visto)) == ESP_OK &&
+        strcmp(visto, etag) == 0) {
+        httpd_resp_set_status(req, "304 Not Modified");
+        return httpd_resp_send(req, NULL, 0);
+    }
     return httpd_resp_send(req, (const char *)ini, fin - ini - 1);
 }
 

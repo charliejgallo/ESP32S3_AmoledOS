@@ -20,6 +20,8 @@ starting from the template in `faces/face_hello`.
 
 <img src="img/face-paisaje-climas.png" width="760" alt="The landscape in six weathers">
 
+<img src="img/face-paisaje-lugares.png" width="760" alt="The landscape's city and beach, three weathers each">
+
 ## The nine
 
 | Face | What it shows | What it does |
@@ -32,7 +34,7 @@ starting from the template in `faces/face_hello`.
 | **Words** (`face.palabras`) | the time written out, in Spanish, English or German | A grid of 11x10 letters with the ones that spell the time lit ("SON LAS DIEZ MENOS CUARTO", "IT IS A QUARTER TO TEN", "ES IST VIERTEL VOR ZEHN"), rounded down to five minutes with the minutes left over as four dots. It follows the watch's language; **a tap** goes through the three. The letters fade when the phrase changes. |
 | **Pet** (`face.mascota`) | a small animal under the time | Six animals (cat, dog, rabbit, bear, frog, penguin) in nine colours. It breathes, blinks, and leans with the watch; **stroke it** (a tap on it) and it is happy, tap beside it and it looks there, shake the watch and it is dizzy. It sleeps at night and when the battery is under 15 %, and eats while the watch charges. **A tap on the time** changes it: the left half the animal, the right half the colour. Its page is `/face_mascota`. |
 | **Aquarium** (`face.acuario`) | seven fish behind the time | Each fish wanders on its own; seaweed sways and bubbles rise towards wherever "up" is. **A tap on the water** drops food and the fish come for it; **a tap on a fish** makes it dart away; a shake scatters them all. At night the water is dark and they swim slowly. |
-| **Landscape** (`face.paisaje`) | a valley under today's weather | The sky is the hour's, from the place's real sunrise and sunset, with the sun or the moon on its arc; clouds, rain, snow, fog and lightning are the weather's, the wind moves the clouds and bends the tree, and cold whitens the hills. Under the time, the temperature and tomorrow's range. **A tap** shows tomorrow's weather for a few seconds. |
+| **Landscape** (`face.paisaje`) | a valley, a city or a beach under today's weather | The sky is the hour's, from the place's real sunrise and sunset, with the sun or the moon on its arc; clouds, rain, snow, fog and lightning are the weather's, and the wind moves the clouds. **The valley**: the wind bends the tree and cold whitens the hills. **The city**: windows and street lamps light as the day goes, the street shines when it rains, the chimney smokes when it is cold, snow stays on the roofs and the cars slow down on it. **The beach**: the sea takes the sky's colour, its edge runs further up the sand in a wind, the parasol is open only on a fine calm day and the sailing boat stays in when it rains. Under the time, the temperature and the day's range. **A tap on the time** goes to the next place; **a tap below it** shows tomorrow's weather for a few seconds. The place is also chosen at `<watch>.local/face_paisaje`. |
 
 ### Home's list
 
@@ -49,14 +51,17 @@ The list is `face_casa.cfg` beside the face in the flash, in the Sensores
 format (`light.lamp|Lamp;sensor.temp`), and the face reads it again every
 30 s: a change from the page shows without touching the watch.
 
-### The Pet's file, and the Landscape's place
+### The Pet's file, and the Landscape's
 
 The Pet is `face_mascota.cfg` beside the face, `animal|colour|name`: the taps
 on the time write it, and so does its page (`<watch>.local/face_mascota`),
 which is where its name is set. The face reads it again when the screen
 lights.
 
-The Landscape has no settings of its own: its place is the one chosen in the
+The Landscape's is `face_paisaje.cfg`, one number: 0 the valley, 1 the city,
+2 the beach. The tap on the time writes it and so does its page; the face
+reads it again when the screen lights. Where the forecast is for is not in
+it: that is the place chosen in the
 Clima app (the preferences `clima_lat` and `clima_lon`), and with none it is
 a clear day by the watch's clock, with a line saying where to choose it. It
 asks Open-Meteo for one small forecast (now, today and tomorrow, sunrise and
@@ -257,7 +262,8 @@ later faces and the frame rates):
   | Sand, settled | 30 | 28-29 | 0 % |
   | Words | 20 | 19 | 0 % |
   | Pet, sitting | 20 | 19 | 16 % |
-  | Landscape, a cloudy night | 20 | 19 | 18 % |
+  | Landscape, a cloudy night: valley, city | 20 | 19 | 18 % |
+  | Landscape, a cloudy night: beach | 20 | 19-20 | 19-23 % |
   | Orbits | 25 | 24 | 22 % |
   | Aquarium | 22 | 21 | 65 % |
   | Kaleidoscope | 20 | 19 | 85 % |
@@ -294,6 +300,9 @@ later faces and the frame rates):
   against `fake_ha.py`: values, a light toggled by a tap and asked again,
   its page saving the list.
 
+Home against a real Home Assistant (2026-11-10, v0.16.0): two lights, a
+panel and a temperature sensor, configured from its page.
+
 Not tried yet: a boot with the card out (the face comes from the flash, so it
-should not notice), Home against the real Home Assistant, and the Water's
-frame rate while it moves since its last change (it was 14 fps before it).
+should not notice), and the Water's frame rate while it moves since its last
+change (it was 14 fps before it).

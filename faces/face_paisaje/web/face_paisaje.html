@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Paisaje</title>
+<link rel="stylesheet" href="/aos.css">
+<!-- La pagina de la esfera Paisaje (docs/FACES.md). Escribe una sola cosa,
+     face_paisaje.cfg en dir=faces: el numero de la escena (0 el valle, 1 la
+     ciudad, 2 la playa). Es el mismo archivo que escribe la esfera cuando se
+     toca la hora. La esfera lo relee al encenderse la pantalla. El lugar del
+     pronostico no es de aca: es el de la app Clima. -->
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Paisaje</h1></div>
+  <p class="sub" data-t="bajada">Un lugar bajo el clima de hoy: el cielo es el de la hora, y lo que cae,
+  las nubes y el viento son los del pronóstico. Tocar la pantalla muestra el de mañana.</p>
+
+  <h2 data-t="t_donde">Desde dónde mirarlo</h2>
+  <label class="opcion">
+    <input type="radio" name="escena" value="0">
+    <div><b data-t="e0">Valle</b>
+      <span class="pie" data-t="e0_pie">Montañas, colinas, una casa y un árbol que se dobla con el viento. Con frío, la nieve cubre todo.</span></div>
+  </label>
+  <label class="opcion">
+    <input type="radio" name="escena" value="1">
+    <div><b data-t="e1">Ciudad</b>
+      <span class="pie" data-t="e1_pie">Las ventanas y los faroles se encienden cuando se va la luz, la calle brilla cuando llueve, la chimenea humea con frío y la nieve queda en los techos.</span></div>
+  </label>
+  <label class="opcion">
+    <input type="radio" name="escena" value="2">
+    <div><b data-t="e2">Playa</b>
+      <span class="pie" data-t="e2_pie">El mar toma el color del cielo y las olas crecen con el viento. La sombrilla solo se abre con buen tiempo y el velero no sale si llueve.</span></div>
+  </label>
+  <div class="fila">
+    <button id="guardar" data-t="guardar">Guardar</button>
+  </div>
+  <p class="sub" style="margin-top:14px" data-t-html="pie">En el reloj, tocar la hora también cambia de lugar.
+    El pronóstico es el de la ciudad elegida en <a href="/clima" style="color:var(--accent)">Clima</a>.</p>
+</div>
+
+<script src="/aos.js"></script>
+<script>
+const TR = {
+  en: {
+    titulo: "Landscape",
+    bajada: "A place under today's weather: the sky is the hour's, and what falls, the clouds and the wind are the forecast's. A tap on the screen shows tomorrow's.",
+    t_donde: "Where to look at it from",
+    e0: "Valley", e0_pie: "Mountains, hills, a house and a tree that bends with the wind. In the cold, snow covers it all.",
+    e1: "City", e1_pie: "The windows and the street lamps light as the day goes, the street shines when it rains, the chimney smokes in the cold and snow stays on the roofs.",
+    e2: "Beach", e2_pie: "The sea takes the sky's colour and the waves grow with the wind. The parasol only opens in fine weather and the sailing boat stays in when it rains.",
+    guardar: "Save",
+    guardado: "saved: it shows when the screen next lights"
+  },
+  de: {
+    titulo: "Landschaft",
+    bajada: "Ein Ort unter dem Wetter von heute: der Himmel ist der der Stunde, und was fällt, die Wolken und der Wind sind die der Vorhersage. Ein Tippen auf den Bildschirm zeigt das von morgen.",
+    t_donde: "Von wo man es ansieht",
+    e0: "Tal", e0_pie: "Berge, Hügel, ein Haus und ein Baum, der sich im Wind biegt. Bei Kälte deckt der Schnee alles zu.",
+    e1: "Stadt", e1_pie: "Fenster und Laternen gehen an, wenn das Licht geht, die Straße glänzt bei Regen, der Schornstein raucht bei Kälte und der Schnee bleibt auf den Dächern.",
+    e2: "Strand", e2_pie: "Das Meer nimmt die Farbe des Himmels an und die Wellen wachsen mit dem Wind. Der Sonnenschirm geht nur bei schönem Wetter auf und das Segelboot bleibt bei Regen im Hafen.",
+    guardar: "Speichern",
+    guardado: "gespeichert: zu sehen, wenn der Bildschirm wieder angeht"
+  }
+};
+/* el pie lleva un enlace: su traduccion entra como HTML (data-t-html) */
+TR.en.pie = 'On the watch, a tap on the time changes the place too. The forecast is that of the city chosen in <a href="/clima" style="color:var(--accent)">Weather</a>.';
+TR.de.pie = 'Auf der Uhr wechselt ein Tippen auf die Uhrzeit den Ort auch. Die Vorhersage ist die der Stadt, die in <a href="/clima" style="color:var(--accent)">Wetter</a> gewählt wurde.';
+
+const $ = aos.$;
+const tx = (clave, es) => aos.idioma() === "es" ? es : aos.t(clave);
+const ARCHIVO = "face_paisaje.cfg";
+const ESCENAS = 3;          /* las mismas, en el mismo orden, que face_paisaje.c */
+
+function marcar(n) {
+  const r = document.querySelector('input[name="escena"][value="' + n + '"]');
+  if (r) r.checked = true;
+}
+
+function leer() {
+  fetch("/api/download?dir=faces&name=" + ARCHIVO).then(r => r.ok ? r.text() : "").then(t => {
+    const n = parseInt(t);
+    marcar(n >= 0 && n < ESCENAS ? n : 0);
+  }).catch(() => marcar(0));
+}
+
+$("guardar").onclick = () => {
+  const r = document.querySelector('input[name="escena"]:checked');
+  fetch("/api/upload?dir=faces&name=" + ARCHIVO, { method: "POST", body: (r ? r.value : "0") + "\n" })
+    .then(res => { if (!res.ok) throw new Error(res.status); aos.brindis(tx("guardado", "guardado: se ve al encenderse la pantalla")); })
+    .catch(e => aos.brindis(String(e.message || e)));
+};
+
+aos.init(TR).then(leer);
+</script>
+</body>
+</html>

@@ -41,7 +41,6 @@
     <div class="fm-color" id="colores"></div>
     <div class="fila" style="margin-top:16px">
       <button id="guardar" data-t="guardar">Guardar</button>
-      <button class="sec" id="poner" data-t="poner">Poner esta esfera en el reloj</button>
     </div>
     <p class="sub" style="margin-top:12px" data-t="pie">En el reloj, tocar la hora también lo cambia:
     a la izquierda el animal, a la derecha el color.</p>
@@ -54,17 +53,17 @@ const TR = {
   en: {
     titulo: "Pet", bajada: "A small animal under the time: stroke it and it is happy, shake the watch and it is dizzy, it sleeps at night and eats while the watch charges.",
     t_elegir: "Which one", lbl_animal: "Animal", lbl_nombre: "Name", ph_nombre: "empty: the animal's own",
-    lbl_color: "Colour", guardar: "Save", poner: "Put this face on the watch",
+    lbl_color: "Colour", guardar: "Save",
     pie: "On the watch, a tap on the time changes it too: the animal on the left, the colour on the right.",
-    guardado: "saved: it shows when the screen next lights", puesta: "the watch now shows Pet",
+    guardado: "saved: it shows when the screen next lights",
     a0: "Cat", a1: "Dog", a2: "Rabbit", a3: "Bear", a4: "Frog", a5: "Penguin"
   },
   de: {
     titulo: "Haustier", bajada: "Ein kleines Tier unter der Uhrzeit: streichle es und es freut sich, schüttle die Uhr und ihm wird schwindlig, nachts schläft es, und während die Uhr lädt, frisst es.",
     t_elegir: "Welches", lbl_animal: "Tier", lbl_nombre: "Name", ph_nombre: "leer: der des Tiers",
-    lbl_color: "Farbe", guardar: "Speichern", poner: "Dieses Zifferblatt auf die Uhr",
+    lbl_color: "Farbe", guardar: "Speichern",
     pie: "Auf der Uhr ändert ein Tippen auf die Uhrzeit es auch: links das Tier, rechts die Farbe.",
-    guardado: "gespeichert: zu sehen, wenn der Bildschirm wieder angeht", puesta: "die Uhr zeigt jetzt Haustier",
+    guardado: "gespeichert: zu sehen, wenn der Bildschirm wieder angeht",
     a0: "Katze", a1: "Hund", a2: "Hase", a3: "Bär", a4: "Frosch", a5: "Pinguin"
   }
 };
@@ -115,12 +114,6 @@ $("guardar").onclick = () => {
         { method: "POST", body: $("animal").value + "|" + color + "|" + nombre + "\n" })
     .then(r => { if (!r.ok) throw new Error(r.status); aos.brindis(tx("guardado", "guardado: se ve al encenderse la pantalla")); })
     .catch(e => aos.brindis(String(e.message || e)));
-};
-
-$("poner").onclick = () => {
-  aos.post("/api/ajustes", { esfera: "face.mascota" })
-    .then(() => aos.brindis(tx("puesta", "el reloj ya muestra Mascota")))
-    .catch(e => aos.brindis(e.message));
 };
 
 aos.init(TR).then(leer);
