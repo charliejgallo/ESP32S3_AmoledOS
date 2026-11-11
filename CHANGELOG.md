@@ -3,10 +3,12 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.16.0 — 2026-11-10
 
-**Four more watchfaces.** They are modules for the card's `/faces` and load
-on v0.15.0 as it is; the firmware gains only a way to measure a face.
+**Four more watchfaces, and all of them drawn faster.** Nine faces in
+`apps.zip`'s `faces/` (the four new ones, and the five of v0.15.0 rebuilt),
+the language packs, and a firmware that gains a way to measure a face. The
+new faces load on v0.15.0's firmware as it is; the apps are those of v0.14.0.
 
 - **Words**: the time written out on a grid of 11x10 letters, in Spanish,
   English or German ("SON LAS DIEZ MENOS CUARTO"), following the watch's
@@ -38,6 +40,12 @@ on v0.15.0 as it is; the firmware gains only a way to measure a face.
   19 at 16 % busy, the Landscape 19 at 18 % (a cloudy night), the Aquarium
   21 at 65 %. The Water with the charger's bubbles had fallen to 14 fps and
   now asks the wave only near the surface.
+
+Tried on the board: the four faces installed and by hand (the taps, the pet,
+the fish, tomorrow's weather), the Landscape with the real forecast, the
+frame rates above and the internal heap with each face up (142-157 KB).
+Not tried yet: a boot with the card out, and Home against a real Home
+Assistant.
 
 ## v0.15.0 — 2026-11-01
 

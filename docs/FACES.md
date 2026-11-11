@@ -283,7 +283,9 @@ later faces and the frame rates):
   through the portal, on the firmware of v0.15.0's table; Words in the
   watch's English, the Pet with its bowl while the watch charged, the
   Aquarium in its night, and the Landscape with the real forecast of the
-  Clima app's place (22 degrees and cloudy, at night, the window lit).
+  Clima app's place (22 degrees and cloudy, at night, the window lit). Their
+  taps by hand on the wrist: stroking the Pet, feeding the fish, tomorrow's
+  weather, the language of Words.
 - **Removing** from the portal: a face out of the registry, the flash and
   the card, the firmware's refused, and the face on the wrist replaced by
   Digital at once, with no restart.
@@ -293,7 +295,5 @@ later faces and the frame rates):
   its page saving the list.
 
 Not tried yet: a boot with the card out (the face comes from the flash, so it
-should not notice), Home against the real Home Assistant, and by hand on the
-wrist the four later faces' taps (stroking the Pet, feeding the fish,
-tomorrow's weather) and the Water moving since its last change; in the
-simulator they work.
+should not notice), Home against the real Home Assistant, and the Water's
+frame rate while it moves since its last change (it was 14 fps before it).
