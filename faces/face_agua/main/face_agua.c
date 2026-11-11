@@ -156,7 +156,17 @@ static void render(agua_t *f)
 {
     float sn = sinf(f->theta), cs = cosf(f->theta);
     float h0 = level_for(f->fill, sn, cs);
-    int dx0 = FC_SW, dy0 = FC_SH, dx1 = -1, dy1 = -1;
+    /* Presented in bands, one per run of rows that changed: a bubble near
+     * the top and a ripple at the surface used to be one box and everything
+     * between them went to the panel too (14 fps with the charger's stream
+     * of bubbles, on the board). */
+    enum { GAP = 6 };
+    int bx0 = FC_SW, bx1 = -1, by0 = -1, last = -1;
+    float wmax = 0;
+    for (int i = 0; i < WAVE_N; i++) {
+        float w = fabsf(f->h[i]);
+        if (w > wmax) wmax = w;
+    }
 
     for (int y = 0; y < FC_SH; y++) {
         uint16_t *out = f->row;
@@ -165,9 +175,29 @@ static void render(agua_t *f)
         /* d and s are linear along the row */
         float d = px * sn + py * cs;
         float s = px * cs - py * sn;
-        for (int x = 0; x < FC_SW; x++, d += sn, s += cs) {
-            float surf = h0 - wave_at(f, s);
-            float depth = d - surf;         /* > 0: under water */
+        /* a row that is above the water from end to end, whatever the wave
+         * does, is black: no need to ask pixel by pixel */
+        float d_end = d + sn * (FC_SW - 1);
+        bool dry = LV_MAX(d, d_end) - h0 + wmax < -1.0f;
+        if (dry) {
+            memset(out, 0, FC_SW * sizeof(uint16_t));
+        }
+        for (int x = 0; !dry && x < FC_SW; x++, d += sn, s += cs) {
+            /* The wave only matters near the surface: its part in the
+             * colour fades out over the first 26 pixels of depth, and below
+             * that (most of the water) the pixel does not ask for it. Every
+             * pixel asking was the face's whole frame: 17 fps on the board
+             * with the water moving, the push to the panel no longer the
+             * limit. */
+            float depth = d - h0;           /* > 0: under water */
+            if (depth < -wmax - 1.0f) {
+                out[x] = 0;
+                continue;
+            }
+            if (depth < 26.0f) {
+                float taper = depth < 2.0f ? 1.0f : (26.0f - depth) * (1.0f / 24.0f);
+                depth += wave_at(f, s) * taper;
+            }
             uint16_t col;
             if (depth < -1.0f) {
                 col = 0;
@@ -203,14 +233,21 @@ static void render(agua_t *f)
             while (dst[a] == out[a]) a++;
             while (dst[b] == out[b]) b--;
             memcpy(dst + a, out + a, (size_t)(b - a + 1) * sizeof(uint16_t));
-            if (a < dx0) dx0 = a;
-            if (b > dx1) dx1 = b;
-            if (y < dy0) dy0 = y;
-            dy1 = y;
+            if (by0 < 0) {
+                by0 = y;
+                bx0 = FC_SW;
+                bx1 = -1;
+            }
+            if (a < bx0) bx0 = a;
+            if (b > bx1) bx1 = b;
+            last = y;
+        } else if (by0 >= 0 && y - last > GAP) {
+            fc_present(&f->fc, bx0, by0, bx1 + 1, last + 1);
+            by0 = -1;
         }
     }
-    if (dx1 >= 0) {
-        fc_present(&f->fc, dx0, dy0, dx1 + 1, dy1 + 1);
+    if (by0 >= 0) {
+        fc_present(&f->fc, bx0, by0, bx1 + 1, last + 1);
     }
 }
 

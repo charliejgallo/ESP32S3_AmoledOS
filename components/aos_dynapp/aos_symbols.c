@@ -4,7 +4,7 @@
  * Simbolos que el firmware le presta a las apps dinamicas.
  * Librerias: lvgl__lvgl, lvgl_port_lib, aos_hal, aos_ui, aos_apps, aos_board, aos_fonts, aos_usb, aos_ble
  * Mas 122 funciones de libc/libm agregadas a mano.
- * Total: 2932 simbolos.
+ * Total: 2933 simbolos.
  */
 
 #include <stddef.h>
@@ -664,6 +664,7 @@ extern int aos_watchface_resume;
 extern int aos_watchface_select;
 extern int aos_watchface_set_aod;
 extern int aos_watchface_set_loader;
+extern int aos_watchface_stats;
 extern int aos_watchface_suspend;
 extern int aos_watchface_unregister;
 extern int aos_watchfaces_register_builtin;
@@ -3599,6 +3600,7 @@ const struct esp_elfsym aos_symbol_table[] = {
     ESP_ELFSYM_EXPORT(aos_watchface_select),
     ESP_ELFSYM_EXPORT(aos_watchface_set_aod),
     ESP_ELFSYM_EXPORT(aos_watchface_set_loader),
+    ESP_ELFSYM_EXPORT(aos_watchface_stats),
     ESP_ELFSYM_EXPORT(aos_watchface_suspend),
     ESP_ELFSYM_EXPORT(aos_watchface_unregister),
     ESP_ELFSYM_EXPORT(aos_watchfaces_register_builtin),

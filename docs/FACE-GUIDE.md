@@ -105,8 +105,19 @@ What it costs on the board, measured:
   once a minute, expensive if something moves behind it every frame. With
   `face_common.h` the text is a mask drawn once (`fc_mask_text`).
 - Reading the IMU is an I2C transfer: ~1 ms. Every frame is fine.
-- Water and Sand get 29 fps, Orbits 24, the Kaleidoscope (every pixel, every
-  frame) 15-16: its own drawing is 14 ms, presenting 45.
+- Water and Sand get 29 fps, Orbits 24, the Aquarium 21, the Kaleidoscope
+  (every pixel, every frame) 19. A face that changes the whole screen every
+  frame is busy 65-85 % of the time; one that changes a part of it, 15-25 %.
+- **Draw only as often as the thing moves.** The Pet breathing and the
+  Landscape's clouds are drawn seven or eight times a second, and at once
+  when something happens; at twenty they kept the watch busy 74 and 94 % of
+  the time for nothing the eye could see.
+- **Keep it in PSRAM.** Internal RAM is the scarce one (the Wi-Fi, the
+  Bluetooth and the panel's DMA live there). `malloc` and `calloc` of more
+  than 1 KB, and everything `lv_malloc` gives, already come from PSRAM; do
+  not ask for `MALLOC_CAP_INTERNAL` to gain a frame or two. `face_common.h`
+  tried it for its two strips and gave it back: the same frame rate from
+  PSRAM.
 
 With `face_common.h`: draw the scene into `fc.small` (184x224 RGB565,
 `fc_rgb()` / `fc_mix()`), call `fc_present()` with the rectangle that changed
@@ -115,11 +126,37 @@ render the whole scene and compare it row by row with what is on the screen;
 Sand marks the cells it changes. Either way, a frame where nothing changed
 presents nothing.
 
+A face that draws a scene (a character, a landscape) adds
+`faces/common/face_draw.h` on top: `fd_ellipse()`, `fd_line()`, `fd_tri()`
+with soft edges, and `fd_show()`, which presents only the rows that differ
+from the screen. Draw the still part once into a buffer of your own, copy it
+each frame, draw what moves over the copy, and `fd_show()` it: the Pet, the
+Aquarium and the Landscape are all that.
+
+**Measure it on the watch, not in the simulator.** `/api/status` says what
+the face on the screen is getting:
+
+```bash
+curl -s http://<watch>.local/api/status | grep -o '"face[^,]*,"face_fps[^}]*'
+# "face":"face.mine","face_fps":24,"face_busy":31
+```
+
+`face_fps` is the frames a second `frame()` really ran over the last two
+seconds, and `face_busy` the percent of the time spent inside it (your
+drawing and the push to the panel). Both are zero when nothing animates.
+
+**Looking at a state without waiting for it.** `getenv()` is lent to the
+modules and always answers NULL on the board, so a face can have development
+switches that cost nothing there: `PAISAJE_DEMO="63,140,22,900"` shows the
+Landscape in the rain at three in the afternoon, `ACUARIO_HORA=12` the
+Aquarium by day.
+
 **What the compiler does behind your back.** A module can only call what the
 firmware lends it (`tools/gen_symbols.py`). `build_apps.sh` lists anything
 else and refuses: do not install a `.so` it refused, the watch cannot load
-it. It has happened with `strcspn` (write the loop) and with a byte swap
-(gcc turns one into `__bswapsi2`, which the firmware lends since v0.15.0).
+it. It has happened with `strcspn` (write the loop), with `fscanf` (read the
+file and `sscanf` it) and with a byte swap (gcc turns one into `__bswapsi2`,
+which the firmware lends since v0.15.0).
 
 ## 5. Text and languages
 

@@ -112,6 +112,12 @@ bool aos_watchface_is_aod(void);
  * already knows. For a face that animates from its own refresh(). */
 bool aos_watchface_live(void);
 
+/* What an animated face is getting, over the last two seconds: the frames
+ * a second that frame() really ran, and the share of the time spent inside
+ * it, in percent. Zero when no face is animating. /api/status reports them
+ * (face_fps, face_busy): the way to measure a face on the watch. */
+void aos_watchface_stats(int *fps, int *busy_pct);
+
 /* Whether the face may push pixels straight to the panel
  * (aos_hal_display_blit) instead of invalidating them for LVGL: it is live
  * and NOTHING is drawn over it (the picker, a toast, a notification, the

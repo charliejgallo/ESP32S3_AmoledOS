@@ -1,7 +1,7 @@
 # AmoledOS
 
 A smartwatch firmware for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** — a
-368x448 AMOLED you can hold in your hand. Twelve watchfaces — five of them
+368x448 AMOLED you can hold in your hand. Sixteen watchfaces — nine of them
 installed from the microSD, most of them moved by the accelerometer — twenty
 built-in apps, forty more loaded from the microSD as shared objects — one
 of them a Lua interpreter, so a text file on the card is an app too, and one a
@@ -53,12 +53,34 @@ turns with the wrist and changes colour under your finger, four things of
 your house from Home Assistant with a tap to switch a light, an hourglass of
 sand that piles on the digits, and a solar system with stars in parallax.
 When nothing is drawn over them, the animated ones push their frames straight
-to the panel: 29 fps for the water and the sand, 24 for the orbits.
+to the panel: 29 fps for the water and the sand, 24 for the orbits, 19 for
+the kaleidoscope, which changes every pixel.
 
 | | | | | | |
 |---|---|---|---|---|---|
 | <img src="docs/img/face-agua.png" width="110"> | <img src="docs/img/face-kaleido.png" width="110"> | <img src="docs/img/face-casa.png" width="110"> | <img src="docs/img/face-arena.png" width="110"> | <img src="docs/img/face-orbitas.png" width="110"> | <img src="docs/img/face-picker.png" width="110"> |
 | water | kaleidoscope | home | sand | orbits | the picker |
+
+Four more came in v0.16.0: the time written out in words, in Spanish, English or
+German; a pet you can stroke, in six animals and nine colours, that sleeps at
+night and eats while the watch charges; an aquarium whose fish come for the
+food you drop with a tap; and a landscape whose sky is the hour's and whose
+weather is the forecast's, with tomorrow's a tap away.
+
+| | | | |
+|---|---|---|---|
+| <img src="docs/img/face-palabras.png" width="110"> | <img src="docs/img/face-mascota.png" width="110"> | <img src="docs/img/face-acuario.png" width="110"> | <img src="docs/img/face-paisaje.png" width="110"> |
+| words | pet | aquarium | landscape |
+
+<p align="center">
+  <img src="docs/img/face-mascota-animales.png" width="760" alt="The six pets: cat, dog, rabbit, bear, frog and penguin"><br>
+  <em>The pet is one of six animals, in nine colours: a tap on the time changes it.</em>
+</p>
+
+<p align="center">
+  <img src="docs/img/face-paisaje-climas.png" width="760" alt="The landscape: clear, dusk, rain, storm, snow and night"><br>
+  <em>The landscape under a clear noon, a dusk, rain, a storm, snow and a clear night.</em>
+</p>
 
 The picker opens with a long press or a double tap on any face; its arrows
 or a swipe sideways go through the faces, with the real face behind it. A
