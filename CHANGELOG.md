@@ -29,6 +29,25 @@ Newest first. Versions are git tags; what is above the latest tag is on
   new pages with the old menu until a reload without the cache.
 - Home (the face) against a real Home Assistant: tried, lights and a sensor.
 
+**The Landscape, from a city or from a beach.** The face had one place, a
+valley; it has three, chosen with a tap on the time or on its new page,
+`<watch>.local/face_paisaje`, and kept in `face_paisaje.cfg`.
+
+- **City**: two rows of buildings over a street. The windows and the street
+  lamps light as the day goes (a few under a heavy sky), the street mirrors
+  the lamps when it rains, the chimney smokes under 12 degrees and the wind takes
+  the smoke, snow stays on the roofs and the cars go slower on it.
+- **Beach**: the sea takes the sky's colour and carries the sun's road, or
+  the moon's; its edge runs up the sand and back, further in a wind; the
+  parasol is open only on a fine calm day, the sailing boat stays in when it
+  rains, and the palm bends as the valley's tree does.
+- A tap below the time is still tomorrow's forecast.
+
+In the simulator: the three places by day, at dusk, at night, in rain, fog,
+snow and a storm; the page saving and the face reading it; the taps. **Not on
+the board yet**, and its frame rate there not measured: the cars and the
+sea's edge change more rows a frame than the valley's tree did.
+
 Tried in the development server (`tools/portal_dev_server.py`), wide and at a
 phone's width, and on the v2 board by hand from a browser; there, too, that
 the shared files are answered with a 304 to the ETag they were sent with. A

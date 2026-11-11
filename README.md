@@ -79,7 +79,9 @@ weather is the forecast's, with tomorrow's a tap away.
 
 <p align="center">
   <img src="docs/img/face-paisaje-climas.png" width="760" alt="The landscape: clear, dusk, rain, storm, snow and night"><br>
-  <em>The landscape under a clear noon, a dusk, rain, a storm, snow and a clear night.</em>
+  <em>The landscape under a clear noon, a dusk, rain, a storm, snow and a clear night.</em><br><br>
+  <img src="docs/img/face-paisaje-lugares.png" width="760" alt="The landscape's city and beach, three weathers each"><br>
+  <em>The same weather seen from a city or from a beach, chosen on the watch or from the portal.</em>
 </p>
 
 The picker opens with a long press or a double tap on any face; its arrows
