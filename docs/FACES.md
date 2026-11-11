@@ -262,7 +262,8 @@ later faces and the frame rates):
   | Sand, settled | 30 | 28-29 | 0 % |
   | Words | 20 | 19 | 0 % |
   | Pet, sitting | 20 | 19 | 16 % |
-  | Landscape, a cloudy night | 20 | 19 | 18 % |
+  | Landscape, a cloudy night: valley, city | 20 | 19 | 18 % |
+  | Landscape, a cloudy night: beach | 20 | 19-20 | 19-23 % |
   | Orbits | 25 | 24 | 22 % |
   | Aquarium | 22 | 21 | 65 % |
   | Kaleidoscope | 20 | 19 | 85 % |

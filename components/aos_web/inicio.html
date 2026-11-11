@@ -286,18 +286,20 @@ function pintar(s) {
   txt("sis-uptime", s.uptime_s !== undefined ? aos.duracion(s.uptime_s) : undefined);
   txt("sis-boot", s.boot_reason);
   txt("sis-cpu", s.cpu_mhz ? s.cpu_mhz + " MHz" : undefined);
-  txt("sis-pantalla", s.display === 1 ? t("activa") : s.display === 2 ? t("atenuada") : t("apagada"));
+  /* aos_display_state_t: 0 encendida, 1 atenuada, 2 apagada */
+  const pantalla = s.display === 0 ? t("activa") : s.display === 1 ? t("atenuada") : t("apagada");
+  txt("sis-pantalla", pantalla);
   txt("sis-app", s.app ? s.app : t("ninguna"));
   txt("sis-esfera", s.face);
 
   /* La pantalla */
   txt("vista-que", s.app ? s.app : t("v_esfera") + (s.face ? " · " + s.face : ""));
-  txt("vista-como", s.display === 1 ? t("activa") : s.display === 2 ? t("atenuada") : t("apagada"));
+  txt("vista-como", pantalla);
   /* Sola se mira nada mas que encendida y si cambio lo que hay: una captura
      son 480 KB y despertar el reloj porque alguien abrio el portal no. */
   const clave = (s.app || "") + "|" + (s.face || "") + "|" + s.display;
-  if (s.display === 1 && clave !== mirar.clave) mirar(false);
-  else if (s.display !== 1 && !mirar.hecha) $("vista-pie").textContent = t("v_tocar");
+  if (s.display === 0 && clave !== mirar.clave) mirar(false);
+  else if (s.display !== 0 && !mirar.hecha) $("vista-pie").textContent = t("v_tocar");
   mirar.clave = clave;
 
   /* Recien instalado: con que quedo */

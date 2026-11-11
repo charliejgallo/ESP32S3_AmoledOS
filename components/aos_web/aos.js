@@ -417,9 +417,13 @@
       c.push('<span class="chip ' + (kb < 30 ? "mal" : kb < 45 ? "ojo" : "") + '">' +
              esc(t("viv_ram")) + " " + kb + " KB</span>");
     }
+    /* aos_display_state_t: 0 encendida, 1 atenuada, 2 apagada. Hasta
+       v0.17.0 esto leia 1 como encendida y 2 como atenuada, que es lo que
+       mandaba el servidor de prueba y no el reloj: el chip decia "apagada"
+       con la pantalla prendida. */
     if (s.display !== undefined) {
       c.push('<span class="chip dim">' +
-             esc(t(s.display === 1 ? "viv_activa" : s.display === 2 ? "viv_aod" : "viv_off")) +
+             esc(t(s.display === 0 ? "viv_activa" : s.display === 1 ? "viv_aod" : "viv_off")) +
              "</span>");
     }
     if (s.trial) c.push('<span class="chip ojo">' + esc(t("viv_prueba")) + "</span>");

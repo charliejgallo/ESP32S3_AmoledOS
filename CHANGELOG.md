@@ -44,9 +44,17 @@ valley; it has three, chosen with a tap on the time or on its new page,
 - A tap below the time is still tomorrow's forecast.
 
 In the simulator: the three places by day, at dusk, at night, in rain, fog,
-snow and a storm; the page saving and the face reading it; the taps. **Not on
-the board yet**, and its frame rate there not measured: the cars and the
-sea's edge change more rows a frame than the valley's tree did.
+snow and a storm; the page saving and the face reading it; the taps. On the
+v2 board, a cloudy night with the real forecast: the place changed through
+its file and seen in a capture, and by `/api/status` the valley 19 fps and
+18 % of the time drawing, the city 19 and 18 %, the beach 19-20 and 19-23 %;
+the internal heap 141-155 KB. Not tried on the board: rain, snow and a
+storm, which draw every frame, and the taps by hand.
+
+- **The portal read the screen's state one off**: `display` is 0 lit, 1
+  dimmed, 2 off, and the pages took 1 for lit and 2 for dimmed, as the
+  development server sent it. On the watch the chip said "screen off" with
+  the screen lit, since the first release. Found while measuring this.
 
 Tried in the development server (`tools/portal_dev_server.py`), wide and at a
 phone's width, and on the v2 board by hand from a browser; there, too, that

@@ -647,7 +647,7 @@ class Handler(BaseHTTPRequestHandler):
                 "cpu_mhz": 240, "saving": True, "panel_asleep": False,
                 "light_sleep": False, "power_on": "power key",
                 "last_power_off": "power key held", "boot_reason": "power-on",
-                "uptime_s": int(time.time()) % 100000, "display": 1,
+                "uptime_s": int(time.time()) % 100000, "display": 0,   # aos_display_state_t: 0 is lit
                 "ssid": "casa", "rssi": -52, "ip": "127.0.0.1",
                 "wifi_on": str(d.get("wifi_on", "1")) == "1",
                 "ap": str(d.get("ap_activo", "0")) == "1", "ap_ip": "192.168.4.1",
