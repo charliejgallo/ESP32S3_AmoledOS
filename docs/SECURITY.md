@@ -71,7 +71,7 @@ and reading `/api/lang`.
 - **Sessions** are a cookie, `aos_s`, `HttpOnly` (the page's scripts cannot
   read it) and `SameSite=Strict` (no other site sends it), 16 random bytes.
   They live in RAM: a restart closes them all, and there are eight at most
-  (a ninth replaces the oldest). *Log out* on the ribbon ends this browser's;
+  (a ninth replaces the oldest). *Log out* at the foot of the menu ends this browser's;
   *Close portal sessions* on the watch ends them all.
 - **The token** is for scripts: `Authorization: Bearer <token>`. The
   portal's Settings, *Security*, shows it and makes a new one (the old stops

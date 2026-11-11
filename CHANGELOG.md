@@ -3,6 +3,38 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+**The portal, easier to move around.** No change on the watch's screen.
+
+- **A side menu instead of the ribbon.** The pages were a row of pills above
+  the content, and with the card's apps and faces they were three rows with
+  no way along them. Now a column on the left (a drawer on a phone, opened
+  from a bar that keeps the battery and the network in sight), in groups that
+  fold: Watch, Network, Apps, Watchfaces. A search box (`/` from anywhere,
+  Enter opens the first match) and a star on each page that pins it to the
+  top; what is pinned and folded is remembered by the browser. The watch's
+  name is beside the logo and in the tab's title.
+- **Home shows the screen**: a capture of what the watch is drawing, with
+  back, watchface, menu, wake and screen off beside it. It is taken by itself
+  only while the screen is lit; a tap on it wakes the watch and looks again.
+- **"Open on the watch" on every app's page, "Use this watchface" on every
+  face's**, beside the title, added by the portal (the pages that had their
+  own lost it).
+- **When the watch stops answering** the portal says so and keeps asking,
+  every 3 s; when it is back the notice goes, and after an update the page
+  reloads itself and Home says which version it is running.
+- **The pages' stylesheet and script are fresh after an update**: they are
+  served with an ETag of the build instead of an hour's cache, which left the
+  new pages with the old menu until a reload without the cache.
+- Home (the face) against a real Home Assistant: tried, lights and a sensor.
+
+Tried in the development server (`tools/portal_dev_server.py`), wide and at a
+phone's width, and on the v2 board by hand from a browser; there, too, that
+the shared files are answered with a 304 to the ETag they were sent with. A
+capture asked while the screen is dimmed is slow (over ten seconds); Home
+asks by itself only while it is lit.
+
 ## v0.16.0 — 2026-11-10
 
 **Four more watchfaces, and all of them drawn faster.** Nine faces in

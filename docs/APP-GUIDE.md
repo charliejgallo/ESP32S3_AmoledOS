@@ -813,11 +813,12 @@ computer's keyboard. The mould is `/clima`:
 1. **The page is the app's, not the firmware's** (since 2026-10-14):
    `apps/<app>/web/<app>.html`, named like the `.so`. `install_apps.sh` puts
    it next to the `.so` on the card, `/sdcard/apps/<app>.html`, and the watch
-   serves it at `http://<watch>.local/<app>` and adds it to the navigation
-   ribbon by itself, under the app's name. No firmware to build, no OTA; a
+   serves it at `http://<watch>.local/<app>` and adds it to the side menu
+   by itself, under the app's name. No firmware to build, no OTA; a
    changed page is one upload and a reload of the browser. **Start from
    `apps/hello_app/web/hello_app.html`** (the watch's state, a card file read
-   and saved, opening the app on the watch) or from `apps/clima/web/clima.html`.
+   and saved; the "Open on the watch" button beside the title is the
+   portal's, on every app's page) or from `apps/clima/web/clima.html`.
    Most pages need no firmware at all: the generic file API
    (`/api/upload`, `/api/download`, `/api/list` with `dir=sd/<folder>`) is
    enough for Pixel Art, Lua, Maps and the 3D viewer. A JSON API of its own
@@ -835,7 +836,7 @@ computer's keyboard. The mould is `/clima`:
    integers. The firmware learns nothing about the service.
 
 **Every page hooks into the shared base.** `/aos.css` and `/aos.js` give the
-pages one look, the navigation ribbon, the live status strip and the watch's
+pages one look, the side menu, the live status chips and the watch's
 language. The minimum:
 
 ```html
@@ -844,7 +845,6 @@ language. The minimum:
 <div class="wrap">
   <div class="top"><h1 data-t="titulo">My page</h1></div>
   <p class="sub" data-t="bajada">What it does.</p>
-  <nav class="paginas"></nav>     <!-- filled by aos.js, do not write it -->
   ...
 </div>
 <script src="/aos.js"></script>
@@ -855,7 +855,7 @@ aos.init(TR).then(load);
 </script>
 ```
 
-The ribbon lists every page on the card by itself (`GET /api/paginas`); the
+The menu lists every page on the card by itself (`GET /api/paginas`); the
 firmware's own pages are in the list in `aos.js`. A page cannot take the
 address of one of the firmware's (`/ajustes` always wins). **The browser's languages are not the
 firmware's**: in the firmware the key is the Spanish phrase and

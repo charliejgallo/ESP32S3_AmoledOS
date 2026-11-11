@@ -53,7 +53,6 @@
     <datalist id="entidades"></datalist>
     <div class="fila" style="margin-top:12px">
       <button id="guardar" data-t="guardar">Guardar</button>
-      <button class="sec" id="poner" data-t="poner">Poner esta esfera en el reloj</button>
     </div>
   </section>
 </div>
@@ -69,8 +68,8 @@ const TR = {
     t_lista: "What it shows",
     lista_ayuda: "Up to four. Without a name, Home Assistant's is used. With none, the face shows the Sensors app's sensors.",
     entidad: "Entity", nombre: "Name (optional)",
-    guardar: "Save", poner: "Put this face on the watch",
-    guardado: "saved: the watch picks it up within 30 s", puesta: "the watch now shows Home",
+    guardar: "Save",
+    guardado: "saved: the watch picks it up within 30 s",
     conex_ok: "connection saved", preguntando: "asking..."
   },
   de: {
@@ -81,8 +80,8 @@ const TR = {
     t_lista: "Was es zeigt",
     lista_ayuda: "Bis zu vier. Ohne Namen wird der von Home Assistant genommen. Ohne Eintrag zeigt das Zifferblatt die Sensoren der App Sensoren.",
     entidad: "Entität", nombre: "Name (optional)",
-    guardar: "Speichern", poner: "Dieses Zifferblatt auf die Uhr",
-    guardado: "gespeichert: die Uhr übernimmt es in 30 s", puesta: "die Uhr zeigt jetzt Zuhause",
+    guardar: "Speichern",
+    guardado: "gespeichert: die Uhr übernimmt es in 30 s",
     conex_ok: "Verbindung gespeichert", preguntando: "frage..."
   }
 };
@@ -161,12 +160,6 @@ $("probar").onclick = async () => {
     $("estadoConf").innerHTML = '<span class="mal-txt">' + aos.esc(e) + "</span>";
   }
   $("probar").disabled = false;
-};
-
-$("poner").onclick = () => {
-  aos.post("/api/ajustes", { esfera: "face.casa" })
-    .then(() => aos.brindis(tx("puesta", "el reloj ya muestra Casa")))
-    .catch(e => aos.brindis(e.message));
 };
 
 aos.init(TR).then(() => {

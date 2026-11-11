@@ -72,27 +72,90 @@ h2 {
 .ver { color: var(--dim); font-size: 13px; }
 p.sub { color: var(--dim); font-size: 13.5px; margin: 0 0 20px; }
 
-/* La cinta la dibuja aos.js, asi que es igual en todas: la marca y la franja
-   de estado arriba, las paginas en tres grupos abajo. */
-.paginas {
-  margin: 0 0 22px; padding: 0 0 12px;
-  border-bottom: 1px solid var(--line);
-}
-.paginas .marca {
-  display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-.paginas .logo {
-  font-weight: 700; font-size: 15px; letter-spacing: -0.01em;
+/* El menu lateral lo dibuja aos.js sobre el <body>, asi que es igual en
+   todas las paginas, tambien en las que traen las apps y las esferas en la
+   tarjeta: una columna fija a la izquierda cuando hay lugar, y en angosto un
+   cajon que abre el boton de la barra de arriba. Antes era una cinta de
+   pastillas arriba del contenido (v0.17.0). El <nav class="paginas"> que
+   cada pagina trae queda vacio. */
+.paginas { display: none; }
+
+:root { --lado: 250px; }
+body.con-lado { padding-left: calc(var(--lado) + 20px); }
+
+.logo {
+  font-weight: 700; font-size: 16px; letter-spacing: -0.01em;
   color: var(--text); text-decoration: none;
 }
-.paginas .quien {
-  font-size: 13px; font-weight: 600; color: var(--accent, #0a84ff);
-  margin-left: 8px; letter-spacing: 0.02em;
+.quien { font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 0.02em; }
+.quien:empty { display: none; }
+
+.lado {
+  position: fixed; top: 0; bottom: 0; left: 0; width: var(--lado); z-index: 30;
+  display: flex; flex-direction: column;
+  background: var(--card); border-right: 1px solid var(--line);
+  padding: 16px 10px 10px;
 }
-.paginas .quien:empty { display: none; }
-.paginas .salir { margin-left: auto; font-size: 13px; color: var(--dim); text-decoration: none; }
-.paginas .salir:hover { color: var(--text); }
+.lado-cab { display: flex; align-items: baseline; gap: 8px; padding: 0 8px 10px; }
+.lado .viva { padding: 0 6px 12px; }
+.lado .chip { background: var(--card2); }
+.lado-buscar {
+  width: 100%; margin: 0 0 8px; padding: 8px 12px; font: inherit; font-size: 14px;
+  border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text);
+}
+.lado-lista { flex: 1; overflow-y: auto; scrollbar-width: thin; margin: 0 -4px; padding: 0 4px; }
+.lado-grupo { margin-bottom: 6px; }
+.lado-grupo .rotulo {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  background: none; border: 0; border-radius: 0; padding: 9px 8px 4px;
+  font: inherit; font-size: 11px; font-weight: 600; color: var(--dim);
+  text-transform: uppercase; letter-spacing: .06em; text-align: left;
+}
+.lado-grupo button.rotulo { cursor: pointer; }
+.lado-grupo button.rotulo:hover { color: var(--text); }
+.lado-grupo .rotulo .n { font-weight: 400; opacity: .7; }
+.lado-grupo .rotulo .flecha { margin-left: auto; transition: transform .15s; }
+.lado-grupo.plegado .flecha { transform: rotate(-90deg); }
+.lado-grupo.plegado a { display: none; }
+.lado-lista a {
+  display: flex; align-items: center; gap: 10px; padding: 7px 8px;
+  border-radius: 9px; color: var(--text); text-decoration: none; font-size: 14px;
+}
+.lado-lista a[hidden] { display: none; }
+.lado-lista a:hover { background: var(--card2); }
+.lado-lista a.aca { background: var(--accent); color: #fff; }
+.lado-lista .ic {
+  width: 22px; height: 22px; flex: none; display: grid; place-items: center;
+  font-size: 15px; opacity: .85;
+}
+.lado-lista .ic.letra {
+  border-radius: 6px; background: var(--card2); color: var(--dim);
+  font-size: 11px; font-weight: 700; opacity: 1;
+}
+.lado-lista a:hover .ic.letra { background: var(--line); }
+.lado-lista a.aca .ic.letra { background: rgba(255,255,255,.22); color: #fff; }
+.lado-lista .nom { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* la estrella que fija una pagina arriba: aparece al pasar, queda si esta puesta */
+.lado-lista .fija {
+  background: none; border: 0; padding: 0 2px; border-radius: 4px;
+  color: var(--dim); font-size: 14px; line-height: 1; opacity: 0;
+}
+.lado-lista a:hover .fija, .lado-lista .fija.on { opacity: 1; }
+.lado-lista .fija.on { color: var(--amber); }
+.lado-lista a.aca .fija { color: #fff; }
+@media (hover: none) { .lado-lista .fija { opacity: .45; } }
+/* buscando: una sola lista, sin rotulos, sin pliegues y sin las repetidas de arriba */
+.lado.buscando .rotulo, .lado.buscando .lado-grupo.fijas { display: none; }
+.lado.buscando .lado-grupo.plegado a:not([hidden]) { display: flex; }
+.lado-nada { color: var(--dim); font-size: 13px; padding: 10px 8px; }
+.lado-pie {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 4px 0; margin-top: 6px; border-top: 1px solid var(--line);
+}
+.lado-pie button { padding: 7px 12px; font-size: 13px; border-radius: 9px; }
+.lado-pie .salir { margin-left: auto; font-size: 13px; color: var(--dim); text-decoration: none; }
+.lado-pie .salir:hover { color: var(--text); }
+
 .viva { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .chip {
   font-size: 12px; padding: 3px 9px; border-radius: 999px;
@@ -104,32 +167,47 @@ p.sub { color: var(--dim); font-size: 13.5px; margin: 0 0 20px; }
 .chip.mal  { color: var(--red); }
 .chip.dim, .chip .dim { color: var(--dim); }
 
-.paginas .pills {
-  display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center;
-}
-.paginas .grupo { display: flex; gap: 6px; align-items: center; flex: none; }
-.paginas .rotulo {
-  font-size: 11px; color: var(--dim); text-transform: uppercase;
-  letter-spacing: .06em; margin-right: 2px;
-}
-.paginas a {
-  padding: 6px 11px; border-radius: 10px; text-decoration: none;
-  background: var(--pill); color: var(--dim); font-size: 13.5px;
-  white-space: nowrap;
-}
-.paginas a:hover { background: var(--card2); color: var(--text); }
-.paginas a.aca { background: var(--accent); color: #fff; }
+/* El boton que abre en el reloj la app (o pone la esfera) de esta pagina. */
+.top .ac-reloj { margin-left: auto; align-self: center; white-space: nowrap; }
 
-/* En angosto, una sola fila que se desplaza de costado: tres renglones de
-   pastillas se comian media pantalla del telefono. */
-@media (max-width: 640px) {
-  .paginas .pills {
-    flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; margin: 0 -16px; padding: 2px 16px;
+/* El reloj no contesta: un aviso arriba, hasta que vuelve. */
+.aviso-red {
+  position: fixed; top: 12px; left: calc(50% + var(--lado) / 2); transform: translate(-50%, -80px);
+  z-index: 40; max-width: calc(100vw - 32px);
+  background: var(--red); color: #fff; font-size: 13.5px; font-weight: 600;
+  padding: 9px 16px; border-radius: 999px; box-shadow: 0 6px 22px rgba(0,0,0,.35);
+  transition: transform .25s ease; pointer-events: none;
+}
+.aviso-red.on { transform: translate(-50%, 0); }
+
+.barra, .lado-velo { display: none; }
+
+/* En angosto el menu es un cajon: entra desde la izquierda sobre un velo, y
+   arriba queda una barra con el boton, de quien es el reloj y lo urgente
+   del estado. */
+@media (max-width: 900px) {
+  body.con-lado { padding-left: 16px; padding-top: 66px; }
+  .barra {
+    display: flex; align-items: center; gap: 10px;
+    position: fixed; top: 0; left: 0; right: 0; height: 50px; z-index: 20;
+    padding: 0 12px 0 6px; background: var(--card); border-bottom: 1px solid var(--line);
   }
-  .paginas .pills::-webkit-scrollbar { display: none; }
-  .paginas .rotulo { display: none; }
-  .paginas .grupo + .grupo { border-left: 1px solid var(--line); padding-left: 10px; }
+  .barra .hamb {
+    background: none; color: var(--text); font-size: 21px; line-height: 1;
+    padding: 6px 10px; border-radius: 9px;
+  }
+  .barra .viva.mini { margin-left: auto; flex-wrap: nowrap; overflow: hidden; }
+  .barra .chip { background: var(--card2); }
+  .lado {
+    width: min(84vw, 310px); transform: translateX(-105%); transition: transform .2s ease;
+    box-shadow: 8px 0 30px rgba(0,0,0,.35);
+  }
+  body.lado-abierto .lado { transform: none; }
+  body.lado-abierto .lado-velo {
+    display: block; position: fixed; inset: 0; z-index: 25; background: rgba(0,0,0,.5);
+  }
+  body.lado-abierto { overflow: hidden; }
+  .aviso-red { left: 50%; top: 58px; }
 }
 
 /* --- bloques -------------------------------------------------------------- */

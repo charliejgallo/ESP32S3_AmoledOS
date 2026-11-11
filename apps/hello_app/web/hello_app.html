@@ -9,8 +9,9 @@
      pages"). Va al lado del .so con el mismo nombre -hello_app.so,
      hello_app.html- y el reloj la sirve en /hello_app: no hay firmware que
      compilar. Lo que muestra es lo basico que necesita cualquiera: la
-     cinta y el idioma de aos.js, el estado del reloj, un archivo de la
-     tarjeta que se lee y se guarda, y abrir la app en el reloj. -->
+     menu y el idioma de aos.js, el estado del reloj y un archivo de la
+     tarjeta que se lee y se guarda. El boton "Abrir en el reloj" de al lado
+     del titulo no esta aca: lo pone aos.js en la pagina de toda app. -->
 <style>
   .hl-nota { width: 100%; min-height: 90px; box-sizing: border-box; }
 </style>
@@ -28,7 +29,6 @@
       <dt data-t="encendido">Encendido hace</dt><dd id="uptime">-</dd>
       <dt data-t="bateria">Batería</dt><dd id="bateria">-</dd>
     </dl>
-    <div class="fila"><button id="abrir" data-t="abrir">Abrir Hola en el reloj</button></div>
   </div>
 
   <div class="tarjeta">
@@ -45,16 +45,16 @@ const TR = {
   en: {
     titulo: "Hello", bajada: "The sample page of an app on the card.",
     t_reloj: "The watch", encendido: "Up for", bateria: "Battery",
-    abrir: "Open Hello on the watch", t_nota: "A note on the card",
+    t_nota: "A note on the card",
     nota_ayuda: "Saved as /sdcard/hola.txt: that is how a page and its app talk.",
-    guardar: "Save", guardado: "saved", abierta: "opened on the watch"
+    guardar: "Save", guardado: "saved"
   },
   de: {
     titulo: "Hallo", bajada: "Die Beispielseite einer App auf der Karte.",
     t_reloj: "Die Uhr", encendido: "An seit", bateria: "Akku",
-    abrir: "Hallo auf der Uhr öffnen", t_nota: "Eine Notiz auf der Karte",
+    t_nota: "Eine Notiz auf der Karte",
     nota_ayuda: "Gespeichert als /sdcard/hola.txt: so sprechen eine Seite und ihre App miteinander.",
-    guardar: "Speichern", guardado: "gespeichert", abierta: "auf der Uhr geöffnet"
+    guardar: "Speichern", guardado: "gespeichert"
   }
 };
 const $ = aos.$;
@@ -72,12 +72,6 @@ $("guardar").onclick = () => {
   fetch("/api/upload?dir=sd&name=" + ARCHIVO, { method: "POST", body: $("nota").value })
     .then(r => { if (!r.ok) throw new Error(r.status); aos.brindis(tx("guardado", "guardado")); })
     .catch(e => aos.brindis(String(e.message || e)));
-};
-
-$("abrir").onclick = () => {
-  aos.post("/api/accion", { que: "abrir", id: "demo.hello" })
-    .then(() => aos.brindis(tx("abierta", "abierta en el reloj")))
-    .catch(e => aos.brindis(e.message));
 };
 
 aos.init(TR).then(() => {

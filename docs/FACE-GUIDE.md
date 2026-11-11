@@ -184,7 +184,8 @@ by a page of its own in the portal; Home does it this way:
 - `web/face_mine.html` next to `main/`: a whole HTML page that loads `/aos.css`
   and `/aos.js` (template: `faces/face_casa/web/face_casa.html` or
   `apps/hello_app/web/hello_app.html`). It is served at `/face_mine` and
-  listed in the portal's ribbon.
+  listed in the portal's menu, under Watchfaces, with a "Use this
+  watchface" button beside its title that the portal adds.
 - The page writes `face_mine.cfg` with `POST /api/upload?dir=faces&name=face_mine.cfg`;
   the face finds it with `aos_watchface_path()` (in the simulator, in
   `sim/sim_fs/data/`, which is what `tools/portal_dev_server.py` maps

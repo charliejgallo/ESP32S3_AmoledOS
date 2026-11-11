@@ -11,7 +11,7 @@ its app, from the card - see "The apps' own pages" below.
 
 | URL | What it is |
 |---|---|
-| `/` | **Home.** Battery, network, memory and system cards fed by `/api/status`; wake / screen off / sync time / restart; the firmware (OTA) upload. |
+| `/` | **Home.** What is on the watch's screen (a capture, taken by itself only while the screen is lit and when what is open changes; a tap on it wakes the watch and looks again) with back / watchface / menu / wake / screen off; battery, network, memory and system cards fed by `/api/status`; sync time / restart; the firmware (OTA) upload, which says what it came back running. |
 | `/ajustes` | **Settings.** The watch's name first (what answers as `<name>.local`, shown next to the logo and in the tab so two watches on one network are told apart; lowercase letters, digits and hyphens), then the same controls as the watch's Settings app: brightness, watchface, launcher style, always-on and its brightness, volume, the four power switches, time zone, set the time, language, wifi / Bluetooth, notifications. The two screen timeouts (dims after, turns off after) and "do not disturb" match the watch's Settings > Display and Notifications. Each control applies on release. |
 | `/alarmas` | **Alarms.** The six slots of the Alarms app: time, on/off, the days of the week (with weekdays / weekend / every day shortcuts), delete, add. A change is stored in NVS and the alarm service reloads on its next tick, redrawing the app if it is open. |
 | `/pantalla` | **Screen.** A live capture of the panel, with the controls to drive it from the browser: wake, off, back, watchface, menu, a toast, and a button per app to open it. For testing without the watch on the wrist. |
@@ -31,10 +31,37 @@ its app, from the card - see "The apps' own pages" below.
 | `/visor3d` | **3D viewer** *(the app's page, from the card)*: STL, OBJ and GLB converted in the browser into the viewer's `.m3d` (apps/visor3d/README.md). `/3d`, its address while it lived in the firmware, leads there. |
 | `/hello_app` | *(the app's page, from the card)* The template of an app's page. |
 
-All pages share `aos.js` (language, the navigation ribbon, the live status
-strip, helpers) and `aos.css` (tokens for dark and light, following the
-system theme). Spanish is written in the HTML; `en` and `de` dictionaries ride
+All pages share `aos.js` (language, the side menu, the live status chips,
+helpers) and `aos.css` (tokens for dark and light, following the system
+theme). Both are served with an ETag made of the build's hash: the browser
+keeps them and a new firmware's are fetched on the first page after it. Spanish is written in the HTML; `en` and `de` dictionaries ride
 in each page and are chosen by the **watch's** language, not the browser's.
+
+## The side menu
+
+`aos.js` draws it on every page, the firmware's and the ones the apps and the
+faces bring (v0.17.0; it was a ribbon of pills above the content, and with
+forty apps on the card there was no moving along it). A column on the left
+when there is room; under 900 px, a drawer opened from a bar at the top that
+keeps the watch's name, the battery and the network in sight.
+
+- **Groups**: Watch, Network, Apps, Watchfaces (the pages named `face_*`).
+  Each folds, with its count; the one you are in never hides its page.
+- **Search**: the box, or `/` from anywhere. It ignores accents and case;
+  Enter opens the first match, Esc clears it.
+- **Pinned**: the star on a page keeps it at the top, in the order pinned.
+- What it remembers (pinned, folded) is the browser's (`localStorage`), not
+  the watch's: nothing is written to the board.
+- **The status chips** (battery, network, RAM, screen, version) are at the
+  top of the menu, and *Wake* and *Log out* at its foot.
+- **"Open on the watch" / "Use this watchface"**: on the page of an app or of
+  a face from the card, a button beside the title does it (`que=abrir`, or
+  `esfera=` to `/api/ajustes`), and reads "open on the watch" while it is. The
+  page does not write it: `/api/paginas` says whose each page is.
+- **When the watch stops answering** (a restart, an update, out of the WiFi's
+  reach) a notice comes down after the second failed poll and the page asks
+  every 3 s instead of every 15; when it is back the notice goes, and if it
+  came back with another build the page reloads itself.
 
 ## API
 
@@ -42,7 +69,7 @@ Form-encoded bodies for POST, JSON back. Off a trusted network the API
 answers only a browser the watch let in, or the token (docs/SECURITY.md). Everything the pages use:
 
 ```
-GET  /api/status                 the whole state; the strip polls it every 15 s
+GET  /api/status                 the whole state; the menu polls it every 15 s
                                  (face, face_fps, face_busy: the watchface and
                                  the frame rate it is getting, docs/FACE-GUIDE.md)
 GET  /api/ajustes                the settings, with the list of watchfaces
@@ -167,10 +194,10 @@ OTA.
 
 - **Next to the `.so`, named like it.** `tools/install_apps.sh` uploads it
   with the app; a release's `apps.zip` carries it for the same folder; taking
-  an app off the card takes its page with it. The ribbon names it after the
+  an app off the card takes its page with it. The menu names it after the
   app of the `.so` with the same name, translated like the launcher's.
 - **A whole HTML document** that loads `/aos.css` and `/aos.js`, like the
-  firmware's own pages: the ribbon, the status strip, the language, the
+  firmware's own pages: the menu, the status chips, the language, the
   helpers. `apps/hello_app/web/hello_app.html` is the template.
 - **Served from the 404 handler** (`not_found_handler` in `aos_web.c`): what no
   route of the firmware answers, for a name of `[a-z0-9_-]`, one level, read
@@ -197,8 +224,8 @@ OTA.
 A watchface that is a module ([FACES.md](FACES.md)) brings its page the same
 way, beside its `.so`: `faces/<face>/web/<face>.html`, delivered in the
 card's `/faces`, installed into the flash with the face and served from there
-at `/<face>` (`/face_casa`, Home's). The ribbon lists it under the face's
-name. `dir=faces` is the flash's faces folder (`/spiffs/faces`): a face's page
+at `/<face>` (`/face_casa`, Home's). The menu lists it under the face's
+name, in the Watchfaces group. `dir=faces` is the flash's faces folder (`/spiffs/faces`): a face's page
 writes its settings there (Home's list, `face_casa.cfg`), and a `face_*.so`
 uploaded there is installed at the next boot. The development server maps it
 to the simulator's `data/`, where the compiled-in faces look.

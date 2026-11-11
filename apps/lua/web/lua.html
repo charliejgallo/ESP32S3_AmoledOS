@@ -68,7 +68,6 @@
   <section id="pantalla-lista">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <h2 data-t="h_guiones" style="flex:1">Guiones</h2>
-      <button class="sec" id="abrir-reloj" data-t="btn_abrir">Abrir la app en el reloj</button>
       <button id="nuevo" data-t="btn_nuevo">Nuevo guión</button>
     </div>
     <div class="lista" id="lista"></div>
@@ -168,7 +167,7 @@ const TR = {
     bajada: "Scripts the watch runs with nothing to compile. They live on the card and the app " +
             "lists them; if the one you are editing is the one running, the watch reloads it by " +
             "itself when you save.",
-    h_guiones: "Scripts", btn_nuevo: "New script", btn_abrir: "Open the app on the watch",
+    h_guiones: "Scripts", btn_nuevo: "New script",
     sin_guiones: "No scripts yet. Make the first one with “New script”.",
     btn_volver: "Scripts", ph_nombre: "name.lua",
     btn_guardar: "Save to the watch", btn_correr: "Open the app on the watch",
@@ -198,7 +197,7 @@ const TR = {
     bajada: "Skripte, die die Uhr ausführt, ohne dass etwas kompiliert wird. Sie liegen auf der " +
             "Karte und die App listet sie; wenn das bearbeitete gerade läuft, lädt die Uhr es beim " +
             "Speichern von selbst neu.",
-    h_guiones: "Skripte", btn_nuevo: "Neues Skript", btn_abrir: "App auf der Uhr öffnen",
+    h_guiones: "Skripte", btn_nuevo: "Neues Skript",
     sin_guiones: "Noch keine Skripte. Erstelle das erste mit „Neues Skript“.",
     btn_volver: "Skripte", ph_nombre: "name.lua",
     btn_guardar: "Auf der Uhr speichern", btn_correr: "App auf der Uhr öffnen",
@@ -378,7 +377,6 @@ $("guardar").onclick = guardar;
 $("borrar").onclick  = borrar;
 const abrirApp = () => aos.post("/api/accion", { que: "abrir", id: "aos.lua" })
                           .catch(() => aos.brindis(t("err_placa")));
-$("abrir-reloj").onclick = abrirApp;
 $("correr").onclick      = abrirApp;
 
 /* Ctrl/Cmd+S guarda, que es el gesto que uno hace sin pensar cuando el

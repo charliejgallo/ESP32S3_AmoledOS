@@ -294,6 +294,9 @@ later faces and the frame rates):
   against `fake_ha.py`: values, a light toggled by a tap and asked again,
   its page saving the list.
 
+Home against a real Home Assistant (2026-11-10, v0.16.0): two lights, a
+panel and a temperature sensor, configured from its page.
+
 Not tried yet: a boot with the card out (the face comes from the flash, so it
-should not notice), Home against the real Home Assistant, and the Water's
-frame rate while it moves since its last change (it was 14 fps before it).
+should not notice), and the Water's frame rate while it moves since its last
+change (it was 14 fps before it).

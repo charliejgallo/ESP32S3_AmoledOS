@@ -84,8 +84,11 @@ def app_pages(base):
         names.add(os.path.basename(path)[:-5])
     for path in glob.glob(os.path.join(base, "apps", "*.html")):
         names.add(os.path.basename(path)[:-5])
-    return [{"pagina": n, "app": "", "nombre": n} for n in sorted(names)
-            if re.fullmatch(r"[a-z0-9_-]{1,32}", n)]
+    # the ids are made up from the file's name: enough to see the "open on
+    # the watch" button, which the board answers with the real ones
+    return [{"pagina": n, "nombre": n,
+             "app": ("face." + n[5:]) if n.startswith("face_") else ("aos." + n)}
+            for n in sorted(names) if re.fullmatch(r"[a-z0-9_-]{1,32}", n)]
 
 
 def prefs_path(base):
@@ -650,7 +653,7 @@ class Handler(BaseHTTPRequestHandler):
                 "ap": str(d.get("ap_activo", "0")) == "1", "ap_ip": "192.168.4.1",
                 "bt": "connected" if str(d.get("bt_on", "1")) == "1" else "off",
                 "bt_peer": "iPhone de prueba", "phone_batt": 63,
-                "app": Handler.app_abierta, "time_ok": True,
+                "app": Handler.app_abierta, "face": d.get("face", "digital"), "time_ok": True,
                 "tz": d.get("tz", "ART3"), "now": int(time.time()),
             }))
 

@@ -15,6 +15,24 @@
                 background: var(--accent); transition: width .15s; }
   .tarjeta .cifra { margin-bottom: 4px; }
   .enlace { color: var(--accent); text-decoration: none; }
+  /* lo que hay en la pantalla, a 3/8 de su tamano (368x448) */
+  .vista { display: flex; gap: 16px; align-items: center; margin-bottom: 12px; }
+  .vista .marco {
+    width: 138px; height: 168px; flex: none; border-radius: 20px; background: #000;
+    overflow: hidden; box-shadow: 0 0 0 4px var(--card2); position: relative; cursor: pointer;
+    padding: 0; border: 0;
+  }
+  .vista .marco img { width: 100%; height: 100%; display: block; }
+  .vista .marco img[hidden] { display: none; }
+  .vista .marco span {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 10px; color: #8e8e93; font-size: 12px; line-height: 1.35;
+  }
+  .vista .marco.ocupado img { opacity: .4; }
+  .vista .lado-v { flex: 1; min-width: 0; }
+  .vista .que { font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+  .vista .como { color: var(--dim); font-size: 13px; margin-bottom: 10px; }
+  .vista .mandos { display: flex; gap: 6px; flex-wrap: wrap; }
 </style>
 </head>
 <body>
@@ -26,6 +44,24 @@
      Se refresca solo cada 15 segundos.</p>
 
   <nav class="paginas"></nav>
+
+  <div class="tarjeta vista">
+    <button class="marco" id="vista-marco" title="">
+      <img id="vista-img" alt="" hidden>
+      <span id="vista-pie"></span>
+    </button>
+    <div class="lado-v">
+      <div class="que" id="vista-que">-</div>
+      <div class="como" id="vista-como">-</div>
+      <div class="mandos">
+        <button class="sec chica" id="m-volver" data-t="m_volver">Volver</button>
+        <button class="sec chica" id="m-inicio" data-t="m_inicio">Esfera</button>
+        <button class="sec chica" id="m-menu" data-t="m_menu">Menú</button>
+        <button class="sec chica" id="b-despertar" data-t="b_despertar">Despertar</button>
+        <button class="sec chica" id="b-apagar" data-t="b_apagar">Apagar pantalla</button>
+      </div>
+    </div>
+  </div>
 
   <div class="rejilla">
     <div class="tarjeta">
@@ -75,14 +111,13 @@
         <dt data-t="l_cpu">CPU</dt><dd id="sis-cpu">-</dd>
         <dt data-t="l_pantalla">Pantalla</dt><dd id="sis-pantalla">-</dd>
         <dt data-t="l_app">App abierta</dt><dd id="sis-app">-</dd>
+        <dt data-t="l_esfera">Esfera</dt><dd id="sis-esfera">-</dd>
         <dt data-t="l_hora">Hora del reloj</dt><dd id="sis-hora">-</dd>
       </dl>
     </div>
   </div>
 
   <div class="acciones">
-    <button class="sec" id="b-despertar" data-t="b_despertar">Despertar pantalla</button>
-    <button class="sec" id="b-apagar" data-t="b_apagar">Apagar pantalla</button>
     <button class="sec" id="b-hora" data-t="b_hora">Sincronizar hora</button>
     <button class="mala" id="b-reiniciar" data-t="b_reiniciar">Reiniciar</button>
   </div>
@@ -112,8 +147,11 @@ const TR = {
     h_memoria: "Memory", l_interna: "Internal RAM", l_ejec: "Executable",
     h_sistema: "System", l_version: "Version", l_placa: "Board", l_ranura: "Slot",
     l_encendido: "Up for", l_arranque: "Last boot", l_cpu: "CPU", l_pantalla: "Screen",
-    l_app: "Open app", l_hora: "Watch time",
-    b_despertar: "Wake screen", b_apagar: "Screen off", b_hora: "Sync time", b_reiniciar: "Restart",
+    l_app: "Open app", l_esfera: "Watchface", l_hora: "Watch time",
+    m_volver: "Back", m_inicio: "Watchface", m_menu: "Menu",
+    v_tocar: "tap to wake it and look", v_capturando: "looking...", v_esfera: "the watchface",
+    v_fallo: "could not look", fw_listo: "installed: running %s",
+    b_despertar: "Wake", b_apagar: "Screen off", b_hora: "Sync time", b_reiniciar: "Restart",
     fw_titulo: "Firmware",
     fw_elegir: "Choose amoledos.bin",
     fw_ayuda: "The .bin goes into the slot that is not in use and boots on trial: if it does not come up, the next boot goes back to the previous one by itself. It does not touch the wifi, the language or the apps' data.",
@@ -140,8 +178,11 @@ const TR = {
     h_memoria: "Speicher", l_interna: "Interner RAM", l_ejec: "Ausfuehrbar",
     h_sistema: "System", l_version: "Version", l_placa: "Platine", l_ranura: "Slot",
     l_encendido: "Laeuft seit", l_arranque: "Letzter Start", l_cpu: "CPU", l_pantalla: "Bildschirm",
-    l_app: "Offene App", l_hora: "Uhrzeit",
-    b_despertar: "Bildschirm wecken", b_apagar: "Bildschirm aus", b_hora: "Zeit abgleichen", b_reiniciar: "Neustart",
+    l_app: "Offene App", l_esfera: "Zifferblatt", l_hora: "Uhrzeit",
+    m_volver: "Zur\u00fcck", m_inicio: "Zifferblatt", m_menu: "Men\u00fc",
+    v_tocar: "tippen, um zu wecken und nachzusehen", v_capturando: "schaue nach...", v_esfera: "das Zifferblatt",
+    v_fallo: "konnte nicht nachsehen", fw_listo: "installiert: es l\u00e4uft %s",
+    b_despertar: "Wecken", b_apagar: "Bildschirm aus", b_hora: "Zeit abgleichen", b_reiniciar: "Neustart",
     fw_titulo: "Firmware",
     fw_elegir: "amoledos.bin waehlen",
     fw_ayuda: "Die .bin geht in den ungenutzten Slot und startet auf Probe: kommt sie nicht hoch, kehrt der naechste Start von selbst zur vorherigen zurueck. WLAN, Sprache und App-Daten bleiben unberuehrt.",
@@ -175,7 +216,9 @@ const ES = {
   emparejando: "emparejando", apagado: "apagado", encendido: "encendido", a_prueba: "a prueba",
   libre: "libres", de: "de", sin_tarjeta: "sin tarjeta", sin_hora: "nunca puesta",
   confirmar_reinicio: "¿Reiniciar el reloj?", reiniciando: "reiniciando...",
-  hecho: "listo", fallo: "falló"
+  hecho: "listo", fallo: "falló",
+  v_tocar: "tocá para despertarla y mirar", v_capturando: "mirando...", v_esfera: "la esfera",
+  v_fallo: "no se pudo mirar", fw_listo: "instalado: corre %s"
 };
 
 const $ = aos.$;
@@ -245,6 +288,25 @@ function pintar(s) {
   txt("sis-cpu", s.cpu_mhz ? s.cpu_mhz + " MHz" : undefined);
   txt("sis-pantalla", s.display === 1 ? t("activa") : s.display === 2 ? t("atenuada") : t("apagada"));
   txt("sis-app", s.app ? s.app : t("ninguna"));
+  txt("sis-esfera", s.face);
+
+  /* La pantalla */
+  txt("vista-que", s.app ? s.app : t("v_esfera") + (s.face ? " · " + s.face : ""));
+  txt("vista-como", s.display === 1 ? t("activa") : s.display === 2 ? t("atenuada") : t("apagada"));
+  /* Sola se mira nada mas que encendida y si cambio lo que hay: una captura
+     son 480 KB y despertar el reloj porque alguien abrio el portal no. */
+  const clave = (s.app || "") + "|" + (s.face || "") + "|" + s.display;
+  if (s.display === 1 && clave !== mirar.clave) mirar(false);
+  else if (s.display !== 1 && !mirar.hecha) $("vista-pie").textContent = t("v_tocar");
+  mirar.clave = clave;
+
+  /* Recien instalado: con que quedo */
+  let fw = null;
+  try { fw = sessionStorage.getItem("aos_fw"); } catch (e) {}
+  if (fw && s.uptime_s !== undefined && s.uptime_s < 300) {
+    $("fw-estado").textContent = t("fw_listo").replace("%s", s.version);
+    try { sessionStorage.removeItem("aos_fw"); } catch (e) {}
+  }
   if (s.time_ok === false) txt("sis-hora", t("sin_hora"));
   else if (s.now) txt("sis-hora", new Date(s.now * 1000).toLocaleString() + (s.tz ? " · " + s.tz : ""));
 }
@@ -259,8 +321,41 @@ async function accion(que, extra) {
   }
 }
 
-$("b-despertar").onclick = () => accion("despertar");
-$("b-apagar").onclick = () => accion("apagar");
+/* La captura de la tarjeta de arriba. Tocarla despierta el reloj y mira de
+   nuevo; sola (despertar = false) lo toma como esta. */
+function mirar(despertar) {
+  const marco = $("vista-marco"), img = $("vista-img"), pie = $("vista-pie");
+  if (marco.classList.contains("ocupado")) return;
+  marco.classList.add("ocupado");
+  if (img.hidden) pie.textContent = t("v_capturando");
+  fetch("/api/captura" + (despertar ? "" : "?sin_despertar=1"))
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+    .then(b => {
+      if (img.src) URL.revokeObjectURL(img.src);
+      img.src = URL.createObjectURL(b);
+      img.hidden = false;
+      pie.textContent = "";
+      mirar.hecha = true;
+    })
+    .catch(() => { if (img.hidden) pie.textContent = t("v_fallo"); })
+    .then(() => { marco.classList.remove("ocupado"); if (despertar) setTimeout(aos.estado, 400); });
+}
+$("vista-marco").onclick = () => mirar(true);
+
+/* Los mandos mueven el reloj y despues se mira donde quedo. */
+async function mando(que) {
+  try {
+    await aos.post("/api/accion", { que: que });
+    setTimeout(() => { mirar.clave = null; aos.estado(); }, 700);
+  } catch (e) {
+    aos.brindis(t("fallo") + ": " + e.message);
+  }
+}
+$("m-volver").onclick = () => mando("volver");
+$("m-inicio").onclick = () => mando("inicio");
+$("m-menu").onclick = () => mando("menu");
+$("b-despertar").onclick = () => mando("despertar");
+$("b-apagar").onclick = () => mando("apagar");
 $("b-hora").onclick = () => accion("sync_hora");
 $("b-reiniciar").onclick = () => {
   if (!confirm(t("confirmar_reinicio"))) return;
@@ -295,6 +390,7 @@ function subirFirmware(f) {
   xhr.onload = () => {
     if (xhr.status >= 200 && xhr.status < 300) {
       est.textContent = t("fw_ok");
+      try { sessionStorage.setItem("aos_fw", "1"); } catch (e) {}
       fetch("/api/ota/restart", { method: "POST" }).catch(() => {});
     } else {
       est.textContent = t("fw_error") + (xhr.responseText || xhr.status);
