@@ -645,6 +645,22 @@ Everything below uses the files of the
 [latest release](https://github.com/charliejgallo/ESP32S3_AmoledOS/releases/latest):
 the firmware and every dynamic app already built. No toolchain needed.
 
+**The cable is needed once.** The first flash goes over USB; from then on
+the watch updates its own firmware (Settings → Update) and the portal's
+Store installs the apps and watchfaces, both from the latest release, over
+wifi. In short:
+
+| | First time | From then on (v0.18.0 and later) |
+|---|---|---|
+| **Firmware** | `amoledos-full.bin` over USB ([step 1](#1-flash-the-firmware)) | the watch: **Settings → Update** |
+| **Apps and watchfaces** | the Store, or `apps.zip` on the card ([step 2](#2-fill-the-card)) | the portal: **Store** |
+| **Languages** | in the firmware already; `lang.zip` for the newest | the firmware brings its own; the Store brings each app's |
+
+A watch on v0.17.0 or earlier has no Update page yet: it goes to v0.18.0 once
+more through the portal (`amoledos.bin` on the front page, see
+[step 4](#4-from-then-on-updates-and-apps-over-wifi)), and updates itself after
+that.
+
 > **Tested on v2 boards only.** Every feature and every number in this
 > repository comes from the v2 of the board (CO5300 panel, CST820 touch).
 > The firmware detects a v1 (SH8601 + FT3168) at run time and should work
@@ -688,7 +704,11 @@ esptool --chip esp32s3 -p <PORT> -b 460800 write_flash 0x0 amoledos-full.bin
 
 ### 2. Fill the card
 
-With a card reader, before the card goes into the watch:
+**The card only has to be FAT32 and in the watch.** The apps and watchfaces
+can come afterwards from the portal's Store, one by one, once the watch is
+on wifi ([step 4](#4-from-then-on-updates-and-apps-over-wifi)). To have all
+of them from the start, or with no network, copy them with a card reader
+before the card goes into the watch:
 
 ```bash
 unzip apps.zip        -d /Volumes/<sd>/apps/    # the apps, and the games' .pak files
@@ -725,15 +745,41 @@ The watch starts in Spanish; the settings are **Ajustes** in the launcher.
    clock sets itself over NTP, and the web portal answers at the watch's
    address or at `<name>.local`, both shown in Settings → Wi-Fi.
 
-### 4. From then on, over wifi
+### 4. From then on: updates and apps over wifi
 
-**After that first install the cable is optional.** The firmware updates over
-WiFi — `./tools/install_fw.sh <board-ip>`, or drop `amoledos.bin` on the portal's
-front page — writing into the idle one of the two 5 MB app slots and leaving
-NVS alone, so your wifi, language and app data survive. The new image boots on
-trial and the bootloader goes back to the previous one on its own if it does
-not come up. New apps and languages go to the card through the portal. See
-[docs/BUILDING.md](docs/BUILDING.md).
+**The firmware: Settings → System → Update** (since v0.18.0). The page looks
+at the latest published release when it opens and says whether it is newer
+than what runs, with a few lines about it. **Download and install** writes it
+into the idle one of the two 5 MB app slots, checking it against the size and
+the SHA-256 the release publishes; **hold** the button to restart into it.
+Your wifi, language, settings and app data stay. The new version boots on
+trial, and goes back to the previous one by itself if it does not come up;
+the same page also goes back by hand ("Previous version"). The portal has the
+same at `/api/update`. More in [docs/UPDATE.md](docs/UPDATE.md).
+
+<p align="center">
+  <img src="docs/img/portal-tienda-ficha.png" width="560" alt="The Store's page for Golf: icon, pictures, the line about it, Remove, and its files each with a tick">
+</p>
+
+**Apps and watchfaces: the portal's Store** (`http://<name>.local/tienda`,
+under Apps in its side menu, since v0.18.0). Every app and watchface of the
+latest release, with its icon, pictures and a line about it, by kind, with a
+search. **Install** and **Update** queue it; the watch downloads each of its
+files from the release itself, checks it, and puts it in place: the apps on
+the card, the watchfaces in the flash, their translations in `lang/`. They
+load when the watch starts, and the page offers the restart. **Update all**
+takes every update at once, and an app's page has **Remove**; what an app
+saved stays either way.
+
+If the card was filled from `apps.zip`, the Store lists those apps as
+*copied by hand*: **Check them** hashes them once (about two minutes for a
+full card) and from then on it knows them as its own. More in
+[docs/STORE.md](docs/STORE.md).
+
+**Coming from v0.17.0 or earlier**, the firmware goes in through the portal
+once more: drop `amoledos.bin` on its front page, under *Firmware*. That is
+also how a build of your own goes in, with
+`./tools/install_fw.sh <name>.local` ([docs/BUILDING.md](docs/BUILDING.md)).
 
 ## The microSD card
 
@@ -749,9 +795,9 @@ into. The portal serves each one by name.
 
 | folder | what goes in it | where from |
 |---|---|---|
-| `apps/` | the dynamic apps (`.so`) and the big games' assets (`golf.pak`, `turbo.pak`, `monsterhop.pak`, `mila.pak`) | `apps.zip`; read at startup |
-| `faces/` | watchfaces (`face_*.so`) and their pages; installed into the flash at boot, so the card is only how they arrive ([FACES.md](docs/FACES.md)) | `apps.zip`'s `faces/` (v0.15.0) |
-| `lang/<code>/` | translation packs (`en/`, `de/`), one `.lang` per app plus `_sistema.lang`; a pack on the card wins over the copy in the binary | `lang.zip`, or `tools/install_lang.sh` ([I18N.md](docs/I18N.md)) |
+| `apps/` | the dynamic apps (`.so`), their portal pages (`.html`) and the big games' assets (`golf.pak`, `turbo.pak`, `monsterhop.pak`, `mila.pak`) | the portal's Store, or `apps.zip`; read at startup |
+| `faces/` | watchfaces (`face_*.so`) and their pages, copied by hand; installed into the flash at boot, so the card is only how they arrive ([FACES.md](docs/FACES.md)) | `apps.zip`'s `faces/`; the Store puts them straight into the flash |
+| `lang/<code>/` | translation packs (`en/`, `de/`), one `.lang` per app plus `_sistema.lang`; a pack on the card wins over the copy in the binary, and what it lacks comes from the binary | `lang.zip`, the Store (each app's), or `tools/install_lang.sh` ([I18N.md](docs/I18N.md)) |
 | `lua/` | Lua scripts, each one an app in the launcher | `lua-scripts.zip`, or written in the portal's `/lua` |
 | `3d/` | models for Visor 3D: `.stl` and `.m3d` | `apps/visor3d/models/` (v0.6.0: `3d-models.zip`), or the portal's `/3d`, which converts STL, OBJ and GLB |
 | `photos/` | JPEG, PNG and BMP for Fotos | your own |
@@ -766,6 +812,7 @@ into. The portal serves each one by name.
 | `radio/` | the Radio app's list of stations (`library.json`) and the logo of each key (`logoN.jpg`) | the portal's `/radio` |
 | `maps/` | Mapas: zones (`zones.txt`), offline zones (`.amp` packs and their `.idx` of names) and `cache/`, the tiles seen online | the portal's `/mapas`, `tools/map_pack.py`, and the app ([MAPS.md](docs/MAPS.md)) |
 | `menu.txt` | the launcher's order and folders | the portal's `/menu` ([MENU.md](docs/MENU.md)) |
+| `.store/` | what the Store installed, file by file (`installed.txt`), and the catalogue it read last | the Store ([STORE.md](docs/STORE.md)) |
 
 ## Quick start
 
@@ -850,6 +897,8 @@ and UDP in the simulator.
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | how the pieces fit, the drawing model, and what the measurements taught |
 | [HARDWARE.md](docs/HARDWARE.md) | the board, the pinout, and the quirks the datasheets do not mention |
 | [BUILDING.md](docs/BUILDING.md) | firmware, simulator, dynamic apps, and every tool |
+| [UPDATE.md](docs/UPDATE.md) | the firmware updating itself from the watch: the manifest a release carries, what keeps it safe, how to try it without publishing |
+| [STORE.md](docs/STORE.md) | the portal's Store: what the watch checks before a file takes its place, the catalogue, `gen_store.py`, and what was measured |
 | [APP-API.md](docs/APP-API.md) | writing an app, and the things that will bite you |
 | [APP-GUIDE.md](docs/APP-GUIDE.md) | the long form: how the apps were actually written - workflow, the four drawing techniques with their costs, data from the internet, configuration from the portal, testing without the board, and every trap that bit |
 | [FACES.md](docs/FACES.md) | the watchfaces from the card: the five, choosing and removing them, how the card delivers and the flash keeps, the drawing model, and what was measured |
@@ -928,6 +977,11 @@ the portal.
 The watchfaces from the card have been installed from it, updated, uploaded
 through the portal and removed on the board, and their frame rates measured
 there ([FACES.md](docs/FACES.md)).
+The firmware has updated itself from GitHub and gone back to the previous
+version on the board, and the Store has installed, updated and removed apps
+and watchfaces from the published v0.18.0 ([UPDATE.md](docs/UPDATE.md),
+[STORE.md](docs/STORE.md)); updating from one published version to the next
+from the watch waits for the release after v0.18.0.
 USB host mode (a pendrive on the watch) works but is parked: the board cannot
 power a peripheral ([USB.md](docs/USB.md)).
 
