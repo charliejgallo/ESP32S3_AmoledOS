@@ -49,6 +49,7 @@
        las esferas (face_x.html) llegan por el mismo camino y van a su
        propio grupo. */
     { t: "grp_apps", apps: true, paginas: [
+      { url: "/tienda",   t: "nav_tienda",   ic: "\u2605" },
       { url: "/pato",     t: "nav_pato"     },
       { url: "/iconos",   t: "nav_iconos"   }
     ]},
@@ -61,7 +62,7 @@
     es: { grp_reloj: "Reloj", grp_red: "Red", grp_apps: "Apps",
           grp_esferas: "Esferas", grp_fijas: "Fijadas", nav_buscar: "Buscar\u2026", nav_nada: "nada con ese nombre",
           nav_menu_abrir: "Men\u00fa", nav_fijar: "Fijar arriba", nav_soltar: "Dejar de fijar", nav_despertar: "Despertar",
-          nav_inicio: "Inicio", nav_ajustes: "Ajustes", nav_alarmas: "Alarmas", nav_pantalla: "Pantalla", nav_menu: "Menú",
+          nav_tienda: "Tienda", nav_inicio: "Inicio", nav_ajustes: "Ajustes", nav_alarmas: "Alarmas", nav_pantalla: "Pantalla", nav_menu: "Menú",
           nav_archivos: "Archivos", nav_registro: "Registro", nav_usb: "USB",
           nav_wifi: "Conectar", nav_ap: "Punto de acceso", nav_red: "Escaneos",
           nav_pato: "Pato goma", nav_iconos: "Iconos",
@@ -79,7 +80,7 @@
     en: { grp_reloj: "Watch", grp_red: "Network", grp_apps: "Apps",
           grp_esferas: "Watchfaces", grp_fijas: "Pinned", nav_buscar: "Search\u2026", nav_nada: "nothing by that name",
           nav_menu_abrir: "Menu", nav_fijar: "Pin to the top", nav_soltar: "Unpin", nav_despertar: "Wake",
-          nav_inicio: "Home", nav_ajustes: "Settings", nav_alarmas: "Alarms", nav_pantalla: "Screen", nav_menu: "Menu",
+          nav_tienda: "Store", nav_inicio: "Home", nav_ajustes: "Settings", nav_alarmas: "Alarms", nav_pantalla: "Screen", nav_menu: "Menu",
           nav_archivos: "Files", nav_registro: "Log", nav_usb: "USB",
           nav_wifi: "Connect", nav_ap: "Access point", nav_red: "Scans",
           nav_pato: "Pato goma", nav_iconos: "Icons",
@@ -97,7 +98,7 @@
     de: { grp_reloj: "Uhr", grp_red: "Netz", grp_apps: "Apps",
           grp_esferas: "Zifferbl\u00e4tter", grp_fijas: "Angeheftet", nav_buscar: "Suchen\u2026", nav_nada: "nichts mit diesem Namen",
           nav_menu_abrir: "Men\u00fc", nav_fijar: "Oben anheften", nav_soltar: "L\u00f6sen", nav_despertar: "Wecken",
-          nav_inicio: "Start", nav_ajustes: "Einstellungen", nav_alarmas: "Wecker", nav_pantalla: "Bildschirm", nav_menu: "Menü",
+          nav_tienda: "Store", nav_inicio: "Start", nav_ajustes: "Einstellungen", nav_alarmas: "Wecker", nav_pantalla: "Bildschirm", nav_menu: "Menü",
           nav_archivos: "Dateien", nav_registro: "Protokoll", nav_usb: "USB",
           nav_wifi: "Verbinden", nav_ap: "Zugangspunkt", nav_red: "Scans",
           nav_pato: "Pato goma", nav_iconos: "Icons",

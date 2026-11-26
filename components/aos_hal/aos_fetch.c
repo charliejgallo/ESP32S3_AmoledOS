@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <time.h>
 
 #ifdef AOS_SIM
   #define BIG(n)   calloc(1, (n))
@@ -388,6 +389,25 @@ int aos_fetch_text(const char *url, uint32_t max, char **out, uint32_t *len,
         *len = t.len;
     }
     return rc;
+}
+
+/* A certificate is checked against the date, and the watch's date can be
+ * wrong while its pref says the clock was set once: the RTC kept the time of
+ * day and lost the year (charlie, 2026-11-25: 1970-01-01 00:55 with the time
+ * right), and nothing syncs over NTP by itself after a restart. A date
+ * before this code was written is certainly wrong: sync before the TLS. */
+#define DATE_FLOOR  1764000000      /* 2025-11-24 */
+
+void aos_fetch_clock(void)
+{
+    if (time(NULL) >= DATE_FLOOR) {
+        return;
+    }
+    aos_hal_log("fetch", "the clock says %lld, before %d: syncing over NTP first",
+                (long long)time(NULL), DATE_FLOOR);
+    bool ok = aos_hal_net_sync_time();
+    aos_hal_log("fetch", "NTP %s: the clock now says %lld", ok ? "answered" : "did not answer",
+                (long long)time(NULL));
 }
 
 const char *aos_fetch_reason(int rc)

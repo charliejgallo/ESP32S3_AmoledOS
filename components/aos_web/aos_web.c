@@ -14,6 +14,7 @@
 #include "aos_usb.h"    /* /api/usb: the USB port's mode, branch usb */
 #include "aos_web_access.h" /* who may talk to the portal */
 #include "aos_update.h"     /* /api/update: the next version, from GitHub */
+#include "aos_store.h"      /* /api/store: the Store, its catalogue and its downloads */
 #include "esp_timer.h"
 #include "esp_core_dump.h"
 #include "esp_ota_ops.h"     /* which slot's firmware made a core dump */
@@ -56,6 +57,8 @@ extern const uint8_t aos_css_start[]     asm("_binary_aos_css_start");
 extern const uint8_t aos_css_end[]       asm("_binary_aos_css_end");
 extern const uint8_t aos_js_start[]      asm("_binary_aos_js_start");
 extern const uint8_t menu_html_start[]   asm("_binary_menu_html_start");
+extern const uint8_t tienda_html_start[] asm("_binary_tienda_html_start");
+extern const uint8_t tienda_html_end[]   asm("_binary_tienda_html_end");
 extern const uint8_t menu_html_end[]     asm("_binary_menu_html_end");
 extern const uint8_t aic_js_start[]      asm("_binary_aic_js_start");
 extern const uint8_t aic_js_end[]        asm("_binary_aic_js_end");
@@ -1291,6 +1294,13 @@ static esp_err_t aic_js_handler(httpd_req_t *req)
 static esp_err_t glifos_js_handler(httpd_req_t *req)
 {
     return estatico(req, "application/javascript; charset=utf-8", glifos_js_start, glifos_js_end);
+}
+
+/* The Store (docs/STORE.md): the page draws the catalogue the watch keeps. */
+static esp_err_t tienda_page_handler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    return httpd_resp_send(req, (const char *)tienda_html_start, tienda_html_end - tienda_html_start - 1);
 }
 
 static esp_err_t menu_page_handler(httpd_req_t *req)
@@ -4040,6 +4050,13 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/ota/restart", .method = HTTP_POST, .handler = ota_restart_handler },
         { .uri = "/api/update",  .method = HTTP_GET,  .handler = update_get_handler },
         { .uri = "/api/update",  .method = HTTP_POST, .handler = update_post_handler },
+        { .uri = "/api/store",          .method = HTTP_GET,  .handler = aos_store_get_handler },
+        { .uri = "/api/store",          .method = HTTP_POST, .handler = aos_store_post_handler },
+        { .uri = "/api/store/catalog",  .method = HTTP_GET,  .handler = aos_store_catalog_handler },
+        { .uri = "/api/store/install",  .method = HTTP_POST, .handler = aos_store_install_handler },
+        { .uri = "/api/store/verify",   .method = HTTP_POST, .handler = aos_store_verify_handler },
+        { .uri = "/api/store/look",     .method = HTTP_POST, .handler = aos_store_look_handler },
+        { .uri = "/api/store/remove",   .method = HTTP_POST, .handler = aos_store_remove_handler },
         { .uri = "/api/download",.method = HTTP_GET,  .handler = download_handler },
         { .uri = "/api/delete",  .method = HTTP_POST, .handler = delete_handler },
         { .uri = "/api/mkdir",   .method = HTTP_POST, .handler = mkdir_handler },
@@ -4055,6 +4072,7 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/aic.js",      .method = HTTP_GET,  .handler = aic_js_handler },
         { .uri = "/glifos.js",   .method = HTTP_GET,  .handler = glifos_js_handler },
         { .uri = "/menu",        .method = HTTP_GET,  .handler = menu_page_handler },
+        { .uri = "/tienda",      .method = HTTP_GET,  .handler = tienda_page_handler },
         { .uri = "/red",         .method = HTTP_GET,  .handler = red_page_handler },
         { .uri = "/api/lang",    .method = HTTP_GET,  .handler = lang_get_handler },
         { .uri = "/api/lang",    .method = HTTP_POST, .handler = lang_set_handler },

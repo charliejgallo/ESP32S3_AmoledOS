@@ -58,5 +58,10 @@ int aos_fetch_get(aos_fetch_t *f);
 int aos_fetch_text(const char *url, uint32_t max, char **out, uint32_t *len,
                    volatile bool *cancel);
 
+/* Makes sure the date can check a certificate: when it is impossible (before
+ * 2025-11-24) it syncs over NTP first, which blocks up to 8 s. Call it from a
+ * job's task before an https:// fetch. */
+void aos_fetch_clock(void);
+
 /* For the log: a line about a result of aos_fetch_get, in English. */
 const char *aos_fetch_reason(int rc);

@@ -45,6 +45,7 @@ uint64_t aos_hal_uptime_ms(void)
 }
 aos_net_state_t aos_hal_net_state(void) { return AOS_NET_CONNECTED; }
 bool aos_hal_net_sync_time(void) { return true; }
+void aos_hal_log(const char *tag, const char *fmt, ...) { (void)tag; (void)fmt; }
 
 static char g_pref[512];
 bool aos_hal_pref_get_str(const char *k, char *out, size_t n) { (void)k; snprintf(out, n, "%s", g_pref); return g_pref[0]; }

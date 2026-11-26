@@ -277,6 +277,48 @@ static void icondump_obj(FILE *f, lv_obj_t *o, int depth)
     }
 }
 
+/* AOS_SIM_STOREDUMP=<file>: every app and watchface the simulator has, as
+ * JSON - id, name, the icon's colours and its AIC bytes in hex - for
+ * tools/gen_store.py, which builds the Store's catalogue from it. The
+ * simulator registers the card's apps and faces from their own sources
+ * (AOS_SIM_BUILTIN), so what is dumped is what the .so files say of
+ * themselves. Writes the file and exits. */
+static void storedump(const char *path)
+{
+    FILE *f = fopen(path, "w");
+    if (!f) {
+        printf("STOREDUMP: cannot write %s\n", path);
+        exit(1);
+    }
+    fprintf(f, "{\"apps\":[\n");
+    int n = aos_ui_app_count();
+    for (int i = 0; i < n; i++) {
+        const aos_app_t *a = aos_ui_app_at(i);
+        size_t len = 0;
+        const uint8_t *ops = aos_icon_ops_for(a->desc.id, &len);
+        if (!ops) {
+            ops = aos_icon_ops_builtin(a->desc.icon_vec, &len);
+        }
+        fprintf(f, "%s{\"id\":\"%s\",\"name\":\"%s\",\"color_a\":\"%06X\",\"color_b\":\"%06X\",\"icon\":\"",
+                i ? ",\n" : "", a->desc.id, a->desc.name ? a->desc.name : "",
+                (unsigned)a->desc.color_a, (unsigned)a->desc.color_b);
+        for (size_t k = 0; ops && k < len; k++) {
+            fprintf(f, "%02x", ops[k]);
+        }
+        fprintf(f, "\"}");
+    }
+    fprintf(f, "\n],\"faces\":[\n");
+    int m = aos_watchface_count();
+    for (int i = 0; i < m; i++) {
+        const aos_watchface_t *w = aos_watchface_at(i);
+        fprintf(f, "%s{\"id\":\"%s\",\"name\":\"%s\"}", i ? ",\n" : "", w->id, w->name ? w->name : "");
+    }
+    fprintf(f, "\n]}\n");
+    fclose(f);
+    printf("STOREDUMP: %d apps, %d faces -> %s\n", n, m, path);
+    exit(0);
+}
+
 static void icondump(const char *path)
 {
     FILE *f = fopen(path, "w");
@@ -1545,6 +1587,10 @@ int main(void)
     /* AOS_SIM_VIEW=launcher|grid|honeycomb|<app.id> starts straight on that
      * screen, to iterate on the design without having to navigate every
      * time. */
+    const char *sdump = getenv("AOS_SIM_STOREDUMP");
+    if (sdump && *sdump) {
+        storedump(sdump);       /* writes the file and exits */
+    }
     const char *dump = getenv("AOS_SIM_ICONDUMP");
     if (dump && *dump) {
         icondump(dump);         /* writes the file and exits */

@@ -403,23 +403,6 @@ static bool hex64(const char *s)
     return s[64] == 0;
 }
 
-/* A certificate is checked against the date, and the watch's date can be
- * wrong while its pref says the clock was set once: the RTC kept the time of
- * day and lost the year (charlie, 2026-11-25: 1970-01-01 00:55 with the time
- * right), and nothing syncs over NTP by itself after a restart. A date
- * before this code was written is certainly wrong: sync before the TLS. */
-#define DATE_FLOOR  1764000000      /* 2025-11-24 */
-
-static void clock_sane(void)
-{
-    if (time(NULL) >= DATE_FLOOR) {
-        return;
-    }
-    LOGW("the clock says %lld, before %d: syncing over NTP first", (long long)time(NULL), DATE_FLOOR);
-    bool ok = aos_hal_net_sync_time();
-    LOGI("NTP %s: the clock now says %lld", ok ? "answered" : "did not answer", (long long)time(NULL));
-}
-
 static void job_check(void)
 {
     char src[URL_MAX];
@@ -434,7 +417,7 @@ static void job_check(void)
     if (look) {
         previous_look();
     }
-    clock_sane();
+    aos_fetch_clock();
 
     uint64_t t0 = aos_hal_uptime_ms();
     char *js = NULL;
@@ -527,7 +510,7 @@ static void job_install(void)
         fail(AOS_UPD_E_UP_TO_DATE, "%s is not newer than %s, which runs", o->ver, aos_hal_firmware_version());
         return;
     }
-    clock_sane();
+    aos_fetch_clock();
     if (!aos_hal_ota_begin(o->size)) {
         fail(AOS_UPD_E_FLASH, "%s", aos_hal_ota_error());
         return;
