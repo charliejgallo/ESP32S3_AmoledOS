@@ -3,7 +3,7 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
-## Unreleased
+## v0.18.0 — 2026-11-25
 
 **The watch updates itself, and the portal has a store.** Settings → System → **Update** looks at the
 latest published release on GitHub, says whether it is newer than what runs,
@@ -15,8 +15,9 @@ go back to the previous one, which stays in the other half. The portal has
 the same in `GET/POST /api/update` ([docs/UPDATE.md](docs/UPDATE.md)).
 
 - Each release carries one more file, `amoledos-update.json`, written by
-  `tools/gen_update.py`. v0.17.0 has none, so a watch on this firmware says
-  the latest release has no update for it until v0.18.0 is out.
+  `tools/gen_update.py`. This is the first: from v0.18.0 on, the next
+  versions arrive at the watch by themselves. v0.17.0 and earlier have no
+  such page, so getting to v0.18.0 is the usual portal OTA.
 - Measured on the board: 4.08 MB from GitHub over TLS (two redirects, the
   last to `release-assets.githubusercontent.com`) in 48 s, 82 KB/s, the flash
   being written as it comes; 4.10 MB from the local network in 42 s. Free
@@ -31,6 +32,11 @@ the same in `GET/POST /api/update` ([docs/UPDATE.md](docs/UPDATE.md)).
   hand are recognised, once checked, as the catalogue's. Each release carries
   `amoledos-store.json` and one file per piece (`tools/gen_store.py`,
   [docs/STORE.md](docs/STORE.md)).
+- **A newer firmware under an older language pack.** A card's
+  `_sistema.lang` used to replace the firmware's catalogue whole, so a
+  firmware with new strings showed them in Spanish under an older English or
+  German pack. What the card's pack lacks now comes from the firmware's own.
+  A new `lang.zip` comes with the release all the same.
 - **A watch whose date was 1970.** The RTC can keep the time of day and lose
   the year, and nothing syncs over NTP by itself after a restart: the face
   showed the right time and every certificate was "not valid yet". The
