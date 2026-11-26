@@ -8,7 +8,7 @@
 <style>
   .barra { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
   .barra .sub { margin: 0; }
-  .barra input[type=search] { flex: 1; min-width: 160px; background: var(--card); color: var(--text);
+  .barra input[type=search] { flex: 1; min-width: 0; background: var(--card); color: var(--text);
                               border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 14px; }
   .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
   .chips button { background: var(--card2); color: var(--text); padding: 6px 12px; border-radius: 999px;
@@ -20,10 +20,11 @@
   .aviso.ambar { border-left: 4px solid var(--amber); }
   .aviso.verde { border-left: 4px solid var(--green); }
   .aviso.rojo { border-left: 4px solid var(--red); }
-  .aviso p { margin: 0; flex: 1; min-width: 200px; font-size: 14px; }
+  .aviso p { margin: 0; flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+  .aviso p:empty { display: none; }
   .progreso { height: 6px; background: var(--card2); border-radius: 3px; overflow: hidden; flex-basis: 100%; }
   .progreso i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
-  .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 14px; }
+  .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: 12px; margin-top: 14px; }
   .item { background: var(--card); border-radius: 16px; padding: 12px; display: flex; gap: 12px;
           align-items: center; cursor: pointer; }
   .item:hover { background: var(--card2); }
@@ -48,7 +49,7 @@
   .ficha .cab { display: flex; gap: 14px; align-items: center; }
   .ficha .cab canvas, .ficha .cab .cara { width: 74px; height: 74px; flex: none; }
   .ficha .cab .cara { border-radius: 14px; object-fit: cover; }
-  .ficha h2 { margin: 0; font-size: 21px; }
+  .ficha h2 { margin: 0; font-size: 21px; text-transform: none; letter-spacing: 0; }
   .ficha .tiras { display: flex; gap: 10px; overflow-x: auto; margin: 14px 0 6px; scroll-snap-type: x mandatory; }
   .ficha .tiras img { height: 230px; border-radius: 14px; scroll-snap-align: start; background: #000; }
   .ficha .botones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
@@ -58,6 +59,7 @@
   .ficha table { width: 100%; font-size: 12px; color: var(--dim); margin-top: 12px; border-collapse: collapse; }
   .ficha td { padding: 3px 0; border-top: 1px solid var(--line); font-family: ui-monospace, Menlo, monospace; }
   .ficha td:last-child { text-align: right; }
+  .ficha th { text-align: left; font-weight: 500; padding: 3px 0; }
   .nota { color: var(--dim); font-size: 13px; margin-top: 16px; line-height: 1.5; }
   .vacio { color: var(--dim); padding: 20px 4px; }
 </style>
@@ -84,7 +86,7 @@
      cuando se actualiza.</p>
 </div>
 
-<dialog id="ficha"><div class="ficha" id="ficha-in"></div></dialog>
+<dialog id="ficha" onclose="history.replaceState(null, '', location.pathname)"><div class="ficha" id="ficha-in"></div></dialog>
 
 <script src="/aos.js"></script>
 <script src="/aic.js"></script>
@@ -235,7 +237,7 @@ function botonDe(it) {
   b.className = "accion";
   if (cola.includes(it.id) || enCurso === it.id) { b.textContent = enCurso === it.id ? "…" : tx("cola"); b.disabled = true; return b; }
   if (e === "installed") { b.textContent = "✓"; b.className += " abrir"; b.disabled = true; return b; }
-  if (e === "hand") { b.textContent = tx("mano"); b.className += " abrir"; b.disabled = true; return b; }
+  if (e === "hand") { b.style.display = "none"; return b; }
   b.textContent = e === "update" ? tx("actualizarla") : tx("instalar");
   b.disabled = !puedeInstalar();
   b.onclick = ev => { ev.stopPropagation(); encolar([it.id]); };
@@ -356,7 +358,7 @@ function ficha(it) {
   const c = document.createElement("button"); c.className = "cerrar"; c.textContent = tx("cerrar");
   c.onclick = () => $("ficha").close(); bot.appendChild(c);
   f.appendChild(bot);
-  let tabla = "<table><tr><td colspan=2>" + esc(tx("archivos")) + "</td></tr>";
+  let tabla = "<table><tr><th colspan=2>" + esc(tx("archivos")) + "</th></tr>";
   for (const x of it.files) {
     const l = look[x.dest];
     tabla += "<tr><td>" + esc(x.dest) + (l && l.size >= 0 ? (l.sha === x.sha256 ? " ✓" : " ·") : "") +
@@ -364,6 +366,7 @@ function ficha(it) {
   }
   f.insertAdjacentHTML("beforeend", tabla + "</table>");
   $("ficha").showModal();
+  history.replaceState(null, "", "#" + it.id);
 }
 
 /* --------------------------------------------------------------------------
@@ -383,17 +386,22 @@ async function catalogo() {
   } catch (e) { cat = null; }
 }
 
+/* What the watch has of every piece. A look that fails keeps the last one:
+   an empty answer would show everything as not installed. */
 async function mirar() {
-  look = {};
-  if (!cat) return;
+  if (!cat) { look = {}; return; }
   const dests = [];
   for (const it of cat.items) for (const f of it.files) dests.push(f.dest);
-  const r = await fetch("/api/store/look", { method: "POST", body: dests.join("\n") });
-  const txt = await r.text();
-  for (const line of txt.split("\n")) {
-    const [d, s, h] = line.split("\t");
-    if (d) look[d] = { size: parseInt(s, 10), sha: h };
-  }
+  try {
+    const r = await fetch("/api/store/look", { method: "POST", body: dests.join("\n") });
+    if (!r.ok) return;
+    const nuevo = {};
+    for (const line of (await r.text()).split("\n")) {
+      const [d, s, h] = line.split("\t");
+      if (d && h) nuevo[d] = { size: parseInt(s, 10), sha: h };
+    }
+    if (Object.keys(nuevo).length === dests.length) look = nuevo;
+  } catch (e) { /* the next one */ }
 }
 
 async function enviar(url, lineas) {
@@ -497,6 +505,10 @@ aos.init(TR).then(async () => {
     await mirar();
   } catch (e) { aos.brindis(tx("sin_red")); }
   pintar();
+  /* /tienda#<id> opens that item's page: a link to one app */
+  const pedido = decodeURIComponent(location.hash.slice(1));
+  const it = cat && pedido && cat.items.find(i => i.id === pedido || i.file === pedido);
+  if (it) ficha(it);
   ciclo();
 });
 </script>
