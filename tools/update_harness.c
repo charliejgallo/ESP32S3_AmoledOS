@@ -44,6 +44,7 @@ uint64_t aos_hal_uptime_ms(void)
     return (uint64_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 aos_net_state_t aos_hal_net_state(void) { return AOS_NET_CONNECTED; }
+bool aos_hal_net_sync_time(void) { return true; }
 
 static char g_pref[512];
 bool aos_hal_pref_get_str(const char *k, char *out, size_t n) { (void)k; snprintf(out, n, "%s", g_pref); return g_pref[0]; }
