@@ -126,6 +126,9 @@ GET  /api/update  POST /api/update   the next version from the latest release (d
                                  state, offered version, progress, the other slot's version;
                                  accion=buscar|instalar|cancelar|reiniciar|volver,
                                  fuente=<a test manifest's address> (empty: the official one)
+GET  /api/store  POST /api/store   the Store (docs/STORE.md): its state, accion=refrescar|cancelar,
+                                 fuente=<a test catalogue>; /api/store/catalog, and POST
+                                 /api/store/install|verify|look|remove with a line per file
 GET  /api/usb                    the USB port (docs/USB.md): mode, hid_ready, net_up,
                                  card_away, the devices seen in host mode, the pendrive,
                                  the OTG registers and the heap; ?mode=console|device|
