@@ -83,7 +83,9 @@ SETTINGS = ["wifi", "bluetooth", "flashlight", "watch-variant", "leaf",
             "chevron-left", "restart",
             # the control centre (aos_control.c), v0.5.1
             "cellphone", "lightning-bolt", "skip-previous", "play", "pause",
-            "skip-next", "cog", "music-note"]
+            "skip-next", "cog", "music-note",
+            # Settings -> Update (aos_update.c), v0.18.0
+            "update"]
 
 FILES = {
     "mdi.ttf":   "https://cdn.jsdelivr.net/npm/@mdi/font@%s/fonts/materialdesignicons-webfont.ttf",

@@ -38,3 +38,4 @@ LV_FONT_DECLARE(aos_settings_font);
 #define AOS_SG_SKIP_NEXT              "\xF3\xB0\x92\xAD"
 #define AOS_SG_COG                    "\xF3\xB0\x92\x93"
 #define AOS_SG_MUSIC_NOTE             "\xF3\xB0\x8E\x87"
+#define AOS_SG_UPDATE                 "\xF3\xB0\x9A\xB0"

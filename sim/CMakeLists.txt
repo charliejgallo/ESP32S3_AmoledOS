@@ -106,6 +106,8 @@ add_executable(amoledos_sim
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_http.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_tcp.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_radio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_fetch.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_update.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_notif.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_steps.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../components/aos_hal/aos_device_name.c

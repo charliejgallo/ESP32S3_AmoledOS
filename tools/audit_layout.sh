@@ -87,8 +87,8 @@ for lang in $LANGS; do
             | grep "^AUDIT" >> $OUT || true
     done
     # Settings' category pages (v0.5.0), which hang behind a row each:
-    # AOS_SIM_SUB opens one straight away, 0 (Wi-Fi) to 12 (diagnostics).
-    for sp in {0..12}; do
+    # AOS_SIM_SUB opens one straight away, 0 (Wi-Fi) to 13 (diagnostics).
+    for sp in {0..13}; do
         (cd $SIM && AOS_SIM_SUB=$sp AOS_SIM_AUDIT="$lang/aos.settings.p$sp" \
             AOS_SIM_VIEW="aos.settings" $BIN 2>/dev/null) \
             | grep "^AUDIT" >> $OUT || true

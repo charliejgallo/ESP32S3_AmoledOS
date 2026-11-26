@@ -25,6 +25,7 @@
 #include "aos_settings_glyphs.h"
 #include "aos_quick.h"
 #include "aos_gesture.h"
+#include "aos_update.h"      /* Settings -> Update */
 
 #include <math.h>
 #include <stdio.h>
@@ -118,7 +119,7 @@ typedef struct {
     lv_obj_t *sub;              /* the open category's page, or NULL           */
     int       sub_kind;
     lv_obj_t *tiles;            /* the six quick tiles (aos_quick.h)            */
-    lv_obj_t *value[13];        /* the right-hand text of each category row    */
+    lv_obj_t *value[16];        /* the right-hand text of each category row    */
     lv_obj_t *lang_check[AOS_LANG_MAX];
     lv_obj_t *style_card[3];
     lv_obj_t *time_label, *date_label;
@@ -127,6 +128,11 @@ typedef struct {
     lv_obj_t *dnd_box;                     /* second screen: picking a time */
     lv_obj_t *r_dh, *r_dm;
     int       dnd_which;                   /* 0 from, 1 to */
+    /* Update (aos_update.h) */
+    lv_obj_t *upd_status, *upd_bar, *upd_notes, *upd_btn, *upd_abi;
+    lv_obj_t *upd_prev_cap, *upd_prev_card, *upd_prev_ver;
+    lv_timer_t *upd_timer;
+    bool      upd_rolled_back;      /* READY because of "go back", not a download */
 } settings_t;
 
 static settings_t s_set;
@@ -1759,7 +1765,7 @@ static void cat_cb(lv_event_t *event)
 typedef enum {
     SUB_WIFI, SUB_BT, SUB_USB,
     SUB_DISPLAY, SUB_SOUND, SUB_NOTIF, SUB_MENU, SUB_TIME, SUB_LANG,
-    SUB_ENERGY, SUB_TOUCH, SUB_ABOUT,
+    SUB_ENERGY, SUB_TOUCH, SUB_UPDATE, SUB_ABOUT,
     SUB_DIAG,                   /* reached from About, not from the first page */
     SUB_COUNT
 } sub_t;
@@ -1772,6 +1778,8 @@ static void raise_wake_cb(lv_event_t *event);
 static void dnd_values(void);
 static void dnd_sched_cb(lv_event_t *event);
 static void dnd_time_cb(lv_event_t *event);
+static void update_refresh(lv_timer_t *timer);
+static void build_update(lv_obj_t *p);
 
 static const char *sub_title(int kind)
 {
@@ -1787,6 +1795,7 @@ static const char *sub_title(int kind)
     case SUB_LANG:    return _("Idioma");
     case SUB_ENERGY:  return _("Batería");
     case SUB_TOUCH:   return _("Tactil");
+    case SUB_UPDATE:  return _("Actualizar");
     case SUB_ABOUT:   return _("Acerca del reloj");
     case SUB_DIAG:    return _("Diagnóstico");
     default:          return "";
@@ -2222,6 +2231,19 @@ static void values_refresh(void)
         *dash = '\0';
     }
     set_value(SUB_ABOUT, buf);
+
+    aos_update_status_t u;
+    aos_update_status(&u);
+    switch (u.state) {
+    case AOS_UPD_READY:       set_value(SUB_UPDATE, _("reiniciar")); break;
+    case AOS_UPD_DOWNLOADING:
+        snprintf(buf, sizeof(buf), "%u %%", u.total ? (unsigned)((uint64_t)u.got * 100 / u.total) : 0);
+        set_value(SUB_UPDATE, buf);
+        break;
+    default:
+        set_value(SUB_UPDATE, u.newer ? u.ver : u.checked ? _("al día") : "");
+        break;
+    }
 }
 
 static void open_sub_cb(lv_event_t *event)
@@ -2263,6 +2285,7 @@ static void build_main(lv_obj_t *root)
         { SUB_LANG,    AOS_SG_TRANSLATE,             0x5E5CE6 },
         { SUB_ENERGY,  AOS_SG_BATTERY_HEART_VARIANT, 0x30D158 },
         { SUB_TOUCH,   AOS_SG_GESTURE_TAP,           0x40C8E0 },
+        { SUB_UPDATE,  AOS_SG_UPDATE,                0x30B0C7 },
         { SUB_ABOUT,   AOS_SG_INFORMATION_OUTLINE,   0x636366 },
     };
     lv_obj_t *c = NULL;
@@ -3184,6 +3207,242 @@ static void build_about(lv_obj_t *p)
     lv_obj_add_event_cb(btn, reboot_cb, LV_EVENT_LONG_PRESSED, NULL);
 }
 
+/* ---- Update (aos_update.h) ---------------------------------------------- */
+
+/* What the last job's failure means, said for a person. */
+static const char *update_error_text(aos_upd_err_t e)
+{
+    switch (e) {
+    case AOS_UPD_E_NO_NETWORK: return _("El reloj no está conectado a una red");
+    case AOS_UPD_E_NOT_THERE:  return _("La última versión publicada no trae actualización para el reloj");
+    case AOS_UPD_E_CLOCK:      return _("El reloj todavía no tiene la hora: probá en unos segundos");
+    case AOS_UPD_E_SERVER:     return _("No se pudo verificar el servidor");
+    case AOS_UPD_E_MANIFEST:   return _("La información de la versión no se entiende");
+    case AOS_UPD_E_UP_TO_DATE: return _("Está al día");
+    case AOS_UPD_E_DAMAGED:    return _("Lo descargado no es lo publicado: no se instaló");
+    case AOS_UPD_E_FLASH:      return _("No se pudo escribir la memoria del reloj");
+    case AOS_UPD_E_CANCELLED:  return _("Cancelado: el reloj sigue como estaba");
+    case AOS_UPD_E_MEMORY:     return _("Sin memoria para descargar");
+    default:                   return _("No se pudo descargar: probá de nuevo");
+    }
+}
+
+static void update_btn_cb(lv_event_t *event)
+{
+    aos_hal_activity();
+    aos_update_status_t u;
+    aos_update_status(&u);
+    bool long_press = lv_event_get_code(event) == LV_EVENT_LONG_PRESSED;
+    switch (u.state) {
+    case AOS_UPD_CHECKING:
+        break;
+    case AOS_UPD_DOWNLOADING:
+        if (!long_press) {
+            aos_update_cancel();
+        }
+        break;
+    case AOS_UPD_READY:
+        /* the restart is the person's, and held: a brush of the screen
+         * must not cut whatever is running */
+        if (long_press) {
+            aos_hal_reboot();
+        } else {
+            aos_ui_toast(_("Mantene apretado para reiniciar"), 1600);
+        }
+        break;
+    default:
+        if (long_press) {
+            break;
+        }
+        if (u.newer && u.state != AOS_UPD_FAILED) {
+            s_set.upd_rolled_back = false;
+            aos_update_install();
+        } else {
+            aos_update_check();
+        }
+        break;
+    }
+    update_refresh(NULL);
+}
+
+static void update_back_cb(lv_event_t *event)
+{
+    aos_hal_activity();
+    if (lv_event_get_code(event) != LV_EVENT_LONG_PRESSED) {
+        aos_ui_toast(_("Mantene apretado para volver a esa versión"), 1600);
+        return;
+    }
+    if (aos_update_rollback()) {
+        s_set.upd_rolled_back = true;
+    } else {
+        aos_ui_toast(_("No se pudo: esa versión no está entera"), 2000);
+    }
+    update_refresh(NULL);
+}
+
+static void update_refresh(lv_timer_t *timer)
+{
+    (void)timer;
+    if (!s_set.upd_status) {
+        return;
+    }
+    aos_update_status_t u;
+    aos_update_status(&u);
+    char buf[160];
+    const char *btn = NULL;
+    lv_color_t btn_color = AOS_C_ACCENT;
+    bool bar = false;
+
+    switch (u.state) {
+    case AOS_UPD_CHECKING:
+        text_to(s_set.upd_status, _("Buscando..."));
+        btn = _("Buscando...");
+        btn_color = lv_color_hex(0x3A3A3C);
+        break;
+    case AOS_UPD_DOWNLOADING:
+        snprintf(buf, sizeof(buf), _("Descargando %s: %.1f de %.1f MB"), u.ver,
+                 (double)u.got / 1048576.0, (double)u.total / 1048576.0);
+        text_to(s_set.upd_status, buf);
+        bar = true;
+        btn = _("Cancelar");
+        btn_color = lv_color_hex(0x3A3A3C);
+        break;
+    case AOS_UPD_READY:
+        if (s_set.upd_rolled_back) {
+            text_to(s_set.upd_status, _("La versión anterior arranca al reiniciar"));
+        } else {
+            snprintf(buf, sizeof(buf), _("%s está lista: arranca al reiniciar"), u.ver);
+            text_to(s_set.upd_status, buf);
+            bar = true;
+        }
+        btn = _("Mantene para reiniciar");
+        btn_color = AOS_C_GREEN;
+        break;
+    case AOS_UPD_FAILED:
+        text_to(s_set.upd_status, update_error_text(u.err));
+        btn = _("Buscar de nuevo");
+        break;
+    default:
+        if (u.newer) {
+            snprintf(buf, sizeof(buf), _("Hay una versión nueva: %s, %.1f MB"), u.ver,
+                     (double)u.size / 1048576.0);
+            text_to(s_set.upd_status, buf);
+            btn = _("Descargar e instalar");
+        } else if (u.checked) {
+            snprintf(buf, sizeof(buf), _("Está al día. La última publicada es %s"), u.ver);
+            text_to(s_set.upd_status, buf);
+            btn = _("Buscar de nuevo");
+        } else {
+            text_to(s_set.upd_status, _("Todavía no se buscó"));
+            btn = _("Buscar actualizaciones");
+        }
+        break;
+    }
+
+    lv_obj_t *bl = lv_obj_get_child(s_set.upd_btn, 0);
+    if (bl && btn) {
+        text_to(bl, btn);
+    }
+    lv_obj_set_style_bg_color(s_set.upd_btn, btn_color, 0);
+    if (bar) {
+        lv_obj_remove_flag(s_set.upd_bar, LV_OBJ_FLAG_HIDDEN);
+        bar_to(s_set.upd_bar, u.got, u.total ? u.total : 1);
+    } else {
+        lv_obj_add_flag(s_set.upd_bar, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    /* the notes of what is offered, in the watch's language */
+    if (u.newer && u.state != AOS_UPD_FAILED) {
+        char notes[640];
+        aos_update_notes(aos_i18n_current(), notes, sizeof(notes));
+        text_to(s_set.upd_notes, notes);
+    } else {
+        text_to(s_set.upd_notes, "");
+    }
+    if (lv_label_get_text(s_set.upd_notes)[0]) {
+        lv_obj_remove_flag(s_set.upd_notes, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(s_set.upd_notes, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    /* a version that needs other apps: the card's have to follow it */
+    bool abi = u.newer && u.abi >= 0 && u.abi != AOS_ABI_VERSION && !s_set.upd_rolled_back;
+    if (abi) {
+        lv_obj_remove_flag(s_set.upd_abi, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(s_set.upd_abi, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    /* the version in the other slot, to go back to */
+    bool prev = u.previous[0] && u.state != AOS_UPD_READY && u.state != AOS_UPD_DOWNLOADING;
+    if (prev) {
+        text_to(s_set.upd_prev_ver, u.previous);
+        lv_obj_remove_flag(s_set.upd_prev_cap, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(s_set.upd_prev_card, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(s_set.upd_prev_cap, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(s_set.upd_prev_card, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+static void build_update(lv_obj_t *p)
+{
+    char buf[128];
+    lv_obj_t *c = padded_card(p, 8);
+    lv_obj_set_flex_align(c, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
+    snprintf(buf, sizeof(buf), "AmoledOS %s", aos_hal_firmware_version());
+    lv_obj_t *t = aos_label(c, buf, aos_font_body, AOS_C_TEXT);
+    lv_obj_set_width(t, lv_pct(100));
+    lv_label_set_long_mode(t, LV_LABEL_LONG_MODE_WRAP);
+    s_set.upd_status = aos_label(c, "", aos_font_small, AOS_C_DIM);
+    lv_obj_set_width(s_set.upd_status, lv_pct(100));
+    lv_label_set_long_mode(s_set.upd_status, LV_LABEL_LONG_MODE_WRAP);
+    s_set.upd_bar = bar_new(c, 8, AOS_C_ACCENT);
+    s_set.upd_notes = aos_label(c, "", aos_font_small, AOS_C_TEXT);
+    lv_obj_set_width(s_set.upd_notes, lv_pct(100));
+    lv_label_set_long_mode(s_set.upd_notes, LV_LABEL_LONG_MODE_WRAP);
+
+    s_set.upd_btn = aos_button(p, _("Buscar actualizaciones"), AOS_C_ACCENT, NULL, NULL);
+    lv_obj_set_width(s_set.upd_btn, CONTENT_W - 20);
+    lv_label_set_long_mode(lv_obj_get_child(s_set.upd_btn, 0), LV_LABEL_LONG_MODE_DOTS);
+    lv_obj_add_event_cb(s_set.upd_btn, update_btn_cb, LV_EVENT_SHORT_CLICKED, NULL);
+    lv_obj_add_event_cb(s_set.upd_btn, update_btn_cb, LV_EVENT_LONG_PRESSED, NULL);
+
+    s_set.upd_abi = note(p, _("Esta versión necesita apps nuevas: después de reiniciar, las de la tarjeta se ponen al día desde el portal."));
+    lv_obj_set_style_text_color(s_set.upd_abi, AOS_C_ORANGE, 0);
+
+    if (aos_hal_ota_pending_verify()) {
+        note(p, _("Esta versión está a prueba: se confirma sola a los 30 segundos de andar."));
+    }
+
+    s_set.upd_prev_cap = caption(p, _("VERSIÓN ANTERIOR"));
+    s_set.upd_prev_card = card(p);
+    lv_obj_t *r = row_base(s_set.upd_prev_card);
+    lv_obj_t *n = aos_label(r, _("Volver a"), aos_font_body, AOS_C_TEXT);
+    lv_obj_set_flex_grow(n, 1);
+    s_set.upd_prev_ver = aos_label(r, "", aos_font_small, AOS_C_DIM);
+    make_touchable(r, update_back_cb, NULL, LV_EVENT_SHORT_CLICKED);
+    lv_obj_add_event_cb(r, update_back_cb, LV_EVENT_LONG_PRESSED, NULL);
+
+    aos_update_status_t u;
+    aos_update_status(&u);
+    if (u.custom_source) {
+        snprintf(buf, sizeof(buf), _("Fuente de prueba: %s"), u.source_host);
+        lv_obj_set_style_text_color(note(p, buf), AOS_C_YELLOW, 0);
+    }
+    note(p, _("La versión nueva arranca a prueba: si falla al arrancar, el reloj vuelve solo a la anterior. Tus ajustes y tus apps quedan."));
+
+    s_set.upd_timer = lv_timer_create(update_refresh, 500, NULL);
+
+    /* A look on opening, unless one was had a while ago: one TLS handshake,
+     * a couple of seconds, and a small file. */
+    if ((!u.checked || u.checked_ago_s > 3600) && u.state != AOS_UPD_CHECKING &&
+        u.state != AOS_UPD_DOWNLOADING && u.state != AOS_UPD_READY &&
+        aos_hal_net_state() == AOS_NET_CONNECTED) {
+        aos_update_check();
+    }
+}
+
 /* ---- Diagnostics -------------------------------------------------------- */
 
 static const uint32_t TEMP_COLOR[3] = { 0xFF9F0A, 0xFFD60A, 0x40C8E0 };
@@ -3411,6 +3670,12 @@ static void forget_sub_pointers(void)
     memset(s_set.usb_check, 0, sizeof(s_set.usb_check));
     memset(s_set.lang_check, 0, sizeof(s_set.lang_check));
     memset(s_set.style_card, 0, sizeof(s_set.style_card));
+    if (s_set.upd_timer) {
+        lv_timer_delete(s_set.upd_timer);
+        s_set.upd_timer = NULL;
+    }
+    s_set.upd_status = s_set.upd_bar = s_set.upd_notes = s_set.upd_btn = NULL;
+    s_set.upd_abi = s_set.upd_prev_cap = s_set.upd_prev_card = s_set.upd_prev_ver = NULL;
 }
 
 static void anim_x_cb(void *obj, int32_t v)
@@ -3484,6 +3749,7 @@ static void open_sub(int kind, bool animate)
     case SUB_LANG:    build_lang(p);    break;
     case SUB_ENERGY:  build_energy(p);  break;
     case SUB_TOUCH:   build_touch(p);   break;
+    case SUB_UPDATE:  build_update(p);  break;
     case SUB_ABOUT:   build_about(p);   break;
     case SUB_DIAG:    build_diag(p);    break;
     default: break;
@@ -3550,6 +3816,7 @@ static void refresh(lv_timer_t *timer)
 
     energy_refresh();
     diag_refresh();
+    update_refresh(NULL);
     /* The graphs move once a minute: redrawn then, not every two seconds. */
     uint32_t minute = (uint32_t)(aos_hal_uptime_ms() / 60000);
     if (minute != s_set.st.charts_at_min) {
@@ -3689,7 +3956,7 @@ static void *create(aos_app_t *self, lv_obj_t *root)
 
 #ifdef AOS_SIM
     /* AOS_SIM_SUB=<n> opens that category page straight away (sub_t order:
-     * 0 wifi ... 11 about, 12 diagnostics), for tools/audit_layout.sh and for
+     * 0 wifi ... 11 update, 12 about, 13 diagnostics), for tools/audit_layout.sh and for
      * screenshots. */
     const char *sim_sub = getenv("AOS_SIM_SUB");
     if (sim_sub && *sim_sub) {

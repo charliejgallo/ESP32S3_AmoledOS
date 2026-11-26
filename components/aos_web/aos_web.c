@@ -13,6 +13,7 @@
 #include "aos_dynapp.h" /* aos_dynapp_is_dynamic, for /api/apps */
 #include "aos_usb.h"    /* /api/usb: the USB port's mode, branch usb */
 #include "aos_web_access.h" /* who may talk to the portal */
+#include "aos_update.h"     /* /api/update: the next version, from GitHub */
 #include "esp_timer.h"
 #include "esp_core_dump.h"
 #include "esp_ota_ops.h"     /* which slot's firmware made a core dump */
@@ -853,6 +854,113 @@ static esp_err_t ota_restart_handler(httpd_req_t *req)
     httpd_resp_set_type(req, "application/json");
     esp_err_t r = httpd_resp_send(req, "{\"ok\":true}", HTTPD_RESP_USE_STRLEN);
     xTaskCreate(restart_task, "aos_restart", 2048, NULL, 5, NULL);
+    return r;
+}
+
+/* --------------------------------------------------------------------------
+ * The firmware's next version, from GitHub (aos_update.h)
+ *
+ * The same service as Settings -> Update at the watch: GET says where it
+ * stands, POST asks it for something. Nothing here is a new door: whoever can
+ * reach this can already POST an image to /api/ota, so pointing the watch at
+ * another manifest ("fuente") gives nobody more than they had.
+ *
+ *   POST accion=buscar | instalar | cancelar | reiniciar | volver
+ *   POST fuente=<url-encoded address>   another manifest; empty, the official
+ * -------------------------------------------------------------------------- */
+
+static bool leer_cuerpo(httpd_req_t *req, char *body, size_t body_len);
+
+static const char *const UPD_STATE[] = { "idle", "checking", "downloading", "ready", "failed" };
+
+static esp_err_t update_get_handler(httpd_req_t *req)
+{
+    aos_update_status_t u;
+    aos_update_status(&u);
+    char why[160], src[600];
+    json_escape(why, sizeof(why), u.why);
+    json_escape(src, sizeof(src), aos_update_source());
+    char *out = malloc(1400);
+    if (!out) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "sin memoria");
+        return ESP_FAIL;
+    }
+    snprintf(out, 1400,
+             "{\"running\":\"%s\",\"slot\":\"%s\",\"trial\":%s,\"state\":\"%s\",\"error\":%d,"
+             "\"why\":\"%s\",\"checked\":%s,\"checked_ago_s\":%u,\"newer\":%s,\"ver\":\"%s\","
+             "\"date\":\"%s\",\"size\":%u,\"abi\":%d,\"abi_here\":%d,\"got\":%u,\"total\":%u,"
+             "\"previous\":\"%s\",\"custom_source\":%s,\"source\":\"%s\"}",
+             aos_hal_firmware_version(), aos_hal_ota_running_slot(),
+             aos_hal_ota_pending_verify() ? "true" : "false",
+             UPD_STATE[u.state], (int)u.err, why, u.checked ? "true" : "false",
+             (unsigned)u.checked_ago_s, u.newer ? "true" : "false", u.ver, u.date,
+             (unsigned)u.size, u.abi, AOS_ABI_VERSION, (unsigned)u.got, (unsigned)u.total,
+             u.previous, u.custom_source ? "true" : "false", src);
+    httpd_resp_set_type(req, "application/json");
+    esp_err_t r = httpd_resp_sendstr(req, out);
+    free(out);
+    return r;
+}
+
+static esp_err_t update_post_handler(httpd_req_t *req)
+{
+    char *body = malloc(1024);
+    if (!body) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "sin memoria");
+        return ESP_FAIL;
+    }
+    if (!leer_cuerpo(req, body, 1024)) {
+        free(body);
+        return ESP_FAIL;
+    }
+    char accion[16] = "";
+    char fuente[600];
+    bool has_source = httpd_query_key_value(body, "fuente", fuente, sizeof(fuente)) == ESP_OK;
+    httpd_query_key_value(body, "accion", accion, sizeof(accion));
+    free(body);
+
+    bool ok = true;
+    const char *err = "";
+    if (has_source) {
+        url_decode(fuente);
+        ok = aos_update_set_source(fuente);
+        err = ok ? "" : "la fuente es una direccion http(s)://";
+    }
+    bool restart = false;
+    if (ok && accion[0]) {
+        if (strcmp(accion, "buscar") == 0) {
+            ok = aos_update_check();
+            err = "esta ocupado, o sin red";
+        } else if (strcmp(accion, "instalar") == 0) {
+            ok = aos_update_install();
+            err = "no hay una version nueva ofrecida, o esta ocupado";
+        } else if (strcmp(accion, "cancelar") == 0) {
+            aos_update_cancel();
+        } else if (strcmp(accion, "volver") == 0) {
+            ok = aos_update_rollback();
+            err = "la version anterior no esta entera";
+        } else if (strcmp(accion, "reiniciar") == 0) {
+            aos_update_status_t u;
+            aos_update_status(&u);
+            ok = u.state == AOS_UPD_READY;
+            err = "no hay nada listo para arrancar";
+            restart = ok;
+        } else {
+            ok = false;
+            err = "accion desconocida";
+        }
+    }
+    httpd_resp_set_type(req, "application/json");
+    if (!ok) {
+        httpd_resp_set_status(req, "409 Conflict");
+        char out[160];
+        snprintf(out, sizeof(out), "{\"ok\":false,\"error\":\"%s\"}", err);
+        return httpd_resp_sendstr(req, out);
+    }
+    esp_err_t r = httpd_resp_sendstr(req, "{\"ok\":true}");
+    if (restart) {
+        xTaskCreate(restart_task, "aos_restart", 2048, NULL, 5, NULL);
+    }
     return r;
 }
 
@@ -3930,6 +4038,8 @@ static const httpd_uri_t ROUTES[] = {
         { .uri = "/api/upload",  .method = HTTP_POST, .handler = upload_handler },
         { .uri = "/api/ota",     .method = HTTP_POST, .handler = ota_handler },
         { .uri = "/api/ota/restart", .method = HTTP_POST, .handler = ota_restart_handler },
+        { .uri = "/api/update",  .method = HTTP_GET,  .handler = update_get_handler },
+        { .uri = "/api/update",  .method = HTTP_POST, .handler = update_post_handler },
         { .uri = "/api/download",.method = HTTP_GET,  .handler = download_handler },
         { .uri = "/api/delete",  .method = HTTP_POST, .handler = delete_handler },
         { .uri = "/api/mkdir",   .method = HTTP_POST, .handler = mkdir_handler },
