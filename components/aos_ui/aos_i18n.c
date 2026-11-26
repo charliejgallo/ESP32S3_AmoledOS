@@ -43,6 +43,14 @@ typedef struct {
 } catalog_t;
 
 static catalog_t s_system;
+/* The firmware's own catalogue of the language, under a card's (v0.18.0).
+ * A card's _sistema.lang used to stand alone, and a firmware that updated
+ * itself from the watch (Settings -> Update) brought strings that the card's
+ * older pack did not have: its new page came out in Spanish under an English
+ * one. Now a string the card's pack lacks is looked for here, so the card
+ * still corrects any translation and a new firmware is never half
+ * untranslated. Empty when the language came from the firmware anyway. */
+static catalog_t s_base;
 static catalog_t s_app;
 /* The face on the screen when it comes from a module (v0.15.0): its own
  * catalogue, "<face id>.lang", beside the app's. A face is up under an app's
@@ -161,6 +169,9 @@ const char *aos_tr(const char *es)
     if (!hit) {
         hit = catalog_find(&s_system, es, h);
     }
+    if (!hit) {
+        hit = catalog_find(&s_base, es, h);
+    }
     if (hit) {
         return hit;
     }
@@ -189,6 +200,9 @@ const char *aos_trc(const char *ctx, const char *es)
     }
     if (!hit) {
         hit = catalog_find(&s_system, key, h);
+    }
+    if (!hit) {
+        hit = catalog_find(&s_base, key, h);
     }
     if (hit) {
         return hit;
@@ -521,6 +535,7 @@ bool aos_i18n_set(const char *code)
         catalog_free(&s_app);
         catalog_free(&s_face);
         catalog_free(&s_system);
+        catalog_free(&s_base);
         snprintf(s_code, sizeof(s_code), "%s", BASE_CODE);
         aos_hal_pref_set_str(PREF_KEY, BASE_CODE);
         aos_hal_log("i18n", "language: es (source, no pack)");
@@ -542,11 +557,22 @@ bool aos_i18n_set(const char *code)
         return false;
     }
 
+    /* under a card's pack, the firmware's own, for what the card lacks */
+    catalog_t base = { 0 };
+    if (desde_tarjeta) {
+        char *own = embedded_dup(code, SYSTEM_CATALOG);
+        if (own && !catalog_parse(&base, own, SYSTEM_CATALOG)) {
+            memset(&base, 0, sizeof(base));
+        }
+    }
+
     /* Only now that the new catalog is in hand do we drop the old one, so a
      * half-readable pack cannot leave the UI with no strings at all. */
     catalog_free(&s_app);
     catalog_free(&s_system);
+    catalog_free(&s_base);
     s_system = fresh;
+    s_base = base;
     snprintf(s_code, sizeof(s_code), "%s", code);
     face_catalog_load();        /* the face on the screen, in the new language */
     aos_hal_pref_set_str(PREF_KEY, s_code);
