@@ -845,6 +845,13 @@ esp_err_t aos_store_post_handler(httpd_req_t *req)
             aos_hal_pref_erase(PREF_SOURCE);
         }
         unlock();
+        /* the catalogue kept is the other source's: its addresses are not
+         * this one's, and showing it would offer what cannot be installed */
+        if (aos_hal_path_sd_root()) {
+            char path[64];
+            catalog_path(path, sizeof path, "");
+            remove(path);
+        }
         ESP_LOGI(TAG, "source: %s", fuente[0] ? fuente : "the official one");
     }
     if (!strcmp(accion, "refrescar")) {
