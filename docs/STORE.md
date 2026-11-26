@@ -153,6 +153,16 @@ immediate.
 | Free internal RAM, idle, with the Store in the firmware | 156 KB, as before |
 | Firmware, the page included | +36 KB |
 
-These were measured against a test source on the local network. From
-GitHub each file adds its TLS handshakes and two redirects, a second or two
-(not measured for the Store yet; the firmware's 4 MB came at 82 KB/s).
+These were measured against a test source on the local network. From the
+published v0.18.0 on GitHub, the same day:
+
+| | |
+|---|---|
+| The catalogue, 73 KB | 6.8 s |
+| Dice, three small files | 12.6 s |
+| Golf, 1.26 MB in four files | 27.2 s |
+| A watchface's two translations, from the portal by hand | 9.8 s |
+
+Each file from GitHub costs three TLS connections (github.com twice, then
+the signed address on another host), about four seconds before its first
+byte: small files are slow, big ones go at the card's speed.
