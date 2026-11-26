@@ -3,6 +3,39 @@
 Newest first. Versions are git tags; what is above the latest tag is on
 `main` and not yet in a release.
 
+## Unreleased
+
+**The watch updates itself, and the portal has a store.** Settings → System → **Update** looks at the
+latest published release on GitHub, says whether it is newer than what runs,
+with its notes in the watch's language, and on a tap downloads it straight
+into the idle half of the flash: hashed as it arrives, and set to boot only
+when its size and SHA-256 are the published ones. Restarting is a long press;
+the new version boots on trial as one from the portal, and the page offers to
+go back to the previous one, which stays in the other half. The portal has
+the same in `GET/POST /api/update` ([docs/UPDATE.md](docs/UPDATE.md)).
+
+- Each release carries one more file, `amoledos-update.json`, written by
+  `tools/gen_update.py`. v0.17.0 has none, so a watch on this firmware says
+  the latest release has no update for it until v0.18.0 is out.
+- Measured on the board: 4.08 MB from GitHub over TLS (two redirects, the
+  last to `release-assets.githubusercontent.com`) in 48 s, 82 KB/s, the flash
+  being written as it comes; 4.10 MB from the local network in 42 s. Free
+  internal RAM went from 157 KB to 147 at its lowest during the TLS download.
+- **The Store**, a page of the portal (`/tienda`, under Apps): the apps and
+  watchfaces of the latest release with their icons, pictures and a line
+  about each in the watch's language, and Install, Update, Update all and
+  Remove. The watch downloads every file from the release itself, hashes it
+  as it arrives and puts it in place only when it is the published one; the
+  page only says what to fetch, and the watch accepts nothing but the
+  release's addresses and the places an app's files may go. Apps copied by
+  hand are recognised, once checked, as the catalogue's. Each release carries
+  `amoledos-store.json` and one file per piece (`tools/gen_store.py`,
+  [docs/STORE.md](docs/STORE.md)).
+- **A watch whose date was 1970.** The RTC can keep the time of day and lose
+  the year, and nothing syncs over NTP by itself after a restart: the face
+  showed the right time and every certificate was "not valid yet". The
+  update syncs the clock first when the date is impossible.
+
 ## v0.17.0 — 2026-11-10
 
 **The portal, easier to move around, and the Landscape from a city or a

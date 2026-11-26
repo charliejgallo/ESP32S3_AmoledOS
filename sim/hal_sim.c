@@ -2706,7 +2706,13 @@ const char *aos_hal_ota_running_slot(void) { return "sim"; }
 /* On the board this comes from the app descriptor, which CMakeLists fills with
  * 'git describe --tags'. Here there is no descriptor and no point inventing a
  * number: what matters on the desktop is knowing you are NOT on the board. */
-const char *aos_hal_firmware_version(void) { return "sim"; }
+/* AOS_SIM_VERSION=v0.17.0 makes it a version, for Settings -> Update against
+ * tools/update_test_server.py; "sim" is newer than nothing. */
+const char *aos_hal_firmware_version(void)
+{
+    const char *v = getenv("AOS_SIM_VERSION");
+    return v && *v ? v : "sim";
+}
 
 void aos_hal_log(const char *tag, const char *fmt, ...)
 {

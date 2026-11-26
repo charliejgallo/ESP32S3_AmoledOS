@@ -122,6 +122,13 @@ GET  /api/radio   POST /api/radio   the Radio app's nine keys and what plays; do
                                  | clear&k= | swap&a=&b= | play&k= | test&name=&url= | pause | resume
                                  | stop | next | prev | vol&v= | art&on=  (docs/RADIO.md)
 POST /api/ota    POST /api/ota/restart
+GET  /api/update  POST /api/update   the next version from the latest release (docs/UPDATE.md):
+                                 state, offered version, progress, the other slot's version;
+                                 accion=buscar|instalar|cancelar|reiniciar|volver,
+                                 fuente=<a test manifest's address> (empty: the official one)
+GET  /api/store  POST /api/store   the Store (docs/STORE.md): its state, accion=refrescar|cancelar,
+                                 fuente=<a test catalogue>; /api/store/catalog, and POST
+                                 /api/store/install|verify|look|remove with a line per file
 GET  /api/usb                    the USB port (docs/USB.md): mode, hid_ready, net_up,
                                  card_away, the devices seen in host mode, the pendrive,
                                  the OTG registers and the heap; ?mode=console|device|

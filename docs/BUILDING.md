@@ -264,6 +264,11 @@ It POSTs `build/amoledos.bin` — the app alone, **not** the merged image — to
 points the bootloader at it. The same file can be dropped on the portal's front
 page, under *Firmware*.
 
+From v0.18.0 a watch on a published release does not need either: **Settings →
+Update** (or `/api/update`) fetches the latest release's image from GitHub and
+installs it from the watch itself, with the same trial boot. See
+[UPDATE.md](UPDATE.md).
+
 **It does not touch NVS.** The wifi, the language, the watchface and the apps'
 data survive, which is the whole difference against flashing `amoledos-full.bin`
 over USB.

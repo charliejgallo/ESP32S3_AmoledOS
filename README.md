@@ -172,6 +172,13 @@ on a phone), and it says so when the watch stops answering. See
   <em>The portal's Home, from the development server: the menu, the watch's screen with its controls, and the state.</em>
 </p>
 
+**Updates and a store, from the watch.** Settings → Update finds the latest
+release on GitHub and installs it from the watch itself, on trial, with the
+previous version a hold away ([docs/UPDATE.md](docs/UPDATE.md)). The portal's
+**Store** lists the release's apps and watchfaces with their icons and
+pictures, and the watch downloads, checks and installs the ones you pick: no
+`apps.zip` to copy ([docs/STORE.md](docs/STORE.md)).
+
 **The menu, in your order.** The portal's `/menu` page arranges the launcher:
 drag the apps into the order you want and into folders, and give each folder a
 name and an icon. Folders are hexagons with a gradient and a glyph, so they

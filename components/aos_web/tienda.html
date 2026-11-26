@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmoledOS - Tienda</title>
+<link rel="stylesheet" href="/aos.css">
+<style>
+  .barra { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+  .barra .sub { margin: 0; }
+  .barra input[type=search] { flex: 1; min-width: 0; background: var(--card); color: var(--text);
+                              border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 14px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .chips button { background: var(--card2); color: var(--text); padding: 6px 12px; border-radius: 999px;
+                  font-size: 13px; }
+  .chips button.on { background: var(--accent); color: #fff; }
+  .chips button .n { opacity: .7; margin-left: 4px; }
+  .aviso { background: var(--card); border-radius: 14px; padding: 12px 14px; margin-top: 12px;
+           display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .aviso.ambar { border-left: 4px solid var(--amber); }
+  .aviso.verde { border-left: 4px solid var(--green); }
+  .aviso.rojo { border-left: 4px solid var(--red); }
+  .aviso p { margin: 0; flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+  .aviso p:empty { display: none; }
+  .progreso { height: 6px; background: var(--card2); border-radius: 3px; overflow: hidden; flex-basis: 100%; }
+  .progreso i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+  .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: 12px; margin-top: 14px; }
+  .item { background: var(--card); border-radius: 16px; padding: 12px; display: flex; gap: 12px;
+          align-items: center; cursor: pointer; }
+  .item:hover { background: var(--card2); }
+  .item canvas, .item .cara { width: 58px; height: 58px; flex: none; }
+  .item .cara { border-radius: 12px; object-fit: cover; background: #000; }
+  .item .txt { flex: 1; min-width: 0; }
+  .item b { font-weight: 600; font-size: 15px; display: block; }
+  .item .linea { color: var(--dim); font-size: 12.5px; display: -webkit-box; -webkit-line-clamp: 2;
+                 -webkit-box-orient: vertical; overflow: hidden; }
+  .item .meta { font-size: 11.5px; color: var(--dim); margin-top: 3px; }
+  .item .meta .ok { color: var(--green); }
+  .item .meta .upd { color: var(--accent); }
+  .item .meta .mano { color: var(--amber); }
+  button.accion { padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+                  background: var(--accent-soft); color: var(--accent); flex: none; }
+  button.accion.abrir { background: var(--card2); color: var(--text); }
+  button.accion:disabled { opacity: .5; }
+  dialog { background: var(--card); color: var(--text); border: 0; border-radius: 18px; padding: 0;
+           width: min(560px, 94vw); max-height: 90vh; }
+  dialog::backdrop { background: rgba(0,0,0,.55); }
+  .ficha { padding: 18px; overflow: auto; max-height: 90vh; }
+  .ficha .cab { display: flex; gap: 14px; align-items: center; }
+  .ficha .cab canvas, .ficha .cab .cara { width: 74px; height: 74px; flex: none; }
+  .ficha .cab .cara { border-radius: 14px; object-fit: cover; }
+  .ficha h2 { margin: 0; font-size: 21px; text-transform: none; letter-spacing: 0; }
+  .ficha .tiras { display: flex; gap: 10px; overflow-x: auto; margin: 14px 0 6px; scroll-snap-type: x mandatory; }
+  .ficha .tiras img { height: 230px; border-radius: 14px; scroll-snap-align: start; background: #000; }
+  .ficha .botones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .ficha .botones button { padding: 9px 16px; border-radius: 999px; font-weight: 600; }
+  .ficha .botones .quitar { background: #3a2626; color: var(--red); }
+  .ficha .botones .cerrar { background: var(--card2); color: var(--text); margin-left: auto; }
+  .ficha table { width: 100%; font-size: 12px; color: var(--dim); margin-top: 12px; border-collapse: collapse; }
+  .ficha td { padding: 3px 0; border-top: 1px solid var(--line); font-family: ui-monospace, Menlo, monospace; }
+  .ficha td:last-child { text-align: right; }
+  .ficha th { text-align: left; font-weight: 500; padding: 3px 0; }
+  .nota { color: var(--dim); font-size: 13px; margin-top: 16px; line-height: 1.5; }
+  .vacio { color: var(--dim); padding: 20px 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-t="titulo">Tienda</h1></div>
+  <p class="sub" data-t="bajada">Las apps y las esferas de la última versión publicada. El reloj las baja
+     de GitHub, comprueba cada archivo y lo pone en su lugar.</p>
+
+  <nav class="paginas"></nav>
+
+  <div class="barra">
+    <input type="search" id="buscar" data-tp="buscar" placeholder="Buscar">
+    <button id="refrescar" data-t="refrescar">Buscar novedades</button>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div id="avisos"></div>
+  <div class="grilla" id="grilla"><p class="vacio" data-t="cargando">Cargando…</p></div>
+
+  <p class="nota" id="pie"></p>
+  <p class="nota" data-t="nota">Una app nueva aparece en el menú después de reiniciar el reloj: las apps
+     de la tarjeta y las esferas se cargan al arrancar. Lo que guardó cada app (records, ajustes) queda
+     cuando se actualiza.</p>
+</div>
+
+<dialog id="ficha" onclose="history.replaceState(null, '', location.pathname)"><div class="ficha" id="ficha-in"></div></dialog>
+
+<script src="/aos.js"></script>
+<script src="/aic.js"></script>
+<script>
+const $ = aos.$;
+
+const TR = {
+  en: {
+    titulo: "Store",
+    bajada: "The apps and watchfaces of the latest published version. The watch downloads them from " +
+            "GitHub, checks every file and puts it in its place.",
+    buscar: "Search", refrescar: "Check for new ones", cargando: "Loading…",
+    nota: "A new app shows in the menu after the watch restarts: the card's apps and the watchfaces " +
+          "are loaded at boot. What each app saved (records, settings) stays when it is updated."
+  },
+  de: {
+    titulo: "Store",
+    bajada: "Die Apps und Zifferblätter der neuesten veröffentlichten Version. Die Uhr lädt sie von " +
+            "GitHub, prüft jede Datei und legt sie an ihren Platz.",
+    buscar: "Suchen", refrescar: "Nach Neuem suchen", cargando: "Lädt…",
+    nota: "Eine neue App erscheint im Menü nach einem Neustart der Uhr: die Apps der Karte und die " +
+          "Zifferblätter werden beim Start geladen. Was eine App gespeichert hat (Rekorde, Einstellungen), " +
+          "bleibt beim Aktualisieren erhalten."
+  }
+};
+/* What the page says from script, in the three languages. */
+const TX = {
+  es: {
+    todas: "Todas", instaladas: "Instaladas", actualizar: "Con actualización",
+    instalar: "Instalar", actualizarla: "Actualizar", instalada: "Instalada", mano: "Copiada a mano",
+    quitar: "Quitar", cerrar: "Cerrar", conf_quitar: "¿Quitar %s del reloj? Lo que guardó la app queda.",
+    bajando: "Bajando %s: %s de %s", verificando: "Revisando los archivos copiados a mano…",
+    catalogo: "Catálogo de %s · %s", sin_catalogo: "El reloj todavía no bajó el catálogo.",
+    bajando_cat: "Bajando el catálogo…", reiniciar_txt: "Hay apps o esferas nuevas: se cargan cuando el reloj arranca.",
+    reiniciar: "Reiniciar el reloj", reiniciando: "Reiniciando…",
+    todas_upd: "Actualizar todas (%d)", cola: "en la cola",
+    mano_txt: "%d apps están copiadas a mano: el reloj no sabe si son las del catálogo.",
+    verificar: "Revisarlas", verificado: "Revisadas: %d de %d son las del catálogo.",
+    abi: "Esta tienda es para otra versión del firmware (apps ABI %s, el reloj %s): actualizá el reloj primero, en Ajustes → Actualizar.",
+    sin_tarjeta: "El reloj no tiene tarjeta: la tienda guarda ahí las apps.",
+    fuente: "Fuente de prueba: %s",
+    fallo: "No se pudo: %s", hecho: "%s quedó instalada.", sin_red: "El reloj no contesta",
+    archivos: "Archivos", tamano: "%s", nada: "Nada con ese filtro.", esfera: "Esfera",
+    no_publicado: "La última versión publicada todavía no trae tienda (llega con v0.18.0)."
+  },
+  en: {
+    todas: "All", instaladas: "Installed", actualizar: "Updates",
+    instalar: "Install", actualizarla: "Update", instalada: "Installed", mano: "Copied by hand",
+    quitar: "Remove", cerrar: "Close", conf_quitar: "Remove %s from the watch? What the app saved stays.",
+    bajando: "Downloading %s: %s of %s", verificando: "Looking at the files copied by hand…",
+    catalogo: "Catalogue of %s · %s", sin_catalogo: "The watch has not downloaded the catalogue yet.",
+    bajando_cat: "Downloading the catalogue…", reiniciar_txt: "There are new apps or watchfaces: they load when the watch starts.",
+    reiniciar: "Restart the watch", reiniciando: "Restarting…",
+    todas_upd: "Update all (%d)", cola: "queued",
+    mano_txt: "%d apps were copied by hand: the watch does not know whether they are the catalogue's.",
+    verificar: "Check them", verificado: "Checked: %d of %d are the catalogue's.",
+    abi: "This store is for another firmware (apps ABI %s, the watch's %s): update the watch first, in Settings → Update.",
+    sin_tarjeta: "The watch has no card: the store keeps the apps there.",
+    fuente: "Test source: %s",
+    fallo: "It failed: %s", hecho: "%s is installed.", sin_red: "The watch does not answer",
+    archivos: "Files", tamano: "%s", nada: "Nothing with that filter.", esfera: "Watchface",
+    no_publicado: "The latest published version has no store yet (it comes with v0.18.0)."
+  },
+  de: {
+    todas: "Alle", instaladas: "Installiert", actualizar: "Updates",
+    instalar: "Installieren", actualizarla: "Aktualisieren", instalada: "Installiert", mano: "Von Hand kopiert",
+    quitar: "Entfernen", cerrar: "Schließen", conf_quitar: "%s von der Uhr entfernen? Was die App gespeichert hat, bleibt.",
+    bajando: "Lade %s: %s von %s", verificando: "Prüfe die von Hand kopierten Dateien…",
+    catalogo: "Katalog von %s · %s", sin_catalogo: "Die Uhr hat den Katalog noch nicht geladen.",
+    bajando_cat: "Lade den Katalog…", reiniciar_txt: "Es gibt neue Apps oder Zifferblätter: sie werden beim Start der Uhr geladen.",
+    reiniciar: "Uhr neu starten", reiniciando: "Startet neu…",
+    todas_upd: "Alle aktualisieren (%d)", cola: "in der Warteschlange",
+    mano_txt: "%d Apps wurden von Hand kopiert: die Uhr weiß nicht, ob es die des Katalogs sind.",
+    verificar: "Prüfen", verificado: "Geprüft: %d von %d sind die des Katalogs.",
+    abi: "Dieser Store ist für eine andere Firmware (Apps-ABI %s, die Uhr %s): zuerst die Uhr aktualisieren, unter Einstellungen → Aktualisieren.",
+    sin_tarjeta: "Die Uhr hat keine Karte: der Store legt die Apps dort ab.",
+    fuente: "Testquelle: %s",
+    fallo: "Fehlgeschlagen: %s", hecho: "%s ist installiert.", sin_red: "Die Uhr antwortet nicht",
+    archivos: "Dateien", tamano: "%s", nada: "Nichts mit diesem Filter.", esfera: "Zifferblatt",
+    no_publicado: "Die neueste Version hat noch keinen Store (er kommt mit v0.18.0)."
+  }
+};
+function tx(k, ...a) {
+  let s = (TX[aos.idioma()] || TX.es)[k] || TX.es[k] || k;
+  for (const v of a) s = s.replace(/%[sd]/, v);
+  return s;
+}
+const esc = aos.esc;
+function mb(n) { return n >= 1e6 ? (n / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1e3)) + " KB"; }
+function lang3(o) { return (o && (o[aos.idioma()] || o.en || o.es)) || ""; }
+
+/* --------------------------------------------------------------------------
+ * State
+ * ------------------------------------------------------------------------- */
+let cat = null;           /* the catalogue */
+let st = null;            /* GET /api/store */
+let look = {};            /* dest -> {size, sha} */
+let filtro = "todas", texto = "";
+let cola = [];            /* ids waiting to install, in order */
+let enCurso = null;       /* the id being installed */
+let ultimoTrabajo = -1;
+
+/* What an item is on the watch: "absent", "installed", "update", "hand". */
+function estadoDe(it) {
+  const main = it.files[0], m = look[main.dest];
+  if (!m || m.size < 0) return "absent";
+  let todos = true, alguno = false;
+  for (const f of it.files) {
+    const l = look[f.dest];
+    if (!l || l.size < 0 || l.sha !== f.sha256) todos = false;
+    if (l && l.sha && l.sha !== "-") alguno = true;
+  }
+  if (todos) return "installed";
+  if (m.sha === "-" && m.size === main.size) return "hand";
+  return "update";
+}
+
+function pasa(it) {
+  const e = estadoDe(it);
+  if (filtro === "instaladas" && e === "absent") return false;
+  if (filtro === "actualizar" && e !== "update") return false;
+  if (filtro !== "todas" && filtro !== "instaladas" && filtro !== "actualizar" && it.cat !== filtro) return false;
+  if (texto) {
+    const h = (lang3(it.name) + " " + lang3(it.about) + " " + it.file).toLowerCase();
+    if (h.indexOf(texto) < 0) return false;
+  }
+  return true;
+}
+
+/* --------------------------------------------------------------------------
+ * Drawing
+ * ------------------------------------------------------------------------- */
+function icono(it, size) {
+  if (it.kind === "face") {
+    const img = document.createElement("img");
+    img.className = "cara"; img.loading = "lazy"; img.alt = "";
+    if (it.shots && it.shots[0]) img.src = it.shots[0];
+    return img;
+  }
+  const c = document.createElement("canvas");
+  const bytes = Uint8Array.from(atob(it.icon || ""), ch => ch.charCodeAt(0));
+  AIC.render(c, { color_a: it.colors[0], color_b: it.colors[1] }, bytes.length ? bytes : null, size);
+  return c;
+}
+
+function botonDe(it) {
+  const e = estadoDe(it), b = document.createElement("button");
+  b.className = "accion";
+  if (cola.includes(it.id) || enCurso === it.id) { b.textContent = enCurso === it.id ? "…" : tx("cola"); b.disabled = true; return b; }
+  if (e === "installed") { b.textContent = "✓"; b.className += " abrir"; b.disabled = true; return b; }
+  if (e === "hand") { b.style.display = "none"; return b; }
+  b.textContent = e === "update" ? tx("actualizarla") : tx("instalar");
+  b.disabled = !puedeInstalar();
+  b.onclick = ev => { ev.stopPropagation(); encolar([it.id]); };
+  return b;
+}
+
+function puedeInstalar() { return st && st.sd && cat && String(cat.abi) === String(st.abi_here); }
+
+function pintarChips() {
+  const ch = $("chips"); ch.innerHTML = "";
+  if (!cat) return;
+  const upd = cat.items.filter(i => estadoDe(i) === "update").length;
+  const ins = cat.items.filter(i => estadoDe(i) !== "absent").length;
+  const lista = [["todas", tx("todas"), cat.items.length], ["instaladas", tx("instaladas"), ins]];
+  if (upd) lista.push(["actualizar", tx("actualizar"), upd]);
+  for (const c of cat.cats) {
+    const n = cat.items.filter(i => i.cat === c.id).length;
+    if (n) lista.push([c.id, lang3(c.name), n]);
+  }
+  for (const [id, nombre, n] of lista) {
+    const b = document.createElement("button");
+    b.className = filtro === id ? "on" : "";
+    b.innerHTML = esc(nombre) + '<span class="n">' + n + "</span>";
+    b.onclick = () => { filtro = id; pintar(); };
+    ch.appendChild(b);
+  }
+}
+
+function pintarAvisos() {
+  const av = $("avisos"); av.innerHTML = "";
+  function aviso(clase, html, boton, accion, progreso) {
+    const d = document.createElement("div");
+    d.className = "aviso " + clase;
+    d.innerHTML = "<p>" + html + "</p>";
+    if (boton) { const b = document.createElement("button"); b.textContent = boton; b.onclick = accion; d.appendChild(b); }
+    if (progreso !== undefined) d.innerHTML += '<div class="progreso"><i style="width:' + progreso + '%"></i></div>';
+    av.appendChild(d);
+  }
+  if (!st) return;
+  if (!st.sd) aviso("rojo", esc(tx("sin_tarjeta")));
+  if (st.custom_source) aviso("ambar", esc(tx("fuente", st.source)));
+  if (cat && String(cat.abi) !== String(st.abi_here)) aviso("rojo", esc(tx("abi", cat.abi, st.abi_here)));
+  if (st.busy && st.job === "refresh") aviso("", esc(tx("bajando_cat")), null, null, st.total ? 100 * st.got / st.total : 5);
+  if (st.busy && st.job === "install") {
+    const it = cat && cat.items.find(i => i.id === st.item);
+    const nombre = it ? lang3(it.name) : st.item;
+    const pct = it ? 100 * (st.index + (st.total ? st.got / st.total : 0)) / Math.max(1, st.count) : 0;
+    aviso("", esc(tx("bajando", nombre, st.index + 1, st.count)) + (st.total ? " · " + mb(st.got) + " / " + mb(st.total) : ""),
+          null, null, pct);
+  }
+  if (st.busy && st.job === "verify") aviso("", esc(tx("verificando")), null, null, 100 * st.index / Math.max(1, st.count));
+  if (!st.busy && !st.last_ok && st.last) aviso("rojo", esc(tx("fallo", st.last)));
+  if (st.restart) aviso("verde", esc(tx("reiniciar_txt")), tx("reiniciar"), reiniciar);
+  if (cat && !st.busy) {
+    const upd = cat.items.filter(i => estadoDe(i) === "update");
+    if (upd.length > 1 && puedeInstalar())
+      aviso("", "", tx("todas_upd", upd.length), () => encolar(upd.map(i => i.id)));
+    const mano = cat.items.filter(i => estadoDe(i) === "hand");
+    if (mano.length) aviso("ambar", esc(tx("mano_txt", mano.length)), tx("verificar"), () => verificar(mano));
+  }
+}
+
+function pintar() {
+  pintarChips();
+  pintarAvisos();
+  const g = $("grilla"); g.innerHTML = "";
+  if (!cat) {
+    g.innerHTML = '<p class="vacio">' + esc(st && st.last_job === "refresh" && !st.last_ok &&
+      /404/.test(st.last) ? tx("no_publicado") : tx("sin_catalogo")) + "</p>";
+    return;
+  }
+  const lista = cat.items.filter(pasa);
+  if (!lista.length) { g.innerHTML = '<p class="vacio">' + esc(tx("nada")) + "</p>"; return; }
+  for (const it of lista) {
+    const d = document.createElement("div");
+    d.className = "item";
+    d.appendChild(icono(it, 58));
+    const e = estadoDe(it);
+    const t = document.createElement("div");
+    t.className = "txt";
+    t.innerHTML = "<b>" + esc(lang3(it.name)) + '</b><span class="linea">' + esc(lang3(it.about)) +
+      '</span><div class="meta">' + mb(it.size) +
+      (e === "installed" ? ' · <span class="ok">' + esc(tx("instalada")) + "</span>" :
+       e === "update" ? ' · <span class="upd">' + esc(tx("actualizarla")) + "</span>" :
+       e === "hand" ? ' · <span class="mano">' + esc(tx("mano")) + "</span>" : "") + "</div>";
+    d.appendChild(t);
+    d.appendChild(botonDe(it));
+    d.onclick = () => ficha(it);
+    g.appendChild(d);
+  }
+  $("pie").textContent = cat ? tx("catalogo", cat.release, cat.date) : "";
+}
+
+function ficha(it) {
+  const f = $("ficha-in"); f.innerHTML = "";
+  const cab = document.createElement("div"); cab.className = "cab";
+  cab.appendChild(icono(it, 74));
+  const n = document.createElement("div");
+  n.innerHTML = "<h2>" + esc(lang3(it.name)) + '</h2><div class="sub">' +
+    esc((it.kind === "face" ? tx("esfera") : lang3((cat.cats.find(c => c.id === it.cat) || {}).name)) + " · " + mb(it.size)) + "</div>";
+  cab.appendChild(n);
+  f.appendChild(cab);
+  if (it.shots && it.shots.length) {
+    const tiras = document.createElement("div"); tiras.className = "tiras";
+    for (const s of it.shots) { const i = document.createElement("img"); i.src = s; i.loading = "lazy"; tiras.appendChild(i); }
+    f.appendChild(tiras);
+  }
+  const p = document.createElement("p"); p.textContent = lang3(it.about); f.appendChild(p);
+  const bot = document.createElement("div"); bot.className = "botones";
+  const e = estadoDe(it);
+  if (e !== "installed" && e !== "hand") {
+    const b = botonDe(it); b.onclick = () => { encolar([it.id]); $("ficha").close(); }; bot.appendChild(b);
+  }
+  if (e !== "absent") {
+    const q = document.createElement("button"); q.className = "quitar"; q.textContent = tx("quitar");
+    q.onclick = () => quitar(it); bot.appendChild(q);
+  }
+  const c = document.createElement("button"); c.className = "cerrar"; c.textContent = tx("cerrar");
+  c.onclick = () => $("ficha").close(); bot.appendChild(c);
+  f.appendChild(bot);
+  let tabla = "<table><tr><th colspan=2>" + esc(tx("archivos")) + "</th></tr>";
+  for (const x of it.files) {
+    const l = look[x.dest];
+    tabla += "<tr><td>" + esc(x.dest) + (l && l.size >= 0 ? (l.sha === x.sha256 ? " ✓" : " ·") : "") +
+             "</td><td>" + mb(x.size) + "</td></tr>";
+  }
+  f.insertAdjacentHTML("beforeend", tabla + "</table>");
+  $("ficha").showModal();
+  history.replaceState(null, "", "#" + it.id);
+}
+
+/* --------------------------------------------------------------------------
+ * Talking to the watch
+ * ------------------------------------------------------------------------- */
+async function estado() {
+  const r = await fetch("/api/store", { cache: "no-store" });
+  st = await r.json();
+  return st;
+}
+
+async function catalogo() {
+  try {
+    const r = await fetch("/api/store/catalog", { cache: "no-store" });
+    cat = r.ok ? await r.json() : null;
+    if (cat && cat.schema !== 1) cat = null;
+  } catch (e) { cat = null; }
+}
+
+/* What the watch has of every piece. A look that fails keeps the last one:
+   an empty answer would show everything as not installed. */
+async function mirar() {
+  if (!cat) { look = {}; return; }
+  const dests = [];
+  for (const it of cat.items) for (const f of it.files) dests.push(f.dest);
+  try {
+    const r = await fetch("/api/store/look", { method: "POST", body: dests.join("\n") });
+    if (!r.ok) return;
+    const nuevo = {};
+    for (const line of (await r.text()).split("\n")) {
+      const [d, s, h] = line.split("\t");
+      if (d && h) nuevo[d] = { size: parseInt(s, 10), sha: h };
+    }
+    if (Object.keys(nuevo).length === dests.length) look = nuevo;
+  } catch (e) { /* the next one */ }
+}
+
+async function enviar(url, lineas) {
+  const r = await fetch(url, { method: "POST", body: lineas.join("\n") });
+  if (!r.ok) { let m = r.status; try { m = (await r.json()).error; } catch (e) {} throw new Error(m); }
+}
+
+function encolar(ids) {
+  for (const id of ids) if (!cola.includes(id) && enCurso !== id) cola.push(id);
+  siguiente();
+  pintar();
+}
+
+async function siguiente() {
+  if (enCurso || !cola.length || !st || st.busy) return;
+  const id = cola.shift(), it = cat.items.find(i => i.id === id);
+  if (!it) return siguiente();
+  enCurso = id;
+  const lineas = ["item " + id];
+  for (const f of it.files) lineas.push([f.dest, f.size, f.sha256, f.url].join("\t"));
+  try {
+    await enviar("/api/store/install", lineas);
+    await estado();
+  } catch (e) {
+    enCurso = null; aos.brindis(tx("fallo", e.message)); cola = []; pintar();
+  }
+}
+
+async function verificar(items) {
+  const lineas = [];
+  for (const it of items) for (const f of it.files) {
+    const l = look[f.dest];
+    if (l && l.size === f.size && l.sha !== f.sha256) lineas.push([f.dest, f.size, f.sha256].join("\t"));
+  }
+  try { await enviar("/api/store/verify", lineas.slice(0, 190)); await estado(); pintar(); }
+  catch (e) { aos.brindis(tx("fallo", e.message)); }
+}
+
+async function quitar(it) {
+  if (!confirm(tx("conf_quitar", lang3(it.name)))) return;
+  try {
+    if (it.kind === "face") {
+      /* the face may be registered: taken off by its own call first */
+      await fetch("/api/esferas/quitar", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                                           body: "id=" + encodeURIComponent(it.id) });
+    }
+    await enviar("/api/store/remove", it.files.map(f => f.dest));
+    $("ficha").close();
+    await estado(); await mirar(); pintar();
+  } catch (e) { aos.brindis(tx("fallo", e.message)); }
+}
+
+async function refrescar() {
+  try { await aos.post("/api/store", { accion: "refrescar" }); await estado(); pintar(); }
+  catch (e) { aos.brindis(tx("fallo", e.message)); }
+}
+
+async function reiniciar() {
+  aos.brindis(tx("reiniciando"));
+  try { await fetch("/api/ota/restart", { method: "POST" }); } catch (e) {}
+}
+
+/* Every second while the watch works, every ten otherwise. */
+async function ciclo() {
+  try {
+    const antes = st;
+    await estado();
+    if (st.jobs_done !== ultimoTrabajo) {
+      const ultimo = ultimoTrabajo;
+      ultimoTrabajo = st.jobs_done;
+      if (ultimo >= 0) {
+        if (st.last_job === "refresh") await catalogo();
+        if (st.last_job === "install" && enCurso) {
+          if (st.last_ok) {
+            const it = cat.items.find(i => i.id === enCurso);
+            aos.brindis(tx("hecho", it ? lang3(it.name) : enCurso));
+          } else cola = [];
+          enCurso = null;
+        }
+        if (st.last_job === "verify") aos.brindis(tx("verificado", st.adopted, st.verified));
+        await mirar();
+      }
+    }
+    pintar();
+    siguiente();
+  } catch (e) { /* the watch went away for a moment */ }
+  setTimeout(ciclo, st && (st.busy || cola.length || enCurso) ? 900 : 10000);
+}
+
+$("buscar").oninput = e => { texto = e.target.value.trim().toLowerCase(); pintar(); };
+$("refrescar").onclick = refrescar;
+
+aos.init(TR).then(async () => {
+  const ph = aos.t("buscar"); if (ph !== "buscar") $("buscar").placeholder = ph;
+  try {
+    await estado();
+    ultimoTrabajo = st.jobs_done;
+    await catalogo();
+    /* the first visit, or a catalogue older than a day: look again */
+    if ((!cat || st.catalog_age_s > 86400) && !st.busy && st.sd) await refrescar();
+    await mirar();
+  } catch (e) { aos.brindis(tx("sin_red")); }
+  pintar();
+  /* /tienda#<id> opens that item's page: a link to one app */
+  const pedido = decodeURIComponent(location.hash.slice(1));
+  const it = cat && pedido && cat.items.find(i => i.id === pedido || i.file === pedido);
+  if (it) ficha(it);
+  ciclo();
+});
+</script>
+</body>
+</html>
